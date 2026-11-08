@@ -32,9 +32,10 @@ rows; and the console creates and binds a tenant's remote keys from them.**
 1. **The bind request names the key, not its public half.** `ImportRemoteSecretRequest` carries
    `RemoteKeyProvider`, `RemoteKeyId`, `SecretType`, `KeySizeBits`, `Curve`, `Algorithm` and the lifecycle
    (`ActivatesWhen`, `RetiresWhen`, `ExpiresWhen`): the fields of `CreateRemoteSecretRequest` and the key
-   identifier. `ISecretValidator.ValidateImportRemote` checks them as `ValidateCreateRemote` does (the lifecycle, a
-   key type a KMS can hold, a described provider, an algorithm that resolves the key's size and curve, and a row
-   for them) and checks the key identifier's length and characters, before any KMS call.
+   identifier. `ISecretValidator.ValidateImportRemote` checks the lifecycle and the key identifier's length and
+   characters, and it and `ValidateCreateRemote` check the rest with `ISecretValidator.ValidateRemoteKey`: a key type
+   a KMS can hold, a described provider, an algorithm that resolves the key's size and curve, and a row for them, all
+   before any KMS call.
 2. **The generator reads the public half.** `ISecretGenerator.BindRemoteSecretAsync(BindRemoteSecretRequest)`
    finds the provider and the row, reads the key's `SubjectPublicKeyInfo` with `GetPublicKeyAsync`, which refuses a
    key whose usage, specification or signing algorithms do not match the row, and checks that the half is a key of
@@ -45,12 +46,17 @@ rows; and the console creates and binds a tenant's remote keys from them.**
    stored only once the KMS signs with it for the row's algorithm under the deployment's identity.
 4. **A refusal is a `400`, a failure a `502`.** A key identifier the provider does not read, a key it refuses and a
    half that does not match the row answer `400` with the reason; any other failure of the KMS is logged and
-   answers `502`. A secret identifier or `kid` the tenant already holds answers `409` before the binding is proved.
+   answers `502`. The generator signals its own refusal with `RemoteSecretRefusedException`, and a provider signals a
+   key identifier it does not read with `ArgumentException` and a key it refuses with `CryptographicException`, as
+   `IRemoteKeyProvider.GetPublicKeyAsync` documents; no other exception, such as an `InvalidOperationException` from
+   a KMS client or its credentials, is read as a refusal. A create answers the generator's refusal `400` and any
+   other failure `502` the same way. A secret identifier or `kid` the tenant already holds answers `409` before the
+   binding is proved.
 5. **The capabilities list each provider's algorithms.** `IRemoteKeyDescriptorCatalog.Algorithms` lists every row,
    ordered. Each `remoteKeyProviders` entry carries `Algorithms`: the provider's rows
-   (`RemoteKeyAlgorithmCapabilityResource { Algorithm, SecretType, KeySizeBits, Curve }`) whose algorithm is a
-   registered signature algorithm for a key type a KMS can hold, so a client offers only what a create or bind
-   accepts.
+   (`RemoteKeyAlgorithmCapabilityResource { Algorithm, SecretType, KeySizeBits, Curve }`) that
+   `ISecretValidator.ValidateRemoteKey` accepts, the check a create and a bind run, so a client offers exactly what a
+   create or bind accepts.
 6. **The console creates and binds a tenant's remote keys.** On a tenant's Secrets tab, the create-secret form
    offers a custody choice: the server, or each provider that lists an algorithm. A provider's custody offers that
    provider's algorithm rows, each of which sets the key's type, size, curve and algorithm, and calls

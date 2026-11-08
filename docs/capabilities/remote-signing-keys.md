@@ -190,8 +190,9 @@ provider already holds. Remote keys belong to tenants only, so the routes sit un
 - **Updating.** An update keeps the algorithm of a `remote` secret: a different algorithm answers `400`, because the
   key is bound to its algorithm.
 - **Capabilities.** `remoteKeyProviders` lists the registered providers, sorted ordinally, each with `algorithms`: the
-  signing algorithms it holds keys for, each with its `secretType`, `keySizeBits` and `curve`, limited to algorithms the
-  deployment registers for a key type a KMS can hold, so a client offers only what a create or bind accepts.
+  signing algorithms it holds keys for, each with its `secretType`, `keySizeBits` and `curve`, limited to the rows the
+  secret validator accepts (`ISecretValidator.ValidateRemoteKey`, the check a create and a bind run), so a client
+  offers exactly what a create or bind accepts.
 - **Console.** A tenant's Secrets tab in the management console creates a key in a registered provider through the
   create-secret form's custody choice, which offers that provider's algorithms, and binds a key a provider holds
   through its **Bind KMS key** dialog, which takes the provider, the key identifier and one of the provider's

@@ -226,7 +226,7 @@ public class JoseSerializerTests : BaseTests
 
     [Theory]
     [MemberData(nameof(EncodeDecodeJweTestData))]
-    public void Encode_Jwe(
+    public async Task EncodeAsync_Jwe(
         JweAlgorithm jweAlgorithm,
         JweEncryption jweEncryption,
         JweCompression? jweCompression
@@ -295,7 +295,9 @@ public class JoseSerializerTests : BaseTests
             ProtectedHeaders = originalExtraHeaders,
         };
 
-        var token = JoseSerializer.CreateEncoder(encryptingOptions).Encode(originalPayload);
+        var token = await JoseSerializer
+            .CreateEncoder(encryptingOptions)
+            .EncodeAsync(originalPayload, CancellationToken.None);
 
         var originalJson = JsonSerializer.Serialize(
             originalPayload,
@@ -718,7 +720,11 @@ public class JoseSerializerTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetEncodeDecodeJwsTestData))]
-    public void Encode_Jws(JwsAlgorithm jwsAlgorithm, bool encodePayload, bool detachPayload)
+    public async Task EncodeAsync_Jws(
+        JwsAlgorithm jwsAlgorithm,
+        bool encodePayload,
+        bool detachPayload
+    )
     {
         const string keyId = nameof(keyId);
 
@@ -748,10 +754,10 @@ public class JoseSerializerTests : BaseTests
         };
 
         var encoder = JoseSerializer.CreateEncoder(signingOptions);
-        var token = encoder.Encode(payload);
+        var token = await encoder.EncodeAsync(payload, CancellationToken.None);
 
         var json = JsonSerializer.Serialize(payload, JoseSerializerOptions.JsonSerializerOptions);
-        var token2 = encoder.Encode(json);
+        var token2 = await encoder.EncodeAsync(json, CancellationToken.None);
 
         var parsedToken = JoseSerializer.Parse(token);
         var parsedToken2 = JoseSerializer.Parse(token2);

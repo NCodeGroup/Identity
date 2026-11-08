@@ -57,7 +57,7 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         return SecretKeyFactory.CreateSymmetric(new KeyMetadata { KeyId = "sym" }, bytes);
     }
 
-    private string Encrypt(SecretKey secretKey, string keyManagementCode)
+    private ValueTask<string> EncryptAsync(SecretKey secretKey, string keyManagementCode)
     {
         Assert.True(
             Algorithms.TryGetKeyManagementAlgorithm(keyManagementCode, out var keyManagement)
@@ -74,7 +74,9 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
             contentEncryption,
             null
         );
-        return JoseSerializer.CreateEncoder(new JoseEncryptionOptions(credentials)).Encode(Payload);
+        return JoseSerializer
+            .CreateEncoder(new JoseEncryptionOptions(credentials))
+            .EncodeAsync(Payload, CancellationToken.None);
     }
 
     // Replaces one segment of a compact JWE: 1 is the encrypted key, 4 the authentication tag.
@@ -108,48 +110,48 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
     #region Decode Tests
 
     [Fact]
-    public void Decode_WhenTheJweIsIntact_ReturnsThePayload()
+    public async Task Decode_WhenTheJweIsIntact_ReturnsThePayload()
     {
         var secretKey = CreateRsaKey();
-        var token = Encrypt(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
 
         Assert.Equal(Payload, JoseSerializer.Decode(token, secretKey));
     }
 
     [Fact]
-    public void Decode_WhenTheRsaEncryptedKeyIsTampered_FailsLikeATamperedTag()
+    public async Task Decode_WhenTheRsaEncryptedKeyIsTampered_FailsLikeATamperedTag()
     {
         var secretKey = CreateRsaKey();
-        var token = Encrypt(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
 
         AssertUniformFailure(ReplaceSegment(token, 1, FlipFirstBit), secretKey);
         AssertUniformFailure(ReplaceSegment(token, 4, FlipFirstBit), secretKey);
     }
 
     [Fact]
-    public void Decode_WhenTheAesWrappedKeyFailsItsIntegrityCheck_FailsLikeATamperedTag()
+    public async Task Decode_WhenTheAesWrappedKeyFailsItsIntegrityCheck_FailsLikeATamperedTag()
     {
         var secretKey = CreateSymmetricKey(128);
-        var token = Encrypt(secretKey, AlgorithmCodes.KeyManagement.Aes128);
+        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.Aes128);
 
         AssertUniformFailure(ReplaceSegment(token, 1, FlipFirstBit), secretKey);
         AssertUniformFailure(ReplaceSegment(token, 4, FlipFirstBit), secretKey);
     }
 
     [Fact]
-    public void Decode_WhenTheEncryptedKeyHasTheWrongLength_FailsLikeATamperedTag()
+    public async Task Decode_WhenTheEncryptedKeyHasTheWrongLength_FailsLikeATamperedTag()
     {
         var secretKey = CreateSymmetricKey(128);
-        var token = Encrypt(secretKey, AlgorithmCodes.KeyManagement.Aes128);
+        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.Aes128);
 
         AssertUniformFailure(ReplaceSegment(token, 1, bytes => bytes[..^8]), secretKey);
     }
 
     [Fact]
-    public void Decode_WhenTheKeyDoesNotFitTheAlgorithm_ReportsTheConfigurationError()
+    public async Task Decode_WhenTheKeyDoesNotFitTheAlgorithm_ReportsTheConfigurationError()
     {
         var secretKey = CreateRsaKey();
-        var token = Encrypt(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
 
         Assert.Throws<ArgumentException>(() =>
             JoseSerializer.Decode(token, CreateSymmetricKey(128))

@@ -75,19 +75,23 @@ public sealed class Es256KTests : IAsyncDisposable
 
     private SignatureAlgorithm Es256 => Services.GetSignatureAlgorithm("ES256");
 
-    private string Sign(SecretKey secretKey, SignatureAlgorithm algorithm, object payload) =>
+    private ValueTask<string> SignAsync(
+        SecretKey secretKey,
+        SignatureAlgorithm algorithm,
+        object payload
+    ) =>
         Services
             .JoseSerializer.CreateEncoder(
                 new JoseSigningOptions(new JoseSigningCredentials(secretKey, algorithm))
             )
-            .Encode(payload);
+            .EncodeAsync(payload, CancellationToken.None);
 
     #endregion
 
-    #region Encode Tests
+    #region EncodeAsync Tests
 
     [Secp256k1Fact]
-    public void Encode_WhenSecp256k1Key_IsVerifiedWithItsPublicJwk()
+    public async Task EncodeAsync_WhenSecp256k1Key_IsVerifiedWithItsPublicJwk()
     {
         var privateKey = Services.GenerateKey("secp256k1");
         var exported = Services.Descriptor.ExportPublicKey(privateKey);
@@ -97,7 +101,7 @@ public sealed class Es256KTests : IAsyncDisposable
         );
         var payload = new Dictionary<string, object> { ["sub"] = "alice" };
 
-        var token = Sign(privateKey, Es256K, payload);
+        var token = await SignAsync(privateKey, Es256K, payload);
         var decoded = Services.JoseSerializer.Decode(token, publicKey);
 
         Assert.Equal(JsonSerializer.Serialize(payload), decoded);
@@ -174,7 +178,7 @@ public sealed class Es256KTests : IAsyncDisposable
     }
 
     [Secp256k1Fact]
-    public void Decode_WhenSignedWithTheKnownPrivateKey_VerifiesWithItsPublicKey()
+    public async Task Decode_WhenSignedWithTheKnownPrivateKey_VerifiesWithItsPublicKey()
     {
         var privateKey = Services.CreatePrivateKey(
             new ECParameters
@@ -191,7 +195,7 @@ public sealed class Es256KTests : IAsyncDisposable
         var publicKey = Services.ImportPublicJwk(KnownPublicJwk());
         var payload = new Dictionary<string, object> { ["sub"] = "alice" };
 
-        var token = Sign(privateKey, Es256K, payload);
+        var token = await SignAsync(privateKey, Es256K, payload);
 
         Assert.Equal(
             JsonSerializer.Serialize(payload),

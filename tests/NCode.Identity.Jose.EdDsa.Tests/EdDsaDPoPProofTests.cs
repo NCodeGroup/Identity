@@ -40,7 +40,7 @@ public sealed class EdDsaDPoPProofTests : IAsyncDisposable
     [InlineData("EdDSA", OkpCurves.Ed448Name, 456)]
     [InlineData("Ed25519", OkpCurves.Ed25519Name, 256)]
     [InlineData("Ed448", OkpCurves.Ed448Name, 456)]
-    public void CreateProof_WhenOkpKey_ValidatesWithThumbprint(
+    public async Task CreateProofAsync_WhenOkpKey_ValidatesWithThumbprint(
         string alg,
         string curve,
         int keySizeBits
@@ -68,13 +68,14 @@ public sealed class EdDsaDPoPProofTests : IAsyncDisposable
         Assert.True(algorithms.TryGetSignatureAlgorithm(alg, out var algorithm));
         var proofService = ServiceProvider.GetRequiredService<IDPoPProofService>();
 
-        var proof = proofService.CreateProof(
+        var proof = await proofService.CreateProofAsync(
             new DPoPProofCreationOptions
             {
                 SigningCredentials = new JoseSigningCredentials(secretKey, algorithm),
                 HttpMethod = "POST",
                 HttpUri = "https://op.test/token",
-            }
+            },
+            CancellationToken.None
         );
 
         var valid = proofService.TryValidateProof(

@@ -90,7 +90,7 @@ public class JoseSerializerJsonTests : BaseTests
     #region JWS JSON
 
     [Fact]
-    public void EncodeJws_FlattenedSingleSignature_RoundTrips()
+    public async Task EncodeJws_FlattenedSingleSignature_RoundTrips()
     {
         var credentials = RsaSigningCredentials("rsa-1");
         var options = new JoseSigningOptions(new JoseSignatureOptions(credentials))
@@ -98,7 +98,9 @@ public class JoseSerializerJsonTests : BaseTests
             Format = JoseSerializationFormat.Flattened,
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var jsonElement = JsonElement.Parse(token);
         var root = jsonElement;
@@ -115,7 +117,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJws_GeneralSingleSignature_RoundTrips()
+    public async Task EncodeJws_GeneralSingleSignature_RoundTrips()
     {
         var credentials = RsaSigningCredentials("rsa-1");
         var options = new JoseSigningOptions(new JoseSignatureOptions(credentials))
@@ -123,7 +125,9 @@ public class JoseSerializerJsonTests : BaseTests
             Format = JoseSerializationFormat.General,
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var jsonElement = JsonElement.Parse(token);
         var signatures = jsonElement.GetProperty("signatures");
@@ -135,7 +139,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJws_GeneralMultipleSignatures_RoundTripsWithEachKey()
+    public async Task EncodeJws_GeneralMultipleSignatures_RoundTripsWithEachKey()
     {
         var rsa = RsaSigningCredentials("rsa-1");
         var hmac = HmacSigningCredentials("hmac-1");
@@ -146,7 +150,9 @@ public class JoseSerializerJsonTests : BaseTests
             Signatures = [new JoseSignatureOptions(rsa), new JoseSignatureOptions(hmac)],
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var jsonElement = JsonElement.Parse(token);
         Assert.Equal(2, jsonElement.GetProperty("signatures").GetArrayLength());
@@ -156,7 +162,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJws_WithUnprotectedHeader_PreservedAndRoundTrips()
+    public async Task EncodeJws_WithUnprotectedHeader_PreservedAndRoundTrips()
     {
         var credentials = RsaSigningCredentials("rsa-1");
         var options = new JoseSigningOptions(
@@ -169,7 +175,9 @@ public class JoseSerializerJsonTests : BaseTests
             Format = JoseSerializationFormat.Flattened,
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var jsonElement = JsonElement.Parse(token);
         var unprotected = jsonElement.GetProperty("header");
@@ -183,7 +191,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJws_DetachedPayload_OmitsPayloadMember()
+    public async Task EncodeJws_DetachedPayload_OmitsPayloadMember()
     {
         var credentials = RsaSigningCredentials("rsa-1");
         var options = new JoseSigningOptions(new JoseSignatureOptions(credentials))
@@ -192,14 +200,16 @@ public class JoseSerializerJsonTests : BaseTests
             DetachPayload = true,
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var jsonElement = JsonElement.Parse(token);
         Assert.False(jsonElement.TryGetProperty("payload", out _));
     }
 
     [Fact]
-    public void EncodeJws_UnencodedPayload_RoundTrips()
+    public async Task EncodeJws_UnencodedPayload_RoundTrips()
     {
         var credentials = RsaSigningCredentials("rsa-1");
         var options = new JoseSigningOptions(new JoseSignatureOptions(credentials))
@@ -208,7 +218,9 @@ public class JoseSerializerJsonTests : BaseTests
             EncodePayload = false,
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var parsed = JoseSerializer.Parse(token);
         var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
@@ -218,7 +230,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJws_CompactUnencodedNonAsciiPayload_RoundTrips()
+    public async Task EncodeJws_CompactUnencodedNonAsciiPayload_RoundTrips()
     {
         const string NonAsciiPayload = "{\"name\":\"café\"}";
 
@@ -229,7 +241,9 @@ public class JoseSerializerJsonTests : BaseTests
             EncodePayload = false,
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(NonAsciiPayload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(NonAsciiPayload, CancellationToken.None);
 
         var parsed = JoseSerializer.Parse(token);
         var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
@@ -237,7 +251,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJws_CompactFormatWithMultipleSignatures_Throws()
+    public async Task EncodeJws_CompactFormatWithMultipleSignatures_Throws()
     {
         var options = new JoseSigningOptions
         {
@@ -249,11 +263,13 @@ public class JoseSerializerJsonTests : BaseTests
             ],
         };
 
-        Assert.Throws<JoseException>(() => JoseSerializer.CreateEncoder(options).Encode(Payload));
+        await Assert.ThrowsAsync<JoseException>(async () =>
+            await JoseSerializer.CreateEncoder(options).EncodeAsync(Payload, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public void EncodeJws_FlattenedWithMultipleSignatures_Throws()
+    public async Task EncodeJws_FlattenedWithMultipleSignatures_Throws()
     {
         var options = new JoseSigningOptions
         {
@@ -265,11 +281,13 @@ public class JoseSerializerJsonTests : BaseTests
             ],
         };
 
-        Assert.Throws<JoseException>(() => JoseSerializer.CreateEncoder(options).Encode(Payload));
+        await Assert.ThrowsAsync<JoseException>(async () =>
+            await JoseSerializer.CreateEncoder(options).EncodeAsync(Payload, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public void DecodeJws_WrongKey_Throws()
+    public async Task DecodeJws_WrongKey_Throws()
     {
         var credentials = RsaSigningCredentials("rsa-1");
         var options = new JoseSigningOptions(new JoseSignatureOptions(credentials))
@@ -277,7 +295,9 @@ public class JoseSerializerJsonTests : BaseTests
             Format = JoseSerializationFormat.Flattened,
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var wrongKey = CreateRsaKey("rsa-2");
         Assert.Throws<JoseIntegrityException>(() => JoseSerializer.Decode(token, wrongKey));
@@ -304,7 +324,7 @@ public class JoseSerializerJsonTests : BaseTests
         );
 
     [Fact]
-    public void EncodeJwe_FlattenedSingleRecipient_RoundTrips()
+    public async Task EncodeJwe_FlattenedSingleRecipient_RoundTrips()
     {
         var recipient = RsaRecipient("rsa-1");
         var options = new JoseEncryptionOptions(
@@ -315,7 +335,9 @@ public class JoseSerializerJsonTests : BaseTests
             Recipients = [recipient],
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var jsonElement = JsonElement.Parse(token);
         var root = jsonElement;
@@ -335,7 +357,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJwe_GeneralMultipleRecipients_RoundTripsWithEachKey()
+    public async Task EncodeJwe_GeneralMultipleRecipients_RoundTripsWithEachKey()
     {
         var rsa = RsaRecipient("rsa-1");
         var aes = AesKwRecipient("aes-1");
@@ -348,7 +370,9 @@ public class JoseSerializerJsonTests : BaseTests
             Recipients = [rsa, aes],
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var jsonElement = JsonElement.Parse(token);
         Assert.Equal(2, jsonElement.GetProperty("recipients").GetArrayLength());
@@ -358,7 +382,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJwe_WithSharedUnprotectedHeaderAndAad_RoundTrips()
+    public async Task EncodeJwe_WithSharedUnprotectedHeaderAndAad_RoundTrips()
     {
         var recipient = RsaRecipient("rsa-1");
         var options = new JoseEncryptionOptions(
@@ -371,7 +395,9 @@ public class JoseSerializerJsonTests : BaseTests
             Recipients = [recipient],
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var jsonElement = JsonElement.Parse(token);
         Assert.True(jsonElement.TryGetProperty("aad", out _));
@@ -385,7 +411,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJwe_WithCompression_RoundTrips()
+    public async Task EncodeJwe_WithCompression_RoundTrips()
     {
         var recipient = RsaRecipient("rsa-1");
         var options = new JoseEncryptionOptions(
@@ -397,7 +423,9 @@ public class JoseSerializerJsonTests : BaseTests
             Recipients = [recipient],
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var parsed = JoseSerializer.Parse(token);
         var decoded = JoseSerializer.Decode(parsed, recipient.KeyManagementCredentials.SecretKey);
@@ -407,7 +435,7 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
-    public void EncodeJwe_DirectAlgorithmFlattened_RoundTrips()
+    public async Task EncodeJwe_DirectAlgorithmFlattened_RoundTrips()
     {
         var key = CreateSymmetricKey("dir-1", 256);
         var recipient = new JoseRecipientOptions(
@@ -425,13 +453,15 @@ public class JoseSerializerJsonTests : BaseTests
             Recipients = [recipient],
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         Assert.Equal(Payload, JoseSerializer.Decode(token, key));
     }
 
     [Fact]
-    public void EncodeJwe_CompactFormatWithMultipleRecipients_Throws()
+    public async Task EncodeJwe_CompactFormatWithMultipleRecipients_Throws()
     {
         var options = new JoseEncryptionOptions(
             GetAuthenticatedEncryptionAlgorithm(AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm)
@@ -441,11 +471,13 @@ public class JoseSerializerJsonTests : BaseTests
             Recipients = [RsaRecipient("rsa-1"), AesKwRecipient("aes-1")],
         };
 
-        Assert.Throws<JoseException>(() => JoseSerializer.CreateEncoder(options).Encode(Payload));
+        await Assert.ThrowsAsync<JoseException>(async () =>
+            await JoseSerializer.CreateEncoder(options).EncodeAsync(Payload, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public void EncodeJwe_MultipleRecipientsWithDirectAlgorithm_Throws()
+    public async Task EncodeJwe_MultipleRecipientsWithDirectAlgorithm_Throws()
     {
         var directRecipient = new JoseRecipientOptions(
             new JoseKeyManagementCredentials(
@@ -462,11 +494,13 @@ public class JoseSerializerJsonTests : BaseTests
             Recipients = [RsaRecipient("rsa-1"), directRecipient],
         };
 
-        Assert.Throws<JoseException>(() => JoseSerializer.CreateEncoder(options).Encode(Payload));
+        await Assert.ThrowsAsync<JoseException>(async () =>
+            await JoseSerializer.CreateEncoder(options).EncodeAsync(Payload, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public void DecodeJwe_WrongKey_Throws()
+    public async Task DecodeJwe_WrongKey_Throws()
     {
         var recipient = RsaRecipient("rsa-1");
         var options = new JoseEncryptionOptions(
@@ -477,7 +511,9 @@ public class JoseSerializerJsonTests : BaseTests
             Recipients = [recipient],
         };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(Payload, CancellationToken.None);
 
         var wrongKey = CreateRsaKey("rsa-2");
         Assert.Throws<JoseEncryptionException>(() => JoseSerializer.Decode(token, wrongKey));

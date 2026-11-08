@@ -486,7 +486,7 @@ public class ContributedKeyTypeEcdhTests : BaseTests
     #region JoseSerializer Tests
 
     [Fact]
-    public void Decode_WhenJweIsEncryptedToContributedKeyType_ReturnsThePayload()
+    public async Task Decode_WhenJweIsEncryptedToContributedKeyType_ReturnsThePayload()
     {
         var recipientKey = CreateRecipientKey();
         Assert.True(AlgorithmCollection.TryGetAuthenticatedEncryptionAlgorithm(Enc, out var enc));
@@ -495,7 +495,9 @@ public class ContributedKeyTypeEcdhTests : BaseTests
         );
         var payload = new Dictionary<string, object> { ["sub"] = "alice" };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(payload, CancellationToken.None);
         var decoded = JoseSerializer.Decode(JoseSerializer.Parse(token), recipientKey);
 
         Assert.Equal(JsonSerializer.Serialize(payload), decoded);

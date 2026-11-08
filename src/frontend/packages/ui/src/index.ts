@@ -116,9 +116,10 @@ export {
   type RemoteSecretBindDialogProps,
   type RemoteSecretBindValues,
 } from './components/RemoteSecretBindDialog.js';
-export type {
-  RemoteKeyAlgorithmOption,
-  RemoteKeyProviderOption,
+export {
+  offeredRemoteKeyProviders,
+  type RemoteKeyAlgorithmOption,
+  type RemoteKeyProviderOption,
 } from './components/remoteKeyAlgorithms.js';
 export {
   RevealSecretDialog,

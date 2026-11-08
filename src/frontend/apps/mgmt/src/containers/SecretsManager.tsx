@@ -14,6 +14,7 @@ import {
   SecretTable,
   emptyRemoteSecretBindValues,
   emptySecretFormValues,
+  offeredRemoteKeyProviders,
   type PublicKeyMaterial,
   type RemoteSecretBindValues,
   type SecretFormValues,
@@ -159,8 +160,7 @@ export function SecretsManager({
   // The remote key providers, with the algorithms each holds keys for, are discovered from the server too.
   const remoteKeyProviders = capabilities?.remoteKeyProviders ?? [];
   const canBindRemote =
-    onImportRemote !== undefined &&
-    remoteKeyProviders.some((provider) => provider.algorithms.length > 0);
+    onImportRemote !== undefined && offeredRemoteKeyProviders(remoteKeyProviders).length > 0;
   // A shared secret is rotated; a key is replaced by importing a new one (ADR-1320).
   const rotatableSecretTypes = (capabilities?.secretTypes ?? [])
     .filter((capability) => !capability.isAsymmetric)

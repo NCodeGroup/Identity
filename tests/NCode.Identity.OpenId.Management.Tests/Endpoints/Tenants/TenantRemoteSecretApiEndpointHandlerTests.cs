@@ -175,23 +175,14 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             .Verifiable();
 
     // Only a request that changes the tenant announces the change to every replica.
-    private void SetupTenantChangedAnnouncement() =>
+    private void SetupTenantChangedAnnouncement()
+    {
+        var command = new TenantChangedCommand(TenantId, false);
         MockMediator
-            .Setup(x =>
-                x.SendAsync(It.IsAny<TenantChangedCommand>(), It.IsAny<CancellationToken>())
-            )
+            .Setup(x => x.SendAsync(command, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-
-    private void VerifyTenantChanged(bool settingsChanged) =>
-        MockMediator.Verify(
-            x =>
-                x.SendAsync(
-                    new TenantChangedCommand(TenantId, settingsChanged),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
-        );
+    }
 
     private HttpContext CreateHttpContext()
     {
@@ -268,7 +259,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
 
-    private void SetupImportRemoteValidation() =>
+    private void SetupImportRemoteValidation(ManagementError? error = null) =>
         MockSecretValidator
             .Setup(x =>
                 x.ValidateImportRemote(
@@ -276,7 +267,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
                     It.IsAny<DateTimeOffset>()
                 )
             )
-            .Returns((ManagementError?)null)
+            .Returns(error)
             .Verifiable();
 
     // Moq cannot capture beside out arguments, so the import request is matched by what the handler builds from the request.
@@ -368,7 +359,6 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         Assert.Equal(256, generateRequest.KeySizeBits);
         Assert.Equal("P-256", generateRequest.Curve);
         Assert.Null(generateRequest.ManagedBy);
-        VerifyTenantChanged(settingsChanged: false);
     }
 
     [Fact]
@@ -662,7 +652,50 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         Assert.Equal("secret-1", created.Value?.SecretId);
         Assert.Equal(Provider, created.Value?.RemoteKeyProvider);
         Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
-        VerifyTenantChanged(settingsChanged: false);
+    }
+
+    [Fact]
+    public async Task ImportRemoteSecretAsync_WhenTheTenantIsMissing_ReturnsNotFound()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(null);
+
+        var result = await CreateHandler()
+            .ImportRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateImportRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task ImportRemoteSecretAsync_WhenTheRequestIsInvalid_ReturnsBadRequestWithoutImporting()
+    {
+        const string detail = "The key management service's key identifier must not be empty.";
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant());
+        SetupImportRemoteValidation(
+            new ManagementError { StatusCode = StatusCodes.Status400BadRequest, Detail = detail }
+        );
+
+        var result = await CreateHandler()
+            .ImportRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateImportRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(detail, problem.ProblemDetails.Detail);
     }
 
     [Fact]

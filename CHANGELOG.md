@@ -906,14 +906,24 @@ Until the first stable release, the [Unreleased] section describes the product a
   `AddGoogleCloudKmsRemoteKeyProvider` register from `SecretProtection:RemoteKeyProviders:<Vendor>` — and the tenant's
   signature keys are created in that KMS. The server stores each key's public half and a `remote` reference, publishes
   the stored public half in the JSON Web Key Set without calling the KMS, and signs through the KMS, sending a digest
-  and turning an ECDSA DER signature into the `r‖s` form JWS uses. Registered `IRemoteSigningAlgorithmSource` rows map
-  each JOSE algorithm onto a provider's key spec and signing algorithm (`RS*`, `PS*` and `ES*`). A change of custody
-  hands each key over after the activation delay (`custody_changed`), a successor is a new version of its KMS key (a
-  new tagged key on AWS KMS), a removed key the server created is destroyed in its KMS after the commit, and each SDK
-  retries throttling with jittered exponential back-off. `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`,
-  `RemoteSigningAlgorithm`, `IRemoteSecretKey` and `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a
-  provider or a key type ([#165](https://github.com/NCodeGroup/Identity/issues/165),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+  and turning an ECDSA DER signature into the `r‖s` form JWS uses. Registered `IRemoteKeyDescriptorSource` instances
+  describe each provider (`RemoteKeyProviderDescriptor`) and contribute the rows that map each JOSE algorithm onto a
+  provider's key spec and signing algorithm (`RS*`, `PS*` and `ES*`). A change of custody hands each key over after the
+  activation delay (`custody_changed`), a successor is a new version of its KMS key (a new tagged key on AWS KMS), a
+  removed key the server created is destroyed in its KMS after the commit, each SDK retries a repeatable call with
+  jittered exponential back-off, and a key creation is made once; the setting's domain and the provisioning check read
+  the descriptors, never the providers, and a provider signs into the caller's buffer. `IRemoteKeyProvider`,
+  `IRemoteKeyProviderCatalog`, `IRemoteKeyDescriptorCatalog`, `RemoteSigningAlgorithm`, `IRemoteSecretKey` and
+  `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a provider or a key type. The providers live in
+  `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`, beside each service's key wrapper
+  ([#165](https://github.com/NCodeGroup/Identity/issues/165),
+  [#652](https://github.com/NCodeGroup/Identity/issues/652),
+  [#653](https://github.com/NCodeGroup/Identity/issues/653),
+  [#655](https://github.com/NCodeGroup/Identity/issues/655),
+  [#657](https://github.com/NCodeGroup/Identity/issues/657),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
+  [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
+  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -5705,5 +5715,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   stored public half fails is refused; a remote key is bound to one algorithm and fails when its tenant loads if its
   provider, mapping row or public half is missing; KMS keys are created sign-only and, on Azure Key Vault and Google
   Cloud KMS, hardware-protected by default; logs carry key identifiers only; and the server destroys only the KMS keys
-  it created ([#165](https://github.com/NCodeGroup/Identity/issues/165),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+  it created; a key it created but could not read, check or record is destroyed at once, and a KMS response that names
+  another key or algorithm, or fails its checksum, is refused ([#165](https://github.com/NCodeGroup/Identity/issues/165),
+  [#653](https://github.com/NCodeGroup/Identity/issues/653),
+  [#659](https://github.com/NCodeGroup/Identity/issues/659),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
+  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)).

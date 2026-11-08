@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Buffers;
+using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 
@@ -18,6 +19,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="kekSizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
+// See ADR-1477.
 internal class EcdhWithAesKeyManagementAlgorithm(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     IEnumerable<IEcdhKeyAgreement> keyAgreements,
@@ -96,6 +98,11 @@ internal class EcdhWithAesKeyManagementAlgorithm(
         out int bytesWritten
     )
     {
+        if (secretKey is IRemoteSecretKey)
+            throw new JoseInvalidAlgorithmException(
+                "A key that a key management service holds unwraps a content key only through UnwrapKeyAsync."
+            );
+
         if (contentKey.Length < AesKeyWrap.GetContentKeySizeBytes(encryptedContentKey.Length))
         {
             bytesWritten = 0;
@@ -116,5 +123,70 @@ internal class EcdhWithAesKeyManagementAlgorithm(
 
         bytesWritten = contentKeyWriter.WrittenCount;
         return true;
+    }
+
+    /// <inheritdoc />
+    // See ADR-1477.
+    public override ValueTask<int> UnwrapKeyAsync(
+        SecretKey secretKey,
+        JsonElement header,
+        ReadOnlyMemory<byte> encryptedContentKey,
+        Memory<byte> contentKey,
+        CancellationToken cancellationToken
+    )
+    {
+        if (secretKey is not IRemoteSecretKey remoteKey)
+            return base.UnwrapKeyAsync(
+                secretKey,
+                header,
+                encryptedContentKey,
+                contentKey,
+                cancellationToken
+            );
+
+        if (contentKey.Length < AesKeyWrap.GetContentKeySizeBytes(encryptedContentKey.Length))
+            throw new JoseException("The content key buffer is too small.");
+
+        return UnwrapWithRemoteKeyAsync(
+            secretKey,
+            remoteKey,
+            header,
+            encryptedContentKey,
+            contentKey,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<int> UnwrapWithRemoteKeyAsync(
+        SecretKey secretKey,
+        IRemoteSecretKey remoteKey,
+        JsonElement header,
+        ReadOnlyMemory<byte> encryptedContentKey,
+        Memory<byte> contentKey,
+        CancellationToken cancellationToken
+    )
+    {
+        using var kekLease = BufferFactory.Rent(
+            KekSizeBytes,
+            isSensitive: true,
+            out Memory<byte> kek
+        );
+
+        await ReceiveAndDeriveRemoteKeyAsync(secretKey, remoteKey, header, kek, cancellationToken);
+
+        return UnwrapWithKek(kek.Span, encryptedContentKey.Span, contentKey.Span);
+    }
+
+    private int UnwrapWithKek(
+        ReadOnlySpan<byte> kek,
+        ReadOnlySpan<byte> encryptedContentKey,
+        Span<byte> contentKey
+    )
+    {
+        var contentKeyWriter = contentKey.GetFixedBufferWriter();
+
+        AesKeyWrap.UnwrapKey(kek, encryptedContentKey, ref contentKeyWriter);
+
+        return contentKeyWriter.WrittenCount;
     }
 }

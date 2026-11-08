@@ -138,7 +138,7 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     [Fact]
     public async Task ResolveDisclosures_WhenPayloadIsNotAnObject_Throws()
     {
-        var jwt = await Host.SignIssuerJwt("[]");
+        var jwt = await Host.SignIssuerJwtAsync("[]");
         var sdJwt = new SelectiveDisclosureJwt(jwt, [], keyBindingJwt: null);
 
         var exception = Assert.Throws<SdJwtException>(() => Host.Holder.ResolveDisclosures(sdJwt));
@@ -149,7 +149,7 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     [Fact]
     public async Task ResolveDisclosures_WhenDigestAlgorithmIsUnregistered_Throws()
     {
-        var jwt = await Host.SignIssuerJwt("""{"_sd_alg":"sha-1","_sd":[]}""");
+        var jwt = await Host.SignIssuerJwtAsync("""{"_sd_alg":"sha-1","_sd":[]}""");
         var sdJwt = new SelectiveDisclosureJwt(jwt, [], keyBindingJwt: null);
 
         var exception = Assert.Throws<SdJwtException>(() => Host.Holder.ResolveDisclosures(sdJwt));

@@ -136,7 +136,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         params IEnumerable<string> disclosures
     ) =>
         string.Concat(
-            await Host.SignIssuerJwt(payloadJson),
+            await Host.SignIssuerJwtAsync(payloadJson),
             "~",
             string.Concat(disclosures.Select(x => x + "~"))
         );
@@ -562,7 +562,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
             new KeyMetadata { KeyId = "hmac" },
             new byte[32]
         );
-        var jwt = await Host.SignJwt(
+        var jwt = await Host.SignJwtAsync(
             Host.CreateCredentials(symmetricKey, "HS256"),
             """{"iss":"x"}""",
             "JWT"
@@ -917,7 +917,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WhenTheIssuerSignedJwtIsANestedJwt_FailsEvenWithDecryptionKeys()
     {
         var issued = await IssueAsync(["/given_name"]);
-        var nested = await Host.EncloseInJwe(issued.IssuerSignedJwt, Host.StrangerKey);
+        var nested = await Host.EncloseInJweAsync(issued.IssuerSignedJwt, Host.StrangerKey);
         var presentation = $"{nested}~{issued.Disclosures[0].Encoded}~";
         var parameters = new SdJwtVerificationParameters
         {
@@ -1119,7 +1119,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwtAsync(Host.HolderCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1167,7 +1167,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "JWT");
+        var keyBindingJwt = await Host.SignJwtAsync(Host.HolderCredentials, payload, "JWT");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1189,7 +1189,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         var prefix = await PresentAsync(issued);
         var payload =
             $$"""{"aud":"{{Audience}}","nonce":"{{Nonce}}","sd_hash":"{{SdJwtDigestAlgorithms.Sha256.ComputeDigest(prefix)}}"}""";
-        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwtAsync(Host.HolderCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1225,7 +1225,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwtAsync(Host.HolderCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1300,7 +1300,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = await Host.SignJwt(Host.StrangerCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwtAsync(Host.StrangerCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1325,7 +1325,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwtAsync(Host.HolderCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1382,7 +1382,10 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WithProfileAndNoVct_Fails()
     {
-        var jwt = await Host.SignIssuerJwt("""{"iss":"https://issuer.example"}""", "dc+sd-jwt");
+        var jwt = await Host.SignIssuerJwtAsync(
+            """{"iss":"https://issuer.example"}""",
+            "dc+sd-jwt"
+        );
 
         var result = await VerifyAsync($"{jwt}~", CreateParameters(profile: SdJwtProfiles.SdJwtVc));
 
@@ -1393,7 +1396,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WithProfileAndAProtectedClaimDisclosed_Fails()
     {
         var iss = CreateDisclosure("iss", "\"https://issuer.example\"");
-        var jwt = await Host.SignIssuerJwt(
+        var jwt = await Host.SignIssuerJwtAsync(
             $$"""{"vct":"t","_sd":["{{Digest(iss)}}"]}""",
             "dc+sd-jwt"
         );
@@ -1415,7 +1418,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
             "status_list",
             """{"idx":0,"uri":"https://issuer.example/status/1"}"""
         );
-        var jwt = await Host.SignIssuerJwt(
+        var jwt = await Host.SignIssuerJwtAsync(
             $$$"""{"vct":"t","status":{"_sd":["{{{Digest(statusList)}}}"]}}""",
             "dc+sd-jwt"
         );
@@ -1432,7 +1435,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     {
         // The profile protects top-level claims; a nested member of the same name is an ordinary claim.
         var exp = CreateDisclosure("exp", "1");
-        var jwt = await Host.SignIssuerJwt(
+        var jwt = await Host.SignIssuerJwtAsync(
             $$$"""{"vct":"t","inner":{"_sd":["{{{Digest(exp)}}}"]}}""",
             "dc+sd-jwt"
         );

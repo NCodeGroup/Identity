@@ -32,7 +32,7 @@ public class RemoteKeyGroupNameTests
 
     private static string CreateGroupName(
         string ownerId = OwnerId,
-        RemoteSigningAlgorithm? algorithm = null
+        RemoteKeyAlgorithm? algorithm = null
     ) => RemoteKeyGroupName.Create(ownerId, algorithm ?? CreateAlgorithm());
 
     #region Create Tests

@@ -914,11 +914,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   jittered exponential back-off, and a key creation is made once; the setting's domain and the provisioning check read
   the descriptors, never the providers, and a provider signs into the caller's buffer. The management API creates a
   tenant's key in a registered provider (`POST /api/tenants/{tenantId}/secrets/remote`) and binds a key a KMS already
-  holds once a challenge it signs verifies with the supplied public half
-  (`POST /api/tenants/{tenantId}/secrets/remote/import`, which needs update authority on the platform; the server never
-  destroys a bound key); an update keeps a remote key's algorithm; `SecretResource`'s `remoteKeyProvider` and the
-  console's secrets table name the provider, and the capabilities response lists `remoteKeyProviders`; the management
-  API's validation and its capabilities read the descriptors as well. The Helm chart's
+  holds by its identifier and algorithm, reading its public half from the KMS and storing it once a challenge the key
+  signs verifies with that half (`POST /api/tenants/{tenantId}/secrets/remote/import`, which needs update authority on
+  the platform; the server never destroys a bound key); an update keeps a remote key's algorithm; `SecretResource`'s
+  `remoteKeyProvider` and the console's secrets table name the provider; the capabilities response lists each registered
+  provider with the signing algorithms, key types, sizes and curves it holds (`remoteKeyProviders`); a tenant's Secrets
+  tab in the console creates a key in a provider through the create-secret form's custody choice and binds a key a KMS
+  holds through a bind dialog, each offering only the provider's algorithms and showing each refusal's problem detail;
+  the management API's validation and its capabilities read the descriptors as well. The Helm chart's
   `secretProtection.remoteKeyProviders` configures each provider and mounts its workload identity.
   `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`, `IRemoteKeyDescriptorCatalog`, `RemoteSigningAlgorithm`,
   `IRemoteSecretKey` and `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a provider or a key type. The
@@ -930,10 +933,21 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#653](https://github.com/NCodeGroup/Identity/issues/653),
   [#655](https://github.com/NCodeGroup/Identity/issues/655),
   [#657](https://github.com/NCodeGroup/Identity/issues/657),
+  [#687](https://github.com/NCodeGroup/Identity/issues/687),
+  [#690](https://github.com/NCodeGroup/Identity/issues/690),
+  [#691](https://github.com/NCodeGroup/Identity/issues/691),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
   [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
-  [ADR-1475](docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)).
+  [ADR-1475](docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
+  [ADR-1476](docs/decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)).
+
+- **A management secret route answers `409` from the secrets it read and declares every problem it answers.** The
+  tenant, client and resource-server routes that create, import or rotate a secret answer `409 Conflict` for a secret
+  identifier or `kid` the owner already holds, decided from the owner's secrets before the store adds the secret, so a
+  store failure is never reported as a conflict, and a write that lost a concurrency race answers `412`. Every tenant,
+  client and resource-server secret route declares its problem answers in the OpenAPI document
+  ([#689](https://github.com/NCodeGroup/Identity/issues/689)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm

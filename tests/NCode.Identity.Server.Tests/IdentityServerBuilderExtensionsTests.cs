@@ -503,8 +503,9 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
     }
 
     [Fact]
-    public async Task AddConfiguration_WhenHostStartsWithRemoteKeyProviderSections_Starts()
+    public async Task AddConfiguration_WhenRemoteKeyProviderSectionsArePresent_AcceptsThemAndStarts()
     {
+        // No remote key provider is registered here, so the sections are only accepted; each provider package's registration tests cover binding its own section.
         using var host = BuildHost(
             new Dictionary<string, string?>
             {

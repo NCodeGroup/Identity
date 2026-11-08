@@ -84,6 +84,7 @@ const createdSecret: CreatedSecretResource = {
   secretType: 'symmetric',
   keySizeBits: 256,
   isVerifier: false,
+  remoteKeyProvider: null,
   managedBy: null,
   secretMaterial: 'one-time-material',
 };

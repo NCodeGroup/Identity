@@ -36,6 +36,11 @@ export type SecretRow = {
    * server provisioned, or `null` when the secret keeps the lifecycle its creator gave it.
    */
   readonly managedBy: string | null;
+  /**
+   * The remote key provider whose key management service holds the key's private half, such as `aws-kms`, or `null`
+   * for a key the server holds.
+   */
+  readonly remoteKeyProvider: string | null;
 };
 
 /** Where a secret stands at an instant, derived from its four instants (`SecretLifecycleStates`). */
@@ -97,8 +102,9 @@ const stateLabels: Record<Exclude<SecretLifecycleState, 'active'>, string> = {
  * Stateless secrets table. Secret key material is never shown here (it is revealed once at creation); this lists only
  * metadata: when each secret activates, retires and expires, and where it stands at `now`. A secret that is not yet
  * active, retired or expired is flagged, and so are a shared secret held only as a one-way verifier, which a method
- * that uses the secret as a key cannot use, and a key whose lifecycle the server manages. Receives rows and a
- * callback as props; holds no state and does no fetching, so it renders directly in Storybook and under RTL.
+ * that uses the secret as a key cannot use, and a key whose lifecycle the server manages; a key held in a key
+ * management service carries a chip naming its remote key provider. Receives rows and a callback as props; holds no
+ * state and does no fetching, so it renders directly in Storybook and under RTL.
  */
 export function SecretTable({
   secrets,
@@ -151,6 +157,15 @@ export function SecretTable({
                         size="small"
                         label="Managed"
                         data-testid={`secret-managed-${secret.secretId}`}
+                      />
+                    </Tooltip>
+                  )}
+                  {secret.remoteKeyProvider !== null && (
+                    <Tooltip title="Held in a key management service: the private key never leaves it, and the service signs with it">
+                      <Chip
+                        size="small"
+                        label={secret.remoteKeyProvider}
+                        data-testid={`secret-remote-${secret.secretId}`}
                       />
                     </Tooltip>
                   )}

@@ -18,6 +18,7 @@ const base = {
   createdWhen: '2026-01-01T12:00:00Z',
   activatesWhen: '2026-01-01T12:00:00Z',
   managedBy: null,
+  remoteKeyProvider: null,
 };
 
 export const Populated: Story = {
@@ -54,6 +55,17 @@ export const Populated: Story = {
         retiresWhen: '2099-04-01T12:00:00Z',
         expiresWhen: '2099-04-08T12:00:00Z',
         managedBy: 'tenant_key_rollover',
+      },
+      {
+        ...base,
+        secretId: 's-remote',
+        keyId: 's-remote',
+        secretType: 'rsa',
+        keySizeBits: 2048,
+        // A signing key held in a key management service, which signs with it (ADR-1471).
+        retiresWhen: '2099-01-01T12:00:00Z',
+        expiresWhen: '2099-01-01T12:00:00Z',
+        remoteKeyProvider: 'aws-kms',
       },
     ],
   },

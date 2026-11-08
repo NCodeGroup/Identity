@@ -77,6 +77,9 @@ public static class DefaultRegistration
                 DefaultSecretPublicKeyConverter
             >();
 
+            // Binds a key a key management service already holds to a tenant, after proving the key signs (ADR-1475).
+            serviceCollection.TryAddSingleton<IRemoteSecretImporter, DefaultRemoteSecretImporter>();
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<SeedTenantCommand>,

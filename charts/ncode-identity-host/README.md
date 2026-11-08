@@ -53,12 +53,18 @@ Rendering fails, before anything is applied, when:
 - `secretProtection.rootKeyProvider` is `aws-kms`, in any environment, and `secretProtection.awsKms.keyArn` is empty or
   is not the ARN of a KMS key or alias;
 - `secretProtection.rootKeyProvider` is `azure-key-vault`, in any environment, and
-  `secretProtection.azureKeyVault.keyId` is empty or is not the identifier of a Key Vault or Managed HSM key, or only
-  one of `secretProtection.azureKeyVault.workloadIdentity.tenantId` and `clientId` is set;
+  `secretProtection.azureKeyVault.keyId` is empty or is not the identifier of a Key Vault or Managed HSM key;
 - `secretProtection.rootKeyProvider` is `google-cloud-kms`, in any environment, and
-  `secretProtection.googleCloudKms.keyName` is empty or is not the resource name of a Cloud KMS crypto key, or
+  `secretProtection.googleCloudKms.keyName` is empty or is not the resource name of a Cloud KMS crypto key;
+- a `secretProtection.remoteKeyProviders` value is malformed: `awsKms.region` is not a system name such as `us-west-2`,
+  `awsKms.pendingWindowInDays` is outside 7 to 30, `azureKeyVault.vaultUri` is not an `https` URI, or
+  `googleCloudKms.keyRing` is not the resource name of a key ring;
+- a key management service is used, as `secretProtection.rootKeyProvider`, in `secretProtection.ownerRootKeys.providers`
+  or under `secretProtection.remoteKeyProviders`, and its workload credentials are half set: only one of
+  `secretProtection.azureKeyVault.workloadIdentity.tenantId` and `clientId` is set, or
   `secretProtection.googleCloudKms.workloadIdentityFederation.provider` is set and is not the resource name of a
-  workload identity pool provider;
+  workload identity pool provider. Workload credentials themselves are optional: a provider without them signs in
+  with the pod's ambient identity, such as EKS Pod Identity or Workload Identity Federation for GKE;
 - `environment` is `Production`, `secretProtection.recovery.publicKeyConfigMap` is empty, and
   `secretProtection.recovery.disabled` is not `true`, because losing the root key would then lose every stored secret;
 - `replicaCount` is above 1 without `valkey.existingSecret`, because replicas share single-use state through Valkey;
@@ -373,8 +379,8 @@ tenant's key is independent of it. The control-plane tenant cannot bring a root 
 authenticates against it and a revoked key would lock out the administrators who restore it; its keys stay under the
 deployment's root key.
 
-**Credentials.** The pods carry a provider's workload credentials when it is the root key provider or is listed in
-`secretProtection.ownerRootKeys.providers`: for AWS KMS the web identity (`secretProtection.awsKms.webIdentity.roleArn`),
+**Credentials.** The pods carry a provider's workload credentials when it is the root key provider, is listed in
+`secretProtection.ownerRootKeys.providers` or is configured under `secretProtection.remoteKeyProviders`: for AWS KMS the web identity (`secretProtection.awsKms.webIdentity.roleArn`),
 for Azure Key Vault the workload identity (`secretProtection.azureKeyVault.workloadIdentity.clientId` and `tenantId`),
 and for Google Cloud KMS the federation (`secretProtection.googleCloudKms.workloadIdentityFederation.provider`), each
 set up as in the sections above. The provider's own key values (`awsKms.keyArn`, `azureKeyVault.keyId`,
@@ -420,6 +426,50 @@ tenant's master keys back under the deployment's root key.
 **No recovery copy.** A master key under a tenant key has no recovery copy: the recovery public key and the recovery
 private key never touch it, so the operator cannot read the tenant's data without the tenant's key. Destroying the key,
 without removing it first, loses every value written or rewrapped under it, in the database and in every backup.
+
+### Tenant signing keys
+
+A tenant's signing keys can be held in a key management service, which signs every token, so the private key never
+reaches the server
+([ADR-1471](../../docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+The operator registers the providers a tenant may choose from, and the host reaches each with the deployment's own
+workload identity. The values are:
+
+- `secretProtection.remoteKeyProviders.awsKms.region`, and `pendingWindowInDays`, 7 to 30 (default 30), the days a
+  deleted key waits before AWS destroys it;
+- `secretProtection.remoteKeyProviders.azureKeyVault.vaultUri`, and `hardwareProtected` (default `true`);
+- `secretProtection.remoteKeyProviders.googleCloudKms.keyRing`, and `hardwareProtected` (default `true`).
+
+The chart renders them as `SecretProtection__RemoteKeyProviders__AwsKms__*`, `__AzureKeyVault__*` and
+`__GoogleCloudKms__*`. A provider is registered when its first value (`region`, `vaultUri` or `keyRing`) is set, as the
+host registers a provider when its configuration section exists; a provider with no value is not registered, and no
+tenant can choose it. Registering a provider selects it: the host does not start unless it holds every signature key
+the database provisions through it. `ci/remote-key-providers-values.yaml` shows a release with all three.
+
+**Credentials.** A provider that is configured reuses the credentials set up for it in the sections above, so a pod
+carries them: for AWS KMS the web identity (`secretProtection.awsKms.webIdentity.roleArn`), for Azure Key Vault the
+workload identity (`secretProtection.azureKeyVault.workloadIdentity.clientId` and `tenantId`), and for Google Cloud KMS
+the federation (`secretProtection.googleCloudKms.workloadIdentityFederation.provider`). A provider with no
+workload-identity values uses the pod's ambient identity. The chart renders such a provider on purpose, as it does a
+root key provider, because a cluster can supply the identity itself; it refuses only a half-set value. A pod never carries the credentials of a provider that is not
+the root key provider, listed in `secretProtection.ownerRootKeys.providers` or configured here. One identity serves
+each vendor, so the root key, a tenant's root key and the tenant's signing keys share it.
+
+**What the identity needs.** The deployment's identity creates, signs with and destroys the keys it creates:
+
+- AWS KMS: `kms:CreateKey`, `kms:TagResource`, `kms:GetPublicKey`, `kms:Sign`, `kms:ScheduleKeyDeletion` and
+  `kms:DescribeKey`.
+- Azure Key Vault: the `Key Vault Crypto Officer` role on the vault.
+- Google Cloud KMS: `cloudkms.cryptoKeys.create` and `cloudkms.cryptoKeyVersions.create`, `.get`, `.viewPublicKey`,
+  `.useToSign` and `.destroy` on the key ring.
+
+A key an operator binds through the management API needs only signing: AWS `kms:Sign`, Azure `Key Vault Crypto User`
+on the key, Google `cloudkms.cryptoKeyVersions.useToSign`.
+
+**Choosing a provider.** A tenant, a team or the platform selects a provider with the setting
+`tenant_signing_key_provider`, whose value is empty (local keys) or one of `aws-kms`, `azure-key-vault` and
+`google-cloud-kms`. The management API creates a tenant's key in a registered provider and binds a key a provider
+already holds. See [Remote signing keys](../../docs/capabilities/remote-signing-keys.md).
 
 ### A key the master key cannot decrypt
 

@@ -148,4 +148,16 @@ internal static partial class Log
         Exception exception,
         string eventType
     );
+
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeyProviderFailed,
+        Level = LogLevel.Warning,
+        Message = "The key management service of the remote key provider '{ProviderName}' failed or refused a request for the secret '{SecretId}'"
+    )]
+    internal static partial void RemoteKeyProviderFailed(
+        this ILogger logger,
+        string providerName,
+        string secretId,
+        Exception exception
+    );
 }

@@ -110,6 +110,12 @@ export {
   type SecretFormDialogProps,
   type SecretFormValues,
 } from './components/SecretFormDialog.js';
+export {
+  RemoteSecretBindDialog,
+  emptyRemoteSecretBindValues,
+  type RemoteSecretBindDialogProps,
+  type RemoteSecretBindValues,
+} from './components/RemoteSecretBindDialog.js';
 export type {
   RemoteKeyAlgorithmOption,
   RemoteKeyProviderOption,

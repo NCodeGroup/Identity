@@ -8,8 +8,9 @@ using NCode.Identity.Secrets.RemoteKeys;
 namespace NCode.Identity.Secrets.GoogleCloudKms;
 
 /// <summary>
-/// Provides the rows of the mapping from a JOSE signature algorithm to the Google Cloud Key Management Service
-/// crypto key version algorithm that creates a key and signs for it.
+/// Describes the Google Cloud Key Management Service remote key provider and its rows of the mapping from a JOSE
+/// signature algorithm to the Google Cloud Key Management Service crypto key version algorithm that creates a key and
+/// signs for it.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -24,11 +25,17 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// </para>
 /// </remarks>
 // See ADR-1471.
-internal sealed class GoogleCloudKmsSigningAlgorithms : IRemoteSigningAlgorithmSource
+internal sealed class GoogleCloudKmsRemoteKeyDescriptors : IRemoteKeyDescriptorSource
 {
+    private static IReadOnlyList<RemoteKeyProviderDescriptor> ProviderDescriptors { get; } =
+    [new() { Name = RemoteKeyProviderNames.GoogleCloudKms }];
+
     private static int[] RsaKeySizesBits { get; } = [2048, 3072, 4096];
 
     private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } = CreateRows();
+
+    /// <inheritdoc />
+    public IEnumerable<RemoteKeyProviderDescriptor> Providers => ProviderDescriptors;
 
     /// <inheritdoc />
     public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;

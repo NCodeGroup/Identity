@@ -78,8 +78,8 @@ public static class DefaultRegistration
         /// <summary>
         /// Registers the Google Cloud Key Management Service <see cref="IRemoteKeyProvider"/>, which creates tenant
         /// signing keys that never leave the service, signs with them, and destroys them, together with the
-        /// <see cref="IRemoteSigningAlgorithmSource"/> that maps each JOSE signature algorithm to the crypto key version
-        /// algorithm of the service. The <c>SecretProtection:RemoteKeyProviders:GoogleCloudKms</c> section binds
+        /// <see cref="IRemoteKeyDescriptorSource"/> that describes the provider and maps each JOSE signature algorithm to
+        /// the crypto key version algorithm of the service. The <c>SecretProtection:RemoteKeyProviders:GoogleCloudKms</c> section binds
         /// <see cref="GoogleCloudKmsRemoteKeyProviderOptions"/> strictly and is validated when the host starts, so
         /// registering the provider selects it. No client is created before the first key is created, signed with or
         /// destroyed. Credentials come from Application Default Credentials, never from configuration.
@@ -124,8 +124,8 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    IRemoteSigningAlgorithmSource,
-                    GoogleCloudKmsSigningAlgorithms
+                    IRemoteKeyDescriptorSource,
+                    GoogleCloudKmsRemoteKeyDescriptors
                 >()
             );
 
@@ -134,7 +134,7 @@ public static class DefaultRegistration
 
         /// <summary>
         /// Registers the Google Cloud Key Management Service <see cref="IRemoteKeyProvider"/> and its
-        /// <see cref="IRemoteSigningAlgorithmSource"/> as <c>AddGoogleCloudKmsRemoteKeyProvider</c> does, but
+        /// <see cref="IRemoteKeyDescriptorSource"/> as <c>AddGoogleCloudKmsRemoteKeyProvider</c> does, but
         /// only when the <c>SecretProtection:RemoteKeyProviders:GoogleCloudKms</c> section exists. Registering a
         /// remote key provider selects it and validates its options when the host starts, so this method registers it
         /// only when its configuration section exists.

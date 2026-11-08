@@ -7,7 +7,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.GoogleCloudKms.Tests;
 
-public class GoogleCloudKmsSigningAlgorithmsTests
+public class GoogleCloudKmsRemoteKeyDescriptorsTests
 {
     private static readonly HashAlgorithmName Sha256 = HashAlgorithmName.SHA256;
     private static readonly HashAlgorithmName Sha384 = HashAlgorithmName.SHA384;
@@ -35,12 +35,26 @@ public class GoogleCloudKmsSigningAlgorithmsTests
         ("ES384", "ecc", 384, "P-384", "EC_SIGN_P384_SHA384", Sha384, true),
     ];
 
+    #region Providers Tests
+
+    [Fact]
+    public void Providers_DescribesTheGoogleCloudKmsProvider()
+    {
+        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+
+        var descriptor = Assert.Single(source.Providers);
+
+        Assert.Equal(RemoteKeyProviderNames.GoogleCloudKms, descriptor.Name);
+    }
+
+    #endregion
+
     #region Algorithms Tests
 
     [Fact]
     public void Algorithms_Rows_MatchTheMapping()
     {
-        var source = new GoogleCloudKmsSigningAlgorithms();
+        var source = new GoogleCloudKmsRemoteKeyDescriptors();
 
         var rows = source.Algorithms.ToList();
 
@@ -64,7 +78,7 @@ public class GoogleCloudKmsSigningAlgorithmsTests
     [Fact]
     public void Algorithms_Rows_HaveUniqueSelectors()
     {
-        var source = new GoogleCloudKmsSigningAlgorithms();
+        var source = new GoogleCloudKmsRemoteKeyDescriptors();
 
         var selectors = source
             .Algorithms.Select(x => (x.Provider, x.Algorithm, x.SecretType, x.KeySizeBits, x.Curve))
@@ -76,7 +90,7 @@ public class GoogleCloudKmsSigningAlgorithmsTests
     [Fact]
     public void Algorithms_EveryRow_SignsADigest()
     {
-        var source = new GoogleCloudKmsSigningAlgorithms();
+        var source = new GoogleCloudKmsRemoteKeyDescriptors();
 
         Assert.All(source.Algorithms, row => Assert.NotNull(row.DigestAlgorithm));
     }
@@ -84,7 +98,7 @@ public class GoogleCloudKmsSigningAlgorithmsTests
     [Fact]
     public void Algorithms_EveryRow_KeySpecMapsToAnEnumMember()
     {
-        var source = new GoogleCloudKmsSigningAlgorithms();
+        var source = new GoogleCloudKmsRemoteKeyDescriptors();
 
         Assert.All(
             source.Algorithms,
@@ -111,7 +125,7 @@ public class GoogleCloudKmsSigningAlgorithmsTests
     [Fact]
     public void Algorithms_ProvisionedDefaults_ArePresent()
     {
-        var source = new GoogleCloudKmsSigningAlgorithms();
+        var source = new GoogleCloudKmsRemoteKeyDescriptors();
 
         var rows = source.Algorithms.ToList();
 

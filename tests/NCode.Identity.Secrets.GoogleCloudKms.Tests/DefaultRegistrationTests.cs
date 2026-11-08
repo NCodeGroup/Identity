@@ -122,14 +122,14 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
         var providers = provider.GetServices<IRemoteKeyProvider>().ToList();
-        var sources = provider.GetServices<IRemoteSigningAlgorithmSource>().ToList();
+        var sources = provider.GetServices<IRemoteKeyDescriptorSource>().ToList();
         var options = provider
             .GetRequiredService<IOptions<GoogleCloudKmsRemoteKeyProviderOptions>>()
             .Value;
 
         Assert.Contains(providers, x => x.Name == RemoteKeyProviderNames.GoogleCloudKms);
         Assert.Contains(providers, x => x is GoogleCloudKmsRemoteKeyProvider);
-        Assert.Contains(sources, x => x is GoogleCloudKmsSigningAlgorithms);
+        Assert.Contains(sources, x => x is GoogleCloudKmsRemoteKeyDescriptors);
         Assert.Equal(KeyRing, options.KeyRing);
         Assert.True(options.HardwareProtected);
     }
@@ -147,13 +147,14 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
         var catalog = provider.GetRequiredService<IRemoteKeyProviderCatalog>();
+        var descriptorCatalog = provider.GetRequiredService<IRemoteKeyDescriptorCatalog>();
 
         Assert.True(
             catalog.TryGetProvider(RemoteKeyProviderNames.GoogleCloudKms, out var remoteProvider)
         );
         Assert.IsType<GoogleCloudKmsRemoteKeyProvider>(remoteProvider);
         Assert.True(
-            catalog.TryGetAlgorithm(
+            descriptorCatalog.TryGetAlgorithm(
                 new RemoteSigningAlgorithmSelector
                 {
                     Provider = RemoteKeyProviderNames.GoogleCloudKms,
@@ -188,8 +189,8 @@ public class DefaultRegistrationTests : BaseTests
         Assert.Single(
             serviceCollection,
             x =>
-                x.ServiceType == typeof(IRemoteSigningAlgorithmSource)
-                && x.ImplementationType == typeof(GoogleCloudKmsSigningAlgorithms)
+                x.ServiceType == typeof(IRemoteKeyDescriptorSource)
+                && x.ImplementationType == typeof(GoogleCloudKmsRemoteKeyDescriptors)
         );
         Assert.Single(
             serviceCollection,
@@ -262,10 +263,10 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
         var providers = provider.GetServices<IRemoteKeyProvider>().ToList();
-        var sources = provider.GetServices<IRemoteSigningAlgorithmSource>().ToList();
+        var sources = provider.GetServices<IRemoteKeyDescriptorSource>().ToList();
 
         Assert.Contains(providers, x => x is GoogleCloudKmsRemoteKeyProvider);
-        Assert.Contains(sources, x => x is GoogleCloudKmsSigningAlgorithms);
+        Assert.Contains(sources, x => x is GoogleCloudKmsRemoteKeyDescriptors);
     }
 
     [Fact]
@@ -287,8 +288,8 @@ public class DefaultRegistrationTests : BaseTests
             x => x is GoogleCloudKmsRemoteKeyProvider
         );
         Assert.DoesNotContain(
-            provider.GetServices<IRemoteSigningAlgorithmSource>(),
-            x => x is GoogleCloudKmsSigningAlgorithms
+            provider.GetServices<IRemoteKeyDescriptorSource>(),
+            x => x is GoogleCloudKmsRemoteKeyDescriptors
         );
     }
 

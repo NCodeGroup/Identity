@@ -28,12 +28,12 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
     private const string SignKeyName = KeyRing + "/cryptoKeys/signing/cryptoKeyVersions/7";
 
     private static readonly RemoteSigningAlgorithm Rs256 =
-        new GoogleCloudKmsSigningAlgorithms().Algorithms.Single(x =>
+        new GoogleCloudKmsRemoteKeyDescriptors().Algorithms.Single(x =>
             x.Algorithm == "RS256" && x.KeySizeBits == 3072
         );
 
     private static readonly RemoteSigningAlgorithm Es256 =
-        new GoogleCloudKmsSigningAlgorithms().Algorithms.Single(x => x.Algorithm == "ES256");
+        new GoogleCloudKmsRemoteKeyDescriptors().Algorithms.Single(x => x.Algorithm == "ES256");
 
     private static readonly string PublicKeyPem;
 

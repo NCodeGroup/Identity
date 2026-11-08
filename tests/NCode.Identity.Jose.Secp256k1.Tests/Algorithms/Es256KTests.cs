@@ -102,7 +102,11 @@ public sealed class Es256KTests : IAsyncDisposable
         var payload = new Dictionary<string, object> { ["sub"] = "alice" };
 
         var token = await SignAsync(privateKey, Es256K, payload);
-        var decoded = Services.JoseSerializer.Decode(token, publicKey);
+        var decoded = await Services.JoseSerializer.DecodeAsync(
+            token,
+            publicKey,
+            CancellationToken.None
+        );
 
         Assert.Equal(JsonSerializer.Serialize(payload), decoded);
         var header = token[..token.IndexOf('.', StringComparison.Ordinal)];
@@ -154,17 +158,21 @@ public sealed class Es256KTests : IAsyncDisposable
     #region Decode Tests
 
     [Secp256k1Fact]
-    public void Decode_WhenJwsWasSignedByAnIndependentImplementation_ReturnsThePayload()
+    public async Task Decode_WhenJwsWasSignedByAnIndependentImplementation_ReturnsThePayload()
     {
         var publicKey = Services.ImportPublicJwk(KnownPublicJwk());
 
-        var decoded = Services.JoseSerializer.Decode(KnownJws, publicKey);
+        var decoded = await Services.JoseSerializer.DecodeAsync(
+            KnownJws,
+            publicKey,
+            CancellationToken.None
+        );
 
         Assert.Equal(KnownPayload, decoded);
     }
 
     [Secp256k1Fact]
-    public void Decode_WhenKnownJwsPayloadIsAltered_Throws()
+    public async Task Decode_WhenKnownJwsPayloadIsAltered_Throws()
     {
         var publicKey = Services.ImportPublicJwk(KnownPublicJwk());
         var parts = KnownJws.Split('.');
@@ -172,8 +180,12 @@ public sealed class Es256KTests : IAsyncDisposable
             SecureEncoding.UTF8.GetBytes("""{"iss":"https://issuer.example","sub":"mallory"}""")
         );
 
-        Assert.Throws<JoseIntegrityException>(() =>
-            Services.JoseSerializer.Decode($"{parts[0]}.{altered}.{parts[2]}", publicKey)
+        await Assert.ThrowsAsync<JoseIntegrityException>(async () =>
+            await Services.JoseSerializer.DecodeAsync(
+                $"{parts[0]}.{altered}.{parts[2]}",
+                publicKey,
+                CancellationToken.None
+            )
         );
     }
 
@@ -199,16 +211,18 @@ public sealed class Es256KTests : IAsyncDisposable
 
         Assert.Equal(
             JsonSerializer.Serialize(payload),
-            Services.JoseSerializer.Decode(token, publicKey)
+            await Services.JoseSerializer.DecodeAsync(token, publicKey, CancellationToken.None)
         );
     }
 
     [Secp256k1Fact]
-    public void Decode_WhenEs256KJwsIsVerifiedWithAP256Key_Throws()
+    public async Task Decode_WhenEs256KJwsIsVerifiedWithAP256Key_Throws()
     {
         var p256Key = Services.GenerateKey("P-256");
 
-        Assert.Throws<ArgumentException>(() => Services.JoseSerializer.Decode(KnownJws, p256Key));
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Services.JoseSerializer.DecodeAsync(KnownJws, p256Key, CancellationToken.None)
+        );
     }
 
     #endregion

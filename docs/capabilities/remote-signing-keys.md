@@ -8,7 +8,7 @@
 | **Status**         | Available: a tenant's signing keys, in AWS KMS, Azure Key Vault (and Managed HSM) and Google Cloud KMS, chosen per tenant                                                                                                                                                                                             |
 | **Packages**       | `NCode.Identity.Secrets.Abstractions` (the remote vocabulary), `NCode.Identity.Secrets` and `NCode.Identity.Secrets.Persistence` (the key, its storage and its destruction), `NCode.Identity.Jose.Abstractions` and `NCode.Identity.Jose` (the asynchronous signing seam), `NCode.Identity.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms` (the providers), `NCode.Identity.OpenId.Core` (the setting and the rollover) |
 | **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md), [ADR-1475](../decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md) |
-| **Operator guide** | The reference host's [Remote signing keys](../../src/NCode.Identity.OpenId.Host/README.md#remote-signing-keys); the tenant setting `tenant_signing_key_provider`; the configuration sections under `SecretProtection:RemoteKeyProviders`                                                                          |
+| **Operator guide** | The reference host's [Remote signing keys](../../src/NCode.Identity.OpenId.Host/README.md#remote-signing-keys); the tenant setting `tenant_signing_key_provider`; the configuration sections under `SecretProtection:RemoteKeyProviders`; the Helm chart's `secretProtection.remoteKeyProviders` values, in its [Tenant signing keys](../../charts/ncode-identity-host/README.md#tenant-signing-keys)                                                                          |
 
 ## The promises
 
@@ -139,6 +139,12 @@ reference host calls them.
 | `aws-kms`                   | `SecretProtection:RemoteKeyProviders:AwsKms`             | `Region`; `PendingWindowInDays`, 7 to 30 (default 30)                             |
 | `azure-key-vault`           | `SecretProtection:RemoteKeyProviders:AzureKeyVault`      | `VaultUri`; `HardwareProtected` (default `true`)                                  |
 | `google-cloud-kms`          | `SecretProtection:RemoteKeyProviders:GoogleCloudKms`     | `KeyRing`; `HardwareProtected` (default `true`)                                   |
+
+The reference host's Helm chart configures them with the `secretProtection.remoteKeyProviders` values (`awsKms.region`
+and `pendingWindowInDays`, `azureKeyVault.vaultUri` and `hardwareProtected`, `googleCloudKms.keyRing` and
+`hardwareProtected`). It registers a provider when its first value is set and mounts that vendor's workload identity
+into the pods; see the chart README's
+[Tenant signing keys](../../charts/ncode-identity-host/README.md#tenant-signing-keys).
 
 A tenant, a team or the platform selects a provider with the setting `tenant_signing_key_provider`, whose value is
 empty (local keys) or one of the registered provider names. The setting is environment-bound, so each environment chooses

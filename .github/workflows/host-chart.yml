@@ -88,6 +88,11 @@ jobs:
           refuse --set 'secretProtection.ownerRootKeys.providers={azure-key-vault}' --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
           refuse --set 'secretProtection.ownerRootKeys.providers={google-cloud-kms}' --set secretProtection.googleCloudKms.workloadIdentityFederation.provider=bad
           refuse --set 'secretProtection.ownerRootKeys.providers={nope}'
+          refuse --set secretProtection.remoteKeyProviders.awsKms.region=Not_A_Region
+          refuse --set secretProtection.remoteKeyProviders.awsKms.region=us-west-2 --set secretProtection.remoteKeyProviders.awsKms.pendingWindowInDays=6
+          refuse --set secretProtection.remoteKeyProviders.azureKeyVault.vaultUri=http://contoso.vault.azure.net
+          refuse --set secretProtection.remoteKeyProviders.googleCloudKms.keyRing=projects/p/locations/l/keyRings/r/cryptoKeys/k
+          refuse --set secretProtection.remoteKeyProviders.azureKeyVault.vaultUri=https://contoso.vault.azure.net --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
           refuse --set secretProtection.recovery.publicKeyConfigMap=
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
@@ -104,6 +109,24 @@ jobs:
             echo "::error::The chart rendered a migration Job with migrations.enabled=false."
             exit 1
           fi
+
+      - name: Carry a remote key provider's credentials only when it is configured
+        run: |
+          base="$CHART/ci/single-replica-values.yaml"
+          role="secretProtection.awsKms.webIdentity.roleArn=arn:aws:iam::111122223333:role/x"
+          unconfigured=$(helm template release "$CHART" --values "$base" --set "$role")
+          if grep -q 'AWS_ROLE_ARN' <<< "$unconfigured" || grep -q 'RemoteKeyProviders' <<< "$unconfigured"; then
+            echo "::error::The chart carried a remote key provider's settings or credentials without configuring it."
+            exit 1
+          fi
+          configured=$(helm template release "$CHART" --values "$base" --set "$role" \
+            --set secretProtection.remoteKeyProviders.awsKms.region=us-west-2)
+          for expected in 'AWS_ROLE_ARN' 'RemoteKeyProviders'; do
+            if ! grep -q "$expected" <<< "$configured"; then
+              echo "::error::The chart lacks a configured remote key provider's setting or credentials: $expected"
+              exit 1
+            fi
+          done
 
       - name: Give the migration Job the host's extra settings and a valid name
         run: |

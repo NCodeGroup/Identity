@@ -123,10 +123,17 @@ public class SignatureAlgorithmSignAsyncTests : BaseTests
             .Setup(x =>
                 x.SignAsync(
                     It.Is<RemoteSignatureRequest>(r => r.KeyId == KeyId),
+                    It.IsAny<Memory<byte>>(),
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(providerSignature)
+            .Returns(
+                (RemoteSignatureRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    providerSignature.CopyTo(destination);
+                    return ValueTask.FromResult(providerSignature.Length);
+                }
+            )
             .Verifiable();
 
     #region SignAsync Tests

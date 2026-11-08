@@ -14,33 +14,28 @@ namespace NCode.Identity.OpenId.Core.Tests.Tenants.Keys;
 public class TenantSigningKeySettingDescriptorDataSourceTests : BaseTests
 {
     private Mock<INullChangeToken> MockNullChangeToken { get; }
-    private Mock<IRemoteKeyProviderCatalog> MockCatalog { get; }
+    private Mock<IRemoteKeyDescriptorCatalog> MockCatalog { get; }
 
     public TenantSigningKeySettingDescriptorDataSourceTests()
     {
         MockNullChangeToken = CreateStrictMock<INullChangeToken>();
-        MockCatalog = CreateStrictMock<IRemoteKeyProviderCatalog>();
+        MockCatalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
     }
 
     #region Helpers
 
     private TenantSigningKeySettingDescriptorDataSource CreateDataSource(params string[] names)
     {
-        var providers = names.Select(CreateProvider).ToList();
+        var providers = names
+            .Select(name => new RemoteKeyProviderDescriptor { Name = name })
+            .ToList();
 
-        MockCatalog.Setup(catalog => catalog.Providers).Returns(providers).Verifiable();
+        MockCatalog.Setup(x => x.Providers).Returns(providers).Verifiable();
 
         return new TenantSigningKeySettingDescriptorDataSource(
             MockNullChangeToken.Object,
             MockCatalog.Object
         );
-    }
-
-    private IRemoteKeyProvider CreateProvider(string name)
-    {
-        var mockProvider = CreateStrictMock<IRemoteKeyProvider>();
-        mockProvider.Setup(provider => provider.Name).Returns(name);
-        return mockProvider.Object;
     }
 
     private static SettingDescriptor<string> GetDescriptor(

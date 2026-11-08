@@ -6,7 +6,7 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class SecretProtectorProviderExtensionsTests : IDisposable
+public class SecretProtectorProviderExtensionsTests : BaseTests
 {
     private const string PublicValue = "public-value";
     private const string RemoteValue = "aws-kms:remote-key";
@@ -15,19 +15,13 @@ public class SecretProtectorProviderExtensionsTests : IDisposable
 
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("tenant-one");
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<ISecretProtectorProvider> _provider;
     private readonly Mock<ISecretProtector> _protector;
 
     public SecretProtectorProviderExtensionsTests()
     {
-        _provider = _mocks.Create<ISecretProtectorProvider>();
-        _protector = _mocks.Create<ISecretProtector>();
-    }
-
-    public void Dispose()
-    {
-        _mocks.Verify();
+        _provider = CreateStrictMock<ISecretProtectorProvider>();
+        _protector = CreateStrictMock<ISecretProtector>();
     }
 
     private static PersistedSecret CreateSecret(string secretEncoding, string encodedValue) =>

@@ -7,25 +7,18 @@ using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class DefaultKeyWrapperCatalogTests : IDisposable
+public class DefaultKeyWrapperCatalogTests : BaseTests
 {
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
-
-    public void Dispose()
-    {
-        _mocks.Verify();
-    }
-
     private Mock<IKeyWrapper> CreateProvider(string providerName)
     {
-        var provider = _mocks.Create<IKeyWrapper>();
+        var provider = CreateStrictMock<IKeyWrapper>();
         provider.Setup(x => x.Name).Returns(providerName).Verifiable();
         return provider;
     }
 
     private Mock<IReferencedKeyWrapper> CreateReferencedProvider(string providerName)
     {
-        var provider = _mocks.Create<IReferencedKeyWrapper>();
+        var provider = CreateStrictMock<IReferencedKeyWrapper>();
         provider.Setup(x => x.Name).Returns(providerName).Verifiable();
         return provider;
     }

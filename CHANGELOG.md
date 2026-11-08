@@ -795,7 +795,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `UnwrapAsync`, which writes the key into an `IBufferWriter<byte>`) and returns `WrappedKey` (`WrapperName`, `KeyId`,
   `Ciphertext`); both, with `KeyWrapperNames`, live in `NCode.Identity.Secrets.Abstractions` under
   `NCode.Identity.Secrets.KeyWrapping`, and the offline recovery wrapper implements the same contract. The local wrapper
-  is configured through `LocalKeyWrapperOptions`, and the opt-in packages `NCode.Identity.Secrets.KeyWrapping.AwsKms`,
+  is configured through `LocalKeyWrapperOptions`, and the opt-in packages `NCode.Identity.Secrets.AwsKms`,
   `.AzureKeyVault` and `.GoogleCloudKms` register a wrapper with `Add<Vendor>KeyWrapper` and
   `<Vendor>KeyWrapperOptions`. `WrappedKeyCiphertext.GetByteCount` and `WrappedKeyCiphertext.Decode` decode a
   `WrappedKey.Ciphertext` stored as base64url into a caller-supplied span or `IBufferWriter<byte>` and throw
@@ -805,14 +805,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
   [#373](https://github.com/NCodeGroup/Identity/issues/373)).
 
-- **`NCode.Identity.Secrets.KeyWrapping.AwsKms` wraps the root key with AWS KMS.** `AddAwsKmsKeyWrapper` (`aws-kms`,
+- **`NCode.Identity.Secrets.AwsKms` wraps the root key with AWS KMS.** `AddAwsKmsKeyWrapper` (`aws-kms`,
   section `SecretProtection:RootKeyProviders:AwsKms`, a key or alias ARN) binds each wrap to its owner through the KMS
   encryption context and takes credentials from the AWS SDK's default chain, never from configuration. The reference
   host and the Helm chart wire it in; the chart federates the pod's service-account token with AWS
   (`secretProtection.awsKms`) only when `aws-kms` is selected, and refuses a malformed key ARN
   ([ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
 
-- **`NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms` and `NCode.Identity.Secrets.KeyWrapping.AzureKeyVault` wrap the
+- **`NCode.Identity.Secrets.GoogleCloudKms` and `NCode.Identity.Secrets.AzureKeyVault` wrap the
   root key with Google Cloud KMS and Azure Key Vault.** The Google Cloud KMS wrapper (`google-cloud-kms`,
   `AddGoogleCloudKmsKeyWrapper`, crypto key resource name in `SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName`)
   binds each wrap to its owner through the additional authenticated data and checks CRC32C checksums on every request
@@ -906,21 +906,33 @@ Until the first stable release, the [Unreleased] section describes the product a
   `AddGoogleCloudKmsRemoteKeyProvider` register from `SecretProtection:RemoteKeyProviders:<Vendor>` — and the tenant's
   signature keys are created in that KMS. The server stores each key's public half and a `remote` reference, publishes
   the stored public half in the JSON Web Key Set without calling the KMS, and signs through the KMS, sending a digest
-  and turning an ECDSA DER signature into the `r‖s` form JWS uses. Registered `IRemoteSigningAlgorithmSource` rows map
-  each JOSE algorithm onto a provider's key spec and signing algorithm (`RS*`, `PS*` and `ES*`). A change of custody
-  hands each key over after the activation delay (`custody_changed`), a successor is a new version of its KMS key (a
-  new tagged key on AWS KMS), a removed key the server created is destroyed in its KMS after the commit, and each SDK
-  retries throttling with jittered exponential back-off. The management API creates a tenant's key in a registered
-  provider (`POST /api/tenants/{tenantId}/secrets/remote`) and binds a key a KMS already holds once a challenge it signs
-  verifies with the supplied public half (`POST /api/tenants/{tenantId}/secrets/remote/import`, which needs update
-  authority on the platform; the server never destroys a bound key); an update keeps a remote key's algorithm;
-  `SecretResource`'s `remoteKeyProvider` and the console's secrets table name the provider, and the capabilities
-  response lists `remoteKeyProviders`. The Helm chart's `secretProtection.remoteKeyProviders` configures each provider
-  and mounts its workload identity. `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`,
-  `RemoteSigningAlgorithm`, `IRemoteSecretKey` and `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a
-  provider or a key type ([#165](https://github.com/NCodeGroup/Identity/issues/165),
-  [#648](https://github.com/NCodeGroup/Identity/issues/648), [#649](https://github.com/NCodeGroup/Identity/issues/649),
+  and turning an ECDSA DER signature into the `r‖s` form JWS uses. Registered `IRemoteKeyDescriptorSource` instances
+  describe each provider (`RemoteKeyProviderDescriptor`) and contribute the rows that map each JOSE algorithm onto a
+  provider's key spec and signing algorithm (`RS*`, `PS*` and `ES*`). A change of custody hands each key over after the
+  activation delay (`custody_changed`), a successor is a new version of its KMS key (a new tagged key on AWS KMS), a
+  removed key the server created is destroyed in its KMS after the commit, each SDK retries a repeatable call with
+  jittered exponential back-off, and a key creation is made once; the setting's domain and the provisioning check read
+  the descriptors, never the providers, and a provider signs into the caller's buffer. The management API creates a
+  tenant's key in a registered provider (`POST /api/tenants/{tenantId}/secrets/remote`) and binds a key a KMS already
+  holds once a challenge it signs verifies with the supplied public half
+  (`POST /api/tenants/{tenantId}/secrets/remote/import`, which needs update authority on the platform; the server never
+  destroys a bound key); an update keeps a remote key's algorithm; `SecretResource`'s `remoteKeyProvider` and the
+  console's secrets table name the provider, and the capabilities response lists `remoteKeyProviders`; the management
+  API's validation and its capabilities read the descriptors as well. The Helm chart's
+  `secretProtection.remoteKeyProviders` configures each provider and mounts its workload identity.
+  `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`, `IRemoteKeyDescriptorCatalog`, `RemoteSigningAlgorithm`,
+  `IRemoteSecretKey` and `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a provider or a key type. The
+  providers live in `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`, beside each service's key
+  wrapper ([#165](https://github.com/NCodeGroup/Identity/issues/165),
+  [#648](https://github.com/NCodeGroup/Identity/issues/648),
+  [#649](https://github.com/NCodeGroup/Identity/issues/649),
+  [#652](https://github.com/NCodeGroup/Identity/issues/652),
+  [#653](https://github.com/NCodeGroup/Identity/issues/653),
+  [#655](https://github.com/NCodeGroup/Identity/issues/655),
+  [#657](https://github.com/NCodeGroup/Identity/issues/657),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
+  [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
+  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
   [ADR-1475](docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
@@ -5713,5 +5725,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   stored public half fails is refused; a remote key is bound to one algorithm and fails when its tenant loads if its
   provider, mapping row or public half is missing; KMS keys are created sign-only and, on Azure Key Vault and Google
   Cloud KMS, hardware-protected by default; logs carry key identifiers only; and the server destroys only the KMS keys
-  it created ([#165](https://github.com/NCodeGroup/Identity/issues/165),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+  it created; a key it created but could not read, check or record is destroyed at once, and a KMS response that names
+  another key or algorithm, or fails its checksum, is refused ([#165](https://github.com/NCodeGroup/Identity/issues/165),
+  [#653](https://github.com/NCodeGroup/Identity/issues/653),
+  [#659](https://github.com/NCodeGroup/Identity/issues/659),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
+  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)).

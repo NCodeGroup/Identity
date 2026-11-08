@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Globalization;
+using System.Text;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets.Keys;
@@ -48,13 +50,26 @@ public abstract class SecretKey
     /// <summary>
     /// Returns a formatted <see cref="string"/> that represents this <see cref="SecretKey"/> instance.
     /// </summary>
-    public override string ToString() => ToStringOrNull ??= FormatToString();
+    public override string ToString() => ToStringOrNull ??= Format();
 
     /// <summary>
-    /// Returns a formatted <see cref="string"/> that represents this <see cref="SecretKey"/> instance.
+    /// Appends the members of this <see cref="SecretKey"/> instance that <see cref="ToString"/> writes between its braces.
+    /// A derived class overrides this method to append its own members after the base members, each preceded by <c>, </c>.
     /// </summary>
-    protected virtual string FormatToString() =>
-        $"{KeyType} {{ KeyId = {QuoteOrNull(KeyId)}, Size = {KeySizeBits} }}";
+    /// <param name="builder">The <see cref="StringBuilder"/> that receives the members.</param>
+    protected virtual void AppendMembers(StringBuilder builder) =>
+        builder.Append(
+            CultureInfo.InvariantCulture,
+            $"KeyId = {QuoteOrNull(KeyId)}, Size = {KeySizeBits}"
+        );
+
+    private string Format()
+    {
+        var builder = new StringBuilder();
+        builder.Append(KeyType).Append(" { ");
+        AppendMembers(builder);
+        return builder.Append(" }").ToString();
+    }
 
     /// <summary>
     /// Returns a quoted <see cref="string"/> or <c>(null)</c> if the value is <c>null</c>.

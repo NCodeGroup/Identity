@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
@@ -36,7 +37,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         secrets.AddPersistenceLibrary();
         secrets.AddJoseLibrary();
         serviceCollection.AddSingleton<IRemoteKeyProvider>(Provider);
-        serviceCollection.AddSingleton<IRemoteSigningAlgorithmSource>(Provider);
+        serviceCollection.AddSingleton<IRemoteKeyDescriptorSource>(Provider);
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         MockKeyImporter = Mocks.Create<IClientKeyImporter>();
@@ -251,12 +252,12 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 
     private sealed class StubKmsProvider
         : IRemoteKeyProvider,
-            IRemoteSigningAlgorithmSource,
+            IRemoteKeyDescriptorSource,
             IDisposable
     {
         public const string ProviderName = "stub-kms";
 
-        private static readonly IReadOnlyList<RemoteSigningAlgorithm> Rows =
+        private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } =
         [
             new RemoteSigningAlgorithm
             {
@@ -278,35 +279,65 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 
         public string Name => ProviderName;
 
+        public IEnumerable<RemoteKeyProviderDescriptor> Providers { get; } =
+        [new RemoteKeyProviderDescriptor { Name = ProviderName }];
+
         public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;
 
         public ValueTask<RemoteKeyCreationResult> CreateKeyAsync(
             RemoteKeyCreationRequest request,
             CancellationToken cancellationToken
-        ) => throw new NotSupportedException();
+        ) => ValueTask.FromException<RemoteKeyCreationResult>(new NotSupportedException());
 
-        public ValueTask<byte[]> SignAsync(
+        public ValueTask GetPublicKeyAsync(
+            RemotePublicKeyRequest request,
+            IBufferWriter<byte> subjectPublicKeyInfo,
+            CancellationToken cancellationToken
+        )
+        {
+            if (!string.Equals(request.KeyId, KeyId, StringComparison.Ordinal))
+            {
+                return ValueTask.FromException(
+                    new InvalidOperationException($"The key '{request.KeyId}' does not exist.")
+                );
+            }
+
+            subjectPublicKeyInfo.Write(Key.ExportSubjectPublicKeyInfo());
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask<int> SignAsync(
             RemoteSignatureRequest request,
+            Memory<byte> signature,
             CancellationToken cancellationToken
         )
         {
             if (Failure is not null)
             {
-                throw Failure;
+                return ValueTask.FromException<int>(Failure);
             }
 
             if (!string.Equals(request.KeyId, KeyId, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"The key '{request.KeyId}' does not exist.");
+                return ValueTask.FromException<int>(
+                    new InvalidOperationException($"The key '{request.KeyId}' does not exist.")
+                );
             }
 
-            return ValueTask.FromResult(
-                Key.SignHash(request.Data.Span, DSASignatureFormat.Rfc3279DerSequence)
-            );
+            return Key.TrySignHash(
+                request.Data.Span,
+                signature.Span,
+                DSASignatureFormat.Rfc3279DerSequence,
+                out var written
+            )
+                ? ValueTask.FromResult(written)
+                : ValueTask.FromException<int>(
+                    new CryptographicException("The signature does not fit in the buffer.")
+                );
         }
 
         public ValueTask DestroyKeyAsync(string keyId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            ValueTask.FromException(new NotSupportedException());
 
         public void Dispose() => Key.Dispose();
     }

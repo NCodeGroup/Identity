@@ -133,12 +133,17 @@ public class RemoteKeyJwsTests : BaseTests
             .Setup(x =>
                 x.SignAsync(
                     It.Is<RemoteSignatureRequest>(r => r.KeyId == RemoteKeyId),
+                    It.IsAny<Memory<byte>>(),
                     CancellationToken.None
                 )
             )
             .Returns(
-                (RemoteSignatureRequest request, CancellationToken _) =>
-                    ValueTask.FromResult(SignAsProvider(request))
+                (RemoteSignatureRequest request, Memory<byte> destination, CancellationToken _) =>
+                {
+                    var bytes = SignAsProvider(request);
+                    bytes.CopyTo(destination);
+                    return ValueTask.FromResult(bytes.Length);
+                }
             )
             .Verifiable();
 

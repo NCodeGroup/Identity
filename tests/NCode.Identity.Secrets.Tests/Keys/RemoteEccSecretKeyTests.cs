@@ -106,10 +106,18 @@ public class RemoteEccSecretKeyTests : BaseTests
                         && ReferenceEquals(r.Algorithm, Row)
                         && r.Data.ToArray().SequenceEqual(digest)
                     ),
+                    It.IsAny<Memory<byte>>(),
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(LocalKey.SignHash(digest, DSASignatureFormat.Rfc3279DerSequence))
+            .Returns(
+                (RemoteSignatureRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    var bytes = LocalKey.SignHash(digest, DSASignatureFormat.Rfc3279DerSequence);
+                    bytes.CopyTo(destination);
+                    return ValueTask.FromResult(bytes.Length);
+                }
+            )
             .Verifiable();
         var key = CreateKey();
         var signature = new byte[64];

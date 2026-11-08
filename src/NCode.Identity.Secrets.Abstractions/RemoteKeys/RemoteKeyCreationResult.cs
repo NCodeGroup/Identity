@@ -6,9 +6,10 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Secrets.RemoteKeys;
 
 /// <summary>
-/// Holds what a <see cref="IRemoteKeyProvider"/> returns after it creates a key.
+/// Holds what a <see cref="IRemoteKeyProvider"/> returns as soon as the key management service names the key it
+/// created.
 /// </summary>
-// See ADR-1471.
+// See ADR-1474.
 [PublicAPI]
 public sealed class RemoteKeyCreationResult
 {
@@ -17,10 +18,4 @@ public sealed class RemoteKeyCreationResult
     /// <see cref="RemoteKeyReference"/>.
     /// </summary>
     public required string KeyId { get; init; }
-
-    /// <summary>
-    /// Gets the DER-encoded <c>SubjectPublicKeyInfo</c> of the key's public half, as the key management service
-    /// returns it.
-    /// </summary>
-    public required ReadOnlyMemory<byte> SubjectPublicKeyInfo { get; init; }
 }

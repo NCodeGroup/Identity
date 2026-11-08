@@ -107,12 +107,12 @@ public sealed class SdJwtTestHost : IAsyncDisposable
     /// <summary>
     /// Signs a hand-built issuer-signed JWT payload with the issuer's key, for presentations the issuer never makes.
     /// </summary>
-    public ValueTask<string> SignIssuerJwt(
+    public ValueTask<string> SignIssuerJwtAsync(
         string payloadJson,
         string tokenType = JoseTokenTypes.Jwt
-    ) => SignJwt(IssuerCredentials, payloadJson, tokenType);
+    ) => SignJwtAsync(IssuerCredentials, payloadJson, tokenType);
 
-    public ValueTask<string> SignJwt(
+    public ValueTask<string> SignJwtAsync(
         JoseSigningCredentials credentials,
         string payloadJson,
         string tokenType
@@ -127,7 +127,7 @@ public sealed class SdJwtTestHost : IAsyncDisposable
     /// Encloses a compact JWS in a JWE to the specified elliptic-curve key, with <c>cty</c> <c>JWT</c>, as a Nested
     /// JWT (RFC 7519 §5.2).
     /// </summary>
-    public ValueTask<string> EncloseInJwe(string jws, SecretKey recipientKey)
+    public ValueTask<string> EncloseInJweAsync(string jws, SecretKey recipientKey)
     {
         if (
             !Algorithms.TryGetKeyManagementAlgorithm(

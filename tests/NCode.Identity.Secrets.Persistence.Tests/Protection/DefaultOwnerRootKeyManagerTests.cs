@@ -15,7 +15,7 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class DefaultOwnerRootKeyManagerTests : IDisposable
+public class DefaultOwnerRootKeyManagerTests : BaseTests
 {
     private const string Reference = "kms://tenant-a/root";
 
@@ -30,12 +30,10 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("Tenant-A");
     private static readonly SecretOwner NormalizedOwner = Owner.Normalize();
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<ISecretProtectorProvider> _protectors;
     private readonly Mock<IMasterKeyManager> _masterKeys;
     private readonly Mock<IMasterKeyRewrapper> _rewrapper;
     private readonly Mock<IOwnerRootKeyChangeObserver> _observer;
-    private readonly List<Mock> _verifiables = [];
     private readonly List<IOwnerRootKeyPolicy> _policies = [new PlatformOwnerRootKeyPolicy()];
     private readonly FakeReferencedKeyWrapper _kms = new();
     private readonly InMemoryOwnerRootKeyStores _stores = new();
@@ -49,17 +47,10 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
 
     public DefaultOwnerRootKeyManagerTests()
     {
-        _protectors = _mocks.Create<ISecretProtectorProvider>();
-        _masterKeys = _mocks.Create<IMasterKeyManager>();
-        _rewrapper = _mocks.Create<IMasterKeyRewrapper>();
-        _observer = _mocks.Create<IOwnerRootKeyChangeObserver>();
-    }
-
-    public void Dispose()
-    {
-        _mocks.Verify();
-        foreach (var verifiable in _verifiables)
-            verifiable.Verify();
+        _protectors = CreateStrictMock<ISecretProtectorProvider>();
+        _masterKeys = CreateStrictMock<IMasterKeyManager>();
+        _rewrapper = CreateStrictMock<IMasterKeyRewrapper>();
+        _observer = CreateStrictMock<IOwnerRootKeyChangeObserver>();
     }
 
     private DefaultOwnerRootKeyManager CreateManager(
@@ -88,7 +79,7 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     // The logger is loose because the manager logs other events on the way; only the deferred completion is verified.
     private Mock<ILogger<DefaultOwnerRootKeyManager>> ExpectCompletionDeferredLog()
     {
-        var logger = new Mock<ILogger<DefaultOwnerRootKeyManager>>(MockBehavior.Loose);
+        var logger = CreateLooseMock<ILogger<DefaultOwnerRootKeyManager>>();
         logger.Setup(x => x.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
         logger
             .Setup(x =>
@@ -101,7 +92,6 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
                 )
             )
             .Verifiable(Times.Once());
-        _verifiables.Add(logger);
         return logger;
     }
 

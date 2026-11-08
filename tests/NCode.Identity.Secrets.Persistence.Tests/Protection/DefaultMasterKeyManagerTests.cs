@@ -11,12 +11,11 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class DefaultMasterKeyManagerTests : IDisposable
+public class DefaultMasterKeyManagerTests : BaseTests
 {
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("Tenant-A");
     private static readonly SecretOwner NormalizedOwner = Owner.Normalize();
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<ISecretProtectorProvider> _provider;
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
     private readonly Mock<IRecoveryKeyWrapper> _recovery;
@@ -34,20 +33,28 @@ public class DefaultMasterKeyManagerTests : IDisposable
 
     public DefaultMasterKeyManagerTests()
     {
-        _provider = _mocks.Create<ISecretProtectorProvider>();
-        _storeManagerFactory = _mocks.Create<IStoreManagerFactory>();
-        _recovery = _mocks.Create<IRecoveryKeyWrapper>();
-        _catalog = _mocks.Create<IKeyWrapperCatalog>();
-        _source = _mocks.Create<IProtectedValueSource>();
-        _otherSource = _mocks.Create<IProtectedValueSource>();
-        _observer = _mocks.Create<IMasterKeyChangeObserver>();
+        _provider = CreateStrictMock<ISecretProtectorProvider>();
+        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        _recovery = CreateStrictMock<IRecoveryKeyWrapper>();
+        _catalog = CreateStrictMock<IKeyWrapperCatalog>();
+        _source = CreateStrictMock<IProtectedValueSource>();
+        _otherSource = CreateStrictMock<IProtectedValueSource>();
+        _observer = CreateStrictMock<IMasterKeyChangeObserver>();
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        _rootKey.Dispose();
-        _mocks.Verify();
-        Assert.Empty(_storeManagers);
+        if (disposing)
+        {
+            _rootKey.Dispose();
+        }
+
+        base.Dispose(disposing);
+
+        if (disposing)
+        {
+            Assert.Empty(_storeManagers);
+        }
     }
 
     private DefaultMasterKeyManager CreateManager() =>
@@ -79,8 +86,8 @@ public class DefaultMasterKeyManagerTests : IDisposable
                 .Verifiable();
         }
 
-        var store = _mocks.Create<IMasterKeyStore>();
-        var manager = _mocks.Create<IStoreManager>();
+        var store = CreateStrictMock<IMasterKeyStore>();
+        var manager = CreateStrictMock<IStoreManager>();
         manager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object).Verifiable();
         manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         _storeManagers.Enqueue(manager.Object);
@@ -124,7 +131,7 @@ public class DefaultMasterKeyManagerTests : IDisposable
             .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>(rows))
             .Verifiable();
 
-        var rootKeyStore = _mocks.Create<IOwnerRootKeyStore>();
+        var rootKeyStore = CreateStrictMock<IOwnerRootKeyStore>();
         rootKeyStore
             .Setup(x => x.FindAsync(NormalizedOwner, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<PersistedOwnerRootKey?>(rootKey))
@@ -418,7 +425,7 @@ public class DefaultMasterKeyManagerTests : IDisposable
     {
         var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
         SetupList(active);
-        var wrapper = _mocks.Create<IKeyWrapper>();
+        var wrapper = CreateStrictMock<IKeyWrapper>();
         wrapper
             .Setup(x =>
                 x.WrapAsync(

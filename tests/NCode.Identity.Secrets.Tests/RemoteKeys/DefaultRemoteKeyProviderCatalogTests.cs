@@ -1,11 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Security.Cryptography;
-
 namespace NCode.Identity.Secrets.RemoteKeys;
 
 // See ADR-1471.
+// See ADR-1474.
 public class DefaultRemoteKeyProviderCatalogTests : BaseTests
 {
     private IRemoteKeyProvider CreateProvider(string name)
@@ -15,48 +14,17 @@ public class DefaultRemoteKeyProviderCatalogTests : BaseTests
         return mock.Object;
     }
 
-    private IRemoteSigningAlgorithmSource CreateSource(params RemoteSigningAlgorithm[] algorithms)
+    private IRemoteKeyDescriptorCatalog CreateDescriptorCatalog(params string[] names)
     {
-        var mock = CreateStrictMock<IRemoteSigningAlgorithmSource>();
-        mock.Setup(x => x.Algorithms).Returns(algorithms).Verifiable();
-        return mock.Object;
+        var mock = CreateStrictMock<IRemoteKeyDescriptorSource>();
+        mock.Setup(x => x.Providers)
+            .Returns(
+                names.Select(name => new RemoteKeyProviderDescriptor { Name = name }).ToArray()
+            )
+            .Verifiable();
+        mock.Setup(x => x.Algorithms).Returns([]).Verifiable();
+        return new DefaultRemoteKeyDescriptorCatalog([mock.Object]);
     }
-
-    private static RemoteSigningAlgorithm CreateRow(
-        string provider = RemoteKeyProviderNames.AwsKms,
-        string algorithm = "ES256",
-        string secretType = "ecc",
-        int keySizeBits = 256,
-        string? curve = "P-256"
-    ) =>
-        new()
-        {
-            Provider = provider,
-            Algorithm = algorithm,
-            SecretType = secretType,
-            KeySizeBits = keySizeBits,
-            Curve = curve,
-            KeySpec = "ECC_NIST_P256",
-            SigningAlgorithm = "ECDSA_SHA_256",
-            DigestAlgorithm = HashAlgorithmName.SHA256,
-            IsDerEncodedSignature = true,
-        };
-
-    private static RemoteSigningAlgorithmSelector CreateSelector(
-        string provider = RemoteKeyProviderNames.AwsKms,
-        string algorithm = "ES256",
-        string secretType = "ecc",
-        int keySizeBits = 256,
-        string? curve = "P-256"
-    ) =>
-        new()
-        {
-            Provider = provider,
-            Algorithm = algorithm,
-            SecretType = secretType,
-            KeySizeBits = keySizeBits,
-            Curve = curve,
-        };
 
     #region Constructor Tests
 
@@ -68,9 +36,10 @@ public class DefaultRemoteKeyProviderCatalogTests : BaseTests
             CreateProvider(RemoteKeyProviderNames.AwsKms),
             CreateProvider(RemoteKeyProviderNames.AwsKms),
         };
+        var descriptorCatalog = CreateDescriptorCatalog(RemoteKeyProviderNames.AwsKms);
 
         Assert.Throws<InvalidOperationException>(() =>
-            new DefaultRemoteKeyProviderCatalog(providers, [])
+            new DefaultRemoteKeyProviderCatalog(providers, descriptorCatalog)
         );
     }
 
@@ -84,35 +53,32 @@ public class DefaultRemoteKeyProviderCatalogTests : BaseTests
     public void Constructor_WhenProviderNameIsInvalid_Throws(string name)
     {
         var providers = new[] { CreateProvider(name) };
+        var descriptorCatalog = CreateDescriptorCatalog(RemoteKeyProviderNames.AwsKms);
 
         Assert.Throws<InvalidOperationException>(() =>
-            new DefaultRemoteKeyProviderCatalog(providers, [])
+            new DefaultRemoteKeyProviderCatalog(providers, descriptorCatalog)
         );
     }
 
     [Fact]
-    public void Constructor_WhenTwoRowsHaveTheSameSelector_Throws()
+    public void Constructor_WhenProviderHasNoDescriptor_Throws()
     {
-        var sources = new[] { CreateSource(CreateRow()), CreateSource(CreateRow()) };
+        var providers = new[] { CreateProvider(RemoteKeyProviderNames.AwsKms) };
+        var descriptorCatalog = CreateDescriptorCatalog();
 
         Assert.Throws<InvalidOperationException>(() =>
-            new DefaultRemoteKeyProviderCatalog([], sources)
+            new DefaultRemoteKeyProviderCatalog(providers, descriptorCatalog)
         );
     }
 
-    #endregion
-
-    #region Providers Tests
-
     [Fact]
-    public void Providers_ListsTheRegisteredProviders()
+    public void Constructor_WhenDescriptorHasNoProvider_Throws()
     {
-        var aws = CreateProvider(RemoteKeyProviderNames.AwsKms);
-        var azure = CreateProvider(RemoteKeyProviderNames.AzureKeyVault);
+        var descriptorCatalog = CreateDescriptorCatalog(RemoteKeyProviderNames.AwsKms);
 
-        var catalog = new DefaultRemoteKeyProviderCatalog([aws, azure], []);
-
-        Assert.Equal([aws, azure], catalog.Providers);
+        Assert.Throws<InvalidOperationException>(() =>
+            new DefaultRemoteKeyProviderCatalog([], descriptorCatalog)
+        );
     }
 
     #endregion
@@ -124,7 +90,11 @@ public class DefaultRemoteKeyProviderCatalogTests : BaseTests
     {
         var aws = CreateProvider(RemoteKeyProviderNames.AwsKms);
         var azure = CreateProvider(RemoteKeyProviderNames.AzureKeyVault);
-        var catalog = new DefaultRemoteKeyProviderCatalog([aws, azure], []);
+        var descriptorCatalog = CreateDescriptorCatalog(
+            RemoteKeyProviderNames.AwsKms,
+            RemoteKeyProviderNames.AzureKeyVault
+        );
+        var catalog = new DefaultRemoteKeyProviderCatalog([aws, azure], descriptorCatalog);
 
         Assert.True(catalog.TryGetProvider(RemoteKeyProviderNames.AzureKeyVault, out var provider));
         Assert.Same(azure, provider);
@@ -133,9 +103,10 @@ public class DefaultRemoteKeyProviderCatalogTests : BaseTests
     [Fact]
     public void TryGetProvider_WhenNotRegistered_ReturnsFalse()
     {
+        var descriptorCatalog = CreateDescriptorCatalog(RemoteKeyProviderNames.AwsKms);
         var catalog = new DefaultRemoteKeyProviderCatalog(
             [CreateProvider(RemoteKeyProviderNames.AwsKms)],
-            []
+            descriptorCatalog
         );
 
         Assert.False(
@@ -147,98 +118,13 @@ public class DefaultRemoteKeyProviderCatalogTests : BaseTests
     [Fact]
     public void TryGetProvider_ComparesTheNameOrdinally()
     {
+        var descriptorCatalog = CreateDescriptorCatalog(RemoteKeyProviderNames.AwsKms);
         var catalog = new DefaultRemoteKeyProviderCatalog(
             [CreateProvider(RemoteKeyProviderNames.AwsKms)],
-            []
+            descriptorCatalog
         );
 
         Assert.False(catalog.TryGetProvider("AWS-KMS", out _));
-    }
-
-    #endregion
-
-    #region TryGetAlgorithm Tests
-
-    [Fact]
-    public void TryGetAlgorithm_WhenTheSelectorMatches_ReturnsTheRow()
-    {
-        var row = CreateRow();
-        var catalog = new DefaultRemoteKeyProviderCatalog([], [CreateSource(row)]);
-
-        Assert.True(catalog.TryGetAlgorithm(CreateSelector(), out var algorithm));
-        Assert.Same(row, algorithm);
-    }
-
-    [Fact]
-    public void TryGetAlgorithm_MergesTheRowsOfEverySource()
-    {
-        var es256 = CreateRow();
-        var es384 = CreateRow(algorithm: "ES384", keySizeBits: 384, curve: "P-384");
-        var catalog = new DefaultRemoteKeyProviderCatalog(
-            [],
-            [CreateSource(es256), CreateSource(es384)]
-        );
-
-        Assert.True(catalog.TryGetAlgorithm(CreateSelector(), out var first));
-        Assert.Same(es256, first);
-        Assert.True(
-            catalog.TryGetAlgorithm(
-                CreateSelector(algorithm: "ES384", keySizeBits: 384, curve: "P-384"),
-                out var second
-            )
-        );
-        Assert.Same(es384, second);
-    }
-
-    [Fact]
-    public void TryGetAlgorithm_WhenTheProviderIsNotRegistered_KeepsTheRows()
-    {
-        var row = CreateRow(provider: "other-kms");
-        var catalog = new DefaultRemoteKeyProviderCatalog([], [CreateSource(row)]);
-
-        Assert.True(
-            catalog.TryGetAlgorithm(CreateSelector(provider: "other-kms"), out var algorithm)
-        );
-        Assert.Same(row, algorithm);
-    }
-
-    [Theory]
-    [InlineData("google-cloud-kms", "ES256", "ecc", 256, "P-256")]
-    [InlineData("aws-kms", "ES384", "ecc", 256, "P-256")]
-    [InlineData("aws-kms", "ES256", "rsa", 256, "P-256")]
-    [InlineData("aws-kms", "ES256", "ecc", 384, "P-256")]
-    [InlineData("aws-kms", "ES256", "ecc", 256, "P-384")]
-    [InlineData("aws-kms", "ES256", "ecc", 256, null)]
-    [InlineData("AWS-KMS", "ES256", "ecc", 256, "P-256")]
-    public void TryGetAlgorithm_WhenAnySelectorFieldDiffers_ReturnsFalse(
-        string provider,
-        string algorithm,
-        string secretType,
-        int keySizeBits,
-        string? curve
-    )
-    {
-        var catalog = new DefaultRemoteKeyProviderCatalog([], [CreateSource(CreateRow())]);
-        var selector = CreateSelector(provider, algorithm, secretType, keySizeBits, curve);
-
-        Assert.False(catalog.TryGetAlgorithm(selector, out var row));
-        Assert.Null(row);
-    }
-
-    [Fact]
-    public void TryGetAlgorithm_WhenTheRowHasNoCurve_MatchesASelectorWithNoCurve()
-    {
-        var row = CreateRow(algorithm: "PS256", secretType: "rsa", keySizeBits: 2048, curve: null);
-        var catalog = new DefaultRemoteKeyProviderCatalog([], [CreateSource(row)]);
-        var selector = CreateSelector(
-            algorithm: "PS256",
-            secretType: "rsa",
-            keySizeBits: 2048,
-            curve: null
-        );
-
-        Assert.True(catalog.TryGetAlgorithm(selector, out var algorithm));
-        Assert.Same(row, algorithm);
     }
 
     #endregion

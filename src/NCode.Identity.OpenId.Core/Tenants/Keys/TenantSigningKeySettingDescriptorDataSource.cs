@@ -12,18 +12,18 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// <summary>
 /// Provides an additive <see cref="SettingDescriptor"/> data source for the tenant <c>tenant_signing_key_provider</c>
 /// setting. The domain of the setting is the empty string, which keeps the tenant's signing keys in the server's
-/// store, or the name of a provider registered with the <see cref="IRemoteKeyProviderCatalog"/>, so a value that names
-/// no registered provider is rejected rather than stored. It is a tenant setting that is not advertised in discovery
+/// store, or the name of a provider described by the <see cref="IRemoteKeyDescriptorCatalog"/>, so a value that names
+/// no described provider is rejected rather than stored. It is a tenant setting that is not advertised in discovery
 /// and whose value belongs to the environment, so promotion never copies it.
 /// </summary>
 internal class TenantSigningKeySettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
-    IRemoteKeyProviderCatalog catalog
+    IRemoteKeyDescriptorCatalog catalog
 ) : ICollectionDataSource<SettingDescriptor>
 {
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
 
-    private IRemoteKeyProviderCatalog Catalog { get; } = catalog;
+    private IRemoteKeyDescriptorCatalog Catalog { get; } = catalog;
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken;

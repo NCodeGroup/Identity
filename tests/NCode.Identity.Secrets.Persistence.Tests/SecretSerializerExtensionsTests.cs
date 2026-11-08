@@ -8,7 +8,7 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence;
 
-public class SecretSerializerExtensionsTests : IDisposable
+public class SecretSerializerExtensionsTests : BaseTests
 {
     private static PersistedSecret Secret { get; } =
         new PersistedSecretBuilder
@@ -31,17 +31,11 @@ public class SecretSerializerExtensionsTests : IDisposable
             new FormatException("format"),
         };
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<ISecretSerializer> _serializer;
 
     public SecretSerializerExtensionsTests()
     {
-        _serializer = _mocks.Create<ISecretSerializer>();
-    }
-
-    public void Dispose()
-    {
-        _mocks.Verify();
+        _serializer = CreateStrictMock<ISecretSerializer>();
     }
 
     #region TryDeserializePublicSecret Tests

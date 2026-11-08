@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// <summary>
 /// Provides the default implementation of <see cref="ITenantKeyPolicy"/>. A configured key names only its algorithm;
 /// the key's use and type follow from the registered algorithm and key types, so any registered asymmetric signature or
-/// key-management algorithm can be provisioned without this policy knowing it. Every registered remote key provider
+/// key-management algorithm can be provisioned without this policy knowing it. Every described remote key provider
 /// must be able to hold every provisioned signature key, so a tenant that opts into one is never left without a key.
 /// </summary>
 // See ADR-1169 (every tenant is provisioned with persisted keys).
@@ -27,7 +27,7 @@ internal class DefaultTenantKeyPolicy(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretSerializer secretSerializer,
-    IRemoteKeyProviderCatalog remoteKeyProviderCatalog
+    IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog
 ) : ITenantKeyPolicy
 {
     // RSA keys are 3072 bits because NIST SP 800-57 accepts 2048-bit RSA only through 2030, and a tenant may set a key
@@ -210,7 +210,8 @@ internal class DefaultTenantKeyPolicy(
 
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
-    private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
+    private IRemoteKeyDescriptorCatalog RemoteKeyDescriptorCatalog { get; } =
+        remoteKeyDescriptorCatalog;
 
     /// <inheritdoc />
     public TenantKeySpecificationResolution ResolveSpecifications(
@@ -380,7 +381,7 @@ internal class DefaultTenantKeyPolicy(
         List<string> errors
     )
     {
-        var providerNames = RemoteKeyProviderCatalog
+        var providerNames = RemoteKeyDescriptorCatalog
             .Providers.Select(provider => provider.Name)
             .Order(StringComparer.Ordinal);
 
@@ -405,7 +406,7 @@ internal class DefaultTenantKeyPolicy(
                     Curve = specification.Curve,
                 };
 
-                if (!RemoteKeyProviderCatalog.TryGetAlgorithm(selector, out _))
+                if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out _))
                 {
                     var curve = specification.Curve is null
                         ? string.Empty

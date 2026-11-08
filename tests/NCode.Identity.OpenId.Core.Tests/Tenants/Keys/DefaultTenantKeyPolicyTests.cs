@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -14,6 +15,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.EdDsa;
 using NCode.Identity.Jose.EdDsa.Keys;
+using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
@@ -27,7 +29,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 
-public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
+public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
 {
     private static TenantKeySpecification Rs256 { get; } =
         new()
@@ -92,7 +94,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
 
         Policy = CreatePolicy(
             _serviceProvider,
-            _serviceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
+            _serviceProvider.GetRequiredService<IRemoteKeyDescriptorCatalog>()
         );
     }
 
@@ -1016,12 +1018,14 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     [Fact]
     public void ResolveSpecifications_WhenAProviderHasNoRowForAProvisionedSignatureKey_ReportsIt()
     {
-        var mockCatalog = CreateCatalog(
+        var catalog = new StubRemoteKeyDescriptorCatalog(
             ["aws-kms"],
-            AlgorithmCodes.DigitalSignature.RsaSha256,
-            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
+            [
+                AlgorithmCodes.DigitalSignature.RsaSha256,
+                AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
+            ]
         );
-        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+        var policy = CreatePolicy(_serviceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(new OpenIdTenantKeyProvisioningOptions());
 
@@ -1031,14 +1035,13 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             "The remote key provider 'aws-kms' cannot hold the provisioned 'ES256' key (ecc, 256 bits, curve 'P-256').",
             error
         );
-        mockCatalog.Verify();
     }
 
     [Fact]
     public void ResolveSpecifications_WhenAProviderHasNoRowForAKeyWithoutACurve_OmitsTheCurve()
     {
-        var mockCatalog = CreateCatalog(["aws-kms"]);
-        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+        var catalog = new StubRemoteKeyDescriptorCatalog(["aws-kms"], []);
+        var policy = CreatePolicy(_serviceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(
             CreateOptions(new OpenIdTenantKeyOptions { Algorithm = "RS256", KeySizeBits = 3072 })
@@ -1054,13 +1057,15 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     [Fact]
     public void ResolveSpecifications_WhenEveryProviderHasARowForEverySignatureKey_ReportsNothing()
     {
-        var mockCatalog = CreateCatalog(
+        var catalog = new StubRemoteKeyDescriptorCatalog(
             ["aws-kms", "azure-key-vault"],
-            AlgorithmCodes.DigitalSignature.RsaSha256,
-            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
-            AlgorithmCodes.DigitalSignature.EcdsaSha256
+            [
+                AlgorithmCodes.DigitalSignature.RsaSha256,
+                AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
+                AlgorithmCodes.DigitalSignature.EcdsaSha256,
+            ]
         );
-        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+        var policy = CreatePolicy(_serviceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(new OpenIdTenantKeyProvisioningOptions());
 
@@ -1070,8 +1075,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     [Fact]
     public void ResolveSpecifications_WhenEachOfTwoProvidersLacksARow_ReportsEachInProviderOrder()
     {
-        var mockCatalog = CreateCatalog(["b-kms", "a-kms"]);
-        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+        var catalog = new StubRemoteKeyDescriptorCatalog(["b-kms", "a-kms"], []);
+        var policy = CreatePolicy(_serviceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(
             CreateOptions(new OpenIdTenantKeyOptions { Algorithm = "RS256", KeySizeBits = 3072 })
@@ -1087,8 +1092,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     [Fact]
     public void ResolveSpecifications_WhenAProviderHasNoRowForAnEncryptionKey_DoesNotReportIt()
     {
-        var mockCatalog = CreateCatalog(["aws-kms"]);
-        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+        var catalog = new StubRemoteKeyDescriptorCatalog(["aws-kms"], []);
+        var policy = CreatePolicy(_serviceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(
             CreateOptions(
@@ -1127,7 +1132,6 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
                 Assert.Equal(Rs256 with { RemoteKeyProvider = "aws-kms" }, specification),
             specification => Assert.Equal(encryption, specification)
         );
-        mockSettings.Verify();
     }
 
     [Theory]
@@ -1144,7 +1148,6 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         var specification = Assert.Single(result);
         Assert.Equal(Rs256, specification);
         Assert.Null(specification.RemoteKeyProvider);
-        mockSettings.Verify();
     }
 
     #endregion
@@ -1446,12 +1449,12 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     private static DefaultTenantKeyPolicy CreatePolicy(IServiceProvider serviceProvider) =>
         CreatePolicy(
             serviceProvider,
-            serviceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
+            serviceProvider.GetRequiredService<IRemoteKeyDescriptorCatalog>()
         );
 
     private static DefaultTenantKeyPolicy CreatePolicy(
         IServiceProvider serviceProvider,
-        IRemoteKeyProviderCatalog catalog
+        IRemoteKeyDescriptorCatalog catalog
     ) =>
         new(
             serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
@@ -1461,47 +1464,26 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         );
 
     // A catalog whose providers are the named ones and whose mapping vocabulary holds a row for each of the provider's
-    // algorithms in rowAlgorithms, whatever the secret type, size and curve.
-    private static Mock<IRemoteKeyProviderCatalog> CreateCatalog(
+    // algorithms in rowAlgorithms, whatever the secret type, size and curve. A hand-written stub, because the lookup
+    // has an out parameter that a mock setup cannot compute from the selector.
+    private sealed class StubRemoteKeyDescriptorCatalog(
         string[] providerNames,
-        params string[] rowAlgorithms
-    )
+        string[] rowAlgorithms
+    ) : IRemoteKeyDescriptorCatalog
     {
-        var providers = providerNames
-            .Select(name =>
-            {
-                var mockProvider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
-                mockProvider.Setup(provider => provider.Name).Returns(name);
-                return mockProvider.Object;
-            })
-            .ToList();
+        public IReadOnlyCollection<RemoteKeyProviderDescriptor> Providers { get; } =
+            providerNames.Select(name => new RemoteKeyProviderDescriptor { Name = name }).ToList();
 
-        var mockCatalog = new Mock<IRemoteKeyProviderCatalog>(MockBehavior.Strict);
-        mockCatalog.Setup(catalog => catalog.Providers).Returns(providers).Verifiable();
-
-        RemoteSigningAlgorithm? row = null;
-        mockCatalog
-            .Setup(catalog =>
-                catalog.TryGetAlgorithm(It.IsAny<RemoteSigningAlgorithmSelector>(), out row)
-            )
-            .Returns(
-                new TryGetAlgorithmCallback(
-                    (RemoteSigningAlgorithmSelector selector, out RemoteSigningAlgorithm? found) =>
-                    {
-                        var hasRow = rowAlgorithms.Contains(selector.Algorithm);
-                        found = hasRow ? CreateRow(selector) : null;
-                        return hasRow;
-                    }
-                )
-            )
-            .Verifiable();
-        return mockCatalog;
+        public bool TryGetAlgorithm(
+            RemoteSigningAlgorithmSelector selector,
+            [NotNullWhen(true)] out RemoteSigningAlgorithm? algorithm
+        )
+        {
+            var hasRow = rowAlgorithms.Contains(selector.Algorithm);
+            algorithm = hasRow ? CreateRow(selector) : null;
+            return hasRow;
+        }
     }
-
-    private delegate bool TryGetAlgorithmCallback(
-        RemoteSigningAlgorithmSelector selector,
-        out RemoteSigningAlgorithm? algorithm
-    );
 
     private static RemoteSigningAlgorithm CreateRow(RemoteSigningAlgorithmSelector selector) =>
         new()
@@ -1515,13 +1497,11 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             SigningAlgorithm = "signing-algorithm",
         };
 
-    private static Mock<IReadOnlySettingCollection> CreateSettings(string? provider)
+    private Mock<IReadOnlySettingCollection> CreateSettings(string? provider)
     {
-        var mockSettings = new Mock<IReadOnlySettingCollection>(MockBehavior.Strict);
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
-            .Setup(settings =>
-                settings.TryGetValue(OpenIdSettingKeys.TenantSigningKeyProvider, out provider)
-            )
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.TenantSigningKeyProvider, out provider))
             .Returns(provider is not null)
             .Verifiable();
         return mockSettings;

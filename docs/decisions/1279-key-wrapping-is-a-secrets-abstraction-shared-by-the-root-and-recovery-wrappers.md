@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (amended by
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): the recovery wrapper still only wraps, and an unwrapper exists only inside the offline command; amended by
-  [ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md): a key wrapper can wrap under a key the caller names)
+  [ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md): a key wrapper can wrap under a key the caller names; amended by
+  [ADR-1473](1473-a-key-management-service-adapter-package-is-named-for-its-service.md): the adapters are NCode.Identity.Secrets.<Vendor>)
 - **Date:** 2026-10-28
 - **Deciders:** NCode Group
 

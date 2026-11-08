@@ -4,14 +4,13 @@
 using System.Buffers;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Moq;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence.Verifiers;
 
-public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
+public sealed class Pbkdf2SecretVerifierSchemeTests : BaseTests
 {
     private static readonly KeyMetadata Metadata = new() { KeyId = "secret-1" };
 
@@ -33,7 +32,15 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
         _scheme = TestSecretVerifierSchemes.CreatePbkdf2Scheme(gate: _gate);
     }
 
-    public void Dispose() => _gate.Dispose();
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _gate.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
 
     // One turn, so a test that holds it saturates the gate.
     private DefaultSecretVerificationGate CreateGate(int maxQueueLength) =>
@@ -66,7 +73,7 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
     {
         // The options that name a scheme are validated against the catalog, which constructs every scheme, so a scheme
         // reads its own options only when it makes or reads a verifier.
-        var optionsAccessor = new Mock<IOptions<Pbkdf2SecretVerifierOptions>>(MockBehavior.Strict);
+        var optionsAccessor = CreateStrictMock<IOptions<Pbkdf2SecretVerifierOptions>>();
 
         var scheme = new Pbkdf2SecretVerifierScheme(optionsAccessor.Object, _gate);
 

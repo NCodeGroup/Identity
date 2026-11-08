@@ -16,7 +16,7 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class DefaultMasterKeyRingTests : IDisposable
+public class DefaultMasterKeyRingTests : BaseTests
 {
     // The mixed case proves that the ring matches owners without regard to case.
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("Tenant-A");
@@ -31,7 +31,6 @@ public class DefaultMasterKeyRingTests : IDisposable
     private static readonly SecretProtectionContext Context =
         SecretProtectionContext.ForPersistedSecret("secret-1");
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
     private readonly Queue<IStoreManager> _storeManagers = new();
     private bool _storeManagerFactorySetUp;
@@ -52,15 +51,23 @@ public class DefaultMasterKeyRingTests : IDisposable
             )
         );
         _factory = new MasterKeyFactory(catalog, _recovery, TimeProvider.System);
-        _storeManagerFactory = _mocks.Create<IStoreManagerFactory>();
+        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        _recovery.Dispose();
-        _provider.Dispose();
-        _mocks.Verify();
-        Assert.Empty(_storeManagers);
+        if (disposing)
+        {
+            _recovery.Dispose();
+            _provider.Dispose();
+        }
+
+        base.Dispose(disposing);
+
+        if (disposing)
+        {
+            Assert.Empty(_storeManagers);
+        }
     }
 
     private readonly FakeTimeProvider _time = new(
@@ -96,8 +103,8 @@ public class DefaultMasterKeyRingTests : IDisposable
             _storeManagerFactorySetUp = true;
         }
 
-        var store = _mocks.Create<IMasterKeyStore>();
-        var manager = _mocks.Create<IStoreManager>();
+        var store = CreateStrictMock<IMasterKeyStore>();
+        var manager = CreateStrictMock<IStoreManager>();
         manager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object).Verifiable();
         manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         _storeManagers.Enqueue(manager.Object);
@@ -112,7 +119,7 @@ public class DefaultMasterKeyRingTests : IDisposable
         SecretOwner? normalizedOwner = null
     )
     {
-        var rootKeyStore = _mocks.Create<IOwnerRootKeyStore>();
+        var rootKeyStore = CreateStrictMock<IOwnerRootKeyStore>();
         rootKeyStore
             .Setup(x =>
                 x.FindAsync(normalizedOwner ?? NormalizedOwner, It.IsAny<CancellationToken>())

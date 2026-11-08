@@ -12,13 +12,12 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class DefaultMasterKeyRewrapperTests : IDisposable
+public class DefaultMasterKeyRewrapperTests : BaseTests
 {
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("tenant-a").Normalize();
 
     private static readonly RSA RecoveryPair = RSA.Create(3072);
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IKeyWrapperCatalog> _catalog;
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
     private readonly Queue<IStoreManager> _storeManagers = new();
@@ -31,16 +30,24 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
 
     public DefaultMasterKeyRewrapperTests()
     {
-        _catalog = _mocks.Create<IKeyWrapperCatalog>();
-        _storeManagerFactory = _mocks.Create<IStoreManagerFactory>();
+        _catalog = CreateStrictMock<IKeyWrapperCatalog>();
+        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        _oldProvider.Dispose();
-        _newProvider.Dispose();
-        _mocks.Verify();
-        Assert.Empty(_storeManagers);
+        if (disposing)
+        {
+            _oldProvider.Dispose();
+            _newProvider.Dispose();
+        }
+
+        base.Dispose(disposing);
+
+        if (disposing)
+        {
+            Assert.Empty(_storeManagers);
+        }
     }
 
     private static RecoveryKeyWrapper CreateRecovery(bool configured) =>
@@ -71,7 +78,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
     )
     {
         // The row is created with the old provider, which its own factory selects.
-        var oldCatalog = _mocks.Create<IKeyWrapperCatalog>();
+        var oldCatalog = CreateStrictMock<IKeyWrapperCatalog>();
         oldCatalog.Setup(x => x.GetConfigured()).Returns(_oldProvider).Verifiable();
         var creator = new MasterKeyFactory(oldCatalog.Object, recoveryAtCreation, _time);
         var created = await creator.CreateAsync(
@@ -98,15 +105,15 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
                 .Verifiable();
         }
 
-        var store = _mocks.Create<IMasterKeyStore>();
-        var manager = _mocks.Create<IStoreManager>();
+        var store = CreateStrictMock<IMasterKeyStore>();
+        var manager = CreateStrictMock<IStoreManager>();
         manager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object).Verifiable();
         manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
 
         // A unit of work that lists or pages rows also reads the root key of each owner on them, which is the one that
         // the test sets. A unit of work that only writes a row never touches this store, and one that is reused for
         // several attempts reads it once per attempt.
-        var rootKeyStore = _mocks.Create<IOwnerRootKeyStore>();
+        var rootKeyStore = CreateStrictMock<IOwnerRootKeyStore>();
         rootKeyStore
             .Setup(x => x.FindAsync(It.IsAny<SecretOwner>(), It.IsAny<CancellationToken>()))
             .Returns(() => new ValueTask<PersistedOwnerRootKey?>(_ownerRootKey))
@@ -143,7 +150,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         PersistedOwnerRootKey? rootKey = null
     )
     {
-        var creatorCatalog = _mocks.Create<IKeyWrapperCatalog>();
+        var creatorCatalog = CreateStrictMock<IKeyWrapperCatalog>();
         creatorCatalog
             .Setup(x => x.GetReferenced(_referenced.Name))
             .Returns(_referenced)
@@ -223,7 +230,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         Assert.NotEqual(originalRootKeyId, row.RootKeyId);
 
         // The row now unwraps with the configured provider alone and keeps its key check.
-        var verify = _mocks.Create<IKeyWrapperCatalog>();
+        var verify = CreateStrictMock<IKeyWrapperCatalog>();
         verify.Setup(x => x.Get(KeyWrapperNames.Ephemeral)).Returns(_newProvider).Verifiable();
         using var key = await new MasterKeyFactory(verify.Object, recovery, _time).UnwrapAsync(
             row,

@@ -3,14 +3,13 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Moq;
 using NCode.Identity.Secrets.Persistence.Verifiers;
 using NCode.Identity.Secrets.Verifiers;
 using NCode.Registration;
 
 namespace NCode.Identity.Secrets.Persistence.Options;
 
-public class SharedSecretVerifierOptionsValidatorTests
+public class SharedSecretVerifierOptionsValidatorTests : BaseTests
 {
     private static SharedSecretVerifierOptionsValidator CreateValidator() =>
         new(TestSecretVerifierSchemes.CreateCatalog());
@@ -42,8 +41,8 @@ public class SharedSecretVerifierOptionsValidatorTests
     [Fact]
     public void Validate_WhenAPackageRegistersAScheme_Succeeds()
     {
-        var packageScheme = new Mock<ISecretVerifierScheme>(MockBehavior.Strict);
-        packageScheme.Setup(scheme => scheme.Name).Returns("package-scheme").Verifiable();
+        var packageScheme = CreateStrictMock<ISecretVerifierScheme>();
+        packageScheme.Setup(x => x.Name).Returns("package-scheme").Verifiable();
         var validator = new SharedSecretVerifierOptionsValidator(
             new DefaultSecretVerifierSchemeCatalog([
                 new Sha256SecretVerifierScheme(),
@@ -55,7 +54,6 @@ public class SharedSecretVerifierOptionsValidatorTests
         var result = validator.Validate(null, options);
 
         Assert.True(result.Succeeded);
-        packageScheme.Verify();
     }
 
     [Fact]

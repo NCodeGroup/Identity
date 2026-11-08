@@ -1187,6 +1187,57 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Fact]
+    public void ValidateImportRemote_WhenTheKeyIdIsTooLong_ReturnsTheLengthError()
+    {
+        SetupProvider(ProviderName, registered: true);
+        var maxKeyIdLength = SecretMaxLengths.EncodedValue - ProviderName.Length - 1;
+
+        var error = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(remoteKeyId: new string('k', SecretMaxLengths.EncodedValue)),
+            CreatedWhen
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            $"The key management service's key identifier must be at most {maxKeyIdLength} characters.",
+            error.Detail
+        );
+    }
+
+    [Fact]
+    public void ValidateImportRemote_WhenTheKeyIdFitsExactly_ReturnsNull()
+    {
+        SetupProvider(ProviderName, registered: true);
+        var maxKeyIdLength = SecretMaxLengths.EncodedValue - ProviderName.Length - 1;
+
+        var error = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(remoteKeyId: new string('k', maxKeyIdLength)),
+            CreatedWhen
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateImportRemote_WhenTheKeyIdHoldsAControlCharacter_ReturnsTheCharacterError()
+    {
+        SetupProvider(ProviderName, registered: true);
+
+        var error = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(remoteKeyId: "key\n1"),
+            CreatedWhen
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The key management service's key identifier must not hold control characters or surrounding white space.",
+            error.Detail
+        );
+    }
+
+    [Fact]
     public void ValidateImportRemote_WhenTheProviderIsNotRegistered_ReturnsBadRequest()
     {
         SetupProvider("unknown", registered: false);

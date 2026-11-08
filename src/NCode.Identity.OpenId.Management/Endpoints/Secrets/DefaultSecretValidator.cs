@@ -336,6 +336,24 @@ internal sealed class DefaultSecretValidator(
             return Error("The key management service's key identifier must not be empty.");
         }
 
+        var maxKeyIdLength = SecretMaxLengths.EncodedValue - providerName.Length - 1;
+        if (request.RemoteKeyId.Length > maxKeyIdLength)
+        {
+            return Error(
+                $"The key management service's key identifier must be at most {maxKeyIdLength} characters."
+            );
+        }
+
+        if (
+            request.RemoteKeyId.Any(char.IsControl)
+            || request.RemoteKeyId.Trim().Length != request.RemoteKeyId.Length
+        )
+        {
+            return Error(
+                "The key management service's key identifier must not hold control characters or surrounding white space."
+            );
+        }
+
         if (
             !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
                 request.Algorithm,

@@ -73,6 +73,22 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
         MockMediator = CreateStrictMock<IMediator>();
+
+        // A tenant whose settings name no remote key provider holds its keys in the server's store, so its provisioned
+        // keys are the configured ones; a test that gives a tenant another custody sets up its own settings.
+        MockPolicy
+            .Setup(x =>
+                x.ForTenant(
+                    It.IsAny<IReadOnlyList<TenantKeySpecification>>(),
+                    It.IsAny<IReadOnlySettingCollection>()
+                )
+            )
+            .Returns(
+                (
+                    IReadOnlyList<TenantKeySpecification> specifications,
+                    IReadOnlySettingCollection _
+                ) => specifications
+            );
         TeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         PreviousTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
 
@@ -227,6 +243,66 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WhenATenantsCustodyChangedWithTheSameAlgorithms_AnnouncesItsSettingsChange()
+    {
+        SetupSpecifications();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        // The tenant used RS256 under the previous settings and uses it under the current ones, but under the current
+        // ones its keys are held by a remote key provider, and the key it holds is a local one that does not satisfy
+        // that custody.
+        var other = CreateSecret("other");
+        var current = SetupTenantSettings(FirstTenantId, ["RS256"]);
+        SetupTenantSettings(PreviousTeamSettings, FirstTenantId, ["RS256"]);
+        SetupCustody(current, "aws-kms");
+        SetupSecrets(FirstTenantId, [other]);
+        SetupServingKey(Rs256 with { RemoteKeyProvider = "aws-kms" }, [other], false);
+        SetupAnnouncement(FirstTenantId);
+
+        await Handler.HandleAsync(CreateCommandWithPreviousSettings(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenATenantHoldsKeysOfItsCustody_DoesNotAnnounceIt()
+    {
+        SetupSpecifications();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        // The tenant's keys are held by a remote key provider, and the key it holds serves RS256 in that custody. No
+        // announcement is set up on the strict mediator, so sending one fails the test.
+        var held = CreateSecret("held");
+        var current = SetupTenantSettings(FirstTenantId, ["RS256"]);
+        SetupCustody(current, "aws-kms");
+        SetupSecrets(FirstTenantId, [held]);
+        SetupServingKey(Rs256 with { RemoteKeyProvider = "aws-kms" }, [held], true);
+
+        await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCustodyAndTheAlgorithmsAreUnchanged_DoesNotReadItsKeys()
+    {
+        SetupSpecifications();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        // The tenant used RS256 in the same custody before the change, so it was reconciled with it already. The
+        // handler logs a tenant it cannot handle and continues, so a strict logger without setups fails the test when
+        // the handler reads the tenant's keys.
+        var current = SetupTenantSettings(FirstTenantId, ["RS256"]);
+        var previous = SetupTenantSettings(PreviousTeamSettings, FirstTenantId, ["RS256"]);
+        SetupCustody(current, "aws-kms");
+        SetupCustody(previous, "aws-kms");
+        var handler = CreateHandler(
+            CreateStrictMock<ILogger<TenantKeyReconciliationHandler>>().Object
+        );
+
+        await handler.HandleAsync(CreateCommandWithPreviousSettings(), CancellationToken.None);
+    }
+
+    [Fact]
     public async Task HandleAsync_ReadsOnlyTheTeamsTenants()
     {
         SetupSpecifications();
@@ -323,14 +399,16 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             Settings = JsonElement.Parse($$"""{"tenant":"{{tenantId}}"}"""),
         }.BuildSettings();
 
-    private void SetupTenantSettings(string tenantId, string[] algorithms) =>
+    private IReadOnlySettingCollection SetupTenantSettings(string tenantId, string[] algorithms) =>
         SetupTenantSettings(TeamSettings, tenantId, algorithms);
 
-    private void SetupTenantSettings(
+    private IReadOnlySettingCollection SetupTenantSettings(
         IReadOnlySettingCollection teamSettings,
         string tenantId,
         string[] algorithms
-    ) =>
+    )
+    {
+        var settings = CreateSettings(algorithms);
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
@@ -339,7 +417,29 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
                     It.Is<JsonElement>(e => IsTenantDocument(e, tenantId))
                 )
             )
-            .Returns(CreateSettings(algorithms))
+            .Returns(settings)
+            .Verifiable();
+        return settings;
+    }
+
+    // The tenant holds its keys in the custody of the provider that its effective settings name.
+    private void SetupCustody(IReadOnlySettingCollection settings, string provider) =>
+        MockPolicy
+            .Setup(x => x.ForTenant(It.IsAny<IReadOnlyList<TenantKeySpecification>>(), settings))
+            .Returns(
+                (
+                    IReadOnlyList<TenantKeySpecification> specifications,
+                    IReadOnlySettingCollection _
+                ) =>
+                    [
+                        .. specifications.Select(specification =>
+                            specification with
+                            {
+                                RemoteKeyProvider = provider,
+                            }
+                        ),
+                    ]
+            )
             .Verifiable();
 
     private void SetupServingKey(

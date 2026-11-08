@@ -454,8 +454,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`zip`) algorithms live on the operation, per-recipient key management is carried by `JoseKeyManagementCredentials`,
   and `KeyManagementAlgorithm.SupportsKeyWrapping` gates multi-recipient encodes (direct `dir` / `ECDH-ES` agreement is
   single-recipient). `IJoseSerializer.Decode` / `Deserialize` auto-detect the JSON serialization and verify or decrypt
-  against each signature or recipient until one matches the supplied key
-  ([#75](https://github.com/NCodeGroup/Identity/issues/75)).
+  against each signature or recipient until one matches the supplied key. Encoding is asynchronous
+  (`JoseEncoder.EncodeAsync`), and every signature goes through `SignatureAlgorithm.SignAsync`, which signs with a local
+  key synchronously behind its `ValueTask` and verifies a remote key's signature before a token carries it
+  ([#75](https://github.com/NCodeGroup/Identity/issues/75),
+  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
 
 - **`IJoseSerializer` works on a parsed `JoseToken`, defined in a contracts-only abstractions package.** `Parse(string)`
   returns a `JoseToken` once, exposing the JOSE header through `JoseToken.Header` before validation or decryption, and
@@ -470,7 +473,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   keeping the abstractions package free of logic and heavy transitive references.
 
 - **The JOSE library creates and validates DPoP proofs.** `IDPoPProofService`, registered by `AddJoseLibrary()`, signs a
-  `dpop+jwt` proof (RFC 9449) with any asymmetric `JoseSigningCredentials`. The proof embeds the public `jwk` and
+  `dpop+jwt` proof through `CreateProofAsync` (RFC 9449) with any asymmetric `JoseSigningCredentials`. The proof embeds the public `jwk` and
   carries the `htm`, `htu`, `jti`, `iat`, and optional `ath` and `nonce` claims. `TryValidateProof` checks the
   structure, the `typ`, the absence of a `crit` header, an allow-listed asymmetric `alg` that matches the `jwk` key
   type, the signature, the HTTP binding, `ath`, and `iat` freshness, and returns the `jkt` thumbprint, `jti`, and
@@ -478,7 +481,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   so EdDSA proofs (Ed25519 and Ed448) work once the opt-in EdDSA package is registered. The OpenId DPoP validator
   consumes the service and keeps the server-nonce challenge and the replay cache. The DPoP vocabulary is
   `JoseTokenTypes.DPoPJwt` and `JoseClaimNames.Payload.Htm`, `.Htu`, and `.Ath`
-  ([ADR-1176](docs/decisions/1176-dpop-proofs-are-a-jose-building-block.md)).
+  ([ADR-1176](docs/decisions/1176-dpop-proofs-are-a-jose-building-block.md),
+  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
 
 - **Post-quantum ML-DSA signing (FIPS 204 / RFC 9964) is in the core libraries.** The JWA `alg` values `ML-DSA-44`,
   `ML-DSA-65` and `ML-DSA-87` are registered by default beside RSA and ECC, with no opt-in package, on the in-box .NET
@@ -546,8 +550,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 
 - **CBOR Object Signing and Encryption (COSE, RFC 9052 / 9053) is available as the opt-in `NCode.Identity.Cose` package.**
-  `AddCoseLibrary()`, an extension of `IServiceBuilder<JoseLibrary>`, registers `ICoseSerializer`, which encodes,
-  verifies and decrypts `COSE_Sign1`, `COSE_Sign`, `COSE_Mac0`, `COSE_Mac`, `COSE_Encrypt0` and `COSE_Encrypt` messages
+  `AddCoseLibrary()`, an extension of `IServiceBuilder<JoseLibrary>`, registers `ICoseSerializer`, which signs
+  asynchronously (`EncodeSign1Async`, `EncodeSignAsync`), encodes, verifies and decrypts `COSE_Sign1`, `COSE_Sign`, `COSE_Mac0`, `COSE_Mac`, `COSE_Encrypt0` and `COSE_Encrypt` messages
   with protected and unprotected header buckets, external additional data, detached content and an optional tag; the
   content of a message is readable only from `Verify` or `Decrypt`, and `Inspect` returns its type and headers alone.
   The algorithms are registered `CoseAlgorithm` data keyed by the IANA identifiers and bound to JOSE algorithms, so the
@@ -563,10 +567,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   deterministic encoding of RFC 8949 §4.2.1, and `CoseOptions` bounds the size, nesting, signatures and recipients of
   what it reads
   ([#76](https://github.com/NCodeGroup/Identity/issues/76),
-  [ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md)).
+  [ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md),
+  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
 
 - **CBOR Web Tokens (CWT, RFC 8392) are available as the opt-in `NCode.Identity.Cwt` package.** `AddCwtLibrary()`, an
-  extension of `IServiceBuilder<CoseLibrary>`, registers `ICwtIssuer` and `ICwtValidator`. The issuer writes the
+  extension of `IServiceBuilder<CoseLibrary>`, registers `ICwtIssuer` (`IssueAsync`) and `ICwtValidator`. The issuer writes the
   registered claims, the confirmation key as a public `COSE_Key` and any further claims in the deterministic encoding,
   and protects them with a `COSE_Sign1` or `COSE_Mac0` message typed by the protected `typ` header when a token type is
   given, optionally inside a `COSE_Encrypt0` or `COSE_Encrypt` message and optionally under the CWT tag. The validator
@@ -575,7 +580,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   claims; it verifies the COSE layer first, then reads the claims into a `CwtClaimsSet`, and returns the claims or a
   `CwtValidationFailureCodes` or `CoseFailureCodes` code
   ([#76](https://github.com/NCodeGroup/Identity/issues/76),
-  [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)).
+  [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md),
+  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
 
 - **A package contributes an ECDSA algorithm as data.** An `EccSignatureAlgorithmSpecification` service (in
   `NCode.Identity.Jose.Abstractions`) names an `alg` code, its one curve and its hash, and the JOSE library serves an
@@ -716,7 +722,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **`NCode.Identity.Jwt(.Abstractions)` encodes and validates JWTs through segregated services and ASP.NET Core-style
   requirements and handlers.** The package pairs with the sibling `NCode.Identity.Jose(.Abstractions)` and the `Jwt*`
   type naming (`JwtValidationParameters`, `JwtValidationResult`, `JwtValidationContext`, `JwtEncodingParameters`,
-  `JwtLibrary` / `AddJwtLibrary`, `Jwt*Exception`). `IJwtEncoder` (`Encode`) and `IJwtValidator` (`ValidateAsync`) are
+  `JwtLibrary` / `AddJwtLibrary`, `Jwt*Exception`). `IJwtEncoder` (`EncodeAsync`) and `IJwtValidator` (`ValidateAsync`) are
   separate services, because validation-only and encode-only consumers are disjoint. Validators are pure-data
   `IJwtValidationRequirement` records (`ClaimValueRequirement`, with `ValidateIssuer`/`ValidateAudience` as sugar over
   it, plus `TokenTypeRequirement`, `TokenLifetimeRequirement`, `CertificateLifetimeRequirement` and the inline
@@ -729,7 +735,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `…Jwt.Validation`, `…Jwt.Claims`), and the evaluator, handlers, key resolver and claims factory in the implementation
   package; `NCode.Identity.OpenId.Authentication` references `NCode.Identity.Jwt.Abstractions` only
   ([#28](https://github.com/NCodeGroup/Identity/issues/28),
-  [ADR-1120](docs/decisions/1120-jwt-validation-requirements-and-handlers.md)).
+  [ADR-1120](docs/decisions/1120-jwt-validation-requirements-and-handlers.md),
+  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
 
 - **A JWT validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
   the JWT validator's codes (`invalid_signature`, `invalid_issuer`, `invalid_audience`, `expired`, `not_yet_valid`,
@@ -892,6 +899,21 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [docs/capabilities/key-rollover.md](docs/capabilities/key-rollover.md), [docs/audit-records.md](docs/audit-records.md),
   [#166](https://github.com/NCodeGroup/Identity/issues/166)).
+
+- **A tenant's signing keys can stay inside a key management service, which signs every token.** The tenant setting
+  `tenant_signing_key_provider` names a registered remote key provider — `aws-kms`, `azure-key-vault` or
+  `google-cloud-kms`, which `AddAwsKmsRemoteKeyProvider`, `AddAzureKeyVaultRemoteKeyProvider` and
+  `AddGoogleCloudKmsRemoteKeyProvider` register from `SecretProtection:RemoteKeyProviders:<Vendor>` — and the tenant's
+  signature keys are created in that KMS. The server stores each key's public half and a `remote` reference, publishes
+  the stored public half in the JSON Web Key Set without calling the KMS, and signs through the KMS, sending a digest
+  and turning an ECDSA DER signature into the `r‖s` form JWS uses. Registered `IRemoteSigningAlgorithmSource` rows map
+  each JOSE algorithm onto a provider's key spec and signing algorithm (`RS*`, `PS*` and `ES*`). A change of custody
+  hands each key over after the activation delay (`custody_changed`), a successor is a new version of its KMS key (a
+  new tagged key on AWS KMS), a removed key the server created is destroyed in its KMS after the commit, and each SDK
+  retries throttling with jittered exponential back-off. `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`,
+  `RemoteSigningAlgorithm`, `IRemoteSecretKey` and `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a
+  provider or a key type ([#165](https://github.com/NCodeGroup/Identity/issues/165),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -5677,3 +5699,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#589](https://github.com/NCodeGroup/Identity/issues/589),
   [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
   [ADR-1467](docs/decisions/1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md)).
+
+- **A remote signing key never leaves its KMS, and every signature it makes is verified before a token carries it.** The
+  server holds the key's public half and a reference only; a remote signature whose length or verification against the
+  stored public half fails is refused; a remote key is bound to one algorithm and fails when its tenant loads if its
+  provider, mapping row or public half is missing; KMS keys are created sign-only and, on Azure Key Vault and Google
+  Cloud KMS, hardware-protected by default; logs carry key identifiers only; and the server destroys only the KMS keys
+  it created ([#165](https://github.com/NCodeGroup/Identity/issues/165),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).

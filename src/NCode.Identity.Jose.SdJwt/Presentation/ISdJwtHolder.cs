@@ -38,10 +38,14 @@ public interface ISdJwtHolder
     /// digests, with a Key Binding JWT when the options ask for one.
     /// </summary>
     /// <param name="options">The SD-JWT, the disclosures to reveal and the key binding inputs.</param>
+    /// <param name="cancellationToken">A token that cancels the presentation.</param>
     /// <returns>The presentation in the combined format.</returns>
     /// <exception cref="ArgumentException">A disclosure is not one of the SD-JWT's, the key binding key is not
     /// asymmetric, or its audience or nonce is empty.</exception>
     /// <exception cref="SdJwtException">The issuer-signed JWT or its disclosures do not satisfy the rules of
     /// RFC 9901 §7.1.</exception>
-    string CreatePresentation(SdJwtPresentationOptions options);
+    ValueTask<string> CreatePresentationAsync(
+        SdJwtPresentationOptions options,
+        CancellationToken cancellationToken
+    );
 }

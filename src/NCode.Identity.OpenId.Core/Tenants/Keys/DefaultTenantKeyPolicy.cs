@@ -4,25 +4,30 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.RemoteKeys;
+using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Tenants.Keys;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ITenantKeyPolicy"/>. A configured key names only its algorithm;
 /// the key's use and type follow from the registered algorithm and key types, so any registered asymmetric signature or
-/// key-management algorithm can be provisioned without this policy knowing it.
+/// key-management algorithm can be provisioned without this policy knowing it. Every registered remote key provider
+/// must be able to hold every provisioned signature key, so a tenant that opts into one is never left without a key.
 /// </summary>
 // See ADR-1169 (every tenant is provisioned with persisted keys).
 internal class DefaultTenantKeyPolicy(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
-    ISecretSerializer secretSerializer
+    ISecretSerializer secretSerializer,
+    IRemoteKeyProviderCatalog remoteKeyProviderCatalog
 ) : ITenantKeyPolicy
 {
     // RSA keys are 3072 bits because NIST SP 800-57 accepts 2048-bit RSA only through 2030, and a tenant may set a key
@@ -205,6 +210,8 @@ internal class DefaultTenantKeyPolicy(
 
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
+    private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
+
     /// <inheritdoc />
     public TenantKeySpecificationResolution ResolveSpecifications(
         OpenIdTenantKeyProvisioningOptions options
@@ -245,6 +252,8 @@ internal class DefaultTenantKeyPolicy(
                     errors.Add(error);
                 }
             }
+
+            AddUnsupportedProviderErrors(specifications, errors);
         }
 
         return new TenantKeySpecificationResolution
@@ -252,6 +261,37 @@ internal class DefaultTenantKeyPolicy(
             Specifications = specifications,
             Errors = errors,
         };
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<TenantKeySpecification> ForTenant(
+        IReadOnlyList<TenantKeySpecification> specifications,
+        IReadOnlySettingCollection settings
+    )
+    {
+        ArgumentNullException.ThrowIfNull(specifications);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        // See ADR-1471: an empty setting keeps every key in the server's store, and encryption keys are always local.
+        if (
+            !settings.TryGetValue(OpenIdSettingKeys.TenantSigningKeyProvider, out var provider)
+            || string.IsNullOrEmpty(provider)
+        )
+        {
+            return specifications;
+        }
+
+        return
+        [
+            .. specifications.Select(specification =>
+                string.Equals(specification.Use, SecretKeyUses.Signature, StringComparison.Ordinal)
+                    ? specification with
+                    {
+                        RemoteKeyProvider = provider,
+                    }
+                    : specification
+            ),
+        ];
     }
 
     /// <inheritdoc />
@@ -271,6 +311,13 @@ internal class DefaultTenantKeyPolicy(
 
         // Public material cannot sign or decrypt.
         if (SecretEncodings.IsPublic(secret.SecretEncoding))
+        {
+            return false;
+        }
+
+        // The key is held by the custody the specification names, so a tenant that changes its custody is provisioned
+        // keys of the new one.
+        if (!HasCustody(specification, secret))
         {
             return false;
         }
@@ -324,6 +371,65 @@ internal class DefaultTenantKeyPolicy(
             }
         );
         return declarationError is null;
+    }
+
+    // A tenant that opts into a provider has every provisioned signature key held there, so a provider without a row
+    // for one of them stops the host instead of leaving the tenant's seed or rollover without that key (ADR-1471).
+    private void AddUnsupportedProviderErrors(
+        List<TenantKeySpecification> specifications,
+        List<string> errors
+    )
+    {
+        var providerNames = RemoteKeyProviderCatalog
+            .Providers.Select(provider => provider.Name)
+            .Order(StringComparer.Ordinal);
+
+        foreach (var name in providerNames)
+        {
+            foreach (
+                var specification in specifications.Where(specification =>
+                    string.Equals(
+                        specification.Use,
+                        SecretKeyUses.Signature,
+                        StringComparison.Ordinal
+                    )
+                )
+            )
+            {
+                var selector = new RemoteSigningAlgorithmSelector
+                {
+                    Provider = name,
+                    Algorithm = specification.Algorithm,
+                    SecretType = specification.SecretType,
+                    KeySizeBits = specification.KeySizeBits,
+                    Curve = specification.Curve,
+                };
+
+                if (!RemoteKeyProviderCatalog.TryGetAlgorithm(selector, out _))
+                {
+                    var curve = specification.Curve is null
+                        ? string.Empty
+                        : $", curve '{specification.Curve}'";
+                    errors.Add(
+                        $"The remote key provider '{name}' cannot hold the provisioned '{specification.Algorithm}' key "
+                            + $"({specification.SecretType}, {specification.KeySizeBits} bits{curve})."
+                    );
+                }
+            }
+        }
+    }
+
+    // A remote specification is satisfied only by a remote secret whose reference names its provider, and a local one
+    // only by a secret that is not remote.
+    private static bool HasCustody(TenantKeySpecification specification, PersistedSecret secret)
+    {
+        var isRemote = SecretEncodings.IsRemote(secret.SecretEncoding);
+
+        return specification.RemoteKeyProvider is not { } provider
+            ? !isRemote
+            : isRemote
+                && RemoteKeyReference.TryParse(secret.EncodedValue, out var reference)
+                && string.Equals(reference.Provider, provider, StringComparison.Ordinal);
     }
 
     private bool TryResolveSpecification(

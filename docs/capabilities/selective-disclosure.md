@@ -77,7 +77,7 @@ and [ADR-1406](../decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-th
 
 ## Issuing
 
-`ISdJwtIssuer.Issue` takes `SdJwtIssuanceOptions`: the signing credentials (an asymmetric key), the claims as a JSON
+`ISdJwtIssuer.IssueAsync` takes `SdJwtIssuanceOptions`: the signing credentials (an asymmetric key), the claims as a JSON
 object, the JSON Pointers of the disclosable claims such as `/given_name`, `/address/street_address` or
 `/nationalities/1`, the number of decoy digests, the `_sd_alg` algorithm, the holder's public JSON Web Key for `cnf`,
 and the profile. It returns the SD-JWT with every disclosure, whose `ToString()` is the combined format handed to the
@@ -90,7 +90,7 @@ holder.
 ## Presenting
 
 `ISdJwtHolder.Parse` reads the combined format, `ResolveDisclosures` maps each disclosure to the claim it discloses
-and the disclosure that carries its digest, and `CreatePresentation` builds the presentation from the chosen
+and the disclosure that carries its digest, and `CreatePresentationAsync` builds the presentation from the chosen
 disclosures, their parents, and the Key Binding JWT when `SdJwtKeyBindingOptions` names the holder's key, the
 audience and the nonce.
 

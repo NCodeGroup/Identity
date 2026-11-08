@@ -47,12 +47,15 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     private static string[] ReadDigests(JsonElement obj) =>
         [.. obj.GetProperty("_sd").EnumerateArray().Select(x => x.GetString() ?? string.Empty)];
 
-    #region Issue Tests
+    #region IssueAsync Tests
 
     [Fact]
-    public void Issue_WithDisclosableMembers_MovesThemIntoSaltedDisclosures()
+    public async Task IssueAsync_WithDisclosableMembers_MovesThemIntoSaltedDisclosures()
     {
-        var sdJwt = Host.Issuer.Issue(CreateOptions("/given_name", "/family_name"));
+        var sdJwt = await Host.Issuer.IssueAsync(
+            CreateOptions("/given_name", "/family_name"),
+            CancellationToken.None
+        );
 
         var payload = DecodeIssuerPayload(sdJwt);
         Assert.False(payload.TryGetProperty("given_name", out _));
@@ -83,9 +86,12 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithNestedPath_PutsTheInnerDigestInTheOuterDisclosure()
+    public async Task IssueAsync_WithNestedPath_PutsTheInnerDigestInTheOuterDisclosure()
     {
-        var sdJwt = Host.Issuer.Issue(CreateOptions("/address", "/address/street_address"));
+        var sdJwt = await Host.Issuer.IssueAsync(
+            CreateOptions("/address", "/address/street_address"),
+            CancellationToken.None
+        );
 
         var payload = DecodeIssuerPayload(sdJwt);
         Assert.False(payload.TryGetProperty("address", out _));
@@ -103,9 +109,12 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithArrayElement_WritesAPlaceholderInPlace()
+    public async Task IssueAsync_WithArrayElement_WritesAPlaceholderInPlace()
     {
-        var sdJwt = Host.Issuer.Issue(CreateOptions("/nationalities/1"));
+        var sdJwt = await Host.Issuer.IssueAsync(
+            CreateOptions("/nationalities/1"),
+            CancellationToken.None
+        );
 
         var payload = DecodeIssuerPayload(sdJwt);
         var nationalities = payload.GetProperty("nationalities");
@@ -125,7 +134,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithDecoys_AddsDigestsThatMatchNoDisclosure()
+    public async Task IssueAsync_WithDecoys_AddsDigestsThatMatchNoDisclosure()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -135,7 +144,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DecoyDigestCount = 3,
         };
 
-        var sdJwt = Host.Issuer.Issue(options);
+        var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
         var payload = DecodeIssuerPayload(sdJwt);
         Assert.Equal(4, ReadDigests(payload).Length);
@@ -151,7 +160,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithoutDecoysOnAnUndisclosedArray_LeavesTheArrayAlone()
+    public async Task IssueAsync_WithoutDecoysOnAnUndisclosedArray_LeavesTheArrayAlone()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -161,7 +170,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DecoyDigestCount = 2,
         };
 
-        var sdJwt = Host.Issuer.Issue(options);
+        var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
         var payload = DecodeIssuerPayload(sdJwt);
         Assert.Equal(2, payload.GetProperty("nationalities").GetArrayLength());
@@ -169,9 +178,12 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithNullValue_DisclosesNull()
+    public async Task IssueAsync_WithNullValue_DisclosesNull()
     {
-        var sdJwt = Host.Issuer.Issue(CreateOptions("/verified"));
+        var sdJwt = await Host.Issuer.IssueAsync(
+            CreateOptions("/verified"),
+            CancellationToken.None
+        );
 
         var disclosure = Assert.Single(sdJwt.Disclosures);
         Assert.Equal("verified", disclosure.ClaimName);
@@ -180,7 +192,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithEscapedPointer_FindsTheMember()
+    public async Task IssueAsync_WithEscapedPointer_FindsTheMember()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -189,7 +201,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DisclosablePaths = ["/a~1b", "/c~0d"],
         };
 
-        var sdJwt = Host.Issuer.Issue(options);
+        var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
         Assert.Equal(
             ["a/b", "c~d"],
@@ -198,9 +210,9 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithoutDisclosablePaths_WritesNoSdAlg()
+    public async Task IssueAsync_WithoutDisclosablePaths_WritesNoSdAlg()
     {
-        var sdJwt = Host.Issuer.Issue(CreateOptions());
+        var sdJwt = await Host.Issuer.IssueAsync(CreateOptions(), CancellationToken.None);
 
         var payload = DecodeIssuerPayload(sdJwt);
         Assert.False(payload.TryGetProperty("_sd_alg", out _));
@@ -213,7 +225,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithHolderKey_WritesCnfJwkWithPublicMembersOnly()
+    public async Task IssueAsync_WithHolderKey_WritesCnfJwkWithPublicMembersOnly()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -222,7 +234,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             HolderKey = Host.HolderJwk,
         };
 
-        var sdJwt = Host.Issuer.Issue(options);
+        var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
         var cnf = DecodeIssuerPayload(sdJwt).GetProperty("cnf");
         var jwk = new JsonWebKey(cnf.GetProperty("jwk"));
@@ -232,7 +244,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithAnotherDigestAlgorithm_WritesItsName()
+    public async Task IssueAsync_WithAnotherDigestAlgorithm_WritesItsName()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -242,7 +254,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DigestAlgorithm = SdJwtDigestAlgorithms.Sha512Name,
         };
 
-        var sdJwt = Host.Issuer.Issue(options);
+        var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
         var payload = DecodeIssuerPayload(sdJwt);
         Assert.Equal("sha-512", payload.GetProperty("_sd_alg").GetString());
@@ -254,7 +266,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithProfile_TypesTheJwtAndKeepsProtectedClaims()
+    public async Task IssueAsync_WithProfile_TypesTheJwtAndKeepsProtectedClaims()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -266,7 +278,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Profile = SdJwtProfiles.SdJwtVc,
         };
 
-        var sdJwt = Host.Issuer.Issue(options);
+        var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
         var header = Host.JoseSerializer.Parse(sdJwt.IssuerSignedJwt).Header;
         Assert.Equal("dc+sd-jwt", header.GetProperty("typ").GetString());
@@ -274,7 +286,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithProfileAndProtectedPath_Throws()
+    public async Task IssueAsync_WithProfileAndProtectedPath_Throws()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -284,7 +296,9 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Profile = SdJwtProfiles.SdJwtVc,
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains(
             "never selectively disclosable",
@@ -294,7 +308,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithProfileAndAPathBeneathAProtectedClaim_Throws()
+    public async Task IssueAsync_WithProfileAndAPathBeneathAProtectedClaim_Throws()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -306,7 +320,9 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Profile = SdJwtProfiles.SdJwtVc,
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("'status'", exception.Message, StringComparison.Ordinal);
         Assert.Contains("SD-JWT VC", exception.Message, StringComparison.Ordinal);
@@ -319,7 +335,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     [InlineData("/cnf")]
     [InlineData("/cnf/jwk")]
     [InlineData("/exp/0")]
-    public void Issue_WithoutProfileAndAFormatProtectedPath_Throws(string path)
+    public async Task IssueAsync_WithoutProfileAndAFormatProtectedPath_Throws(string path)
     {
         // The verifier judges these claims on the issuer-signed payload before it resolves a disclosure, so an SD-JWT
         // that disclosed one would never verify.
@@ -332,7 +348,9 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DisclosablePaths = [path],
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains(
             "never selectively disclosable",
@@ -343,7 +361,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Issue_WithALargerSaltSize_SizesEverySaltByTheOption()
+    public async Task IssueAsync_WithALargerSaltSize_SizesEverySaltByTheOption()
     {
         await using var host = new SdJwtTestHost(options => options.SaltSizeBytes = 32);
         var options = new SdJwtIssuanceOptions
@@ -354,7 +372,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DecoyDigestCount = 1,
         };
 
-        var sdJwt = host.Issuer.Issue(options);
+        var sdJwt = await host.Issuer.IssueAsync(options, CancellationToken.None);
 
         Assert.Equal(3, sdJwt.Disclosures.Length);
         Assert.All(
@@ -372,7 +390,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Issue_WithProfileAndMissingRequiredClaim_Throws()
+    public async Task IssueAsync_WithProfileAndMissingRequiredClaim_Throws()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -381,7 +399,9 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Profile = SdJwtProfiles.SdJwtVc,
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("'vct'", exception.Message, StringComparison.Ordinal);
     }
@@ -393,20 +413,23 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     [InlineData("/nationalities/01", "names no claim")]
     [InlineData("/nationalities/2", "names no claim")]
     [InlineData("/address/zip", "names no claim")]
-    public void Issue_WithUnusablePath_Throws(string path, string reason)
+    public async Task IssueAsync_WithUnusablePath_Throws(string path, string reason)
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
-            Host.Issuer.Issue(CreateOptions(path))
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(CreateOptions(path), CancellationToken.None)
         );
 
         Assert.Contains(reason, exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Issue_WithRepeatedPath_Throws()
+    public async Task IssueAsync_WithRepeatedPath_Throws()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
-            Host.Issuer.Issue(CreateOptions("/given_name", "/given_name"))
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(
+                CreateOptions("/given_name", "/given_name"),
+                CancellationToken.None
+            )
         );
 
         Assert.Contains("more than once", exception.Message, StringComparison.Ordinal);
@@ -416,7 +439,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     [InlineData("""{"_sd":[]}""")]
     [InlineData("""{"a":{"_sd_alg":"sha-256"}}""")]
     [InlineData("""{"a":[{"...":"x"}]}""")]
-    public void Issue_WithReservedName_Throws(string claimsJson)
+    public async Task IssueAsync_WithReservedName_Throws(string claimsJson)
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -424,13 +447,15 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Claims = JsonElement.Parse(claimsJson),
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("reserved", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Issue_WhenClaimsAreNotAnObject_Throws()
+    public async Task IssueAsync_WhenClaimsAreNotAnObject_Throws()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -438,11 +463,13 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Claims = JsonElement.Parse("[]"),
         };
 
-        Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public void Issue_WhenDigestAlgorithmIsUnregistered_Throws()
+    public async Task IssueAsync_WhenDigestAlgorithmIsUnregistered_Throws()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -451,13 +478,15 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DigestAlgorithm = "sha-1",
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("sha-1", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Issue_WhenSigningKeyIsSymmetric_Throws()
+    public async Task IssueAsync_WhenSigningKeyIsSymmetric_Throws()
     {
         var secretKeyFactory = Host.ServiceProvider.GetRequiredService<ISecretKeyFactory>();
         var symmetricKey = secretKeyFactory.CreateSymmetric(
@@ -470,13 +499,15 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Claims = Claims,
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("asymmetric", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Issue_WhenHolderKeyCarriesPrivateMaterial_Throws()
+    public async Task IssueAsync_WhenHolderKeyCarriesPrivateMaterial_Throws()
     {
         var privateJwk = JsonWebKey.Parse(
             """{"kty":"EC","crv":"P-256","x":"AA","y":"AA","d":"AA"}"""
@@ -488,13 +519,15 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             HolderKey = privateJwk,
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("public members", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Issue_WhenHolderKeyIsSymmetric_Throws()
+    public async Task IssueAsync_WhenHolderKeyIsSymmetric_Throws()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -503,13 +536,15 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             HolderKey = JsonWebKey.Parse("""{"kty":"oct","k":"AAAA"}"""),
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("asymmetric", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Issue_WhenHolderKeyTypeIsUnregistered_Throws()
+    public async Task IssueAsync_WhenHolderKeyTypeIsUnregistered_Throws()
     {
         // A key the registered types cannot read is screened by no type's JWK rules, so it is refused outright.
         var options = new SdJwtIssuanceOptions
@@ -519,14 +554,16 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             HolderKey = JsonWebKey.Parse("""{"kty":"XKP","pub":"AA"}"""),
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("'XKP'", exception.Message, StringComparison.Ordinal);
         Assert.Contains("not registered", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Issue_WhenClaimsCarryCnfAndAHolderKeyIsGiven_Throws()
+    public async Task IssueAsync_WhenClaimsCarryCnfAndAHolderKeyIsGiven_Throws()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -535,13 +572,15 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             HolderKey = Host.HolderJwk,
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("'cnf'", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Issue_WhenDecoyCountIsNegative_Throws()
+    public async Task IssueAsync_WhenDecoyCountIsNegative_Throws()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -550,11 +589,13 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DecoyDigestCount = -1,
         };
 
-        Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public async Task Issue_WhenOverTheDisclosureLimit_Throws()
+    public async Task IssueAsync_WhenOverTheDisclosureLimit_Throws()
     {
         await using var host = new SdJwtTestHost(options => options.MaxDisclosureCount = 1);
         var options = new SdJwtIssuanceOptions
@@ -564,13 +605,15 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DisclosablePaths = ["/given_name", "/family_name"],
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("limit", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Issue_WithProfileAndAPathToARequiredClaimItDoesNotListAsProtected_Throws()
+    public async Task IssueAsync_WithProfileAndAPathToARequiredClaimItDoesNotListAsProtected_Throws()
     {
         // The verifier judges a required claim on the issuer-signed payload before it resolves a disclosure, so an
         // SD-JWT that disclosed one would never verify under the same profile.
@@ -583,7 +626,9 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Profile = profile,
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("'sub'", exception.Message, StringComparison.Ordinal);
         Assert.Contains("'test' profile", exception.Message, StringComparison.Ordinal);
@@ -592,7 +637,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     [Theory]
     [InlineData("""{"a":{"b":{"c":1}}}""")]
     [InlineData("""{"a":[[1]]}""")]
-    public async Task Issue_WhenClaimsNestDeeperThanTheLimit_Throws(string claimsJson)
+    public async Task IssueAsync_WhenClaimsNestDeeperThanTheLimit_Throws(string claimsJson)
     {
         await using var host = new SdJwtTestHost(options => options.MaxNestingDepth = 1);
         var options = new SdJwtIssuanceOptions
@@ -601,7 +646,9 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Claims = JsonElement.Parse(claimsJson),
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains(
             "nest deeper than the limit of 1",
@@ -611,7 +658,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Issue_WhenClaimsNestToTheLimit_Issues()
+    public async Task IssueAsync_WhenClaimsNestToTheLimit_Issues()
     {
         // The limit counts the nesting of the resolved claims, so an SD-JWT the issuer makes within it verifies.
         await using var host = new SdJwtTestHost(options => options.MaxNestingDepth = 1);
@@ -622,14 +669,14 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DisclosablePaths = ["/a/b", "/c/0"],
         };
 
-        var sdJwt = host.Issuer.Issue(options);
+        var sdJwt = await host.Issuer.IssueAsync(options, CancellationToken.None);
 
         Assert.Equal(2, sdJwt.Disclosures.Length);
         Assert.Equal(2, host.Holder.ResolveDisclosures(sdJwt).Count);
     }
 
     [Fact]
-    public void Issue_WhenClaimsRepeatAMemberName_Throws()
+    public async Task IssueAsync_WhenClaimsRepeatAMemberName_Throws()
     {
         var options = new SdJwtIssuanceOptions
         {
@@ -637,7 +684,9 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             Claims = JsonElement.Parse("""{"a":1,"a":2}"""),
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Issuer.IssueAsync(options, CancellationToken.None)
+        );
 
         Assert.Contains("repeat", exception.Message, StringComparison.Ordinal);
     }

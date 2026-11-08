@@ -54,7 +54,10 @@ internal class DefaultSdJwtHolder(
     }
 
     /// <inheritdoc />
-    public string CreatePresentation(SdJwtPresentationOptions options)
+    public async ValueTask<string> CreatePresentationAsync(
+        SdJwtPresentationOptions options,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -118,13 +121,20 @@ internal class DefaultSdJwtHolder(
         if (keyBinding is null)
             return presentation;
 
-        return presentation + CreateKeyBindingJwt(keyBinding, algorithm, presentation);
+        return presentation
+            + await CreateKeyBindingJwtAsync(
+                keyBinding,
+                algorithm,
+                presentation,
+                cancellationToken
+            );
     }
 
-    private string CreateKeyBindingJwt(
+    private async ValueTask<string> CreateKeyBindingJwtAsync(
         SdJwtKeyBindingOptions keyBinding,
         SdJwtDigestAlgorithm algorithm,
-        string presentation
+        string presentation,
+        CancellationToken cancellationToken
     )
     {
         var payload = new Dictionary<string, object>
@@ -142,7 +152,7 @@ internal class DefaultSdJwtHolder(
             TokenType = JoseTokenTypes.KeyBindingJwt,
         };
         var encoder = JoseSerializer.CreateEncoder(new JoseSigningOptions(signature));
-        return encoder.Encode(payload);
+        return await encoder.EncodeAsync(payload, cancellationToken);
     }
 
     private (SdJwtDigestAlgorithm Algorithm, ProcessedSdJwtPayload Processed) Resolve(

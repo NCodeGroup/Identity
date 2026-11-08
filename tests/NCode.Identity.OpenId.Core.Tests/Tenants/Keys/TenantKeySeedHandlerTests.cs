@@ -14,6 +14,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Mediator;
@@ -42,6 +43,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     private Mock<ITenantKeyRollover> MockRollover { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IEventPublisher> MockEventPublisher { get; }
+    private Mock<IRemoteSecretDestroyer> MockRemoteSecretDestroyer { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private IReadOnlySettingCollection EffectiveSettings { get; }
@@ -54,6 +56,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         MockRollover = CreateStrictMock<ITenantKeyRollover>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         MockEventPublisher = CreateStrictMock<IEventPublisher>();
+        MockRemoteSecretDestroyer = CreateStrictMock<IRemoteSecretDestroyer>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
         EffectiveSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
@@ -65,6 +68,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
             MockRollover.Object,
             MockEffectiveSettingsResolver.Object,
             MockEventPublisher.Object,
+            MockRemoteSecretDestroyer.Object,
             new FakeTimeProvider(Now)
         );
     }
@@ -139,12 +143,81 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
-        var step = Assert.Single(command.Context.PostCommitSteps);
+        var steps = command.Context.PostCommitSteps;
+        Assert.Equal(2, steps.Count);
         MockEventPublisher
             .Setup(x => x.PublishAsync(auditEvent, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Once);
-        await step(CancellationToken.None);
+        await steps[0](CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenThePlanRemovesKeys_DestroysThemOnlyAfterTheCommit()
+    {
+        // The destroyer is strict with no setup until the step runs: a key destroyed before the commit fails the test,
+        // and a seed that loses its commit never runs the step.
+        var held = CreateSecret("held");
+        var removed = CreateSecret("removed");
+        var tenant = CreateTenant([held, removed]);
+        SetupSpecifications(Rs256);
+        SetupSettings();
+        var plan = SetupGeneratingPlan(tenant);
+        SetupApply(tenant, plan, [held], [], [removed]);
+        var command = CreateCommand(tenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        var steps = command.Context.PostCommitSteps;
+        Assert.Equal(2, steps.Count);
+        MockRemoteSecretDestroyer
+            .Setup(x =>
+                x.DestroyAsync(
+                    It.Is<IReadOnlyCollection<PersistedSecret>>(secrets =>
+                        secrets.SequenceEqual(new[] { removed })
+                    )
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        await steps[1](CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenPublishingThrows_StillDestroysTheRemovedKeysInTheirOwnStep()
+    {
+        var held = CreateSecret("held");
+        var removed = CreateSecret("removed");
+        var tenant = CreateTenant([held, removed]);
+        SetupSpecifications(Rs256);
+        SetupSettings();
+        var plan = SetupGeneratingPlan(tenant);
+        var auditEvent = CreateAuditEvent("generated");
+        SetupApply(tenant, plan, [held], [auditEvent], [removed]);
+        var command = CreateCommand(tenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        var steps = command.Context.PostCommitSteps;
+        MockEventPublisher
+            .Setup(x => x.PublishAsync(auditEvent, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("publish failed"))
+            .Verifiable(Times.Once);
+        MockRemoteSecretDestroyer
+            .Setup(x =>
+                x.DestroyAsync(
+                    It.Is<IReadOnlyCollection<PersistedSecret>>(secrets =>
+                        secrets.SequenceEqual(new[] { removed })
+                    )
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await steps[0](CancellationToken.None)
+        );
+        await steps[1](CancellationToken.None);
     }
 
     [Fact]
@@ -275,7 +348,8 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         PersistedTenant tenant,
         TenantKeyRolloverPlan plan,
         IReadOnlyCollection<PersistedSecret> secrets,
-        IReadOnlyList<TenantKeyAuditEvent> auditEvents
+        IReadOnlyList<TenantKeyAuditEvent> auditEvents,
+        IReadOnlyList<PersistedSecret>? removedSecrets = null
     )
     {
         MockStoreManager
@@ -293,7 +367,12 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
                 )
             )
             .ReturnsAsync(
-                new TenantKeyRolloverResult { Secrets = secrets, AuditEvents = auditEvents }
+                new TenantKeyRolloverResult
+                {
+                    Secrets = secrets,
+                    AuditEvents = auditEvents,
+                    RemovedSecrets = removedSecrets ?? [],
+                }
             )
             .Verifiable();
     }

@@ -144,11 +144,11 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
     }
 
-    private string EncodeToken(
+    private ValueTask<string> EncodeTokenAsync(
         JoseSigningCredentials? signingCredentials,
         JoseEncryptionCredentials? encryptionCredentials
     ) =>
-        Encoder.Encode(
+        Encoder.EncodeAsync(
             new JwtEncodingParameters
             {
                 SigningCredentials = signingCredentials,
@@ -157,10 +157,11 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
                 IssuedAt = _utcNow,
                 NotBefore = _utcNow,
                 Expires = _utcNow.AddMinutes(5),
-            }
+            },
+            CancellationToken.None
         );
 
-    private string EncryptContent(string content)
+    private ValueTask<string> EncryptContentAsync(string content)
     {
         var options = new JoseEncryptionOptions(CreateEncryptionCredentials())
         {
@@ -170,7 +171,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             },
         };
 
-        return JoseSerializer.CreateEncoder(options).Encode(content);
+        return JoseSerializer.CreateEncoder(options).EncodeAsync(content, CancellationToken.None);
     }
 
     private static string CreateUnsecuredToken()
@@ -235,7 +236,10 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenSignedJws_Succeeds()
     {
-        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            encryptionCredentials: null
+        );
 
         var result = await ValidateAsync(token, x => x.UseValidationKeys([SigningKey]));
 
@@ -260,7 +264,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             _utcNow.AddMinutes(notBeforeMinutes),
             _utcNow.AddMinutes(notAfterMinutes)
         );
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(certificateKey),
             encryptionCredentials: null
         );
@@ -288,7 +292,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             _utcNow.AddMinutes(notAfterMinutes),
             expiresWhen: _utcNow.AddDays(1)
         );
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(certificateKey),
             encryptionCredentials: null
         );
@@ -329,7 +333,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenNestedJwt_DecryptsWithDecryptionKeysAndVerifiesWithValidationKeys()
     {
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials()
         );
@@ -358,7 +362,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenNestedJwtWithoutDecryptionKeys_Fails()
     {
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials()
         );
@@ -376,7 +380,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenEncryptedWithoutSignature_Fails()
     {
-        var token = EncodeToken(signingCredentials: null, CreateEncryptionCredentials());
+        var token = await EncodeTokenAsync(signingCredentials: null, CreateEncryptionCredentials());
 
         var result = await ValidateAsync(
             token,
@@ -390,8 +394,11 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenNestedJwtEnclosesEncryptedToken_Fails()
     {
-        var innerToken = EncodeToken(signingCredentials: null, CreateEncryptionCredentials());
-        var token = EncryptContent(innerToken);
+        var innerToken = await EncodeTokenAsync(
+            signingCredentials: null,
+            CreateEncryptionCredentials()
+        );
+        var token = await EncryptContentAsync(innerToken);
 
         var result = await ValidateAsync(
             token,
@@ -405,7 +412,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenNestedJwtEnclosesUnsecuredJws_Fails()
     {
-        var token = EncryptContent(CreateUnsecuredToken());
+        var token = await EncryptContentAsync(CreateUnsecuredToken());
 
         var result = await ValidateAsync(
             token,
@@ -423,9 +430,12 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         {
             Format = JoseSerializationFormat.Flattened,
         };
-        var token = JoseSerializer
+        var token = await JoseSerializer
             .CreateEncoder(options)
-            .Encode(new Dictionary<string, object> { ["iss"] = Issuer });
+            .EncodeAsync(
+                new Dictionary<string, object> { ["iss"] = Issuer },
+                CancellationToken.None
+            );
 
         var result = await ValidateAsync(token, x => x.UseValidationKeys([SigningKey]));
 
@@ -442,7 +452,10 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         bool expected
     )
     {
-        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            encryptionCredentials: null
+        );
 
         var result = await ValidateAsync(
             token,
@@ -465,7 +478,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         bool expected
     )
     {
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials()
         );
@@ -490,7 +503,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         bool expected
     )
     {
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials()
         );
@@ -521,7 +534,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         bool expected
     )
     {
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials(compressionCode: compression)
         );
@@ -541,7 +554,10 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenSignatureAlgorithmIsNotPermitted_FailsWithAlgorithmNotPermitted()
     {
-        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            encryptionCredentials: null
+        );
 
         var result = await ValidateAsync(
             token,
@@ -559,7 +575,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenNoDecryptionKeyDecrypts_FailsWithDecryptionFailed()
     {
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials()
         );
@@ -583,7 +599,10 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             SecretKeyUses.Encryption,
             algorithm: null
         );
-        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            encryptionCredentials: null
+        );
 
         var result = await ValidateAsync(token, x => x.UseValidationKeys([encryptionOnlyKey]));
 
@@ -601,7 +620,10 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             use: null,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
         );
-        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            encryptionCredentials: null
+        );
 
         var result = await ValidateAsync(token, x => x.UseValidationKeys([pssOnlyKey]));
 
@@ -618,7 +640,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             _utcNow.AddMinutes(-120),
             _utcNow.AddMinutes(-60)
         );
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(certificateKey),
             encryptionCredentials: null
         );
@@ -639,7 +661,10 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             _clientRsa,
             new KeyMetadata { KeyId = "client-just-expired", ExpiresWhen = _utcNow.AddMinutes(-1) }
         );
-        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            encryptionCredentials: null
+        );
 
         var result = await ValidateAsync(token, x => x.UseValidationKeys([justExpiredKey]));
 
@@ -655,7 +680,10 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             _clientRsa,
             new KeyMetadata { KeyId = "client-expired", ExpiresWhen = _utcNow.AddMinutes(-6) }
         );
-        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            encryptionCredentials: null
+        );
 
         var result = await ValidateAsync(token, x => x.UseValidationKeys([expiredKey]));
 
@@ -677,7 +705,10 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
                 ExpiresWhen = _utcNow.AddSeconds(1),
             }
         );
-        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            encryptionCredentials: null
+        );
 
         var result = await ValidateAsync(token, x => x.UseValidationKeys([retiredKey]));
 
@@ -691,7 +722,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             _serverRsa,
             new KeyMetadata { KeyId = "server-expired", ExpiresWhen = _utcNow.AddMinutes(-6) }
         );
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials()
         );
@@ -710,9 +741,9 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     #region Encode Tests
 
     [Fact]
-    public void Encode_WhenSignedAndEncrypted_MarksEnclosingJweAsJwt()
+    public async Task Encode_WhenSignedAndEncrypted_MarksEnclosingJweAsJwt()
     {
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials()
         );
@@ -724,9 +755,9 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public void Encode_WhenOnlyEncrypted_OmitsContentType()
+    public async Task Encode_WhenOnlyEncrypted_OmitsContentType()
     {
-        var token = EncodeToken(signingCredentials: null, CreateEncryptionCredentials());
+        var token = await EncodeTokenAsync(signingCredentials: null, CreateEncryptionCredentials());
 
         var header = JoseSerializer.Parse(token).Header;
 

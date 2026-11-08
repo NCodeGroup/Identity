@@ -147,7 +147,12 @@ internal class DefaultUserInfoClient(
             );
             request.Headers.TryAddWithoutValidation(
                 OpenIdProtocol.DPoP.HeaderName,
-                dpopKey.CreateProof(HttpMethod.Get, target.Uri, accessToken)
+                await dpopKey.CreateProofAsync(
+                    HttpMethod.Get,
+                    target.Uri,
+                    accessToken,
+                    cancellationToken
+                )
             );
         }
 

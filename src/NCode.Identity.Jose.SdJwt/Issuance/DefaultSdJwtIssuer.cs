@@ -45,7 +45,10 @@ internal class DefaultSdJwtIssuer(
     private SdJwtOptions Options { get; } = optionsAccessor.Value;
 
     /// <inheritdoc />
-    public SelectiveDisclosureJwt Issue(SdJwtIssuanceOptions options)
+    public async ValueTask<SelectiveDisclosureJwt> IssueAsync(
+        SdJwtIssuanceOptions options,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -111,7 +114,7 @@ internal class DefaultSdJwtIssuer(
             TokenType = options.Profile?.TokenType ?? JoseTokenTypes.Jwt,
         };
         var encoder = JoseSerializer.CreateEncoder(new JoseSigningOptions(signature));
-        var issuerSignedJwt = encoder.Encode<JsonNode>(claims);
+        var issuerSignedJwt = await encoder.EncodeAsync<JsonNode>(claims, cancellationToken);
 
         return new SelectiveDisclosureJwt(issuerSignedJwt, walk.Disclosures, keyBindingJwt: null);
     }

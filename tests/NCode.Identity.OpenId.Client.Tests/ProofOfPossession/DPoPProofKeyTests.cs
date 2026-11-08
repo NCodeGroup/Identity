@@ -36,14 +36,19 @@ public class DPoPProofKeyTests : IAsyncLifetime
         return Assert.IsType<DPoPProof>(proofResult);
     }
 
-    #region CreateProof Tests
+    #region CreateProofAsync Tests
 
     [Fact]
-    public void CreateProof_WithoutNonce_IsValidAndHasNoNonce()
+    public async Task CreateProofAsync_WithoutNonce_IsValidAndHasNoNonce()
     {
         var proofKey = DPoPContext.CreateProofKey(DPoPContext.EcKey);
 
-        var proof = proofKey.CreateProof(HttpMethod.Post, new Uri(HttpUri), null);
+        var proof = await proofKey.CreateProofAsync(
+            HttpMethod.Post,
+            new Uri(HttpUri),
+            null,
+            CancellationToken.None
+        );
 
         var result = Validate(proof);
         Assert.Null(result.Nonce);
@@ -51,23 +56,33 @@ public class DPoPProofKeyTests : IAsyncLifetime
     }
 
     [Fact]
-    public void CreateProof_AfterRecordNonce_CarriesNonce()
+    public async Task CreateProofAsync_AfterRecordNonce_CarriesNonce()
     {
         var proofKey = DPoPContext.CreateProofKey(DPoPContext.EcKey);
         proofKey.RecordNonce(new Uri(HttpUri), "server-nonce");
 
-        var proof = proofKey.CreateProof(HttpMethod.Post, new Uri(HttpUri), null);
+        var proof = await proofKey.CreateProofAsync(
+            HttpMethod.Post,
+            new Uri(HttpUri),
+            null,
+            CancellationToken.None
+        );
 
         var result = Validate(proof);
         Assert.Equal("server-nonce", result.Nonce);
     }
 
     [Fact]
-    public void CreateProof_WithAccessToken_IsValidWithAth()
+    public async Task CreateProofAsync_WithAccessToken_IsValidWithAth()
     {
         var proofKey = DPoPContext.CreateProofKey(DPoPContext.EcKey);
 
-        var proof = proofKey.CreateProof(HttpMethod.Post, new Uri(HttpUri), "at");
+        var proof = await proofKey.CreateProofAsync(
+            HttpMethod.Post,
+            new Uri(HttpUri),
+            "at",
+            CancellationToken.None
+        );
 
         Validate(proof, "at");
         Assert.True(DPoPTestContext.DecodePayload(proof).TryGetProperty("ath", out _));

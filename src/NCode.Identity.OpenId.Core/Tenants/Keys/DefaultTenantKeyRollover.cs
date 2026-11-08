@@ -4,18 +4,22 @@
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.OpenId.Tenants.Keys;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ITenantKeyRollover"/>. A generated key is protected under the
-/// tenant's master key, which is loaded only when a key is generated, and carries the rollover as the manager of its
-/// lifecycle; an activated, retired or extended key keeps its material and changes only the instants of its
-/// lifecycle, which stay in order or the change is refused; a removed key leaves the store. Each change to a key is
+/// tenant's master key, which is loaded only when a local key is generated, and carries the rollover as the manager of
+/// its lifecycle; a key whose specification names a remote key provider is created in that provider's key management
+/// service instead, and no master key is loaded for it. An activated, retired or extended key keeps its material and
+/// changes only the instants of its lifecycle, which stay in order or the change is refused; a removed key leaves the
+/// store and is reported in the result, and the rollover destroys nothing. Each change to a key is
 /// applied to the key as the changes before it left it, so a plan that activates and extends one key keeps both.
 /// Every change is described by a <see cref="TenantKeyAuditEvent"/> with the <c>system</c> actor, because the server
 /// made it on its own, which the caller publishes once its unit of work has committed; the audit event is the one
@@ -55,12 +59,14 @@ internal sealed class DefaultTenantKeyRollover(
         }
 
         var auditEvents = new List<TenantKeyAuditEvent>();
+        var removedSecrets = new List<PersistedSecret>();
 
         foreach (var removal in plan.Removals)
         {
             var removed = secrets[removal.SecretId];
             await tenantStore.RemoveSecretAsync(tenantId, removed.SecretId, cancellationToken);
             secrets.Remove(removed.SecretId);
+            removedSecrets.Add(removed);
             auditEvents.Add(
                 CreateAuditEvent(
                     tenantId,
@@ -87,7 +93,7 @@ internal sealed class DefaultTenantKeyRollover(
                     tenantId,
                     retired,
                     TenantKeyChanges.Retired,
-                    TenantKeyChangeReasons.UnusedAlgorithm,
+                    retirement.Reason,
                     plan.Now
                 )
             );
@@ -137,18 +143,33 @@ internal sealed class DefaultTenantKeyRollover(
             );
         }
 
-        // The tenant's master key is loaded only when a key has to be generated, so a pass that generates nothing
-        // never touches the master key ring.
+        // The tenant's master key is loaded only when a local key has to be generated, so a pass that generates
+        // nothing, or only remote keys, never touches the master key ring.
         ISecretProtector? protector = null;
         foreach (var generation in plan.Generations)
         {
-            protector ??= await SecretProtectorProvider.GetProtectorAsync(
-                SecretOwner.ForTenant(tenantId),
-                [],
-                cancellationToken
-            );
+            PersistedSecret generated;
+            if (generation.Specification.RemoteKeyProvider is { } provider)
+            {
+                generated = await GenerateRemoteAsync(
+                    tenantId,
+                    provider,
+                    generation,
+                    plan.Now,
+                    cancellationToken
+                );
+            }
+            else
+            {
+                protector ??= await SecretProtectorProvider.GetProtectorAsync(
+                    SecretOwner.ForTenant(tenantId),
+                    [],
+                    cancellationToken
+                );
 
-            var generated = Generate(protector, generation, plan.Now);
+                generated = Generate(protector, generation, plan.Now);
+            }
+
             await tenantStore.AddSecretAsync(tenantId, generated, cancellationToken);
             secrets[generated.SecretId] = generated;
             auditEvents.Add(
@@ -166,7 +187,40 @@ internal sealed class DefaultTenantKeyRollover(
         {
             Secrets = [.. secrets.Values],
             AuditEvents = auditEvents,
+            RemovedSecrets = removedSecrets,
         };
+    }
+
+    // The key is created in the provider's key management service; the secret stores only its public half and a
+    // reference to it, so no master key is involved.
+    private async ValueTask<PersistedSecret> GenerateRemoteAsync(
+        string tenantId,
+        string provider,
+        TenantKeyGeneration generation,
+        DateTimeOffset now,
+        CancellationToken cancellationToken
+    )
+    {
+        var specification = generation.Specification;
+        return await SecretGenerator.GenerateRemoteSecretAsync(
+            new GenerateRemoteSecretRequest
+            {
+                SecretId = CryptoService.GenerateResourceId(),
+                Owner = SecretOwner.ForTenant(tenantId),
+                Provider = provider,
+                SecretType = specification.SecretType,
+                KeySizeBits = specification.KeySizeBits,
+                Curve = specification.Curve,
+                Use = specification.Use,
+                Algorithm = specification.Algorithm,
+                CreatedWhen = now,
+                ActivatesWhen = generation.ActivatesWhen,
+                RetiresWhen = generation.RetiresWhen,
+                ExpiresWhen = generation.ExpiresWhen,
+                ManagedBy = SecretManagers.TenantKeyRollover,
+            },
+            cancellationToken
+        );
     }
 
     private PersistedSecret Generate(
@@ -248,8 +302,16 @@ internal sealed class DefaultTenantKeyRollover(
             SecretType = secret.SecretType,
             Algorithm = secret.Algorithm,
             Use = secret.Use,
+            RemoteKeyProvider = GetRemoteKeyProvider(secret),
             ActivatesWhen = secret.ActivatesWhen,
             RetiresWhen = secret.RetiresWhen,
             ExpiresWhen = secret.ExpiresWhen,
         };
+
+    // The provider is named by the secret's reference; a local key, and a reference that does not parse, name none.
+    private static string? GetRemoteKeyProvider(PersistedSecret secret) =>
+        SecretEncodings.IsRemote(secret.SecretEncoding)
+        && RemoteKeyReference.TryParse(secret.EncodedValue, out var reference)
+            ? reference.Provider
+            : null;
 }

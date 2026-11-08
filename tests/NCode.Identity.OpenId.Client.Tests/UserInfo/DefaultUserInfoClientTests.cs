@@ -181,7 +181,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
 
     // A UserInfo response the provider signs as OpenID Connect Core 1.0 §5.3.2 requires: its issuer, an audience naming
     // the client, and the end-user's claims; encrypted to the client when encryption credentials are given.
-    private string CreateUserInfoJwt(
+    private async ValueTask<string> CreateUserInfoJwtAsync(
         string issuer = Authority,
         string audience = ClientId,
         string subject = "user-1",
@@ -214,9 +214,9 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
             );
         }
 
-        return JwtProvider
+        return await JwtProvider
             .GetRequiredService<IJwtEncoder>()
-            .Encode(
+            .EncodeAsync(
                 new JwtEncodingParameters
                 {
                     SigningCredentials = new JoseSigningCredentials(
@@ -234,7 +234,8 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
                         [JoseClaimNames.Payload.Sub] = subject,
                         ["email"] = "ada@example.com",
                     },
-                }
+                },
+                CancellationToken.None
             );
     }
 
@@ -505,7 +506,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(),
+            await CreateUserInfoJwtAsync(),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -546,7 +547,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(issuer: "https://attacker.example.test"),
+            await CreateUserInfoJwtAsync(issuer: "https://attacker.example.test"),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -565,7 +566,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(audience: "client-2"),
+            await CreateUserInfoJwtAsync(audience: "client-2"),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -584,7 +585,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(signingKey: OtherKey),
+            await CreateUserInfoJwtAsync(signingKey: OtherKey),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -607,7 +608,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(alg: "RS256"),
+            await CreateUserInfoJwtAsync(alg: "RS256"),
             "application/jwt"
         );
         var client = CreateClient(handler);
@@ -626,7 +627,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(),
+            await CreateUserInfoJwtAsync(),
             "application/jwt"
         );
         var client = CreateClient(handler, advertisedSigningAlgorithms: ["ES256"]);
@@ -649,7 +650,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(tokenType: "at+jwt"),
+            await CreateUserInfoJwtAsync(tokenType: "at+jwt"),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -668,7 +669,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(expires: DateTimeOffset.UtcNow.AddHours(-1)),
+            await CreateUserInfoJwtAsync(expires: DateTimeOffset.UtcNow.AddHours(-1)),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -687,7 +688,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(subject: "someone-else"),
+            await CreateUserInfoJwtAsync(subject: "someone-else"),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -706,7 +707,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(encrypted: true),
+            await CreateUserInfoJwtAsync(encrypted: true),
             "application/jwt"
         );
         var client = CreateClient(
@@ -730,7 +731,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            CreateUserInfoJwt(),
+            await CreateUserInfoJwtAsync(),
             "application/jwt"
         );
         var client = CreateClient(

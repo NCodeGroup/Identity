@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Settings;
 using NCode.Registration;
 
@@ -113,6 +114,15 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     ICollectionDataSource<SettingDescriptor>,
                     TenantEnvironmentSettingDescriptorDataSource
+                >()
+            );
+
+            // The setting that names the remote key provider holding a tenant's signing keys is contributed beside it;
+            // its domain is the providers the remote key provider catalog registers.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SettingDescriptor>,
+                    TenantSigningKeySettingDescriptorDataSource
                 >()
             );
 

@@ -43,7 +43,7 @@ public class DefaultCwtIssuerTests
     {
         await using var host = new CwtTestHost();
 
-        var token = host.Issuer.Issue(ExampleParameters(host));
+        var token = await host.Issuer.IssueAsync(ExampleParameters(host), CancellationToken.None);
 
         var verified = VerifyEc(host, token);
         Assert.Equal(CoseMessageType.Sign1, verified.MessageType);
@@ -59,7 +59,7 @@ public class DefaultCwtIssuerTests
             new CoseCredentials(host.Hmac(), CoseAlgorithms.HmacSha256)
         );
 
-        var token = host.Issuer.Issue(parameters);
+        var token = await host.Issuer.IssueAsync(parameters, CancellationToken.None);
 
         Assert.Equal(CoseMessageType.Mac0, host.Serializer.Inspect(token, null).MessageType);
     }
@@ -73,7 +73,7 @@ public class DefaultCwtIssuerTests
             Credentials = new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
         };
 
-        var token = host.Issuer.Issue(parameters);
+        var token = await host.Issuer.IssueAsync(parameters, CancellationToken.None);
 
         var claims = host.Serializer.DecodeMap(VerifyEc(host, token).Content);
         Assert.True(claims[CwtClaimKeys.IssuedAt].TryGetInt64(out var issuedAt));
@@ -90,7 +90,7 @@ public class DefaultCwtIssuerTests
             Audiences = ["a", "b"],
         };
 
-        var token = host.Issuer.Issue(parameters);
+        var token = await host.Issuer.IssueAsync(parameters, CancellationToken.None);
 
         var claims = host.Serializer.DecodeMap(VerifyEc(host, token).Content);
         Assert.True(claims[CwtClaimKeys.Audience].TryGetArray(out var audiences));
@@ -107,7 +107,7 @@ public class DefaultCwtIssuerTests
             TokenType = "application/example+cwt",
         };
 
-        var token = host.Issuer.Issue(parameters);
+        var token = await host.Issuer.IssueAsync(parameters, CancellationToken.None);
 
         var info = host.Serializer.Inspect(token, null);
         Assert.True(info.ProtectedHeaders[CoseHeaderLabels.Type].TryGetTextString(out var type));
@@ -124,7 +124,7 @@ public class DefaultCwtIssuerTests
             ConfirmationKey = host.EcPrivateKey("holder"),
         };
 
-        var token = host.Issuer.Issue(parameters);
+        var token = await host.Issuer.IssueAsync(parameters, CancellationToken.None);
 
         var claims = host.Serializer.DecodeMap(VerifyEc(host, token).Content);
         var confirmation = host.Serializer.DecodeMap(
@@ -147,7 +147,7 @@ public class DefaultCwtIssuerTests
             EncryptionCredentials = new CoseCredentials(key, CoseAlgorithms.A128Gcm),
         };
 
-        var token = host.Issuer.Issue(parameters);
+        var token = await host.Issuer.IssueAsync(parameters, CancellationToken.None);
 
         Assert.Equal(CoseMessageType.Encrypt0, host.Serializer.Inspect(token, null).MessageType);
         var decrypted = host.Serializer.Decrypt(
@@ -177,7 +177,7 @@ public class DefaultCwtIssuerTests
             ),
         };
 
-        var token = host.Issuer.Issue(parameters);
+        var token = await host.Issuer.IssueAsync(parameters, CancellationToken.None);
 
         Assert.Equal(CoseMessageType.Encrypt, host.Serializer.Inspect(token, null).MessageType);
         var decrypted = host.Serializer.Decrypt(
@@ -205,7 +205,7 @@ public class DefaultCwtIssuerTests
             WriteCwtTag = true,
         };
 
-        var token = host.Issuer.Issue(parameters);
+        var token = await host.Issuer.IssueAsync(parameters, CancellationToken.None);
 
         Assert.Equal("D83D", Convert.ToHexString(token.AsSpan(0, 2)));
         Assert.Equal(
@@ -227,7 +227,9 @@ public class DefaultCwtIssuerTests
             },
         };
 
-        Assert.Throws<ArgumentException>(() => host.Issuer.Issue(parameters));
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Issuer.IssueAsync(parameters, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -243,7 +245,7 @@ public class DefaultCwtIssuerTests
             },
         };
 
-        var token = host.Issuer.Issue(parameters);
+        var token = await host.Issuer.IssueAsync(parameters, CancellationToken.None);
 
         var claims = host.Serializer.DecodeMap(VerifyEc(host, token).Content);
         Assert.True(claims[CwtClaimKeys.Scope].TryGetTextString(out var scope));
@@ -265,7 +267,9 @@ public class DefaultCwtIssuerTests
             ),
         };
 
-        Assert.Throws<ArgumentException>(() => host.Issuer.Issue(parameters));
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Issuer.IssueAsync(parameters, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -279,7 +283,9 @@ public class DefaultCwtIssuerTests
             ExpiresAt = CwtTestHost.StartTime - TimeSpan.FromMinutes(1),
         };
 
-        Assert.Throws<ArgumentException>(() => host.Issuer.Issue(parameters));
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Issuer.IssueAsync(parameters, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -293,7 +299,9 @@ public class DefaultCwtIssuerTests
             ExpiresAt = CwtTestHost.StartTime,
         };
 
-        Assert.Throws<ArgumentException>(() => host.Issuer.Issue(parameters));
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Issuer.IssueAsync(parameters, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -305,7 +313,9 @@ public class DefaultCwtIssuerTests
             Credentials = new CoseCredentials(host.Aes(), CoseAlgorithms.A128Gcm),
         };
 
-        Assert.Throws<ArgumentException>(() => host.Issuer.Issue(parameters));
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Issuer.IssueAsync(parameters, CancellationToken.None)
+        );
     }
 
     #endregion

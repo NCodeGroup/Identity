@@ -7,10 +7,81 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Tests;
 
 public class GoogleCloudKmsKeyNameTests
 {
-    private const string CryptoKeyName =
-        "projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root";
+    private const string KeyRingName =
+        "projects/my-project/locations/us-central1/keyRings/ncode-identity";
+
+    private const string CryptoKeyName = KeyRingName + "/cryptoKeys/root";
 
     private const string CryptoKeyVersionName = CryptoKeyName + "/cryptoKeyVersions/1";
+
+    #region IsKeyRingName Tests
+
+    [Fact]
+    public void IsKeyRingName_KeyRingName_ReturnsTrue()
+    {
+        var result = GoogleCloudKmsKeyName.IsKeyRingName(KeyRingName);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsKeyRingName_DomainScopedProject_ReturnsTrue()
+    {
+        const string value =
+            "projects/example.com:my-project/locations/us-central1/keyRings/ncode-identity";
+
+        var result = GoogleCloudKmsKeyName.IsKeyRingName(value);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsKeyRingName_CryptoKeyName_ReturnsFalse()
+    {
+        var result = GoogleCloudKmsKeyName.IsKeyRingName(CryptoKeyName);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyRingName_LowerCaseKeyRings_ReturnsFalse()
+    {
+        const string value = "projects/my-project/locations/us-central1/keyrings/ncode-identity";
+
+        var result = GoogleCloudKmsKeyName.IsKeyRingName(value);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyRingName_KeyRingIdOver63Characters_ReturnsFalse()
+    {
+        var value = "projects/my-project/locations/us-central1/keyRings/" + new string('a', 64);
+
+        var result = GoogleCloudKmsKeyName.IsKeyRingName(value);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyRingName_TrailingNewline_ReturnsFalse()
+    {
+        const string value = KeyRingName + "\n";
+
+        var result = GoogleCloudKmsKeyName.IsKeyRingName(value);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyRingName_Null_ReturnsFalse()
+    {
+        var result = GoogleCloudKmsKeyName.IsKeyRingName(null);
+
+        Assert.False(result);
+    }
+
+    #endregion
 
     #region IsCryptoKeyName Tests
 

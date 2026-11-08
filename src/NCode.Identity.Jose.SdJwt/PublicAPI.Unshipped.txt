@@ -54,7 +54,7 @@ NCode.Identity.Jose.SdJwt.Disclosure.IsArrayElement.get -> bool
 NCode.Identity.Jose.SdJwt.Disclosure.Salt.get -> string!
 NCode.Identity.Jose.SdJwt.Disclosure.Value.get -> System.Text.Json.JsonElement
 NCode.Identity.Jose.SdJwt.Issuance.ISdJwtIssuer
-NCode.Identity.Jose.SdJwt.Issuance.ISdJwtIssuer.Issue(NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions! options) -> NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt!
+NCode.Identity.Jose.SdJwt.Issuance.ISdJwtIssuer.IssueAsync(NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt!>
 NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions
 NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.Claims.get -> System.Text.Json.JsonElement
 NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.Claims.init -> void
@@ -80,7 +80,7 @@ NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.SaltSizeBytes.get -> int
 NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.SaltSizeBytes.set -> void
 NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.SdJwtOptions() -> void
 NCode.Identity.Jose.SdJwt.Presentation.ISdJwtHolder
-NCode.Identity.Jose.SdJwt.Presentation.ISdJwtHolder.CreatePresentation(NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions! options) -> string!
+NCode.Identity.Jose.SdJwt.Presentation.ISdJwtHolder.CreatePresentationAsync(NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 NCode.Identity.Jose.SdJwt.Presentation.ISdJwtHolder.Parse(string! serialized) -> NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt!
 NCode.Identity.Jose.SdJwt.Presentation.ISdJwtHolder.ResolveDisclosures(NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt! sdJwt) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Jose.SdJwt.DisclosedClaim!>!
 NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions

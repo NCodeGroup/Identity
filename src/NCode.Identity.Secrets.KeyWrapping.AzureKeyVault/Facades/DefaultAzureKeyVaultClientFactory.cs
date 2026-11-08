@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Azure.Identity;
+using Azure.Security.KeyVault.Keys;
 using Azure.Security.KeyVault.Keys.Cryptography;
 
 namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
@@ -10,7 +11,8 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 /// Provides the default implementation of <see cref="IAzureKeyVaultClientFactory"/>: one
 /// <see cref="CryptographyClient"/> for each key version identifier, created on first use and shared by every caller, a
 /// new <see cref="CryptographyClient"/> for each call with a versionless key identifier, one
-/// <see cref="DefaultAzureCredential"/> shared by every client of the deployment's own identity, and one
+/// <see cref="DefaultAzureCredential"/> shared by every client of the deployment's own identity, one
+/// <see cref="KeyClient"/> for each vault, and one
 /// <see cref="AzureDirectoryClients"/> for each Microsoft Entra directory that an access names, held by a
 /// <see cref="KeyAccessClientCache{TClient}"/>.
 /// </summary>
@@ -56,6 +58,19 @@ internal sealed class DefaultAzureKeyVaultClientFactory(TimeProvider timeProvide
             (clients, token) => operation(clients.GetClient(keyId), token),
             cancellationToken
         );
+    }
+
+    /// <inheritdoc />
+    public ValueTask<TResult> ExecuteKeyClientAsync<TResult>(
+        Uri vaultUri,
+        Func<KeyClient, CancellationToken, ValueTask<TResult>> operation,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(vaultUri);
+        ArgumentNullException.ThrowIfNull(operation);
+
+        return operation(OwnClients.Value.GetKeyClient(vaultUri), cancellationToken);
     }
 
     /// <summary>

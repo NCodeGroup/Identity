@@ -67,7 +67,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         await _serviceProvider.DisposeAsync();
     }
 
-    private string EncodeToken(
+    private ValueTask<string> EncodeTokenAsync(
         string issuer = "https://issuer.example",
         string[]? audience = null,
         DateTimeOffset? notBefore = null,
@@ -90,7 +90,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
             ExtraPayloadClaims = extraPayloadClaims,
             TokenType = tokenType ?? JoseTokenTypes.Jwt,
         };
-        return _encoder.Encode(parameters);
+        return _encoder.EncodeAsync(parameters, CancellationToken.None);
     }
 
     private async Task<JwtValidationResult> ValidateTokenAsync(string token)
@@ -105,7 +105,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
     private async Task<JwtValidationResult> EncodeAndValidateAsync(IEnumerable<Claim> subjectClaims)
     {
-        var token = EncodeToken(subjectClaims: subjectClaims);
+        var token = await EncodeTokenAsync(subjectClaims: subjectClaims);
         return await ValidateTokenAsync(token);
     }
 
@@ -120,7 +120,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         // Encode through the JOSE serializer so the JWT encoder cannot add default 'iat'/'nbf'/'exp' claims.
         var signingOptions = new JoseSigningOptions(_signingCredentials);
         var encoder = _joseSerializer.CreateEncoder(signingOptions);
-        var token = encoder.Encode(lifetimeClaims);
+        var token = await encoder.EncodeAsync(lifetimeClaims, CancellationToken.None);
 
         var validationParameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -138,19 +138,21 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     #region EncodeJwt Tests
 
     [Fact]
-    public void EncodeJwt_WhenSigned_ReturnsThreeSegmentCompactJws()
+    public async Task EncodeJwt_WhenSigned_ReturnsThreeSegmentCompactJws()
     {
-        var token = EncodeToken();
+        var token = await EncodeTokenAsync();
 
         Assert.Equal(2, token.Count(c => c == '.'));
     }
 
     [Fact]
-    public void EncodeJwt_WhenNoCredentials_ThrowsArgumentException()
+    public async Task EncodeJwt_WhenNoCredentials_ThrowsArgumentException()
     {
         var parameters = new JwtEncodingParameters();
 
-        Assert.Throws<ArgumentException>(() => _encoder.Encode(parameters));
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _encoder.EncodeAsync(parameters, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -158,7 +160,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     {
         var parameters = new JwtEncodingParameters { SigningCredentials = _signingCredentials };
 
-        var token = _encoder.Encode(parameters);
+        var token = await _encoder.EncodeAsync(parameters, CancellationToken.None);
 
         var payload = Assert
             .IsType<DecodedJwt>((await ValidateTokenAsync(token)).DecodedJwt)
@@ -178,7 +180,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
             IssuedAt = _utcNow,
         };
 
-        var token = _encoder.Encode(parameters);
+        var token = await _encoder.EncodeAsync(parameters, CancellationToken.None);
 
         var payload = Assert
             .IsType<DecodedJwt>((await ValidateTokenAsync(token)).DecodedJwt)
@@ -194,7 +196,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task Encode_WhenSingleExtraPayloadClaim_EmitsIt()
     {
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             extraPayloadClaims: new Dictionary<string, object> { ["azp"] = "client" }
         );
 
@@ -274,7 +276,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task GetClaimsIdentityAsync_WhenClaimsReEncoded_RoundTripsJsonValue(string json)
     {
         var original = JsonElement.Parse(json);
-        var firstToken = EncodeToken(
+        var firstToken = await EncodeTokenAsync(
             extraPayloadClaims: new Dictionary<string, object> { ["custom"] = original }
         );
         var firstResult = await ValidateTokenAsync(firstToken);
@@ -294,7 +296,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenValidWithMatchingClaims_Succeeds()
     {
-        var token = EncodeToken();
+        var token = await EncodeTokenAsync();
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -312,7 +314,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenSubjectClaims_ProducesClaimsIdentity()
     {
-        var token = EncodeToken(
+        var token = await EncodeTokenAsync(
             subjectClaims: [new Claim("name", "Alice"), new Claim("role", "admin")]
         );
 
@@ -333,7 +335,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     {
         // A multi-audience token must validate against a resource that identifies itself with one of the audiences,
         // even though the token also carries other audiences (RFC 7519 §4.1.3).
-        var token = EncodeToken(audience: ["urn:resource:api", "urn:resource:openid"]);
+        var token = await EncodeTokenAsync(audience: ["urn:resource:api", "urn:resource:openid"]);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -352,7 +354,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenIssuerMismatch_Fails()
     {
-        var token = EncodeToken(issuer: "https://wrong.example");
+        var token = await EncodeTokenAsync(issuer: "https://wrong.example");
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -369,7 +371,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task ValidateAsync_WhenMultiAudienceMissingExpected_Fails()
     {
         // A multi-audience token must be rejected when none of its audiences identify the validating resource.
-        var token = EncodeToken(audience: ["urn:resource:other", "urn:resource:openid"]);
+        var token = await EncodeTokenAsync(audience: ["urn:resource:other", "urn:resource:openid"]);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -385,7 +387,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenClaimValueMismatch_FailsWithInvalidClaim()
     {
-        var token = EncodeToken();
+        var token = await EncodeTokenAsync();
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -407,7 +409,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task ValidateAsync_WhenExpired_Fails()
     {
         var past = _utcNow.AddHours(-2);
-        var token = EncodeToken(notBefore: past.AddMinutes(-1), expires: past);
+        var token = await EncodeTokenAsync(notBefore: past.AddMinutes(-1), expires: past);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -423,7 +425,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenNoValidationKeys_FailsWithKeyNotFound()
     {
-        var token = EncodeToken();
+        var token = await EncodeTokenAsync();
 
         var parameters = new JwtValidationParameters().UseValidationKeys([]);
 
@@ -436,7 +438,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenTampered_FailsWithDecodeException()
     {
-        var token = EncodeToken();
+        var token = await EncodeTokenAsync();
         var tampered = token[..^4] + "AAAA";
 
         var parameters = new JwtValidationParameters().UseValidationKeys([_signingKey]);
@@ -451,7 +453,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenGetClaimsIdentityOnFailedResult_Throws()
     {
-        var token = EncodeToken();
+        var token = await EncodeTokenAsync();
 
         var parameters = new JwtValidationParameters().UseValidationKeys([]);
 
@@ -465,7 +467,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenAssertionIsNotSatisfied_FailsWithAssertionFailed()
     {
-        var token = EncodeToken();
+        var token = await EncodeTokenAsync();
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -771,7 +773,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenTokenTypeMatches_Succeeds()
     {
-        var token = EncodeToken(tokenType: JoseTokenTypes.AccessTokenJwt);
+        var token = await EncodeTokenAsync(tokenType: JoseTokenTypes.AccessTokenJwt);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -794,7 +796,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     {
         // RFC 7515 §4.1.9: the 'application/' prefix is optional and the comparison is case-insensitive, so these all
         // match the expected 'at+jwt'.
-        var token = EncodeToken(tokenType: encodedTokenType);
+        var token = await EncodeTokenAsync(tokenType: encodedTokenType);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -810,7 +812,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task ValidateAsync_WhenTokenTypeMismatch_Fails()
     {
         // A plain 'JWT'-typed token must be rejected when 'at+jwt' is required (token-substitution defense).
-        var token = EncodeToken(tokenType: JoseTokenTypes.Jwt);
+        var token = await EncodeTokenAsync(tokenType: JoseTokenTypes.Jwt);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -826,7 +828,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenAnyOfSeveralTokenTypesMatch_Succeeds()
     {
-        var token = EncodeToken(tokenType: JoseTokenTypes.LogoutJwt);
+        var token = await EncodeTokenAsync(tokenType: JoseTokenTypes.LogoutJwt);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
@@ -845,7 +847,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenAHandlerFailsWithACode_RecordsTheFirstCode()
     {
-        var token = EncodeToken();
+        var token = await EncodeTokenAsync();
         JwtValidationContext? captured = null;
 
         var parameters = new JwtValidationParameters()
@@ -871,7 +873,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenAHandlerFailsWithAnEmptyCode_Throws()
     {
-        var token = EncodeToken();
+        var token = await EncodeTokenAsync();
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])

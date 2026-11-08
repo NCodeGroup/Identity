@@ -7,6 +7,7 @@ using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
+using Moq;
 using NCode.Buffers;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -14,6 +15,7 @@ using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Secrets.Persistence.Verifiers;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -22,7 +24,30 @@ public class DefaultSecretSerializerTests
 {
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
 
+    private static readonly RemoteSigningAlgorithm RsaRow = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = "RS256",
+        SecretType = SecretTypes.Rsa,
+        KeySizeBits = 2048,
+        KeySpec = "RSA_2048",
+        SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
+    };
+
+    private static readonly RemoteSigningAlgorithm EccRow = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = "ES256",
+        SecretType = SecretTypes.Ecc,
+        KeySizeBits = 256,
+        Curve = "P-256",
+        KeySpec = "ECC_NIST_P256",
+        SigningAlgorithm = "ECDSA_SHA_256",
+        IsDerEncodedSignature = true,
+    };
+
     private readonly DefaultSecretKeyTypeCatalog _catalog;
+    private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;
     private readonly DefaultSecretSerializer _serializer;
 
     public DefaultSecretSerializerTests()
@@ -42,11 +67,42 @@ public class DefaultSecretSerializerTests
         ]);
 
         _catalog = catalog;
+        _remoteCatalog = CreateRemoteCatalog();
         _serializer = new DefaultSecretSerializer(
             catalog,
-            TestSecretVerifierSchemes.CreateCatalog()
+            TestSecretVerifierSchemes.CreateCatalog(),
+            _remoteCatalog
         );
     }
+
+    private static DefaultRemoteKeyProviderCatalog CreateRemoteCatalog()
+    {
+        var provider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
+        provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms);
+
+        var source = new Mock<IRemoteSigningAlgorithmSource>(MockBehavior.Strict);
+        source.SetupGet(x => x.Algorithms).Returns([RsaRow, EccRow]);
+
+        return new DefaultRemoteKeyProviderCatalog([provider.Object], [source.Object]);
+    }
+
+    private static PersistedSecret CreateRemoteSecret(
+        string secretType,
+        int keySizeBits,
+        ReadOnlySpan<byte> subjectPublicKeyInfo,
+        string? algorithm,
+        string reference = "aws-kms:key-1"
+    ) =>
+        CreatePersistedSecretFromEncodedValue(
+            secretType,
+            SecretEncodings.Remote,
+            keySizeBits,
+            reference,
+            publicKey: subjectPublicKeyInfo.IsEmpty
+                ? null
+                : Base64Url.EncodeToString(subjectPublicKeyInfo),
+            algorithm: algorithm
+        );
 
     private static PersistedSecret CreatePersistedSecret(
         ISecretProtector protector,
@@ -85,13 +141,15 @@ public class DefaultSecretSerializerTests
         string? keyId = null,
         string? publicKey = null,
         DateTimeOffset? activatesWhen = null,
-        DateTimeOffset? retiresWhen = null
+        DateTimeOffset? retiresWhen = null,
+        string? algorithm = null
     ) =>
         new PersistedSecretBuilder
         {
             SecretId = secretId,
             KeyId = keyId,
             Use = "sig",
+            Algorithm = algorithm,
             ActivatesWhen = activatesWhen ?? DateTimeOffset.UnixEpoch,
             RetiresWhen = retiresWhen ?? expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             ExpiresWhen = expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
@@ -463,6 +521,205 @@ public class DefaultSecretSerializerTests
 
     #endregion
 
+    #region DeserializeSecret Remote Tests
+
+    [Fact]
+    public void DeserializeSecret_WhenRemoteRsa_ReturnsARemoteKeyWithItsRowAndSize()
+    {
+        using var rsa = RSA.Create(2048);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RS256"
+        );
+
+        var secretKey = _serializer.DeserializeSecret(CreateProtector(), persisted);
+
+        var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(secretKey);
+        Assert.IsAssignableFrom<RsaSecretKey>(secretKey);
+        Assert.Equal(2048, secretKey.KeySizeBits);
+        Assert.Equal("secret-1", secretKey.KeyId);
+        Assert.Equal("aws-kms:key-1", remoteKey.Binding.Reference.ToString());
+        Assert.Equal(RemoteKeyProviderNames.AwsKms, remoteKey.Binding.Provider.Name);
+        Assert.Same(RsaRow, remoteKey.Binding.Algorithm);
+    }
+
+    [Fact]
+    public void DeserializeSecret_WhenRemoteEcc_ReturnsARemoteKeyWithItsCurve()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Ecc,
+            ecdsa.KeySize,
+            ecdsa.ExportSubjectPublicKeyInfo(),
+            "ES256"
+        );
+
+        var secretKey = _serializer.DeserializeSecret(CreateProtector(), persisted);
+
+        var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(secretKey);
+        var eccKey = Assert.IsAssignableFrom<EccSecretKey>(secretKey);
+        Assert.Equal(256, eccKey.KeySizeBits);
+        Assert.Equal("P-256", eccKey.CurveName);
+        Assert.Same(EccRow, remoteKey.Binding.Algorithm);
+    }
+
+    [Fact]
+    public void DeserializeSecrets_WhenRemote_ReadsTheRemoteKeyBesideThePrivateKeys()
+    {
+        using var rsa = RSA.Create(2048);
+        var protector = CreateProtector();
+        var remote = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RS256"
+        );
+        var local = CreatePersistedSecret(
+            protector,
+            SecretTypes.Symmetric,
+            256,
+            RandomNumberGenerator.GetBytes(32),
+            "local-1"
+        );
+
+        var secretKeys = _serializer.DeserializeSecrets(protector, [remote, local]);
+
+        Assert.Equal(2, secretKeys.Count);
+        Assert.Single(secretKeys.OfType<IRemoteSecretKey>());
+    }
+
+    [Fact]
+    public void DeserializeSecret_WhenTheRemoteReferenceIsMalformed_ThrowsFormatException()
+    {
+        using var rsa = RSA.Create(2048);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RS256",
+            "no-separator"
+        );
+
+        Assert.Throws<FormatException>(() =>
+            _serializer.DeserializeSecret(CreateProtector(), persisted)
+        );
+    }
+
+    [Fact]
+    public void DeserializeSecret_WhenTheRemoteProviderIsNotRegistered_ThrowsInvalidOperation()
+    {
+        using var rsa = RSA.Create(2048);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RS256",
+            "other-kms:key-1"
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeSecret(CreateProtector(), persisted)
+        );
+
+        Assert.Contains("secret-1", exception.Message);
+        Assert.Contains("other-kms", exception.Message);
+    }
+
+    [Fact]
+    public void DeserializeSecret_WhenTheRemoteSecretHasNoPublicKey_ThrowsInvalidOperation()
+    {
+        var persisted = CreateRemoteSecret(SecretTypes.Rsa, 2048, [], "RS256");
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeSecret(CreateProtector(), persisted)
+        );
+
+        Assert.Contains("secret-1", exception.Message);
+    }
+
+    [Fact]
+    public void DeserializeSecret_WhenTheRemoteSecretHasNoAlgorithm_ThrowsInvalidOperation()
+    {
+        using var rsa = RSA.Create(2048);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            algorithm: null
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeSecret(CreateProtector(), persisted)
+        );
+
+        Assert.Contains("secret-1", exception.Message);
+    }
+
+    [Fact]
+    public void DeserializeSecret_WhenNoRowMatchesTheRemoteSecret_ThrowsInvalidOperation()
+    {
+        using var rsa = RSA.Create(2048);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "PS256"
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeSecret(CreateProtector(), persisted)
+        );
+
+        Assert.Contains("secret-1", exception.Message);
+        Assert.Contains("PS256", exception.Message);
+    }
+
+    [Fact]
+    public void DeserializeSecret_WhenTheStoredKeyIsOfAnotherSizeThanTheRow_ThrowsInvalidOperation()
+    {
+        using var rsa = RSA.Create(3072);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RS256"
+        );
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeSecret(CreateProtector(), persisted)
+        );
+    }
+
+    [Fact]
+    public void DeserializePublicSecret_WhenRemote_ReadsTheStoredPublicKeyWithoutTheCatalog()
+    {
+        using var rsa = RSA.Create(2048);
+        var expectedModulus = rsa.ExportParameters(false).Modulus;
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RS256",
+            "other-kms:key-1"
+        );
+        var serializer = new DefaultSecretSerializer(
+            _catalog,
+            TestSecretVerifierSchemes.CreateCatalog(),
+            new DefaultRemoteKeyProviderCatalog([], [])
+        );
+
+        var secretKey = serializer.DeserializePublicSecret(persisted);
+
+        Assert.IsNotAssignableFrom<IRemoteSecretKey>(secretKey);
+        var rsaKey = Assert.IsAssignableFrom<RsaSecretKey>(secretKey);
+        using var exported = rsaKey.ExportRSA();
+        Assert.Equal(expectedModulus, exported.ExportParameters(false).Modulus);
+    }
+
+    #endregion
+
     #region DeserializeVerifiers Tests
 
     // A scheme a package registers: its parameters are the secret itself, which only a test would store.
@@ -542,7 +799,8 @@ public class DefaultSecretSerializerTests
     {
         var serializer = new DefaultSecretSerializer(
             _catalog,
-            new DefaultSecretVerifierSchemeCatalog([new PlainTextSecretVerifierScheme()])
+            new DefaultSecretVerifierSchemeCatalog([new PlainTextSecretVerifierScheme()]),
+            _remoteCatalog
         );
         var protector = CreateProtector();
         var persisted = CreateVerifierSecret(protector, "$test-plain$secret");

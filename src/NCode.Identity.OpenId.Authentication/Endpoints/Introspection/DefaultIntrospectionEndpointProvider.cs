@@ -315,6 +315,6 @@ internal class DefaultIntrospectionEndpointProvider(
             },
         };
 
-        return JwtEncoder.Encode(parameters);
+        return await JwtEncoder.EncodeAsync(parameters, cancellationToken);
     }
 }

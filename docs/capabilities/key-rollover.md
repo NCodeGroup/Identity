@@ -97,6 +97,7 @@ only an unexpired key.
 | `tenant_key_lifetime`          | 90 days | `Min` (ceiling) | How long a provisioned key signs or encrypts.                                                                                           |
 | `tenant_key_activation_delay`  | 2 days  | `Max` (floor) | How long a successor is published before it activates.                                                                                    |
 | `tenant_key_retirement_grace`  | 7 days  | `Max` (floor) | How long a retired key stays published. Raised to the longest lifetime of the tokens the tenant protects with its keys plus `clock_skew`. |
+| `tenant_signing_key_provider`  | empty   | `Replace`     | The key management service that holds the tenant's signing keys: `aws-kms`, `azure-key-vault` or `google-cloud-kms`. Empty keeps them local. |
 
 `OpenId:Tenant:KeyRollover:TokenLifetimeSettings` names the settings whose lifetimes the grace covers: the ID token,
 access token, JWT-secured authorization response and request object lifetimes when configuration names none, and
@@ -109,6 +110,13 @@ published for the whole delay. Rollover runs only while key provisioning (`OpenI
 enabled; a deployment that brings its own keys manages their lifecycle through the management API, which accepts
 `activatesWhen` and `retiresWhen` on every create, import and update, and keeps the stored instants when an update
 omits them.
+
+A key's custody is part of what the tenant provisions. When `tenant_signing_key_provider` names a service, each
+signature key the rollover provisions is held there, and a key held in another custody is superseded: its successor is
+generated in the selected custody and published for the activation delay, activates at the hand-over, and the
+superseded key retires at that instant with the reason `custody_changed` and expires after the grace, as any retired
+key does. Encryption keys are always local, and a key an operator generated or imported keeps its own lifecycle. See
+[Remote Signing Keys](./remote-signing-keys.md).
 
 > [!TIP]
 > [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
@@ -160,6 +168,7 @@ change is committed. See [audit records](../audit-records.md).
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1412](../decisions/1412-settings-are-reconciled-per-team.md),
   [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
   [ADR-1320](../decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)
 - Code: [`Tenants/Keys`](../../src/NCode.Identity.OpenId.Core/Tenants/Keys),
   [`SecretLifecycle`](../../src/NCode.Identity.Secrets.Persistence.Abstractions/SecretLifecycle.cs),

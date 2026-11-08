@@ -84,4 +84,64 @@ public class SecretEncodingsTests
     }
 
     #endregion
+
+    #region IsRemote and IsUnprotected Tests
+
+    [Fact]
+    public void IsRemote_Remote_ReturnsTrue()
+    {
+        Assert.True(SecretEncodings.IsRemote(SecretEncodings.Remote));
+    }
+
+    [Theory]
+    [InlineData(SecretEncodings.SymmetricRaw)]
+    [InlineData(SecretEncodings.Pkcs8)]
+    [InlineData(SecretEncodings.Spki)]
+    [InlineData(SecretEncodings.X509)]
+    [InlineData(SecretEncodings.Verifier)]
+    [InlineData("REMOTE")]
+    [InlineData("unknown")]
+    public void IsRemote_AnotherEncoding_ReturnsFalse(string secretEncoding)
+    {
+        Assert.False(SecretEncodings.IsRemote(secretEncoding));
+    }
+
+    [Fact]
+    public void IsRemote_Null_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => SecretEncodings.IsRemote(null!));
+    }
+
+    [Fact]
+    public void IsPublic_Remote_ReturnsFalse()
+    {
+        Assert.False(SecretEncodings.IsPublic(SecretEncodings.Remote));
+    }
+
+    [Theory]
+    [InlineData(SecretEncodings.Spki)]
+    [InlineData(SecretEncodings.X509)]
+    [InlineData(SecretEncodings.Remote)]
+    public void IsUnprotected_PublicOrRemote_ReturnsTrue(string secretEncoding)
+    {
+        Assert.True(SecretEncodings.IsUnprotected(secretEncoding));
+    }
+
+    [Theory]
+    [InlineData(SecretEncodings.SymmetricRaw)]
+    [InlineData(SecretEncodings.Pkcs8)]
+    [InlineData(SecretEncodings.Verifier)]
+    [InlineData("unknown")]
+    public void IsUnprotected_AnotherEncoding_ReturnsFalse(string secretEncoding)
+    {
+        Assert.False(SecretEncodings.IsUnprotected(secretEncoding));
+    }
+
+    [Fact]
+    public void IsUnprotected_Null_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => SecretEncodings.IsUnprotected(null!));
+    }
+
+    #endregion
 }

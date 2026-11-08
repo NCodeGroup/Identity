@@ -42,6 +42,30 @@ public sealed class TenantKeyProvisioningOptionsValidatorTests : BaseTests
         Assert.Equal("Tenant:KeyProvisioning: The algorithm 'XX999' is not registered.", failure);
     }
 
+    [Fact]
+    public void Validate_WhenAProviderCannotHoldAProvisionedKey_FailsNamingTheSection()
+    {
+        var options = new OpenIdOptions();
+        var policy = CreatePolicy(
+            options,
+            [
+                "The remote key provider 'aws-kms' cannot hold the provisioned 'ES256' key (ecc, 256 bits, curve 'P-256').",
+            ]
+        );
+
+        var result = new TenantKeyProvisioningOptionsValidator(policy.Object).Validate(
+            null,
+            options
+        );
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures ?? []);
+        Assert.Equal(
+            "Tenant:KeyProvisioning: The remote key provider 'aws-kms' cannot hold the provisioned 'ES256' key (ecc, 256 bits, curve 'P-256').",
+            failure
+        );
+    }
+
     #endregion
 
     private Mock<ITenantKeyPolicy> CreatePolicy(OpenIdOptions options, List<string> errors)

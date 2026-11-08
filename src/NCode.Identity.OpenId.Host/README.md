@@ -81,6 +81,35 @@ that protected them is missing or has changed
 ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)). Restore the root key, or
 reset the database with it.
 
+### Remote signing keys
+
+A tenant's signing keys can be held in a key management service that signs every token, so the private key never
+leaves it. Each package's `Add<Vendor>RemoteKeyProviderIfConfigured` method registers its provider only when its
+configuration section exists, and the reference host calls it, because registering a
+provider selects it and validates its settings when the host starts. A tenant selects a registered provider through the
+tenant setting `OpenId:Platform:Settings:tenant_signing_key_provider` (`aws-kms`, `azure-key-vault` or
+`google-cloud-kms`).
+
+| Setting                                                                | Meaning                                                                                  |
+|------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| `SecretProtection:RemoteKeyProviders:AwsKms:Region`                    | AWS region in which keys are created, such as `us-west-2`                                |
+| `SecretProtection:RemoteKeyProviders:AwsKms:PendingWindowInDays`       | Days, 7 to 30, that AWS KMS waits before it deletes a destroyed key (default `30`)       |
+| `SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri`           | URI of the Key Vault or Managed HSM, such as `https://contoso.vault.azure.net`           |
+| `SecretProtection:RemoteKeyProviders:AzureKeyVault:HardwareProtected`  | `false` creates software-protected keys (default `true`)                                 |
+| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing`           | Resource name of the key ring, `projects/<project>/locations/<location>/keyRings/<ring>` |
+| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:HardwareProtected` | `false` creates software-protected keys (default `true`)                                 |
+
+Each provider uses its SDK's default credential chain, and no credential is read from configuration. The server creates
+sign-only keys and destroys only the keys it created. The deployment's identity needs these permissions:
+
+- AWS: `kms:CreateKey`, `kms:TagResource`, `kms:GetPublicKey`, `kms:Sign`, `kms:ScheduleKeyDeletion` and
+  `kms:DescribeKey`.
+- Azure: the `Key Vault Crypto Officer` role on the vault.
+- Google: `cloudkms.cryptoKeys.create` and `cloudkms.cryptoKeyVersions.create`, `.get`, `.viewPublicKey`, `.useToSign`
+  and `.destroy` on the key ring.
+
+See [Remote signing keys](../../docs/capabilities/remote-signing-keys.md).
+
 ### Master keys
 
 Each tenant and the platform have one active master key. It rotates to a new version after

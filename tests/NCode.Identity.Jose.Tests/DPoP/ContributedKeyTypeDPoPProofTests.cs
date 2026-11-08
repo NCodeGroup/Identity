@@ -161,22 +161,23 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
 
     #endregion
 
-    #region CreateProof Tests
+    #region CreateProofAsync Tests
 
     [Fact]
-    public void CreateProof_WhenContributedKeyType_ValidatesWithKeyThumbprint()
+    public async Task CreateProofAsync_WhenContributedKeyType_ValidatesWithKeyThumbprint()
     {
         var secretKey = CreateSigningKey();
         Assert.True(SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor));
         var exported = descriptor.ExportPublicKey(secretKey);
         Assert.NotNull(exported);
-        var proof = ProofService.CreateProof(
+        var proof = await ProofService.CreateProofAsync(
             new DPoPProofCreationOptions
             {
                 SigningCredentials = CreateCredentials(secretKey),
                 HttpMethod = HttpMethod,
                 HttpUri = HttpUri,
-            }
+            },
+            CancellationToken.None
         );
 
         var valid = ProofService.TryValidateProof(
@@ -199,7 +200,7 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
     #region TryValidateProof Tests
 
     [Fact]
-    public void TryValidateProof_WhenJwkCarriesContributedPrivateMember_Fails()
+    public async Task TryValidateProof_WhenJwkCarriesContributedPrivateMember_Fails()
     {
         var secretKey = CreateSigningKey();
         Assert.NotNull(secretKey.Pkcs8PrivateKey);
@@ -231,7 +232,9 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
             [JoseClaimNames.Payload.Jti] = "jti-1",
             [JoseClaimNames.Payload.Iat] = TimeProvider.System.GetUtcNow().ToUnixTimeSeconds(),
         };
-        var proof = JoseSerializer.CreateEncoder(new JoseSigningOptions(signature)).Encode(payload);
+        var proof = await JoseSerializer
+            .CreateEncoder(new JoseSigningOptions(signature))
+            .EncodeAsync(payload, CancellationToken.None);
 
         var valid = ProofService.TryValidateProof(
             proof,

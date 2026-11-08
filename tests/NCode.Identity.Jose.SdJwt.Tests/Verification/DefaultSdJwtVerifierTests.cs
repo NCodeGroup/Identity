@@ -50,14 +50,14 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         await base.DisposeAsyncCore();
     }
 
-    private SelectiveDisclosureJwt Issue(
+    private ValueTask<SelectiveDisclosureJwt> IssueAsync(
         IEnumerable<string> disclosablePaths,
         string claimsJson = ClaimsJson,
         int decoyDigestCount = 0,
         SdJwtProfile? profile = null,
         bool withHolderKey = true
     ) =>
-        Host.Issuer.Issue(
+        Host.Issuer.IssueAsync(
             new SdJwtIssuanceOptions
             {
                 SigningCredentials = Host.IssuerCredentials,
@@ -66,16 +66,17 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
                 DecoyDigestCount = decoyDigestCount,
                 HolderKey = withHolderKey ? Host.HolderJwk : null,
                 Profile = profile,
-            }
+            },
+            CancellationToken.None
         );
 
-    private string Present(
+    private ValueTask<string> PresentAsync(
         SelectiveDisclosureJwt sdJwt,
         IEnumerable<Disclosure>? disclosures = null,
         bool withKeyBinding = false,
         string nonce = Nonce
     ) =>
-        Host.Holder.CreatePresentation(
+        Host.Holder.CreatePresentationAsync(
             new SdJwtPresentationOptions
             {
                 SdJwt = sdJwt,
@@ -88,7 +89,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
                         Nonce = nonce,
                     }
                     : null,
-            }
+            },
+            CancellationToken.None
         );
 
     private SdJwtVerificationParameters CreateParameters(
@@ -129,9 +131,12 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     /// A presentation of a hand-built issuer-signed payload with the given disclosures, for shapes the issuer never
     /// produces.
     /// </summary>
-    private string PresentCrafted(string payloadJson, params IEnumerable<string> disclosures) =>
+    private async ValueTask<string> PresentCraftedAsync(
+        string payloadJson,
+        params IEnumerable<string> disclosures
+    ) =>
         string.Concat(
-            Host.SignIssuerJwt(payloadJson),
+            await Host.SignIssuerJwt(payloadJson),
             "~",
             string.Concat(disclosures.Select(x => x + "~"))
         );
@@ -245,13 +250,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenEveryDisclosureIsPresented_ResolvesEveryClaimInPlace()
     {
-        var issued = Issue([
+        var issued = await IssueAsync([
             "/given_name",
             "/address",
             "/address/street_address",
             "/nationalities/1",
         ]);
-        var presentation = Present(issued);
+        var presentation = await PresentAsync(issued);
 
         var result = await VerifyAsync(presentation);
 
@@ -286,9 +291,9 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenASubsetIsPresented_OmitsTheWithheldClaims()
     {
-        var issued = Issue(["/given_name", "/family_name", "/nationalities/0"]);
+        var issued = await IssueAsync(["/given_name", "/family_name", "/nationalities/0"]);
         var givenName = Assert.Single(issued.Disclosures, x => x.ClaimName == "given_name");
-        var presentation = Present(issued, [givenName]);
+        var presentation = await PresentAsync(issued, [givenName]);
 
         var result = await VerifyAsync(presentation);
 
@@ -305,8 +310,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WithDecoys_DropsTheDecoyDigests()
     {
-        var issued = Issue(["/given_name", "/nationalities/1"], decoyDigestCount: 3);
-        var presentation = Present(issued);
+        var issued = await IssueAsync(["/given_name", "/nationalities/1"], decoyDigestCount: 3);
+        var presentation = await PresentAsync(issued);
 
         var result = await VerifyAsync(presentation);
 
@@ -330,7 +335,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
               "_sd_alg": "sha-256"
             }
             """;
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             payload,
             SpecVectors.FamilyNameDisclosure,
             SpecVectors.NationalityDisclosure,
@@ -353,7 +358,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WithoutSdAlg_DefaultsToSha256()
     {
         var disclosure = CreateDisclosure("given_name", "\"John\"");
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$"""{"_sd":["{{Digest(disclosure)}}"]}""",
             disclosure.Encoded
         );
@@ -367,7 +372,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenSignatureAlgorithmsAreUnset_Throws()
     {
-        var presentation = Present(Issue(["/given_name"]));
+        var presentation = await PresentAsync(await IssueAsync(["/given_name"]));
         var parameters = new SdJwtVerificationParameters
         {
             IssuerJwtParameters = new JwtValidationParameters { ValidationKeys = [Host.IssuerKey] },
@@ -396,7 +401,10 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     {
         // A requirement built from a missing value would let a captured Key Binding JWT replay, so it is refused
         // before the presentation is read, which a valid presentation proves.
-        var presentation = Present(Issue(["/given_name"]), withKeyBinding: true);
+        var presentation = await PresentAsync(
+            await IssueAsync(["/given_name"]),
+            withKeyBinding: true
+        );
         var parameters = new SdJwtVerificationParameters
         {
             IssuerJwtParameters = Host.CreateIssuerJwtParameters(),
@@ -421,7 +429,10 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheMaximumAgeIsUnbounded_VerifiesAnOldKeyBindingJwt()
     {
-        var presentation = Present(Issue(["/given_name"]), withKeyBinding: true);
+        var presentation = await PresentAsync(
+            await IssueAsync(["/given_name"]),
+            withKeyBinding: true
+        );
         Host.TimeProvider.Advance(TimeSpan.FromDays(365));
         var parameters = new SdJwtVerificationParameters
         {
@@ -444,8 +455,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheIssuerSignedJwtDoesNotDecode_ReportsFixedTextWithoutTheToken()
     {
-        var sdJwt = Issue(["/given_name"]);
-        var presentation = Present(sdJwt);
+        var sdJwt = await IssueAsync(["/given_name"]);
+        var presentation = await PresentAsync(sdJwt);
 
         var result = await VerifyAsync(presentation, CreateParameters(issuerKey: Host.StrangerKey));
 
@@ -469,7 +480,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     {
         // The JWT validator reports every exception as a failed result, cancellation included, which the verifier
         // propagates rather than reports as an invalid token.
-        var presentation = Present(Issue(["/given_name"]));
+        var presentation = await PresentAsync(await IssueAsync(["/given_name"]));
         var parameters = CreateParameters();
         var validator = CreateStrictMock<IJwtValidator>();
         validator
@@ -502,8 +513,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheIssuerSignedJwtPayloadIsNotAnObject_Fails()
     {
-        var sdJwt = Issue(["/given_name"]);
-        var presentation = Present(sdJwt);
+        var sdJwt = await IssueAsync(["/given_name"]);
+        var presentation = await PresentAsync(sdJwt);
         var parameters = CreateParameters();
         var validator = CreateStrictMock<IJwtValidator>();
         validator
@@ -536,7 +547,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheIssuerKeyDoesNotVerify_FailsWithTheJwtCode()
     {
-        var presentation = Present(Issue(["/given_name"]));
+        var presentation = await PresentAsync(await IssueAsync(["/given_name"]));
 
         var result = await VerifyAsync(presentation, CreateParameters(issuerKey: Host.StrangerKey));
 
@@ -551,7 +562,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
             new KeyMetadata { KeyId = "hmac" },
             new byte[32]
         );
-        var jwt = Host.SignJwt(
+        var jwt = await Host.SignJwt(
             Host.CreateCredentials(symmetricKey, "HS256"),
             """{"iss":"x"}""",
             "JWT"
@@ -583,7 +594,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenADisclosureIsMalformed_Fails()
     {
-        var presentation = Present(Issue(["/given_name"])) + "!!!~";
+        var presentation = (await PresentAsync(await IssueAsync(["/given_name"]))) + "!!!~";
 
         var result = await VerifyAsync(presentation);
 
@@ -594,7 +605,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WhenOverTheDisclosureLimit_Fails()
     {
         await using var host = new SdJwtTestHost(options => options.MaxDisclosureCount = 1);
-        var presentation = Present(Issue(["/given_name", "/family_name"]));
+        var presentation = await PresentAsync(await IssueAsync(["/given_name", "/family_name"]));
 
         var result = await host.Verifier.VerifyAsync(
             presentation,
@@ -613,19 +624,24 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     /// depth is reached only through resolved disclosure values: <c>a</c> holds the digest of <c>b</c>, which holds
     /// the digest of <c>c</c>, whose value is the innermost object.
     /// </summary>
-    private string PresentNestedDisclosureChain()
+    private async ValueTask<string> PresentNestedDisclosureChainAsync()
     {
         var c = CreateDisclosure("c", "{}");
         var b = CreateDisclosure("b", $$"""{"_sd":["{{Digest(c)}}"]}""");
         var a = CreateDisclosure("a", $$"""{"_sd":["{{Digest(b)}}"]}""");
-        return PresentCrafted($$"""{"_sd":["{{Digest(a)}}"]}""", a.Encoded, b.Encoded, c.Encoded);
+        return await PresentCraftedAsync(
+            $$"""{"_sd":["{{Digest(a)}}"]}""",
+            a.Encoded,
+            b.Encoded,
+            c.Encoded
+        );
     }
 
     [Fact]
     public async Task VerifyAsync_WhenTheDisclosedValuesNestTooDeep_Fails()
     {
         await using var host = new SdJwtTestHost(options => options.MaxNestingDepth = 2);
-        var presentation = PresentNestedDisclosureChain();
+        var presentation = await PresentNestedDisclosureChainAsync();
 
         var result = await host.Verifier.VerifyAsync(
             presentation,
@@ -643,7 +659,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WhenTheDisclosedValuesNestToTheLimit_Succeeds()
     {
         await using var host = new SdJwtTestHost(options => options.MaxNestingDepth = 3);
-        var presentation = PresentNestedDisclosureChain();
+        var presentation = await PresentNestedDisclosureChainAsync();
 
         var result = await host.Verifier.VerifyAsync(
             presentation,
@@ -664,7 +680,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheDigestAlgorithmIsUnregistered_Fails()
     {
-        var presentation = PresentCrafted("""{"_sd_alg":"sha-1","_sd":[]}""");
+        var presentation = await PresentCraftedAsync("""{"_sd_alg":"sha-1","_sd":[]}""");
 
         var result = await VerifyAsync(presentation);
 
@@ -674,9 +690,9 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenADisclosureIsUnreferenced_Fails()
     {
-        var issued = Issue(["/given_name"]);
-        var other = Issue(["/family_name"]);
-        var presentation = Present(issued) + other.Disclosures[0].Encoded + "~";
+        var issued = await IssueAsync(["/given_name"]);
+        var other = await IssueAsync(["/family_name"]);
+        var presentation = (await PresentAsync(issued)) + other.Disclosures[0].Encoded + "~";
 
         var result = await VerifyAsync(presentation);
 
@@ -686,8 +702,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenADisclosureIsPresentedTwice_Fails()
     {
-        var issued = Issue(["/given_name"]);
-        var presentation = Present(issued) + issued.Disclosures[0].Encoded + "~";
+        var issued = await IssueAsync(["/given_name"]);
+        var presentation = (await PresentAsync(issued)) + issued.Disclosures[0].Encoded + "~";
 
         var result = await VerifyAsync(presentation);
 
@@ -699,7 +715,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     {
         var disclosure = CreateDisclosure("given_name", "\"John\"");
         var digest = Digest(disclosure);
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$$"""{"_sd":["{{{digest}}}"],"address":{"_sd":["{{{digest}}}"]}}""",
             disclosure.Encoded
         );
@@ -713,7 +729,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WhenADecoyDigestRepeats_Fails()
     {
         const string decoy = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-        var presentation = PresentCrafted($$"""{"_sd":["{{decoy}}","{{decoy}}"]}""");
+        var presentation = await PresentCraftedAsync($$"""{"_sd":["{{decoy}}","{{decoy}}"]}""");
 
         var result = await VerifyAsync(presentation);
 
@@ -726,7 +742,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         // The claim name is the holder's input, so the reason names the rule and never the name.
         const string claimName = "given_name\nforged log line";
         var disclosure = CreateDisclosure(claimName, "\"John\"");
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$"""{"given_name\nforged log line":"Jane","_sd":["{{Digest(disclosure)}}"]}""",
             disclosure.Encoded
         );
@@ -741,7 +757,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WhenAnObjectDigestReferencesAnArrayDisclosure_Fails()
     {
         var disclosure = CreateArrayDisclosure("\"DE\"");
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$"""{"_sd":["{{Digest(disclosure)}}"]}""",
             disclosure.Encoded
         );
@@ -755,7 +771,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WhenAnArrayDigestReferencesAnObjectDisclosure_Fails()
     {
         var disclosure = CreateDisclosure("given_name", "\"John\"");
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$"""{"nationalities":[{"...":"{{Digest(disclosure)}}"}]}""",
             disclosure.Encoded
         );
@@ -771,7 +787,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [InlineData("""{"_sd_alg":null,"_sd":[]}""")]
     public async Task VerifyAsync_WhenTheSdAlgClaimIsNotANonEmptyString_Fails(string payloadJson)
     {
-        var presentation = PresentCrafted(payloadJson);
+        var presentation = await PresentCraftedAsync(payloadJson);
 
         var result = await VerifyAsync(presentation);
 
@@ -783,7 +799,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WhenAnObjectInsideAnArrayCarriesDigests_ResolvesThemAtTheElementsPath()
     {
         var name = CreateDisclosure("name", "\"x\"");
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$"""{"items":[1,{"_sd":["{{Digest(name)}}"]}]}""",
             name.Encoded
         );
@@ -802,7 +818,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [InlineData("""{"nationalities":[{"...":1}]}""")]
     public async Task VerifyAsync_WhenADigestStructureIsMalformed_Fails(string payloadJson)
     {
-        var presentation = PresentCrafted(payloadJson);
+        var presentation = await PresentCraftedAsync(payloadJson);
 
         var result = await VerifyAsync(presentation);
 
@@ -814,7 +830,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [InlineData("""{"address":{"_sd_alg":"sha-256"}}""")]
     public async Task VerifyAsync_WhenAReservedNameIsMisplaced_Fails(string payloadJson)
     {
-        var presentation = PresentCrafted(payloadJson);
+        var presentation = await PresentCraftedAsync(payloadJson);
 
         var result = await VerifyAsync(presentation);
 
@@ -825,7 +841,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WhenAPlaceholderIsNotAnArrayElement_Fails()
     {
         var disclosure = CreateArrayDisclosure("\"DE\"");
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$"""{"...":"{{Digest(disclosure)}}"}""",
             disclosure.Encoded
         );
@@ -838,7 +854,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenThePayloadRepeatsAMemberName_Fails()
     {
-        var presentation = PresentCrafted("""{"a":1,"a":2}""");
+        var presentation = await PresentCraftedAsync("""{"a":1,"a":2}""");
 
         var result = await VerifyAsync(presentation);
 
@@ -861,7 +877,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         // The repeat is in the holder's disclosure, so it is reported as such and never as a repeat in the
         // issuer-signed payload.
         var disclosure = CreateDisclosure("claim", valueJson);
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$"""{"_sd":["{{Digest(disclosure)}}"]}""",
             disclosure.Encoded
         );
@@ -880,7 +896,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
             "address",
             $$"""{"_sd":["{{Digest(street)}}"],"country":"US"}"""
         );
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$"""{"_sd":["{{Digest(address)}}"]}""",
             street.Encoded,
             address.Encoded
@@ -900,8 +916,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheIssuerSignedJwtIsANestedJwt_FailsEvenWithDecryptionKeys()
     {
-        var issued = Issue(["/given_name"]);
-        var nested = Host.EncloseInJwe(issued.IssuerSignedJwt, Host.StrangerKey);
+        var issued = await IssueAsync(["/given_name"]);
+        var nested = await Host.EncloseInJwe(issued.IssuerSignedJwt, Host.StrangerKey);
         var presentation = $"{nested}~{issued.Disclosures[0].Encoded}~";
         var parameters = new SdJwtVerificationParameters
         {
@@ -922,7 +938,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WithDecryptionKeysAndACompactJws_Succeeds()
     {
-        var presentation = Present(Issue(["/given_name"]));
+        var presentation = await PresentAsync(await IssueAsync(["/given_name"]));
         var parameters = new SdJwtVerificationParameters
         {
             IssuerJwtParameters = Host.CreateIssuerJwtParameters()
@@ -945,7 +961,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     )
     {
         var disclosure = CreateDisclosure(claimName, valueJson);
-        var presentation = PresentCrafted(
+        var presentation = await PresentCraftedAsync(
             $$"""{"_sd":["{{Digest(disclosure)}}"]}""",
             disclosure.Encoded
         );
@@ -965,7 +981,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     {
         // A digest beneath a protected claim is refused whether or not a disclosure matches it: a withheld
         // disclosure and a decoy look alike, so the claim is plaintext in its entirety.
-        var presentation = PresentCrafted(payloadJson);
+        var presentation = await PresentCraftedAsync(payloadJson);
 
         var result = await VerifyAsync(presentation);
 
@@ -975,8 +991,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WithKeyBinding_ReturnsTheVerifiedKeyBinding()
     {
-        var issued = Issue(["/given_name"]);
-        var presentation = Present(issued, withKeyBinding: true);
+        var issued = await IssueAsync(["/given_name"]);
+        var presentation = await PresentAsync(issued, withKeyBinding: true);
 
         var result = await VerifyAsync(presentation, CreateParameters(requireKeyBinding: true));
 
@@ -991,7 +1007,11 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenKeyBindingIsNotRequired_IgnoresTheKeyBindingJwt()
     {
-        var presentation = Present(Issue(["/given_name"]), withKeyBinding: true, nonce: "other");
+        var presentation = await PresentAsync(
+            await IssueAsync(["/given_name"]),
+            withKeyBinding: true,
+            nonce: "other"
+        );
 
         var result = await VerifyAsync(presentation);
 
@@ -1003,7 +1023,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenKeyBindingIsRequiredButAbsent_Fails()
     {
-        var presentation = Present(Issue(["/given_name"]));
+        var presentation = await PresentAsync(await IssueAsync(["/given_name"]));
 
         var result = await VerifyAsync(presentation, CreateParameters(requireKeyBinding: true));
 
@@ -1013,7 +1033,11 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheNonceDiffers_Fails()
     {
-        var presentation = Present(Issue(["/given_name"]), withKeyBinding: true, nonce: "other");
+        var presentation = await PresentAsync(
+            await IssueAsync(["/given_name"]),
+            withKeyBinding: true,
+            nonce: "other"
+        );
 
         var result = await VerifyAsync(presentation, CreateParameters(requireKeyBinding: true));
 
@@ -1023,7 +1047,10 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheAudienceDiffers_Fails()
     {
-        var presentation = Present(Issue(["/given_name"]), withKeyBinding: true);
+        var presentation = await PresentAsync(
+            await IssueAsync(["/given_name"]),
+            withKeyBinding: true
+        );
         var parameters = new SdJwtVerificationParameters
         {
             IssuerJwtParameters = Host.CreateIssuerJwtParameters(),
@@ -1043,10 +1070,10 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtCoversAnotherPresentation_Fails()
     {
-        var issued = Issue(["/given_name", "/family_name"]);
-        var bound = Present(issued, [issued.Disclosures[0]], withKeyBinding: true);
+        var issued = await IssueAsync(["/given_name", "/family_name"]);
+        var bound = await PresentAsync(issued, [issued.Disclosures[0]], withKeyBinding: true);
         var keyBindingJwt = bound[(bound.LastIndexOf('~') + 1)..];
-        var presentation = Present(issued) + keyBindingJwt;
+        var presentation = (await PresentAsync(issued)) + keyBindingJwt;
 
         var result = await VerifyAsync(presentation, CreateParameters(requireKeyBinding: true));
 
@@ -1056,7 +1083,10 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtIsTooOld_Fails()
     {
-        var presentation = Present(Issue(["/given_name"]), withKeyBinding: true);
+        var presentation = await PresentAsync(
+            await IssueAsync(["/given_name"]),
+            withKeyBinding: true
+        );
         Host.TimeProvider.Advance(TimeSpan.FromMinutes(11));
 
         var result = await VerifyAsync(presentation, CreateParameters(requireKeyBinding: true));
@@ -1067,7 +1097,10 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtIsWithinTheSkew_Succeeds()
     {
-        var presentation = Present(Issue(["/given_name"]), withKeyBinding: true);
+        var presentation = await PresentAsync(
+            await IssueAsync(["/given_name"]),
+            withKeyBinding: true
+        );
         Host.TimeProvider.Advance(TimeSpan.FromMinutes(9));
 
         var result = await VerifyAsync(presentation, CreateParameters(requireKeyBinding: true));
@@ -1078,15 +1111,15 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtIsFromTheFuture_Fails()
     {
-        var issued = Issue(["/given_name"]);
-        var prefix = Present(issued);
+        var issued = await IssueAsync(["/given_name"]);
+        var prefix = await PresentAsync(issued);
         var future = SdJwtTestHost.StartTime + TimeSpan.FromMinutes(6);
         var payload = $$"""
             {"iat":{{future.ToUnixTimeSeconds()}},"aud":"{{Audience}}","nonce":"{{Nonce}}","sd_hash":"{{SdJwtDigestAlgorithms.Sha256.ComputeDigest(
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1099,8 +1132,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtIsSignedByAnotherKey_Fails()
     {
-        var issued = Issue(["/given_name"]);
-        var presentation = Host.Holder.CreatePresentation(
+        var issued = await IssueAsync(["/given_name"]);
+        var presentation = await Host.Holder.CreatePresentationAsync(
             new SdJwtPresentationOptions
             {
                 SdJwt = issued,
@@ -1110,7 +1143,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
                     Audience = Audience,
                     Nonce = Nonce,
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         var result = await VerifyAsync(presentation, CreateParameters(requireKeyBinding: true));
@@ -1126,14 +1160,14 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtIsNotTypedKbJwt_Fails()
     {
-        var issued = Issue(["/given_name"]);
-        var prefix = Present(issued);
+        var issued = await IssueAsync(["/given_name"]);
+        var prefix = await PresentAsync(issued);
         var payload = $$"""
             {"iat":{{SdJwtTestHost.StartTime.ToUnixTimeSeconds()}},"aud":"{{Audience}}","nonce":"{{Nonce}}","sd_hash":"{{SdJwtDigestAlgorithms.Sha256.ComputeDigest(
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = Host.SignJwt(Host.HolderCredentials, payload, "JWT");
+        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "JWT");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1151,11 +1185,11 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtLacksIat_Fails()
     {
-        var issued = Issue(["/given_name"]);
-        var prefix = Present(issued);
+        var issued = await IssueAsync(["/given_name"]);
+        var prefix = await PresentAsync(issued);
         var payload =
             $$"""{"aud":"{{Audience}}","nonce":"{{Nonce}}","sd_hash":"{{SdJwtDigestAlgorithms.Sha256.ComputeDigest(prefix)}}"}""";
-        var keyBindingJwt = Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1168,8 +1202,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheIssuerSignedJwtCarriesNoCnf_Fails()
     {
-        var presentation = Present(
-            Issue(["/given_name"], withHolderKey: false),
+        var presentation = await PresentAsync(
+            await IssueAsync(["/given_name"], withHolderKey: false),
             withKeyBinding: true
         );
 
@@ -1185,13 +1219,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [InlineData("""[]""")]
     public async Task VerifyAsync_WhenTheCnfNamesNoUsableKey_Fails(string cnfJson)
     {
-        var prefix = PresentCrafted($$"""{"iss":"x","cnf":{{cnfJson}}}""");
+        var prefix = await PresentCraftedAsync($$"""{"iss":"x","cnf":{{cnfJson}}}""");
         var payload = $$"""
             {"iat":{{SdJwtTestHost.StartTime.ToUnixTimeSeconds()}},"aud":"{{Audience}}","nonce":"{{Nonce}}","sd_hash":"{{SdJwtDigestAlgorithms.Sha256.ComputeDigest(
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1204,8 +1238,8 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtPayloadIsNotAnObject_Fails()
     {
-        var sdJwt = Issue(["/given_name"]);
-        var presentation = Present(sdJwt, withKeyBinding: true);
+        var sdJwt = await IssueAsync(["/given_name"]);
+        var presentation = await PresentAsync(sdJwt, withKeyBinding: true);
         var keyBindingJwt = Host.Holder.Parse(presentation).KeyBindingJwt;
         Assert.NotNull(keyBindingJwt);
         var parameters = CreateParameters(requireKeyBinding: true);
@@ -1260,13 +1294,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtDoesNotDecode_ReportsFixedTextWithoutTheToken()
     {
-        var prefix = Present(Issue(["/given_name"]));
+        var prefix = await PresentAsync(await IssueAsync(["/given_name"]));
         var payload = $$"""
             {"iat":{{SdJwtTestHost.StartTime.ToUnixTimeSeconds()}},"aud":"{{Audience}}","nonce":"{{Nonce}}","sd_hash":"{{SdJwtDigestAlgorithms.Sha256.ComputeDigest(
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = Host.SignJwt(Host.StrangerCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwt(Host.StrangerCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1285,13 +1319,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         // 'cnf' is never selectively disclosable, so a 'cnf' in a disclosure is refused before any key binding is
         // judged, and the holder key is read from the issuer-signed payload alone.
         var cnf = CreateDisclosure("cnf", $$$"""{"jwk":{{{Host.HolderJwk.ToJsonString()}}}}""");
-        var prefix = PresentCrafted($$"""{"_sd":["{{Digest(cnf)}}"]}""", cnf.Encoded);
+        var prefix = await PresentCraftedAsync($$"""{"_sd":["{{Digest(cnf)}}"]}""", cnf.Encoded);
         var payload = $$"""
             {"iat":{{SdJwtTestHost.StartTime.ToUnixTimeSeconds()}},"aud":"{{Audience}}","nonce":"{{Nonce}}","sd_hash":"{{SdJwtDigestAlgorithms.Sha256.ComputeDigest(
                 prefix
             )}}"}
             """;
-        var keyBindingJwt = Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
+        var keyBindingJwt = await Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
 
         var result = await VerifyAsync(
             prefix + keyBindingJwt,
@@ -1304,8 +1338,12 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WithSdJwtVcProfile_PassesTheStatusClaimThrough()
     {
-        var issued = Issue(["/sub", "/given_name"], VcClaimsJson, profile: SdJwtProfiles.SdJwtVc);
-        var presentation = Present(issued, withKeyBinding: true);
+        var issued = await IssueAsync(
+            ["/sub", "/given_name"],
+            VcClaimsJson,
+            profile: SdJwtProfiles.SdJwtVc
+        );
+        var presentation = await PresentAsync(issued, withKeyBinding: true);
 
         var result = await VerifyAsync(
             presentation,
@@ -1331,7 +1369,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WithProfileAndAPlainJwtType_Fails()
     {
-        var presentation = Present(Issue(["/given_name"], VcClaimsJson));
+        var presentation = await PresentAsync(await IssueAsync(["/given_name"], VcClaimsJson));
 
         var result = await VerifyAsync(
             presentation,
@@ -1344,7 +1382,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WithProfileAndNoVct_Fails()
     {
-        var jwt = Host.SignIssuerJwt("""{"iss":"https://issuer.example"}""", "dc+sd-jwt");
+        var jwt = await Host.SignIssuerJwt("""{"iss":"https://issuer.example"}""", "dc+sd-jwt");
 
         var result = await VerifyAsync($"{jwt}~", CreateParameters(profile: SdJwtProfiles.SdJwtVc));
 
@@ -1355,7 +1393,10 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WithProfileAndAProtectedClaimDisclosed_Fails()
     {
         var iss = CreateDisclosure("iss", "\"https://issuer.example\"");
-        var jwt = Host.SignIssuerJwt($$"""{"vct":"t","_sd":["{{Digest(iss)}}"]}""", "dc+sd-jwt");
+        var jwt = await Host.SignIssuerJwt(
+            $$"""{"vct":"t","_sd":["{{Digest(iss)}}"]}""",
+            "dc+sd-jwt"
+        );
 
         var result = await VerifyAsync(
             $"{jwt}~{iss.Encoded}~",
@@ -1374,7 +1415,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
             "status_list",
             """{"idx":0,"uri":"https://issuer.example/status/1"}"""
         );
-        var jwt = Host.SignIssuerJwt(
+        var jwt = await Host.SignIssuerJwt(
             $$$"""{"vct":"t","status":{"_sd":["{{{Digest(statusList)}}}"]}}""",
             "dc+sd-jwt"
         );
@@ -1391,7 +1432,7 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     {
         // The profile protects top-level claims; a nested member of the same name is an ordinary claim.
         var exp = CreateDisclosure("exp", "1");
-        var jwt = Host.SignIssuerJwt(
+        var jwt = await Host.SignIssuerJwt(
             $$$"""{"vct":"t","inner":{"_sd":["{{{Digest(exp)}}}"]}}""",
             "dc+sd-jwt"
         );

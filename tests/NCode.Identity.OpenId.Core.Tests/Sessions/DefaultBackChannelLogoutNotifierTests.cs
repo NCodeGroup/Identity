@@ -155,9 +155,13 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             .Returns("jti-value")
             .Verifiable();
         MockJsonWebTokenService
-            .Setup(x => x.Encode(It.IsAny<JwtEncodingParameters>()))
-            .Callback((JwtEncodingParameters parameters) => captured[0] = parameters)
-            .Returns(LogoutToken)
+            .Setup(x =>
+                x.EncodeAsync(It.IsAny<JwtEncodingParameters>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (JwtEncodingParameters parameters, CancellationToken _) => captured[0] = parameters
+            )
+            .ReturnsAsync(LogoutToken)
             .Verifiable();
     }
 

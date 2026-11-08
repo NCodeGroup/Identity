@@ -7,6 +7,7 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants.Keys;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -42,6 +43,8 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
     }
 
     private static TenantKeySpecification Rs256 => TenantKeyTestData.Rs256;
+
+    private static TenantKeySpecification RemoteRs256 => TenantKeyTestData.RemoteRs256;
 
     #region ApplyAsync Tests
 
@@ -119,6 +122,82 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
     }
 
     [Fact]
+    public async Task ApplyAsync_WhenThePlanGeneratesARemoteKey_GeneratesItThroughTheRemoteSeamAndNeverLoadsTheProtector()
+    {
+        // The protector provider and the local generator are strict with no setup: a remote key is created in its
+        // key management service and never touches the master key ring.
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Generations.Add(CreateRemoteGeneration());
+        var requests = SetupRemoteGeneration();
+        var added = SetupAddSecret();
+
+        var result = await Rollover.ApplyAsync(
+            MockTenantStore.Object,
+            TenantId,
+            [],
+            plan,
+            CancellationToken.None
+        );
+
+        var request = Assert.Single(requests);
+        Assert.Equal(SecretOwner.ForTenant(TenantId), request.Owner);
+        Assert.Equal(TenantKeyTestData.RemoteProviderName, request.Provider);
+        Assert.Equal(RemoteRs256.SecretType, request.SecretType);
+        Assert.Equal(RemoteRs256.KeySizeBits, request.KeySizeBits);
+        Assert.Equal(RemoteRs256.Curve, request.Curve);
+        Assert.Equal(RemoteRs256.Use, request.Use);
+        Assert.Equal(RemoteRs256.Algorithm, request.Algorithm);
+        Assert.Equal(Now, request.CreatedWhen);
+        Assert.Equal(Now, request.ActivatesWhen);
+        Assert.Equal(Now.AddDays(90), request.RetiresWhen);
+        Assert.Equal(Now.AddDays(97), request.ExpiresWhen);
+        Assert.Equal(SecretManagers.TenantKeyRollover, request.ManagedBy);
+        var generated = Assert.Single(added);
+        Assert.Equal([generated], result.Secrets);
+        Assert.Empty(result.RemovedSecrets);
+
+        var auditEvent = Assert.Single(result.AuditEvents);
+        Assert.Equal(TenantKeyChanges.Generated, auditEvent.Change);
+        Assert.Equal(generated.SecretId, auditEvent.SecretId);
+        Assert.Equal(TenantKeyTestData.RemoteProviderName, auditEvent.RemoteKeyProvider);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenThePlanGeneratesLocalAndRemoteKeys_LoadsTheTenantsProtectorOnce()
+    {
+        // The protector setup is verified once: a remote generation never loads it, and the local ones share one load.
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Generations.Add(CreateRemoteGeneration());
+        plan.Generations.Add(CreateGeneration());
+        plan.Generations.Add(CreateRemoteGeneration());
+        plan.Generations.Add(CreateGeneration());
+        var remoteRequests = SetupRemoteGeneration();
+        var localRequests = SetupGeneration();
+        var added = SetupAddSecret();
+
+        var result = await Rollover.ApplyAsync(
+            MockTenantStore.Object,
+            TenantId,
+            [],
+            plan,
+            CancellationToken.None
+        );
+
+        Assert.Equal(2, remoteRequests.Count);
+        Assert.Equal(2, localRequests.Count);
+        Assert.Equal(4, added.Count);
+        Assert.Equal(
+            [
+                TenantKeyTestData.RemoteProviderName,
+                null,
+                TenantKeyTestData.RemoteProviderName,
+                null,
+            ],
+            result.AuditEvents.Select(auditEvent => auditEvent.RemoteKeyProvider)
+        );
+    }
+
+    [Fact]
     public async Task ApplyAsync_WhenThePlanRetiresAKey_UpdatesItsLifecycleAndDescribesIt()
     {
         // The protector provider is strict with no setup: retiring a key never loads the master key.
@@ -131,6 +210,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
                 ActivatesWhen = held.ActivatesWhen,
                 RetiresWhen = Now,
                 ExpiresWhen = Now.AddDays(7),
+                Reason = TenantKeyChangeReasons.UnusedAlgorithm,
             }
         );
         var updated = SetupUpdateSecret();
@@ -157,6 +237,37 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         Assert.Equal(TenantKeyChanges.Retired, auditEvent.Change);
         Assert.Equal(TenantKeyChangeReasons.UnusedAlgorithm, auditEvent.Reason);
         Assert.Equal(Now, auditEvent.RetiresWhen);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenThePlanRetiresAKeyForACustodyChange_RecordsTheRetirementReason()
+    {
+        var held = CreateSecret("held", Now.AddDays(-30), Now.AddDays(60));
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Retirements.Add(
+            new TenantKeyRetirement
+            {
+                Secret = held,
+                ActivatesWhen = held.ActivatesWhen,
+                RetiresWhen = Now.AddDays(2),
+                ExpiresWhen = Now.AddDays(9),
+                Reason = TenantKeyChangeReasons.CustodyChanged,
+            }
+        );
+        SetupUpdateSecret();
+
+        var result = await Rollover.ApplyAsync(
+            MockTenantStore.Object,
+            TenantId,
+            [held],
+            plan,
+            CancellationToken.None
+        );
+
+        var auditEvent = Assert.Single(result.AuditEvents);
+        Assert.Equal(TenantKeyChanges.Retired, auditEvent.Change);
+        Assert.Equal(TenantKeyChangeReasons.CustodyChanged, auditEvent.Reason);
+        Assert.Equal(Now.AddDays(2), auditEvent.RetiresWhen);
     }
 
     [Fact]
@@ -202,6 +313,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
                 ActivatesWhen = held.ActivatesWhen,
                 RetiresWhen = Now,
                 ExpiresWhen = Now.AddDays(7),
+                Reason = TenantKeyChangeReasons.UnusedAlgorithm,
             }
         );
 
@@ -326,10 +438,38 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         );
 
         Assert.Equal([kept], result.Secrets);
+        Assert.Equal([expired], result.RemovedSecrets);
         var auditEvent = Assert.Single(result.AuditEvents);
         Assert.Equal(TenantKeyChanges.Removed, auditEvent.Change);
         Assert.Equal(TenantKeyChangeReasons.Expired, auditEvent.Reason);
         Assert.Equal("expired", auditEvent.SecretId);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenThePlanRemovesARemoteKey_ReportsItWithoutDestroyingItAndNamesItsProvider()
+    {
+        // The generator is strict with no setup: the rollover only reports the removed key.
+        var expired = CreateRemoteSecret("expired", Now.AddDays(-200), Now.AddDays(-110));
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Removals.Add(expired);
+        MockTenantStore
+            .Setup(x => x.RemoveSecretAsync(TenantId, "expired", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var result = await Rollover.ApplyAsync(
+            MockTenantStore.Object,
+            TenantId,
+            [expired],
+            plan,
+            CancellationToken.None
+        );
+
+        Assert.Empty(result.Secrets);
+        Assert.Equal([expired], result.RemovedSecrets);
+        var auditEvent = Assert.Single(result.AuditEvents);
+        Assert.Equal(TenantKeyChanges.Removed, auditEvent.Change);
+        Assert.Equal(TenantKeyTestData.RemoteProviderName, auditEvent.RemoteKeyProvider);
     }
 
     [Fact]
@@ -348,6 +488,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
 
         Assert.Equal([held], result.Secrets);
         Assert.Empty(result.AuditEvents);
+        Assert.Empty(result.RemovedSecrets);
     }
 
     #endregion
@@ -362,6 +503,24 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
             RetiresWhen = Now.AddDays(90),
             ExpiresWhen = Now.AddDays(97),
             Reason = TenantKeyChangeReasons.NoActiveKey,
+        };
+
+    private static TenantKeyGeneration CreateRemoteGeneration() =>
+        CreateGeneration() with
+        {
+            Specification = RemoteRs256,
+        };
+
+    private static PersistedSecret CreateRemoteSecret(
+        string secretId,
+        DateTimeOffset activatesWhen,
+        DateTimeOffset retiresWhen,
+        DateTimeOffset? createdWhen = null
+    ) =>
+        CreateSecret(secretId, activatesWhen, retiresWhen, createdWhen) with
+        {
+            SecretEncoding = SecretEncodings.Remote,
+            EncodedValue = $"{TenantKeyTestData.RemoteProviderName}:{secretId}",
         };
 
     private static PersistedSecret CreateSecret(
@@ -417,6 +576,37 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
                         ),
                         SecretMaterial = null,
                     };
+                }
+            )
+            .Verifiable();
+        return requests;
+    }
+
+    private List<GenerateRemoteSecretRequest> SetupRemoteGeneration()
+    {
+        MockCryptoService
+            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<string>()))
+            .Returns(() => $"remote-{Guid.NewGuid():N}")
+            .Verifiable();
+
+        var requests = new List<GenerateRemoteSecretRequest>();
+        MockSecretGenerator
+            .Setup(x =>
+                x.GenerateRemoteSecretAsync(
+                    It.IsAny<GenerateRemoteSecretRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (GenerateRemoteSecretRequest request, CancellationToken _) =>
+                {
+                    requests.Add(request);
+                    return CreateRemoteSecret(
+                        request.SecretId,
+                        request.ActivatesWhen ?? request.CreatedWhen,
+                        request.RetiresWhen ?? request.ExpiresWhen,
+                        request.CreatedWhen
+                    );
                 }
             )
             .Verifiable();

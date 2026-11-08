@@ -25,78 +25,119 @@ internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseE
     protected abstract JsonSerializerOptions? PayloadJsonOptions { get; }
 
     /// <inheritdoc />
-    public override string Encode<T>(T payload)
+    public override async ValueTask<string> EncodeAsync<T>(
+        T payload,
+        CancellationToken cancellationToken
+    )
     {
         using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
 
-        using var _ = JoseSerializer.SerializeToUtf8(
+        await EncodeAsync(tokenBuffer, payload, cancellationToken);
+
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
+
+    /// <inheritdoc />
+    public override async ValueTask EncodeAsync<T>(
+        IBufferWriter<char> tokenWriter,
+        T payload,
+        CancellationToken cancellationToken
+    )
+    {
+        using var _ = SerializePayload(payload, out var payloadBytes);
+
+        await EncodeAsync(tokenWriter, payloadBytes, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public override async ValueTask<string> EncodeAsync(
+        string payload,
+        CancellationToken cancellationToken
+    )
+    {
+        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
+
+        await EncodeAsync(tokenBuffer, payload.AsMemory(), cancellationToken);
+
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
+
+    /// <inheritdoc />
+    public override ValueTask EncodeAsync(
+        IBufferWriter<char> tokenWriter,
+        string payload,
+        CancellationToken cancellationToken
+    ) => EncodeAsync(tokenWriter, payload.AsMemory(), cancellationToken);
+
+    /// <inheritdoc />
+    public override async ValueTask<string> EncodeAsync(
+        ReadOnlyMemory<char> payload,
+        CancellationToken cancellationToken
+    )
+    {
+        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
+
+        await EncodeAsync(tokenBuffer, payload, cancellationToken);
+
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
+
+    /// <inheritdoc />
+    public override async ValueTask EncodeAsync(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlyMemory<char> payload,
+        CancellationToken cancellationToken
+    )
+    {
+        using var _ = EncodeUtf8(payload.Span, out var payloadBytes);
+
+        await EncodeAsync(tokenWriter, payloadBytes, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public override async ValueTask<string> EncodeAsync(
+        ReadOnlyMemory<byte> payload,
+        CancellationToken cancellationToken
+    )
+    {
+        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
+
+        await EncodeAsync(tokenBuffer, payload, cancellationToken);
+
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
+
+    private IDisposable SerializePayload<T>(T payload, out ReadOnlyMemory<byte> bytes)
+    {
+        using var serialized = JoseSerializer.SerializeToUtf8(
             payload,
             PayloadJsonOptions,
-            out var payloadBytes
+            out var serializedBytes
         );
 
-        Encode(tokenBuffer, payloadBytes);
+        var lease = BufferFactory.Rent(
+            serializedBytes.Length,
+            isSensitive: true,
+            out Memory<byte> memory
+        );
+        serializedBytes.CopyTo(memory.Span);
 
-        return tokenBuffer.AsReadOnlySequence.ToString();
+        bytes = memory;
+        return lease;
     }
 
-    /// <inheritdoc />
-    public override void Encode<T>(IBufferWriter<char> tokenWriter, T payload)
-    {
-        using var _ = JoseSerializer.SerializeToUtf8(payload, PayloadJsonOptions, out var bytes);
-
-        Encode(tokenWriter, bytes);
-    }
-
-    /// <inheritdoc />
-    public override string Encode(string payload)
-    {
-        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
-
-        Encode(tokenBuffer, payload.AsSpan());
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public override void Encode(IBufferWriter<char> tokenWriter, string payload)
-    {
-        Encode(tokenWriter, payload.AsSpan());
-    }
-
-    /// <inheritdoc />
-    public override string Encode(ReadOnlySpan<char> payload)
-    {
-        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
-
-        Encode(tokenBuffer, payload);
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<char> payload)
+    private static IDisposable EncodeUtf8(
+        ReadOnlySpan<char> payload,
+        out ReadOnlyMemory<byte> bytes
+    )
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
-        using var _ = BufferFactory.Rent(
-            byteCount,
-            isSensitive: false,
-            out Span<byte> payloadBytes
-        );
+        var lease = BufferFactory.Rent(byteCount, isSensitive: false, out Memory<byte> memory);
 
-        var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
+        var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, memory.Span);
         Debug.Assert(bytesWritten == byteCount);
 
-        Encode(tokenWriter, payloadBytes);
-    }
-
-    /// <inheritdoc />
-    public override string Encode(ReadOnlySpan<byte> payload)
-    {
-        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
-
-        Encode(tokenBuffer, payload);
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
+        bytes = memory;
+        return lease;
     }
 }

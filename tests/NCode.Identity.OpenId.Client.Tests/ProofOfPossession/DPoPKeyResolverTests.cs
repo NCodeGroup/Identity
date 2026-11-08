@@ -25,9 +25,14 @@ public class DPoPKeyResolverTests : IAsyncLifetime
     private static OpenIdProviderMetadata CreateMetadata(params string[] supported) =>
         new() { DPoPSigningAlgValuesSupported = supported.Length == 0 ? null : [.. supported] };
 
-    private static string AlgorithmOf(DPoPProofKey key)
+    private static async ValueTask<string> AlgorithmOfAsync(DPoPProofKey key)
     {
-        var proof = key.CreateProof(HttpMethod.Post, new Uri(Authority + "/token"), null);
+        var proof = await key.CreateProofAsync(
+            HttpMethod.Post,
+            new Uri(Authority + "/token"),
+            null,
+            CancellationToken.None
+        );
         return DPoPTestContext.DecodeHeader(proof).GetProperty("alg").GetString()!;
     }
 
@@ -94,26 +99,26 @@ public class DPoPKeyResolverTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Resolve_WithEcAndRsaKeys_PrefersES256()
+    public async Task Resolve_WithEcAndRsaKeys_PrefersES256()
     {
         var resolver = DPoPContext.CreateResolver(DPoPContext.RsaKey, DPoPContext.EcKey);
 
         var result = resolver.Resolve(CreateRegistration(), CreateMetadata("PS256", "ES256"), null);
 
         Assert.NotNull(result);
-        Assert.Equal("ES256", AlgorithmOf(result));
+        Assert.Equal("ES256", await AlgorithmOfAsync(result));
         Assert.Equal(DPoPContext.Thumbprint(DPoPContext.EcKey), result.JwkThumbprint);
     }
 
     [Fact]
-    public void Resolve_WithOnlyRsaKey_UsesPS256()
+    public async Task Resolve_WithOnlyRsaKey_UsesPS256()
     {
         var resolver = DPoPContext.CreateResolver(DPoPContext.RsaKey);
 
         var result = resolver.Resolve(CreateRegistration(), CreateMetadata("PS256", "ES256"), null);
 
         Assert.NotNull(result);
-        Assert.Equal("PS256", AlgorithmOf(result));
+        Assert.Equal("PS256", await AlgorithmOfAsync(result));
         Assert.Equal(DPoPContext.Thumbprint(DPoPContext.RsaKey), result.JwkThumbprint);
     }
 
@@ -138,7 +143,7 @@ public class DPoPKeyResolverTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Resolve_WithPinnedThumbprint_UsesThatKey()
+    public async Task Resolve_WithPinnedThumbprint_UsesThatKey()
     {
         var resolver = DPoPContext.CreateResolver(DPoPContext.EcKey, DPoPContext.RsaKey);
         var pinned = DPoPContext.Thumbprint(DPoPContext.RsaKey);
@@ -150,7 +155,7 @@ public class DPoPKeyResolverTests : IAsyncLifetime
         );
 
         Assert.NotNull(result);
-        Assert.Equal("PS256", AlgorithmOf(result));
+        Assert.Equal("PS256", await AlgorithmOfAsync(result));
         Assert.Equal(pinned, result.JwkThumbprint);
     }
 

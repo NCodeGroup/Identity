@@ -1070,6 +1070,8 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFail
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantKeyActivationDelay = "tenant_key_activation_delay" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantKeyLifetime = "tenant_key_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantKeyRetirementGrace = "tenant_key_retirement_grace" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantSigningKeyProvider = "tenant_signing_key_provider" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyActivationDelay.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyRetirementGrace.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantSigningKeyProvider.get -> NCode.Identity.Settings.SettingKey<string!>

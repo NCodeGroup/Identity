@@ -444,4 +444,41 @@ internal static partial class Log
         Exception exception,
         SecretOwner owner
     );
+
+    /// <summary>
+    /// Logs that the key of a removed remote secret was not destroyed because its reference is malformed or its
+    /// provider is not registered.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="secretId">The identifier of the removed secret.</param>
+    /// <param name="provider">The name of the provider that the reference names, empty when the reference is malformed.</param>
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeyDestroySkipped,
+        Level = LogLevel.Warning,
+        Message = "The remote key of the removed secret '{SecretId}' was not destroyed because its reference is malformed or its provider '{Provider}' is not registered"
+    )]
+    internal static partial void RemoteKeyDestroySkipped(
+        this ILogger logger,
+        string secretId,
+        string provider
+    );
+
+    /// <summary>
+    /// Logs that the key service failed to destroy the key of a removed remote secret.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The failure.</param>
+    /// <param name="secretId">The identifier of the removed secret.</param>
+    /// <param name="provider">The name of the provider that holds the key.</param>
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeyDestroyFailed,
+        Level = LogLevel.Warning,
+        Message = "The remote key provider '{Provider}' failed to destroy the key of the removed secret '{SecretId}'"
+    )]
+    internal static partial void RemoteKeyDestroyFailed(
+        this ILogger logger,
+        Exception exception,
+        string secretId,
+        string provider
+    );
 }

@@ -15,10 +15,11 @@ namespace NCode.Identity.Cose;
 internal partial class DefaultCoseSerializer
 {
     /// <inheritdoc />
-    public byte[] EncodeSign1(
-        ReadOnlySpan<byte> content,
+    public async ValueTask<byte[]> EncodeSign1Async(
+        ReadOnlyMemory<byte> content,
         CoseCredentials credentials,
-        CoseEncodingOptions options
+        CoseEncodingOptions options,
+        CancellationToken cancellationToken
     )
     {
         ArgumentNullException.ThrowIfNull(credentials);
@@ -33,23 +34,33 @@ internal partial class DefaultCoseSerializer
         );
         var protectedBytes = CborMapWriter.EncodeProtected(protectedHeaders);
 
-        var structure = CoseStructures.Sign1(protectedBytes, options.ExternalAad.Span, content);
-        var signature = Sign(algorithm, credentials.SecretKey, structure);
+        var structure = CoseStructures.Sign1(
+            protectedBytes,
+            options.ExternalAad.Span,
+            content.Span
+        );
+        var signature = await SignAsync(
+            algorithm,
+            credentials.SecretKey,
+            structure,
+            cancellationToken
+        );
 
         return CoseMessageWriter.Sign1(
             options.OmitTag ? null : CoseTags.Sign1,
             protectedBytes,
             unprotectedHeaders,
-            CarriedContent(content, options),
+            CarriedContent(content.Span, options),
             signature
         );
     }
 
     /// <inheritdoc />
-    public byte[] EncodeSign(
-        ReadOnlySpan<byte> content,
+    public async ValueTask<byte[]> EncodeSignAsync(
+        ReadOnlyMemory<byte> content,
         IReadOnlyList<CoseSigner> signers,
-        CoseEncodingOptions options
+        CoseEncodingOptions options,
+        CancellationToken cancellationToken
     )
     {
         ArgumentNullException.ThrowIfNull(signers);
@@ -93,13 +104,13 @@ internal partial class DefaultCoseSerializer
                 bodyProtected,
                 signatureProtected,
                 options.ExternalAad.Span,
-                content
+                content.Span
             );
             entries.Add(
                 new CoseLayerEntry(
                     signatureProtected,
                     unprotectedHeaders,
-                    Sign(algorithm, credentials.SecretKey, structure)
+                    await SignAsync(algorithm, credentials.SecretKey, structure, cancellationToken)
                 )
             );
         }
@@ -108,7 +119,7 @@ internal partial class DefaultCoseSerializer
             options.OmitTag ? null : CoseTags.Sign,
             bodyProtected,
             bodyUnprotectedHeaders,
-            CarriedContent(content, options),
+            CarriedContent(content.Span, options),
             entries
         );
     }
@@ -305,11 +316,15 @@ internal partial class DefaultCoseSerializer
         return (algorithm, binding);
     }
 
-    private static byte[] Sign(SignatureAlgorithm algorithm, SecretKey key, byte[] structure)
+    private static async ValueTask<byte[]> SignAsync(
+        SignatureAlgorithm algorithm,
+        SecretKey key,
+        byte[] structure,
+        CancellationToken cancellationToken
+    )
     {
         var buffer = new byte[algorithm.GetSignatureSizeBytes(key.KeySizeBits)];
-        if (!algorithm.TrySign(key, structure, buffer, out var written))
-            throw new InvalidOperationException("The signature does not fit its buffer.");
+        var written = await algorithm.SignAsync(key, structure, buffer, cancellationToken);
 
         return buffer.AsSpan(0, written).ToArray();
     }

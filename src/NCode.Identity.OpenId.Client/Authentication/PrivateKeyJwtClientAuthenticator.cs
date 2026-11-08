@@ -59,7 +59,7 @@ internal class PrivateKeyJwtClientAuthenticator(
     public bool UsesMutualTls => false;
 
     /// <inheritdoc />
-    public ValueTask AuthenticateAsync(
+    public async ValueTask AuthenticateAsync(
         ClientAuthenticationContext context,
         CancellationToken cancellationToken
     )
@@ -101,7 +101,7 @@ internal class PrivateKeyJwtClientAuthenticator(
             );
 
         var now = TimeProvider.GetUtcNow();
-        var assertion = JwtEncoder.Encode(
+        var assertion = await JwtEncoder.EncodeAsync(
             new JwtEncodingParameters
             {
                 SigningCredentials = credentials,
@@ -117,7 +117,8 @@ internal class PrivateKeyJwtClientAuthenticator(
                         RandomNumberGenerator.GetBytes(16)
                     ),
                 },
-            }
+            },
+            cancellationToken
         );
 
         context.Parameters.Add(
@@ -132,7 +133,6 @@ internal class PrivateKeyJwtClientAuthenticator(
         context.Parameters.Add(
             new KeyValuePair<string, string>(OpenIdProtocol.Parameters.ClientId, clientId)
         );
-        return ValueTask.CompletedTask;
     }
 
     private List<string> BuildPreferredAlgorithms(List<string>? supported)

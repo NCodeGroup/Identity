@@ -18,6 +18,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
@@ -53,6 +54,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     private Mock<ITeamStore> MockTeamStore { get; }
     private Mock<IExpiringKeySet> MockExpiringKeySet { get; }
     private Mock<IEventPublisher> MockEventPublisher { get; }
+    private Mock<IRemoteSecretDestroyer> MockRemoteSecretDestroyer { get; }
     private Mock<IMediator> MockMediator { get; }
     private IReadOnlySettingCollection TeamSettings { get; }
     private ServiceProvider ServiceProvider { get; }
@@ -75,6 +77,17 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         MockTeamStore = CreateStrictMock<ITeamStore>();
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
         MockEventPublisher = CreateStrictMock<IEventPublisher>();
+        MockRemoteSecretDestroyer = CreateStrictMock<IRemoteSecretDestroyer>();
+
+        // A change that removes no key still reaches the destroyer, with an empty collection; a test that removes
+        // keys sets up its own call, so a destroyer call for any other keys fails the strict mock.
+        MockRemoteSecretDestroyer
+            .Setup(x =>
+                x.DestroyAsync(
+                    It.Is<IReadOnlyCollection<PersistedSecret>>(secrets => secrets.Count == 0)
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
         MockMediator = CreateStrictMock<IMediator>();
         TeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
 
@@ -99,6 +112,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             MockStoreManagerFactory.Object,
             expiringKeySet,
             MockEventPublisher.Object,
+            MockRemoteSecretDestroyer.Object,
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
             timeProvider,
             Logger
@@ -300,6 +314,124 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
+
+        await Service.RollOverAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RollOverAsync_WhenATenantsChangeRemovesKeys_DestroysThemAfterTheSaveAndTheAnnouncement()
+    {
+        // The destroyer is strict for these keys until the change is committed and announced: a key destroyed earlier
+        // fails the test.
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        SetupTeam();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        var first = CreateSecret("first");
+        var removed = CreateSecret("removed");
+        SetupTenantSettings(FirstTenantId);
+        SetupSecrets(FirstTenantId, [first]);
+        var plan = SetupPlan([first], empty: false);
+        var auditEvent = CreateAuditEvent("first");
+        SetupApplyRemoving(FirstTenantId, [first], plan, [removed], auditEvent);
+        var steps = new List<string>();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                steps.Add("save");
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable(Times.Once);
+        MockEventPublisher
+            .Setup(x => x.PublishAsync(auditEvent, It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                steps.Add("publish");
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable(Times.Once);
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<TenantChangedCommand>(command =>
+                        command.TenantId == FirstTenantId && !command.SettingsChanged
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() =>
+            {
+                steps.Add("announce");
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable(Times.Once);
+        SetupDestroy([removed], () => steps.Add("destroy"));
+
+        await Service.RollOverAsync(CancellationToken.None);
+
+        Assert.Equal(["save", "publish", "announce", "destroy"], steps);
+    }
+
+    [Fact]
+    public async Task RollOverAsync_WhenPublishingAndTheAnnouncementFail_StillDestroysTheRemovedKeys()
+    {
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        SetupTeam();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        var first = CreateSecret("first");
+        var removed = CreateSecret("removed");
+        SetupTenantSettings(FirstTenantId);
+        SetupSecrets(FirstTenantId, [first]);
+        var plan = SetupPlan([first], empty: false);
+        var auditEvent = CreateAuditEvent("first");
+        SetupApplyRemoving(FirstTenantId, [first], plan, [removed], auditEvent);
+        SetupSave();
+        MockEventPublisher
+            .Setup(x => x.PublishAsync(auditEvent, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("sink unavailable"))
+            .Verifiable(Times.Once);
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<TenantChangedCommand>(command =>
+                        command.TenantId == FirstTenantId && !command.SettingsChanged
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new InvalidOperationException("bus unavailable"))
+            .Verifiable(Times.Once);
+        SetupDestroy([removed]);
+
+        await Service.RollOverAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RollOverAsync_WhenTheSaveLosesARaceThatRemovedKeys_DestroysNothing()
+    {
+        // The destroyer is strict for these keys: a key destroyed for a change a lost race discarded fails the test.
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        SetupTeam();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        var first = CreateSecret("first");
+        var removed = CreateSecret("removed");
+        SetupTenantSettings(FirstTenantId);
+        SetupSecrets(FirstTenantId, [first]);
+        var plan = SetupPlan([first], empty: false);
+        SetupApplyRemoving(FirstTenantId, [first], plan, [removed]);
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new StoreConcurrencyException("lost"))
+            .Verifiable(Times.Once);
 
         await Service.RollOverAsync(CancellationToken.None);
     }
@@ -870,6 +1002,14 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         IReadOnlyCollection<PersistedSecret> held,
         TenantKeyRolloverPlan plan,
         params TenantKeyAuditEvent[] auditEvents
+    ) => SetupApplyRemoving(tenantId, held, plan, [], auditEvents);
+
+    private void SetupApplyRemoving(
+        string tenantId,
+        IReadOnlyCollection<PersistedSecret> held,
+        TenantKeyRolloverPlan plan,
+        IReadOnlyList<PersistedSecret> removedSecrets,
+        params TenantKeyAuditEvent[] auditEvents
     ) =>
         MockRollover
             .Setup(x =>
@@ -882,9 +1022,33 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
                 )
             )
             .ReturnsAsync(
-                new TenantKeyRolloverResult { Secrets = [], AuditEvents = [.. auditEvents] }
+                new TenantKeyRolloverResult
+                {
+                    Secrets = [],
+                    AuditEvents = [.. auditEvents],
+                    RemovedSecrets = removedSecrets,
+                }
             )
             .Verifiable();
+
+    private void SetupDestroy(
+        IReadOnlyList<PersistedSecret> removedSecrets,
+        Action? onDestroy = null
+    ) =>
+        MockRemoteSecretDestroyer
+            .Setup(x =>
+                x.DestroyAsync(
+                    It.Is<IReadOnlyCollection<PersistedSecret>>(secrets =>
+                        secrets.SequenceEqual(removedSecrets)
+                    )
+                )
+            )
+            .Returns(() =>
+            {
+                onDestroy?.Invoke();
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable(Times.Once);
 
     private static TenantKeyAuditEvent CreateAuditEvent(string secretId) =>
         new()

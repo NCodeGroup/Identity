@@ -20,10 +20,11 @@ partial class JoseSerializer
     public JoseEncoder CreateEncoder(JoseSigningOptions signingOptions) =>
         new JoseSigningEncoder(this, signingOptions);
 
-    internal void Encode(
+    internal async ValueTask EncodeAsync(
         IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<byte> payload,
-        JoseSigningOptions signingOptions
+        ReadOnlyMemory<byte> payload,
+        JoseSigningOptions signingOptions,
+        CancellationToken cancellationToken
     )
     {
         if (signingOptions.Signatures.Count == 0)
@@ -32,12 +33,17 @@ partial class JoseSerializer
         switch (signingOptions.Format)
         {
             case JoseSerializationFormat.Compact:
-                EncodeCompactJws(tokenWriter, payload, signingOptions);
+                await EncodeCompactJwsAsync(
+                    tokenWriter,
+                    payload,
+                    signingOptions,
+                    cancellationToken
+                );
                 break;
 
             case JoseSerializationFormat.Flattened:
             case JoseSerializationFormat.General:
-                EncodeJsonJws(tokenWriter, payload, signingOptions);
+                await EncodeJsonJwsAsync(tokenWriter, payload, signingOptions, cancellationToken);
                 break;
 
             default:
@@ -47,10 +53,11 @@ partial class JoseSerializer
         }
     }
 
-    private void EncodeCompactJws(
+    private async ValueTask EncodeCompactJwsAsync(
         IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<byte> payload,
-        JoseSigningOptions signingOptions
+        ReadOnlyMemory<byte> payload,
+        JoseSigningOptions signingOptions,
+        CancellationToken cancellationToken
     )
     {
         /*
@@ -86,20 +93,31 @@ partial class JoseSerializer
 
         // BASE64URL(JWS Payload) || '.'
         using var _ = EncodeJwsPayload(
-            payload,
+            payload.Span,
             tokenWriter,
             signingOptions,
             out var encodedPayloadPart
         );
 
         // BASE64URL(JWS Signature)
-        EncodeJwsSignature(
+        if (signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits) == 0)
+            return;
+
+        // the signing input is complete before the signature is awaited, so no span crosses the await
+        using var inputLease = RentJwsSigningInput(
+            encodedHeaderPart[..^1],
+            encodedPayloadPart,
+            out var signingInput
+        );
+
+        var encodedSignature = await SignJwsAsync(
             secretKey,
             signatureAlgorithm,
-            encodedHeaderPart,
-            encodedPayloadPart,
-            tokenWriter
+            signingInput,
+            cancellationToken
         );
+
+        WriteCompactSegment(encodedSignature, tokenWriter, addDot: false);
     }
 
     private static Dictionary<string, object> BuildJwsProtectedHeader(
@@ -199,65 +217,73 @@ partial class JoseSerializer
         return owner;
     }
 
-    private static void EncodeJwsSignature(
-        SecretKey secretKey,
-        SignatureAlgorithm signatureAlgorithm,
-        ReadOnlySpan<char> encodedHeaderPart,
-        ReadOnlySpan<char> encodedPayloadPart,
-        IBufferWriter<char> tokenWriter
+    private static IDisposable RentJwsSigningInput(
+        ReadOnlySpan<char> encodedHeader,
+        ReadOnlySpan<char> encodedPayload,
+        out ReadOnlyMemory<byte> signingInput
     )
     {
-        var signatureByteCount = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
-        var isEmptySignature = signatureByteCount == 0;
-        if (isEmptySignature)
-            return;
-
         // Input Data for Signature
         // b64 true:  ASCII( BASE64URL(UTF8(JWS Protected Header)) || '.' || BASE64URL(JWS Payload) )
         // b64 false: ASCII( BASE64URL(UTF8(JWS Protected Header)) || '.' ) || UTF8(JWS Payload)
 
-        var headerByteCount = SecureEncoding.ASCII.GetByteCount(encodedHeaderPart);
-        var payloadByteCount = SecureEncoding.UTF8.GetByteCount(encodedPayloadPart);
+        var headerByteCount = SecureEncoding.ASCII.GetByteCount(encodedHeader);
+        var payloadByteCount = SecureEncoding.UTF8.GetByteCount(encodedPayload);
 
-        var inputByteCount = headerByteCount + payloadByteCount;
-        using var inputLease = BufferFactory.Rent(
+        var inputByteCount = headerByteCount + 1 + payloadByteCount;
+        var lease = BufferFactory.Rent(
             inputByteCount,
             isSensitive: false,
-            out Span<byte> inputData
+            out Memory<byte> inputData
         );
 
-        var headerWritten = SecureEncoding.ASCII.GetBytes(encodedHeaderPart, inputData);
-        Debug.Assert(headerWritten == headerByteCount);
+        try
+        {
+            var inputSpan = inputData.Span;
 
-        var payloadWritten = SecureEncoding.UTF8.GetBytes(
-            encodedPayloadPart,
-            inputData[headerByteCount..]
-        );
-        Debug.Assert(payloadWritten == payloadByteCount);
+            var headerWritten = SecureEncoding.ASCII.GetBytes(encodedHeader, inputSpan);
+            Debug.Assert(headerWritten == headerByteCount);
 
+            inputSpan[headerByteCount] = (byte)'.';
+
+            var payloadWritten = SecureEncoding.UTF8.GetBytes(
+                encodedPayload,
+                inputSpan[(headerByteCount + 1)..]
+            );
+            Debug.Assert(payloadWritten == payloadByteCount);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
+
+        signingInput = inputData;
+        return lease;
+    }
+
+    private static async ValueTask<string> SignJwsAsync(
+        SecretKey secretKey,
+        SignatureAlgorithm signatureAlgorithm,
+        ReadOnlyMemory<byte> signingInput,
+        CancellationToken cancellationToken
+    )
+    {
+        var signatureByteCount = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
         using var signatureLease = BufferFactory.Rent(
             signatureByteCount,
             isSensitive: false,
-            out Span<byte> signatureBytes
+            out Memory<byte> signatureBytes
         );
-        var signResult = signatureAlgorithm.TrySign(
+
+        var signatureBytesWritten = await signatureAlgorithm.SignAsync(
             secretKey,
-            inputData,
+            signingInput,
             signatureBytes,
-            out var signatureBytesWritten
+            cancellationToken
         );
-        Debug.Assert(signResult && signatureBytesWritten == signatureByteCount);
+        Debug.Assert(signatureBytesWritten == signatureByteCount);
 
-        var signatureCharCount = Base64Url.GetCharCountForEncode(signatureByteCount);
-        var encodedSignature = tokenWriter.GetSpan(signatureCharCount);
-
-        var encodeResult = Base64Url.TryEncode(
-            signatureBytes,
-            encodedSignature,
-            out var signatureCharsWritten
-        );
-        Debug.Assert(encodeResult && signatureCharsWritten == signatureCharCount);
-
-        tokenWriter.Advance(signatureCharsWritten);
+        return Base64Url.Encode((ReadOnlySpan<byte>)signatureBytes.Span[..signatureBytesWritten]);
     }
 }

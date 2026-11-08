@@ -9,6 +9,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 public class SecretProtectorProviderExtensionsTests : IDisposable
 {
     private const string PublicValue = "public-value";
+    private const string RemoteValue = "aws-kms:remote-key";
     private const string FirstPrivateValue = "private-value-one";
     private const string SecondPrivateValue = "private-value-two";
 
@@ -82,6 +83,40 @@ public class SecretProtectorProviderExtensionsTests : IDisposable
             CreateSecret(SecretEncodings.Spki, PublicValue),
             CreateSecret(SecretEncodings.X509, PublicValue),
         ];
+        SetupGetProtector(values => values.Count == 0);
+
+        var result = await _provider.Object.GetProtectorForSecretsAsync(
+            Owner,
+            secrets,
+            CancellationToken.None
+        );
+
+        Assert.Same(_protector.Object, result);
+    }
+
+    [Fact]
+    public async Task GetProtectorForSecretsAsync_RemoteSecrets_NeverPassesTheirValues()
+    {
+        PersistedSecret[] secrets =
+        [
+            CreateSecret(SecretEncodings.Remote, RemoteValue),
+            CreateSecret(SecretEncodings.Pkcs8, FirstPrivateValue),
+        ];
+        SetupGetProtector(values => values.SequenceEqual([FirstPrivateValue]));
+
+        var result = await _provider.Object.GetProtectorForSecretsAsync(
+            Owner,
+            secrets,
+            CancellationToken.None
+        );
+
+        Assert.Same(_protector.Object, result);
+    }
+
+    [Fact]
+    public async Task GetProtectorForSecretsAsync_OnlyRemoteSecrets_PassesEmpty()
+    {
+        PersistedSecret[] secrets = [CreateSecret(SecretEncodings.Remote, RemoteValue)];
         SetupGetProtector(values => values.Count == 0);
 
         var result = await _provider.Object.GetProtectorForSecretsAsync(

@@ -186,7 +186,8 @@ public interface IJoseSerializer
 
     /// <summary>
     /// Creates a new <see cref="JoseEncoder"/> with the specified signing options.
-    /// The returned encoder is the single entry point for encoding JWS tokens, in any serialization format.
+    /// The returned encoder is the single entry point for encoding JWS tokens, in any serialization format, and
+    /// signs asynchronously so a key held by a remote key management service signs like a local key.
     /// </summary>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
@@ -194,7 +195,8 @@ public interface IJoseSerializer
 
     /// <summary>
     /// Creates a new <see cref="JoseEncoder"/> with the specified encryption options.
-    /// The returned encoder is the single entry point for encrypting JWE tokens, in any serialization format.
+    /// The returned encoder is the single entry point for encrypting JWE tokens, in any serialization format, and
+    /// exposes the same asynchronous members as the signing encoder; the encryption completes synchronously.
     /// </summary>
     /// <param name="encryptionOptions">The JOSE encryption options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>

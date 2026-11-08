@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Azure.Security.KeyVault.Keys;
 using Azure.Security.KeyVault.Keys.Cryptography;
 using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 using Xunit;
@@ -16,6 +17,10 @@ public class DefaultAzureKeyVaultClientFactoryTests
     private const string DirectoryId = "11111111-2222-3333-4444-555555555555";
 
     private const string OtherDirectoryId = "66666666-7777-8888-9999-aaaaaaaaaaaa";
+
+    private static readonly Uri VaultUri = new("https://contoso.vault.azure.net");
+
+    private static readonly Uri OtherVaultUri = new("https://fabrikam.vault.azure.net");
 
     private static DefaultAzureKeyVaultClientFactory CreateFactory() => new(TimeProvider.System);
 
@@ -150,6 +155,84 @@ public class DefaultAzureKeyVaultClientFactoryTests
                     CancellationToken.None
                 )
                 .AsTask()
+        );
+    }
+
+    #endregion
+
+    #region ExecuteKeyClientAsync Tests
+
+    private static async Task<KeyClient> GetKeyClientAsync(
+        DefaultAzureKeyVaultClientFactory factory,
+        Uri vaultUri
+    ) =>
+        await factory.ExecuteKeyClientAsync(
+            vaultUri,
+            (client, _) => ValueTask.FromResult(client),
+            CancellationToken.None
+        );
+
+    [Fact]
+    public async Task ExecuteKeyClientAsync_SameVault_RunsOperationsWithTheSameClient()
+    {
+        using var factory = CreateFactory();
+
+        var first = await GetKeyClientAsync(factory, VaultUri);
+        var second = await GetKeyClientAsync(factory, VaultUri);
+
+        Assert.Same(first, second);
+        Assert.Equal(VaultUri, first.VaultUri);
+    }
+
+    [Fact]
+    public async Task ExecuteKeyClientAsync_DifferentVaults_RunsOperationsWithDifferentClients()
+    {
+        using var factory = CreateFactory();
+
+        var first = await GetKeyClientAsync(factory, VaultUri);
+        var second = await GetKeyClientAsync(factory, OtherVaultUri);
+
+        Assert.NotSame(first, second);
+        Assert.Equal(OtherVaultUri, second.VaultUri);
+    }
+
+    [Fact]
+    public async Task ExecuteKeyClientAsync_Operation_ReturnsItsResult()
+    {
+        using var factory = CreateFactory();
+
+        var result = await factory.ExecuteKeyClientAsync(
+            VaultUri,
+            (_, _) => ValueTask.FromResult(42),
+            CancellationToken.None
+        );
+
+        Assert.Equal(42, result);
+    }
+
+    [Fact]
+    public async Task ExecuteKeyClientAsync_NullVaultUri_Throws()
+    {
+        using var factory = CreateFactory();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            factory
+                .ExecuteKeyClientAsync(
+                    null!,
+                    (_, _) => ValueTask.FromResult(0),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task ExecuteKeyClientAsync_NullOperation_Throws()
+    {
+        using var factory = CreateFactory();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            factory.ExecuteKeyClientAsync<int>(VaultUri, null!, CancellationToken.None).AsTask()
         );
     }
 

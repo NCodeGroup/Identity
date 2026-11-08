@@ -132,4 +132,23 @@ public interface ISecretGenerator
         PersistedSecret secret,
         string secretId
     );
+
+    /// <summary>
+    /// Creates a signing key in the key management service that the request names, reads its public half, and returns
+    /// a <see cref="PersistedSecret"/> that stores the public key and a reference to the key. The private key never
+    /// leaves the service, so nothing is protected under a master key. The returned secret's
+    /// <see cref="PersistedSecret.ConcurrencyToken"/> is left unset for the store to assign.
+    /// </summary>
+    /// <param name="request">The <see cref="GenerateRemoteSecretRequest"/> describing the secret to generate.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The <see cref="PersistedSecret"/> with the <see cref="SecretEncodings.Remote"/> encoding.</returns>
+    /// <exception cref="System.InvalidOperationException">The secret type does not support remote keys, the provider
+    /// is not registered, no remote signing algorithm matches the request, or the key the service created does not
+    /// have the requested size or curve. No key is created for the first three, and the key is destroyed for the
+    /// last.</exception>
+    // See ADR-1471.
+    ValueTask<PersistedSecret> GenerateRemoteSecretAsync(
+        GenerateRemoteSecretRequest request,
+        CancellationToken cancellationToken
+    );
 }

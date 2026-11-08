@@ -317,9 +317,13 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
         SetupCredentials(openIdClient, new ClientJwtCredentials(signingCredentials, null));
         JwtEncodingParameters? encoded = null;
         MockJwtEncoder
-            .Setup(x => x.Encode(It.IsAny<JwtEncodingParameters>()))
-            .Callback<JwtEncodingParameters>(parameters => encoded = parameters)
-            .Returns("header.payload.signature")
+            .Setup(x =>
+                x.EncodeAsync(It.IsAny<JwtEncodingParameters>(), It.IsAny<CancellationToken>())
+            )
+            .Callback<JwtEncodingParameters, CancellationToken>(
+                (parameters, _) => encoded = parameters
+            )
+            .ReturnsAsync("header.payload.signature")
             .Verifiable();
 
         var result = await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);

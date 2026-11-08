@@ -61,13 +61,13 @@ public class DefaultDPoPProofServiceTests : BaseTests
         return new JoseSigningCredentials(secretKey, algorithm);
     }
 
-    private string CreateProof(
+    private ValueTask<string> CreateProofAsync(
         JoseSigningCredentials credentials,
         string httpUri = HttpUri,
         string? accessToken = null,
         string? nonce = null
     ) =>
-        ProofService.CreateProof(
+        ProofService.CreateProofAsync(
             new DPoPProofCreationOptions
             {
                 SigningCredentials = credentials,
@@ -75,7 +75,8 @@ public class DefaultDPoPProofServiceTests : BaseTests
                 HttpUri = httpUri,
                 AccessToken = accessToken,
                 Nonce = nonce,
-            }
+            },
+            CancellationToken.None
         );
 
     private static DPoPProofValidationParameters CreateParameters(
@@ -150,16 +151,16 @@ public class DefaultDPoPProofServiceTests : BaseTests
 
     #endregion
 
-    #region CreateProof Tests
+    #region CreateProofAsync Tests
 
     [Theory]
     [InlineData("ES256")]
     [InlineData("PS256")]
-    public void CreateProof_WhenValidated_RoundTripsWithThumbprint(string algorithmCode)
+    public async Task CreateProofAsync_WhenValidated_RoundTripsWithThumbprint(string algorithmCode)
     {
         var credentials = CreateCredentials(algorithmCode);
 
-        var proof = CreateProof(credentials, nonce: "server-nonce");
+        var proof = await CreateProofAsync(credentials, nonce: "server-nonce");
 
         Assert.True(
             ProofService.TryValidateProof(proof, CreateParameters(), out var result, out var error),
@@ -176,9 +177,9 @@ public class DefaultDPoPProofServiceTests : BaseTests
     }
 
     [Fact]
-    public void CreateProof_WhenCalled_EmitsDPoPHeaderAndClaims()
+    public async Task CreateProofAsync_WhenCalled_EmitsDPoPHeaderAndClaims()
     {
-        var proof = CreateProof(
+        var proof = await CreateProofAsync(
             CreateCredentials("ES256"),
             httpUri: "https://op.test/token?x=1#frag",
             accessToken: "access-token"
@@ -201,18 +202,22 @@ public class DefaultDPoPProofServiceTests : BaseTests
     }
 
     [Fact]
-    public void CreateProof_WhenCalledTwice_UsesUniqueJti()
+    public async Task CreateProofAsync_WhenCalledTwice_UsesUniqueJti()
     {
         var credentials = CreateCredentials("ES256");
 
-        var first = DecodeSegment(CreateProof(credentials), 1).GetProperty("jti").GetString();
-        var second = DecodeSegment(CreateProof(credentials), 1).GetProperty("jti").GetString();
+        var first = DecodeSegment(await CreateProofAsync(credentials), 1)
+            .GetProperty("jti")
+            .GetString();
+        var second = DecodeSegment(await CreateProofAsync(credentials), 1)
+            .GetProperty("jti")
+            .GetString();
 
         Assert.NotEqual(first, second);
     }
 
     [Fact]
-    public void CreateProof_WhenSymmetricKey_Throws()
+    public async Task CreateProofAsync_WhenSymmetricKey_Throws()
     {
         Assert.True(AlgorithmCollection.TryGetSignatureAlgorithm("HS256", out var algorithm));
         var secretKey = SecretKeyFactory.CreateSymmetric(
@@ -220,24 +225,24 @@ public class DefaultDPoPProofServiceTests : BaseTests
             RandomNumberGenerator.GetBytes(32)
         );
 
-        Assert.Throws<ArgumentException>(() =>
-            CreateProof(new JoseSigningCredentials(secretKey, algorithm))
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await CreateProofAsync(new JoseSigningCredentials(secretKey, algorithm))
         );
     }
 
     [Fact]
-    public void CreateProof_WhenRelativeUri_Throws()
+    public async Task CreateProofAsync_WhenRelativeUri_Throws()
     {
-        Assert.Throws<ArgumentException>(() =>
-            CreateProof(CreateCredentials("ES256"), httpUri: "/token")
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await CreateProofAsync(CreateCredentials("ES256"), httpUri: "/token")
         );
     }
 
     [Fact]
-    public void CreateProof_WhenAccessTokenIsNotAscii_Throws()
+    public async Task CreateProofAsync_WhenAccessTokenIsNotAscii_Throws()
     {
-        Assert.ThrowsAny<ArgumentException>(() =>
-            CreateProof(CreateCredentials("ES256"), accessToken: "accéss-token")
+        await Assert.ThrowsAnyAsync<ArgumentException>(async () =>
+            await CreateProofAsync(CreateCredentials("ES256"), accessToken: "accéss-token")
         );
     }
 
@@ -246,9 +251,9 @@ public class DefaultDPoPProofServiceTests : BaseTests
     #region TryValidateProof Tests
 
     [Fact]
-    public void TryValidateProof_WhenAccessTokenMatches_Succeeds()
+    public async Task TryValidateProof_WhenAccessTokenMatches_Succeeds()
     {
-        var proof = CreateProof(CreateCredentials("ES256"), accessToken: "access-token");
+        var proof = await CreateProofAsync(CreateCredentials("ES256"), accessToken: "access-token");
 
         Assert.True(
             ProofService.TryValidateProof(
@@ -262,25 +267,25 @@ public class DefaultDPoPProofServiceTests : BaseTests
     }
 
     [Fact]
-    public void TryValidateProof_WhenAccessTokenDiffers_Fails()
+    public async Task TryValidateProof_WhenAccessTokenDiffers_Fails()
     {
-        var proof = CreateProof(CreateCredentials("ES256"), accessToken: "access-token");
+        var proof = await CreateProofAsync(CreateCredentials("ES256"), accessToken: "access-token");
 
         AssertRejected(proof, CreateParameters(accessToken: "other-token"), "'ath'");
     }
 
     [Fact]
-    public void TryValidateProof_WhenAccessTokenIsNotAscii_Fails()
+    public async Task TryValidateProof_WhenAccessTokenIsNotAscii_Fails()
     {
-        var proof = CreateProof(CreateCredentials("ES256"), accessToken: "acc?ss-token");
+        var proof = await CreateProofAsync(CreateCredentials("ES256"), accessToken: "acc?ss-token");
 
         AssertRejected(proof, CreateParameters(accessToken: "accéss-token"), "'ath'");
     }
 
     [Fact]
-    public void TryValidateProof_WhenRequestUriHasQuery_IgnoresIt()
+    public async Task TryValidateProof_WhenRequestUriHasQuery_IgnoresIt()
     {
-        var proof = CreateProof(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(CreateCredentials("ES256"));
 
         Assert.True(
             ProofService.TryValidateProof(
@@ -294,25 +299,25 @@ public class DefaultDPoPProofServiceTests : BaseTests
     }
 
     [Fact]
-    public void TryValidateProof_WhenMethodDiffers_Fails()
+    public async Task TryValidateProof_WhenMethodDiffers_Fails()
     {
-        var proof = CreateProof(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(CreateCredentials("ES256"));
 
         AssertRejected(proof, CreateParameters(httpMethod: "GET"), "'htm'");
     }
 
     [Fact]
-    public void TryValidateProof_WhenUriDiffers_Fails()
+    public async Task TryValidateProof_WhenUriDiffers_Fails()
     {
-        var proof = CreateProof(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(CreateCredentials("ES256"));
 
         AssertRejected(proof, CreateParameters(httpUri: "https://op.test/other"), "'htu'");
     }
 
     [Fact]
-    public void TryValidateProof_WhenAlgorithmNotAllowed_Fails()
+    public async Task TryValidateProof_WhenAlgorithmNotAllowed_Fails()
     {
-        var proof = CreateProof(CreateCredentials("PS256"));
+        var proof = await CreateProofAsync(CreateCredentials("PS256"));
 
         AssertRejected(proof, CreateParameters(allowedAlgorithms: "ES256"), "'alg'");
     }
@@ -336,9 +341,9 @@ public class DefaultDPoPProofServiceTests : BaseTests
     }
 
     [Fact]
-    public void TryValidateProof_WhenSignatureTampered_Fails()
+    public async Task TryValidateProof_WhenSignatureTampered_Fails()
     {
-        var proof = CreateProof(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(CreateCredentials("ES256"));
         var lastDot = proof.LastIndexOf('.');
         var signature = proof[(lastDot + 1)..];
         var tampered = proof[..(lastDot + 1)] + (signature[0] == 'A' ? 'B' : 'A') + signature[1..];
@@ -352,9 +357,9 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [InlineData("!!!!")]
     [InlineData("AAAAA")]
     [InlineData("AA==")]
-    public void TryValidateProof_WhenSignatureIsNotBase64Url_Fails(string signature)
+    public async Task TryValidateProof_WhenSignatureIsNotBase64Url_Fails(string signature)
     {
-        var proof = CreateProof(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(CreateCredentials("ES256"));
         var lastDot = proof.LastIndexOf('.');
 
         AssertRejected(proof[..(lastDot + 1)] + signature, CreateParameters(), "signature");

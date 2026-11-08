@@ -42,7 +42,20 @@ partial class JoseSerializer
     public JoseEncoder CreateEncoder(JoseEncryptionOptions encryptionOptions) =>
         new JoseEncryptionEncoder(this, encryptionOptions);
 
-    internal void Encode(
+    internal ValueTask EncodeAsync(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlyMemory<byte> payload,
+        JoseEncryptionOptions encryptionOptions,
+        CancellationToken cancellationToken
+    )
+    {
+        // key wrapping and content encryption use local key material, so the encode completes synchronously
+        cancellationToken.ThrowIfCancellationRequested();
+        Encode(tokenWriter, payload.Span, encryptionOptions);
+        return ValueTask.CompletedTask;
+    }
+
+    private void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
         JoseEncryptionOptions encryptionOptions

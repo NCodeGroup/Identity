@@ -10,6 +10,7 @@ using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Registration;
 
 namespace NCode.Identity.Secrets;
@@ -49,6 +50,7 @@ public static class DefaultRegistration
         /// <item><description><see cref="ISecretKeyCollectionProviderFactory"/> - Factory for creating secret key collection providers.</description></item>
         /// <item><description><see cref="ISecretKeyFactory"/> - Factory for creating individual secret keys.</description></item>
         /// <item><description><see cref="ISecretKeyCollectionFactory"/> - Factory for creating secret key collections.</description></item>
+        /// <item><description><see cref="IRemoteKeyProviderCatalog"/> - Lookup over the registered remote key providers and signing algorithm rows.</description></item>
         /// </list>
         /// <para>
         /// Services are registered using <c>TryAddSingleton</c> semantics where applicable,
@@ -96,6 +98,13 @@ public static class DefaultRegistration
             // The elliptic-curve catalog is the single source of truth for supported curves (ADR-1068);
             // applications can register additional EccCurveSpecification services to support more curves.
             serviceCollection.TryAddSingleton<IEccCurveCatalog, DefaultEccCurveCatalog>();
+
+            // The remote key provider catalog holds the registered IRemoteKeyProvider services and the rows of the
+            // IRemoteSigningAlgorithmSource services (ADR-1471).
+            serviceCollection.TryAddSingleton<
+                IRemoteKeyProviderCatalog,
+                DefaultRemoteKeyProviderCatalog
+            >();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

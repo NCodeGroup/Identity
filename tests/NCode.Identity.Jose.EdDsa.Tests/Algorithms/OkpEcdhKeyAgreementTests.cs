@@ -686,7 +686,7 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
     [InlineData("ECDH-ES+A128KW", OkpCurves.X448Name, 448)]
     [InlineData("ECDH-ES+A192KW", OkpCurves.X448Name, 448)]
     [InlineData("ECDH-ES+A256KW", OkpCurves.X448Name, 448)]
-    public void Decode_WhenJweIsEncryptedToOkpKey_ReturnsThePayload(
+    public async Task Decode_WhenJweIsEncryptedToOkpKey_ReturnsThePayload(
         string code,
         string curve,
         int keySizeBits
@@ -705,7 +705,9 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         );
         var payload = new Dictionary<string, object> { ["sub"] = "alice" };
 
-        var token = JoseSerializer.CreateEncoder(options).Encode(payload);
+        var token = await JoseSerializer
+            .CreateEncoder(options)
+            .EncodeAsync(payload, CancellationToken.None);
         var decoded = JoseSerializer.Decode(JoseSerializer.Parse(token), privateKey);
 
         Assert.Equal(JsonSerializer.Serialize(payload), decoded);
@@ -714,16 +716,19 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
     // An Ed25519 key has the type and size of an X25519 key; configuring it to decrypt is the caller's error, reported as
     // such rather than as a failed authentication tag.
     [Fact]
-    public void Decode_WhenDecryptionKeyIsOnASigningCurve_ThrowsTheConfigurationError()
+    public async Task Decode_WhenDecryptionKeyIsOnASigningCurve_ThrowsTheConfigurationError()
     {
         var privateKey = GenerateKey(OkpCurves.X25519Name, 256);
         Assert.True(AlgorithmCollection.TryGetAuthenticatedEncryptionAlgorithm(Enc, out var enc));
         var options = new JoseEncryptionOptions(
             new JoseEncryptionCredentials(privateKey, GetAlgorithm("ECDH-ES"), enc)
         );
-        var token = JoseSerializer
+        var token = await JoseSerializer
             .CreateEncoder(options)
-            .Encode(new Dictionary<string, object> { ["sub"] = "alice" });
+            .EncodeAsync(
+                new Dictionary<string, object> { ["sub"] = "alice" },
+                CancellationToken.None
+            );
         var signingKey = GenerateKey(OkpCurves.Ed25519Name, 256);
 
         var exception = Assert.Throws<ArgumentException>(() =>

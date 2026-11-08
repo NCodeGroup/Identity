@@ -3,7 +3,11 @@
 
 using System.Buffers.Text;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.DataProtection;
+using NCode.Extensions.DataProtection;
 using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 
@@ -87,6 +91,56 @@ public class EccSecretKeyTypeDescriptorTests : BaseTests
         );
 
         Assert.Contains("must each be 32 bytes", exception.Message);
+    }
+
+    #endregion
+
+    #region CreateRemoteKey Tests
+
+    [Fact]
+    public void CreateRemoteKey_WhenTheRowMatches_ReturnsARemoteKeyOnTheRowsCurve()
+    {
+        var provider = new EphemeralDataProtectionProvider();
+        var mockFactory = CreateStrictMock<IDataProtectorFactory<SecretKey>>();
+        mockFactory
+            .Setup(x => x.CreateDataProtector())
+            .Returns(provider.CreateProtector("test"))
+            .Verifiable();
+        var catalog = new DefaultEccCurveCatalog([]);
+        var descriptor = new EccSecretKeyTypeDescriptor(
+            new DefaultSecretKeyFactory(mockFactory.Object, catalog),
+            catalog
+        );
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var binding = new RemoteKeyBinding
+        {
+            Provider = CreateStrictMock<IRemoteKeyProvider>().Object,
+            Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "key-1"),
+            Algorithm = new RemoteSigningAlgorithm
+            {
+                Provider = RemoteKeyProviderNames.AwsKms,
+                Algorithm = "ES256",
+                SecretType = SecretKeyTypes.Ecc,
+                KeySizeBits = 256,
+                Curve = "P-256",
+                KeySpec = "ECC_NIST_P256",
+                SigningAlgorithm = "ECDSA_SHA_256",
+                DigestAlgorithm = HashAlgorithmName.SHA256,
+                IsDerEncodedSignature = true,
+            },
+        };
+
+        var key = descriptor.CreateRemoteKey(
+            new KeyMetadata { KeyId = "kid" },
+            ecdsa.ExportSubjectPublicKeyInfo(),
+            binding
+        );
+
+        var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(key);
+        Assert.Same(binding, remoteKey.Binding);
+        var eccKey = Assert.IsAssignableFrom<EccSecretKey>(key);
+        Assert.Equal("P-256", eccKey.CurveName);
+        Assert.Equal(256, eccKey.KeySizeBits);
     }
 
     #endregion

@@ -4,6 +4,7 @@
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 
@@ -29,6 +30,17 @@ internal static class TenantKeyTestData
             SecretType = SecretKeyTypes.Ecc,
             KeySizeBits = 256,
             Curve = "P-256",
+        };
+
+    /// <summary>
+    /// The name of the remote key provider the remote specifications are held by.
+    /// </summary>
+    public const string RemoteProviderName = RemoteKeyProviderNames.AwsKms;
+
+    public static TenantKeySpecification RemoteRs256 { get; } =
+        Rs256 with
+        {
+            RemoteKeyProvider = RemoteProviderName,
         };
 
     /// <summary>

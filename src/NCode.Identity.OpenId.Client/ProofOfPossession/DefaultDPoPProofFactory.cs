@@ -43,7 +43,7 @@ internal class DefaultDPoPProofFactory(
                 $"The client '{registration.ClientId}' cannot create a DPoP proof: the provider '{registration.Authority}' does not support DPoP with its key ring."
             );
 
-        return key.CreateProof(method, requestUri, accessToken);
+        return await key.CreateProofAsync(method, requestUri, accessToken, cancellationToken);
     }
 
     /// <inheritdoc />

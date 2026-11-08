@@ -18,7 +18,9 @@ public class CoseSignTests
         params SecretKey[] keys
     ) => new() { ValidAlgorithms = algorithms, Keys = keys };
 
-    private static (byte[] Encoded, SecretKey[] Keys) EncodeTwoSignatures(CoseTestHost host)
+    private static async ValueTask<(byte[] Encoded, SecretKey[] Keys)> EncodeTwoSignaturesAsync(
+        CoseTestHost host
+    )
     {
         var first = host.KeyFactory.CreateEcc(
             new KeyMetadata(),
@@ -28,13 +30,14 @@ public class CoseSignTests
             new KeyMetadata(),
             ECDsa.Create(ECCurve.NamedCurves.nistP256)
         );
-        var encoded = host.Serializer.EncodeSign(
+        var encoded = await host.Serializer.EncodeSignAsync(
             Content,
             [
                 new CoseSigner(new CoseCredentials(first, CoseAlgorithms.Es256)),
                 new CoseSigner(new CoseCredentials(second, CoseAlgorithms.Es256)),
             ],
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
         return (encoded, [first, second]);
     }
@@ -118,10 +121,11 @@ public class CoseSignTests
             new KeyMetadata { KeyId = "ec" },
             ECDsa.Create(ECCurve.NamedCurves.nistP256)
         );
-        var encoded = host.Serializer.EncodeSign(
+        var encoded = await host.Serializer.EncodeSignAsync(
             Content,
             [new CoseSigner(new CoseCredentials(ecKey, CoseAlgorithms.Es256))],
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         var exception = Assert.Throws<CoseException>(() =>
@@ -135,7 +139,7 @@ public class CoseSignTests
     public async Task Verify_MoreSignaturesThanTheLimit_ThrowsLimitExceeded()
     {
         await using var encoder = new CoseTestHost();
-        var (encoded, keys) = EncodeTwoSignatures(encoder);
+        var (encoded, keys) = await EncodeTwoSignaturesAsync(encoder);
         await using var host = new CoseTestHost(options => options.MaxSignatures = 1);
 
         Assert.Equal(
@@ -154,7 +158,7 @@ public class CoseSignTests
     public async Task Verify_SignaturesAtTheLimit_Verifies()
     {
         await using var encoder = new CoseTestHost();
-        var (encoded, keys) = EncodeTwoSignatures(encoder);
+        var (encoded, keys) = await EncodeTwoSignaturesAsync(encoder);
         await using var host = new CoseTestHost(options => options.MaxSignatures = 2);
 
         var verified = host.Serializer.Verify(
@@ -179,13 +183,14 @@ public class CoseSignTests
             ECDsa.Create(ECCurve.NamedCurves.nistP256)
         );
 
-        var encoded = host.Serializer.EncodeSign(
+        var encoded = await host.Serializer.EncodeSignAsync(
             Content,
             [
                 new CoseSigner(new CoseCredentials(rsa, CoseAlgorithms.Ps256)),
                 new CoseSigner(new CoseCredentials(ecKey, CoseAlgorithms.Es256)),
             ],
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         var verified = host.Serializer.Verify(
@@ -205,10 +210,11 @@ public class CoseSignTests
             new KeyMetadata { KeyId = "ec" },
             ECDsa.Create(ECCurve.NamedCurves.nistP256)
         );
-        var encoded = host.Serializer.EncodeSign(
+        var encoded = await host.Serializer.EncodeSignAsync(
             Content,
             [new CoseSigner(new CoseCredentials(ecKey, CoseAlgorithms.Es256))],
-            new CoseEncodingOptions { DetachContent = true, ExternalAad = Hex("0102") }
+            new CoseEncodingOptions { DetachContent = true, ExternalAad = Hex("0102") },
+            CancellationToken.None
         );
 
         var verified = host.Serializer.Verify(
@@ -230,8 +236,13 @@ public class CoseSignTests
     {
         await using var host = new CoseTestHost();
 
-        Assert.Throws<ArgumentException>(() =>
-            host.Serializer.EncodeSign(Content, [], new CoseEncodingOptions())
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Serializer.EncodeSignAsync(
+                Content,
+                [],
+                new CoseEncodingOptions(),
+                CancellationToken.None
+            )
         );
     }
 
@@ -245,8 +256,13 @@ public class CoseSignTests
         );
         var signer = new CoseSigner(new CoseCredentials(ecKey, CoseAlgorithms.Es256));
 
-        Assert.Throws<ArgumentException>(() =>
-            host.Serializer.EncodeSign(Content, [signer, signer], new CoseEncodingOptions())
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Serializer.EncodeSignAsync(
+                Content,
+                [signer, signer],
+                new CoseEncodingOptions(),
+                CancellationToken.None
+            )
         );
     }
 

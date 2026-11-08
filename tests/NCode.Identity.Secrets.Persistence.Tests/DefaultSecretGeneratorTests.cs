@@ -5,7 +5,9 @@ using System.Buffers;
 using System.Collections.Frozen;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
+using Moq;
 using NCode.Buffers;
+using NCode.Encoders;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
@@ -13,6 +15,7 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Secrets.Persistence.Verifiers;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -21,9 +24,47 @@ public class DefaultSecretGeneratorTests
 {
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
 
+    private static readonly RemoteSigningAlgorithm RsaRow = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = "RS256",
+        SecretType = SecretTypes.Rsa,
+        KeySizeBits = 2048,
+        KeySpec = "RSA_2048",
+        SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
+    };
+
+    // Asks for a larger key than the 2048-bit key the tests make the provider return.
+    private static readonly RemoteSigningAlgorithm LargeRsaRow = RsaRow with
+    {
+        KeySizeBits = 4096,
+        KeySpec = "RSA_4096",
+    };
+
+    private static readonly RemoteSigningAlgorithm EccRow = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = "ES256",
+        SecretType = SecretTypes.Ecc,
+        KeySizeBits = 256,
+        Curve = "P-256",
+        KeySpec = "ECC_NIST_P256",
+        SigningAlgorithm = "ECDSA_SHA_256",
+        IsDerEncodedSignature = true,
+    };
+
+    // Asks for a curve other than the P-256 curve of the key the tests make the provider return.
+    private static readonly RemoteSigningAlgorithm OtherCurveEccRow = EccRow with
+    {
+        Curve = "secp256k1",
+        KeySpec = "ECC_SECG_P256K1",
+    };
+
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultSecretVerifierSchemeCatalog _verifierCatalog;
-
+    private readonly Mock<IRemoteKeyProvider> _remoteProvider;
+    private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;
+    private readonly Mock<IRemoteSecretDestroyer> _remoteDestroyer;
     private readonly DefaultSecretGenerator _generator;
     private readonly DefaultSecretSerializer _serializer;
 
@@ -45,12 +86,38 @@ public class DefaultSecretGeneratorTests
 
         _catalog = catalog;
         _verifierCatalog = TestSecretVerifierSchemes.CreateCatalog();
+
+        _remoteProvider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
+        _remoteProvider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
+
+        var source = new Mock<IRemoteSigningAlgorithmSource>(MockBehavior.Strict);
+        source
+            .SetupGet(x => x.Algorithms)
+            .Returns([RsaRow, LargeRsaRow, EccRow, OtherCurveEccRow])
+            .Verifiable();
+        _remoteCatalog = new DefaultRemoteKeyProviderCatalog(
+            [_remoteProvider.Object],
+            [source.Object]
+        );
+
+        _remoteDestroyer = new Mock<IRemoteSecretDestroyer>(MockBehavior.Strict);
+
         _generator = CreateGenerator(new SharedSecretVerifierOptions());
-        _serializer = new DefaultSecretSerializer(catalog, _verifierCatalog);
+        _serializer = new DefaultSecretSerializer(
+            catalog,
+            _verifierCatalog,
+            new DefaultRemoteKeyProviderCatalog([], [])
+        );
     }
 
     private DefaultSecretGenerator CreateGenerator(SharedSecretVerifierOptions options) =>
-        new(_catalog, _verifierCatalog, Microsoft.Extensions.Options.Options.Create(options));
+        new(
+            _catalog,
+            _verifierCatalog,
+            Microsoft.Extensions.Options.Options.Create(options),
+            _remoteCatalog,
+            _remoteDestroyer.Object
+        );
 
     // Opens the envelope of a stored verifier to its text.
     private static string ReadVerifierText(DefaultSecretProtector protector, PersistedSecret secret)
@@ -970,6 +1037,284 @@ public class DefaultSecretGeneratorTests
         Assert.Throws<InvalidOperationException>(() =>
             _generator.ConvertToSharedSecretVerifier(protector, generated.Secret, "converted-4")
         );
+    }
+
+    #endregion
+
+    #region GenerateRemoteSecretAsync Tests
+
+    private static byte[] CreateRsaSubjectPublicKeyInfo()
+    {
+        using var rsa = RSA.Create(2048);
+        return rsa.ExportSubjectPublicKeyInfo();
+    }
+
+    private static byte[] CreateEccSubjectPublicKeyInfo()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        return ecdsa.ExportSubjectPublicKeyInfo();
+    }
+
+    private static GenerateRemoteSecretRequest CreateRemoteRequest(
+        string secretType = SecretTypes.Rsa,
+        int keySizeBits = 2048,
+        string? curve = null,
+        string algorithm = "RS256",
+        string provider = RemoteKeyProviderNames.AwsKms,
+        DateTimeOffset? activatesWhen = null,
+        DateTimeOffset? retiresWhen = null,
+        string? managedBy = null
+    ) =>
+        new()
+        {
+            SecretId = "remote-1",
+            Owner = TenantOwner,
+            Provider = provider,
+            SecretType = secretType,
+            KeySizeBits = keySizeBits,
+            Curve = curve,
+            Use = "sig",
+            Algorithm = algorithm,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ManagedBy = managedBy,
+        };
+
+    private void SetupCreateKey(RemoteSigningAlgorithm row, byte[] subjectPublicKeyInfo) =>
+        _remoteProvider
+            .Setup(x =>
+                x.CreateKeyAsync(
+                    It.Is<RemoteKeyCreationRequest>(request =>
+                        request.OwnerId == "tenant:tenant-one"
+                        && request.SecretId == "remote-1"
+                        && ReferenceEquals(request.Algorithm, row)
+                        && request.GroupName
+                            == new RemoteKeyCreationRequest
+                            {
+                                OwnerId = "tenant:tenant-one",
+                                SecretId = "other",
+                                Algorithm = row,
+                            }.GroupName
+                    ),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(
+                new RemoteKeyCreationResult
+                {
+                    KeyId = "key-1",
+                    SubjectPublicKeyInfo = subjectPublicKeyInfo,
+                }
+            )
+            .Verifiable();
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenRsa_CallsTheProviderWithTheRowAndStoresTheRemoteRecord()
+    {
+        var spki = CreateRsaSubjectPublicKeyInfo();
+        SetupCreateKey(RsaRow, spki);
+
+        var secret = await _generator.GenerateRemoteSecretAsync(
+            CreateRemoteRequest(),
+            CancellationToken.None
+        );
+
+        _remoteProvider.Verify();
+        Assert.Equal("remote-1", secret.SecretId);
+        Assert.Equal(SecretTypes.Rsa, secret.SecretType);
+        Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
+        Assert.Equal("aws-kms:key-1", secret.EncodedValue);
+        Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+        Assert.Equal(2048, secret.KeySizeBits);
+        Assert.Equal("RS256", secret.Algorithm);
+        Assert.Equal("sig", secret.Use);
+        Assert.Equal(SecretOrigins.Generated, secret.Origin);
+        Assert.Equal(DateTimeOffset.UnixEpoch, secret.CreatedWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch, secret.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddYears(1), secret.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddYears(1), secret.ExpiresWhen);
+        Assert.Null(secret.ManagedBy);
+    }
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenEcc_StoresTheCurveKeySize()
+    {
+        var spki = CreateEccSubjectPublicKeyInfo();
+        SetupCreateKey(EccRow, spki);
+
+        var secret = await _generator.GenerateRemoteSecretAsync(
+            CreateRemoteRequest(SecretTypes.Ecc, 256, "P-256", "ES256"),
+            CancellationToken.None
+        );
+
+        _remoteProvider.Verify();
+        Assert.Equal(SecretTypes.Ecc, secret.SecretType);
+        Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
+        Assert.Equal(256, secret.KeySizeBits);
+        Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+    }
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenTheRequestNamesALifecycleAndManager_StoresThem()
+    {
+        SetupCreateKey(RsaRow, CreateRsaSubjectPublicKeyInfo());
+        var request = CreateRemoteRequest(
+            activatesWhen: DateTimeOffset.UnixEpoch.AddDays(1),
+            retiresWhen: DateTimeOffset.UnixEpoch.AddDays(30),
+            managedBy: "rollover"
+        );
+
+        var secret = await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None);
+
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(1), secret.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(30), secret.RetiresWhen);
+        Assert.Equal("rollover", secret.ManagedBy);
+    }
+
+    [Theory]
+    [InlineData("unknown")]
+    [InlineData(SecretTypes.Symmetric)]
+    public async Task GenerateRemoteSecretAsync_WhenTheSecretTypeCannotBeRemote_ThrowsBeforeAnyProviderCall(
+        string secretType
+    )
+    {
+        var request = CreateRemoteRequest(secretType);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
+        );
+
+        Assert.Contains($"'{secretType}'", exception.Message, StringComparison.Ordinal);
+        _remoteProvider.Verify();
+    }
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenTheProviderIsNotRegistered_ThrowsBeforeAnyProviderCall()
+    {
+        var request = CreateRemoteRequest(provider: "unregistered-kms");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
+        );
+
+        Assert.Contains("'unregistered-kms'", exception.Message, StringComparison.Ordinal);
+        _remoteProvider.Verify();
+    }
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenNoRowMatches_ThrowsBeforeAnyProviderCall()
+    {
+        var request = CreateRemoteRequest(algorithm: "RS384");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
+        );
+
+        Assert.Contains("'RS384'", exception.Message, StringComparison.Ordinal);
+        _remoteProvider.Verify();
+    }
+
+    // Expects one call to the destroyer with the one record the generator would have returned for the created key.
+    private void SetupDestroy() =>
+        _remoteDestroyer
+            .Setup(x =>
+                x.DestroyAsync(
+                    It.Is<IReadOnlyCollection<PersistedSecret>>(secrets =>
+                        secrets.Count == 1
+                        && secrets.Single().EncodedValue == "aws-kms:key-1"
+                        && secrets.Single().SecretEncoding == SecretEncodings.Remote
+                        && secrets.Single().Origin == SecretOrigins.Generated
+                    )
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenTheKeySizeDiffersFromTheRow_HandsTheRecordToTheDestroyerAndThrows()
+    {
+        SetupCreateKey(LargeRsaRow, CreateRsaSubjectPublicKeyInfo());
+        SetupDestroy();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.GenerateRemoteSecretAsync(
+                CreateRemoteRequest(keySizeBits: 4096),
+                CancellationToken.None
+            )
+        );
+
+        _remoteProvider.Verify();
+        _remoteDestroyer.Verify(
+            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
+            Times.Once
+        );
+        Assert.Contains("key size 4096", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenTheCurveDiffersFromTheRow_HandsTheRecordToTheDestroyerAndThrows()
+    {
+        SetupCreateKey(OtherCurveEccRow, CreateEccSubjectPublicKeyInfo());
+        SetupDestroy();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.GenerateRemoteSecretAsync(
+                CreateRemoteRequest(SecretTypes.Ecc, 256, "secp256k1", "ES256"),
+                CancellationToken.None
+            )
+        );
+
+        _remoteProvider.Verify();
+        _remoteDestroyer.Verify(
+            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
+            Times.Once
+        );
+        Assert.Contains("curve 'secp256k1'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenThePublicKeyIsNotValidDer_HandsTheRecordToTheDestroyerAndThrowsWithTheReadFailure()
+    {
+        SetupCreateKey(RsaRow, [1, 2, 3]);
+        SetupDestroy();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.GenerateRemoteSecretAsync(
+                CreateRemoteRequest(),
+                CancellationToken.None
+            )
+        );
+
+        _remoteProvider.Verify();
+        _remoteDestroyer.Verify(
+            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
+            Times.Once
+        );
+        Assert.Contains($"'{SecretTypes.Rsa}' key", exception.Message, StringComparison.Ordinal);
+        Assert.NotNull(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenThePublicKeyIsOfAnotherKeyFamily_HandsTheRecordToTheDestroyerAndThrowsWithTheReadFailure()
+    {
+        SetupCreateKey(RsaRow, CreateEccSubjectPublicKeyInfo());
+        SetupDestroy();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.GenerateRemoteSecretAsync(
+                CreateRemoteRequest(),
+                CancellationToken.None
+            )
+        );
+
+        _remoteProvider.Verify();
+        _remoteDestroyer.Verify(
+            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
+            Times.Once
+        );
+        Assert.NotNull(exception.InnerException);
     }
 
     #endregion

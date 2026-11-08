@@ -101,11 +101,13 @@ NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEcc(NCode.Identity.Se
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEccPem(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<char> chars, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEccPkcs8(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEccPublicKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.ECAlgorithm! publicKey, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEccRemote(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> subjectPublicKeyInfo, NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding! binding) -> NCode.Identity.Secrets.Keys.EccSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEccSpki(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsa(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.RSA! key, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsaPem(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<char> chars, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsaPkcs8(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsaPublicKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.RSA! publicKey, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsaRemote(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> subjectPublicKeyInfo, NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding! binding) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsaSpki(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateSymmetric(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes) -> NCode.Identity.Secrets.Keys.SymmetricSecretKey!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateSymmetric(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<char> password) -> NCode.Identity.Secrets.Keys.SymmetricSecretKey!
@@ -283,3 +285,96 @@ NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>
 NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.Dispose() -> void
 NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.KeyAccessClientCache(System.TimeProvider! timeProvider, System.TimeSpan idleTimeout) -> void
 NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.UseAsync<TResult>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TClient!>>! create, System.Func<TClient!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResult>>! operation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TResult>
+const NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames.AwsKms = "aws-kms" -> string!
+const NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames.AzureKeyVault = "azure-key-vault" -> string!
+const NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames.GoogleCloudKms = "google-cloud-kms" -> string!
+const NCode.Identity.Secrets.SecretEncodings.Remote = "remote" -> string!
+static NCode.Identity.Secrets.SecretEncodings.IsRemote(string! secretEncoding) -> bool
+static NCode.Identity.Secrets.SecretEncodings.IsUnprotected(string! secretEncoding) -> bool
+NCode.Identity.Secrets.RemoteKeys.IRemoteSigningAlgorithmSource
+NCode.Identity.Secrets.RemoteKeys.IRemoteSigningAlgorithmSource.Algorithms.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm!>!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.KeyId.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.Provider.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.RemoteKeyReference() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.RemoteKeyReference(string! provider, string! keyId) -> void
+override NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.ToString() -> string!
+static NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.IsValidProviderName(string? name) -> bool
+static NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.TryParse(string? value, out NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference reference) -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Algorithm.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Curve.get -> string?
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Curve.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.DigestAlgorithm.get -> System.Security.Cryptography.HashAlgorithmName?
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.DigestAlgorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.IsDerEncodedSignature.get -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.IsDerEncodedSignature.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySizeBits.get -> int
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySizeBits.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySpec.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySpec.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Algorithm.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Curve.get -> string?
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Curve.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.KeySizeBits.get -> int
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.KeySizeBits.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Provider.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Provider.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.RemoteSigningAlgorithmSelector() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.SecretType.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.SecretType.init -> void
+NCode.Identity.Secrets.Keys.IRemoteSecretKey
+NCode.Identity.Secrets.Keys.IRemoteSecretKey.Binding.get -> NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding!
+NCode.Identity.Secrets.Keys.IRemoteSecretKey.SignAsync(string! algorithm, System.ReadOnlyMemory<byte> signingInput, System.Memory<byte> signature, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Secrets.KeyTypes.IRemoteSecretKeyTypeDescriptor
+NCode.Identity.Secrets.KeyTypes.IRemoteSecretKeyTypeDescriptor.CreateRemoteKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> subjectPublicKeyInfo, NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding! binding) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.CreateKeyAsync(NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult!>
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.DestroyKeyAsync(string! keyId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.Name.get -> string!
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.SignAsync(NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<byte[]!>
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProviderCatalog
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProviderCatalog.Providers.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider!>!
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProviderCatalog.TryGetAlgorithm(NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector selector, out NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm? algorithm) -> bool
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProviderCatalog.TryGetProvider(string! name, out NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider? provider) -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding.RemoteKeyBinding() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding.Algorithm.get -> NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding.Provider.get -> NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding.Provider.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding.Reference.get -> NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding.Reference.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.RemoteKeyCreationRequest() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.Algorithm.get -> NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.GroupName.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.OwnerId.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.OwnerId.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.SecretId.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.SecretId.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult.RemoteKeyCreationResult() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult.KeyId.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult.KeyId.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult.SubjectPublicKeyInfo.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult.SubjectPublicKeyInfo.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest
+NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.RemoteSignatureRequest() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.Algorithm.get -> NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm!
+NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.Data.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.Data.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.KeyId.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.KeyId.init -> void

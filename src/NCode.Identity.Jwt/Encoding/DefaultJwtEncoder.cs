@@ -29,7 +29,10 @@ internal sealed class DefaultJwtEncoder(
     private IJoseSerializer JoseSerializer { get; } = joseSerializer;
 
     /// <inheritdoc />
-    public string Encode(JwtEncodingParameters parameters)
+    public async ValueTask<string> EncodeAsync(
+        JwtEncodingParameters parameters,
+        CancellationToken cancellationToken
+    )
     {
         string? encodedToken = null;
         object valueToEncode = GetEffectivePayload(parameters);
@@ -46,7 +49,9 @@ internal sealed class DefaultJwtEncoder(
                 }
             );
 
-            encodedToken = JoseSerializer.CreateEncoder(signingOptions).Encode(valueToEncode);
+            encodedToken = await JoseSerializer
+                .CreateEncoder(signingOptions)
+                .EncodeAsync(valueToEncode, cancellationToken);
 
             // the signed token becomes the content of the enclosing JWE, if any
             valueToEncode = encodedToken;
@@ -76,7 +81,9 @@ internal sealed class DefaultJwtEncoder(
                 Recipients = [recipient],
             };
 
-            encodedToken = JoseSerializer.CreateEncoder(encryptingOptions).Encode(valueToEncode);
+            encodedToken = await JoseSerializer
+                .CreateEncoder(encryptingOptions)
+                .EncodeAsync(valueToEncode, cancellationToken);
         }
 
         if (encodedToken == null)

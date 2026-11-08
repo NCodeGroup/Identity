@@ -10,6 +10,7 @@ using System.Text.Json.Nodes;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Json;
 
 namespace NCode.Identity.Secrets.KeyTypes;
@@ -25,7 +26,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 internal sealed class EccSecretKeyTypeDescriptor(
     ISecretKeyFactory secretKeyFactory,
     IEccCurveCatalog eccCurveCatalog
-) : AsymmetricSecretKeyTypeDescriptor(secretKeyFactory)
+) : AsymmetricSecretKeyTypeDescriptor(secretKeyFactory), IRemoteSecretKeyTypeDescriptor
 {
     private IEccCurveCatalog EccCurveCatalog { get; } = eccCurveCatalog;
 
@@ -144,6 +145,13 @@ internal sealed class EccSecretKeyTypeDescriptor(
         KeyMetadata metadata,
         ReadOnlySpan<byte> subjectPublicKeyInfo
     ) => SecretKeyFactory.CreateEccSpki(metadata, subjectPublicKeyInfo);
+
+    /// <inheritdoc />
+    public SecretKey CreateRemoteKey(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> subjectPublicKeyInfo,
+        RemoteKeyBinding binding
+    ) => SecretKeyFactory.CreateEccRemote(metadata, subjectPublicKeyInfo, binding);
 
     /// <inheritdoc />
     protected override JsonObject? WritePublicKeyJwk(AsymmetricSecretKey secretKey)

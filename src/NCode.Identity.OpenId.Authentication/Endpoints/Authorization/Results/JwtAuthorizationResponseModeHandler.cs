@@ -83,7 +83,7 @@ internal abstract class JwtAuthorizationResponseModeHandler(
             ExtraPayloadClaims = claims,
         };
 
-        var responseJwt = JwtEncoder.Encode(parameters);
+        var responseJwt = await JwtEncoder.EncodeAsync(parameters, cancellationToken);
 
         await WriteAsync(
             httpContext.Response,

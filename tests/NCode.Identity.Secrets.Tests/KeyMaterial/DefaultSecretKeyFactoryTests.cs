@@ -9,6 +9,7 @@ using NCode.Buffers;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets.KeyMaterial;
 
@@ -519,6 +520,162 @@ public class DefaultSecretKeyFactoryTests : BaseTests
 
         using var exported = key.ExportECDsa();
         Assert.True(exported.VerifyData(data, signature, HashAlgorithmName.SHA256));
+    }
+
+    #endregion
+
+    #region Remote Tests
+
+    private static RemoteSigningAlgorithm CreateRsaRow(int keySizeBits = 2048) =>
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RS256",
+            SecretType = SecretKeyTypes.Rsa,
+            KeySizeBits = keySizeBits,
+            KeySpec = "RSA_2048",
+            SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+        };
+
+    private static RemoteSigningAlgorithm CreateEccRow(
+        string secretType = SecretKeyTypes.Ecc,
+        int keySizeBits = 256,
+        string? curve = "P-256"
+    ) =>
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ES256",
+            SecretType = secretType,
+            KeySizeBits = keySizeBits,
+            Curve = curve,
+            KeySpec = "ECC_NIST_P256",
+            SigningAlgorithm = "ECDSA_SHA_256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+            IsDerEncodedSignature = true,
+        };
+
+    private RemoteKeyBinding CreateBinding(RemoteSigningAlgorithm row) =>
+        new()
+        {
+            Provider = CreateStrictMock<IRemoteKeyProvider>().Object,
+            Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "key-1"),
+            Algorithm = row,
+        };
+
+    [Fact]
+    public void CreateRsaRemote_WhenTheRowMatches_CreatesARemoteKeyThatVerifies()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var rsa = RSA.Create(2048);
+        var binding = CreateBinding(CreateRsaRow());
+
+        var key = factory.CreateRsaRemote(
+            new KeyMetadata { KeyId = "rsa-remote" },
+            rsa.ExportSubjectPublicKeyInfo(),
+            binding
+        );
+
+        var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(key);
+        Assert.Same(binding, remoteKey.Binding);
+        Assert.Equal(2048, key.KeySizeBits);
+
+        byte[] data = [1, 2, 3, 4];
+        var signature = rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        using var exported = key.ExportRSA();
+        Assert.True(
+            exported.VerifyData(
+                data,
+                signature,
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1
+            )
+        );
+    }
+
+    [Fact]
+    public void CreateRsaRemote_WhenTheRowIsNotForRsa_Throws()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var rsa = RSA.Create(2048);
+        var binding = CreateBinding(CreateEccRow());
+
+        Assert.Throws<ArgumentException>(() =>
+            factory.CreateRsaRemote(new KeyMetadata(), rsa.ExportSubjectPublicKeyInfo(), binding)
+        );
+    }
+
+    [Fact]
+    public void CreateRsaRemote_WhenTheSizeDiffersFromTheRow_Throws()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var rsa = RSA.Create(2048);
+        var binding = CreateBinding(CreateRsaRow(keySizeBits: 3072));
+
+        Assert.Throws<ArgumentException>(() =>
+            factory.CreateRsaRemote(new KeyMetadata(), rsa.ExportSubjectPublicKeyInfo(), binding)
+        );
+    }
+
+    [Fact]
+    public void CreateEccRemote_WhenTheRowMatches_CreatesARemoteKeyThatVerifies()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var binding = CreateBinding(CreateEccRow());
+
+        var key = factory.CreateEccRemote(
+            new KeyMetadata { KeyId = "ecc-remote" },
+            ecdsa.ExportSubjectPublicKeyInfo(),
+            binding
+        );
+
+        var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(key);
+        Assert.Same(binding, remoteKey.Binding);
+        Assert.Equal(256, key.KeySizeBits);
+        Assert.Equal("P-256", key.CurveName);
+
+        byte[] data = [5, 6, 7, 8];
+        var signature = ecdsa.SignData(data, HashAlgorithmName.SHA256);
+        using var exported = key.ExportECDsa();
+        Assert.True(exported.VerifyData(data, signature, HashAlgorithmName.SHA256));
+    }
+
+    [Fact]
+    public void CreateEccRemote_WhenTheRowIsNotForEcc_Throws()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var binding = CreateBinding(CreateEccRow(secretType: SecretKeyTypes.Rsa));
+
+        Assert.Throws<ArgumentException>(() =>
+            factory.CreateEccRemote(new KeyMetadata(), ecdsa.ExportSubjectPublicKeyInfo(), binding)
+        );
+    }
+
+    [Fact]
+    public void CreateEccRemote_WhenTheSizeDiffersFromTheRow_Throws()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var binding = CreateBinding(CreateEccRow(keySizeBits: 384));
+
+        Assert.Throws<ArgumentException>(() =>
+            factory.CreateEccRemote(new KeyMetadata(), ecdsa.ExportSubjectPublicKeyInfo(), binding)
+        );
+    }
+
+    [Fact]
+    public void CreateEccRemote_WhenTheCurveDiffersFromTheRow_Throws()
+    {
+        var factory = CreateSecretKeyFactory(Brainpool256);
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var binding = CreateBinding(CreateEccRow(curve: Brainpool256.CurveName));
+
+        Assert.Throws<ArgumentException>(() =>
+            factory.CreateEccRemote(new KeyMetadata(), ecdsa.ExportSubjectPublicKeyInfo(), binding)
+        );
     }
 
     #endregion

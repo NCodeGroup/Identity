@@ -16,7 +16,9 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// rollover provisioned for an algorithm the tenant's settings do not use retires now and expires at the end of the
 /// retirement grace; one whose retirement plus the grace, as it stands, reaches past its expiry expires at the end of
 /// the grace instead; and one that has expired is removed. A key the rollover did not provision keeps the lifecycle
-/// its creator gave it.
+/// its creator gave it. When the tenant's settings choose another custody for a provisioned key, the key held by the
+/// new custody is generated to activate after the activation delay, and the key the rollover provisioned in the old
+/// custody retires then.
 /// </summary>
 // See ADR-1404.
 internal sealed class DefaultTenantKeyRolloverPlanner(
@@ -43,6 +45,12 @@ internal sealed class DefaultTenantKeyRolloverPlanner(
     /// </summary>
     private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right) =>
         left < right ? left : right;
+
+    /// <summary>
+    /// Returns the later of two instants.
+    /// </summary>
+    private static DateTimeOffset Max(DateTimeOffset left, DateTimeOffset right) =>
+        left > right ? left : right;
 
     private static TenantKeyGeneration CreateGeneration(
         TenantKeySpecification specification,
@@ -94,6 +102,7 @@ internal sealed class DefaultTenantKeyRolloverPlanner(
                     ActivatesWhen = Min(secret.ActivatesWhen, now),
                     RetiresWhen = now,
                     ExpiresWhen = now + lifetimes.RetirementGrace,
+                    Reason = TenantKeyChangeReasons.UnusedAlgorithm,
                 }
             );
         }
@@ -116,6 +125,10 @@ internal sealed class DefaultTenantKeyRolloverPlanner(
         ArgumentNullException.ThrowIfNull(specifications);
         ArgumentNullException.ThrowIfNull(held);
         ArgumentNullException.ThrowIfNull(settings);
+
+        // The tenant's custody choice is part of every provisioned key, so the plan is made for the keys as the
+        // tenant is provisioned with them.
+        specifications = TenantKeyPolicy.ForTenant(specifications, settings);
 
         var options = Options;
         var plan = new TenantKeyRolloverPlan { Now = now };
@@ -199,20 +212,51 @@ internal sealed class DefaultTenantKeyRolloverPlanner(
     )
     {
         var now = plan.Now;
-        var serving = held.Where(secret =>
-                IsServing(secret, now) && TenantKeyPolicy.IsSatisfiedBy(specification, secret)
-            )
-            .ToList();
 
-        // The instant after which no held key signs or encrypts for the algorithm.
+        // The keys that serve the algorithm in the tenant's custody, and the rollover's own keys that serve it in
+        // another custody: those the hand-over replaces.
+        var serving = new List<PersistedSecret>();
+        var superseded = new List<PersistedSecret>();
+        foreach (var secret in held)
+        {
+            if (!IsServing(secret, now))
+            {
+                continue;
+            }
+
+            if (TenantKeyPolicy.IsSatisfiedBy(specification, secret))
+            {
+                serving.Add(secret);
+            }
+            else if (
+                IsManaged(secret)
+                && string.Equals(
+                    secret.Algorithm,
+                    specification.Algorithm,
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                superseded.Add(secret);
+            }
+        }
+
+        var activeSuperseded = superseded.Where(secret => secret.IsActive(now)).ToList();
+
+        // The instant after which no held key signs or encrypts for the algorithm, and the instant the superseded keys
+        // hand over at.
         DateTimeOffset coverageEnd;
+        DateTimeOffset handOver;
         if (serving.Count > 0)
         {
             coverageEnd = serving.Max(secret => secret.RetiresWhen);
+            handOver = Max(now, serving.Min(secret => secret.ActivatesWhen));
 
-            // The key is published already, so activating it is the least disruptive way to sign again.
+            // The key is published already, so activating it is the least disruptive way to sign again, unless a
+            // superseded key still signs until the hand-over.
             if (
                 !serving.Any(secret => secret.IsActive(now))
+                && activeSuperseded.Count == 0
                 && serving.MinBy(secret => secret.ActivatesWhen) is { } upcoming
             )
             {
@@ -221,9 +265,30 @@ internal sealed class DefaultTenantKeyRolloverPlanner(
                 );
             }
         }
+        else if (activeSuperseded.Count > 0)
+        {
+            // The key in the tenant's custody is published for the whole delay before it signs, so a verifier that
+            // cached the JWKS holds it by then; the superseded keys sign until it activates, or until the last of them
+            // retires on its own when that comes first.
+            handOver = Min(
+                now + lifetimes.ActivationDelay,
+                activeSuperseded.Max(secret => secret.RetiresWhen)
+            );
+            coverageEnd = handOver + lifetimes.Lifetime;
+            plan.Generations.Add(
+                CreateGeneration(
+                    specification,
+                    handOver,
+                    coverageEnd,
+                    lifetimes,
+                    TenantKeyChangeReasons.CustodyChanged
+                )
+            );
+        }
         else
         {
             // Nothing to hand over from, so the key activates at once; the delay would only prolong the outage.
+            handOver = now;
             coverageEnd = now + lifetimes.Lifetime;
             plan.Generations.Add(
                 CreateGeneration(
@@ -234,6 +299,42 @@ internal sealed class DefaultTenantKeyRolloverPlanner(
                     TenantKeyChangeReasons.NoActiveKey
                 )
             );
+        }
+
+        // A superseded key that signs retires at the hand-over, unless it retires sooner on its own; one published
+        // ahead of an activation retires at once, so its active window collapses to nothing and its instants stay in
+        // order.
+        foreach (var secret in superseded)
+        {
+            if (secret.IsActive(now))
+            {
+                if (secret.RetiresWhen > handOver)
+                {
+                    plan.Retirements.Add(
+                        new TenantKeyRetirement
+                        {
+                            Secret = secret,
+                            ActivatesWhen = secret.ActivatesWhen,
+                            RetiresWhen = handOver,
+                            ExpiresWhen = handOver + lifetimes.RetirementGrace,
+                            Reason = TenantKeyChangeReasons.CustodyChanged,
+                        }
+                    );
+                }
+            }
+            else
+            {
+                plan.Retirements.Add(
+                    new TenantKeyRetirement
+                    {
+                        Secret = secret,
+                        ActivatesWhen = Min(secret.ActivatesWhen, now),
+                        RetiresWhen = now,
+                        ExpiresWhen = now + lifetimes.RetirementGrace,
+                        Reason = TenantKeyChangeReasons.CustodyChanged,
+                    }
+                );
+            }
         }
 
         // Each successor is published now and takes over the instant its predecessor retires, so one key of the

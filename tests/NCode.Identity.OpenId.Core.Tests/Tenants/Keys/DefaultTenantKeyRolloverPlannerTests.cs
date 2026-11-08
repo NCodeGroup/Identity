@@ -37,6 +37,21 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         OpenIdOptions.Tenant.KeyRollover.Interval = Interval;
         OpenIdOptions.Tenant.KeyRollover.TokenLifetimeSettings = [.. TokenLifetimeSettings];
         MockPolicy = CreateStrictMock<ITenantKeyPolicy>();
+        // Leaves the provisioned keys as they are, so a test passes the custody it plans for; the setup is not
+        // verified because only Plan reads it. A test that has the policy choose the custody sets it up again.
+        MockPolicy
+            .Setup(x =>
+                x.ForTenant(
+                    It.IsAny<IReadOnlyList<TenantKeySpecification>>(),
+                    It.IsAny<IReadOnlySettingCollection>()
+                )
+            )
+            .Returns(
+                (
+                    IReadOnlyList<TenantKeySpecification> specifications,
+                    IReadOnlySettingCollection _
+                ) => specifications
+            );
         // A value-provider stub, loose so a setting a test leaves unset reads as absent; every setup is verified.
         MockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         Planner = new DefaultTenantKeyRolloverPlanner(
@@ -47,6 +62,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
 
     private static TenantKeySpecification Rs256 => TenantKeyTestData.Rs256;
     private static TenantKeySpecification Es256 => TenantKeyTestData.Es256;
+    private static TenantKeySpecification RemoteRs256 => TenantKeyTestData.RemoteRs256;
 
     #region Plan Tests
 
@@ -261,6 +277,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         Assert.Equal(unused.ActivatesWhen, retirement.ActivatesWhen);
         Assert.Equal(Now, retirement.RetiresWhen);
         Assert.Equal(Now + RetirementGrace, retirement.ExpiresWhen);
+        Assert.Equal(TenantKeyChangeReasons.UnusedAlgorithm, retirement.Reason);
         Assert.Empty(plan.Generations);
         Assert.Empty(plan.Extensions);
     }
@@ -536,6 +553,262 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
 
         Assert.Single(plan.Activations);
         Assert.Empty(plan.Generations);
+    }
+
+    #endregion
+
+    #region Custody Tests
+
+    [Fact]
+    public void Plan_WhenTheTenantChoosesACustody_PlansForTheKeysTheyAreProvisionedWith()
+    {
+        MockPolicy
+            .Setup(x =>
+                x.ForTenant(
+                    It.Is<IReadOnlyList<TenantKeySpecification>>(specifications =>
+                        specifications.SequenceEqual(new[] { Rs256 })
+                    ),
+                    MockSettings.Object
+                )
+            )
+            .Returns([RemoteRs256])
+            .Verifiable();
+        SetupUsed("RS256");
+        SetupLifetimes();
+
+        var plan = Planner.Plan([Rs256], [], MockSettings.Object, Now);
+
+        var generation = Assert.Single(plan.Generations);
+        Assert.Equal(RemoteRs256, generation.Specification);
+    }
+
+    [Fact]
+    public void Plan_WhenTheTenantOptsInWithAnActiveLocalKey_GeneratesTheRemoteKeyAfterTheDelayAndRetiresTheLocalKeyThen()
+    {
+        SetupUsed("RS256");
+        SetupLifetimes();
+        var local = CreateKey(
+            "local",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: Now.AddDays(60)
+        );
+        SetupSatisfied(RemoteRs256);
+        var handOver = Now + ActivationDelay;
+
+        var plan = Planner.Plan([RemoteRs256], [local], MockSettings.Object, Now);
+
+        var generation = Assert.Single(plan.Generations);
+        Assert.Equal(RemoteRs256, generation.Specification);
+        Assert.Equal(handOver, generation.ActivatesWhen);
+        Assert.Equal(handOver + Lifetime, generation.RetiresWhen);
+        Assert.Equal(handOver + Lifetime + RetirementGrace, generation.ExpiresWhen);
+        Assert.Equal(TenantKeyChangeReasons.CustodyChanged, generation.Reason);
+        var retirement = Assert.Single(plan.Retirements);
+        Assert.Same(local, retirement.Secret);
+        Assert.Equal(local.ActivatesWhen, retirement.ActivatesWhen);
+        Assert.Equal(handOver, retirement.RetiresWhen);
+        Assert.Equal(handOver + RetirementGrace, retirement.ExpiresWhen);
+        Assert.Equal(TenantKeyChangeReasons.CustodyChanged, retirement.Reason);
+        Assert.Empty(plan.Activations);
+        Assert.Empty(plan.Extensions);
+        Assert.Empty(plan.Removals);
+    }
+
+    [Fact]
+    public void Plan_WhenTheLocalKeyRetiresBeforeTheDelayEnds_HandsOverWhenItRetires()
+    {
+        SetupUsed("RS256");
+        SetupLifetimes();
+        var local = CreateKey(
+            "local",
+            activatesWhen: Now.AddDays(-89),
+            retiresWhen: Now.AddDays(1)
+        );
+        SetupSatisfied(RemoteRs256);
+
+        var plan = Planner.Plan([RemoteRs256], [local], MockSettings.Object, Now);
+
+        var generation = Assert.Single(plan.Generations);
+        Assert.Equal(local.RetiresWhen, generation.ActivatesWhen);
+        Assert.Equal(local.RetiresWhen + Lifetime, generation.RetiresWhen);
+        Assert.Equal(TenantKeyChangeReasons.CustodyChanged, generation.Reason);
+        Assert.Empty(plan.Retirements);
+        Assert.Empty(plan.Activations);
+    }
+
+    [Fact]
+    public void Plan_WhenTheTenantOptsInWithAnUpcomingLocalKey_RetiresItAtOnce()
+    {
+        SetupUsed("RS256");
+        SetupLifetimes();
+        var local = CreateKey(
+            "local",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: Now.AddDays(60)
+        );
+        var upcoming = CreateKey(
+            "upcoming",
+            activatesWhen: Now.AddDays(1),
+            retiresWhen: Now.AddDays(91),
+            createdWhen: Now.AddHours(-1)
+        );
+        SetupSatisfied(RemoteRs256);
+        var handOver = Now + ActivationDelay;
+
+        var plan = Planner.Plan([RemoteRs256], [local, upcoming], MockSettings.Object, Now);
+
+        var generation = Assert.Single(plan.Generations);
+        Assert.Equal(handOver, generation.ActivatesWhen);
+        Assert.Collection(
+            plan.Retirements,
+            retirement =>
+            {
+                Assert.Same(local, retirement.Secret);
+                Assert.Equal(handOver, retirement.RetiresWhen);
+                Assert.Equal(TenantKeyChangeReasons.CustodyChanged, retirement.Reason);
+            },
+            retirement =>
+            {
+                Assert.Same(upcoming, retirement.Secret);
+                Assert.Equal(Now, retirement.ActivatesWhen);
+                Assert.Equal(Now, retirement.RetiresWhen);
+                Assert.Equal(Now + RetirementGrace, retirement.ExpiresWhen);
+                Assert.Equal(TenantKeyChangeReasons.CustodyChanged, retirement.Reason);
+            }
+        );
+    }
+
+    [Fact]
+    public void Plan_WhenTheHandOverIsPublishedAndNotYetDue_ActivatesAndChangesNothing()
+    {
+        // The pass after the one that opted in: the remote key is published for the delay, and the local key signs until
+        // then, so the remote key is not activated early and the local key is not retired a second time.
+        SetupUsed("RS256");
+        SetupLifetimes();
+        var handOver = Now.AddDays(1);
+        var local = CreateKey(
+            "local",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: handOver,
+            expiresWhen: handOver + RetirementGrace
+        );
+        var remote = CreateKey(
+            "remote",
+            activatesWhen: handOver,
+            retiresWhen: handOver + Lifetime,
+            createdWhen: Now.AddDays(-1)
+        );
+        SetupSatisfied(RemoteRs256, remote);
+
+        var plan = Planner.Plan([RemoteRs256], [local, remote], MockSettings.Object, Now);
+
+        Assert.True(plan.IsEmpty);
+    }
+
+    [Fact]
+    public void Plan_WhenTheRemoteKeyIsActive_RetiresTheLocalKeyAtOnce()
+    {
+        SetupUsed("RS256");
+        SetupLifetimes();
+        var local = CreateKey(
+            "local",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: Now.AddDays(60)
+        );
+        var remote = CreateKey(
+            "remote",
+            activatesWhen: Now.AddDays(-1),
+            retiresWhen: Now.AddDays(89)
+        );
+        SetupSatisfied(RemoteRs256, remote);
+
+        var plan = Planner.Plan([RemoteRs256], [local, remote], MockSettings.Object, Now);
+
+        var retirement = Assert.Single(plan.Retirements);
+        Assert.Same(local, retirement.Secret);
+        Assert.Equal(local.ActivatesWhen, retirement.ActivatesWhen);
+        Assert.Equal(Now, retirement.RetiresWhen);
+        Assert.Equal(Now + RetirementGrace, retirement.ExpiresWhen);
+        Assert.Equal(TenantKeyChangeReasons.CustodyChanged, retirement.Reason);
+        Assert.Empty(plan.Generations);
+        Assert.Empty(plan.Activations);
+    }
+
+    [Fact]
+    public void Plan_WhenNoSupersededKeyIsActive_GeneratesTheKeyActiveAtOnceAndRetiresTheRestAtOnce()
+    {
+        SetupUsed("RS256");
+        SetupLifetimes();
+        var upcoming = CreateKey(
+            "upcoming",
+            activatesWhen: Now.AddDays(1),
+            retiresWhen: Now.AddDays(91),
+            createdWhen: Now.AddHours(-1)
+        );
+        SetupSatisfied(RemoteRs256);
+
+        var plan = Planner.Plan([RemoteRs256], [upcoming], MockSettings.Object, Now);
+
+        var generation = Assert.Single(plan.Generations);
+        Assert.Equal(Now, generation.ActivatesWhen);
+        Assert.Equal(Now + Lifetime, generation.RetiresWhen);
+        Assert.Equal(TenantKeyChangeReasons.NoActiveKey, generation.Reason);
+        var retirement = Assert.Single(plan.Retirements);
+        Assert.Same(upcoming, retirement.Secret);
+        Assert.Equal(Now, retirement.ActivatesWhen);
+        Assert.Equal(Now, retirement.RetiresWhen);
+        Assert.Equal(Now + RetirementGrace, retirement.ExpiresWhen);
+        Assert.Equal(TenantKeyChangeReasons.CustodyChanged, retirement.Reason);
+        Assert.Empty(plan.Activations);
+    }
+
+    [Fact]
+    public void Plan_WhenTheLocalKeyIsAnOperatorsKey_LeavesItAndGeneratesTheKeyActiveAtOnce()
+    {
+        SetupUsed("RS256");
+        SetupLifetimes();
+        var operatorKey = CreateKey(
+            "operator",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: Now.AddDays(60),
+            managedBy: null
+        );
+        SetupSatisfied(RemoteRs256);
+
+        var plan = Planner.Plan([RemoteRs256], [operatorKey], MockSettings.Object, Now);
+
+        var generation = Assert.Single(plan.Generations);
+        Assert.Equal(Now, generation.ActivatesWhen);
+        Assert.Equal(TenantKeyChangeReasons.NoActiveKey, generation.Reason);
+        Assert.Empty(plan.Retirements);
+        Assert.Empty(plan.Activations);
+    }
+
+    [Fact]
+    public void Plan_WhenTheTenantOptsOutWithAnActiveRemoteKey_GeneratesTheLocalKeyAfterTheDelayAndRetiresTheRemoteKeyThen()
+    {
+        SetupUsed("RS256");
+        SetupLifetimes();
+        var remote = CreateKey(
+            "remote",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: Now.AddDays(60)
+        );
+        SetupSatisfied(Rs256);
+        var handOver = Now + ActivationDelay;
+
+        var plan = Planner.Plan([Rs256], [remote], MockSettings.Object, Now);
+
+        var generation = Assert.Single(plan.Generations);
+        Assert.Equal(Rs256, generation.Specification);
+        Assert.Equal(handOver, generation.ActivatesWhen);
+        Assert.Equal(handOver + Lifetime, generation.RetiresWhen);
+        Assert.Equal(TenantKeyChangeReasons.CustodyChanged, generation.Reason);
+        var retirement = Assert.Single(plan.Retirements);
+        Assert.Same(remote, retirement.Secret);
+        Assert.Equal(handOver, retirement.RetiresWhen);
+        Assert.Equal(handOver + RetirementGrace, retirement.ExpiresWhen);
+        Assert.Equal(TenantKeyChangeReasons.CustodyChanged, retirement.Reason);
     }
 
     #endregion

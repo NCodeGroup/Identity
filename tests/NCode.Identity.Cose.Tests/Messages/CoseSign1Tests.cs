@@ -217,10 +217,11 @@ public class CoseSign1Tests
     {
         await using var host = new CoseTestHost();
 
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(EcPrivate(host, "h'a1b2c3d4'"), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         var info = host.Serializer.Inspect(encoded, null);
@@ -250,10 +251,11 @@ public class CoseSign1Tests
     public async Task Verify_ContentAndDetachedContent_ThrowsDetachedContent()
     {
         await using var host = new CoseTestHost();
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         Assert.Equal(
@@ -284,10 +286,11 @@ public class CoseSign1Tests
                 [100] = CoseValue.FromInt64(1),
             },
         };
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            options
+            options,
+            CancellationToken.None
         );
         var key = EcPublic(host);
 
@@ -314,10 +317,11 @@ public class CoseSign1Tests
     public async Task Verify_KeysThatMustNotBeTried_ThrowKeyNotFound()
     {
         await using var host = new CoseTestHost();
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
         var encryptionOnly = CoseTestKeys.CreateEcP256(
             host.KeyFactory,
@@ -357,10 +361,11 @@ public class CoseSign1Tests
     public async Task Verify_KeyWithoutKeyId_IsTriedAfterTheMatchingKeys()
     {
         await using var host = new CoseTestHost();
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
         var unidentified = EcPublic(host, keyId: null);
         var matching = EcPublic(host);
@@ -377,10 +382,11 @@ public class CoseSign1Tests
     public async Task Verify_KeyWithinTheClockSkewOfExpiry_IsTried()
     {
         await using var host = new CoseTestHost();
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
         var recentlyExpired = CoseTestKeys.CreateEcP256(
             host.KeyFactory,
@@ -444,10 +450,11 @@ public class CoseSign1Tests
             },
         };
 
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(key, CoseAlgorithms.EdDsa),
-            options
+            options,
+            CancellationToken.None
         );
 
         Assert.Equal(CoseVectors.V5EdDsa, Convert.ToHexString(encoded));
@@ -464,10 +471,11 @@ public class CoseSign1Tests
         await using var host = new CoseTestHost();
         var key = CoseTestKeys.CreateEd25519(host.SecretKeyTypes, CoseTestKeys.Ed25519Seed);
 
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(key, CoseAlgorithms.Ed25519),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         var verified = host.Serializer.Verify(
@@ -482,10 +490,11 @@ public class CoseSign1Tests
     {
         await using var host = new CoseTestHost();
 
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         var info = host.Serializer.Inspect(encoded, null);
@@ -505,10 +514,11 @@ public class CoseSign1Tests
         var rsa = RSA.Create(2048);
         var key = host.KeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, rsa);
 
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(key, CoseAlgorithms.Ps256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         var verified = host.Serializer.Verify(
@@ -533,10 +543,11 @@ public class CoseSign1Tests
             Convert.FromBase64String(generated.ProtectedKeyMaterial)
         );
 
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(key, CoseAlgorithms.MlDsa44),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         var verified = host.Serializer.Verify(
@@ -550,10 +561,11 @@ public class CoseSign1Tests
     public async Task EncodeSign1_DetachedContent_RequiresTheContentToVerify()
     {
         await using var host = new CoseTestHost();
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions { DetachContent = true }
+            new CoseEncodingOptions { DetachContent = true },
+            CancellationToken.None
         );
         var key = EcPublic(host);
 
@@ -582,10 +594,11 @@ public class CoseSign1Tests
     {
         await using var host = new CoseTestHost();
 
-        var encoded = host.Serializer.EncodeSign1(
+        var encoded = await host.Serializer.EncodeSign1Async(
             Content,
             new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions { OmitTag = true }
+            new CoseEncodingOptions { OmitTag = true },
+            CancellationToken.None
         );
 
         Assert.False(host.Serializer.Inspect(encoded, CoseMessageType.Sign1).IsTagged);
@@ -598,11 +611,12 @@ public class CoseSign1Tests
         await using var host = new CoseTestHost();
         var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey);
 
-        Assert.Throws<ArgumentException>(() =>
-            host.Serializer.EncodeSign1(
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Serializer.EncodeSign1Async(
                 Content,
                 new CoseCredentials(key, CoseAlgorithms.HmacSha256),
-                new CoseEncodingOptions()
+                new CoseEncodingOptions(),
+                CancellationToken.None
             )
         );
     }
@@ -613,11 +627,12 @@ public class CoseSign1Tests
         await using var host = new CoseTestHost();
         var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey);
 
-        Assert.Throws<ArgumentException>(() =>
-            host.Serializer.EncodeSign1(
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Serializer.EncodeSign1Async(
                 Content,
                 new CoseCredentials(key, CoseAlgorithms.Es256),
-                new CoseEncodingOptions()
+                new CoseEncodingOptions(),
+                CancellationToken.None
             )
         );
     }
@@ -634,11 +649,12 @@ public class CoseSign1Tests
             },
         };
 
-        Assert.Throws<ArgumentException>(() =>
-            host.Serializer.EncodeSign1(
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await host.Serializer.EncodeSign1Async(
                 Content,
                 new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-                options
+                options,
+                CancellationToken.None
             )
         );
     }

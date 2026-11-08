@@ -179,7 +179,13 @@ internal class DefaultUserInfoEndpointProvider(
 
         IResult response = credentials.IsProtected
             ? Utf8TextResults.Create(
-                EncodeUserInfoJwt(openIdContext, openIdClient, credentials, result),
+                await EncodeUserInfoJwtAsync(
+                    openIdContext,
+                    openIdClient,
+                    credentials,
+                    result,
+                    cancellationToken
+                ),
                 JwtContentType
             )
             : TypedResults.Json(result, openIdEnvironment.JsonSerializerOptions);
@@ -204,11 +210,12 @@ internal class DefaultUserInfoEndpointProvider(
     // OpenID Connect Core 1.0 §5.3.2: a signed UserInfo response carries 'iss' and 'aud'; an encrypted one is the same
     // claims encrypted to the client, and one both signed and encrypted is a Nested JWT. Its lifetime is the client's ID
     // token lifetime, so a captured response is not treated as current for longer than an identity assertion.
-    private string EncodeUserInfoJwt(
+    private async ValueTask<string> EncodeUserInfoJwtAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ClientJwtCredentials credentials,
-        UserInfoResult result
+        UserInfoResult result,
+        CancellationToken cancellationToken
     )
     {
         var issuedAt = TimeProvider.GetUtcNowWithPrecisionInSeconds();
@@ -229,7 +236,7 @@ internal class DefaultUserInfoEndpointProvider(
             ExtraPayloadClaims = result.Claims,
         };
 
-        return JwtEncoder.Encode(parameters);
+        return await JwtEncoder.EncodeAsync(parameters, cancellationToken);
     }
 
     // A token that authenticated but names no client the tenant serves discloses nothing; the tenant's settings decide

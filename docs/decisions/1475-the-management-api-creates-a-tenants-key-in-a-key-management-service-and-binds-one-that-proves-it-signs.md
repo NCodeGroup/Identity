@@ -7,7 +7,7 @@
 ## Context
 
 A tenant's signing keys can be held in a key management service (KMS), and the host provisions them there through the
-tenant setting `tenant_signing_key_provider`
+tenant setting `tenant_key_provider`
 ([ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)). An
 operator who manages a tenant through the management API needs more than that setting gives:
 

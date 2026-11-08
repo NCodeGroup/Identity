@@ -1,14 +1,14 @@
 # 1477. A tenant's encryption keys can be held in a key management service that decrypts every content key
 
-- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md), [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md); amended by [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md))
+- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md), [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md), [ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md); amended by [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md))
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 
 ## Context
 
 [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) keeps a
-tenant's signing private keys in a key management service (KMS) so that no replica holds one. Its rule 10 and the
-setting `tenant_signing_key_provider` keep encryption keys local, so these forces remain:
+tenant's signing private keys in a key management service (KMS) so that no replica holds one. Its rule 10 holds a
+tenant's signing keys in a KMS and every encryption key in the server's store, so these forces remain:
 
 - **A replica holds every local encryption private key it loads.** As it once held signing keys, a replica that loads a
   tenant's encryption private key can leak it, and every replica that decrypts a JWE for the tenant holds it.
@@ -17,8 +17,12 @@ setting `tenant_signing_key_provider` keep encryption keys local, so these force
   place in them.
 - **The services differ.** AWS KMS decrypts RSA-OAEP and derives ECDH shared secrets, Azure Key Vault unwraps RSA-OAEP
   content keys, and Google Cloud KMS decrypts RSA-OAEP and agrees no keys.
-- **One setting chooses signing custody only.** `tenant_signing_key_provider` has no say over the encryption keys a
-  tenant is provisioned.
+- **Custody covers signing keys only.** The tenant setting of ADR-1471 rule 10 chooses where a tenant's signing keys
+  are held and has no say over the encryption keys the tenant is provisioned.
+- **The management API and the console bind by row.** A create or bind names a provider's algorithm row, the server
+  reads a bound key's public half from the KMS and proves the key with a signature, and the capabilities and the
+  console offer each provider's accepted rows
+  ([ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)).
 
 ## Decision
 
@@ -32,8 +36,9 @@ to every caller, and one tenant setting chooses the custody of every provisioned
    `RemoteDecryptionAlgorithm` (`Use` `enc`; `EncryptionAlgorithm`) and `RemoteKeyAgreementAlgorithm` (`Use` `enc`;
    `KeyAgreementAlgorithm`). The kinds are closed by the provider contract, because each kind is one
    `IRemoteKeyProvider` operation ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)'s closed test); the rows stay open
-   data that a source registers. `RemoteKeyAlgorithmSelector` selects any row. The descriptor source, the catalog,
-   `RemoteKeyBinding`, `RemoteKeyCreationRequest` and `RemotePublicKeyRequest` carry `RemoteKeyAlgorithm`.
+   data that a source registers. `RemoteKeyAlgorithmSelector` selects any row. `RemoteKeyAlgorithm.Selector` gives a
+   row's selector, and `IRemoteKeyDescriptorCatalog.Algorithms` lists the rows of every kind. The descriptor source,
+   the catalog, `RemoteKeyBinding`, `RemoteKeyCreationRequest` and `RemotePublicKeyRequest` carry `RemoteKeyAlgorithm`.
    `RemoteSigningAlgorithm` keeps its name as the signing kind.
 2. **The provider decrypts and agrees into the caller's buffer.**
    `IRemoteKeyProvider.DecryptAsync(RemoteDecryptionRequest { KeyId, Algorithm, Ciphertext }, Memory<byte> plaintext,
@@ -66,9 +71,11 @@ to every caller, and one tenant setting chooses the custody of every provisioned
    says. Each refuses an algorithm other than its row's and a kind it does not hold (`InvalidOperationException`). The
    factory refuses an RSA key bound to an agreement row and an ECC key bound to a decryption row
    (`ArgumentException`).
-5. **A row's `Use` is the key's use.** The generator refuses a request whose `Use` differs from its row's, and the
-   serializer refuses a stored remote secret whose `Use` differs, so a remote encryption key carries and publishes
-   `use` `enc`.
+5. **A row's `Use` is the key's use.** The generator gives a created or bound remote key the `Use` of its row, so
+   `GenerateRemoteSecretRequest` and `BindRemoteSecretRequest` name no use. The serializer refuses a stored remote
+   secret whose `Use` differs from its row's, the provisioning check refuses a provider whose row for a provisioned key
+   holds another use, and the management validator refuses a row whose use differs from the use its algorithm implies,
+   so a remote encryption key carries and publishes `use` `enc`.
 6. **JOSE unwraps a content key asynchronously.**
    `KeyManagementAlgorithm.UnwrapKeyAsync(SecretKey, JsonElement header, ReadOnlyMemory<byte> encryptedContentKey,
    Memory<byte> contentKey, CancellationToken)` returns a `ValueTask<int>`. Its default refuses a remote key
@@ -95,12 +102,16 @@ to every caller, and one tenant setting chooses the custody of every provisioned
    ([ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) rule 11
    widened). A deployment that registers Azure Key Vault or Google Cloud KMS provisions `RSA-OAEP*` encryption keys
    rather than `ECDH-ES` ones.
-10. **The management API creates and binds encryption keys.** Create derives `Use` from the algorithm
-    (`IAlgorithmCollection.TryGetKeyedAlgorithm`'s implied use). Import accepts a signature or key-management algorithm
-    for the key type. Binding an encryption key is proved by wrapping a random 32-byte content key to the supplied
-    public half locally (`KeyManagementAlgorithm.WrapNewKey`, header `alg` = the algorithm, `enc` = `A256GCM`) and
-    unwrapping it through the referenced key (`UnwrapKeyAsync`). The bytes must match
-    (`CryptographicOperations.FixedTimeEquals`) or the answer is `400`, and a service failure is `502`.
+10. **The management API and the console create and bind encryption keys.**
+    `ISecretValidator.ValidateRemoteKey(RemoteKeyAlgorithmSelector)` resolves a key for a signature or key-management
+    algorithm and refuses a row whose use is not the one the algorithm implies; create and bind name no use. The
+    capabilities list each provider's accepted rows of every kind with their `use`
+    (`RemoteKeyAlgorithmCapabilityResource.Use`), and the console's create form and bind dialog offer them, each
+    labelled signing or encryption. A bind reads the key's public half from the KMS and proves the key by its
+    algorithm's kind: a signing key signs 32 random bytes that the public half verifies, and an encryption key decrypts
+    32 random bytes that the server encrypts to the public half as a compact JWE (`enc` `A256GCM`) and decodes through
+    the key (`IJoseSerializer.DecodeAsync`), so a key that unwraps another content key fails at the JWE's tag. A failed
+    proof is `400`, and any other failure of the service is `502`.
 11. **Permissions.** AWS adds `kms:Decrypt` and `kms:DeriveSharedSecret`. Azure `Key Vault Crypto Officer` is unchanged,
     and a bound key needs `Key Vault Crypto User`. Google adds `cloudkms.cryptoKeyVersions.useToDecrypt`.
 12. **Security posture.** The private key never leaves the service. The ECDH shared secret of one message passes through
@@ -118,6 +129,10 @@ to every caller, and one tenant setting chooses the custody of every provisioned
   second check adds a service call and no assurance.
 - **Azure `Decrypt` in place of `UnwrapKey`.** Rejected: a key that only unwraps cannot decrypt arbitrary data.
 - **Exporting a key to agree locally.** Rejected: it defeats custody, since the private key reaches a replica.
+- **Wrapping and unwrapping a content key directly** (`WrapNewKey`, `UnwrapKeyAsync`). Rejected: the JWE round trip
+  runs the production decode path, the `epk` header of `ECDH-ES` included, and a wrong key fails at the tag.
+- **A console that offers signing keys only.** Rejected: the API accepts encryption keys, and a console that hid them
+  would offer less than the capabilities say.
 
 ## Consequences
 
@@ -132,6 +147,7 @@ to every caller, and one tenant setting chooses the custody of every provisioned
 - [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)
 - [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)
+- [ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
 - [RFC 7516](https://www.rfc-editor.org/rfc/rfc7516) §11.5
 - [RFC 7518](https://www.rfc-editor.org/rfc/rfc7518) §4.3 and §4.6

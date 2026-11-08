@@ -55,7 +55,7 @@ public keys without calling the service.**
    row). `RemoteKeyCreationRequest.GroupName` is `"ncid-"` and the lowercase hex of the first 16 bytes of the SHA-256
    of the owner, provider, algorithm, key spec, size and curve: the stable service key whose versions are one owner's
    successive keys for one algorithm and spec, 37 characters, valid as an Azure key name and a Google crypto key id.
-   `IRemoteKeyProviderCatalog` resolves a provider by name and a row by `RemoteSigningAlgorithmSelector`, ordinally.
+   `IRemoteKeyProviderCatalog` resolves a provider by name and a row by `RemoteKeyAlgorithmSelector`, ordinally.
    `IRemoteSecretKeyTypeDescriptor` is implemented beside `ISecretKeyTypeDescriptor` by a key type a service can
    hold; RSA and ECC do, and a contributed key type opts in the same way.
 3. **Storage uses the `remote` encoding and the existing columns.** A remote `PersistedSecret` has `SecretType`
@@ -95,11 +95,11 @@ public keys without calling the service.**
    unregistered provider or a failure with the secret id and provider name only. The seed, the rollover pass, the
    management secret delete and the management tenant delete call it after their commit and after the tenant is
    announced. The server destroys only keys it created.
-10. **The opt-in is the tenant setting `tenant_signing_key_provider`.** `OpenIdSettingKeys.TenantSigningKeyProvider`
-    (`OpenIdSettingNames.TenantSigningKeyProvider`) applies to a tenant, so a platform or team document carries it to
+10. **The opt-in is the tenant setting `tenant_key_provider`.** `OpenIdSettingKeys.TenantKeyProvider`
+    (`OpenIdSettingNames.TenantKeyProvider`) applies to a tenant, so a platform or team document carries it to
     its tenants. Its rule is empty or one of the registered provider names; its default is empty (local keys); it is
     not discoverable; it is environment-bound, because each environment chooses its own custody; it merges by
-    replacement. Encryption keys are always local.
+    replacement. [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md) rule 9 extends it to every provisioned key.
 11. **A registered provider holds every provisioned signature key, or the host does not start.**
     `DefaultTenantKeyPolicy.ResolveSpecifications` reports, for each registered provider and each signature
     specification with no mapping row, that the provider cannot hold the provisioned algorithm, key type, size and

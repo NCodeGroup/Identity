@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Collections.Frozen;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -31,8 +32,10 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// of its crypto key version.
 /// </para>
 /// <para>
-/// A version of a hardware key is generated asynchronously, so the provider polls the version until it is enabled,
-/// with a delay that doubles from 250 milliseconds to 4 seconds, for 60 seconds at most.
+/// A version of a hardware key is generated asynchronously, so reading the public key of a version polls the version
+/// until it is enabled, with a delay that doubles from 250 milliseconds to 4 seconds, for 60 seconds at most. Creating
+/// a key returns the version name as soon as the service reports it, so the caller can destroy the version when a
+/// later step fails.
 /// </para>
 /// <para>
 /// Every request and response carries CRC32C checksums, so a value corrupted in transit is detected. A response that
@@ -92,18 +95,13 @@ internal class GoogleCloudKmsRemoteKeyProvider(
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the configured key ring is not a Cloud KMS key ring name, or when the service fails to generate the
-    /// key version or does not enable it within 60 seconds.
+    /// Thrown when the configured key ring is not a Cloud KMS key ring name.
     /// </exception>
     /// <exception cref="ArgumentException">
     /// Thrown when the key specification of the algorithm of <paramref name="request"/> is not a Cloud KMS algorithm.
     /// </exception>
-    /// <exception cref="CryptographicException">
-    /// Thrown when the service creates a key version that does not belong to the crypto key, reports a public key of
-    /// another algorithm, or returns a public key that is not a PEM-encoded <c>SubjectPublicKeyInfo</c>.
-    /// </exception>
     /// <exception cref="IOException">
-    /// Thrown when the service does not confirm the integrity of the public key.
+    /// Thrown when the service creates a key version that does not belong to the crypto key.
     /// </exception>
     public async ValueTask<RemoteKeyCreationResult> CreateKeyAsync(
         RemoteKeyCreationRequest request,
@@ -121,7 +119,7 @@ internal class GoogleCloudKmsRemoteKeyProvider(
         }
 
         var row = request.Algorithm;
-        if (!KeySpecs.TryGetValue(row.KeySpec, out var algorithm))
+        if (!KeySpecs.ContainsKey(row.KeySpec))
         {
             throw new ArgumentException(
                 $"The key specification '{row.KeySpec}' is not a Cloud KMS algorithm.",
@@ -143,20 +141,61 @@ internal class GoogleCloudKmsRemoteKeyProvider(
             )
         )
         {
-            throw new CryptographicException(
-                $"Google Cloud KMS created '{versionName}', which is not a version of the crypto key '{cryptoKeyName}'."
+            throw new IOException(
+                $"Google Cloud KMS created '{versionName}', which is not a version of the crypto key '{cryptoKeyName}'; the response names another key."
             );
         }
 
-        await WaitUntilEnabledAsync(versionName, cancellationToken);
+        return new RemoteKeyCreationResult { KeyId = versionName };
+    }
 
-        var publicKey = await GetPublicKeyAsync(versionName, algorithm, cancellationToken);
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
+    /// Thrown when the key identifier of <paramref name="request"/> is not a Cloud KMS crypto key version name, or the
+    /// key specification of its algorithm is not a Cloud KMS algorithm.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the service fails to generate the key version or does not enable it within 60 seconds.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the service reports a public key of another algorithm, or a public key that is not a PEM-encoded
+    /// <c>SubjectPublicKeyInfo</c>.
+    /// </exception>
+    /// <exception cref="IOException">
+    /// Thrown when the service does not confirm the integrity of the public key.
+    /// </exception>
+    public async ValueTask GetPublicKeyAsync(
+        RemotePublicKeyRequest request,
+        IBufferWriter<byte> subjectPublicKeyInfo,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(subjectPublicKeyInfo);
 
-        return new RemoteKeyCreationResult
+        var keyId = request.KeyId;
+        if (!GoogleCloudKmsKeyName.IsCryptoKeyVersionName(keyId))
         {
-            KeyId = versionName,
-            SubjectPublicKeyInfo = publicKey,
-        };
+            throw new ArgumentException(
+                "The key identifier is not the name of a Cloud KMS crypto key version.",
+                nameof(request)
+            );
+        }
+
+        var row = request.Algorithm;
+        if (!KeySpecs.TryGetValue(row.KeySpec, out var algorithm))
+        {
+            throw new ArgumentException(
+                $"The key specification '{row.KeySpec}' is not a Cloud KMS algorithm.",
+                nameof(request)
+            );
+        }
+
+        await WaitUntilEnabledAsync(keyId, cancellationToken);
+
+        var publicKey = await ReadPublicKeyAsync(keyId, algorithm, cancellationToken);
+
+        subjectPublicKeyInfo.Write(publicKey);
     }
 
     /// <inheritdoc />
@@ -168,8 +207,12 @@ internal class GoogleCloudKmsRemoteKeyProvider(
     /// Thrown when the service does not confirm the integrity of the request and response, or reports that another
     /// key version made the signature.
     /// </exception>
-    public async ValueTask<byte[]> SignAsync(
+    /// <exception cref="CryptographicException">
+    /// Thrown when the signature does not fit in the buffer.
+    /// </exception>
+    public async ValueTask<int> SignAsync(
         RemoteSignatureRequest request,
+        Memory<byte> signature,
         CancellationToken cancellationToken
     )
     {
@@ -239,7 +282,16 @@ internal class GoogleCloudKmsRemoteKeyProvider(
             );
         }
 
-        return response.Signature.ToByteArray();
+        var bytes = response.Signature.Span;
+        if (bytes.Length > signature.Length)
+        {
+            throw new CryptographicException(
+                $"The signature of Google Cloud KMS key version '{keyId}' does not fit in the buffer."
+            );
+        }
+
+        bytes.CopyTo(signature.Span);
+        return bytes.Length;
     }
 
     /// <inheritdoc />
@@ -436,7 +488,7 @@ internal class GoogleCloudKmsRemoteKeyProvider(
         }
     }
 
-    private async ValueTask<byte[]> GetPublicKeyAsync(
+    private async ValueTask<byte[]> ReadPublicKeyAsync(
         string versionName,
         CryptoKeyVersion.Types.CryptoKeyVersionAlgorithm algorithm,
         CancellationToken cancellationToken

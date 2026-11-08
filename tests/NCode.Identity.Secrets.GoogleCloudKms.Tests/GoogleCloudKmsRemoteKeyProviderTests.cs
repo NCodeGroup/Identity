@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Security.Cryptography;
 using Google.Api.Gax.Grpc;
 using Google.Cloud.Kms.V1;
@@ -82,7 +83,13 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
             OwnerId = "tenant-1",
             SecretId = "secret-1",
             Algorithm = row,
+            GroupName = "ncid-group-1",
         };
+
+    private static RemotePublicKeyRequest CreatePublicKeyRequest(
+        RemoteSigningAlgorithm row,
+        string keyId
+    ) => new() { KeyId = keyId, Algorithm = row };
 
     private static string CryptoKeyName(RemoteKeyCreationRequest request, char suffix = 'h') =>
         $"{KeyRing}/cryptoKeys/{request.GroupName}-{suffix}";
@@ -239,31 +246,35 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         Assert.True(condition());
     }
 
-    private void SetupCreationOfAnExistingCryptoKey(
-        RemoteKeyCreationRequest request,
-        PublicKey publicKey
-    )
+    private void SetupReadOfAnEnabledVersion(PublicKey publicKey)
     {
         SetupClient<CryptoKeyVersion>();
         SetupClient<PublicKey>();
-        SetupCreateVersion(_ =>
-            Task.FromResult(new CryptoKeyVersion { Name = VersionName(request) })
-        );
         SetupGetVersion(_ => CryptoKeyVersion.Types.CryptoKeyVersionState.Enabled);
         SetupGetPublicKey(publicKey);
+    }
+
+    private static async Task<byte[]> ReadPublicKeyAsync(
+        GoogleCloudKmsRemoteKeyProvider provider,
+        RemotePublicKeyRequest request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var writer = new ArrayBufferWriter<byte>();
+        await provider.GetPublicKeyAsync(request, writer, cancellationToken);
+        return writer.WrittenSpan.ToArray();
     }
 
     #region CreateKeyAsync Tests
 
     [Fact]
-    public async Task CreateKeyAsync_ExistingCryptoKey_CreatesAVersionAndReturnsItsNameAndPublicKey()
+    public async Task CreateKeyAsync_ExistingCryptoKey_CreatesAVersionAndReturnsItsName()
     {
         var request = CreateCreationRequest(Es256);
         using var cancellationSource = new CancellationTokenSource();
         CreateCryptoKeyVersionRequest? sent = null;
         CallSettings? sentSettings = null;
         SetupClient<CryptoKeyVersion>();
-        SetupClient<PublicKey>();
         SetupCreateVersion(
             _ => Task.FromResult(new CryptoKeyVersion { Name = VersionName(request) }),
             (versionRequest, settings) =>
@@ -272,14 +283,11 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                 sentSettings = settings;
             }
         );
-        SetupGetVersion(_ => CryptoKeyVersion.Types.CryptoKeyVersionState.Enabled);
-        SetupGetPublicKey(CreatePublicKey(VersionName(request)));
         var provider = CreateProvider();
 
         var result = await provider.CreateKeyAsync(request, cancellationSource.Token);
 
         Assert.Equal(VersionName(request), result.KeyId);
-        Assert.Equal(PublicKeySpki, result.SubjectPublicKeyInfo.ToArray());
         var versionRequest = Assert.IsType<CreateCryptoKeyVersionRequest>(sent);
         Assert.Equal(CryptoKeyName(request), versionRequest.Parent);
         AssertSettings(sentSettings, GoogleCloudKmsCallSettings.Creating, cancellationSource.Token);
@@ -291,13 +299,10 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         var request = CreateCreationRequest(Es256);
         CreateCryptoKeyVersionRequest? sent = null;
         SetupClient<CryptoKeyVersion>();
-        SetupClient<PublicKey>();
         SetupCreateVersion(
             _ => Task.FromResult(new CryptoKeyVersion { Name = VersionName(request, 's') }),
             (versionRequest, _) => sent = versionRequest
         );
-        SetupGetVersion(_ => CryptoKeyVersion.Types.CryptoKeyVersionState.Enabled);
-        SetupGetPublicKey(CreatePublicKey(VersionName(request, 's')));
         var provider = CreateProvider(hardwareProtected: false);
 
         var result = await provider.CreateKeyAsync(request, CancellationToken.None);
@@ -324,7 +329,6 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         CallSettings? sentSettings = null;
         SetupClient<CryptoKeyVersion>();
         SetupClient<CryptoKey>();
-        SetupClient<PublicKey>();
         SetupCreateVersion(call =>
             call == 0
                 ? Task.FromException<CryptoKeyVersion>(CreateRpcException(StatusCode.NotFound))
@@ -338,8 +342,6 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                 sentSettings = settings;
             }
         );
-        SetupGetVersion(_ => CryptoKeyVersion.Types.CryptoKeyVersionState.Enabled);
-        SetupGetPublicKey(CreatePublicKey(VersionName(request, suffix)));
         var provider = CreateProvider(hardwareProtected: hardwareProtected);
 
         var result = await provider.CreateKeyAsync(request, cancellationSource.Token);
@@ -368,7 +370,6 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         var request = CreateCreationRequest(Es256);
         SetupClient<CryptoKeyVersion>();
         SetupClient<CryptoKey>();
-        SetupClient<PublicKey>();
         SetupCreateVersion(call =>
             call == 0
                 ? Task.FromException<CryptoKeyVersion>(CreateRpcException(StatusCode.NotFound))
@@ -377,8 +378,6 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         SetupCreateCryptoKey(() =>
             Task.FromException<CryptoKey>(CreateRpcException(StatusCode.AlreadyExists))
         );
-        SetupGetVersion(_ => CryptoKeyVersion.Types.CryptoKeyVersionState.Enabled);
-        SetupGetPublicKey(CreatePublicKey(VersionName(request)));
         var provider = CreateProvider();
 
         var result = await provider.CreateKeyAsync(request, CancellationToken.None);
@@ -465,23 +464,39 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         );
         var provider = CreateProvider();
 
-        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
             provider.CreateKeyAsync(CreateCreationRequest(Es256), CancellationToken.None).AsTask()
         );
 
         Assert.Contains(OtherCryptoKeyVersionName, exception.Message);
     }
 
+    #endregion
+
+    #region GetPublicKeyAsync Tests
+
     [Fact]
-    public async Task CreateKeyAsync_VersionPendingGeneration_PollsWithADoublingDelayUntilEnabled()
+    public async Task GetPublicKeyAsync_EnabledVersion_WritesTheSubjectPublicKeyInfo()
     {
-        var request = CreateCreationRequest(Es256);
+        var versionName = VersionName(CreateCreationRequest(Es256));
+        SetupReadOfAnEnabledVersion(CreatePublicKey(versionName));
+        var provider = CreateProvider();
+
+        var written = await ReadPublicKeyAsync(
+            provider,
+            CreatePublicKeyRequest(Es256, versionName)
+        );
+
+        Assert.Equal(PublicKeySpki, written);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_VersionPendingGeneration_PollsWithADoublingDelayUntilEnabled()
+    {
+        var versionName = VersionName(CreateCreationRequest(Es256));
         CallSettings? sentSettings = null;
         SetupClient<CryptoKeyVersion>();
         SetupClient<PublicKey>();
-        SetupCreateVersion(_ =>
-            Task.FromResult(new CryptoKeyVersion { Name = VersionName(request) })
-        );
         SetupGetVersion(
             call =>
                 call < 3
@@ -489,10 +504,10 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                     : CryptoKeyVersion.Types.CryptoKeyVersionState.Enabled,
             (_, settings) => sentSettings = settings
         );
-        SetupGetPublicKey(CreatePublicKey(VersionName(request)));
+        SetupGetPublicKey(CreatePublicKey(versionName));
         var provider = CreateProvider();
 
-        var task = provider.CreateKeyAsync(request, CancellationToken.None).AsTask();
+        var task = ReadPublicKeyAsync(provider, CreatePublicKeyRequest(Es256, versionName));
 
         await WaitUntilAsync(() => VersionGets == 1);
         TimeProvider.Advance(TimeSpan.FromMilliseconds(249));
@@ -509,67 +524,58 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         await Task.Yield();
         Assert.Equal(3, VersionGets);
         TimeProvider.Advance(TimeSpan.FromMilliseconds(1));
-        var result = await task;
+        var written = await task;
 
         Assert.Equal(4, VersionGets);
-        Assert.Equal(VersionName(request), result.KeyId);
+        Assert.Equal(PublicKeySpki, written);
         AssertSettings(sentSettings, GoogleCloudKmsCallSettings.Retrying, CancellationToken.None);
     }
 
     [Fact]
-    public async Task CreateKeyAsync_GenerationFailed_Throws()
+    public async Task GetPublicKeyAsync_GenerationFailed_Throws()
     {
-        var request = CreateCreationRequest(Es256);
+        var versionName = VersionName(CreateCreationRequest(Es256));
         SetupClient<CryptoKeyVersion>();
-        SetupCreateVersion(_ =>
-            Task.FromResult(new CryptoKeyVersion { Name = VersionName(request) })
-        );
         SetupGetVersion(_ => CryptoKeyVersion.Types.CryptoKeyVersionState.GenerationFailed);
         var provider = CreateProvider();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            provider.CreateKeyAsync(request, CancellationToken.None).AsTask()
+            ReadPublicKeyAsync(provider, CreatePublicKeyRequest(Es256, versionName))
         );
 
-        Assert.Contains(VersionName(request), exception.Message);
+        Assert.Contains(versionName, exception.Message);
     }
 
     [Fact]
-    public async Task CreateKeyAsync_VersionNeverEnabled_ThrowsAtTheBound()
+    public async Task GetPublicKeyAsync_VersionNeverEnabled_ThrowsAtTheBound()
     {
-        var request = CreateCreationRequest(Es256);
+        var versionName = VersionName(CreateCreationRequest(Es256));
         SetupClient<CryptoKeyVersion>();
-        SetupCreateVersion(_ =>
-            Task.FromResult(new CryptoKeyVersion { Name = VersionName(request) })
-        );
         SetupGetVersion(_ => CryptoKeyVersion.Types.CryptoKeyVersionState.PendingGeneration);
         var provider = CreateProvider();
         var started = TimeProvider.GetUtcNow();
 
-        var task = provider.CreateKeyAsync(request, CancellationToken.None).AsTask();
+        var task = ReadPublicKeyAsync(provider, CreatePublicKeyRequest(Es256, versionName));
         await AdvanceUntilCompletedAsync(task);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => task);
-        Assert.Contains(VersionName(request), exception.Message);
+        Assert.Contains(versionName, exception.Message);
         Assert.Equal(20, VersionGets);
         Assert.True(TimeProvider.GetUtcNow() - started >= TimeSpan.FromSeconds(60));
     }
 
     [Fact]
-    public async Task CreateKeyAsync_PublicKey_IsReadWithTheRetryingSettings()
+    public async Task GetPublicKeyAsync_PublicKey_IsReadWithTheRetryingSettings()
     {
-        var request = CreateCreationRequest(Es256);
+        var versionName = VersionName(CreateCreationRequest(Es256));
         using var cancellationSource = new CancellationTokenSource();
         GetPublicKeyRequest? sent = null;
         CallSettings? sentSettings = null;
         SetupClient<CryptoKeyVersion>();
         SetupClient<PublicKey>();
-        SetupCreateVersion(_ =>
-            Task.FromResult(new CryptoKeyVersion { Name = VersionName(request) })
-        );
         SetupGetVersion(_ => CryptoKeyVersion.Types.CryptoKeyVersionState.Enabled);
         SetupGetPublicKey(
-            CreatePublicKey(VersionName(request)),
+            CreatePublicKey(versionName),
             (publicKeyRequest, settings) =>
             {
                 sent = publicKeyRequest;
@@ -578,78 +584,102 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         );
         var provider = CreateProvider();
 
-        await provider.CreateKeyAsync(request, cancellationSource.Token);
+        await ReadPublicKeyAsync(
+            provider,
+            CreatePublicKeyRequest(Es256, versionName),
+            cancellationSource.Token
+        );
 
-        Assert.Equal(VersionName(request), Assert.IsType<GetPublicKeyRequest>(sent).Name);
+        Assert.Equal(versionName, Assert.IsType<GetPublicKeyRequest>(sent).Name);
         AssertSettings(sentSettings, GoogleCloudKmsCallSettings.Retrying, cancellationSource.Token);
     }
 
     [Fact]
-    public async Task CreateKeyAsync_PublicKeyNamesAnotherVersion_Throws()
+    public async Task GetPublicKeyAsync_PublicKeyNamesAnotherVersion_Throws()
     {
-        var request = CreateCreationRequest(Es256);
-        SetupCreationOfAnExistingCryptoKey(
-            request,
-            CreatePublicKey(VersionName(request), name: OtherCryptoKeyVersionName)
-        );
+        var versionName = VersionName(CreateCreationRequest(Es256));
+        SetupReadOfAnEnabledVersion(CreatePublicKey(versionName, name: OtherCryptoKeyVersionName));
         var provider = CreateProvider();
 
         await Assert.ThrowsAsync<IOException>(() =>
-            provider.CreateKeyAsync(request, CancellationToken.None).AsTask()
+            ReadPublicKeyAsync(provider, CreatePublicKeyRequest(Es256, versionName))
         );
     }
 
     [Fact]
-    public async Task CreateKeyAsync_PublicKeyFailsItsChecksum_Throws()
+    public async Task GetPublicKeyAsync_PublicKeyFailsItsChecksum_Throws()
     {
-        var request = CreateCreationRequest(Es256);
-        SetupCreationOfAnExistingCryptoKey(
-            request,
-            CreatePublicKey(VersionName(request), pemCrc32C: 1)
-        );
+        var versionName = VersionName(CreateCreationRequest(Es256));
+        SetupReadOfAnEnabledVersion(CreatePublicKey(versionName, pemCrc32C: 1));
         var provider = CreateProvider();
 
         await Assert.ThrowsAsync<IOException>(() =>
-            provider.CreateKeyAsync(request, CancellationToken.None).AsTask()
+            ReadPublicKeyAsync(provider, CreatePublicKeyRequest(Es256, versionName))
         );
     }
 
     [Fact]
-    public async Task CreateKeyAsync_PublicKeyOfAnotherAlgorithm_Throws()
+    public async Task GetPublicKeyAsync_PublicKeyOfAnotherAlgorithm_Throws()
     {
-        var request = CreateCreationRequest(Es256);
-        SetupCreationOfAnExistingCryptoKey(
-            request,
+        var versionName = VersionName(CreateCreationRequest(Es256));
+        SetupReadOfAnEnabledVersion(
             CreatePublicKey(
-                VersionName(request),
+                versionName,
                 algorithm: CryptoKeyVersion.Types.CryptoKeyVersionAlgorithm.EcSignP384Sha384
             )
         );
         var provider = CreateProvider();
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
-            provider.CreateKeyAsync(request, CancellationToken.None).AsTask()
+            ReadPublicKeyAsync(provider, CreatePublicKeyRequest(Es256, versionName))
         );
 
-        Assert.Contains(VersionName(request), exception.Message);
+        Assert.Contains(versionName, exception.Message);
     }
 
     [Theory]
     [InlineData("not a pem")]
     [InlineData("-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n")]
     [InlineData("-----BEGIN PUBLIC KEY-----\n!!!!\n-----END PUBLIC KEY-----\n")]
-    public async Task CreateKeyAsync_PublicKeyIsNotAPemSubjectPublicKeyInfo_Throws(string pem)
+    public async Task GetPublicKeyAsync_PublicKeyIsNotAPemSubjectPublicKeyInfo_Throws(string pem)
     {
-        var request = CreateCreationRequest(Es256);
-        SetupCreationOfAnExistingCryptoKey(
-            request,
-            CreatePublicKey(VersionName(request), pem: pem)
-        );
+        var versionName = VersionName(CreateCreationRequest(Es256));
+        SetupReadOfAnEnabledVersion(CreatePublicKey(versionName, pem: pem));
         var provider = CreateProvider();
 
         await Assert.ThrowsAsync<CryptographicException>(() =>
-            provider.CreateKeyAsync(request, CancellationToken.None).AsTask()
+            ReadPublicKeyAsync(provider, CreatePublicKeyRequest(Es256, versionName))
         );
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_KeyIdIsNotAVersionName_Throws()
+    {
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            ReadPublicKeyAsync(
+                provider,
+                CreatePublicKeyRequest(Es256, KeyRing + "/cryptoKeys/signing")
+            )
+        );
+
+        Assert.Equal("request", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_UnknownKeySpec_Throws()
+    {
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            ReadPublicKeyAsync(
+                provider,
+                CreatePublicKeyRequest(Es256 with { KeySpec = "NOT_AN_ALGORITHM" }, SignKeyName)
+            )
+        );
+
+        Assert.Equal("request", exception.ParamName);
     }
 
     #endregion
@@ -710,18 +740,20 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
             }
         );
         var provider = CreateProvider();
+        var buffer = new byte[512];
 
-        var result = await provider.SignAsync(
+        var written = await provider.SignAsync(
             new RemoteSignatureRequest
             {
                 KeyId = SignKeyName,
                 Algorithm = row,
                 Data = digest,
             },
+            buffer,
             cancellationSource.Token
         );
 
-        Assert.Equal(signature, result);
+        Assert.Equal(signature, buffer[..written]);
         var request = Assert.IsType<AsymmetricSignRequest>(sent);
         Assert.Equal(SignKeyName, request.Name);
         Assert.Equal(digestCase, request.Digest.DigestCase);
@@ -750,10 +782,34 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                 Algorithm = Rs256,
                 Data = digest,
             },
+            new byte[16],
             CancellationToken.None
         );
 
         Assert.Equal(digest, sentDigest);
+    }
+
+    [Fact]
+    public async Task SignAsync_SignatureLongerThanTheBuffer_Throws()
+    {
+        SetupClient<AsymmetricSignResponse>();
+        SetupSign(CreateDigestSignResponse([1, 2, 3, 4]));
+        var provider = CreateProvider();
+
+        await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .SignAsync(
+                    new RemoteSignatureRequest
+                    {
+                        KeyId = SignKeyName,
+                        Algorithm = Rs256,
+                        Data = new byte[32],
+                    },
+                    new byte[3],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
     }
 
     [Fact]
@@ -780,18 +836,20 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
             }
         );
         var provider = CreateProvider();
+        var buffer = new byte[512];
 
-        var result = await provider.SignAsync(
+        var written = await provider.SignAsync(
             new RemoteSignatureRequest
             {
                 KeyId = SignKeyName,
                 Algorithm = row,
                 Data = input,
             },
+            buffer,
             CancellationToken.None
         );
 
-        Assert.Equal(signature, result);
+        Assert.Equal(signature, buffer[..written]);
         var request = Assert.IsType<AsymmetricSignRequest>(sent);
         Assert.Equal(input, sentData);
         Assert.Equal(GoogleCloudKmsChecksum.Compute(input), request.DataCrc32C);
@@ -815,6 +873,7 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                         Algorithm = Rs256,
                         Data = new byte[32],
                     },
+                    new byte[512],
                     CancellationToken.None
                 )
                 .AsTask()
@@ -847,6 +906,7 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                         Algorithm = row,
                         Data = new byte[32],
                     },
+                    new byte[512],
                     CancellationToken.None
                 )
                 .AsTask()
@@ -869,6 +929,7 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                         Algorithm = Rs256,
                         Data = new byte[32],
                     },
+                    new byte[512],
                     CancellationToken.None
                 )
                 .AsTask()
@@ -891,6 +952,7 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                         Algorithm = Rs256,
                         Data = new byte[32],
                     },
+                    new byte[512],
                     CancellationToken.None
                 )
                 .AsTask()
@@ -913,6 +975,7 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                         Algorithm = Rs256,
                         Data = new byte[32],
                     },
+                    new byte[512],
                     CancellationToken.None
                 )
                 .AsTask()
@@ -935,6 +998,7 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
                         Algorithm = Rs256 with { DigestAlgorithm = HashAlgorithmName.SHA1 },
                         Data = new byte[20],
                     },
+                    new byte[512],
                     CancellationToken.None
                 )
                 .AsTask()

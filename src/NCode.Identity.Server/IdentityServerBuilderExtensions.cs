@@ -95,8 +95,9 @@ public static class IdentityServerBuilderExtensions
         /// Binding is strict and checked when the host starts: a key that maps to no option — a misspelling, or a
         /// setting placed in the wrong subsection — stops the host with an error naming the key, rather than leaving
         /// the option at its default without any sign that the setting was ignored. The <c>SecretProtection</c>
-        /// section is also checked immediately: a direct child other than <c>RootKeyProvider</c>, <c>Recovery</c> and
-        /// <c>RootKeyProviders</c> stops the host during composition. An unset or blank
+        /// section is also checked immediately: a direct child other than <c>RootKeyProvider</c>, <c>Recovery</c>,
+        /// <c>MasterKeys</c>, <c>OwnerRootKeys</c>, <c>RootKeyProviders</c> and <c>RemoteKeyProviders</c> stops the
+        /// host during composition. An unset or blank
         /// <c>SecretProtection:RootKeyProvider</c> stops the host when it starts: no root key provider is selected by
         /// default.
         /// </remarks>
@@ -105,7 +106,8 @@ public static class IdentityServerBuilderExtensions
         /// <see cref="OpenIdOptions.DefaultSectionName"/>.</param>
         /// <returns>The same <see cref="IIdentityServerBuilder"/> instance for method chaining.</returns>
         /// <exception cref="InvalidOperationException">The <c>SecretProtection</c> section has a direct child other
-        /// than <c>RootKeyProvider</c>, <c>Recovery</c> and <c>RootKeyProviders</c>.</exception>
+        /// than <c>RootKeyProvider</c>, <c>Recovery</c>, <c>MasterKeys</c>, <c>OwnerRootKeys</c>,
+        /// <c>RootKeyProviders</c> and <c>RemoteKeyProviders</c>.</exception>
         public IIdentityServerBuilder AddConfiguration(
             IConfiguration configuration,
             string? sectionName = null

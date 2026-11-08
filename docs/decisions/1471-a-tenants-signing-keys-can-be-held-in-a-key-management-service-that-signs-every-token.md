@@ -1,6 +1,6 @@
 # 1471. A tenant's signing keys can be held in a key management service that signs every token
 
-- **Status:** Accepted (amends [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md))
+- **Status:** Accepted (amends [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md); amended by [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md): the management API creates and binds a tenant's remote keys)
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 

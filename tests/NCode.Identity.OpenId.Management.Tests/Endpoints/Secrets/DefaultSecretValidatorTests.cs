@@ -1161,28 +1161,55 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string provider = ProviderName,
         string remoteKeyId = "key-1",
         string secretType = SecretTypes.Ecc,
-        string format = SecretKeyImportFormats.Pem,
-        string algorithm = "ES256"
+        string algorithm = "ES256",
+        int keySizeBits = 256,
+        string? curve = null
     ) =>
         new()
         {
             RemoteKeyProvider = provider,
             RemoteKeyId = remoteKeyId,
             SecretType = secretType,
-            Format = format,
-            KeyMaterial = "material",
+            KeySizeBits = keySizeBits,
+            Curve = curve,
             Algorithm = algorithm,
             ExpiresWhen = CreatedWhen.AddYears(1),
         };
 
     [Fact]
-    public void ValidateImportRemote_WhenTheRequestIsCoherent_ReturnsNull()
+    public void ValidateImportRemote_WhenTheProviderHoldsTheKey_ResolvesTheCurveAndLooksTheRowUp()
     {
         SetupDescribedProviders(ProviderName);
+        SetupRow(Es256Selector, Es256Row);
 
-        var error = RemoteValidator.ValidateImportRemote(CreateImportRemoteRequest(), CreatedWhen);
+        var validation = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(),
+            CreatedWhen
+        );
 
-        Assert.Null(error);
+        Assert.True(validation.IsValid);
+        Assert.Equal("P-256", validation.GenerationParameters.Curve);
+        Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
+    }
+
+    [Fact]
+    public void ValidateImportRemote_WhenTheProviderHasNoRowForTheKey_ReturnsBadRequest()
+    {
+        SetupDescribedProviders(ProviderName);
+        SetupRow(Es256Selector, null);
+
+        var validation = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(),
+            CreatedWhen
+        );
+
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+        Assert.Equal(
+            "The remote key provider 'aws-kms' holds no 'ES256' key of the 'ecc' type with 256 bits on the curve 'P-256'.",
+            validation.Error.Detail
+        );
     }
 
     [Fact]
@@ -1190,16 +1217,17 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     {
         SetupDescribedProviders(ProviderName);
 
-        var error = RemoteValidator.ValidateImportRemote(
+        var validation = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(remoteKeyId: " "),
             CreatedWhen
         );
 
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
         Assert.Equal(
             "The key management service's key identifier must not be empty.",
-            error.Detail
+            validation.Error.Detail
         );
     }
 
@@ -1209,31 +1237,33 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         SetupDescribedProviders(ProviderName);
         var maxKeyIdLength = SecretMaxLengths.EncodedValue - ProviderName.Length - 1;
 
-        var error = RemoteValidator.ValidateImportRemote(
+        var validation = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(remoteKeyId: new string('k', SecretMaxLengths.EncodedValue)),
             CreatedWhen
         );
 
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
         Assert.Equal(
             $"The key management service's key identifier must be at most {maxKeyIdLength} characters.",
-            error.Detail
+            validation.Error.Detail
         );
     }
 
     [Fact]
-    public void ValidateImportRemote_WhenTheKeyIdFitsExactly_ReturnsNull()
+    public void ValidateImportRemote_WhenTheKeyIdFitsExactly_IsValid()
     {
         SetupDescribedProviders(ProviderName);
+        SetupRow(Es256Selector, Es256Row);
         var maxKeyIdLength = SecretMaxLengths.EncodedValue - ProviderName.Length - 1;
 
-        var error = RemoteValidator.ValidateImportRemote(
+        var validation = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(remoteKeyId: new string('k', maxKeyIdLength)),
             CreatedWhen
         );
 
-        Assert.Null(error);
+        Assert.True(validation.IsValid);
     }
 
     [Fact]
@@ -1241,16 +1271,17 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     {
         SetupDescribedProviders(ProviderName);
 
-        var error = RemoteValidator.ValidateImportRemote(
+        var validation = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(remoteKeyId: "key\n1"),
             CreatedWhen
         );
 
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
         Assert.Equal(
             "The key management service's key identifier must not hold control characters or surrounding white space.",
-            error.Detail
+            validation.Error.Detail
         );
     }
 
@@ -1259,16 +1290,17 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     {
         SetupDescribedProviders(ProviderName);
 
-        var error = RemoteValidator.ValidateImportRemote(
+        var validation = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(provider: "unknown"),
             CreatedWhen
         );
 
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
         Assert.Equal(
             "The remote key provider 'unknown' is not registered; expected 'aws-kms'.",
-            error.Detail
+            validation.Error.Detail
         );
     }
 
@@ -1277,17 +1309,15 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     {
         SetupDescribedProviders(ProviderName);
 
-        var error = RemoteValidator.ValidateImportRemote(
+        var validation = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(algorithm: "RSA-OAEP"),
             CreatedWhen
         );
 
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
-        Assert.Equal(
-            "The algorithm 'RSA-OAEP' is not a registered signature algorithm for the 'ecc' key type; expected 'ES256', 'ES384', 'ES512', 'X-ES256-BP'.",
-            error.Detail
-        );
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+        Assert.Contains("'RSA-OAEP'", validation.Error.Detail, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1295,30 +1325,15 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     {
         SetupDescribedProviders(ProviderName);
 
-        var error = RemoteValidator.ValidateImportRemote(
+        var validation = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(algorithm: "RS256"),
             CreatedWhen
         );
 
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
-        Assert.Equal(
-            "The algorithm 'RS256' is not a registered signature algorithm for the 'ecc' key type; expected 'ES256', 'ES384', 'ES512', 'X-ES256-BP'.",
-            error.Detail
-        );
-    }
-
-    [Fact]
-    public void ValidateImportRemote_WhenTheFormatIsNotSupported_ReturnsBadRequest()
-    {
-        var error = RemoteValidator.ValidateImportRemote(
-            CreateImportRemoteRequest(format: "openssh"),
-            CreatedWhen
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
-        Assert.Contains("'openssh'", error.Detail, StringComparison.Ordinal);
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+        Assert.Contains("'RS256'", validation.Error.Detail, StringComparison.Ordinal);
     }
 
     #endregion

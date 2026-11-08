@@ -653,19 +653,19 @@ NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreate(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request, System.DateTimeOffset createdWhen) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreateRemote(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateRemoteSecretRequest! request, System.DateTimeOffset createdWhen) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImport(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest! request, System.DateTimeOffset createdWhen) -> NCode.Identity.OpenId.Management.ManagementError?
-NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImportRemote(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest! request, System.DateTimeOffset createdWhen) -> NCode.Identity.OpenId.Management.ManagementError?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImportRemote(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest! request, System.DateTimeOffset createdWhen) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.ActivatesWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.Algorithm.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.Algorithm.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.Curve.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.Curve.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.ExpiresWhen.init -> void
-NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.Format.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.Format.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.ImportRemoteSecretRequest() -> void
-NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.KeyMaterial.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.KeyMaterial.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.KeySizeBits.get -> int
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.KeySizeBits.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.RemoteKeyId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.RemoteKeyId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportRemoteSecretRequest.RemoteKeyProvider.get -> string!

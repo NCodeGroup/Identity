@@ -63,14 +63,16 @@ public interface ISecretValidator
 
     /// <summary>
     /// Validates that the specified <see cref="ImportRemoteSecretRequest"/> describes a coherent binding of a key a key
-    /// management service holds: the lifecycle, the supplied public half's type, format and material, a key type a key
-    /// management service can hold, a registered provider, a non-empty key identifier, and a registered signature
-    /// algorithm. The supplied key material itself is parsed by the importer, and the binding is proved by a signature.
+    /// management service holds: the lifecycle, a key type a key management service can hold, a registered provider, a
+    /// key identifier the stored reference can hold, an algorithm that resolves the key's size and curve, and a row of
+    /// the provider's mapping for them. The key's public half is read from the service and checked against that row,
+    /// and the binding is proved by a signature.
     /// </summary>
     /// <param name="request">The <see cref="ImportRemoteSecretRequest"/> to validate.</param>
     /// <param name="createdWhen">The instant the secret is created at, which its activation cannot precede.</param>
-    /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
-    ManagementError? ValidateImportRemote(
+    /// <returns>The resolved size and curve of the key, or the error that describes the first failed
+    /// check.</returns>
+    SecretCreateValidation ValidateImportRemote(
         ImportRemoteSecretRequest request,
         DateTimeOffset createdWhen
     );

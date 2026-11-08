@@ -22,7 +22,6 @@ using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
-using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
@@ -253,13 +252,13 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             RemoteKeyProvider = Provider,
             RemoteKeyId = "key-1",
             SecretType = SecretTypes.Ecc,
-            Format = "jwk",
-            KeyMaterial = """{"kty":"EC","crv":"P-256","x":"AQAB","y":"AQAB"}""",
+            KeySizeBits = 256,
+            Curve = "P-256",
             Algorithm = "ES256",
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
 
-    private void SetupImportRemoteValidation(ManagementError? error = null) =>
+    private void SetupImportRemoteValidation(SecretCreateValidation validation) =>
         MockSecretValidator
             .Setup(x =>
                 x.ValidateImportRemote(
@@ -267,31 +266,35 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
                     It.IsAny<DateTimeOffset>()
                 )
             )
-            .Returns(error)
+            .Returns(validation)
             .Verifiable();
 
-    // Moq cannot capture beside out arguments, so the import request is matched by what the handler builds from the request.
-    private void SetupTryImport(PersistedSecret imported)
-    {
-        var importedSecret = (PersistedSecret?)imported;
-        string? error = null;
+    private void SetupValidImportRemoteValidation() =>
+        SetupImportRemoteValidation(
+            SecretCreateValidation.Valid(
+                new SecretKeyGenerationParameters { KeySizeBits = 256, Curve = "P-256" }
+            )
+        );
+
+    private void SetupImport(RemoteSecretImportResult result) =>
         MockRemoteSecretImporter
             .Setup(x =>
-                x.TryImport(
-                    It.Is<RemoteSecretImportRequest>(request =>
-                        request.Key.SecretId == "generated-id"
-                        && request.Key.SecretType == SecretTypes.Ecc
-                        && request.Key.Use == SecretKeyUses.Signature
-                        && request.Key.Algorithm == "ES256"
-                        && request.Reference == new RemoteKeyReference(Provider, "key-1")
+                x.ImportAsync(
+                    It.Is<BindRemoteSecretRequest>(request =>
+                        request.SecretId == "generated-id"
+                        && request.Provider == Provider
+                        && request.KeyId == "key-1"
+                        && request.SecretType == SecretTypes.Ecc
+                        && request.KeySizeBits == 256
+                        && request.Curve == "P-256"
+                        && request.Use == SecretKeyUses.Signature
+                        && request.Algorithm == "ES256"
                     ),
-                    out importedSecret,
-                    out error
+                    It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(true)
+            .ReturnsAsync(result)
             .Verifiable();
-    }
 
     private void SetupVerifyBinding(PersistedSecret secret, ManagementError? error) =>
         MockRemoteSecretImporter
@@ -624,11 +627,11 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         SetupAuthorization(Operations.Update, AuthorizationResult.Success());
         SetupStore();
         SetupTenant(CreateTenant());
-        SetupImportRemoteValidation();
+        SetupValidImportRemoteValidation();
         SetupResourceId();
 
         var secret = CreateRemoteSecret();
-        SetupTryImport(secret);
+        SetupImport(RemoteSecretImportResult.Bound(secret));
         SetupVerifyBinding(secret, null);
         MockTenantStore
             .Setup(x => x.AddSecretAsync(TenantId, secret, It.IsAny<CancellationToken>()))
@@ -682,7 +685,13 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         SetupStore();
         SetupTenant(CreateTenant());
         SetupImportRemoteValidation(
-            new ManagementError { StatusCode = StatusCodes.Status400BadRequest, Detail = detail }
+            SecretCreateValidation.Invalid(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Detail = detail,
+                }
+            )
         );
 
         var result = await CreateHandler()
@@ -734,23 +743,23 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task ImportRemoteSecretAsync_WhenTheImportIsRefused_ReturnsBadRequest()
+    public async Task ImportRemoteSecretAsync_WhenTheImportIsRefused_ReturnsItsErrorAndStoresNothing()
     {
         SetupAuthorization(Operations.Create, AuthorizationResult.Success());
         SetupAuthorization(Operations.Update, AuthorizationResult.Success());
         SetupStore();
         SetupTenant(CreateTenant());
-        SetupImportRemoteValidation();
+        SetupValidImportRemoteValidation();
         SetupResourceId();
-
-        PersistedSecret? refusedSecret = null;
-        var refusal = "The key is not a public key.";
-        MockRemoteSecretImporter
-            .Setup(x =>
-                x.TryImport(It.IsAny<RemoteSecretImportRequest>(), out refusedSecret, out refusal)
+        SetupImport(
+            RemoteSecretImportResult.Refused(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status502BadGateway,
+                    Detail = "The key management service failed.",
+                }
             )
-            .Returns(false)
-            .Verifiable();
+        );
 
         var result = await CreateHandler()
             .ImportRemoteSecretAsync(
@@ -761,7 +770,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             );
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(StatusCodes.Status502BadGateway, problem.StatusCode);
     }
 
     [Fact]
@@ -781,7 +790,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
                 Secrets = [CreateRemoteSecret("generated-id")],
             }.Build()
         );
-        SetupImportRemoteValidation();
+        SetupValidImportRemoteValidation();
         SetupResourceId();
 
         var result = await CreateHandler()
@@ -818,9 +827,9 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
                 Secrets = [existing],
             }.Build()
         );
-        SetupImportRemoteValidation();
+        SetupValidImportRemoteValidation();
         SetupResourceId();
-        SetupTryImport(CreateRemoteSecret("secret-1", keyId: "kid-1"));
+        SetupImport(RemoteSecretImportResult.Bound(CreateRemoteSecret("secret-1", keyId: "kid-1")));
 
         var result = await CreateHandler()
             .ImportRemoteSecretAsync(
@@ -841,17 +850,17 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         SetupAuthorization(Operations.Update, AuthorizationResult.Success());
         SetupStore();
         SetupTenant(CreateTenant());
-        SetupImportRemoteValidation();
+        SetupValidImportRemoteValidation();
         SetupResourceId();
 
         var secret = CreateRemoteSecret();
-        SetupTryImport(secret);
+        SetupImport(RemoteSecretImportResult.Bound(secret));
         SetupVerifyBinding(
             secret,
             new ManagementError
             {
                 StatusCode = StatusCodes.Status400BadRequest,
-                Detail = "The key does not sign with the supplied public key.",
+                Detail = "The key does not sign with the public key the service returned.",
             }
         );
 

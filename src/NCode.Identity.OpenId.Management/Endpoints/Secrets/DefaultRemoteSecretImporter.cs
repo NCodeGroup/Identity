@@ -1,18 +1,13 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
-using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Management.Logging;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -21,15 +16,17 @@ using NCode.Identity.Secrets.RemoteKeys;
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 /// <summary>
-/// Provides the default implementation of <see cref="IRemoteSecretImporter"/>. It imports the supplied public half
-/// under the client-key policy of <see cref="IClientKeyImporter"/>, and proves the binding by signing 32 random bytes
-/// through the referenced key with <see cref="SignatureAlgorithm.SignAsync"/>, which verifies the key management
-/// service's signature with the stored public half. A signature that does not verify is a <c>400</c>; a failure or
-/// refusal of the service is logged and is a <c>502</c>.
+/// Provides the default implementation of <see cref="IRemoteSecretImporter"/>. It reads the public half of the
+/// referenced key from its key management service through <see cref="ISecretGenerator.BindRemoteSecretAsync"/>, and
+/// proves the binding by signing 32 random bytes through the referenced key with
+/// <see cref="SignatureAlgorithm.SignAsync"/>, which verifies the key management service's signature with the stored
+/// public half. A key the provider refuses, a public half that does not match the request and a signature that does
+/// not verify are a <c>400</c>; a failure or refusal of the service is logged and is a <c>502</c>.
 /// </summary>
 // See ADR-1475.
+// See ADR-1476.
 internal class DefaultRemoteSecretImporter(
-    IClientKeyImporter keyImporter,
+    ISecretGenerator secretGenerator,
     ISecretSerializer secretSerializer,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ILogger<DefaultRemoteSecretImporter> logger
@@ -37,7 +34,7 @@ internal class DefaultRemoteSecretImporter(
 {
     private const int ChallengeSizeBytes = 32;
 
-    private IClientKeyImporter KeyImporter { get; } = keyImporter;
+    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
 
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
@@ -50,49 +47,40 @@ internal class DefaultRemoteSecretImporter(
         new() { StatusCode = statusCode, Detail = detail };
 
     /// <inheritdoc />
-    public bool TryImport(
-        RemoteSecretImportRequest request,
-        [NotNullWhen(true)] out PersistedSecret? secret,
-        [NotNullWhen(false)] out string? error
+    public async ValueTask<RemoteSecretImportResult> ImportAsync(
+        BindRemoteSecretRequest request,
+        CancellationToken cancellationToken
     )
     {
-        if (!KeyImporter.TryImportKey(request.Key, out var publicSecret, out error))
+        try
         {
-            secret = null;
-            return false;
+            var secret = await SecretGenerator.BindRemoteSecretAsync(request, cancellationToken);
+            return RemoteSecretImportResult.Bound(secret);
         }
-
-        var key = SecretSerializer.DeserializePublicSecret(publicSecret);
-        using var keyDisposal = key as IDisposable;
-
-        if (key is not AsymmetricSecretKey asymmetricKey)
+        catch (Exception exception)
+            when (exception
+                    is InvalidOperationException
+                        or ArgumentException
+                        or CryptographicException
+            )
         {
-            secret = null;
-            error = "A key management service holds only asymmetric keys.";
-            return false;
+            return RemoteSecretImportResult.Refused(
+                Error(
+                    StatusCodes.Status400BadRequest,
+                    $"The key '{request.KeyId}' of the remote key provider '{request.Provider}' cannot be bound as a '{request.Algorithm}' key: {exception.Message}"
+                )
+            );
         }
-
-        var subjectPublicKeyInfo = ExportSubjectPublicKeyInfo(asymmetricKey);
-
-        secret = publicSecret with
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            SecretEncoding = SecretEncodings.Remote,
-            EncodedValue = request.Reference.ToString(),
-            PublicKey = subjectPublicKeyInfo,
-            Origin = SecretOrigins.Supplied,
-            ManagedBy = null,
-        };
-        error = null;
-        return true;
-    }
-
-    private static string ExportSubjectPublicKeyInfo(AsymmetricSecretKey key)
-    {
-        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false, 512);
-        IBufferWriter<byte> writer = buffer;
-        key.ExportSubjectPublicKeyInfo(ref writer);
-        using var lease = buffer.GetSpanLease(isSensitive: false);
-        return Base64Url.Encode(lease.Span);
+            Logger.RemoteKeyProviderFailed(request.Provider, request.SecretId, exception);
+            return RemoteSecretImportResult.Refused(
+                Error(
+                    StatusCodes.Status502BadGateway,
+                    $"The key management service of the remote key provider '{request.Provider}' did not return the public key of the key '{request.KeyId}': it refused the key or the deployment's identity, or it could not be reached."
+                )
+            );
+        }
     }
 
     /// <inheritdoc />
@@ -163,7 +151,7 @@ internal class DefaultRemoteSecretImporter(
         {
             return Error(
                 StatusCodes.Status400BadRequest,
-                $"The key '{reference.KeyId}' of the remote key provider '{reference.Provider}' does not sign with the private half of the supplied public key."
+                $"The key '{reference.KeyId}' of the remote key provider '{reference.Provider}' does not sign with the private half of the public key the service returned."
             );
         }
         catch (Exception exception) when (exception is not OperationCanceledException)

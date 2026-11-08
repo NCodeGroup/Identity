@@ -8,8 +8,10 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 
 /// <summary>
 /// Represents the request body to bind a signing key that a key management service already holds to a tenant. The
-/// server proves the key signs with the supplied public half before it stores it, and never destroys it.
+/// request names the key, its type, size, curve and algorithm, and its lifecycle. The server reads the key's public
+/// half from the service and proves the key signs with it before it stores the key, and never destroys it.
 /// </summary>
+// See ADR-1476.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ImportRemoteSecretRequest
@@ -27,21 +29,22 @@ public sealed class ImportRemoteSecretRequest
     public required string RemoteKeyId { get; init; }
 
     /// <summary>
-    /// Gets the secret type (crypto family) of the key's public half. Supported values are <c>rsa</c> and <c>ecc</c>.
+    /// Gets the type of the key the key management service holds: a type a key management service can hold,
+    /// <c>rsa</c> or <c>ecc</c>.
     /// </summary>
     public required string SecretType { get; init; }
 
     /// <summary>
-    /// Gets the encoding of the supplied <see cref="KeyMaterial"/>: a lowercase format name the secret type imports.
-    /// The built-in RSA and ECC types import <c>jwk</c>, <c>pem</c>, and <c>certificate</c>.
+    /// Gets the size, in bits, of the key the key management service holds. With a <see cref="Curve"/>, it is the size
+    /// of the keys on that curve.
     /// </summary>
-    public required string Format { get; init; }
+    public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets the caller-supplied public key material, encoded per <see cref="Format"/> (JWK JSON text, PEM text, or
-    /// base64 DER for a certificate).
+    /// Gets the curve the key the key management service holds is on (the <c>JWK</c> <c>crv</c> name, for example
+    /// <c>P-256</c>) for a secret type with curves, or <c>null</c> to leave it to the signature algorithm.
     /// </summary>
-    public required string KeyMaterial { get; init; }
+    public string? Curve { get; init; }
 
     /// <summary>
     /// Gets the JOSE signature algorithm the key is bound to, such as <c>RS256</c> or <c>ES256</c>.

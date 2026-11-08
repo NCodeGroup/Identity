@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using NCode.Identity.Secrets.RemoteKeys;
 
-namespace NCode.Identity.Secrets.RemoteKeys;
+namespace NCode.Identity.Secrets.Persistence;
 
-public class RemoteKeyCreationRequestTests
+public class RemoteKeyGroupNameTests
 {
     private const string OwnerId = "tenant-1";
 
@@ -29,129 +30,107 @@ public class RemoteKeyCreationRequestTests
             IsDerEncodedSignature = true,
         };
 
-    private static RemoteKeyCreationRequest CreateRequest(
+    private static string CreateGroupName(
         string ownerId = OwnerId,
         RemoteSigningAlgorithm? algorithm = null
-    ) =>
-        new()
-        {
-            OwnerId = ownerId,
-            SecretId = "secret-1",
-            Algorithm = algorithm ?? CreateAlgorithm(),
-        };
+    ) => RemoteKeyGroupName.Create(ownerId, algorithm ?? CreateAlgorithm());
 
-    #region GroupName Property Tests
+    #region Create Tests
 
     [Fact]
-    public void GroupName_Request_Has37CharactersAndNcidPrefix()
+    public void Create_Request_Has37CharactersAndNcidPrefix()
     {
-        var groupName = CreateRequest().GroupName;
+        var groupName = CreateGroupName();
 
         Assert.Equal(37, groupName.Length);
         Assert.StartsWith("ncid-", groupName, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void GroupName_Request_IsLowercaseHexAfterPrefix()
+    public void Create_Request_IsLowercaseHexAfterPrefix()
     {
-        var groupName = CreateRequest().GroupName;
+        var groupName = CreateGroupName();
 
         Assert.All(groupName["ncid-".Length..], c => Assert.True(char.IsAsciiHexDigitLower(c)));
     }
 
     [Fact]
-    public void GroupName_EqualInputs_IsStable()
+    public void Create_EqualInputs_IsStable()
     {
-        var first = CreateRequest().GroupName;
-        var second = CreateRequest().GroupName;
+        var first = CreateGroupName();
+        var second = CreateGroupName();
 
         Assert.Equal(first, second);
     }
 
     [Fact]
-    public void GroupName_DifferentSecretId_IsEqual()
+    public void Create_DifferentOwner_Differs()
     {
-        var first = CreateRequest();
-        var second = new RemoteKeyCreationRequest
-        {
-            OwnerId = OwnerId,
-            SecretId = "secret-2",
-            Algorithm = CreateAlgorithm(),
-        };
+        var baseline = CreateGroupName();
 
-        Assert.Equal(first.GroupName, second.GroupName);
-    }
-
-    [Fact]
-    public void GroupName_DifferentOwner_Differs()
-    {
-        var baseline = CreateRequest().GroupName;
-
-        var actual = CreateRequest(ownerId: "tenant-2").GroupName;
+        var actual = CreateGroupName(ownerId: "tenant-2");
 
         Assert.NotEqual(baseline, actual);
     }
 
     [Fact]
-    public void GroupName_DifferentProvider_Differs()
+    public void Create_DifferentProvider_Differs()
     {
-        var baseline = CreateRequest().GroupName;
+        var baseline = CreateGroupName();
 
-        var actual = CreateRequest(
+        var actual = CreateGroupName(
             algorithm: CreateAlgorithm(provider: RemoteKeyProviderNames.AzureKeyVault)
-        ).GroupName;
+        );
 
         Assert.NotEqual(baseline, actual);
     }
 
     [Fact]
-    public void GroupName_DifferentAlgorithm_Differs()
+    public void Create_DifferentAlgorithm_Differs()
     {
-        var baseline = CreateRequest().GroupName;
+        var baseline = CreateGroupName();
 
-        var actual = CreateRequest(algorithm: CreateAlgorithm(algorithm: "ES256K")).GroupName;
+        var actual = CreateGroupName(algorithm: CreateAlgorithm(algorithm: "ES256K"));
 
         Assert.NotEqual(baseline, actual);
     }
 
     [Fact]
-    public void GroupName_DifferentKeySpec_Differs()
+    public void Create_DifferentKeySpec_Differs()
     {
-        var baseline = CreateRequest().GroupName;
+        var baseline = CreateGroupName();
 
-        var actual = CreateRequest(
-            algorithm: CreateAlgorithm(keySpec: "ECC_SECG_P256K1")
-        ).GroupName;
+        var actual = CreateGroupName(algorithm: CreateAlgorithm(keySpec: "ECC_SECG_P256K1"));
 
         Assert.NotEqual(baseline, actual);
     }
 
     [Fact]
-    public void GroupName_DifferentKeySize_Differs()
+    public void Create_DifferentKeySize_Differs()
     {
-        var baseline = CreateRequest().GroupName;
+        var baseline = CreateGroupName();
 
-        var actual = CreateRequest(algorithm: CreateAlgorithm(keySizeBits: 384)).GroupName;
+        var actual = CreateGroupName(algorithm: CreateAlgorithm(keySizeBits: 384));
 
         Assert.NotEqual(baseline, actual);
     }
 
     [Fact]
-    public void GroupName_DifferentCurve_Differs()
+    public void Create_DifferentCurve_Differs()
     {
-        var baseline = CreateRequest().GroupName;
+        var baseline = CreateGroupName();
 
-        var actual = CreateRequest(algorithm: CreateAlgorithm(curve: "secp256k1")).GroupName;
+        var actual = CreateGroupName(algorithm: CreateAlgorithm(curve: "secp256k1"));
 
         Assert.NotEqual(baseline, actual);
     }
 
     [Fact]
-    public void GroupName_NullCurve_Differs()
+    public void Create_NullCurve_Differs()
     {
-        var baseline = CreateRequest().GroupName;
+        var baseline = CreateGroupName();
 
-        var actual = CreateRequest(algorithm: CreateAlgorithm(curve: null)).GroupName;
+        var actual = CreateGroupName(algorithm: CreateAlgorithm(curve: null));
 
         Assert.NotEqual(baseline, actual);
         Assert.Equal(37, actual.Length);

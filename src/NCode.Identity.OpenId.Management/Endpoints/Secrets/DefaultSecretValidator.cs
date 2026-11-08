@@ -9,6 +9,7 @@ using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -29,7 +30,8 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 internal sealed class DefaultSecretValidator(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
-    ISecretSerializer secretSerializer
+    ISecretSerializer secretSerializer,
+    IRemoteKeyProviderCatalog remoteKeyProviderCatalog
 ) : ISecretValidator
 {
     private static ManagementError Error(string detail) =>
@@ -73,6 +75,8 @@ internal sealed class DefaultSecretValidator(
 
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
+    private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
+
     /// <inheritdoc />
     // See ADR-1389 and ADR-1392.
     public SecretCreateValidation ValidateCreate(
@@ -111,24 +115,117 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
+        return ResolveGeneration(
+            descriptor,
+            request.KeySizeBits,
+            request.Curve,
+            use,
+            request.Algorithm
+        );
+    }
+
+    /// <inheritdoc />
+    // See ADR-1475.
+    public SecretCreateValidation ValidateCreateRemote(
+        CreateRemoteSecretRequest request,
+        DateTimeOffset createdWhen
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var lifecycleError = ValidateLifecycle(
+            createdWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+        if (lifecycleError is not null)
+        {
+            return SecretCreateValidation.Invalid(lifecycleError);
+        }
+
+        var secretType = request.SecretType;
+        if (
+            !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
+            || descriptor is not IRemoteSecretKeyTypeDescriptor
+        )
+        {
+            return Invalid(
+                $"The secret type '{secretType}' cannot be held in a key management service."
+            );
+        }
+
+        var providerName = request.RemoteKeyProvider;
+        if (!RemoteKeyProviderCatalog.TryGetProvider(providerName, out _))
+        {
+            return Invalid($"The remote key provider '{providerName}' is not registered.");
+        }
+
+        var validation = ResolveGeneration(
+            descriptor,
+            request.KeySizeBits,
+            request.Curve,
+            SecretKeyUses.Signature,
+            request.Algorithm
+        );
+        if (!validation.IsValid)
+        {
+            return validation;
+        }
+
+        var resolved = validation.GenerationParameters;
+        if (
+            !RemoteKeyProviderCatalog.TryGetAlgorithm(
+                new RemoteSigningAlgorithmSelector
+                {
+                    Provider = providerName,
+                    Algorithm = request.Algorithm,
+                    SecretType = secretType,
+                    KeySizeBits = resolved.KeySizeBits,
+                    Curve = resolved.Curve,
+                },
+                out _
+            )
+        )
+        {
+            var curveText = resolved.Curve is null
+                ? string.Empty
+                : $" on the curve '{resolved.Curve}'";
+            return Invalid(
+                $"The remote key provider '{providerName}' holds no '{request.Algorithm}' key of the "
+                    + $"'{secretType}' type with {resolved.KeySizeBits} bits{curveText}."
+            );
+        }
+
+        return validation;
+    }
+
+    private SecretCreateValidation ResolveGeneration(
+        ISecretKeyTypeDescriptor descriptor,
+        int keySizeBits,
+        string? curve,
+        string? use,
+        string? algorithm
+    )
+    {
         // When an algorithm is specified, its registered metadata is authoritative for the use, the key type, the legal
         // key sizes and the curve the key is generated on: two curves can share a key size, so the key is generated on
         // the requested curve or on the one curve the algorithm accepts that has the requested size, never on whichever
         // curve the key type picks for the size (ADR-1398).
         var parameters = new SecretKeyGenerationParameters
         {
-            KeySizeBits = request.KeySizeBits,
-            Curve = request.Curve,
+            KeySizeBits = keySizeBits,
+            Curve = curve,
         };
-        if (request.Algorithm is { } algorithm)
+        if (algorithm is not null)
         {
             if (
                 !AlgorithmCollectionProvider.Collection.TryResolveKeyGeneration(
                     new KeyGenerationDeclaration
                     {
                         KeyClrType = descriptor.KeyClrType,
-                        KeySizeBits = request.KeySizeBits,
-                        Curve = request.Curve,
+                        KeySizeBits = keySizeBits,
+                        Curve = curve,
                         Use = use,
                         Algorithm = algorithm,
                     },
@@ -160,34 +257,14 @@ internal sealed class DefaultSecretValidator(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        // Each key type declares the formats it parses, so a key type another package registers brings its own
-        // (ADR-1150).
-        var secretType = request.SecretType;
-        if (
-            !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
-            || descriptor.PublicKeyImportFormats.Count == 0
-        )
+        var publicKeyError = ValidatePublicKeyImport(
+            request.SecretType,
+            request.Format,
+            request.KeyMaterial
+        );
+        if (publicKeyError is not null)
         {
-            return Error(
-                $"The secret type '{secretType}' is not supported or cannot be imported as public key material."
-            );
-        }
-
-        if (!descriptor.PublicKeyImportFormats.Contains(request.Format))
-        {
-            return Error(
-                $"The import format '{request.Format}' is not supported for the secret type '{secretType}'; expected "
-                    + string.Join(
-                        ", ",
-                        descriptor.PublicKeyImportFormats.Select(format => $"'{format}'")
-                    )
-                    + "."
-            );
-        }
-
-        if (string.IsNullOrWhiteSpace(request.KeyMaterial))
-        {
-            return Error("The key material must not be empty.");
+            return publicKeyError;
         }
 
         var use = request.Use;
@@ -205,6 +282,105 @@ internal sealed class DefaultSecretValidator(
             request.RetiresWhen,
             request.ExpiresWhen
         );
+    }
+
+    /// <inheritdoc />
+    // See ADR-1475.
+    public ManagementError? ValidateImportRemote(
+        ImportRemoteSecretRequest request,
+        DateTimeOffset createdWhen
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var lifecycleError = ValidateLifecycle(
+            createdWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+        if (lifecycleError is not null)
+        {
+            return lifecycleError;
+        }
+
+        var secretType = request.SecretType;
+        var publicKeyError = ValidatePublicKeyImport(
+            secretType,
+            request.Format,
+            request.KeyMaterial
+        );
+        if (publicKeyError is not null)
+        {
+            return publicKeyError;
+        }
+
+        if (
+            !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
+            || descriptor is not IRemoteSecretKeyTypeDescriptor
+        )
+        {
+            return Error(
+                $"The secret type '{secretType}' cannot be held in a key management service."
+            );
+        }
+
+        var providerName = request.RemoteKeyProvider;
+        if (!RemoteKeyProviderCatalog.TryGetProvider(providerName, out _))
+        {
+            return Error($"The remote key provider '{providerName}' is not registered.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.RemoteKeyId))
+        {
+            return Error("The key management service's key identifier must not be empty.");
+        }
+
+        if (
+            !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
+                request.Algorithm,
+                out _
+            )
+        )
+        {
+            return Error(
+                $"The algorithm '{request.Algorithm}' is not a registered signature algorithm."
+            );
+        }
+
+        return null;
+    }
+
+    private ManagementError? ValidatePublicKeyImport(
+        string secretType,
+        string format,
+        string keyMaterial
+    )
+    {
+        // Each key type declares the formats it parses, so a key type another package registers brings its own
+        // (ADR-1150).
+        if (
+            !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
+            || descriptor.PublicKeyImportFormats.Count == 0
+        )
+        {
+            return Error(
+                $"The secret type '{secretType}' is not supported or cannot be imported as public key material."
+            );
+        }
+
+        if (!descriptor.PublicKeyImportFormats.Contains(format))
+        {
+            return Error(
+                $"The import format '{format}' is not supported for the secret type '{secretType}'; expected "
+                    + string.Join(", ", descriptor.PublicKeyImportFormats.Select(f => $"'{f}'"))
+                    + "."
+            );
+        }
+
+        return string.IsNullOrWhiteSpace(keyMaterial)
+            ? Error("The key material must not be empty.")
+            : null;
     }
 
     /// <inheritdoc />

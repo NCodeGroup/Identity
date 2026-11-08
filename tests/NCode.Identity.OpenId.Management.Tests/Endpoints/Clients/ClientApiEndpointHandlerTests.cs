@@ -36,6 +36,7 @@ using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
@@ -153,7 +154,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var secretValidator = new DefaultSecretValidator(
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            ServiceProvider.GetRequiredService<ISecretSerializer>()
+            ServiceProvider.GetRequiredService<ISecretSerializer>(),
+            ServiceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
         );
         MockSecretValidator
             .Setup(x =>

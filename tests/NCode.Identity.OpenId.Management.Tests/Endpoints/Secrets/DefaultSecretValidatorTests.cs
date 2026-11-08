@@ -15,6 +15,7 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -33,6 +34,10 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
     private ServiceProvider ServiceProvider { get; }
     private DefaultSecretValidator Validator { get; }
+    private MockRepository Mocks { get; } = new(MockBehavior.Strict);
+    private Mock<IRemoteKeyProviderCatalog> MockCatalog { get; }
+    private Mock<IRemoteKeyProvider> MockProvider { get; }
+    private DefaultSecretValidator RemoteValidator { get; }
 
     public DefaultSecretValidatorTests()
     {
@@ -58,7 +63,17 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Validator = new DefaultSecretValidator(
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            ServiceProvider.GetRequiredService<ISecretSerializer>()
+            ServiceProvider.GetRequiredService<ISecretSerializer>(),
+            ServiceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
+        );
+
+        MockCatalog = Mocks.Create<IRemoteKeyProviderCatalog>();
+        MockProvider = Mocks.Create<IRemoteKeyProvider>();
+        RemoteValidator = new DefaultSecretValidator(
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            ServiceProvider.GetRequiredService<ISecretSerializer>(),
+            MockCatalog.Object
         );
     }
 
@@ -66,6 +81,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        Mocks.Verify();
         await ServiceProvider.DisposeAsync();
     }
 
@@ -355,7 +371,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         new(
             serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            serviceProvider.GetRequiredService<ISecretSerializer>()
+            serviceProvider.GetRequiredService<ISecretSerializer>(),
+            serviceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
         );
 
     // See ADR-1398: P-256 and brainpoolP256r1 are both 256 bits, so the size selects neither.
@@ -975,6 +992,244 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
         Assert.Contains($"'{secretType}'", error.Detail, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region ValidateCreateRemote Tests
+
+    private const string ProviderName = RemoteKeyProviderNames.AwsKms;
+
+    private void SetupProvider(string name, bool registered)
+    {
+        IRemoteKeyProvider? provider = registered ? MockProvider.Object : null;
+        MockCatalog
+            .Setup(x => x.TryGetProvider(name, out provider))
+            .Returns(registered)
+            .Verifiable();
+    }
+
+    private void SetupRow(RemoteSigningAlgorithmSelector selector, RemoteSigningAlgorithm? row)
+    {
+        MockCatalog
+            .Setup(x => x.TryGetAlgorithm(selector, out row))
+            .Returns(row is not null)
+            .Verifiable();
+    }
+
+    private static RemoteSigningAlgorithmSelector Es256Selector { get; } =
+        new()
+        {
+            Provider = ProviderName,
+            Algorithm = "ES256",
+            SecretType = SecretTypes.Ecc,
+            KeySizeBits = 256,
+            Curve = "P-256",
+        };
+
+    private static RemoteSigningAlgorithm Es256Row { get; } =
+        new()
+        {
+            Provider = ProviderName,
+            Algorithm = "ES256",
+            SecretType = SecretTypes.Ecc,
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            SigningAlgorithm = "ECDSA_SHA_256",
+        };
+
+    private static CreateRemoteSecretRequest CreateRemoteRequest(
+        string secretType = SecretTypes.Ecc,
+        int keySizeBits = 256,
+        string algorithm = "ES256",
+        string provider = ProviderName
+    ) =>
+        new()
+        {
+            RemoteKeyProvider = provider,
+            SecretType = secretType,
+            KeySizeBits = keySizeBits,
+            Algorithm = algorithm,
+            ExpiresWhen = CreatedWhen.AddYears(1),
+        };
+
+    [Fact]
+    public void ValidateCreateRemote_WhenTheProviderHoldsTheKey_ResolvesTheCurveAndLooksTheRowUp()
+    {
+        SetupProvider(ProviderName, registered: true);
+        SetupRow(Es256Selector, Es256Row);
+
+        var validation = RemoteValidator.ValidateCreateRemote(CreateRemoteRequest(), CreatedWhen);
+
+        Assert.True(validation.IsValid);
+        Assert.Equal("P-256", validation.GenerationParameters.Curve);
+        Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
+    }
+
+    [Fact]
+    public void ValidateCreateRemote_WhenTheProviderIsNotRegistered_ReturnsBadRequest()
+    {
+        SetupProvider("unknown", registered: false);
+
+        var error = RemoteValidator
+            .ValidateCreateRemote(CreateRemoteRequest(provider: "unknown"), CreatedWhen)
+            .Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal("The remote key provider 'unknown' is not registered.", error.Detail);
+    }
+
+    [Fact]
+    public void ValidateCreateRemote_WhenTheSecretTypeCannotBeHeldInAKeyManagementService_ReturnsBadRequest()
+    {
+        var error = RemoteValidator
+            .ValidateCreateRemote(
+                CreateRemoteRequest(secretType: SecretTypes.Symmetric, keySizeBits: 256),
+                CreatedWhen
+            )
+            .Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The secret type 'symmetric' cannot be held in a key management service.",
+            error.Detail
+        );
+    }
+
+    [Fact]
+    public void ValidateCreateRemote_WhenTheProviderHasNoRowForTheKey_ReturnsBadRequest()
+    {
+        SetupProvider(ProviderName, registered: true);
+        SetupRow(Es256Selector, null);
+
+        var error = RemoteValidator.ValidateCreateRemote(CreateRemoteRequest(), CreatedWhen).Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The remote key provider 'aws-kms' holds no 'ES256' key of the 'ecc' type with 256 bits on the curve 'P-256'.",
+            error.Detail
+        );
+    }
+
+    [Fact]
+    public void ValidateCreateRemote_WhenTheLifecycleIsOutOfOrder_ReturnsBadRequest()
+    {
+        var request = new CreateRemoteSecretRequest
+        {
+            RemoteKeyProvider = ProviderName,
+            SecretType = SecretTypes.Ecc,
+            KeySizeBits = 256,
+            Algorithm = "ES256",
+            ExpiresWhen = CreatedWhen.AddDays(99),
+            ActivatesWhen = CreatedWhen.AddDays(3),
+            RetiresWhen = CreatedWhen.AddDays(2),
+        };
+
+        var error = RemoteValidator.ValidateCreateRemote(request, CreatedWhen).Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains("cannot retire", error.Detail, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region ValidateImportRemote Tests
+
+    private static ImportRemoteSecretRequest CreateImportRemoteRequest(
+        string provider = ProviderName,
+        string remoteKeyId = "key-1",
+        string secretType = SecretTypes.Ecc,
+        string format = SecretKeyImportFormats.Pem,
+        string algorithm = "ES256"
+    ) =>
+        new()
+        {
+            RemoteKeyProvider = provider,
+            RemoteKeyId = remoteKeyId,
+            SecretType = secretType,
+            Format = format,
+            KeyMaterial = "material",
+            Algorithm = algorithm,
+            ExpiresWhen = CreatedWhen.AddYears(1),
+        };
+
+    [Fact]
+    public void ValidateImportRemote_WhenTheRequestIsCoherent_ReturnsNull()
+    {
+        SetupProvider(ProviderName, registered: true);
+
+        var error = RemoteValidator.ValidateImportRemote(CreateImportRemoteRequest(), CreatedWhen);
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateImportRemote_WhenTheKeyIdentifierIsEmpty_ReturnsBadRequest()
+    {
+        SetupProvider(ProviderName, registered: true);
+
+        var error = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(remoteKeyId: " "),
+            CreatedWhen
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The key management service's key identifier must not be empty.",
+            error.Detail
+        );
+    }
+
+    [Fact]
+    public void ValidateImportRemote_WhenTheProviderIsNotRegistered_ReturnsBadRequest()
+    {
+        SetupProvider("unknown", registered: false);
+
+        var error = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(provider: "unknown"),
+            CreatedWhen
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal("The remote key provider 'unknown' is not registered.", error.Detail);
+    }
+
+    [Fact]
+    public void ValidateImportRemote_WhenTheAlgorithmIsAKeyManagementAlgorithm_ReturnsBadRequest()
+    {
+        SetupProvider(ProviderName, registered: true);
+
+        var error = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(algorithm: "RSA-OAEP"),
+            CreatedWhen
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The algorithm 'RSA-OAEP' is not a registered signature algorithm.",
+            error.Detail
+        );
+    }
+
+    [Fact]
+    public void ValidateImportRemote_WhenTheFormatIsNotSupported_ReturnsBadRequest()
+    {
+        var error = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(format: "openssh"),
+            CreatedWhen
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains("'openssh'", error.Detail, StringComparison.Ordinal);
     }
 
     #endregion

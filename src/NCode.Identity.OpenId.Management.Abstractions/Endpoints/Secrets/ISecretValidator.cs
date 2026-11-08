@@ -46,6 +46,36 @@ public interface ISecretValidator
     ManagementError? ValidateImport(ImportSecretRequest request, DateTimeOffset createdWhen);
 
     /// <summary>
+    /// Validates that the specified <see cref="CreateRemoteSecretRequest"/> describes a key a registered remote key
+    /// provider can create, and resolves the parameters the key is generated with. Everything is checked before the
+    /// key management service is called: the lifecycle, a key type a key management service can hold, a registered
+    /// provider, the generation parameters the signature algorithm resolves, and a row of the provider's mapping
+    /// vocabulary for the provider, algorithm, type, size and curve.
+    /// </summary>
+    /// <param name="request">The <see cref="CreateRemoteSecretRequest"/> to validate.</param>
+    /// <param name="createdWhen">The instant the secret is created at, which its activation cannot precede.</param>
+    /// <returns>The <see cref="SecretCreateValidation"/>: the generation parameters, or the first failed
+    /// check.</returns>
+    SecretCreateValidation ValidateCreateRemote(
+        CreateRemoteSecretRequest request,
+        DateTimeOffset createdWhen
+    );
+
+    /// <summary>
+    /// Validates that the specified <see cref="ImportRemoteSecretRequest"/> describes a coherent binding of a key a key
+    /// management service holds: the lifecycle, the supplied public half's type, format and material, a key type a key
+    /// management service can hold, a registered provider, a non-empty key identifier, and a registered signature
+    /// algorithm. The supplied key material itself is parsed by the importer, and the binding is proved by a signature.
+    /// </summary>
+    /// <param name="request">The <see cref="ImportRemoteSecretRequest"/> to validate.</param>
+    /// <param name="createdWhen">The instant the secret is created at, which its activation cannot precede.</param>
+    /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
+    ManagementError? ValidateImportRemote(
+        ImportRemoteSecretRequest request,
+        DateTimeOffset createdWhen
+    );
+
+    /// <summary>
     /// Validates the metadata an <see cref="UpdateSecretRequest"/> declares for an existing key: the <c>use</c> is
     /// supported, and the <c>algorithm</c>, when set, agrees with the <c>use</c> and accepts the key. An asymmetric key
     /// is checked by its stored public half, which shows its type, size and curve, and fails the check when that half

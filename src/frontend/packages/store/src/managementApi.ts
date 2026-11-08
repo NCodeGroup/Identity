@@ -22,6 +22,7 @@ import {
   type CreatedSecretResource,
   type CreateClientRequest,
   type CreateInitialAccessTokenRequest,
+  type CreateRemoteSecretRequest,
   type CreateResourceServerRequest,
   type CreateScopeRequest,
   type CreateSecretRequest,
@@ -37,6 +38,7 @@ import {
   type EncryptionRootKeyResource,
   type GrantResource,
   type GrantRevocationResult,
+  type ImportRemoteSecretRequest,
   type MachineClientOwner,
   type ManagementCapabilitiesResource,
   type ManagementOwner,
@@ -47,6 +49,7 @@ import {
   type RoleList,
   type RoleListResource,
   type ScopeResource,
+  type SecretResource,
   type SecretsResource,
   type SecretOwner,
   type SettingLimitsResource,
@@ -666,6 +669,33 @@ export const managementApi = createApi({
         { type: 'Secret', id: scopeTagId(ownerScope(owner), secretId) },
       ],
     }),
+    // Only a tenant's signing keys are held in a KMS, so the owner is a tenant by type (ADR-1475).
+    createRemoteSecret: build.mutation<
+      SecretResource,
+      { tenantId: string; body: CreateRemoteSecretRequest }
+    >({
+      query: ({ tenantId, body }) => ({
+        url: `${ownerApiPath({ kind: 'tenant', tenantId })}/secrets/remote`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'Secret', id: ownerTagId({ kind: 'tenant', tenantId }) },
+      ],
+    }),
+    importRemoteSecret: build.mutation<
+      SecretResource,
+      { tenantId: string; body: ImportRemoteSecretRequest }
+    >({
+      query: ({ tenantId, body }) => ({
+        url: `${ownerApiPath({ kind: 'tenant', tenantId })}/secrets/remote/import`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'Secret', id: ownerTagId({ kind: 'tenant', tenantId }) },
+      ],
+    }),
     // The master keys of a tenant or of the platform (ADR-1407). A rekey invalidates only its owner's keys.
     listEncryptionKeys: build.query<EncryptionKeysResource, EncryptionKeyOwner>({
       query: (owner) => `${ownerApiPath(owner)}/encryption-keys`,
@@ -832,6 +862,8 @@ export const {
   useCreateSecretMutation,
   useDeleteSecretMutation,
   useRotateSecretMutation,
+  useCreateRemoteSecretMutation,
+  useImportRemoteSecretMutation,
   useLazyGetSecretPublicKeyQuery,
   useListEncryptionKeysQuery,
   useRekeyEncryptionKeysMutation,

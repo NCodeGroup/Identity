@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using Google.Api.Gax.Grpc;
 using Google.Cloud.Kms.V1;
@@ -247,21 +248,35 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
     // The provider waits on the fake time, so the test moves it forward until the call completes.
     private async Task AdvanceUntilCompletedAsync(Task task)
     {
-        for (var i = 0; i < 500 && !task.IsCompleted; ++i)
+        var deadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 30;
+        while (!task.IsCompleted)
         {
-            TimeProvider.Advance(TimeSpan.FromSeconds(1));
-            await Task.Yield();
+            if (Stopwatch.GetTimestamp() > deadline)
+            {
+                Assert.Fail("The provider did not complete within 30 seconds.");
+            }
+
+            await Task.Delay(1);
+
+            if (!task.IsCompleted)
+            {
+                TimeProvider.Advance(TimeSpan.FromSeconds(1));
+            }
         }
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
-        for (var i = 0; i < 500 && !condition(); ++i)
+        var deadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 30;
+        while (!condition())
         {
-            await Task.Yield();
-        }
+            if (Stopwatch.GetTimestamp() > deadline)
+            {
+                Assert.Fail("The provider did not reach the awaited state within 30 seconds.");
+            }
 
-        Assert.True(condition());
+            await Task.Delay(1);
+        }
     }
 
     private void SetupReadOfAnEnabledVersion(PublicKey publicKey)

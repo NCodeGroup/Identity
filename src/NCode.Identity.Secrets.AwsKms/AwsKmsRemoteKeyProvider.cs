@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Amazon.KeyManagementService;
 using Amazon.KeyManagementService.Model;
@@ -24,9 +26,9 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// </para>
 /// <para>
 /// The provider refuses a public key that is not a signing key of the requested specification for the requested
-/// algorithm, and a signature that the service reports as made by another key or with another algorithm, each with a
-/// <see cref="CryptographicException"/>. Logs and messages carry identifiers only, never the signing input, a digest or
-/// a signature.
+/// algorithm with a <see cref="CryptographicException"/>, and a response that names another key or another algorithm
+/// than requested with an <see cref="IOException"/>, because the call can be retried. Logs and messages carry
+/// identifiers only, never the signing input, a digest or a signature.
 /// </para>
 /// </remarks>
 // See ADR-1471.
@@ -68,8 +70,7 @@ internal class AwsKmsRemoteKeyProvider(
     /// Thrown when the configured region is not set.
     /// </exception>
     /// <exception cref="CryptographicException">
-    /// Thrown when the service creates a key whose identifier is not a KMS key ARN, or reports a public key that is not
-    /// a signing key of the requested specification for the requested algorithm.
+    /// Thrown when the service creates a key whose identifier is not a KMS key ARN.
     /// </exception>
     public async ValueTask<RemoteKeyCreationResult> CreateKeyAsync(
         RemoteKeyCreationRequest request,
@@ -117,7 +118,41 @@ internal class AwsKmsRemoteKeyProvider(
             );
         }
 
-        var publicKeyRequest = new GetPublicKeyRequest { KeyId = keyArn };
+        return new RemoteKeyCreationResult { KeyId = keyArn };
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
+    /// Thrown when the key identifier of <paramref name="request"/> is not a KMS key ARN.
+    /// </exception>
+    /// <exception cref="IOException">
+    /// Thrown when the service reports a public key of another key than requested.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the service reports a public key that is missing or is not a signing key of the requested
+    /// specification for the requested algorithm.
+    /// </exception>
+    public async ValueTask GetPublicKeyAsync(
+        RemotePublicKeyRequest request,
+        IBufferWriter<byte> subjectPublicKeyInfo,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(subjectPublicKeyInfo);
+
+        var keyId = request.KeyId;
+        if (!AwsKmsKeyArn.IsValid(keyId))
+        {
+            throw new ArgumentException(
+                "The key identifier is not the ARN of a KMS key.",
+                nameof(request)
+            );
+        }
+
+        var row = request.Algorithm;
+        var region = AwsKmsKeyArn.GetRegion(keyId);
+        var publicKeyRequest = new GetPublicKeyRequest { KeyId = keyId };
 
         var publicKey = await ClientFactory.ExecuteAsync(
             region,
@@ -129,15 +164,22 @@ internal class AwsKmsRemoteKeyProvider(
             cancellationToken
         );
 
+        if (!string.Equals(publicKey.KeyId, keyId, StringComparison.Ordinal))
+        {
+            throw new IOException(
+                $"AWS KMS key '{keyId}' was asked for its public key, but the service reports the public key of another key."
+            );
+        }
+
         if (publicKey.KeyUsage != KeyUsageType.SIGN_VERIFY)
         {
-            throw new CryptographicException($"AWS KMS key '{keyArn}' is not a signing key.");
+            throw new CryptographicException($"AWS KMS key '{keyId}' is not a signing key.");
         }
 
         if (publicKey.KeySpec?.Value != row.KeySpec)
         {
             throw new CryptographicException(
-                $"AWS KMS key '{keyArn}' does not have the key specification '{row.KeySpec}'."
+                $"AWS KMS key '{keyId}' does not have the key specification '{row.KeySpec}'."
             );
         }
 
@@ -147,26 +189,33 @@ internal class AwsKmsRemoteKeyProvider(
         )
         {
             throw new CryptographicException(
-                $"AWS KMS key '{keyArn}' does not support the signing algorithm '{row.SigningAlgorithm}'."
+                $"AWS KMS key '{keyId}' does not support the signing algorithm '{row.SigningAlgorithm}'."
             );
         }
 
-        return new RemoteKeyCreationResult
+        if (publicKey.PublicKey is not { Length: > 0 } stream)
         {
-            KeyId = keyArn,
-            SubjectPublicKeyInfo = publicKey.PublicKey.ToArray(),
-        };
+            throw new CryptographicException($"AWS KMS key '{keyId}' has no public key.");
+        }
+
+        var length = checked((int)stream.Length);
+        stream.ReadExactly(subjectPublicKeyInfo.GetSpan(length)[..length]);
+        subjectPublicKeyInfo.Advance(length);
     }
 
     /// <inheritdoc />
     /// <exception cref="ArgumentException">
     /// Thrown when the key identifier of <paramref name="request"/> is not a KMS key ARN.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="IOException">
     /// Thrown when the service reports that another key or another algorithm made the signature.
     /// </exception>
-    public async ValueTask<byte[]> SignAsync(
+    /// <exception cref="CryptographicException">
+    /// Thrown when the signature does not fit in the buffer.
+    /// </exception>
+    public async ValueTask<int> SignAsync(
         RemoteSignatureRequest request,
+        Memory<byte> signature,
         CancellationToken cancellationToken
     )
     {
@@ -184,16 +233,22 @@ internal class AwsKmsRemoteKeyProvider(
         var row = request.Algorithm;
         var region = AwsKmsKeyArn.GetRegion(keyId);
 
+        // The SDK takes the message as a stream, so an array-backed input is wrapped without a copy.
+        var message =
+            MemoryMarshal.TryGetArray(request.Data, out var segment) && segment.Array is { } array
+                ? new MemoryStream(array, segment.Offset, segment.Count, writable: false)
+                : new MemoryStream(request.Data.ToArray());
+
         // A row that names no digest has the service receive the whole signing input.
         var signRequest = new SignRequest
         {
             KeyId = keyId,
-            Message = new MemoryStream(request.Data.ToArray()),
+            Message = message,
             MessageType = row.DigestAlgorithm is null ? MessageType.RAW : MessageType.DIGEST,
             SigningAlgorithm = SigningAlgorithmSpec.FindValue(row.SigningAlgorithm),
         };
 
-        using var message = signRequest.Message;
+        using var messageToDispose = message;
 
         var response = await ClientFactory.ExecuteAsync(
             region,
@@ -204,7 +259,7 @@ internal class AwsKmsRemoteKeyProvider(
 
         if (!string.Equals(response.KeyId, keyId, StringComparison.Ordinal))
         {
-            throw new CryptographicException(
+            throw new IOException(
                 $"AWS KMS key '{keyId}' was asked to sign, but the service reports another key made the signature."
             );
         }
@@ -217,12 +272,21 @@ internal class AwsKmsRemoteKeyProvider(
             )
         )
         {
-            throw new CryptographicException(
+            throw new IOException(
                 $"AWS KMS key '{keyId}' was asked to sign with '{row.SigningAlgorithm}', but the service reports another algorithm made the signature."
             );
         }
 
-        return response.Signature.ToArray();
+        var length = checked((int)response.Signature.Length);
+        if (length > signature.Length)
+        {
+            throw new CryptographicException(
+                $"The signature of AWS KMS key '{keyId}' does not fit in the buffer."
+            );
+        }
+
+        response.Signature.ReadExactly(signature.Span[..length]);
+        return length;
     }
 
     /// <inheritdoc />

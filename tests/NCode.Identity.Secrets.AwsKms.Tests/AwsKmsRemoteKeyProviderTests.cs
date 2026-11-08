@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Security.Cryptography;
 using Amazon.KeyManagementService;
 using Amazon.KeyManagementService.Model;
@@ -63,6 +64,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             OwnerId = "tenant-1",
             SecretId = "secret-1",
             Algorithm = row,
+            GroupName = "ncid-group-1",
         };
 
     // The factory runs the operation of the provider with the client mock, as it runs it with a client of the region.
@@ -114,37 +116,40 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
 
     private static GetPublicKeyResponse CreatePublicKey(
         RemoteSigningAlgorithm row,
-        byte[] publicKey,
+        byte[]? publicKey,
+        string keyId = KeyArn,
         KeyUsageType? usage = null,
         string? keySpec = null,
         List<string>? signingAlgorithms = null
     ) =>
         new()
         {
-            PublicKey = new MemoryStream(publicKey),
+            KeyId = keyId,
+            PublicKey = publicKey is null ? null : new MemoryStream(publicKey),
             KeyUsage = usage ?? KeyUsageType.SIGN_VERIFY,
             KeySpec = KeySpec.FindValue(keySpec ?? row.KeySpec),
             SigningAlgorithms = signingAlgorithms ?? [row.SigningAlgorithm],
         };
 
+    private static RemotePublicKeyRequest CreatePublicKeyRequest(
+        RemoteSigningAlgorithm row,
+        string keyId = KeyArn
+    ) => new() { KeyId = keyId, Algorithm = row };
+
     #region CreateKeyAsync Tests
 
     [Fact]
-    public async Task CreateKeyAsync_SendsSpecUsageTagsAndDescription_ReturnsArnAndPublicKey()
+    public async Task CreateKeyAsync_SendsSpecUsageTagsAndDescription_ReturnsArn()
     {
         var request = CreateCreationRequest(Rs256);
-        var spki = RandomNumberGenerator.GetBytes(64);
         CreateKeyRequest? sent = null;
         SetupClient<CreateKeyResponse>("us-west-2");
-        SetupClient<GetPublicKeyResponse>("us-west-2");
         SetupCreateKey(KeyArn, captured => sent = captured);
-        SetupGetPublicKey(CreatePublicKey(Rs256, spki), KeyArn);
         var provider = CreateProvider();
 
         var result = await provider.CreateKeyAsync(request, CancellationToken.None);
 
         Assert.Equal(KeyArn, result.KeyId);
-        Assert.Equal(spki, result.SubjectPublicKeyInfo.ToArray());
         var createRequest = Assert.IsType<CreateKeyRequest>(sent);
         Assert.Equal(KeySpec.RSA_3072, createRequest.KeySpec);
         Assert.Equal(KeyUsageType.SIGN_VERIFY, createRequest.KeyUsage);
@@ -160,17 +165,13 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
     public async Task CreateKeyAsync_EllipticCurveRow_SendsCurveSpec()
     {
         var request = CreateCreationRequest(Es256);
-        var spki = RandomNumberGenerator.GetBytes(91);
         CreateKeyRequest? sent = null;
         SetupClient<CreateKeyResponse>("us-west-2");
-        SetupClient<GetPublicKeyResponse>("us-west-2");
         SetupCreateKey(KeyArn, captured => sent = captured);
-        SetupGetPublicKey(CreatePublicKey(Es256, spki), KeyArn);
         var provider = CreateProvider();
 
-        var result = await provider.CreateKeyAsync(request, CancellationToken.None);
+        await provider.CreateKeyAsync(request, CancellationToken.None);
 
-        Assert.Equal(spki, result.SubjectPublicKeyInfo.ToArray());
         var createRequest = Assert.IsType<CreateKeyRequest>(sent);
         Assert.Equal(KeySpec.ECC_NIST_P256, createRequest.KeySpec);
     }
@@ -197,28 +198,93 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         );
     }
 
+    private static string? Tag(CreateKeyRequest request, string key) =>
+        request.Tags.Single(x => x.TagKey == key).TagValue;
+
+    #endregion
+
+    #region GetPublicKeyAsync Tests
+
     [Fact]
-    public async Task CreateKeyAsync_PublicKeyOfAnotherSpec_Throws()
+    public async Task GetPublicKeyAsync_WritesThePublicKeyUsingTheClientOfTheArnRegion()
     {
-        SetupClient<CreateKeyResponse>("us-west-2");
-        SetupClient<GetPublicKeyResponse>("us-west-2");
-        SetupCreateKey(KeyArn);
-        SetupGetPublicKey(CreatePublicKey(Rs256, [1, 2, 3], keySpec: "RSA_2048"), KeyArn);
+        var spki = RandomNumberGenerator.GetBytes(91);
+        SetupClient<GetPublicKeyResponse>("eu-central-1");
+        SetupGetPublicKey(CreatePublicKey(Es256, spki, OtherRegionKeyArn), OtherRegionKeyArn);
+        var provider = CreateProvider(region: "us-west-2");
+        var writer = new ArrayBufferWriter<byte>();
+
+        await provider.GetPublicKeyAsync(
+            CreatePublicKeyRequest(Es256, OtherRegionKeyArn),
+            writer,
+            CancellationToken.None
+        );
+
+        Assert.Equal(spki, writer.WrittenSpan.ToArray());
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_KeyIdIsNotAnArn_Throws()
+    {
         var provider = CreateProvider();
 
-        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
-            provider.CreateKeyAsync(CreateCreationRequest(Rs256), CancellationToken.None).AsTask()
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(Rs256, "not-an-arn"),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Equal("request", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_ResponseNamesAnotherKey_ThrowsIOException()
+    {
+        SetupClient<GetPublicKeyResponse>("us-west-2");
+        SetupGetPublicKey(CreatePublicKey(Rs256, [1, 2, 3], OtherKeyArn), KeyArn);
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(Rs256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
         );
 
         Assert.Contains(KeyArn, exception.Message);
     }
 
     [Fact]
-    public async Task CreateKeyAsync_PublicKeyOfAnotherUsage_Throws()
+    public async Task GetPublicKeyAsync_PublicKeyOfAnotherSpec_Throws()
     {
-        SetupClient<CreateKeyResponse>("us-west-2");
         SetupClient<GetPublicKeyResponse>("us-west-2");
-        SetupCreateKey(KeyArn);
+        SetupGetPublicKey(CreatePublicKey(Rs256, [1, 2, 3], keySpec: "RSA_2048"), KeyArn);
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(Rs256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_PublicKeyOfAnotherUsage_Throws()
+    {
+        SetupClient<GetPublicKeyResponse>("us-west-2");
         SetupGetPublicKey(
             CreatePublicKey(Rs256, [1, 2, 3], usage: KeyUsageType.ENCRYPT_DECRYPT),
             KeyArn
@@ -226,18 +292,22 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         var provider = CreateProvider();
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
-            provider.CreateKeyAsync(CreateCreationRequest(Rs256), CancellationToken.None).AsTask()
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(Rs256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
         );
 
         Assert.Contains(KeyArn, exception.Message);
     }
 
     [Fact]
-    public async Task CreateKeyAsync_PublicKeyWithoutTheAlgorithm_Throws()
+    public async Task GetPublicKeyAsync_PublicKeyWithoutTheAlgorithm_Throws()
     {
-        SetupClient<CreateKeyResponse>("us-west-2");
         SetupClient<GetPublicKeyResponse>("us-west-2");
-        SetupCreateKey(KeyArn);
         SetupGetPublicKey(
             CreatePublicKey(Rs256, [1, 2, 3], signingAlgorithms: ["RSASSA_PSS_SHA_256"]),
             KeyArn
@@ -245,14 +315,37 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         var provider = CreateProvider();
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
-            provider.CreateKeyAsync(CreateCreationRequest(Rs256), CancellationToken.None).AsTask()
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(Rs256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
         );
 
         Assert.Contains(Rs256.SigningAlgorithm, exception.Message);
     }
 
-    private static string? Tag(CreateKeyRequest request, string key) =>
-        request.Tags.Single(x => x.TagKey == key).TagValue;
+    [Fact]
+    public async Task GetPublicKeyAsync_ResponseWithoutPublicKey_Throws()
+    {
+        SetupClient<GetPublicKeyResponse>("us-west-2");
+        SetupGetPublicKey(CreatePublicKey(Rs256, publicKey: null), KeyArn);
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(Rs256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+    }
 
     #endregion
 
@@ -285,18 +378,20 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             )
             .Verifiable();
         var provider = CreateProvider(region: "us-west-2");
+        var buffer = new byte[512];
 
-        var result = await provider.SignAsync(
+        var written = await provider.SignAsync(
             new RemoteSignatureRequest
             {
                 KeyId = OtherRegionKeyArn,
                 Algorithm = Rs256,
                 Data = digest,
             },
+            buffer,
             CancellationToken.None
         );
 
-        Assert.Equal(signature, result);
+        Assert.Equal(signature, buffer[..written]);
         var request = Assert.IsType<SignRequest>(sent);
         Assert.Equal(OtherRegionKeyArn, request.KeyId);
         Assert.Equal(MessageType.DIGEST, request.MessageType);
@@ -325,23 +420,104 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             )
             .Verifiable();
         var provider = CreateProvider();
+        var buffer = new byte[512];
 
-        var result = await provider.SignAsync(
+        var written = await provider.SignAsync(
             new RemoteSignatureRequest
             {
                 KeyId = KeyArn,
                 Algorithm = row,
                 Data = input,
             },
+            buffer,
             CancellationToken.None
         );
 
-        Assert.Equal(signature, result);
+        Assert.Equal(signature, buffer[..written]);
         Assert.Equal(MessageType.RAW, Assert.IsType<SignRequest>(sent).MessageType);
     }
 
     [Fact]
-    public async Task SignAsync_ResponseNamesAnotherKey_Throws()
+    public async Task SignAsync_ArrayBackedData_SendsTheCallersMemoryWithoutCopying()
+    {
+        var data = RandomNumberGenerator.GetBytes(40);
+        var original = data[4];
+        var signature = RandomNumberGenerator.GetBytes(384);
+        SetupClient<SignResponse>("us-west-2");
+        byte[]? sentMessage = null;
+        Client
+            .Setup(x => x.SignAsync(It.IsAny<SignRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<SignRequest, CancellationToken>(
+                (request, _) =>
+                {
+                    data[4] ^= 0xFF;
+                    sentMessage = request.Message.ToArray();
+                }
+            )
+            .ReturnsAsync(
+                new SignResponse
+                {
+                    KeyId = KeyArn,
+                    SigningAlgorithm = SigningAlgorithmSpec.RSASSA_PKCS1_V1_5_SHA_256,
+                    Signature = new MemoryStream(signature),
+                }
+            )
+            .Verifiable();
+        var provider = CreateProvider();
+
+        await provider.SignAsync(
+            new RemoteSignatureRequest
+            {
+                KeyId = KeyArn,
+                Algorithm = Rs256,
+                Data = data.AsMemory(4, 32),
+            },
+            new byte[512],
+            CancellationToken.None
+        );
+
+        var message = Assert.IsType<byte[]>(sentMessage);
+        Assert.Equal(32, message.Length);
+        Assert.Equal((byte)(original ^ 0xFF), message[0]);
+    }
+
+    [Fact]
+    public async Task SignAsync_SignatureLongerThanTheBuffer_Throws()
+    {
+        SetupClient<SignResponse>("us-west-2");
+        Client
+            .Setup(x => x.SignAsync(It.IsAny<SignRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new SignResponse
+                {
+                    KeyId = KeyArn,
+                    SigningAlgorithm = SigningAlgorithmSpec.RSASSA_PKCS1_V1_5_SHA_256,
+                    Signature = new MemoryStream(RandomNumberGenerator.GetBytes(384)),
+                }
+            )
+            .Verifiable();
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .SignAsync(
+                    new RemoteSignatureRequest
+                    {
+                        KeyId = KeyArn,
+                        Algorithm = Rs256,
+                        Data = new byte[32],
+                    },
+                    new byte[383],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+    }
+
+    [Fact]
+    public async Task SignAsync_ResponseNamesAnotherKey_ThrowsIOException()
     {
         SetupClient<SignResponse>("us-west-2");
         Client
@@ -357,7 +533,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             .Verifiable();
         var provider = CreateProvider();
 
-        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
             provider
                 .SignAsync(
                     new RemoteSignatureRequest
@@ -366,6 +542,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
                         Algorithm = Rs256,
                         Data = new byte[32],
                     },
+                    new byte[512],
                     CancellationToken.None
                 )
                 .AsTask()
@@ -375,7 +552,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
     }
 
     [Fact]
-    public async Task SignAsync_ResponseNamesAnotherAlgorithm_Throws()
+    public async Task SignAsync_ResponseNamesAnotherAlgorithm_ThrowsIOException()
     {
         SetupClient<SignResponse>("us-west-2");
         Client
@@ -391,7 +568,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             .Verifiable();
         var provider = CreateProvider();
 
-        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
             provider
                 .SignAsync(
                     new RemoteSignatureRequest
@@ -400,6 +577,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
                         Algorithm = Rs256,
                         Data = new byte[32],
                     },
+                    new byte[512],
                     CancellationToken.None
                 )
                 .AsTask()
@@ -422,6 +600,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
                         Algorithm = Rs256,
                         Data = new byte[32],
                     },
+                    new byte[512],
                     CancellationToken.None
                 )
                 .AsTask()

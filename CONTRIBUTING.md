@@ -5,7 +5,8 @@ enforced quality bar.
 
 ## Prerequisites
 
-- The .NET SDK pinned in [`global.json`](global.json) (10.0.x). The net10 targeting pack restores automatically.
+- The .NET SDK pinned in [`global.json`](global.json) (10.0.x), and the runtime of each older .NET a test project
+  targets, which `./build/Get-TestRuntimes.ps1` names. The net10 targeting pack restores automatically.
 - PowerShell 7+ (`pwsh`) to run the Definition-of-Done script.
 - Local tools: run `dotnet tool restore` once after cloning to install the repo-pinned **CSharpier** formatter.
 - Git hooks: run `git config core.hooksPath .githooks` once after cloning to enable the repo-versioned hooks (see
@@ -143,9 +144,12 @@ marked tool-enforced or review-only. Every rule lives in one of them, once. The 
 1. Open (or find) a GitHub issue describing the problem or proposal. A change that affects the **public outcome**
    (semantics, public surface, validation/security posture) should reach agreement on the issue — and be recorded as an
    ADR under [`docs/decisions/`](docs/decisions/) — before the pull request.
-2. Work on a short-lived branch from `main`. Keep the public surface deliberate; a breaking change to the public API is
-   a **major** version bump.
-3. Record any consumer-visible change in [`CHANGELOG.md`](CHANGELOG.md) under `## [Unreleased]`.
+2. Work on a short-lived branch from `main`. Keep the public surface deliberate; from the first stable release, a
+   breaking change to the public API is a **major** version bump.
+3. Keep [`CHANGELOG.md`](CHANGELOG.md) matching the code. While `AGENTS.md`'s Landing section says
+   `pre-release: untracked` and no version tag of 1.0.0 or later exists, its `## [Unreleased]` section describes the
+   family as it is, under `### Added` and `### Security` only: edit the entry a change adds, reshapes or removes
+   ([project-template ADR-0015](docs/decisions/project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)).
 4. Ensure `./build/dod.ps1 -Fast -Affected` passes before pushing.
 5. Push the branch and open a pull request against `main`, as a draft while it is in progress. The pull request runs
    the fast gate: the `Definition of Done` check runs only the tests its change reaches. Once the required checks pass

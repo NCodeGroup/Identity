@@ -85,7 +85,8 @@ updates:
   # The workflows themselves. Pinned action majors go stale silently and surface as runner deprecation warnings rather
   # than failures, so they need the same automation as package dependencies.
   - package-ecosystem: github-actions
-    directory: /
+    # The workflows' actions, and those of the composite actions they call, such as .github/actions/install-dotnet.
+    directories: ["/", "/.github/actions/*"]
     schedule:
       interval: weekly
     # Version updates are paused (issue #36) for every action but NCodeGroup/code-review, which is pinned to a release's

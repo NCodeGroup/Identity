@@ -10,6 +10,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -94,8 +95,8 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
             {
                 SecretId = "secret-1",
                 SecretType = SecretTypes.Ecc,
-                Format = SecretEncodings.Spki,
-                KeyMaterial = EncodeSubjectPublicKeyInfo(key),
+                Format = SecretKeyImportFormats.Pem,
+                KeyMaterial = key.ExportSubjectPublicKeyInfoPem(),
                 Use = "sig",
                 Algorithm = "ES256",
                 CreatedWhen = DateTimeOffset.UnixEpoch,
@@ -183,6 +184,10 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 
         Assert.NotNull(result);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Equal(
+            "The key 'key-1' of the remote key provider 'stub-kms' does not sign with the private half of the supplied public key.",
+            result.Detail
+        );
     }
 
     [Fact]
@@ -194,6 +199,10 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 
         Assert.NotNull(result);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Equal(
+            $"The secret '{secret.SecretId}' names the remote key provider 'other-kms', which is not registered.",
+            result.Detail
+        );
     }
 
     [Fact]
@@ -211,6 +220,10 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 
         Assert.NotNull(result);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Equal(
+            $"The secret '{secret.SecretId}' has no remote signing algorithm for provider 'stub-kms', algorithm 'ES384', secret type '{SecretTypes.Ecc}', key size 384 and curve 'P-384'.",
+            result.Detail
+        );
     }
 
     [Fact]
@@ -228,6 +241,10 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 
         Assert.NotNull(result);
         Assert.Equal(StatusCodes.Status502BadGateway, result.StatusCode);
+        Assert.Equal(
+            "The key management service of the remote key provider 'stub-kms' did not sign with the key 'key-1': it refused the key or the deployment's identity, or it could not be reached.",
+            result.Detail
+        );
     }
 
     #endregion

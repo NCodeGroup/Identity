@@ -63,32 +63,27 @@ internal class DefaultRemoteSecretImporter(
         }
 
         var key = SecretSerializer.DeserializePublicSecret(publicSecret);
-        try
-        {
-            if (key is not AsymmetricSecretKey asymmetricKey)
-            {
-                secret = null;
-                error = "A key management service holds only asymmetric keys.";
-                return false;
-            }
+        using var keyDisposal = key as IDisposable;
 
-            var subjectPublicKeyInfo = ExportSubjectPublicKeyInfo(asymmetricKey);
-
-            secret = publicSecret with
-            {
-                SecretEncoding = SecretEncodings.Remote,
-                EncodedValue = request.Reference.ToString(),
-                PublicKey = subjectPublicKeyInfo,
-                Origin = SecretOrigins.Supplied,
-                ManagedBy = null,
-            };
-            error = null;
-            return true;
-        }
-        finally
+        if (key is not AsymmetricSecretKey asymmetricKey)
         {
-            (key as IDisposable)?.Dispose();
+            secret = null;
+            error = "A key management service holds only asymmetric keys.";
+            return false;
         }
+
+        var subjectPublicKeyInfo = ExportSubjectPublicKeyInfo(asymmetricKey);
+
+        secret = publicSecret with
+        {
+            SecretEncoding = SecretEncodings.Remote,
+            EncodedValue = request.Reference.ToString(),
+            PublicKey = subjectPublicKeyInfo,
+            Origin = SecretOrigins.Supplied,
+            ManagedBy = null,
+        };
+        error = null;
+        return true;
     }
 
     private static string ExportSubjectPublicKeyInfo(AsymmetricSecretKey key)
@@ -122,67 +117,62 @@ internal class DefaultRemoteSecretImporter(
             return Error(StatusCodes.Status400BadRequest, exception.Message);
         }
 
+        using var keyDisposal = key as IDisposable;
+
+        if (
+            secret.Algorithm is null
+            || !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
+                secret.Algorithm,
+                out var signatureAlgorithm
+            )
+        )
+        {
+            return Error(
+                StatusCodes.Status400BadRequest,
+                $"The algorithm '{secret.Algorithm}' is not a registered signature algorithm."
+            );
+        }
+
+        if (!RemoteKeyReference.TryParse(secret.EncodedValue, out var reference))
+        {
+            return Error(
+                StatusCodes.Status400BadRequest,
+                $"The secret '{secret.SecretId}' does not hold a valid remote key reference."
+            );
+        }
+
+        using var challengeLease = BufferFactory.Rent(
+            ChallengeSizeBytes,
+            isSensitive: false,
+            out Memory<byte> challenge
+        );
+        RandomNumberGenerator.Fill(challenge.Span);
+
+        using var signatureLease = BufferFactory.Rent(
+            signatureAlgorithm.GetSignatureSizeBytes(key.KeySizeBits),
+            isSensitive: false,
+            out Memory<byte> signature
+        );
+
         try
         {
-            if (
-                secret.Algorithm is null
-                || !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
-                    secret.Algorithm,
-                    out var signatureAlgorithm
-                )
-            )
-            {
-                return Error(
-                    StatusCodes.Status400BadRequest,
-                    $"The algorithm '{secret.Algorithm}' is not a registered signature algorithm."
-                );
-            }
-
-            if (!RemoteKeyReference.TryParse(secret.EncodedValue, out var reference))
-            {
-                return Error(
-                    StatusCodes.Status400BadRequest,
-                    $"The secret '{secret.SecretId}' does not hold a valid remote key reference."
-                );
-            }
-
-            using var challengeLease = BufferFactory.Rent(
-                ChallengeSizeBytes,
-                isSensitive: false,
-                out Memory<byte> challenge
-            );
-            RandomNumberGenerator.Fill(challenge.Span);
-
-            using var signatureLease = BufferFactory.Rent(
-                signatureAlgorithm.GetSignatureSizeBytes(key.KeySizeBits),
-                isSensitive: false,
-                out Memory<byte> signature
-            );
-
-            try
-            {
-                await signatureAlgorithm.SignAsync(key, challenge, signature, cancellationToken);
-                return null;
-            }
-            catch (Exception exception) when (exception is JoseException or CryptographicException)
-            {
-                return Error(
-                    StatusCodes.Status400BadRequest,
-                    $"The key '{reference.KeyId}' of the remote key provider '{reference.Provider}' does not sign with the private half of the supplied public key."
-                );
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                Logger.RemoteKeyProviderFailed(reference.Provider, secret.SecretId, exception);
-                return Error(
-                    StatusCodes.Status502BadGateway,
-                    $"The key management service of the remote key provider '{reference.Provider}' did not sign with the key '{reference.KeyId}': it refused the key or the deployment's identity, or it could not be reached."
-                );
-            }
+            await signatureAlgorithm.SignAsync(key, challenge, signature, cancellationToken);
+            return null;
         }
-        finally
+        catch (Exception exception) when (exception is JoseException or CryptographicException)
         {
-            (key as IDisposable)?.Dispose();
+            return Error(
+                StatusCodes.Status400BadRequest,
+                $"The key '{reference.KeyId}' of the remote key provider '{reference.Provider}' does not sign with the private half of the supplied public key."
+            );
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            Logger.RemoteKeyProviderFailed(reference.Provider, secret.SecretId, exception);
+            return Error(
+                StatusCodes.Status502BadGateway,
+                $"The key management service of the remote key provider '{reference.Provider}' did not sign with the key '{reference.KeyId}': it refused the key or the deployment's identity, or it could not be reached."
+            );
         }
     }
 }

@@ -11,6 +11,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// <see cref="IRemoteKeyDescriptorSource"/> instances contribute, without constructing a provider.
 /// </summary>
 // See ADR-1474.
+// See ADR-1477.
 [PublicAPI]
 public interface IRemoteKeyDescriptorCatalog
 {
@@ -27,7 +28,7 @@ public interface IRemoteKeyDescriptorCatalog
     /// <param name="algorithm">When this method returns <c>true</c>, the matching row.</param>
     /// <returns><c>true</c> when a row matches the selector; otherwise <c>false</c>.</returns>
     bool TryGetAlgorithm(
-        RemoteSigningAlgorithmSelector selector,
-        [NotNullWhen(true)] out RemoteSigningAlgorithm? algorithm
+        RemoteKeyAlgorithmSelector selector,
+        [NotNullWhen(true)] out RemoteKeyAlgorithm? algorithm
     );
 }

@@ -10,6 +10,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// key management service operations. A package registers a source, so anyone adds rows by registering one.
 /// </summary>
 // See ADR-1474.
+// See ADR-1477.
 [PublicAPI]
 public interface IRemoteKeyDescriptorSource
 {
@@ -19,7 +20,7 @@ public interface IRemoteKeyDescriptorSource
     IEnumerable<RemoteKeyProviderDescriptor> Providers { get; }
 
     /// <summary>
-    /// Gets the rows that the source contributes.
+    /// Gets the rows of every kind that the source contributes.
     /// </summary>
-    IEnumerable<RemoteSigningAlgorithm> Algorithms { get; }
+    IEnumerable<RemoteKeyAlgorithm> Algorithms { get; }
 }

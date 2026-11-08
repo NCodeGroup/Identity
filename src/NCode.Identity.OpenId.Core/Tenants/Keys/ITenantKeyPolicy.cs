@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Tenants.Keys;
 
@@ -23,8 +24,22 @@ internal interface ITenantKeyPolicy
     );
 
     /// <summary>
+    /// Applies a tenant's custody choice to the provisioned keys: when the tenant's
+    /// <c>tenant_signing_key_provider</c> setting names a remote key provider, every signature key is held by that
+    /// provider; encryption keys, and every key when the setting is empty, are held in the server's store.
+    /// </summary>
+    /// <param name="specifications">The provisioned keys resolved from the provisioning options.</param>
+    /// <param name="settings">The tenant's effective settings.</param>
+    /// <returns>The provisioned keys with the tenant's custody.</returns>
+    IReadOnlyList<TenantKeySpecification> ForTenant(
+        IReadOnlyList<TenantKeySpecification> specifications,
+        IReadOnlySettingCollection settings
+    );
+
+    /// <summary>
     /// Determines whether a persisted secret satisfies a provisioned key: the server could select it for the key's
-    /// algorithm and use, and it holds the private material that use requires.
+    /// algorithm and use, it holds the private material that use requires, and it is held by the key's custody (a
+    /// remote key of the specification's provider, or a key that is not remote).
     /// </summary>
     /// <param name="specification">The provisioned key.</param>
     /// <param name="secret">The persisted secret the tenant holds.</param>

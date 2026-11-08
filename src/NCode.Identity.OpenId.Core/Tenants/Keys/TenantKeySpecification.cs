@@ -35,4 +35,10 @@ internal readonly record struct TenantKeySpecification
     /// no curve for the key type.
     /// </summary>
     public string? Curve { get; init; }
+
+    /// <summary>
+    /// Gets the name of the registered remote key provider that holds the key, or <c>null</c> when the key is held in
+    /// the server's store. The tenant's <c>tenant_signing_key_provider</c> setting selects it for signature keys.
+    /// </summary>
+    public string? RemoteKeyProvider { get; init; }
 }

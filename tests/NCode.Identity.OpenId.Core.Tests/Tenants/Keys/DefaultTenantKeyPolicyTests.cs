@@ -8,17 +8,21 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Primitives;
+using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.EdDsa;
 using NCode.Identity.Jose.EdDsa.Keys;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.RemoteKeys;
+using NCode.Identity.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tenants.Keys;
@@ -32,6 +36,12 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             Use = SecretKeyUses.Signature,
             SecretType = SecretKeyTypes.Rsa,
             KeySizeBits = 3072,
+        };
+
+    private static TenantKeySpecification RemoteRs256 { get; } =
+        Rs256 with
+        {
+            RemoteKeyProvider = "aws-kms",
         };
 
     private const string BrainpoolAlgorithm = "X-ES256-BP";
@@ -80,10 +90,9 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         );
         _serviceProvider = serviceCollection.BuildServiceProvider();
 
-        Policy = new DefaultTenantKeyPolicy(
-            _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
-            _serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            _serviceProvider.GetRequiredService<ISecretSerializer>()
+        Policy = CreatePolicy(
+            _serviceProvider,
+            _serviceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
         );
     }
 
@@ -1004,6 +1013,140 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         );
     }
 
+    [Fact]
+    public void ResolveSpecifications_WhenAProviderHasNoRowForAProvisionedSignatureKey_ReportsIt()
+    {
+        var mockCatalog = CreateCatalog(
+            ["aws-kms"],
+            AlgorithmCodes.DigitalSignature.RsaSha256,
+            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
+        );
+        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+
+        var resolution = policy.ResolveSpecifications(new OpenIdTenantKeyProvisioningOptions());
+
+        Assert.Equal(3, resolution.Specifications.Count);
+        var error = Assert.Single(resolution.Errors);
+        Assert.Equal(
+            "The remote key provider 'aws-kms' cannot hold the provisioned 'ES256' key (ecc, 256 bits, curve 'P-256').",
+            error
+        );
+        mockCatalog.Verify();
+    }
+
+    [Fact]
+    public void ResolveSpecifications_WhenAProviderHasNoRowForAKeyWithoutACurve_OmitsTheCurve()
+    {
+        var mockCatalog = CreateCatalog(["aws-kms"]);
+        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(new OpenIdTenantKeyOptions { Algorithm = "RS256", KeySizeBits = 3072 })
+        );
+
+        var error = Assert.Single(resolution.Errors);
+        Assert.Equal(
+            "The remote key provider 'aws-kms' cannot hold the provisioned 'RS256' key (rsa, 3072 bits).",
+            error
+        );
+    }
+
+    [Fact]
+    public void ResolveSpecifications_WhenEveryProviderHasARowForEverySignatureKey_ReportsNothing()
+    {
+        var mockCatalog = CreateCatalog(
+            ["aws-kms", "azure-key-vault"],
+            AlgorithmCodes.DigitalSignature.RsaSha256,
+            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
+            AlgorithmCodes.DigitalSignature.EcdsaSha256
+        );
+        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+
+        var resolution = policy.ResolveSpecifications(new OpenIdTenantKeyProvisioningOptions());
+
+        Assert.Empty(resolution.Errors);
+    }
+
+    [Fact]
+    public void ResolveSpecifications_WhenEachOfTwoProvidersLacksARow_ReportsEachInProviderOrder()
+    {
+        var mockCatalog = CreateCatalog(["b-kms", "a-kms"]);
+        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(new OpenIdTenantKeyOptions { Algorithm = "RS256", KeySizeBits = 3072 })
+        );
+
+        Assert.Collection(
+            resolution.Errors,
+            error => Assert.Contains("'a-kms'", error),
+            error => Assert.Contains("'b-kms'", error)
+        );
+    }
+
+    [Fact]
+    public void ResolveSpecifications_WhenAProviderHasNoRowForAnEncryptionKey_DoesNotReportIt()
+    {
+        var mockCatalog = CreateCatalog(["aws-kms"]);
+        var policy = CreatePolicy(_serviceProvider, mockCatalog.Object);
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions
+                {
+                    Algorithm = AlgorithmCodes.KeyManagement.RsaOaep256,
+                    KeySizeBits = 3072,
+                }
+            )
+        );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Single(resolution.Specifications);
+    }
+
+    #endregion
+
+    #region ForTenant Tests
+
+    [Fact]
+    public void ForTenant_WhenTheSettingNamesAProvider_SetsItOnSignatureSpecificationsOnly()
+    {
+        var encryption = CreateSpecification(
+            AlgorithmCodes.KeyManagement.RsaOaep256,
+            SecretKeyUses.Encryption,
+            SecretKeyTypes.Rsa,
+            3072
+        );
+        var mockSettings = CreateSettings("aws-kms");
+
+        var result = Policy.ForTenant([Rs256, encryption], mockSettings.Object);
+
+        Assert.Collection(
+            result,
+            specification =>
+                Assert.Equal(Rs256 with { RemoteKeyProvider = "aws-kms" }, specification),
+            specification => Assert.Equal(encryption, specification)
+        );
+        mockSettings.Verify();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ForTenant_WhenTheSettingIsEmptyOrUnset_LeavesEverySpecificationLocal(
+        string? provider
+    )
+    {
+        var mockSettings = CreateSettings(provider);
+
+        var result = Policy.ForTenant([Rs256], mockSettings.Object);
+
+        var specification = Assert.Single(result);
+        Assert.Equal(Rs256, specification);
+        Assert.Null(specification.RemoteKeyProvider);
+        mockSettings.Verify();
+    }
+
     #endregion
 
     #region IsSatisfiedBy Tests
@@ -1227,6 +1370,66 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         Assert.False(Policy.IsSatisfiedBy(Rs256, secret));
     }
 
+    [Fact]
+    public void IsSatisfiedBy_WhenRemoteSpecificationAndSecretIsRemoteOfTheProvider_ReturnsTrue()
+    {
+        var secret = CreateSecret(
+            algorithm: "RS256",
+            use: SecretKeyUses.Signature,
+            encoding: SecretEncodings.Remote,
+            encodedValue: "aws-kms:arn:aws:kms:us-east-1:111122223333:key/abc"
+        );
+
+        Assert.True(Policy.IsSatisfiedBy(RemoteRs256, secret));
+    }
+
+    [Theory]
+    [InlineData("azure-key-vault:https://vault.example/keys/k/1")]
+    [InlineData("aws-kms")]
+    [InlineData("")]
+    public void IsSatisfiedBy_WhenRemoteSpecificationAndSecretIsRemoteOfAnotherProviderOrUnparsable_ReturnsFalse(
+        string encodedValue
+    )
+    {
+        var secret = CreateSecret(
+            algorithm: "RS256",
+            use: SecretKeyUses.Signature,
+            encoding: SecretEncodings.Remote,
+            encodedValue: encodedValue
+        );
+
+        Assert.False(Policy.IsSatisfiedBy(RemoteRs256, secret));
+    }
+
+    [Theory]
+    [InlineData(SecretEncodings.Pkcs8)]
+    [InlineData("keystore_ref")]
+    public void IsSatisfiedBy_WhenRemoteSpecificationAndSecretIsNotRemote_ReturnsFalse(
+        string encoding
+    )
+    {
+        var secret = CreateSecret(
+            algorithm: "RS256",
+            use: SecretKeyUses.Signature,
+            encoding: encoding
+        );
+
+        Assert.False(Policy.IsSatisfiedBy(RemoteRs256, secret));
+    }
+
+    [Fact]
+    public void IsSatisfiedBy_WhenLocalSpecificationAndSecretIsRemote_ReturnsFalse()
+    {
+        var secret = CreateSecret(
+            algorithm: "RS256",
+            use: SecretKeyUses.Signature,
+            encoding: SecretEncodings.Remote,
+            encodedValue: "aws-kms:key-1"
+        );
+
+        Assert.False(Policy.IsSatisfiedBy(Rs256, secret));
+    }
+
     #endregion
 
     #region Helpers
@@ -1241,11 +1444,88 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     }
 
     private static DefaultTenantKeyPolicy CreatePolicy(IServiceProvider serviceProvider) =>
+        CreatePolicy(
+            serviceProvider,
+            serviceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
+        );
+
+    private static DefaultTenantKeyPolicy CreatePolicy(
+        IServiceProvider serviceProvider,
+        IRemoteKeyProviderCatalog catalog
+    ) =>
         new(
             serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            serviceProvider.GetRequiredService<ISecretSerializer>()
+            serviceProvider.GetRequiredService<ISecretSerializer>(),
+            catalog
         );
+
+    // A catalog whose providers are the named ones and whose mapping vocabulary holds a row for each of the provider's
+    // algorithms in rowAlgorithms, whatever the secret type, size and curve.
+    private static Mock<IRemoteKeyProviderCatalog> CreateCatalog(
+        string[] providerNames,
+        params string[] rowAlgorithms
+    )
+    {
+        var providers = providerNames
+            .Select(name =>
+            {
+                var mockProvider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
+                mockProvider.Setup(provider => provider.Name).Returns(name);
+                return mockProvider.Object;
+            })
+            .ToList();
+
+        var mockCatalog = new Mock<IRemoteKeyProviderCatalog>(MockBehavior.Strict);
+        mockCatalog.Setup(catalog => catalog.Providers).Returns(providers).Verifiable();
+
+        RemoteSigningAlgorithm? row = null;
+        mockCatalog
+            .Setup(catalog =>
+                catalog.TryGetAlgorithm(It.IsAny<RemoteSigningAlgorithmSelector>(), out row)
+            )
+            .Returns(
+                new TryGetAlgorithmCallback(
+                    (RemoteSigningAlgorithmSelector selector, out RemoteSigningAlgorithm? found) =>
+                    {
+                        var hasRow = rowAlgorithms.Contains(selector.Algorithm);
+                        found = hasRow ? CreateRow(selector) : null;
+                        return hasRow;
+                    }
+                )
+            )
+            .Verifiable();
+        return mockCatalog;
+    }
+
+    private delegate bool TryGetAlgorithmCallback(
+        RemoteSigningAlgorithmSelector selector,
+        out RemoteSigningAlgorithm? algorithm
+    );
+
+    private static RemoteSigningAlgorithm CreateRow(RemoteSigningAlgorithmSelector selector) =>
+        new()
+        {
+            Provider = selector.Provider,
+            Algorithm = selector.Algorithm,
+            SecretType = selector.SecretType,
+            KeySizeBits = selector.KeySizeBits,
+            Curve = selector.Curve,
+            KeySpec = "spec",
+            SigningAlgorithm = "signing-algorithm",
+        };
+
+    private static Mock<IReadOnlySettingCollection> CreateSettings(string? provider)
+    {
+        var mockSettings = new Mock<IReadOnlySettingCollection>(MockBehavior.Strict);
+        mockSettings
+            .Setup(settings =>
+                settings.TryGetValue(OpenIdSettingKeys.TenantSigningKeyProvider, out provider)
+            )
+            .Returns(provider is not null)
+            .Verifiable();
+        return mockSettings;
+    }
 
     private static OpenIdTenantKeyProvisioningOptions CreateOptions(
         params OpenIdTenantKeyOptions[] keys
@@ -1298,7 +1578,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         string secretType = SecretKeyTypes.Rsa,
         int keySizeBits = 3072,
         string? publicKey = null,
-        bool withPublicKey = true
+        bool withPublicKey = true,
+        string encodedValue = "AA"
     ) =>
         new PersistedSecretBuilder
         {
@@ -1310,6 +1591,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             Algorithm = algorithm,
             SecretType = secretType,
             SecretEncoding = encoding,
+            EncodedValue = encodedValue,
             KeySizeBits = keySizeBits,
         }.Build();
 

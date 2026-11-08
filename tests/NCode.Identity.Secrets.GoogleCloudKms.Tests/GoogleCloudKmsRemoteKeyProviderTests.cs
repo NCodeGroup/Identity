@@ -29,6 +29,12 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
 
     private const string SignKeyName = KeyRing + "/cryptoKeys/signing/cryptoKeyVersions/7";
 
+    private static TimeSpan WaitTimeout { get; } = TimeSpan.FromSeconds(30);
+
+    private static TimeSpan PollInterval { get; } = TimeSpan.FromMilliseconds(1);
+
+    private static TimeSpan FakeTimeStep { get; } = TimeSpan.FromSeconds(1);
+
     private static RemoteSigningAlgorithm Rs256 { get; } =
         new()
         {
@@ -246,36 +252,28 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
     }
 
     // The provider waits on the fake time, so the test moves it forward until the call completes.
-    private async Task AdvanceUntilCompletedAsync(Task task)
+    private Task AdvanceUntilCompletedAsync(Task task) =>
+        WaitUntilAsync(() => task.IsCompleted, () => TimeProvider.Advance(FakeTimeStep));
+
+    private static async Task WaitUntilAsync(Func<bool> condition, Action? betweenPolls = null)
     {
-        var deadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 30;
-        while (!task.IsCompleted)
-        {
-            if (Stopwatch.GetTimestamp() > deadline)
-            {
-                Assert.Fail("The provider did not complete within 30 seconds.");
-            }
-
-            await Task.Delay(1);
-
-            if (!task.IsCompleted)
-            {
-                TimeProvider.Advance(TimeSpan.FromSeconds(1));
-            }
-        }
-    }
-
-    private static async Task WaitUntilAsync(Func<bool> condition)
-    {
-        var deadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 30;
+        var deadline =
+            Stopwatch.GetTimestamp() + (long)(WaitTimeout.TotalSeconds * Stopwatch.Frequency);
         while (!condition())
         {
             if (Stopwatch.GetTimestamp() > deadline)
             {
-                Assert.Fail("The provider did not reach the awaited state within 30 seconds.");
+                Assert.Fail(
+                    $"The provider did not reach the awaited state within {WaitTimeout.TotalSeconds} seconds."
+                );
             }
 
-            await Task.Delay(1);
+            await Task.Delay(PollInterval);
+
+            if (!condition())
+            {
+                betweenPolls?.Invoke();
+            }
         }
     }
 

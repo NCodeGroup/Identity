@@ -6,10 +6,8 @@
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md))
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)
-- **Supersedes:** [project-template ADR-0108](project-template/0108-persisted-documents-are-versioned-and-additive.md),
-  its bullet that reads a document without `$ver` as version 1; and, until the first stable release, its
-  additive-by-default bullet
+- **Refines:** [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) and
+  [project-template ADR-0108](project-template/0108-persisted-documents-are-versioned-and-additive.md)
 
 ## Context
 

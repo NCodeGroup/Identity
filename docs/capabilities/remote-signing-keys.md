@@ -7,7 +7,7 @@
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**         | Available: a tenant's signing keys, in AWS KMS, Azure Key Vault (and Managed HSM) and Google Cloud KMS, chosen per tenant                                                                                                                                                                                             |
 | **Packages**       | `NCode.Identity.Secrets.Abstractions` (the remote vocabulary), `NCode.Identity.Secrets` and `NCode.Identity.Secrets.Persistence` (the key, its storage and its destruction), `NCode.Identity.Jose.Abstractions` and `NCode.Identity.Jose` (the asynchronous signing seam), `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms` (the providers), `NCode.Identity.OpenId.Core` (the setting and the rollover) |
-| **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) |
+| **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1473](../decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md), [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) |
 | **Operator guide** | The reference host's [Remote signing keys](../../src/NCode.Identity.OpenId.Host/README.md#remote-signing-keys); the tenant setting `tenant_signing_key_provider`; the configuration sections under `SecretProtection:RemoteKeyProviders`                                                                          |
 
 ## The promises
@@ -20,8 +20,8 @@
 | 4   | **A tenant opts in.** The tenant setting `tenant_signing_key_provider` chooses the service for one tenant, or for every tenant beneath a team or the platform; empty keeps the keys local.                                                |
 | 5   | **A change of custody hands over after the activation delay.** The successor is generated in the selected service and published for the whole delay before it signs, so a verifier that cached the key set already holds it.             |
 | 6   | **A successor is a further version of the same KMS key.** A rollover adds a Google crypto key version or an Azure key version to the tenant's key for that algorithm; AWS KMS has no versions of an asymmetric key, so it creates one key. |
-| 7   | **A key the server created is destroyed after the commit that removes its record.** Never before, and never a key the server did not create.                                                                                              |
-| 8   | **Retries are bounded and jittered.** Each service's SDK retries a throttled or unavailable call with exponential back-off and jitter, up to a small fixed number of attempts, in one layer.                                              |
+| 7   | **A key the server created is destroyed after the commit that removes its record, and a key it created but could not read, check or record is destroyed at once.** Never before, and never a key the server did not create.            |
+| 8   | **Repeatable calls are retried; a creation is made once.** Each SDK retries a throttled or unavailable read, signature or destruction with jittered back-off in one layer; a key creation is never retried, so a lost response cannot create a second key. |
 | 9   | **A host that cannot serve a key does not start.** A registered provider that has no mapping for a provisioned signature key stops the host, and a stored remote key that cannot be read stops its tenant from loading.                    |
 
 ## Why this matters
@@ -101,8 +101,9 @@ sign with any algorithm other than the one it is bound to.
 ## What each service signs
 
 A mapping row names, for one JOSE algorithm and key, the service's key specification and signing algorithm, the
-digest the service signs, and whether it returns ECDSA as DER. The rows are open data: a package registers another
-source of rows to add an algorithm.
+digest the service signs, and whether it returns ECDSA as DER. The rows are open data: each package registers an
+`IRemoteKeyDescriptorSource` that describes its provider and contributes its rows, and a package registers another
+source to add an algorithm.
 
 | Provider           | `alg`                        | Key                       | `KeySpec`                                                     | `SigningAlgorithm`                    | Digest          | DER |
 | ------------------ | ---------------------------- | ------------------------- | ------------------------------------------------------------- | ------------------------------------- | --------------- | --- |
@@ -120,8 +121,9 @@ The provisioned defaults, RS256 and PS256 at 3072 bits and ES256 on P-256, are h
 
 > [!TIP]
 > [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-> `AwsKmsSigningAlgorithms`, `AzureKeyVaultSigningAlgorithms`, `GoogleCloudKmsSigningAlgorithms`,
-> `RemoteSigningAlgorithm`.
+> [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
+> `AwsKmsRemoteKeyDescriptors`, `AzureKeyVaultRemoteKeyDescriptors`, `GoogleCloudKmsRemoteKeyDescriptors`,
+> `IRemoteKeyDescriptorSource`, `RemoteSigningAlgorithm`.
 
 ## Configuration
 
@@ -168,7 +170,8 @@ created. Its logs carry identifiers only, never an input, a digest or a signatur
 ## Limits and roadmap
 
 - **Every token costs a round trip, and a fee where the service bills by request.** A throttled service slows
-  issuance; the SDKs' bounded retry absorbs a brief limit, not a sustained one.
+  issuance; the SDKs' bounded retry absorbs a brief limit, not a sustained one. A throttled creation fails its seed or
+  rollover pass, which runs again.
 - **A KMS outage stops issuance for the tenants whose keys it holds.** Verification, the key set and every tenant with
   local keys continue.
 - **A key created by a seed or a rollover that loses its commit race stays in the service.** It is unused and tagged
@@ -185,6 +188,8 @@ created. Its logs carry identifiers only, never an input, a digest or a signatur
 
 - Decisions: [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
   [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md),
+  [ADR-1473](../decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
+  [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1468](../decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)

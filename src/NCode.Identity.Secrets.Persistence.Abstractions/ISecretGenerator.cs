@@ -12,6 +12,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Provides the ability to produce a <see cref="PersistedSecret"/> whose stored value is protected under the owner's
 /// master key. The <c>Generate…</c> methods create fresh material server-side, so private key material is never
 /// supplied by the caller; the <c>Import…</c> methods persist a <strong>caller-supplied</strong> shared-secret value.
+/// <see cref="BindRemoteSecretAsync"/> records a key that a key management service already holds.
 /// A shared secret (for example an OAuth <c>client_secret</c>) is stored in one of two forms: as a one-way verifier
 /// (<see cref="SecretEncodings.Verifier"/>) when it is only ever compared, or as its UTF-8 octets
 /// (<see cref="SecretEncodings.SymmetricRaw"/>) when the server also uses it as a key, as <c>client_secret_jwt</c>
@@ -150,6 +151,28 @@ public interface ISecretGenerator
     // See ADR-1471.
     ValueTask<PersistedSecret> GenerateRemoteSecretAsync(
         GenerateRemoteSecretRequest request,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Reads the public half of a signing key that the key management service the request names already holds, checks
+    /// that it is a key of the type, size and curve of the request's remote signing algorithm, and returns a
+    /// <see cref="PersistedSecret"/> that stores the public key and a reference to the key, with
+    /// <see cref="PersistedSecret.Origin"/> <see cref="SecretOrigins.Supplied"/> and no
+    /// <see cref="PersistedSecret.ManagedBy"/>, so the server never destroys the key. The returned secret's
+    /// <see cref="PersistedSecret.ConcurrencyToken"/> is left unset for the store to assign.
+    /// </summary>
+    /// <param name="request">The <see cref="BindRemoteSecretRequest"/> describing the key to bind.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The <see cref="PersistedSecret"/> with the <see cref="SecretEncodings.Remote"/> encoding.</returns>
+    /// <exception cref="System.InvalidOperationException">The secret type does not support remote keys, the provider
+    /// is not registered, no remote signing algorithm matches the request, or the public half the service returns
+    /// cannot be read as a key of the secret type or does not have the algorithm's size or curve. The provider's own
+    /// exceptions propagate, such as <see cref="System.ArgumentException"/> for a key identifier it does not read and
+    /// <see cref="System.Security.Cryptography.CryptographicException"/> for a key it refuses.</exception>
+    // See ADR-1476.
+    ValueTask<PersistedSecret> BindRemoteSecretAsync(
+        BindRemoteSecretRequest request,
         CancellationToken cancellationToken
     );
 }

@@ -1369,4 +1369,171 @@ public class DefaultSecretGeneratorTests : BaseTests
     }
 
     #endregion
+
+    #region BindRemoteSecretAsync Tests
+
+    private static BindRemoteSecretRequest CreateBindRequest(
+        string secretType = SecretTypes.Rsa,
+        int keySizeBits = 2048,
+        string? curve = null,
+        string algorithm = "RS256",
+        string provider = RemoteKeyProviderNames.AwsKms
+    ) =>
+        new()
+        {
+            SecretId = "remote-1",
+            Provider = provider,
+            KeyId = "key-1",
+            SecretType = secretType,
+            KeySizeBits = keySizeBits,
+            Curve = curve,
+            Use = "sig",
+            Algorithm = algorithm,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_WhenRsa_ReadsThePublicKeyWithTheRowAndStoresASuppliedRemoteRecord()
+    {
+        var spki = CreateRsaSubjectPublicKeyInfo();
+        SetupGetPublicKey(RsaRow, spki);
+
+        var secret = await _generator.BindRemoteSecretAsync(
+            CreateBindRequest(),
+            CancellationToken.None
+        );
+
+        Assert.Equal("remote-1", secret.SecretId);
+        Assert.Equal(SecretTypes.Rsa, secret.SecretType);
+        Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
+        Assert.Equal("aws-kms:key-1", secret.EncodedValue);
+        Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+        Assert.Equal(2048, secret.KeySizeBits);
+        Assert.Equal("RS256", secret.Algorithm);
+        Assert.Equal("sig", secret.Use);
+        Assert.Equal(SecretOrigins.Supplied, secret.Origin);
+        Assert.Null(secret.ManagedBy);
+        Assert.Equal(DateTimeOffset.UnixEpoch, secret.CreatedWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch, secret.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddYears(1), secret.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddYears(1), secret.ExpiresWhen);
+    }
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_WhenEcc_StoresTheCurveKeySize()
+    {
+        var spki = CreateEccSubjectPublicKeyInfo();
+        SetupGetPublicKey(EccRow, spki);
+
+        var secret = await _generator.BindRemoteSecretAsync(
+            CreateBindRequest(SecretTypes.Ecc, 256, "P-256", "ES256"),
+            CancellationToken.None
+        );
+
+        Assert.Equal(SecretTypes.Ecc, secret.SecretType);
+        Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
+        Assert.Equal(256, secret.KeySizeBits);
+        Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+    }
+
+    [Theory]
+    [InlineData("unknown")]
+    [InlineData(SecretTypes.Symmetric)]
+    public async Task BindRemoteSecretAsync_WhenTheSecretTypeCannotBeRemote_ThrowsWithoutCallingTheProvider(
+        string secretType
+    )
+    {
+        var request = CreateBindRequest(secretType);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+        );
+
+        Assert.Contains($"'{secretType}'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_WhenTheProviderIsNotRegistered_ThrowsWithoutCallingTheProvider()
+    {
+        var request = CreateBindRequest(provider: "unregistered-kms");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+        );
+
+        Assert.Contains("'unregistered-kms'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_WhenNoRowMatches_ThrowsWithoutCallingTheProvider()
+    {
+        var request = CreateBindRequest(algorithm: "RS384");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+        );
+
+        Assert.Contains("'RS384'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_WhenTheKeySizeDiffersFromTheRow_Throws()
+    {
+        SetupGetPublicKey(LargeRsaRow, CreateRsaSubjectPublicKeyInfo());
+        var request = CreateBindRequest(keySizeBits: LargeRsaRow.KeySizeBits);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+        );
+
+        Assert.Contains("'key-1'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_WhenThePublicKeyIsNotValidDer_ThrowsWithTheReadFailure()
+    {
+        SetupGetPublicKey(RsaRow, [1, 2, 3]);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _generator.BindRemoteSecretAsync(CreateBindRequest(), CancellationToken.None)
+        );
+
+        Assert.NotNull(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_WhenTheProviderRefusesTheKey_PropagatesItsException()
+    {
+        SetupGetPublicKeyCall(RsaRow)
+            .ThrowsAsync(new CryptographicException("refused"))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<CryptographicException>(async () =>
+            await _generator.BindRemoteSecretAsync(CreateBindRequest(), CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_WhenTheKeyIdIsEmpty_ThrowsWithoutCallingTheProvider()
+    {
+        var request = new BindRemoteSecretRequest
+        {
+            SecretId = "remote-1",
+            Provider = RemoteKeyProviderNames.AwsKms,
+            KeyId = "",
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 2048,
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+        );
+    }
+
+    #endregion
 }

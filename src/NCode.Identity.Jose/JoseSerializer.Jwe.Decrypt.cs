@@ -58,6 +58,48 @@ partial class JoseSerializer
         }
     }
 
+    /// <summary>
+    /// Unwraps the content encryption key (CEK) asynchronously, so a key that a key management service holds can
+    /// unwrap it, and substitutes random bytes for it when the encrypted key cannot be unwrapped to a key of the
+    /// required length, so the decryption fails at the authentication tag like any tampered JWE and a recipient never
+    /// reveals a format, padding or length error of the encrypted key (RFC 7516 §11.5). A key of the wrong type, size
+    /// or curve for the algorithm is the caller's configuration error and is still reported. Any other exception, such
+    /// as a transport failure of a key management service or cancellation, propagates.
+    /// </summary>
+    private static async ValueTask UnwrapContentKeyOrSubstituteAsync(
+        KeyManagementAlgorithm keyManagementAlgorithm,
+        SecretKey secretKey,
+        JsonElement header,
+        ReadOnlyMemory<byte> encryptedKey,
+        Memory<byte> contentKey,
+        CancellationToken cancellationToken
+    )
+    {
+        ValidateDecryptionKey(keyManagementAlgorithm, secretKey);
+
+        int bytesWritten;
+        try
+        {
+            bytesWritten = await keyManagementAlgorithm.UnwrapKeyAsync(
+                secretKey,
+                header,
+                encryptedKey,
+                contentKey,
+                cancellationToken
+            );
+        }
+        catch (Exception exception)
+            when (exception is CryptographicException or JoseException or ArgumentException)
+        {
+            bytesWritten = -1;
+        }
+
+        if (bytesWritten != contentKey.Length)
+        {
+            RandomNumberGenerator.Fill(contentKey.Span);
+        }
+    }
+
     private static void ValidateDecryptionKey(
         KeyManagementAlgorithm keyManagementAlgorithm,
         SecretKey secretKey

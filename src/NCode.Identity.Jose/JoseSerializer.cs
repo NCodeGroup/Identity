@@ -80,6 +80,58 @@ internal partial class JoseSerializer(
     }
 
     /// <summary>
+    /// Provides the ability to decode binary data from Base64Url encoding using memory pooling, into a buffer that can
+    /// live across an <c>await</c>.
+    /// </summary>
+    /// <param name="chars">The base64url data to decode.</param>
+    /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
+    /// <param name="bytes">When this method returns, contains the buffer with the decoded data.</param>
+    /// <returns>An <see cref="IDisposable"/> that manages the lifetime of the lease.</returns>
+    /// <exception cref="JoseException"><paramref name="chars"/> is not valid base64url.</exception>
+    internal static IDisposable DecodeBase64UrlToMemory(
+        ReadOnlySpan<char> chars,
+        bool isSensitive,
+        out Memory<byte> bytes
+    )
+    {
+        int byteCount;
+        try
+        {
+            byteCount = Base64Url.GetByteCountForDecode(chars.Length);
+        }
+        catch (FormatException exception)
+        {
+            throw InvalidBase64Url(exception);
+        }
+
+        var lease = BufferFactory.Rent(byteCount, isSensitive, out bytes);
+        try
+        {
+            // The data is read from a token, so data that does not decode whole is refused, never read from a buffer
+            // the decoder wrote only in part.
+            if (
+                !Base64Url.TryDecode(chars, bytes.Span, out var bytesWritten)
+                || bytesWritten != byteCount
+            )
+            {
+                throw InvalidBase64Url();
+            }
+        }
+        catch (FormatException exception)
+        {
+            lease.Dispose();
+            throw InvalidBase64Url(exception);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
+
+        return lease;
+    }
+
+    /// <summary>
     /// Decodes binary data from Base64Url encoding into the specified buffer writer.
     /// </summary>
     /// <param name="chars">The base64url data to decode.</param>

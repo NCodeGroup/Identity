@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Compression;
@@ -298,6 +299,124 @@ partial class JoseSerializer
             contentKey
         );
 
+        DecryptJweContent(
+            encodedProtectedHeader,
+            header,
+            authenticatedEncryptionAlgorithm,
+            contentKey,
+            initializationVectorBytes,
+            cipherTextBytes,
+            authenticationTagBytes,
+            payloadBytes
+        );
+    }
+
+    private async ValueTask DecryptJweAsync(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        IBufferWriter<byte> payloadBytes,
+        CancellationToken cancellationToken
+    )
+    {
+        Debug.Assert(compactJwt.ProtectionType == JoseProtectionTypes.Jwe);
+
+        var segments = compactJwt.Segments;
+        if (segments.Count != JweSegmentCount)
+            throw new InvalidOperationException("Malformed JWE token.");
+
+        var header = compactJwt.Header;
+
+        if (
+            !header.TryGetPropertyValue<string>(
+                JoseClaimNames.Header.Alg,
+                out var keyManagementAlgorithmCode
+            )
+        )
+            throw new JoseException("The JWE header is missing the 'alg' field.");
+
+        if (
+            !header.TryGetPropertyValue<string>(
+                JoseClaimNames.Header.Enc,
+                out var authenticatedEncryptionAlgorithmCode
+            )
+        )
+            throw new JoseException("The JWE header is missing the 'enc' field.");
+
+        // Every binary segment is decoded before the unwrap, so a malformed token never reaches a key management
+        // service.
+
+        // JWE Encrypted Key
+        using var encryptedKeyLease = DecodeBase64UrlToMemory(
+            segments[1].Span,
+            isSensitive: true,
+            out var encryptedKeyBytes
+        );
+
+        // JWE Initialization Vector
+        using var initializationVectorLease = DecodeBase64UrlToMemory(
+            segments[2].Span,
+            isSensitive: false,
+            out var initializationVectorBytes
+        );
+
+        // JWE Ciphertext
+        using var cipherTextLease = DecodeBase64UrlToMemory(
+            segments[3].Span,
+            isSensitive: false,
+            out var cipherTextBytes
+        );
+
+        // JWE Authentication Tag
+        using var authenticationTagLease = DecodeBase64UrlToMemory(
+            segments[4].Span,
+            isSensitive: false,
+            out var authenticationTagBytes
+        );
+
+        var keyManagementAlgorithm = GetKeyManagementAlgorithm(keyManagementAlgorithmCode);
+        var authenticatedEncryptionAlgorithm = GetAuthenticatedEncryptionAlgorithm(
+            authenticatedEncryptionAlgorithmCode
+        );
+
+        var cekSizeBytes = authenticatedEncryptionAlgorithm.ContentKeySizeBytes;
+        using var contentKeyLease = BufferFactory.Rent(
+            cekSizeBytes,
+            isSensitive: true,
+            out Memory<byte> contentKey
+        );
+
+        await UnwrapContentKeyOrSubstituteAsync(
+            keyManagementAlgorithm,
+            secretKey,
+            header,
+            encryptedKeyBytes,
+            contentKey,
+            cancellationToken
+        );
+
+        DecryptJweContent(
+            segments[0].Span,
+            header,
+            authenticatedEncryptionAlgorithm,
+            contentKey.Span,
+            initializationVectorBytes.Span,
+            cipherTextBytes.Span,
+            authenticationTagBytes.Span,
+            payloadBytes
+        );
+    }
+
+    private void DecryptJweContent(
+        ReadOnlySpan<char> encodedProtectedHeader,
+        JsonElement header,
+        AuthenticatedEncryptionAlgorithm authenticatedEncryptionAlgorithm,
+        ReadOnlySpan<byte> contentKey,
+        ReadOnlySpan<byte> initializationVector,
+        ReadOnlySpan<byte> cipherText,
+        ReadOnlySpan<byte> authenticationTag,
+        IBufferWriter<byte> payloadBytes
+    )
+    {
         /*
            14.  Compute the Encoded Protected Header value BASE64URL(UTF8(JWE
                 Protected Header)).  If the JWE Protected Header is not present
@@ -320,7 +439,7 @@ partial class JoseSerializer
         );
 
         var plainTextSizeBytes = authenticatedEncryptionAlgorithm.GetMaxPlainTextSizeBytes(
-            cipherTextBytes.Length
+            cipherText.Length
         );
         using var plainTextLease = BufferFactory.Rent(
             plainTextSizeBytes,
@@ -342,10 +461,10 @@ partial class JoseSerializer
         var decryptBytesWritten = DecryptContentOrThrow(
             authenticatedEncryptionAlgorithm,
             contentKey,
-            initializationVectorBytes,
-            cipherTextBytes,
+            initializationVector,
+            cipherText,
             associatedDataBytes,
-            authenticationTagBytes,
+            authenticationTag,
             plainTextBytes
         );
 

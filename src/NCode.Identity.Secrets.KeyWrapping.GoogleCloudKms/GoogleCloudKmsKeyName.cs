@@ -7,8 +7,8 @@ using System.Text.RegularExpressions;
 namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 
 /// <summary>
-/// Contains the rules for the resource name of a Google Cloud KMS crypto key or crypto key version: whether a value is
-/// one, and which crypto key a version belongs to.
+/// Contains the rules for the resource name of a Google Cloud KMS key ring, crypto key or crypto key version: whether a
+/// value is one, and which crypto key a version belongs to.
 /// </summary>
 // See ADR-1260.
 internal static partial class GoogleCloudKmsKeyName
@@ -17,6 +17,9 @@ internal static partial class GoogleCloudKmsKeyName
 
     // '\z' rather than '$', which also matches before a trailing newline, and '[0-9]' rather than '\d', which accepts
     // any Unicode digit.
+    [GeneratedRegex(@"^projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63}\z")]
+    private static partial Regex KeyRingPattern();
+
     [GeneratedRegex(
         @"^projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63}/cryptoKeys/[A-Za-z0-9_-]{1,63}\z"
     )]
@@ -26,6 +29,14 @@ internal static partial class GoogleCloudKmsKeyName
         @"^projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63}/cryptoKeys/[A-Za-z0-9_-]{1,63}/cryptoKeyVersions/[0-9]{1,19}\z"
     )]
     private static partial Regex CryptoKeyVersionPattern();
+
+    /// <summary>
+    /// Determines whether the specified value is the resource name of a Cloud KMS key ring.
+    /// </summary>
+    /// <param name="value">The value to check.</param>
+    /// <returns><see langword="true"/> if the value is a key ring resource name; otherwise, <see langword="false"/>.</returns>
+    public static bool IsKeyRingName([NotNullWhen(true)] string? value) =>
+        value is not null && KeyRingPattern().IsMatch(value);
 
     /// <summary>
     /// Determines whether the specified value is the resource name of a Cloud KMS crypto key, without a version.

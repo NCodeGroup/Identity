@@ -13,6 +13,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
@@ -46,6 +47,7 @@ internal sealed class TenantKeyRolloverService(
     IStoreManagerFactory storeManagerFactory,
     IExpiringKeySet expiringKeySet,
     IEventPublisher eventPublisher,
+    IRemoteSecretDestroyer remoteSecretDestroyer,
     IServiceScopeFactory serviceScopeFactory,
     TimeProvider timeProvider,
     ILogger<TenantKeyRolloverService> logger
@@ -71,6 +73,7 @@ internal sealed class TenantKeyRolloverService(
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IExpiringKeySet ExpiringKeySet { get; } = expiringKeySet;
     private IEventPublisher EventPublisher { get; } = eventPublisher;
+    private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<TenantKeyRolloverService> Logger { get; } = logger;
@@ -271,7 +274,9 @@ internal sealed class TenantKeyRolloverService(
     // The change is committed, so its audit events are published and the tenant is announced on their own bounded
     // tokens: the host's stopping token reaches neither, so a host that stops between the commit and the publish
     // cannot leave a committed change unrecorded, and the announcement follows whatever the publishing did, because
-    // every replica must still evict the tenant and serve its keys as they are. See ADR-1351.
+    // every replica must still evict the tenant and serve its keys as they are. A key the pass removed is destroyed in
+    // its key management service last, in a finally of its own, so a failed publish or announcement still destroys it;
+    // the destroyer runs through PostCommitWork and never throws. See ADR-1351 and ADR-1471.
     private async ValueTask RunAfterCommitAsync(
         IMediator mediator,
         string tenantId,
@@ -280,24 +285,31 @@ internal sealed class TenantKeyRolloverService(
     {
         try
         {
-            await PostCommitWork.RunAsync(
-                TimeProvider,
-                PublishAuditEventsAsync,
-                (tenantId, committed.AuditEvents)
-            );
+            try
+            {
+                await PostCommitWork.RunAsync(
+                    TimeProvider,
+                    PublishAuditEventsAsync,
+                    (tenantId, committed.AuditEvents)
+                );
+            }
+            finally
+            {
+                // The settings did not change, so nothing seeds the tenant again in the announcement.
+                await PostCommitWork.RunAsync(
+                    TimeProvider,
+                    static (state, token) =>
+                        state.Mediator.SendAsync(
+                            new TenantChangedCommand(state.TenantId, SettingsChanged: false),
+                            token
+                        ),
+                    (Mediator: mediator, TenantId: tenantId)
+                );
+            }
         }
         finally
         {
-            // The settings did not change, so nothing seeds the tenant again in the announcement.
-            await PostCommitWork.RunAsync(
-                TimeProvider,
-                static (state, token) =>
-                    state.Mediator.SendAsync(
-                        new TenantChangedCommand(state.TenantId, SettingsChanged: false),
-                        token
-                    ),
-                (Mediator: mediator, TenantId: tenantId)
-            );
+            await RemoteSecretDestroyer.DestroyAsync(committed.RemovedSecrets);
         }
     }
 

@@ -143,8 +143,12 @@ internal sealed class TenantKeyReconciliationHandler(
         if (used.Count == 0)
             return false;
 
-        // A tenant that used every one of these algorithms before the change was reconciled with them already.
-        // See ADR-1234.
+        // The tenant's custody is part of each key it is provisioned with, so a tenant that holds only keys of another
+        // custody lacks the key. See ADR-1471.
+        var tenantSpecifications = TenantKeyPolicy.ForTenant(used, settings);
+
+        // A tenant that used every one of these algorithms before the change, in the custody it has now, was
+        // reconciled with them already. See ADR-1234.
         if (command.PreviousSettings is { } previousTeamSettings)
         {
             var previousSettings = EffectiveSettingsResolver.Resolve(
@@ -160,6 +164,9 @@ internal sealed class TenantKeyReconciliationHandler(
                         specification.Algorithm
                     )
                 )
+                && TenantKeyPolicy
+                    .ForTenant(used, previousSettings)
+                    .SequenceEqual(tenantSpecifications)
             )
                 return false;
         }
@@ -179,6 +186,8 @@ internal sealed class TenantKeyReconciliationHandler(
         // A key that has retired or expired serves the algorithm no more, so a tenant whose only key for it has
         // retired lacks the key as much as one that never held it (ADR-1404).
         var now = TimeProvider.GetUtcNow();
-        return used.Any(specification => !Planner.HasServingKey(specification, held, now));
+        return tenantSpecifications.Any(specification =>
+            !Planner.HasServingKey(specification, held, now)
+        );
     }
 }

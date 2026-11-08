@@ -6,6 +6,7 @@ using NCode.Identity.Events;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 
@@ -33,6 +34,7 @@ internal class TenantKeySeedHandler(
     ITenantKeyRollover rollover,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IEventPublisher eventPublisher,
+    IRemoteSecretDestroyer remoteSecretDestroyer,
     TimeProvider timeProvider
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
@@ -45,6 +47,7 @@ internal class TenantKeySeedHandler(
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
     private IEventPublisher EventPublisher { get; } = eventPublisher;
+    private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
@@ -106,6 +109,10 @@ internal class TenantKeySeedHandler(
         // A change is audited once it is committed, never before: a seed that loses its commit runs again from what
         // the winner wrote and records only what it then changes.
         context.RunAfterCommit(token => PublishAsync(result.AuditEvents, token));
+
+        // A key the seed removed is destroyed in its key management service only once the removal is committed, as its
+        // own step, so a publish that fails does not leave the key behind. See ADR-1471.
+        context.RunAfterCommit(_ => RemoteSecretDestroyer.DestroyAsync(result.RemovedSecrets));
     }
 
     private async ValueTask PublishAsync(

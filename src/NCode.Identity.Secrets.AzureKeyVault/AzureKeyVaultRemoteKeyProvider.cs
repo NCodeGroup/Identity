@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Security.Cryptography;
 using Azure;
 using Azure.Security.KeyVault.Keys;
@@ -27,9 +28,10 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 /// </para>
 /// <para>
 /// A key is created for signing and verifying only, tagged with its owner, secret, algorithm and group. Key Vault signs
-/// a digest, so the provider refuses a row that names no digest algorithm. The provider refuses a signature that the
-/// service reports as made by another key version or with another algorithm, with a
-/// <see cref="CryptographicException"/>. Logs and messages carry identifiers only, never a digest or a signature.
+/// a digest, so the provider refuses a row that names no digest algorithm. The provider refuses a public key that is
+/// missing or is not an RSA or an ECC key with a <see cref="CryptographicException"/>, and a response that names
+/// another key version or another algorithm than requested with an <see cref="IOException"/>, because the call can be
+/// retried. Logs and messages carry identifiers only, never a digest or a signature.
 /// </para>
 /// </remarks>
 // See ADR-1471.
@@ -85,8 +87,7 @@ internal class AzureKeyVaultRemoteKeyProvider(
     /// a curve.
     /// </exception>
     /// <exception cref="CryptographicException">
-    /// Thrown when the service creates a key whose identifier is not that of a key version, or that holds no public
-    /// key.
+    /// Thrown when the service creates a key whose identifier is not that of a key version.
     /// </exception>
     public async ValueTask<RemoteKeyCreationResult> CreateKeyAsync(
         RemoteKeyCreationRequest request,
@@ -135,11 +136,57 @@ internal class AzureKeyVaultRemoteKeyProvider(
             );
         }
 
-        return new RemoteKeyCreationResult
+        return new RemoteKeyCreationResult { KeyId = keyId };
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
+    /// Thrown when the key identifier of <paramref name="request"/> is not that of a Key Vault key version.
+    /// </exception>
+    /// <exception cref="IOException">
+    /// Thrown when the service reports a key of another identifier than requested.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the service reports a key that holds no public key or is not an RSA or an ECC key.
+    /// </exception>
+    public async ValueTask GetPublicKeyAsync(
+        RemotePublicKeyRequest request,
+        IBufferWriter<byte> subjectPublicKeyInfo,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(subjectPublicKeyInfo);
+
+        var keyId = request.KeyId;
+        if (!AzureKeyVaultKeyId.IsKeyVersionId(keyId))
         {
-            KeyId = keyId,
-            SubjectPublicKeyInfo = ExportSubjectPublicKeyInfo(key, keyId),
-        };
+            throw new ArgumentException(
+                "The key identifier is not that of a Key Vault key version.",
+                nameof(request)
+            );
+        }
+
+        var identifier = new KeyVaultKeyIdentifier(new Uri(keyId));
+
+        var response = await ClientFactory.ExecuteKeyClientAsync(
+            identifier.VaultUri,
+            (client, token) =>
+                new ValueTask<Response<KeyVaultKey>>(
+                    client.GetKeyAsync(identifier.Name, identifier.Version, token)
+                ),
+            cancellationToken
+        );
+
+        var key = response.Value;
+        if (!string.Equals(key.Id?.AbsoluteUri, keyId, StringComparison.Ordinal))
+        {
+            throw new IOException(
+                $"Azure Key Vault key '{keyId}' was asked for its public key, but the service reports the public key of another key."
+            );
+        }
+
+        subjectPublicKeyInfo.Write(ExportSubjectPublicKeyInfo(key, keyId));
     }
 
     /// <inheritdoc />
@@ -147,11 +194,15 @@ internal class AzureKeyVaultRemoteKeyProvider(
     /// Thrown when the key identifier of <paramref name="request"/> is not that of a Key Vault key version, or the
     /// algorithm of the request names no digest algorithm.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="IOException">
     /// Thrown when the service reports that another key version or another algorithm made the signature.
     /// </exception>
-    public async ValueTask<byte[]> SignAsync(
+    /// <exception cref="CryptographicException">
+    /// Thrown when the signature does not fit in the buffer.
+    /// </exception>
+    public async ValueTask<int> SignAsync(
         RemoteSignatureRequest request,
+        Memory<byte> signature,
         CancellationToken cancellationToken
     )
     {
@@ -176,6 +227,8 @@ internal class AzureKeyVaultRemoteKeyProvider(
         }
 
         var algorithm = new KvSignatureAlgorithm(row.SigningAlgorithm);
+
+        // The SDK takes an array of exactly the digest's length, so the digest is copied.
         var digest = request.Data.ToArray();
 
         var result = await ClientFactory.ExecuteAsync(
@@ -191,19 +244,28 @@ internal class AzureKeyVaultRemoteKeyProvider(
             || !AzureKeyVaultKeyId.IsVersionOf(resultKeyId, keyId)
         )
         {
-            throw new CryptographicException(
+            throw new IOException(
                 $"Azure Key Vault key '{keyId}' was asked to sign, but the service reports another key made the signature."
             );
         }
 
         if (result.Algorithm != algorithm)
         {
-            throw new CryptographicException(
+            throw new IOException(
                 $"Azure Key Vault key '{keyId}' was asked to sign with '{row.SigningAlgorithm}', but the service reports another algorithm made the signature."
             );
         }
 
-        return result.Signature;
+        var length = result.Signature.Length;
+        if (length > signature.Length)
+        {
+            throw new CryptographicException(
+                $"The signature of Azure Key Vault key '{keyId}' does not fit in the buffer."
+            );
+        }
+
+        result.Signature.CopyTo(signature);
+        return length;
     }
 
     /// <inheritdoc />

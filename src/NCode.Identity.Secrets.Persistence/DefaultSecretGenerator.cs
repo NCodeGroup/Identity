@@ -23,10 +23,11 @@ namespace NCode.Identity.Secrets.Persistence;
 /// per-type generation logic is delegated to the registered <see cref="ISecretKeyTypeDescriptor"/> for the requested
 /// key type. A shared secret that is only ever compared is stored as its one-way verifier, made by the registered
 /// <see cref="ISecretVerifierScheme"/> that <see cref="SharedSecretVerifierOptions"/> names for a generated secret or
-/// for a supplied one. A remote key is created by its registered <see cref="IRemoteKeyProvider"/>, which keeps the
-/// private key in a key management service, and only its public half and a reference to it are stored. A remote key
-/// whose public half cannot be read or does not match its signing algorithm is handed to the
-/// <see cref="IRemoteSecretDestroyer"/>, which destroys it in its service.
+/// for a supplied one. A remote key is created by its registered <see cref="IRemoteKeyProvider"/> in one call that
+/// returns its identifier, and its public half is then read in a second call; the provider keeps the private key in a
+/// key management service, and only the public half and a reference to the key are stored. A remote key whose public
+/// half cannot be read or does not match its signing algorithm, and a remote key whose creation is followed by any
+/// other failure, is handed to the <see cref="IRemoteSecretDestroyer"/>, which destroys it in its service.
 /// </summary>
 // See ADR-1067, ADR-1110, ADR-1391 and ADR-1471.
 internal class DefaultSecretGenerator(
@@ -170,12 +171,15 @@ internal class DefaultSecretGenerator(
             );
         }
 
+        var ownerId = request.Owner.ToString();
+
         var created = await provider.CreateKeyAsync(
             new RemoteKeyCreationRequest
             {
-                OwnerId = request.Owner.ToString(),
+                OwnerId = ownerId,
                 SecretId = request.SecretId,
                 Algorithm = algorithm,
+                GroupName = RemoteKeyGroupName.Create(ownerId, algorithm),
             },
             cancellationToken
         );
@@ -203,38 +207,61 @@ internal class DefaultSecretGenerator(
             SecretEncoding = SecretEncodings.Remote,
             KeySizeBits = algorithm.KeySizeBits,
             EncodedValue = new RemoteKeyReference(provider.Name, created.KeyId).ToString(),
-            PublicKey = Base64Url.Encode(created.SubjectPublicKeyInfo.Span),
             Origin = SecretOrigins.Generated,
             ManagedBy = request.ManagedBy,
         };
 
-        if (
-            !HoldsRequestedKey(
-                descriptor,
-                metadata,
-                created.SubjectPublicKeyInfo,
-                algorithm,
-                out var readFailure
-            )
-        )
+        try
         {
-            // The record is handed to the destroyer, which is bounded, logged and independent of the caller's token,
+            using var publicKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+                isSensitive: false,
+                algorithm.KeySizeBits >> 3
+            );
+
+            await provider.GetPublicKeyAsync(
+                new RemotePublicKeyRequest { KeyId = created.KeyId, Algorithm = algorithm },
+                publicKeyBuffer,
+                cancellationToken
+            );
+
+            using var publicKeyLease = publicKeyBuffer.GetSpanLease(isSensitive: false);
+
+            if (
+                !HoldsRequestedKey(
+                    descriptor,
+                    metadata,
+                    publicKeyLease.Span,
+                    algorithm,
+                    out var readFailure
+                )
+            )
+            {
+                throw readFailure is not null
+                    ? new InvalidOperationException(
+                        $"The remote key provider '{request.Provider}' returned a public key that cannot be read as a "
+                            + $"'{request.SecretType}' key.",
+                        readFailure
+                    )
+                    : new InvalidOperationException(
+                        $"The remote key provider '{request.Provider}' created a key that does not have the key size "
+                            + $"{algorithm.KeySizeBits} and curve '{algorithm.Curve}' of its signing algorithm '{algorithm.Algorithm}'."
+                    );
+            }
+
+            return secret with
+            {
+                PublicKey = Base64Url.Encode(publicKeyLease.Span),
+            };
+        }
+        catch (Exception)
+        {
+            // Any failure after creation, whether a provider check, the read, cancellation or the size and curve
+            // check, hands the key to the destroyer, which is bounded, logged and independent of the caller's token,
             // so the key the service created is not left without a record.
             await RemoteSecretDestroyer.DestroyAsync([secret]);
 
-            throw readFailure is not null
-                ? new InvalidOperationException(
-                    $"The remote key provider '{request.Provider}' returned a public key that cannot be read as a "
-                        + $"'{request.SecretType}' key.",
-                    readFailure
-                )
-                : new InvalidOperationException(
-                    $"The remote key provider '{request.Provider}' created a key that does not have the key size "
-                        + $"{algorithm.KeySizeBits} and curve '{algorithm.Curve}' of its signing algorithm '{algorithm.Algorithm}'."
-                );
+            throw;
         }
-
-        return secret;
     }
 
     // Reads the public key the service returned, which decides whether the key it created has the size and curve of
@@ -243,7 +270,7 @@ internal class DefaultSecretGenerator(
     private static bool HoldsRequestedKey(
         ISecretKeyTypeDescriptor descriptor,
         KeyMetadata metadata,
-        ReadOnlyMemory<byte> subjectPublicKeyInfo,
+        ReadOnlySpan<byte> subjectPublicKeyInfo,
         RemoteSigningAlgorithm algorithm,
         out Exception? readFailure
     )
@@ -254,7 +281,7 @@ internal class DefaultSecretGenerator(
             createdKey = descriptor.DeserializeKeyMaterial(
                 metadata,
                 SecretEncodings.Spki,
-                subjectPublicKeyInfo.Span
+                subjectPublicKeyInfo
             );
         }
         catch (Exception exception)

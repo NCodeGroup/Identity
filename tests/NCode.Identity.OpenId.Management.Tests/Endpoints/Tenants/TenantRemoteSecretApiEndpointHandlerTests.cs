@@ -540,6 +540,55 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
+    [Fact]
+    public async Task CreateRemoteSecretAsync_WhenTheCommitFails_DestroysTheKeyAndRethrows()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant());
+        SetupValidCreateRemoteValidation();
+        SetupResourceId();
+
+        var secret = CreateRemoteSecret();
+        MockSecretGenerator
+            .Setup(x =>
+                x.GenerateRemoteSecretAsync(
+                    It.IsAny<GenerateRemoteSecretRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(secret)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.AddSecretAsync(TenantId, secret, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Throws(new IOException("commit failed"))
+            .Verifiable();
+        MockRemoteSecretDestroyer
+            .Setup(x =>
+                x.DestroyAsync(
+                    It.Is<IReadOnlyCollection<PersistedSecret>>(removed =>
+                        removed.Count == 1 && ReferenceEquals(removed.Single(), secret)
+                    )
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Assert.ThrowsAsync<IOException>(async () =>
+            await CreateHandler()
+                .CreateRemoteSecretAsync(
+                    CreateHttpContext(),
+                    TenantId,
+                    CreateRemoteSecretRequest(),
+                    CancellationToken.None
+                )
+        );
+    }
+
     #endregion
 
     #region ImportRemoteSecretAsync Tests

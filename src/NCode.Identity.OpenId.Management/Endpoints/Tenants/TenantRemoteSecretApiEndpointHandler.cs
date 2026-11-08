@@ -177,6 +177,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
         try
         {
             await store.AddSecretAsync(tenantId, secret, cancellationToken);
+            await storeManager.SaveChangesAsync(cancellationToken);
         }
         catch (InvalidOperationException exception)
         {
@@ -187,8 +188,11 @@ internal class TenantRemoteSecretApiEndpointHandler(
                 statusCode: StatusCodes.Status409Conflict
             );
         }
-
-        await storeManager.SaveChangesAsync(cancellationToken);
+        catch
+        {
+            await RemoteSecretDestroyer.DestroyAsync([secret]);
+            throw;
+        }
 
         var secretResource = ToSecretResource(secret);
 

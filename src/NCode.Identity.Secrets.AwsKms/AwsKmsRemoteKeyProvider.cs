@@ -30,6 +30,10 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// than requested with an <see cref="IOException"/>, because the call can be retried. Logs and messages carry
 /// identifiers only, never the signing input, a digest or a signature.
 /// </para>
+/// <para>
+/// The call that creates a key is made once, by a client that never retries; the calls that read, sign and schedule
+/// deletion keep the retry of the SDK.
+/// </para>
 /// </remarks>
 // See ADR-1471.
 internal class AwsKmsRemoteKeyProvider(
@@ -102,9 +106,9 @@ internal class AwsKmsRemoteKeyProvider(
             ],
         };
 
-        var created = await ClientFactory.ExecuteAsync(
+        // Creating a key is not repeatable: a retry after a lost response would create a second key that nothing records.
+        var created = await ClientFactory.ExecuteWithoutRetryAsync(
             region,
-            access: null,
             (client, token) =>
                 new ValueTask<CreateKeyResponse>(client.CreateKeyAsync(createRequest, token)),
             cancellationToken

@@ -94,6 +94,30 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             )
             .Verifiable();
 
+    private void SetupClientWithoutRetry<TResult>(string region) =>
+        ClientFactory
+            .Setup(x =>
+                x.ExecuteWithoutRetryAsync(
+                    region,
+                    It.IsAny<
+                        Func<IAmazonKeyManagementService, CancellationToken, ValueTask<TResult>>
+                    >(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (
+                    string _,
+                    Func<
+                        IAmazonKeyManagementService,
+                        CancellationToken,
+                        ValueTask<TResult>
+                    > operation,
+                    CancellationToken token
+                ) => operation(Client.Object, token)
+            )
+            .Verifiable();
+
     private void SetupCreateKey(string? arn, Action<CreateKeyRequest>? capture = null) =>
         Client
             .Setup(x =>
@@ -143,7 +167,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
     {
         var request = CreateCreationRequest(Rs256);
         CreateKeyRequest? sent = null;
-        SetupClient<CreateKeyResponse>("us-west-2");
+        SetupClientWithoutRetry<CreateKeyResponse>("us-west-2");
         SetupCreateKey(KeyArn, captured => sent = captured);
         var provider = CreateProvider();
 
@@ -166,7 +190,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
     {
         var request = CreateCreationRequest(Es256);
         CreateKeyRequest? sent = null;
-        SetupClient<CreateKeyResponse>("us-west-2");
+        SetupClientWithoutRetry<CreateKeyResponse>("us-west-2");
         SetupCreateKey(KeyArn, captured => sent = captured);
         var provider = CreateProvider();
 
@@ -189,7 +213,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
     [Fact]
     public async Task CreateKeyAsync_ServiceReturnsNoArn_Throws()
     {
-        SetupClient<CreateKeyResponse>("us-west-2");
+        SetupClientWithoutRetry<CreateKeyResponse>("us-west-2");
         SetupCreateKey("not-an-arn");
         var provider = CreateProvider();
 

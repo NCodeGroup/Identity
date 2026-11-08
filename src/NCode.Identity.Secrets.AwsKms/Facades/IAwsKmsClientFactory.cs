@@ -35,4 +35,22 @@ internal interface IAwsKmsClientFactory
         Func<IAmazonKeyManagementService, CancellationToken, ValueTask<TResult>> operation,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Runs an operation with a client for the specified region that never retries a failed call, with the credentials
+    /// of the deployment. The same client serves every call with the same region.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the result of the operation.</typeparam>
+    /// <param name="region">The system name of the AWS region, such as <c>us-west-2</c>.</param>
+    /// <param name="operation">
+    /// The operation to run with the <see cref="IAmazonKeyManagementService"/> that calls the KMS endpoint of the
+    /// region.
+    /// </param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The result of the operation.</returns>
+    ValueTask<TResult> ExecuteWithoutRetryAsync<TResult>(
+        string region,
+        Func<IAmazonKeyManagementService, CancellationToken, ValueTask<TResult>> operation,
+        CancellationToken cancellationToken
+    );
 }

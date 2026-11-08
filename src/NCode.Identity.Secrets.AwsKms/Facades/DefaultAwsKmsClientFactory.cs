@@ -45,6 +45,11 @@ internal sealed class DefaultAwsKmsClientFactory(TimeProvider timeProvider)
         Lazy<AmazonKeyManagementServiceClient>
     > RegionClients { get; } = new(StringComparer.Ordinal);
 
+    private ConcurrentDictionary<
+        string,
+        Lazy<AmazonKeyManagementServiceClient>
+    > NoRetryRegionClients { get; } = new(StringComparer.Ordinal);
+
     private KeyAccessClientCache<AssumedRoleKmsClient> AssumedRoleClients { get; } =
         new(timeProvider, AssumedRoleIdleTimeout);
 
@@ -71,6 +76,18 @@ internal sealed class DefaultAwsKmsClientFactory(TimeProvider timeProvider)
         );
     }
 
+    /// <inheritdoc />
+    public ValueTask<TResult> ExecuteWithoutRetryAsync<TResult>(
+        string region,
+        Func<IAmazonKeyManagementService, CancellationToken, ValueTask<TResult>> operation,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+
+        return operation(GetNoRetryRegionClient(region), cancellationToken);
+    }
+
     private AmazonKeyManagementServiceClient GetRegionClient(string region) =>
         RegionClients
             .GetOrAdd(
@@ -85,12 +102,26 @@ internal sealed class DefaultAwsKmsClientFactory(TimeProvider timeProvider)
             )
             .Value;
 
+    private AmazonKeyManagementServiceClient GetNoRetryRegionClient(string region) =>
+        NoRetryRegionClients
+            .GetOrAdd(
+                region,
+                static name => new Lazy<AmazonKeyManagementServiceClient>(
+                    () =>
+                        new AmazonKeyManagementServiceClient(
+                            AwsKmsClientConfiguration.CreateWithoutRetry(name)
+                        ),
+                    LazyThreadSafetyMode.PublicationOnly
+                )
+            )
+            .Value;
+
     /// <summary>
     /// Disposes every client that has been created, with the credentials of each assumed role.
     /// </summary>
     public void Dispose()
     {
-        foreach (var lazy in RegionClients.Values)
+        foreach (var lazy in RegionClients.Values.Concat(NoRetryRegionClients.Values))
         {
             if (lazy.IsValueCreated)
             {

@@ -36,4 +36,24 @@ public class AwsKmsClientConfigurationTests
     }
 
     #endregion
+
+    #region CreateWithoutRetry Tests
+
+    [Fact]
+    public void CreateWithoutRetry_Region_SetsRegionEndpoint()
+    {
+        var config = AwsKmsClientConfiguration.CreateWithoutRetry("us-west-2");
+
+        Assert.Equal("us-west-2", config.RegionEndpoint.SystemName);
+    }
+
+    [Fact]
+    public void CreateWithoutRetry_Region_DoesNotRetry()
+    {
+        var config = AwsKmsClientConfiguration.CreateWithoutRetry("eu-central-1");
+
+        Assert.Equal(0, config.MaxErrorRetry);
+    }
+
+    #endregion
 }

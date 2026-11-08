@@ -13,7 +13,7 @@ namespace NCode.Identity.Secrets.AzureKeyVault.Facades;
 /// <see cref="CryptographyClient"/> for each key version identifier, created on first use and shared by every caller, a
 /// new <see cref="CryptographyClient"/> for each call with a versionless key identifier, one
 /// <see cref="DefaultAzureCredential"/> shared by every client of the deployment's own identity, one
-/// <see cref="KeyClient"/> for each vault, and one
+/// <see cref="KeyClient"/> for each vault, one more <see cref="KeyClient"/> for each vault that never retries, and one
 /// <see cref="AzureDirectoryClients"/> for each Microsoft Entra directory that an access names, held by a
 /// <see cref="KeyAccessClientCache{TClient}"/>.
 /// </summary>
@@ -72,6 +72,19 @@ internal sealed class DefaultAzureKeyVaultClientFactory(TimeProvider timeProvide
         ArgumentNullException.ThrowIfNull(operation);
 
         return operation(OwnClients.Value.GetKeyClient(vaultUri), cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<TResult> ExecuteKeyClientWithoutRetryAsync<TResult>(
+        Uri vaultUri,
+        Func<KeyClient, CancellationToken, ValueTask<TResult>> operation,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(vaultUri);
+        ArgumentNullException.ThrowIfNull(operation);
+
+        return operation(OwnClients.Value.GetKeyClientWithoutRetry(vaultUri), cancellationToken);
     }
 
     /// <summary>

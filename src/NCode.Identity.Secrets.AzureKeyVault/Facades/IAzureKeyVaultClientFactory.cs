@@ -51,4 +51,21 @@ internal interface IAzureKeyVaultClientFactory
         Func<KeyClient, CancellationToken, ValueTask<TResult>> operation,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Runs an operation with the client for the keys of a vault that never retries a request, with the deployment's
+    /// own identity. A key creation runs with it, so a request that the service may have processed is never repeated
+    /// and a second key is never created. The same client serves every call with the same vault.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the result of the operation.</typeparam>
+    /// <param name="vaultUri">The URI of a Key Vault or Managed HSM, such as <c>https://contoso.vault.azure.net</c>.</param>
+    /// <param name="operation">The operation to run with the <see cref="KeyClient"/> that creates the keys of the
+    /// vault.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The result of the operation.</returns>
+    ValueTask<TResult> ExecuteKeyClientWithoutRetryAsync<TResult>(
+        Uri vaultUri,
+        Func<KeyClient, CancellationToken, ValueTask<TResult>> operation,
+        CancellationToken cancellationToken
+    );
 }

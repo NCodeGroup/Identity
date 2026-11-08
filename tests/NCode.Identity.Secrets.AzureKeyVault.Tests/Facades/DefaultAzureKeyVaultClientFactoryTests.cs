@@ -238,4 +238,95 @@ public class DefaultAzureKeyVaultClientFactoryTests
     }
 
     #endregion
+
+    #region ExecuteKeyClientWithoutRetryAsync Tests
+
+    private static async Task<KeyClient> GetKeyClientWithoutRetryAsync(
+        DefaultAzureKeyVaultClientFactory factory,
+        Uri vaultUri
+    ) =>
+        await factory.ExecuteKeyClientWithoutRetryAsync(
+            vaultUri,
+            (client, _) => ValueTask.FromResult(client),
+            CancellationToken.None
+        );
+
+    [Fact]
+    public async Task ExecuteKeyClientWithoutRetryAsync_SameVault_RunsOperationsWithTheSameClient()
+    {
+        using var factory = CreateFactory();
+
+        var first = await GetKeyClientWithoutRetryAsync(factory, VaultUri);
+        var second = await GetKeyClientWithoutRetryAsync(factory, VaultUri);
+
+        Assert.Same(first, second);
+        Assert.Equal(VaultUri, first.VaultUri);
+    }
+
+    [Fact]
+    public async Task ExecuteKeyClientWithoutRetryAsync_DifferentVaults_RunsOperationsWithDifferentClients()
+    {
+        using var factory = CreateFactory();
+
+        var first = await GetKeyClientWithoutRetryAsync(factory, VaultUri);
+        var second = await GetKeyClientWithoutRetryAsync(factory, OtherVaultUri);
+
+        Assert.NotSame(first, second);
+        Assert.Equal(OtherVaultUri, second.VaultUri);
+    }
+
+    [Fact]
+    public async Task ExecuteKeyClientWithoutRetryAsync_SameVault_RunsOperationsWithAnotherClientThanTheRetryingOne()
+    {
+        using var factory = CreateFactory();
+
+        var withRetry = await GetKeyClientAsync(factory, VaultUri);
+        var withoutRetry = await GetKeyClientWithoutRetryAsync(factory, VaultUri);
+
+        Assert.NotSame(withRetry, withoutRetry);
+    }
+
+    [Fact]
+    public async Task ExecuteKeyClientWithoutRetryAsync_Operation_ReturnsItsResult()
+    {
+        using var factory = CreateFactory();
+
+        var result = await factory.ExecuteKeyClientWithoutRetryAsync(
+            VaultUri,
+            (_, _) => ValueTask.FromResult(42),
+            CancellationToken.None
+        );
+
+        Assert.Equal(42, result);
+    }
+
+    [Fact]
+    public async Task ExecuteKeyClientWithoutRetryAsync_NullVaultUri_Throws()
+    {
+        using var factory = CreateFactory();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            factory
+                .ExecuteKeyClientWithoutRetryAsync(
+                    null!,
+                    (_, _) => ValueTask.FromResult(0),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task ExecuteKeyClientWithoutRetryAsync_NullOperation_Throws()
+    {
+        using var factory = CreateFactory();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            factory
+                .ExecuteKeyClientWithoutRetryAsync<int>(VaultUri, null!, CancellationToken.None)
+                .AsTask()
+        );
+    }
+
+    #endregion
 }

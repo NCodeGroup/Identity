@@ -123,6 +123,26 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
             )
             .Verifiable();
 
+    // The factory runs the key creation of the provider with the key client mock, as it runs it with the client of the
+    // vault that never retries.
+    private void SetupKeyClientWithoutRetry<TResult>(string vaultUri) =>
+        ClientFactory
+            .Setup(x =>
+                x.ExecuteKeyClientWithoutRetryAsync(
+                    new Uri(vaultUri),
+                    It.IsAny<Func<KeyClient, CancellationToken, ValueTask<TResult>>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (
+                    Uri _,
+                    Func<KeyClient, CancellationToken, ValueTask<TResult>> operation,
+                    CancellationToken token
+                ) => operation(KeyClient.Object, token)
+            )
+            .Verifiable();
+
     // The factory runs the operation of the provider with the cryptography client mock, as it runs it with the client
     // of the key.
     private void SetupCryptographyClient<TResult>(string keyId) =>
@@ -206,7 +226,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         var request = CreateCreationRequest(Rs256);
         var keyId = GetKeyVersionId(request, "-h");
         CreateRsaKeyOptions? sent = null;
-        SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
+        SetupKeyClientWithoutRetry<Response<KeyVaultKey>>(VaultUri);
         SetupCreateRsaKey(
             CreateKey(keyId, new JsonWebKey(rsa, false, null)),
             captured => sent = captured
@@ -230,7 +250,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         var request = CreateCreationRequest(Rs256);
         var keyId = GetKeyVersionId(request, "-s");
         CreateRsaKeyOptions? sent = null;
-        SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
+        SetupKeyClientWithoutRetry<Response<KeyVaultKey>>(VaultUri);
         SetupCreateRsaKey(
             CreateKey(keyId, new JsonWebKey(rsa, false, null)),
             captured => sent = captured
@@ -252,7 +272,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         var request = CreateCreationRequest(Es256);
         var keyId = GetKeyVersionId(request, "-h");
         CreateEcKeyOptions? sent = null;
-        SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
+        SetupKeyClientWithoutRetry<Response<KeyVaultKey>>(VaultUri);
         SetupCreateEcKey(
             CreateKey(keyId, new JsonWebKey(ecdsa, false, null)),
             captured => sent = captured
@@ -274,7 +294,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     {
         using var rsa = RSA.Create(2048);
         var request = CreateCreationRequest(Rs256);
-        SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
+        SetupKeyClientWithoutRetry<Response<KeyVaultKey>>(VaultUri);
         SetupCreateRsaKey(
             CreateKey($"{VaultUri}/keys/{request.GroupName}-h", new JsonWebKey(rsa, false, null)),
             _ => { }

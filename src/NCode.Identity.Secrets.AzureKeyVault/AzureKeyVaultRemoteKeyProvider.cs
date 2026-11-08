@@ -365,7 +365,7 @@ internal class AzureKeyVaultRemoteKeyProvider(
         CancellationToken cancellationToken
     )
     {
-        var response = await ClientFactory.ExecuteKeyClientAsync(
+        var response = await ClientFactory.ExecuteKeyClientWithoutRetryAsync(
             vaultUri,
             (client, token) =>
                 new ValueTask<Response<KeyVaultKey>>(
@@ -383,7 +383,7 @@ internal class AzureKeyVaultRemoteKeyProvider(
         CancellationToken cancellationToken
     )
     {
-        var response = await ClientFactory.ExecuteKeyClientAsync(
+        var response = await ClientFactory.ExecuteKeyClientWithoutRetryAsync(
             vaultUri,
             (client, token) =>
                 new ValueTask<Response<KeyVaultKey>>(client.CreateEcKeyAsync(createOptions, token)),

@@ -6,8 +6,8 @@ using Azure.Core;
 namespace NCode.Identity.Secrets.AzureKeyVault.Facades;
 
 /// <summary>
-/// Configures the retry of every Azure Key Vault client that the package creates, so a transient failure is retried
-/// once, by the SDK, with an exponential back-off and no other layer retrying it.
+/// Configures the retry of every Azure Key Vault client that the package creates: the SDK retries a transient failure
+/// up to three times with an exponential back-off, no other layer retries it, and a key creation is not retried.
 /// </summary>
 // See ADR-1471.
 internal static class AzureKeyVaultClientOptions
@@ -42,6 +42,22 @@ internal static class AzureKeyVaultClientOptions
         options.Retry.MaxRetries = MaxRetries;
         options.Retry.Delay = Delay;
         options.Retry.MaxDelay = MaxDelay;
+
+        return options;
+    }
+
+    /// <summary>
+    /// Sets the options of a client to never retry a request, for a call that creates a key and so must not run twice.
+    /// </summary>
+    /// <typeparam name="T">The type of the options of the client.</typeparam>
+    /// <param name="options">The options to configure.</param>
+    /// <returns>The same <paramref name="options"/>.</returns>
+    public static T ConfigureWithoutRetry<T>(T options)
+        where T : ClientOptions
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        options.Retry.MaxRetries = 0;
 
         return options;
     }

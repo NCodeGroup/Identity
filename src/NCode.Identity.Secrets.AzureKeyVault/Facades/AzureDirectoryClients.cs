@@ -29,6 +29,8 @@ internal sealed class AzureDirectoryClients
 
     private ConcurrentDictionary<Uri, KeyClient> KeyClients { get; } = new();
 
+    private ConcurrentDictionary<Uri, KeyClient> KeyClientsWithoutRetry { get; } = new();
+
     private AzureDirectoryClients(DefaultAzureCredential credential)
     {
         Credential = credential;
@@ -85,6 +87,26 @@ internal sealed class AzureDirectoryClients
                     uri,
                     credential,
                     AzureKeyVaultClientOptions.Configure(new KeyClientOptions())
+                ),
+            Credential
+        );
+
+    /// <summary>
+    /// Gets the client for the keys of a vault that never retries a request, for a call that creates a key. The same
+    /// client is returned for every call with the same vault.
+    /// </summary>
+    /// <param name="vaultUri">The URI of a Key Vault or Managed HSM, such as <c>https://contoso.vault.azure.net</c>.</param>
+    /// <returns>The <see cref="KeyClient"/> that creates the keys of the vault.</returns>
+    public KeyClient GetKeyClientWithoutRetry(Uri vaultUri) =>
+        KeyClientsWithoutRetry.GetOrAdd(
+            vaultUri,
+            static (uri, credential) =>
+                new KeyClient(
+                    uri,
+                    credential,
+                    AzureKeyVaultClientOptions.ConfigureWithoutRetry(
+                        AzureKeyVaultClientOptions.Configure(new KeyClientOptions())
+                    )
                 ),
             Credential
         );

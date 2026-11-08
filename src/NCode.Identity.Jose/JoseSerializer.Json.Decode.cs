@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NCode.Buffers;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;
@@ -153,6 +154,35 @@ partial class JoseSerializer
         {
             case JoseProtectionTypes.Jwe:
                 DecryptJsonJwe(jsonJwt.Root, secretKey, payloadWriter);
+                break;
+
+            case JoseProtectionTypes.Jws:
+                VerifyJsonJws(jsonJwt.Root, secretKey, payloadWriter);
+                break;
+
+            default:
+                throw new JoseException(
+                    $"The protection type '{jsonJwt.ProtectionType}' is not supported."
+                );
+        }
+    }
+
+    private async ValueTask DecodeJsonAsync(
+        JsonJwt jsonJwt,
+        SecretKey secretKey,
+        IBufferWriter<byte> payloadWriter,
+        CancellationToken cancellationToken
+    )
+    {
+        switch (jsonJwt.ProtectionType)
+        {
+            case JoseProtectionTypes.Jwe:
+                await DecryptJsonJweAsync(
+                    jsonJwt.Root,
+                    secretKey,
+                    payloadWriter,
+                    cancellationToken
+                );
                 break;
 
             case JoseProtectionTypes.Jws:
@@ -419,6 +449,104 @@ partial class JoseSerializer
         );
     }
 
+    private async ValueTask DecryptJsonJweAsync(
+        JsonElement root,
+        SecretKey secretKey,
+        IBufferWriter<byte> payloadWriter,
+        CancellationToken cancellationToken
+    )
+    {
+        var encodedProtected = root.TryGetPropertyValue<string>(
+            JoseClaimNames.Json.Protected,
+            out var protectedValue
+        )
+            ? protectedValue
+            : string.Empty;
+
+        var protectedHeader =
+            encodedProtected.Length > 0 ? DeserializeHeader(encodedProtected) : default;
+
+        var sharedUnprotected = root.TryGetProperty(
+            JoseClaimNames.Json.Unprotected,
+            out var sharedUnprotectedElement
+        )
+            ? sharedUnprotectedElement
+            : default;
+
+        var encodedIv = GetRequiredJsonString(root, JoseClaimNames.Json.Iv);
+        var encodedCiphertext = GetRequiredJsonString(root, JoseClaimNames.Json.Ciphertext);
+        var encodedTag = GetRequiredJsonString(root, JoseClaimNames.Json.Tag);
+
+        var encodedAad = root.TryGetPropertyValue<string>(JoseClaimNames.Json.Aad, out var aad)
+            ? aad
+            : null;
+
+        var recipients = new List<JsonElement>();
+        if (root.TryGetProperty(JoseClaimNames.Json.Recipients, out var recipientsElement))
+        {
+            if (recipientsElement.ValueKind != JsonValueKind.Array)
+                throw new JoseException("The 'recipients' member must be an array.");
+
+            recipients.AddRange(recipientsElement.EnumerateArray());
+        }
+        else
+        {
+            recipients.Add(root);
+        }
+
+        List<Exception>? failures = null;
+        foreach (var recipient in recipients)
+        {
+            var recipientHeader = recipient.TryGetProperty(
+                JoseClaimNames.Json.Header,
+                out var recipientHeaderElement
+            )
+                ? recipientHeaderElement
+                : default;
+
+            var mergedHeader = MergeHeaders(protectedHeader, sharedUnprotected, recipientHeader);
+
+            var encodedEncryptedKey = recipient.TryGetPropertyValue<string>(
+                JoseClaimNames.Json.EncryptedKey,
+                out var encryptedKey
+            )
+                ? encryptedKey
+                : string.Empty;
+
+            try
+            {
+                await DecryptJsonJweRecipientAsync(
+                    secretKey,
+                    mergedHeader,
+                    encodedProtected,
+                    encodedAad,
+                    encodedEncryptedKey,
+                    encodedIv,
+                    encodedCiphertext,
+                    encodedTag,
+                    payloadWriter,
+                    cancellationToken
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                (failures ??= []).Add(exception);
+                continue;
+            }
+
+            return;
+        }
+
+        throw new JoseEncryptionException(
+            "None of the JWE recipients could be decrypted with the provided key.",
+            AsInnerException(failures)
+        );
+    }
+
     private static Exception AsInnerException(List<Exception>? failures) =>
         failures switch
         {
@@ -488,6 +616,113 @@ partial class JoseSerializer
             contentKey
         );
 
+        DecryptJsonJweContent(
+            encodedProtected,
+            encodedAad,
+            header,
+            authenticatedEncryptionAlgorithm,
+            contentKey,
+            ivBytes,
+            cipherTextBytes,
+            tagBytes,
+            payloadWriter
+        );
+    }
+
+    private async ValueTask DecryptJsonJweRecipientAsync(
+        SecretKey secretKey,
+        JsonElement header,
+        string encodedProtected,
+        string? encodedAad,
+        string encodedEncryptedKey,
+        string encodedIv,
+        string encodedCiphertext,
+        string encodedTag,
+        IBufferWriter<byte> payloadWriter,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            !header.TryGetPropertyValue<string>(
+                JoseClaimNames.Header.Alg,
+                out var keyManagementAlgorithmCode
+            )
+        )
+            throw new JoseException("The JWE header is missing the 'alg' field.");
+
+        if (
+            !header.TryGetPropertyValue<string>(
+                JoseClaimNames.Header.Enc,
+                out var authenticatedEncryptionAlgorithmCode
+            )
+        )
+            throw new JoseException("The JWE header is missing the 'enc' field.");
+
+        var keyManagementAlgorithm = GetKeyManagementAlgorithm(keyManagementAlgorithmCode);
+        var authenticatedEncryptionAlgorithm = GetAuthenticatedEncryptionAlgorithm(
+            authenticatedEncryptionAlgorithmCode
+        );
+
+        // Every binary segment is decoded before the unwrap, so a malformed token never reaches a key management
+        // service.
+        using var encryptedKeyLease = DecodeBase64UrlToMemory(
+            encodedEncryptedKey,
+            isSensitive: true,
+            out var encryptedKeyBytes
+        );
+        using var ivLease = DecodeBase64UrlToMemory(encodedIv, isSensitive: false, out var ivBytes);
+        using var cipherTextLease = DecodeBase64UrlToMemory(
+            encodedCiphertext,
+            isSensitive: false,
+            out var cipherTextBytes
+        );
+        using var tagLease = DecodeBase64UrlToMemory(
+            encodedTag,
+            isSensitive: false,
+            out var tagBytes
+        );
+
+        var cekSizeBytes = authenticatedEncryptionAlgorithm.ContentKeySizeBytes;
+        using var contentKeyLease = BufferFactory.Rent(
+            cekSizeBytes,
+            isSensitive: true,
+            out Memory<byte> contentKey
+        );
+
+        await UnwrapContentKeyOrSubstituteAsync(
+            keyManagementAlgorithm,
+            secretKey,
+            header,
+            encryptedKeyBytes,
+            contentKey,
+            cancellationToken
+        );
+
+        DecryptJsonJweContent(
+            encodedProtected,
+            encodedAad,
+            header,
+            authenticatedEncryptionAlgorithm,
+            contentKey.Span,
+            ivBytes.Span,
+            cipherTextBytes.Span,
+            tagBytes.Span,
+            payloadWriter
+        );
+    }
+
+    private void DecryptJsonJweContent(
+        ReadOnlySpan<char> encodedProtected,
+        string? encodedAad,
+        JsonElement header,
+        AuthenticatedEncryptionAlgorithm authenticatedEncryptionAlgorithm,
+        ReadOnlySpan<byte> contentKey,
+        ReadOnlySpan<byte> ivBytes,
+        ReadOnlySpan<byte> cipherTextBytes,
+        ReadOnlySpan<byte> tagBytes,
+        IBufferWriter<byte> payloadWriter
+    )
+    {
         using var associatedDataLease = BuildJsonJweAssociatedData(
             encodedProtected,
             encodedAad,

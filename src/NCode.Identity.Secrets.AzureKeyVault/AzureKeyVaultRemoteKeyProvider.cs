@@ -189,6 +189,11 @@ internal class AzureKeyVaultRemoteKeyProvider(
             );
         }
 
+        if (key.Key is null)
+        {
+            throw new CryptographicException($"Azure Key Vault key '{keyId}' holds no public key.");
+        }
+
         var requiredOperation = GetRequiredOperation(request.Algorithm);
         if (!key.KeyOperations.Contains(requiredOperation))
         {

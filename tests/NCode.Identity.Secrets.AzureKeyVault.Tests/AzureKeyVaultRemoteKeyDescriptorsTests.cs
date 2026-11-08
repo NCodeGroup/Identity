@@ -66,7 +66,7 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
     {
         var source = new AzureKeyVaultRemoteKeyDescriptors();
 
-        var rows = source.Algorithms.ToList();
+        var rows = source.Algorithms.OfType<RemoteSigningAlgorithm>().ToList();
 
         Assert.Equal(Expected.Length, rows.Count);
         foreach (var expected in Expected)
@@ -76,6 +76,7 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
                 x => x.Algorithm == expected.Algorithm && x.KeySizeBits == expected.KeySizeBits
             );
             Assert.Equal(RemoteKeyProviderNames.AzureKeyVault, row.Provider);
+            Assert.Equal("sig", row.Use);
             Assert.Equal(expected.SecretType, row.SecretType);
             Assert.Equal(expected.Curve, row.Curve);
             Assert.Equal(expected.KeySpec, row.KeySpec);
@@ -83,6 +84,57 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
             Assert.Equal(expected.Digest, row.DigestAlgorithm);
             Assert.False(row.IsDerEncodedSignature);
         }
+    }
+
+    [Fact]
+    public void Algorithms_DecryptionRows_MatchTheMapping()
+    {
+        var source = new AzureKeyVaultRemoteKeyDescriptors();
+
+        var rows = source.Algorithms.OfType<RemoteDecryptionAlgorithm>().ToList();
+
+        Assert.Equal(6, rows.Count);
+        foreach (var algorithm in new[] { "RSA-OAEP", "RSA-OAEP-256" })
+        {
+            foreach (var keySizeBits in new[] { 2048, 3072, 4096 })
+            {
+                var row = Assert.Single(
+                    rows,
+                    x => x.Algorithm == algorithm && x.KeySizeBits == keySizeBits
+                );
+                Assert.Equal(algorithm, row.EncryptionAlgorithm);
+            }
+        }
+
+        Assert.All(
+            rows,
+            row =>
+            {
+                Assert.Equal(RemoteKeyProviderNames.AzureKeyVault, row.Provider);
+                Assert.Equal("enc", row.Use);
+                Assert.Equal(SecretKeyTypes.Rsa, row.SecretType);
+                Assert.Null(row.Curve);
+                Assert.Equal("RSA", row.KeySpec);
+            }
+        );
+    }
+
+    [Fact]
+    public void Algorithms_KeyAgreementRows_AreAbsent()
+    {
+        var source = new AzureKeyVaultRemoteKeyDescriptors();
+
+        Assert.DoesNotContain(source.Algorithms, x => x is RemoteKeyAgreementAlgorithm);
+    }
+
+    [Fact]
+    public void Algorithms_Rows_CountsEveryKind()
+    {
+        var source = new AzureKeyVaultRemoteKeyDescriptors();
+
+        var rows = source.Algorithms.ToList();
+
+        Assert.Equal(Expected.Length + 6, rows.Count);
     }
 
     [Fact]
@@ -102,7 +154,10 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
     {
         var source = new AzureKeyVaultRemoteKeyDescriptors();
 
-        Assert.All(source.Algorithms, row => Assert.NotNull(row.DigestAlgorithm));
+        Assert.All(
+            source.Algorithms.OfType<RemoteSigningAlgorithm>(),
+            row => Assert.NotNull(row.DigestAlgorithm)
+        );
     }
 
     [Fact]

@@ -52,7 +52,25 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
             DigestAlgorithm = HashAlgorithmName.SHA256,
         };
 
+    private static RemoteDecryptionAlgorithm RsaOaep256 { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AzureKeyVault,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = SecretKeyTypes.Rsa,
+            KeySizeBits = 3072,
+            KeySpec = "RSA",
+            EncryptionAlgorithm = "RSA-OAEP-256",
+        };
+
     private static readonly KvSignatureAlgorithm Rs256Algorithm = new("RS256");
+
+    private static KeyWrapAlgorithm RsaOaep256Algorithm { get; } = new("RSA-OAEP-256");
+
+    private static KeyOperation[] SigningOperations { get; } =
+    [KeyOperation.Sign, KeyOperation.Verify];
+
+    private static KeyOperation[] UnwrapOperations { get; } = [KeyOperation.UnwrapKey];
 
     private Mock<IAzureKeyVaultClientFactory> ClientFactory { get; }
 
@@ -82,7 +100,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
             )
         );
 
-    private static RemoteKeyCreationRequest CreateCreationRequest(RemoteSigningAlgorithm row) =>
+    private static RemoteKeyCreationRequest CreateCreationRequest(RemoteKeyAlgorithm row) =>
         new()
         {
             OwnerId = "tenant-1",
@@ -92,7 +110,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         };
 
     private static RemotePublicKeyRequest CreatePublicKeyRequest(
-        RemoteSigningAlgorithm row,
+        RemoteKeyAlgorithm row,
         string keyId = KeyVersionId
     ) => new() { KeyId = keyId, Algorithm = row };
 
@@ -221,12 +239,40 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
             .ReturnsAsync(result)
             .Verifiable();
 
+    private void SetupUnwrapKey(UnwrapResult result, Action<byte[]>? capture = null) =>
+        CryptographyClient
+            .Setup(x =>
+                x.UnwrapKeyAsync(
+                    It.Is<KeyWrapAlgorithm>(a => a == RsaOaep256Algorithm),
+                    It.IsAny<byte[]>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<KeyWrapAlgorithm, byte[], CancellationToken>(
+                (_, encryptedKey, _) => capture?.Invoke(encryptedKey)
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    private void SetupUnwrapKeyFailure(Exception exception) =>
+        CryptographyClient
+            .Setup(x =>
+                x.UnwrapKeyAsync(
+                    It.Is<KeyWrapAlgorithm>(a => a == RsaOaep256Algorithm),
+                    It.IsAny<byte[]>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(exception)
+            .Verifiable();
+
     private static void AssertOperationsAndTags(
         CreateKeyOptions options,
-        RemoteKeyCreationRequest request
+        RemoteKeyCreationRequest request,
+        params KeyOperation[] expectedOperations
     )
     {
-        Assert.Equal([KeyOperation.Sign, KeyOperation.Verify], options.KeyOperations);
+        Assert.Equal(expectedOperations, options.KeyOperations);
         Assert.Equal(4, options.Tags.Count);
         Assert.Equal("tenant-1", options.Tags["ncode-identity-owner"]);
         Assert.Equal("secret-1", options.Tags["ncode-identity-secret"]);
@@ -257,7 +303,52 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         Assert.Equal($"{request.GroupName}-h", options.Name);
         Assert.True(options.HardwareProtected);
         Assert.Equal(3072, options.KeySize);
-        AssertOperationsAndTags(options, request);
+        AssertOperationsAndTags(options, request, KeyOperation.Sign, KeyOperation.Verify);
+    }
+
+    [Fact]
+    public async Task CreateKeyAsync_DecryptionRow_SendsUnwrapKeyOperationOnly()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = CreateCreationRequest(RsaOaep256);
+        var keyId = GetKeyVersionId(request, "-h");
+        CreateRsaKeyOptions? sent = null;
+        SetupKeyClientWithoutRetry<Response<KeyVaultKey>>(VaultUri);
+        SetupCreateRsaKey(
+            CreateKey(keyId, new JsonWebKey(rsa, false, UnwrapOperations)),
+            captured => sent = captured
+        );
+        var provider = CreateProvider();
+
+        var result = await provider.CreateKeyAsync(request, CancellationToken.None);
+
+        Assert.Equal(keyId, result.KeyId);
+        var options = Assert.IsType<CreateRsaKeyOptions>(sent);
+        Assert.Equal($"{request.GroupName}-h", options.Name);
+        Assert.Equal(3072, options.KeySize);
+        AssertOperationsAndTags(options, request, KeyOperation.UnwrapKey);
+    }
+
+    [Fact]
+    public async Task CreateKeyAsync_KeyAgreementRow_Throws()
+    {
+        var provider = CreateProvider();
+        var row = new RemoteKeyAgreementAlgorithm
+        {
+            Provider = RemoteKeyProviderNames.AzureKeyVault,
+            Algorithm = "ECDH-ES",
+            SecretType = SecretKeyTypes.Ecc,
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "EC",
+            KeyAgreementAlgorithm = "ECDH",
+        };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider.CreateKeyAsync(CreateCreationRequest(row), CancellationToken.None).AsTask()
+        );
+
+        Assert.Equal("request", exception.ParamName);
     }
 
     [Fact]
@@ -303,7 +394,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         Assert.Equal($"{request.GroupName}-h", options.Name);
         Assert.True(options.HardwareProtected);
         Assert.Equal(KeyCurveName.P256, options.CurveName);
-        AssertOperationsAndTags(options, request);
+        AssertOperationsAndTags(options, request, KeyOperation.Sign, KeyOperation.Verify);
     }
 
     [Fact]
@@ -376,7 +467,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     {
         using var rsa = RSA.Create(2048);
         SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
-        SetupGetKey(CreateKey(KeyVersionId, new JsonWebKey(rsa, false, null)));
+        SetupGetKey(CreateKey(KeyVersionId, new JsonWebKey(rsa, false, SigningOperations)));
         var provider = CreateProvider();
         var writer = new ArrayBufferWriter<byte>();
 
@@ -390,11 +481,73 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     }
 
     [Fact]
+    public async Task GetPublicKeyAsync_DecryptionRowKey_WritesTheSubjectPublicKeyInfo()
+    {
+        using var rsa = RSA.Create(2048);
+        SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
+        SetupGetKey(CreateKey(KeyVersionId, new JsonWebKey(rsa, false, UnwrapOperations)));
+        var provider = CreateProvider();
+        var writer = new ArrayBufferWriter<byte>();
+
+        await provider.GetPublicKeyAsync(
+            CreatePublicKeyRequest(RsaOaep256),
+            writer,
+            CancellationToken.None
+        );
+
+        Assert.Equal(rsa.ExportSubjectPublicKeyInfo(), writer.WrittenSpan.ToArray());
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_DecryptionRowKeyWithoutUnwrapKey_Throws()
+    {
+        using var rsa = RSA.Create(2048);
+        SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
+        SetupGetKey(CreateKey(KeyVersionId, new JsonWebKey(rsa, false, SigningOperations)));
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(RsaOaep256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyVersionId, exception.Message);
+        Assert.Contains(KeyOperation.UnwrapKey.ToString(), exception.Message);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_SigningRowKeyWithoutSign_Throws()
+    {
+        using var rsa = RSA.Create(2048);
+        SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
+        SetupGetKey(CreateKey(KeyVersionId, new JsonWebKey(rsa, false, UnwrapOperations)));
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(Rs256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyVersionId, exception.Message);
+        Assert.Contains(KeyOperation.Sign.ToString(), exception.Message);
+    }
+
+    [Fact]
     public async Task GetPublicKeyAsync_EllipticCurveKey_WritesTheSubjectPublicKeyInfo()
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
-        SetupGetKey(CreateKey(KeyVersionId, new JsonWebKey(ecdsa, false, null)));
+        SetupGetKey(CreateKey(KeyVersionId, new JsonWebKey(ecdsa, false, SigningOperations)));
         var provider = CreateProvider();
         var writer = new ArrayBufferWriter<byte>();
 
@@ -430,7 +583,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     {
         using var rsa = RSA.Create(2048);
         SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
-        SetupGetKey(CreateKey(OtherKeyVersionId, new JsonWebKey(rsa, false, null)));
+        SetupGetKey(CreateKey(OtherKeyVersionId, new JsonWebKey(rsa, false, SigningOperations)));
         var provider = CreateProvider();
 
         var exception = await Assert.ThrowsAsync<IOException>(() =>
@@ -471,7 +624,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     {
         using var aes = Aes.Create();
         SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
-        SetupGetKey(CreateKey(KeyVersionId, new JsonWebKey(aes)));
+        SetupGetKey(CreateKey(KeyVersionId, new JsonWebKey(aes, SigningOperations)));
         var provider = CreateProvider();
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
@@ -491,7 +644,12 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     public async Task GetPublicKeyAsync_WhenThePublicKeyIsMalformed_ThrowsCryptographicException()
     {
         SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
-        SetupGetKey(CreateKey(KeyVersionId, KeyModelFactory.JsonWebKey(KeyType.Rsa, e: [1, 0, 1])));
+        SetupGetKey(
+            CreateKey(
+                KeyVersionId,
+                KeyModelFactory.JsonWebKey(KeyType.Rsa, keyOps: SigningOperations, e: [1, 0, 1])
+            )
+        );
         var provider = CreateProvider();
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
@@ -673,6 +831,222 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         );
 
         Assert.Equal("request", exception.ParamName);
+    }
+
+    #endregion
+
+    #region DecryptAsync Tests
+
+    private static RemoteDecryptionRequest CreateDecryptionRequest(
+        byte[] ciphertext,
+        string keyId = KeyVersionId
+    ) =>
+        new()
+        {
+            KeyId = keyId,
+            Algorithm = RsaOaep256,
+            Ciphertext = ciphertext,
+        };
+
+    [Fact]
+    public async Task DecryptAsync_UnwrapsWithTheRowAlgorithm_WritesKey()
+    {
+        var ciphertext = RandomNumberGenerator.GetBytes(384);
+        var contentKey = RandomNumberGenerator.GetBytes(32);
+        var expected = contentKey.ToArray();
+        byte[]? sentCiphertext = null;
+        SetupCryptographyClient<UnwrapResult>(KeyVersionId);
+        SetupUnwrapKey(
+            CryptographyModelFactory.UnwrapResult(KeyVersionId, contentKey, RsaOaep256Algorithm),
+            sent => sentCiphertext = sent
+        );
+        var provider = CreateProvider();
+        var buffer = new byte[64];
+
+        var written = await provider.DecryptAsync(
+            CreateDecryptionRequest(ciphertext),
+            buffer,
+            CancellationToken.None
+        );
+
+        Assert.Equal(expected, buffer[..written]);
+        Assert.Equal(ciphertext, sentCiphertext);
+        Assert.All(contentKey, x => Assert.Equal(0, x));
+    }
+
+    [Fact]
+    public async Task DecryptAsync_ServiceRefusesTheCiphertext_ThrowsCryptographicException()
+    {
+        var failure = new RequestFailedException(400, "Bad ciphertext.");
+        SetupCryptographyClient<UnwrapResult>(KeyVersionId);
+        SetupUnwrapKeyFailure(failure);
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception.InnerException);
+        Assert.Contains(KeyVersionId, exception.Message);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_ServiceFailsOtherwise_Propagates()
+    {
+        var failure = new RequestFailedException(503, "Unavailable.");
+        SetupCryptographyClient<UnwrapResult>(KeyVersionId);
+        SetupUnwrapKeyFailure(failure);
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<RequestFailedException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_ResultFromAnotherKey_ThrowsIOException()
+    {
+        var contentKey = RandomNumberGenerator.GetBytes(32);
+        SetupCryptographyClient<UnwrapResult>(KeyVersionId);
+        SetupUnwrapKey(
+            CryptographyModelFactory.UnwrapResult(
+                OtherKeyVersionId,
+                contentKey,
+                RsaOaep256Algorithm
+            )
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyVersionId, exception.Message);
+        Assert.All(contentKey, x => Assert.Equal(0, x));
+    }
+
+    [Fact]
+    public async Task DecryptAsync_ResultOfAnotherAlgorithm_ThrowsIOException()
+    {
+        var contentKey = RandomNumberGenerator.GetBytes(32);
+        SetupCryptographyClient<UnwrapResult>(KeyVersionId);
+        SetupUnwrapKey(
+            CryptographyModelFactory.UnwrapResult(
+                KeyVersionId,
+                contentKey,
+                new KeyWrapAlgorithm("RSA-OAEP")
+            )
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(RsaOaep256.EncryptionAlgorithm, exception.Message);
+        Assert.All(contentKey, x => Assert.Equal(0, x));
+    }
+
+    [Fact]
+    public async Task DecryptAsync_KeyLongerThanTheBuffer_Throws()
+    {
+        var contentKey = RandomNumberGenerator.GetBytes(32);
+        SetupCryptographyClient<UnwrapResult>(KeyVersionId);
+        SetupUnwrapKey(
+            CryptographyModelFactory.UnwrapResult(KeyVersionId, contentKey, RsaOaep256Algorithm)
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384]),
+                    new byte[31],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyVersionId, exception.Message);
+        Assert.All(contentKey, x => Assert.Equal(0, x));
+    }
+
+    [Fact]
+    public async Task DecryptAsync_KeyIdWithoutVersion_Throws()
+    {
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384], VaultUri + "/keys/ncode-key"),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Equal("request", exception.ParamName);
+    }
+
+    #endregion
+
+    #region DeriveSharedSecretAsync Tests
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_Always_ThrowsNotSupportedException()
+    {
+        var provider = CreateProvider();
+
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            provider
+                .DeriveSharedSecretAsync(
+                    new RemoteKeyAgreementRequest
+                    {
+                        KeyId = KeyVersionId,
+                        Algorithm = new RemoteKeyAgreementAlgorithm
+                        {
+                            Provider = RemoteKeyProviderNames.AzureKeyVault,
+                            Algorithm = "ECDH-ES",
+                            SecretType = SecretKeyTypes.Ecc,
+                            KeySizeBits = 256,
+                            Curve = "P-256",
+                            KeySpec = "EC",
+                            KeyAgreementAlgorithm = "ECDH",
+                        },
+                        PeerSubjectPublicKeyInfo = new byte[91],
+                    },
+                    new byte[32],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
     }
 
     #endregion

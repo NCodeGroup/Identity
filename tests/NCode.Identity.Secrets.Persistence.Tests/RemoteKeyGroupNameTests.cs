@@ -38,6 +38,21 @@ public class RemoteKeyGroupNameTests
     #region Create Tests
 
     [Fact]
+    public void Create_KnownInputs_ReturnsKnownName()
+    {
+        Assert.Equal("ncid-229ccce23130965b694dec3fdf622534", CreateGroupName());
+    }
+
+    [Fact]
+    public void Create_KnownInputsWithoutCurve_ReturnsKnownName()
+    {
+        Assert.Equal(
+            "ncid-c7791f6a1c83638f5d85e34a8350999d",
+            CreateGroupName(algorithm: CreateAlgorithm(curve: null))
+        );
+    }
+
+    [Fact]
     public void Create_Request_Has37CharactersAndNcidPrefix()
     {
         var groupName = CreateGroupName();

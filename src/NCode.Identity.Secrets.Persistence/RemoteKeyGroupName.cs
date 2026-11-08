@@ -30,8 +30,15 @@ internal static class RemoteKeyGroupName
         var text =
             $"{ownerId}\n{algorithm.Provider}\n{algorithm.Algorithm}\n{algorithm.KeySpec}\n{algorithm.KeySizeBits}\n{algorithm.Curve}";
 
+        using var lease = BufferFactory.Rent(
+            SecureEncoding.UTF8.GetByteCount(text),
+            isSensitive: false,
+            out Span<byte> bytes
+        );
+        SecureEncoding.UTF8.GetBytes(text, bytes);
+
         Span<byte> hash = stackalloc byte[SHA256.HashSizeInBytes];
-        SHA256.HashData(SecureEncoding.UTF8.GetBytes(text), hash);
+        SHA256.HashData(bytes, hash);
 
         return Prefix + Convert.ToHexStringLower(hash[..HashBytes]);
     }

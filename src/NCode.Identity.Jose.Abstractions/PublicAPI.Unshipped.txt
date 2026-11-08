@@ -302,13 +302,13 @@ NCode.Identity.Jose.Exceptions.JoseInvalidSignatureException.JoseInvalidSignatur
 NCode.Identity.Jose.IJoseSerializer
 NCode.Identity.Jose.IJoseSerializer.CreateEncoder(NCode.Identity.Jose.JoseEncryptionOptions! encryptionOptions) -> NCode.Identity.Jose.JoseEncoder!
 NCode.Identity.Jose.IJoseSerializer.CreateEncoder(NCode.Identity.Jose.JoseSigningOptions! signingOptions) -> NCode.Identity.Jose.JoseEncoder!
-NCode.Identity.Jose.IJoseSerializer.Decode(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> string!
-NCode.Identity.Jose.IJoseSerializer.Decode(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Buffers.IBufferWriter<byte>! payload) -> void
-NCode.Identity.Jose.IJoseSerializer.Decode(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> string!
-NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> T?
-NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Text.Json.JsonSerializerOptions? jsonOptions) -> T?
-NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> T?
-NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Text.Json.JsonSerializerOptions? jsonOptions) -> T?
+NCode.Identity.Jose.IJoseSerializer.DecodeAsync(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+NCode.Identity.Jose.IJoseSerializer.DecodeAsync(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Buffers.IBufferWriter<byte>! payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Jose.IJoseSerializer.DecodeAsync(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+NCode.Identity.Jose.IJoseSerializer.DeserializeAsync<T>(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<T?>
+NCode.Identity.Jose.IJoseSerializer.DeserializeAsync<T>(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Text.Json.JsonSerializerOptions? jsonOptions, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<T?>
+NCode.Identity.Jose.IJoseSerializer.DeserializeAsync<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<T?>
+NCode.Identity.Jose.IJoseSerializer.DeserializeAsync<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Text.Json.JsonSerializerOptions? jsonOptions, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<T?>
 NCode.Identity.Jose.IJoseSerializer.Parse(string! token) -> NCode.Identity.Jose.JoseToken!
 NCode.Identity.Jose.IJoseSerializer.VerifyJws(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<byte> detachedPayload) -> void
 NCode.Identity.Jose.IJoseSerializer.VerifyJws(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<char> detachedPayload) -> void

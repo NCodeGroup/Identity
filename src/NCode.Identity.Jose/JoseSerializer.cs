@@ -207,16 +207,21 @@ internal partial class JoseSerializer(
     }
 
     /// <inheritdoc />
-    public void Decode(JoseToken token, SecretKey secretKey, IBufferWriter<byte> payload)
+    public async ValueTask DecodeAsync(
+        JoseToken token,
+        SecretKey secretKey,
+        IBufferWriter<byte> payload,
+        CancellationToken cancellationToken
+    )
     {
         switch (token)
         {
             case CompactJwt compactJwt:
-                DecodeCompact(compactJwt, secretKey, payload);
+                await DecodeCompactAsync(compactJwt, secretKey, payload, cancellationToken);
                 break;
 
             case JsonJwt jsonJwt:
-                DecodeJson(jsonJwt, secretKey, payload);
+                await DecodeJsonAsync(jsonJwt, secretKey, payload, cancellationToken);
                 break;
 
             default:
@@ -226,10 +231,11 @@ internal partial class JoseSerializer(
         }
     }
 
-    private void DecodeCompact(
+    private async ValueTask DecodeCompactAsync(
         CompactJwt compactJwt,
         SecretKey secretKey,
-        IBufferWriter<byte> payload
+        IBufferWriter<byte> payload,
+        CancellationToken cancellationToken
     )
     {
         switch (compactJwt.ProtectionType)
@@ -239,7 +245,7 @@ internal partial class JoseSerializer(
                 break;
 
             case JoseProtectionTypes.Jwe:
-                DecryptJwe(compactJwt, secretKey, payload);
+                await DecryptJweAsync(compactJwt, secretKey, payload, cancellationToken);
                 break;
 
             default:
@@ -248,15 +254,23 @@ internal partial class JoseSerializer(
     }
 
     /// <inheritdoc />
-    public string Decode(JoseToken token, SecretKey secretKey)
+    public async ValueTask<string> DecodeAsync(
+        JoseToken token,
+        SecretKey secretKey,
+        CancellationToken cancellationToken
+    )
     {
         using var payloadBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
-        Decode(token, secretKey, payloadBuffer);
+        await DecodeAsync(token, secretKey, payloadBuffer, cancellationToken);
         return DecodeUtf8(payloadBuffer.AsReadOnlySequence);
     }
 
     /// <inheritdoc />
-    public string Decode(string token, SecretKey secretKey) => Decode(Parse(token), secretKey);
+    public ValueTask<string> DecodeAsync(
+        string token,
+        SecretKey secretKey,
+        CancellationToken cancellationToken
+    ) => DecodeAsync(Parse(token), secretKey, cancellationToken);
 
     private static string DecodeUtf8(ReadOnlySequence<byte> byteSequence)
     {
@@ -266,31 +280,39 @@ internal partial class JoseSerializer(
     }
 
     /// <inheritdoc />
-    public T? Deserialize<T>(JoseToken token, SecretKey secretKey) =>
-        Deserialize<T>(token, secretKey, jsonOptions: null);
-
-    /// <inheritdoc />
-    public T? Deserialize<T>(
+    public ValueTask<T?> DeserializeAsync<T>(
         JoseToken token,
         SecretKey secretKey,
-        JsonSerializerOptions? jsonOptions
+        CancellationToken cancellationToken
+    ) => DeserializeAsync<T>(token, secretKey, jsonOptions: null, cancellationToken);
+
+    /// <inheritdoc />
+    public async ValueTask<T?> DeserializeAsync<T>(
+        JoseToken token,
+        SecretKey secretKey,
+        JsonSerializerOptions? jsonOptions,
+        CancellationToken cancellationToken
     )
     {
         using var payloadBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
-        Decode(token, secretKey, payloadBuffer);
+        await DecodeAsync(token, secretKey, payloadBuffer, cancellationToken);
         return Deserialize<T>(payloadBuffer.AsReadOnlySequence, jsonOptions);
     }
 
     /// <inheritdoc />
-    public T? Deserialize<T>(string token, SecretKey secretKey) =>
-        Deserialize<T>(Parse(token), secretKey, jsonOptions: null);
-
-    /// <inheritdoc />
-    public T? Deserialize<T>(
+    public ValueTask<T?> DeserializeAsync<T>(
         string token,
         SecretKey secretKey,
-        JsonSerializerOptions? jsonOptions
-    ) => Deserialize<T>(Parse(token), secretKey, jsonOptions);
+        CancellationToken cancellationToken
+    ) => DeserializeAsync<T>(Parse(token), secretKey, jsonOptions: null, cancellationToken);
+
+    /// <inheritdoc />
+    public ValueTask<T?> DeserializeAsync<T>(
+        string token,
+        SecretKey secretKey,
+        JsonSerializerOptions? jsonOptions,
+        CancellationToken cancellationToken
+    ) => DeserializeAsync<T>(Parse(token), secretKey, jsonOptions, cancellationToken);
 
     private T? Deserialize<T>(
         ReadOnlySequence<byte> byteSequence,

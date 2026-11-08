@@ -60,4 +60,10 @@ public sealed class SecretResource
     /// a method needs a new secret, issued while it is registered for that method.
     /// </summary>
     public required bool IsVerifier { get; init; }
+
+    /// <summary>
+    /// Gets the name of the remote key provider whose key management service holds the key's private half, such as
+    /// <c>aws-kms</c>, or <c>null</c> for a key the server holds.
+    /// </summary>
+    public required string? RemoteKeyProvider { get; init; }
 }

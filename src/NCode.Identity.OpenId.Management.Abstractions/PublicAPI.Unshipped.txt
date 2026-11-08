@@ -481,6 +481,8 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.KeySize
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.KeySizeBits.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.IsVerifier.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.IsVerifier.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.RemoteKeyProvider.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.RemoteKeyProvider.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretMaterial.get -> string?
@@ -512,6 +514,8 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.KeySizeBits.ge
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.KeySizeBits.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.IsVerifier.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.IsVerifier.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.RemoteKeyProvider.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.RemoteKeyProvider.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.SecretId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.SecretId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.SecretResource() -> void

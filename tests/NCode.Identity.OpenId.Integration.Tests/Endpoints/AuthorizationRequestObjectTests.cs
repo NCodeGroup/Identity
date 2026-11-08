@@ -101,7 +101,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         return jsonElement.GetProperty("issuer").GetString()!;
     }
 
-    private string CreateRequestObject(
+    private async Task<string> CreateRequestObjectAsync(
         HostApplicationFactory factory,
         string clientId,
         string algorithmCode,
@@ -137,7 +137,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             claims["redirect_uri"] = redirectUri;
 
         var encoder = factory.Services.GetRequiredService<IJwtEncoder>();
-        return encoder.Encode(
+        return await encoder.EncodeAsync(
             new JwtEncodingParameters
             {
                 SigningCredentials = new JoseSigningCredentials(clientKey, algorithm),
@@ -147,7 +147,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
                 NotBefore = now,
                 Expires = now + (lifetime ?? TimeSpan.FromMinutes(5)),
                 ExtraPayloadClaims = claims,
-            }
+            },
+            CancellationToken.None
         );
     }
 
@@ -238,7 +239,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(factory, clientId, "RS256", issuer);
+        var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
 
         using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
 
@@ -255,7 +256,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(
+        var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
@@ -282,7 +283,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(factory, clientId, "RS256", issuer);
+        var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
 
         // The request object omits response_mode, so the unsigned outer 'fragment' must not apply (RFC 9101 §6.3).
         using var response = await AuthorizeAsync(
@@ -313,7 +314,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(
+        var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
@@ -338,7 +339,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
         // The object is verified but lacks its redirect_uri, so validation refuses it after verification.
-        var requestObject = CreateRequestObject(
+        var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
@@ -374,7 +375,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(
+        var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
@@ -418,7 +419,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(factory, clientId, "PS256", issuer);
+        var requestObject = await CreateRequestObjectAsync(factory, clientId, "PS256", issuer);
 
         using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
 
@@ -442,7 +443,12 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
-        var requestObject = CreateRequestObject(factory, clientId, "RS256", audience: null);
+        var requestObject = await CreateRequestObjectAsync(
+            factory,
+            clientId,
+            "RS256",
+            audience: null
+        );
 
         using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
 
@@ -467,7 +473,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(
+        var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
@@ -500,7 +506,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(factory, clientId, "RS256", issuer);
+        var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
 
         using var parResponse = await PushRequestObjectAsync(
             client,
@@ -535,7 +541,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var client = CreateClient(factory);
         var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(
+        var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
@@ -565,7 +571,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var client = CreateClient(factory);
         var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
         var issuer = await GetIssuerAsync(client);
-        var requestObject = CreateRequestObject(factory, clientId, "RS256", issuer);
+        var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
 
         using var parResponse = await PushRequestObjectAsync(
             client,

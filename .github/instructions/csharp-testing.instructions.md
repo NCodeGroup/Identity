@@ -390,7 +390,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Build a JWT with exact time claims through `IJoseSerializer`, not `IJwtEncoder`.** The JWT encoder
   (`JwtEncoderOptions.EnsureTokenLifetime`, on by default) injects a default `iat` / `nbf` / `exp` and overwrites a
   non-integer `iat`, so a test of lifetime validation (an absent, malformed, or far-off time claim) must encode its
-  payload with `IJoseSerializer.CreateEncoder(new JoseSigningOptions(credentials)).Encode(payload)`.
+  payload with `IJoseSerializer.CreateEncoder(new JoseSigningOptions(credentials)).EncodeAsync(payload, cancellationToken)`.
 - 👁 **Assert a background job's effect by polling with a deadline** — template
   [Time and Concurrency](csharp-tests.instructions.md#time-and-concurrency)
   (`TenantKeyProvisioningTests.WaitForSecretIdsAsync`).

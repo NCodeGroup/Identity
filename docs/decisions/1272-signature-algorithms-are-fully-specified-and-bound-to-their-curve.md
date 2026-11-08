@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (amended by [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md):
   `EccSignatureAlgorithm` is built from an `EccSignatureAlgorithmSpecification`, and a package registers further `ES*`
-  algorithms, such as `ES256K`, as specifications)
+  algorithms, such as `ES256K`, as specifications; amended by [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md):
+  a signature algorithm signs through `SignAsync`, and `TrySign` is the primitive for local keys)
 - **Date:** 2026-10-27
 - **Deciders:** NCode Group
 

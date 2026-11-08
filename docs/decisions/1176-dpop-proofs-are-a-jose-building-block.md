@@ -1,6 +1,7 @@
 # 1176. DPoP proofs are a JOSE building block
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md):
+  a proof is created with `CreateProofAsync`)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

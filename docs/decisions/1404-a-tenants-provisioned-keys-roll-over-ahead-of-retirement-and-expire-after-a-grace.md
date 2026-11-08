@@ -1,7 +1,8 @@
 # 1404. A tenant's provisioned keys roll over ahead of retirement and expire after a grace
 
 - **Status:** Accepted (amended by [ADR-1412](1412-settings-are-reconciled-per-team.md): the rollover and the settings
-  reconciliation that seed a tenant's keys run per team)
+  reconciliation that seed a tenant's keys run per team; amended by [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md):
+  a provisioned key has a custody, and a change of custody hands the tenant's keys over after the activation delay)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md), decision 3's key lifetime and

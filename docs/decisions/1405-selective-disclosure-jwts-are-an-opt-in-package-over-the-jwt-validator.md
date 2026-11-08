@@ -1,6 +1,7 @@
 # 1405. Selective Disclosure JWTs are an opt-in package that issues, presents and verifies over the JWT validator
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md):
+  `ISdJwtIssuer.IssueAsync` and `ISdJwtHolder.CreatePresentationAsync` sign asynchronously)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 

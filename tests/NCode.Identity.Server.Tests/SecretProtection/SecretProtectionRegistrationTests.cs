@@ -89,6 +89,63 @@ public class SecretProtectionRegistrationTests : BaseTests
         Assert.Single(serviceCollection, IsWarmup);
     }
 
+    [Theory]
+    [InlineData("SecretProtection:RemoteKeyProviders:AwsKms:Region", "us-west-2")]
+    [InlineData(
+        "SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri",
+        "https://contoso.vault.azure.net"
+    )]
+    [InlineData(
+        "SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing",
+        "projects/p/locations/l/keyRings/r"
+    )]
+    [InlineData(
+        "secretprotection:REMOTEKEYPROVIDERS:Contoso:Endpoint",
+        "https://kms.contoso.example"
+    )]
+    public void AddSecretProtection_RemoteKeyProviderSection_DoesNotThrow(string key, string value)
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?> { [key] = value }
+        );
+
+        Assert.Single(serviceCollection, IsWarmup);
+    }
+
+    [Fact]
+    public void AddSecretProtection_UnknownChildBesideRemoteKeyProviders_ThrowsNamingOnlyTheUnknownChild()
+    {
+        // The builder is never touched: the strict mock rejects any access, so the check runs before anything is registered.
+        var builder = CreateStrictMock<IIdentityServerBuilder>();
+        var configuration = CreateConfiguration(
+            new Dictionary<string, string?>
+            {
+                ["SecretProtection:RemoteKeyProviders:AwsKms:Region"] = "us-west-2",
+                ["SecretProtection:RemoteKeyProvider:AwsKms:Region"] = "us-west-2",
+            }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            SecretProtectionRegistration.AddSecretProtection(builder.Object, configuration)
+        );
+
+        Assert.Contains(
+            "'SecretProtection:RemoteKeyProvider'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "'SecretProtection:RemoteKeyProviders'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.EndsWith(
+            "Its recognized keys are MasterKeys, OwnerRootKeys, Recovery, RemoteKeyProviders, RootKeyProvider, RootKeyProviders.",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
     [Fact]
     public void AddSecretProtection_BindsRootKeyProviderAndRecovery()
     {

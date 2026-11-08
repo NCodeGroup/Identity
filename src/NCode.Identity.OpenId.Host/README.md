@@ -192,7 +192,7 @@ dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance
 The schema is managed by **EF Core migrations**, not `EnsureCreated()`
 ([ADR-1041](../../docs/decisions/1041-host-owned-ef-migrations-deliberate-outside-development.md)). The migrations live in the
 host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/OpenId` and
-`Migrations/DataProtection`; the published persistence library ships none.
+`Migrations/DeveloperDataProtection`; the published persistence library ships none.
 
 - The **migration worker** applies pending migrations before the `api` starts — the `api` never applies schema itself.
 - **Production** (any non-Development deployment) applies schema deliberately, once per release, before the rollout.
@@ -221,7 +221,7 @@ dotnet ef migrations add InitialCreate `
 ```
 
 The Data Protection context scaffolds the same way with `--context DeveloperDataProtectionDbContext` and
-`--output-dir Migrations/DataProtection`. Strip the UTF-8 BOM the scaffolder writes from each generated file.
+`--output-dir Migrations/DeveloperDataProtection`. Strip the UTF-8 BOM the scaffolder writes from each generated file.
 `InitialCreateTests` fails a context that holds any migration but `InitialCreate`, and a migration that changes data.
 Renaming, retiring or narrowing a setting edits its descriptor and needs no migration: a stored settings document that
 names an unregistered setting fails closed

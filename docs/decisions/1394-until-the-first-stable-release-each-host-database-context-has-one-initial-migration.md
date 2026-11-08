@@ -36,9 +36,6 @@
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
-- **Conflicts with:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
-  item 8, which keeps each context's `InitialCreate` in a folder named for the context's class, a namespace segment
-  that hides the class from the scaffolded code (CS0118); tracked in [#645](https://github.com/NCodeGroup/Identity/issues/645)
 
 ## Context
 
@@ -72,15 +69,14 @@ chain is that history kept in code.
    table, column and index that an amended record names a migration of its own for. `InitialCreateTests` fails a
    context that holds any migration but `InitialCreate`.
 2. **A model change re-scaffolds the context's `InitialCreate`.** The author deletes the context's migration, designer
-   file and model snapshot from its folder (`Migrations/OpenId` for `OpenIdDbContext`, `Migrations/DataProtection`
-   for `DeveloperDataProtectionDbContext`), runs `dotnet ef migrations add InitialCreate` with `--context` naming the
+   file and model snapshot from its folder, `Migrations/<Name>` as
+   [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md) item 8
+   names it (`Migrations/OpenId` for `OpenIdDbContext`, `Migrations/DeveloperDataProtection` for
+   `DeveloperDataProtectionDbContext`), runs `dotnet ef migrations add InitialCreate` with `--context` naming the
    context, `--output-dir` naming that folder, and `--project` and `--startup-project` both naming
    `src/NCode.Identity.OpenId.Host.Database`, which carries the design-time factories, then strips the byte-order mark
    from the generated files. The scaffolder gives the migration a fresh timestamp identifier on each re-scaffold. The
-   model-drift gate (`dotnet ef migrations has-pending-model-changes`) checks that
-   the model and the snapshot agree. Each folder's name differs from its context's class name: the scaffolder names
-   the migration's namespace after its folder, and a namespace segment equal to the class name hides the class from
-   the generated `[DbContext(typeof(...))]` attribute, which fails the build (CS0118).
+   model-drift gate (`dotnet ef migrations has-pending-model-changes`) checks that the model and the snapshot agree.
 3. **No migration rewrites stored data.** No migration carries `Sql`, `InsertData`, `UpdateData` or `DeleteData`, and
    `InitialCreateTests` fails one that does. Renaming, retiring, re-scoping or narrowing the domain of a setting edits
    its descriptor and writes no data migration; a stored document that names an unregistered setting or holds a value
@@ -108,9 +104,8 @@ chain is that history kept in code.
    [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) decision 4 decides.
 
 This record refines [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
-and departs from it only in the folder names its **Conflicts with:** line records: a re-scaffolded migration ships with
-the model change it captures (decision 7), and with no previous release the expand-first rule (decision 4) holds for
-every migration.
+item 8 for the reference host's two contexts: a re-scaffolded migration ships with the model change it captures
+(decision 7), and with no previous release the expand-first rule (decision 4) holds for every migration.
 
 ## Options considered
 
@@ -158,7 +153,7 @@ every migration.
   the expand-and-contract rule.
 - [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md).
 - `src/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/`,
-  `src/NCode.Identity.OpenId.Host.Database/Migrations/DataProtection/`,
+  `src/NCode.Identity.OpenId.Host.Database/Migrations/DeveloperDataProtection/`,
   `src/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
   `src/NCode.Identity.OpenId.Host.Database/MigrationRunner.cs`,
   `tests/NCode.Identity.OpenId.Host.Database.Tests/ExpandOnlyRuleTests.cs`,

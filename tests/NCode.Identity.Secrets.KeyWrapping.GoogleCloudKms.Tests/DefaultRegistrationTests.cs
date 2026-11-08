@@ -9,6 +9,7 @@ using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
 using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.RemoteKeys;
+using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Tests;
@@ -243,6 +244,76 @@ public class DefaultRegistrationTests
         Assert.Contains(
             GoogleCloudKmsRemoteKeyProviderOptions.DefaultSectionName,
             exception.Message
+        );
+    }
+
+    [Fact]
+    public async Task AddGoogleCloudKmsRemoteKeyProviderIfConfigured_SectionExists_RegistersProviderAndAlgorithms()
+    {
+        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(clientFactory.Object);
+
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddPersistenceLibrary()
+            .AddGoogleCloudKmsRemoteKeyProviderIfConfigured(
+                CreateConfiguration(
+                    ("SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing", KeyRing)
+                )
+            );
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        var providers = provider.GetServices<IRemoteKeyProvider>().ToList();
+        var sources = provider.GetServices<IRemoteSigningAlgorithmSource>().ToList();
+
+        Assert.Contains(providers, x => x is GoogleCloudKmsRemoteKeyProvider);
+        Assert.Contains(sources, x => x is GoogleCloudKmsSigningAlgorithms);
+        clientFactory.Verify();
+    }
+
+    [Fact]
+    public async Task AddGoogleCloudKmsRemoteKeyProviderIfConfigured_NoSection_RegistersNeitherProviderNorAlgorithms()
+    {
+        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(clientFactory.Object);
+
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddPersistenceLibrary()
+            .AddGoogleCloudKmsRemoteKeyProviderIfConfigured(CreateConfiguration());
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        Assert.DoesNotContain(
+            provider.GetServices<IRemoteKeyProvider>(),
+            x => x is GoogleCloudKmsRemoteKeyProvider
+        );
+        Assert.DoesNotContain(
+            provider.GetServices<IRemoteSigningAlgorithmSource>(),
+            x => x is GoogleCloudKmsSigningAlgorithms
+        );
+        clientFactory.Verify();
+    }
+
+    [Fact]
+    public void AddGoogleCloudKmsRemoteKeyProviderIfConfigured_NullBuilder_Throws()
+    {
+        IServiceBuilder<SecretPersistenceLibrary> builder = null!;
+
+        Assert.Throws<ArgumentNullException>(() =>
+            builder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(CreateConfiguration())
+        );
+    }
+
+    [Fact]
+    public void AddGoogleCloudKmsRemoteKeyProviderIfConfigured_NullConfiguration_Throws()
+    {
+        var builder = new ServiceCollection().AddSecretsLibrary().AddPersistenceLibrary();
+
+        Assert.Throws<ArgumentNullException>(() =>
+            builder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(null!)
         );
     }
 

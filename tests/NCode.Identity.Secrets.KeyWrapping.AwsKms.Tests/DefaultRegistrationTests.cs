@@ -11,6 +11,7 @@ using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Persistence.Stores;
+using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests;
@@ -248,6 +249,76 @@ public class DefaultRegistrationTests
 
         var exception = Assert.Throws<InvalidOperationException>(() => options.Value);
         Assert.Contains(AwsKmsRemoteKeyProviderOptions.DefaultSectionName, exception.Message);
+    }
+
+    [Fact]
+    public async Task AddAwsKmsRemoteKeyProviderIfConfigured_SectionExists_RegistersProviderAndAlgorithms()
+    {
+        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(clientFactory.Object);
+
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddPersistenceLibrary()
+            .AddAwsKmsRemoteKeyProviderIfConfigured(
+                CreateConfiguration(
+                    ("SecretProtection:RemoteKeyProviders:AwsKms:Region", "us-west-2")
+                )
+            );
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        var providers = provider.GetServices<IRemoteKeyProvider>().ToList();
+        var sources = provider.GetServices<IRemoteSigningAlgorithmSource>().ToList();
+
+        Assert.Contains(providers, x => x is AwsKmsRemoteKeyProvider);
+        Assert.Contains(sources, x => x is AwsKmsSigningAlgorithms);
+        clientFactory.Verify();
+    }
+
+    [Fact]
+    public async Task AddAwsKmsRemoteKeyProviderIfConfigured_NoSection_RegistersNeitherProviderNorAlgorithms()
+    {
+        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(clientFactory.Object);
+
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddPersistenceLibrary()
+            .AddAwsKmsRemoteKeyProviderIfConfigured(CreateConfiguration());
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        Assert.DoesNotContain(
+            provider.GetServices<IRemoteKeyProvider>(),
+            x => x is AwsKmsRemoteKeyProvider
+        );
+        Assert.DoesNotContain(
+            provider.GetServices<IRemoteSigningAlgorithmSource>(),
+            x => x is AwsKmsSigningAlgorithms
+        );
+        clientFactory.Verify();
+    }
+
+    [Fact]
+    public void AddAwsKmsRemoteKeyProviderIfConfigured_NullBuilder_Throws()
+    {
+        IServiceBuilder<SecretPersistenceLibrary> builder = null!;
+
+        Assert.Throws<ArgumentNullException>(() =>
+            builder.AddAwsKmsRemoteKeyProviderIfConfigured(CreateConfiguration())
+        );
+    }
+
+    [Fact]
+    public void AddAwsKmsRemoteKeyProviderIfConfigured_NullConfiguration_Throws()
+    {
+        var builder = new ServiceCollection().AddSecretsLibrary().AddPersistenceLibrary();
+
+        Assert.Throws<ArgumentNullException>(() =>
+            builder.AddAwsKmsRemoteKeyProviderIfConfigured(null!)
+        );
     }
 
     #endregion

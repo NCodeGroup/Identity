@@ -84,7 +84,8 @@ reset the database with it.
 ### Remote signing keys
 
 A tenant's signing keys can be held in a key management service that signs every token, so the private key never
-leaves it. The reference host registers a provider only when its configuration section exists, because registering a
+leaves it. Each package's `Add<Vendor>RemoteKeyProviderIfConfigured` method registers its provider only when its
+configuration section exists, and the reference host calls it, because registering a
 provider selects it and validates its settings when the host starts. A tenant selects a registered provider through the
 tenant setting `OpenId:Platform:Settings:tenant_signing_key_provider` (`aws-kms`, `azure-key-vault` or
 `google-cloud-kms`).

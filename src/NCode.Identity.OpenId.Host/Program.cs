@@ -13,11 +13,8 @@ using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 using NCode.Identity.Secrets.KeyWrapping.AwsKms;
-using NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
 using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
-using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
 using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
-using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 using NCode.Identity.Server;
 using NCode.Identity.Server.SecretProtection;
 using NCode.Identity.SharedState.Valkey;
@@ -98,24 +95,19 @@ identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultKeyWrapper(config
 identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsKeyWrapper(configuration);
 
 // AWS KMS can hold a tenant's signing keys ('tenant_signing_key_provider' = 'aws-kms'); it is registered only when the 'SecretProtection:RemoteKeyProviders:AwsKms' section exists, because registering it selects it and validates its options at startup.
-if (configuration.GetSection(AwsKmsRemoteKeyProviderOptions.DefaultSectionName).Exists())
-{
-    identityServer.SecretPersistenceLibraryBuilder.AddAwsKmsRemoteKeyProvider(configuration);
-}
+identityServer.SecretPersistenceLibraryBuilder.AddAwsKmsRemoteKeyProviderIfConfigured(
+    configuration
+);
 
 // Azure Key Vault or Managed HSM can hold a tenant's signing keys ('tenant_signing_key_provider' = 'azure-key-vault'); it is registered only when the 'SecretProtection:RemoteKeyProviders:AzureKeyVault' section exists, because registering it selects it and validates its options at startup.
-if (configuration.GetSection(AzureKeyVaultRemoteKeyProviderOptions.DefaultSectionName).Exists())
-{
-    identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultRemoteKeyProvider(configuration);
-}
+identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(
+    configuration
+);
 
 // Google Cloud KMS can hold a tenant's signing keys ('tenant_signing_key_provider' = 'google-cloud-kms'); it is registered only when the 'SecretProtection:RemoteKeyProviders:GoogleCloudKms' section exists, because registering it selects it and validates its options at startup.
-if (configuration.GetSection(GoogleCloudKmsRemoteKeyProviderOptions.DefaultSectionName).Exists())
-{
-    identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsRemoteKeyProvider(
-        configuration
-    );
-}
+identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(
+    configuration
+);
 
 // Bind the frontend runtime bootstrap document (ADR-1064) from the 'Frontend' configuration section so the host can
 // publish this deployment's coordinates (API base, issuer, client id, feature flags, branding) to the tier-agnostic

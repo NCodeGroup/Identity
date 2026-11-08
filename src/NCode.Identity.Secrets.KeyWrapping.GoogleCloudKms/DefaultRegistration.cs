@@ -130,5 +130,29 @@ public static class DefaultRegistration
 
             return builder;
         }
+
+        /// <summary>
+        /// Registers the Google Cloud Key Management Service <see cref="IRemoteKeyProvider"/> and its
+        /// <see cref="IRemoteSigningAlgorithmSource"/> as <c>AddGoogleCloudKmsRemoteKeyProvider</c> does, but
+        /// only when the <c>SecretProtection:RemoteKeyProviders:GoogleCloudKms</c> section exists. Registering a
+        /// remote key provider selects it and validates its options when the host starts, so this method registers it
+        /// only when its configuration section exists.
+        /// </summary>
+        /// <param name="configuration">The <see cref="IConfiguration"/> that may hold the <c>SecretProtection:RemoteKeyProviders:GoogleCloudKms</c> section.</param>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
+        [PublicAPI]
+        public IServiceBuilder<SecretPersistenceLibrary> AddGoogleCloudKmsRemoteKeyProviderIfConfigured(
+            IConfiguration configuration
+        )
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(configuration);
+
+            return configuration
+                .GetSection(GoogleCloudKmsRemoteKeyProviderOptions.DefaultSectionName)
+                .Exists()
+                ? builder.AddGoogleCloudKmsRemoteKeyProvider(configuration)
+                : builder;
+        }
     }
 }

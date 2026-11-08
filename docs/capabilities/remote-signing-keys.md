@@ -128,8 +128,10 @@ The provisioned defaults, RS256 and PS256 at 3072 bits and ES256 on P-256, are h
 A deployment registers a provider with `AddAwsKmsRemoteKeyProvider`, `AddAzureKeyVaultRemoteKeyProvider` or
 `AddGoogleCloudKmsRemoteKeyProvider`, which bind their options strictly from a configuration section, validate them
 when the host starts and reuse the key wrapper's client with the deployment's own identity. Registering a provider
-selects it: the host does not start unless it holds every provisioned signature key. The reference host registers a
-provider only when its section exists.
+selects it: the host does not start unless it holds every provisioned signature key. Each package's
+`AddAwsKmsRemoteKeyProviderIfConfigured`, `AddAzureKeyVaultRemoteKeyProviderIfConfigured` and
+`AddGoogleCloudKmsRemoteKeyProviderIfConfigured` method registers its provider only when its section exists, and the
+reference host calls them.
 
 | Provider                    | Section                                                  | Settings                                                                          |
 | --------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |

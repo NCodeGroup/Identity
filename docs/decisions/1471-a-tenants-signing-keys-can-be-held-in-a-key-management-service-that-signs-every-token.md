@@ -135,7 +135,8 @@ public keys without calling the service.**
     `AddAzureKeyVaultRemoteKeyProvider` and `AddGoogleCloudKmsRemoteKeyProvider` extend
     `IServiceBuilder<SecretPersistenceLibrary>`. Each binds options strictly from
     `SecretProtection:RemoteKeyProviders:<Vendor>` with `ValidateOnStart` and reuses the wrapper's client factory with
-    `access: null`, the deployment's identity. The reference host calls each only when its section exists.
+    `access: null`, the deployment's identity. Each package's `Add<Vendor>RemoteKeyProviderIfConfigured` method registers
+    its provider only when its section exists, and the reference host calls it.
     - **AWS (`aws-kms`).** A region and a deletion window of 7 to 30 days. Creation creates a `SIGN_VERIFY` key with the
       row's key spec and the tags `ncode-identity:owner`, `:secret`, `:algorithm` and `:group`, reads its public key,
       requires the key usage, key spec and signing algorithm to match the row and the key id to be an ARN, and uses the

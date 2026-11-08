@@ -124,5 +124,29 @@ public static class DefaultRegistration
 
             return builder;
         }
+
+        /// <summary>
+        /// Registers the AWS Key Management Service <see cref="IRemoteKeyProvider"/> and its
+        /// <see cref="IRemoteSigningAlgorithmSource"/> as <c>AddAwsKmsRemoteKeyProvider</c> does, but only when
+        /// the <c>SecretProtection:RemoteKeyProviders:AwsKms</c> section exists. Registering a remote key provider
+        /// selects it and validates its options when the host starts, so this method registers it only when its
+        /// configuration section exists.
+        /// </summary>
+        /// <param name="configuration">The <see cref="IConfiguration"/> that may hold the <c>SecretProtection:RemoteKeyProviders:AwsKms</c> section.</param>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
+        [PublicAPI]
+        public IServiceBuilder<SecretPersistenceLibrary> AddAwsKmsRemoteKeyProviderIfConfigured(
+            IConfiguration configuration
+        )
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(configuration);
+
+            return configuration
+                .GetSection(AwsKmsRemoteKeyProviderOptions.DefaultSectionName)
+                .Exists()
+                ? builder.AddAwsKmsRemoteKeyProvider(configuration)
+                : builder;
+        }
     }
 }

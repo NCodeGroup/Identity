@@ -9,6 +9,7 @@ using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.RemoteKeys;
+using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Tests;
@@ -231,6 +232,76 @@ public class DefaultRegistrationTests
         Assert.Contains(
             AzureKeyVaultRemoteKeyProviderOptions.DefaultSectionName,
             exception.Message
+        );
+    }
+
+    [Fact]
+    public async Task AddAzureKeyVaultRemoteKeyProviderIfConfigured_SectionExists_RegistersProviderAndAlgorithms()
+    {
+        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(clientFactory.Object);
+
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddPersistenceLibrary()
+            .AddAzureKeyVaultRemoteKeyProviderIfConfigured(
+                CreateConfiguration(
+                    ("SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri", VaultUri)
+                )
+            );
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        var providers = provider.GetServices<IRemoteKeyProvider>().ToList();
+        var sources = provider.GetServices<IRemoteSigningAlgorithmSource>().ToList();
+
+        Assert.Contains(providers, x => x is AzureKeyVaultRemoteKeyProvider);
+        Assert.Contains(sources, x => x is AzureKeyVaultSigningAlgorithms);
+        clientFactory.Verify();
+    }
+
+    [Fact]
+    public async Task AddAzureKeyVaultRemoteKeyProviderIfConfigured_NoSection_RegistersNeitherProviderNorAlgorithms()
+    {
+        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(clientFactory.Object);
+
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddPersistenceLibrary()
+            .AddAzureKeyVaultRemoteKeyProviderIfConfigured(CreateConfiguration());
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        Assert.DoesNotContain(
+            provider.GetServices<IRemoteKeyProvider>(),
+            x => x is AzureKeyVaultRemoteKeyProvider
+        );
+        Assert.DoesNotContain(
+            provider.GetServices<IRemoteSigningAlgorithmSource>(),
+            x => x is AzureKeyVaultSigningAlgorithms
+        );
+        clientFactory.Verify();
+    }
+
+    [Fact]
+    public void AddAzureKeyVaultRemoteKeyProviderIfConfigured_NullBuilder_Throws()
+    {
+        IServiceBuilder<SecretPersistenceLibrary> builder = null!;
+
+        Assert.Throws<ArgumentNullException>(() =>
+            builder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(CreateConfiguration())
+        );
+    }
+
+    [Fact]
+    public void AddAzureKeyVaultRemoteKeyProviderIfConfigured_NullConfiguration_Throws()
+    {
+        var builder = new ServiceCollection().AddSecretsLibrary().AddPersistenceLibrary();
+
+        Assert.Throws<ArgumentNullException>(() =>
+            builder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(null!)
         );
     }
 

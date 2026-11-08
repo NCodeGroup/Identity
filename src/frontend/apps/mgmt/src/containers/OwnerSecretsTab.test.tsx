@@ -34,34 +34,50 @@ type OwnerCase = {
   readonly key: string;
   readonly owner: SecretOwner;
   readonly rotates: boolean;
+  readonly bindsRemoteKeys: boolean;
 };
 
 const cases: readonly OwnerCase[] = [
-  { key: 'tenant', owner: { kind: 'tenant', tenantId: 'acme' }, rotates: false },
+  {
+    key: 'tenant',
+    owner: { kind: 'tenant', tenantId: 'acme' },
+    rotates: false,
+    bindsRemoteKeys: true,
+  },
   {
     key: 'client',
     owner: { kind: 'client', tenantId: 'acme', clientId: 'web' },
     rotates: true,
+    bindsRemoteKeys: false,
   },
   {
     key: 'resource-server',
     owner: { kind: 'resource-server', tenantId: 'acme', resourceServerId: 'rs-1' },
     rotates: false,
+    bindsRemoteKeys: false,
   },
 ];
 
-describe('OwnerSecretsTab offers rotation only for a client', () => {
+describe('OwnerSecretsTab offers the actions each owner supports', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.stubGlobal('fetch', vi.fn());
   });
 
-  it.each(cases)('$key owner offers rotation: $rotates', async ({ key, owner, rotates }) => {
+  async function renderTab(key: string, owner: SecretOwner) {
     const store = createAppStore({ config: { runtime } });
     await store.dispatch(
       managementApi.util.upsertQueryData('getCapabilities', undefined, {
         secretTypes: [
           { secretType: 'symmetric', isAsymmetric: false, supportsPublicKeyExport: false },
+        ],
+        remoteKeyProviders: [
+          {
+            name: 'aws-kms',
+            algorithms: [
+              { algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+            ],
+          },
         ],
       }),
     );
@@ -79,6 +95,18 @@ describe('OwnerSecretsTab offers rotation only for a client', () => {
     );
 
     await screen.findByTestId('secret-delete-s-sym');
+  }
+
+  it.each(cases)('$key owner offers rotation: $rotates', async ({ key, owner, rotates }) => {
+    await renderTab(key, owner);
     expect(screen.queryByTestId('secret-rotate-s-sym') !== null).toBe(rotates);
   });
+
+  it.each(cases)(
+    '$key owner offers binding a KMS key: $bindsRemoteKeys',
+    async ({ key, owner, bindsRemoteKeys }) => {
+      await renderTab(key, owner);
+      expect(screen.queryByTestId('bind-remote-secret') !== null).toBe(bindsRemoteKeys);
+    },
+  );
 });

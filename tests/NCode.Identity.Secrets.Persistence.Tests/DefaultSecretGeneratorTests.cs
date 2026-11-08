@@ -13,6 +13,7 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Secrets.Persistence.Verifiers;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -46,7 +47,11 @@ public class DefaultSecretGeneratorTests
         _catalog = catalog;
         _verifierCatalog = TestSecretVerifierSchemes.CreateCatalog();
         _generator = CreateGenerator(new SharedSecretVerifierOptions());
-        _serializer = new DefaultSecretSerializer(catalog, _verifierCatalog);
+        _serializer = new DefaultSecretSerializer(
+            catalog,
+            _verifierCatalog,
+            new DefaultRemoteKeyProviderCatalog([], [])
+        );
     }
 
     private DefaultSecretGenerator CreateGenerator(SharedSecretVerifierOptions options) =>

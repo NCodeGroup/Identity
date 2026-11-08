@@ -21,8 +21,8 @@ public static class SecretProtectorProviderExtensions
         /// <paramref name="secrets"/> can be unprotected by the returned protector.
         /// </summary>
         /// <remarks>
-        /// Secrets with a public encoding are stored without protection, so they do not require a master key and are
-        /// not passed to the provider.
+        /// Secrets with a public or remote encoding are stored without protection, so they do not require a master key
+        /// and are not passed to the provider.
         /// </remarks>
         /// <param name="owner">The <see cref="SecretOwner"/> whose master keys protect the secrets.</param>
         /// <param name="secrets">The <see cref="PersistedSecret"/> instances that the returned protector must be able
@@ -43,7 +43,7 @@ public static class SecretProtectorProviderExtensions
             List<string>? protectedValues = null;
             foreach (var secret in secrets)
             {
-                if (SecretEncodings.IsPublic(secret.SecretEncoding))
+                if (SecretEncodings.IsUnprotected(secret.SecretEncoding))
                     continue;
 
                 // The list is created only when a private secret exists, so a call with none shares the empty array.

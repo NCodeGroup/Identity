@@ -105,7 +105,7 @@ internal sealed class DeveloperSecretPruningSeedHandler(
 
             foreach (var persistedSecret in tenant.Secrets.Value)
             {
-                if (!SecretEncodings.IsPublic(persistedSecret.SecretEncoding))
+                if (!SecretEncodings.IsUnprotected(persistedSecret.SecretEncoding))
                 {
                     unusableSecretIds.Add(persistedSecret.SecretId);
                 }

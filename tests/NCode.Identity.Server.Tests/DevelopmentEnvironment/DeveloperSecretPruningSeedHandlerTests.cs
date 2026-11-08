@@ -206,6 +206,78 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task Handle_MasterKeyUnreadable_KeepsRemoteSecrets()
+    {
+        const string tenantId = "tenant-1";
+
+        var owner = SecretOwner.ForTenant(tenantId);
+        var privateKey = CreatePersistedSecret("private-a");
+        var remoteKey = CreatePersistedSecret("remote", SecretEncodings.Remote);
+        var tenant = CreateTenant(tenantId, [privateKey, remoteKey]);
+
+        // Only the private secret is passed to the provider, which cannot unwrap the master keys.
+        var protectorProvider = CreateStrictMock<ISecretProtectorProvider>();
+        protectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    owner,
+                    It.Is<IReadOnlyCollection<string>>(values => values.Count == 1),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Throws(new CryptographicException("master key invalid"))
+            .Verifiable();
+        protectorProvider.Setup(x => x.Evict(owner)).Verifiable();
+
+        var masterKeyStore = CreateStrictMock<IMasterKeyStore>();
+        masterKeyStore
+            .Setup(x => x.RemoveAllAsync(owner, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1)
+            .Verifiable();
+
+        var keyStoreManager = CreateStrictMock<IStoreManager>();
+        keyStoreManager
+            .Setup(x => x.GetStore<IMasterKeyStore>())
+            .Returns(masterKeyStore.Object)
+            .Verifiable();
+        keyStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        keyStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+
+        var storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        storeManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(keyStoreManager.Object)
+            .Verifiable();
+
+        // Nothing is deserialized: strict mock with no setups.
+        var secretSerializer = CreateStrictMock<ISecretSerializer>();
+
+        // Only the private secret is removed: the remote secret has no master key to lose.
+        var store = CreateStrictMock<ITenantStore>();
+        store
+            .Setup(x => x.RemoveSecretAsync(tenantId, "private-a", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var handler = new DeveloperSecretPruningSeedHandler(
+            secretSerializer.Object,
+            protectorProvider.Object,
+            new DeveloperMasterKeyReset(storeManagerFactory.Object, protectorProvider.Object)
+        );
+
+        var storeManager = CreateStoreManager(store);
+        var command = CreateCommand(tenant, storeManager);
+
+        await handler.HandleAsync(command, CancellationToken.None);
+
+        var remaining = Assert.Single(tenant.Secrets.Value);
+        Assert.Same(remoteKey, remaining);
+    }
+
+    [Fact]
     public async Task Handle_AllReadable_RemovesNothing()
     {
         const string tenantId = "tenant-1";
@@ -309,7 +381,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         List<string> protectedValues =
         [
             .. secrets
-                .Where(secret => !SecretEncodings.IsPublic(secret.SecretEncoding))
+                .Where(secret => !SecretEncodings.IsUnprotected(secret.SecretEncoding))
                 .Select(secret => secret.EncodedValue),
         ];
 

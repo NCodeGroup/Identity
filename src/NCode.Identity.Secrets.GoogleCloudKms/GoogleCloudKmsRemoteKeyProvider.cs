@@ -19,17 +19,17 @@ using NCode.Identity.Secrets.RemoteKeys;
 namespace NCode.Identity.Secrets.GoogleCloudKms;
 
 /// <summary>
-/// Provides an implementation of <see cref="IRemoteKeyProvider"/> that creates signing keys in Google Cloud Key
-/// Management Service, signs with them, and destroys them, so the private half of a key never leaves the service. The
-/// provider reaches the service with the credentials of the deployment.
+/// Provides an implementation of <see cref="IRemoteKeyProvider"/> that creates signing and decryption keys in Google
+/// Cloud Key Management Service, signs and decrypts with them, and destroys them, so the private half of a key never
+/// leaves the service. The provider reaches the service with the credentials of the deployment.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The group of a creation request names a Cloud KMS crypto key in the configured key ring, and every key the provider
-/// creates for the group is a version of that crypto key. The provider creates the crypto key, a signing key with
-/// the algorithm of the requested row, the configured protection level and labels that name its group and algorithm,
-/// the first time a version is created in a crypto key that does not exist. The identifier of a key is the resource name
-/// of its crypto key version.
+/// creates for the group is a version of that crypto key. The provider creates the crypto key, a signing or decryption
+/// key as the requested row says, with the algorithm of the row, the configured protection level and labels that name
+/// its group and algorithm, the first time a version is created in a crypto key that does not exist. The identifier of
+/// a key is the resource name of its crypto key version.
 /// </para>
 /// <para>
 /// A version of a hardware key is generated asynchronously, so reading the public key of a version polls the version
@@ -39,13 +39,15 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// </para>
 /// <para>
 /// Every request and response carries CRC32C checksums, so a value corrupted in transit is detected. A response that
-/// fails its check fails with an <see cref="IOException"/>, because the call can be retried. Reads, signing and
-/// destruction are retried by the client library with jittered back-off; a call that creates a crypto key or a crypto
-/// key version is made once and never retried. Logs and messages carry identifiers only, never the signing input, a
-/// digest or a signature.
+/// fails its check fails with an <see cref="IOException"/>, because the call can be retried. Reads, signing,
+/// decryption and destruction are retried by the client library with jittered back-off; a call that creates a crypto
+/// key or a crypto key version is made once and never retried. A ciphertext that the service refuses fails with a
+/// <see cref="CryptographicException"/>. Cloud KMS agrees no keys, so the provider holds no key agreement key. Logs and
+/// messages carry identifiers only, never the signing input, a digest, a signature, a ciphertext or a content key.
 /// </para>
 /// </remarks>
 // See ADR-1471.
+// See ADR-1477.
 internal class GoogleCloudKmsRemoteKeyProvider(
     IGoogleCloudKmsClientFactory clientFactory,
     IOptions<GoogleCloudKmsRemoteKeyProviderOptions> options,
@@ -296,6 +298,98 @@ internal class GoogleCloudKmsRemoteKeyProvider(
 
     /// <inheritdoc />
     /// <exception cref="ArgumentException">
+    /// Thrown when the key identifier of <paramref name="request"/> is not a Cloud KMS crypto key version name.
+    /// </exception>
+    /// <exception cref="IOException">
+    /// Thrown when the service does not confirm the integrity of the request and response.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the service refuses the ciphertext or the content key does not fit in the buffer.
+    /// </exception>
+    public async ValueTask<int> DecryptAsync(
+        RemoteDecryptionRequest request,
+        Memory<byte> plaintext,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var keyId = request.KeyId;
+        if (!GoogleCloudKmsKeyName.IsCryptoKeyVersionName(keyId))
+        {
+            throw new ArgumentException(
+                "The key identifier is not the name of a Cloud KMS crypto key version.",
+                nameof(request)
+            );
+        }
+
+        var ciphertext = ByteString.CopyFrom(request.Ciphertext.Span);
+        var decryptRequest = new AsymmetricDecryptRequest
+        {
+            Name = keyId,
+            Ciphertext = ciphertext,
+            CiphertextCrc32C = GoogleCloudKmsChecksum.Compute(request.Ciphertext.Span),
+        };
+
+        var callSettings = CreateCallSettings(
+            GoogleCloudKmsCallSettings.Retrying,
+            cancellationToken
+        );
+
+        AsymmetricDecryptResponse response;
+        try
+        {
+            response = await ClientFactory.ExecuteAsync(
+                access: null,
+                (client, _) =>
+                    new ValueTask<AsymmetricDecryptResponse>(
+                        client.AsymmetricDecryptAsync(decryptRequest, callSettings)
+                    ),
+                cancellationToken
+            );
+        }
+        catch (RpcException exception) when (exception.StatusCode == StatusCode.InvalidArgument)
+        {
+            throw new CryptographicException(
+                $"Google Cloud KMS key version '{keyId}' refused the ciphertext.",
+                exception
+            );
+        }
+
+        if (
+            !response.VerifiedCiphertextCrc32C
+            || response.PlaintextCrc32C != GoogleCloudKmsChecksum.Compute(response.Plaintext.Span)
+        )
+        {
+            throw new IOException(
+                $"Google Cloud KMS did not confirm the integrity of the decryption for '{keyId}'; the call can be retried."
+            );
+        }
+
+        var bytes = response.Plaintext.Span;
+        if (bytes.Length > plaintext.Length)
+        {
+            throw new CryptographicException(
+                $"The content key of Google Cloud KMS key version '{keyId}' does not fit in the buffer."
+            );
+        }
+
+        bytes.CopyTo(plaintext.Span);
+        return bytes.Length;
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="NotSupportedException">
+    /// Always thrown, because Google Cloud KMS agrees no keys.
+    /// </exception>
+    public ValueTask<int> DeriveSharedSecretAsync(
+        RemoteKeyAgreementRequest request,
+        Memory<byte> sharedSecret,
+        CancellationToken cancellationToken
+    ) => throw new NotSupportedException("Google Cloud KMS agrees no keys.");
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="keyId"/> is not a Cloud KMS crypto key version name.
     /// </exception>
     public async ValueTask DestroyKeyAsync(string keyId, CancellationToken cancellationToken)
@@ -391,9 +485,19 @@ internal class GoogleCloudKmsRemoteKeyProvider(
         CancellationToken cancellationToken
     )
     {
+        var purpose = request.Algorithm switch
+        {
+            RemoteSigningAlgorithm => CryptoKey.Types.CryptoKeyPurpose.AsymmetricSign,
+            RemoteDecryptionAlgorithm => CryptoKey.Types.CryptoKeyPurpose.AsymmetricDecrypt,
+            _ => throw new ArgumentException(
+                $"The row '{request.Algorithm.Algorithm}' is not a kind of key that Google Cloud KMS holds.",
+                nameof(request)
+            ),
+        };
+
         var cryptoKey = new CryptoKey
         {
-            Purpose = CryptoKey.Types.CryptoKeyPurpose.AsymmetricSign,
+            Purpose = purpose,
             VersionTemplate = new CryptoKeyVersionTemplate
             {
                 Algorithm = KeySpecs[request.Algorithm.KeySpec],

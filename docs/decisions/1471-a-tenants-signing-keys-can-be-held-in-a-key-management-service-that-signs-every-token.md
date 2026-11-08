@@ -1,6 +1,6 @@
 # 1471. A tenant's signing keys can be held in a key management service that signs every token
 
-- **Status:** Accepted (amends [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md))
+- **Status:** Accepted (amends [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md); amended by [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md): providers are described by data, create a key once and sign into the caller's buffer)
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 

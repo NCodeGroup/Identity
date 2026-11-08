@@ -149,4 +149,14 @@ internal static class EventIds
     /// The key service failed to destroy the key of a removed remote secret.
     /// </summary>
     public const int RemoteKeyDestroyFailed = Base + 27;
+
+    /// <summary>
+    /// The orphaned remote key was not destroyed because its provider is not registered.
+    /// </summary>
+    public const int RemoteKeyOrphanDestroySkipped = Base + 28;
+
+    /// <summary>
+    /// The key service failed to destroy an orphaned remote key.
+    /// </summary>
+    public const int RemoteKeyOrphanDestroyFailed = Base + 29;
 }

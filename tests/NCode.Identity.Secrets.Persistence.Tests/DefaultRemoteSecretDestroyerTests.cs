@@ -10,20 +10,19 @@ using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets.Persistence;
 
-public class DefaultRemoteSecretDestroyerTests : IDisposable
+public class DefaultRemoteSecretDestroyerTests : BaseTests
 {
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IRemoteKeyProvider> _provider;
     private readonly Mock<ILogger<DefaultRemoteSecretDestroyer>> _logger;
     private readonly DefaultRemoteSecretDestroyer _destroyer;
 
     public DefaultRemoteSecretDestroyerTests()
     {
-        _provider = _mocks.Create<IRemoteKeyProvider>();
-        _logger = _mocks.Create<ILogger<DefaultRemoteSecretDestroyer>>();
+        _provider = CreateStrictMock<IRemoteKeyProvider>();
+        _logger = CreateStrictMock<ILogger<DefaultRemoteSecretDestroyer>>();
         _provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
-        var source = _mocks.Create<IRemoteKeyDescriptorSource>();
+        var source = CreateStrictMock<IRemoteKeyDescriptorSource>();
         source
             .SetupGet(x => x.Providers)
             .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
@@ -38,12 +37,6 @@ public class DefaultRemoteSecretDestroyerTests : IDisposable
             new FakeTimeProvider(),
             _logger.Object
         );
-    }
-
-    public void Dispose()
-    {
-        _mocks.Verify();
-        GC.SuppressFinalize(this);
     }
 
     private static PersistedSecret CreateSecret(

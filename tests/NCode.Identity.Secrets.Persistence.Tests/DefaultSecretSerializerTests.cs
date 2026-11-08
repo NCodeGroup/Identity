@@ -7,7 +7,6 @@ using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
-using Moq;
 using NCode.Buffers;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -20,7 +19,7 @@ using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
 
-public class DefaultSecretSerializerTests : IDisposable
+public class DefaultSecretSerializerTests : BaseTests
 {
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
 
@@ -46,7 +45,6 @@ public class DefaultSecretSerializerTests : IDisposable
         IsDerEncodedSignature = true,
     };
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;
     private readonly DefaultRemoteKeyDescriptorCatalog _remoteDescriptorCatalog;
@@ -79,15 +77,9 @@ public class DefaultSecretSerializerTests : IDisposable
         );
     }
 
-    public void Dispose()
-    {
-        _mocks.Verify();
-        GC.SuppressFinalize(this);
-    }
-
     private DefaultRemoteKeyDescriptorCatalog CreateRemoteDescriptorCatalog()
     {
-        var source = _mocks.Create<IRemoteKeyDescriptorSource>();
+        var source = CreateStrictMock<IRemoteKeyDescriptorSource>();
         source
             .SetupGet(x => x.Providers)
             .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
@@ -101,7 +93,7 @@ public class DefaultSecretSerializerTests : IDisposable
         DefaultRemoteKeyDescriptorCatalog descriptorCatalog
     )
     {
-        var provider = _mocks.Create<IRemoteKeyProvider>();
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
         provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
         return new DefaultRemoteKeyProviderCatalog([provider.Object], descriptorCatalog);

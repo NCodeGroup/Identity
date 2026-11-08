@@ -20,7 +20,7 @@ using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
 
-public class DefaultSecretGeneratorTests : IDisposable
+public class DefaultSecretGeneratorTests : BaseTests
 {
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
 
@@ -60,7 +60,6 @@ public class DefaultSecretGeneratorTests : IDisposable
         KeySpec = "ECC_SECG_P256K1",
     };
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultSecretVerifierSchemeCatalog _verifierCatalog;
     private readonly Mock<IRemoteKeyProvider> _remoteProvider;
@@ -89,10 +88,10 @@ public class DefaultSecretGeneratorTests : IDisposable
         _catalog = catalog;
         _verifierCatalog = TestSecretVerifierSchemes.CreateCatalog();
 
-        _remoteProvider = _mocks.Create<IRemoteKeyProvider>();
+        _remoteProvider = CreateStrictMock<IRemoteKeyProvider>();
         _remoteProvider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
-        var source = _mocks.Create<IRemoteKeyDescriptorSource>();
+        var source = CreateStrictMock<IRemoteKeyDescriptorSource>();
         source
             .SetupGet(x => x.Providers)
             .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
@@ -107,7 +106,7 @@ public class DefaultSecretGeneratorTests : IDisposable
             _remoteDescriptorCatalog
         );
 
-        _remoteDestroyer = _mocks.Create<IRemoteSecretDestroyer>();
+        _remoteDestroyer = CreateStrictMock<IRemoteSecretDestroyer>();
 
         _generator = CreateGenerator(new SharedSecretVerifierOptions());
         _serializer = new DefaultSecretSerializer(
@@ -116,12 +115,6 @@ public class DefaultSecretGeneratorTests : IDisposable
             new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
             new DefaultRemoteKeyDescriptorCatalog([])
         );
-    }
-
-    public void Dispose()
-    {
-        _mocks.Verify();
-        GC.SuppressFinalize(this);
     }
 
     private DefaultSecretGenerator CreateGenerator(SharedSecretVerifierOptions options) =>

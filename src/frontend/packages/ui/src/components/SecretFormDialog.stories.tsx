@@ -19,6 +19,29 @@ export const Create: Story = {
   },
 };
 
+export const RemoteCustody: Story = {
+  args: {
+    open: true,
+    initialValues: { ...emptySecretFormValues, expiresWhen: '2027-01-01T00:00' },
+    secretTypes: ['symmetric', 'rsa', 'ecc'],
+    remoteKeyProviders: [
+      {
+        name: 'aws-kms',
+        algorithms: [
+          { algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+          { algorithm: 'RS256', secretType: 'rsa', keySizeBits: 2048, curve: null },
+        ],
+      },
+      {
+        name: 'gcp-kms',
+        algorithms: [{ algorithm: 'PS256', secretType: 'rsa', keySizeBits: 3072 }],
+      },
+    ],
+    onSubmit: () => undefined,
+    onCancel: () => undefined,
+  },
+};
+
 export const WithError: Story = {
   args: {
     open: true,

@@ -39,10 +39,10 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// </para>
 /// <para>
 /// Every request and response carries CRC32C checksums, so a value corrupted in transit is detected. A response that
-/// fails its check fails with an <see cref="IOException"/>, because the call can be retried. Reads and signing are
-/// retried by the client library with jittered back-off, and so are creation and destruction when the service answers
-/// <c>ResourceExhausted</c>. Logs and messages carry identifiers only, never the signing input, a digest or a
-/// signature.
+/// fails its check fails with an <see cref="IOException"/>, because the call can be retried. Reads, signing and
+/// destruction are retried by the client library with jittered back-off; a call that creates a crypto key or a crypto
+/// key version is made once and never retried. Logs and messages carry identifiers only, never the signing input, a
+/// digest or a signature.
 /// </para>
 /// </remarks>
 // See ADR-1471.

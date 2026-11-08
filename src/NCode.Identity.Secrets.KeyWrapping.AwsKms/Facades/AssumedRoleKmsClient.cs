@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Diagnostics.CodeAnalysis;
-using Amazon;
 using Amazon.KeyManagementService;
 using Amazon.Runtime;
 using Amazon.Runtime.Credentials;
@@ -47,10 +46,7 @@ internal sealed class AssumedRoleKmsClient(
     {
         ArgumentNullException.ThrowIfNull(access);
 
-        var config = new AmazonKeyManagementServiceConfig
-        {
-            RegionEndpoint = RegionEndpoint.GetBySystemName(region),
-        };
+        var config = AwsKmsClientConfiguration.Create(region);
 
         var credentials = new AssumeRoleAWSCredentials(
             DefaultAWSCredentialsIdentityResolver.GetCredentials(config),

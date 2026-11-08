@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using Amazon;
 using Amazon.KeyManagementService;
 
 namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
@@ -77,7 +76,9 @@ internal sealed class DefaultAwsKmsClientFactory(TimeProvider timeProvider)
                 region,
                 static name => new Lazy<AmazonKeyManagementServiceClient>(
                     () =>
-                        new AmazonKeyManagementServiceClient(RegionEndpoint.GetBySystemName(name)),
+                        new AmazonKeyManagementServiceClient(
+                            AwsKmsClientConfiguration.Create(name)
+                        ),
                     LazyThreadSafetyMode.PublicationOnly
                 )
             )

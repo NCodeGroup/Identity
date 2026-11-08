@@ -15,7 +15,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.GoogleCloudKms.Tests;
 
-public class GoogleCloudKmsKeyWrapperTests : IDisposable
+public class GoogleCloudKmsKeyWrapperTests : BaseTests
 {
     private const string CryptoKeyName =
         "projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root";
@@ -33,18 +33,18 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
 
     private static readonly KeyAccess Access = new(ServiceAccountEmail, "tenant:acme");
 
-    private Mock<IGoogleCloudKmsClientFactory> ClientFactory { get; } = new(MockBehavior.Strict);
+    private Mock<IGoogleCloudKmsClientFactory> ClientFactory { get; }
 
-    private Mock<KeyManagementServiceClient> Client { get; } = new(MockBehavior.Strict);
+    private Mock<KeyManagementServiceClient> Client { get; }
 
     private CapturedRequest? EncryptCall { get; set; }
 
     private CapturedRequest? DecryptCall { get; set; }
 
-    public void Dispose()
+    public GoogleCloudKmsKeyWrapperTests()
     {
-        ClientFactory.Verify();
-        Client.Verify();
+        ClientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
+        Client = CreateStrictMock<KeyManagementServiceClient>();
     }
 
     // The provider wraps its buffers in the request without a copy and may reuse them once the call returns, so the

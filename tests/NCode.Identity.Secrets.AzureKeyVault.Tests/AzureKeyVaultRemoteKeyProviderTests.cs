@@ -15,7 +15,7 @@ using KvSignatureAlgorithm = Azure.Security.KeyVault.Keys.Cryptography.Signature
 
 namespace NCode.Identity.Secrets.AzureKeyVault.Tests;
 
-public class AzureKeyVaultRemoteKeyProviderTests : IDisposable
+public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
 {
     private const string VaultUri = "https://contoso.vault.azure.net";
 
@@ -36,17 +36,17 @@ public class AzureKeyVaultRemoteKeyProviderTests : IDisposable
 
     private static readonly KvSignatureAlgorithm Rs256Algorithm = new("RS256");
 
-    private Mock<IAzureKeyVaultClientFactory> ClientFactory { get; } = new(MockBehavior.Strict);
+    private Mock<IAzureKeyVaultClientFactory> ClientFactory { get; }
 
-    private Mock<KeyClient> KeyClient { get; } = new(MockBehavior.Strict);
+    private Mock<KeyClient> KeyClient { get; }
 
-    private Mock<CryptographyClient> CryptographyClient { get; } = new(MockBehavior.Strict);
+    private Mock<CryptographyClient> CryptographyClient { get; }
 
-    public void Dispose()
+    public AzureKeyVaultRemoteKeyProviderTests()
     {
-        ClientFactory.Verify();
-        KeyClient.Verify();
-        CryptographyClient.Verify();
+        ClientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
+        KeyClient = CreateStrictMock<KeyClient>();
+        CryptographyClient = CreateStrictMock<CryptographyClient>();
     }
 
     private AzureKeyVaultRemoteKeyProvider CreateProvider(
@@ -93,8 +93,8 @@ public class AzureKeyVaultRemoteKeyProviderTests : IDisposable
         return KeyModelFactory.KeyVaultKey(properties, webKey);
     }
 
-    private static Response<KeyVaultKey> CreateResponse(KeyVaultKey key) =>
-        Response.FromValue(key, Mock.Of<Response>());
+    private Response<KeyVaultKey> CreateResponse(KeyVaultKey key) =>
+        Response.FromValue(key, CreateLooseMock<Response>().Object);
 
     // The factory runs the operation of the provider with the key client mock, as it runs it with the client of the
     // vault.

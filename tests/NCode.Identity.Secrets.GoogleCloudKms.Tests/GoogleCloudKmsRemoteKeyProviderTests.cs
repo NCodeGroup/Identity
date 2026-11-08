@@ -17,7 +17,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.GoogleCloudKms.Tests;
 
-public class GoogleCloudKmsRemoteKeyProviderTests : IDisposable
+public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
 {
     private const string KeyRing =
         "projects/my-project/locations/us-central1/keyRings/ncode-identity";
@@ -46,18 +46,18 @@ public class GoogleCloudKmsRemoteKeyProviderTests : IDisposable
         PublicKeySpki = keyPair.ExportSubjectPublicKeyInfo();
     }
 
-    private Mock<IGoogleCloudKmsClientFactory> ClientFactory { get; } = new(MockBehavior.Strict);
+    private Mock<IGoogleCloudKmsClientFactory> ClientFactory { get; }
 
-    private Mock<KeyManagementServiceClient> Client { get; } = new(MockBehavior.Strict);
+    private Mock<KeyManagementServiceClient> Client { get; }
 
     private FakeTimeProvider TimeProvider { get; } = new();
 
     private int VersionGets { get; set; }
 
-    public void Dispose()
+    public GoogleCloudKmsRemoteKeyProviderTests()
     {
-        ClientFactory.Verify();
-        Client.Verify();
+        ClientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
+        Client = CreateStrictMock<KeyManagementServiceClient>();
     }
 
     private GoogleCloudKmsRemoteKeyProvider CreateProvider(

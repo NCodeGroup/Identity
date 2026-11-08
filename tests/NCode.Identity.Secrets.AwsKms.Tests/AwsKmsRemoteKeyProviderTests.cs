@@ -13,7 +13,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.AwsKms.Tests;
 
-public class AwsKmsRemoteKeyProviderTests : IDisposable
+public class AwsKmsRemoteKeyProviderTests : BaseTests
 {
     private const string KeyArn =
         "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
@@ -32,14 +32,14 @@ public class AwsKmsRemoteKeyProviderTests : IDisposable
     private static readonly RemoteSigningAlgorithm Es256 =
         new AwsKmsSigningAlgorithms().Algorithms.Single(x => x.Algorithm == "ES256");
 
-    private Mock<IAwsKmsClientFactory> ClientFactory { get; } = new(MockBehavior.Strict);
+    private Mock<IAwsKmsClientFactory> ClientFactory { get; }
 
-    private Mock<IAmazonKeyManagementService> Client { get; } = new(MockBehavior.Strict);
+    private Mock<IAmazonKeyManagementService> Client { get; }
 
-    public void Dispose()
+    public AwsKmsRemoteKeyProviderTests()
     {
-        ClientFactory.Verify();
-        Client.Verify();
+        ClientFactory = CreateStrictMock<IAwsKmsClientFactory>();
+        Client = CreateStrictMock<IAmazonKeyManagementService>();
     }
 
     private AwsKmsRemoteKeyProvider CreateProvider(

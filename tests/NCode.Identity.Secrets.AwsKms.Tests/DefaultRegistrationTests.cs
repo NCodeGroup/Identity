@@ -4,7 +4,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Moq;
 using NCode.Identity.Secrets.AwsKms.Facades;
 using NCode.Identity.Secrets.AwsKms.Options;
 using NCode.Identity.Secrets.KeyWrapping;
@@ -17,7 +16,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.AwsKms.Tests;
 
-public class DefaultRegistrationTests
+public class DefaultRegistrationTests : BaseTests
 {
     private const string KeyArn =
         "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
@@ -53,7 +52,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAwsKmsKeyWrapper_RegistersProviderInCatalogWithoutCreatingClient()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = AddAwsKms(
             CreateConfiguration(("SecretProtection:RootKeyProviders:AwsKms:KeyArn", KeyArn)),
             clientFactory.Object
@@ -64,13 +63,12 @@ public class DefaultRegistrationTests
 
         Assert.Contains(rootKeyProviders, x => x.Name == KeyWrapperNames.AwsKms);
         Assert.Contains(rootKeyProviders, x => x is AwsKmsKeyWrapper);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddAwsKmsKeyWrapper_OwnerRootKeyProviderIsAwsKms_BuildsWithValidateOnBuildAndResolvesWrappersAndOptions()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var configuration = CreateConfiguration(
             ("SecretProtection:RootKeyProvider", KeyWrapperNames.AwsKms),
             ("SecretProtection:OwnerRootKeys:Providers:0", KeyWrapperNames.AwsKms),
@@ -79,7 +77,7 @@ public class DefaultRegistrationTests
         var serviceCollection = AddAwsKms(configuration, clientFactory.Object);
 
         // The persistence library's services need a store factory to be constructed; this test never reads a store.
-        serviceCollection.AddSingleton(new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object);
+        serviceCollection.AddSingleton(CreateStrictMock<IStoreManagerFactory>().Object);
         serviceCollection
             .AddOptions<SecretProtectionOptions>()
             .Configure(options =>
@@ -96,13 +94,12 @@ public class DefaultRegistrationTests
         Assert.Contains(wrappers, x => x is AwsKmsKeyWrapper);
         Assert.Equal(KeyWrapperNames.AwsKms, options.RootKeyProvider);
         Assert.Equal([KeyWrapperNames.AwsKms], options.OwnerRootKeys.Providers);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddAwsKmsKeyWrapper_UnknownSetting_Throws()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = AddAwsKms(
             CreateConfiguration(("SecretProtection:RootKeyProviders:AwsKms:KeyArnn", KeyArn)),
             clientFactory.Object
@@ -141,7 +138,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAwsKmsRemoteKeyProvider_RegistersProviderAndAlgorithmsWithoutCreatingClient()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = AddAwsKmsRemote(
             CreateConfiguration(("SecretProtection:RemoteKeyProviders:AwsKms:Region", "us-west-2")),
             clientFactory.Object
@@ -157,13 +154,12 @@ public class DefaultRegistrationTests
         Assert.Contains(sources, x => x is AwsKmsSigningAlgorithms);
         Assert.Equal("us-west-2", options.Region);
         Assert.Equal(30, options.PendingWindowInDays);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddAwsKmsRemoteKeyProvider_ResolvesThroughTheCatalog()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = AddAwsKmsRemote(
             CreateConfiguration(("SecretProtection:RemoteKeyProviders:AwsKms:Region", "us-west-2")),
             clientFactory.Object
@@ -187,13 +183,12 @@ public class DefaultRegistrationTests
             )
         );
         Assert.Equal("RSA_3072", algorithm.KeySpec);
-        clientFactory.Verify();
     }
 
     [Fact]
     public void AddAwsKmsRemoteKeyProvider_CalledTwice_AddsEachServiceOnce()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = AddAwsKmsRemote(
             CreateConfiguration(("SecretProtection:RemoteKeyProviders:AwsKms:Region", "us-west-2")),
             clientFactory.Object,
@@ -224,7 +219,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAwsKmsRemoteKeyProvider_NoRegion_FailsValidation()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = AddAwsKmsRemote(CreateConfiguration(), clientFactory.Object);
 
         await using var provider = serviceCollection.BuildServiceProvider();
@@ -237,7 +232,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAwsKmsRemoteKeyProvider_UnknownSetting_Throws()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = AddAwsKmsRemote(
             CreateConfiguration(
                 ("SecretProtection:RemoteKeyProviders:AwsKms:Regionn", "us-west-2")
@@ -255,7 +250,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAwsKmsRemoteKeyProviderIfConfigured_SectionExists_RegistersProviderAndAlgorithms()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(clientFactory.Object);
 
@@ -274,13 +269,12 @@ public class DefaultRegistrationTests
 
         Assert.Contains(providers, x => x is AwsKmsRemoteKeyProvider);
         Assert.Contains(sources, x => x is AwsKmsSigningAlgorithms);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddAwsKmsRemoteKeyProviderIfConfigured_NoSection_RegistersNeitherProviderNorAlgorithms()
     {
-        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(clientFactory.Object);
 
@@ -299,7 +293,6 @@ public class DefaultRegistrationTests
             provider.GetServices<IRemoteSigningAlgorithmSource>(),
             x => x is AwsKmsSigningAlgorithms
         );
-        clientFactory.Verify();
     }
 
     [Fact]

@@ -4,7 +4,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Moq;
 using NCode.Identity.Secrets.AzureKeyVault.Facades;
 using NCode.Identity.Secrets.AzureKeyVault.Options;
 using NCode.Identity.Secrets.KeyWrapping;
@@ -15,7 +14,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.AzureKeyVault.Tests;
 
-public class DefaultRegistrationTests
+public class DefaultRegistrationTests : BaseTests
 {
     private const string KeyId = "https://contoso.vault.azure.net/keys/ncode-identity-root";
 
@@ -52,7 +51,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAzureKeyVaultKeyWrapper_RegistersProviderInCatalogWithoutCreatingClient()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVault(
             CreateConfiguration(("SecretProtection:RootKeyProviders:AzureKeyVault:KeyId", KeyId)),
             clientFactory.Object
@@ -63,13 +62,12 @@ public class DefaultRegistrationTests
 
         Assert.Contains(rootKeyProviders, x => x.Name == KeyWrapperNames.AzureKeyVault);
         Assert.Contains(rootKeyProviders, x => x is AzureKeyVaultKeyWrapper);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddAzureKeyVaultKeyWrapper_UnknownSetting_Throws()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVault(
             CreateConfiguration(("SecretProtection:RootKeyProviders:AzureKeyVault:KeyIdd", KeyId)),
             clientFactory.Object
@@ -108,7 +106,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAzureKeyVaultRemoteKeyProvider_RegistersProviderAndAlgorithmsWithoutCreatingClient()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVaultRemote(
             CreateConfiguration(
                 ("SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri", VaultUri)
@@ -128,13 +126,12 @@ public class DefaultRegistrationTests
         Assert.Contains(sources, x => x is AzureKeyVaultSigningAlgorithms);
         Assert.Equal(VaultUri, options.VaultUri);
         Assert.True(options.HardwareProtected);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddAzureKeyVaultRemoteKeyProvider_ResolvesThroughTheCatalog()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVaultRemote(
             CreateConfiguration(
                 ("SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri", VaultUri)
@@ -162,13 +159,12 @@ public class DefaultRegistrationTests
             )
         );
         Assert.Equal("RSA", algorithm.KeySpec);
-        clientFactory.Verify();
     }
 
     [Fact]
     public void AddAzureKeyVaultRemoteKeyProvider_CalledTwice_AddsEachServiceOnce()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVaultRemote(
             CreateConfiguration(
                 ("SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri", VaultUri)
@@ -201,7 +197,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAzureKeyVaultRemoteKeyProvider_NoVaultUri_FailsValidation()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVaultRemote(CreateConfiguration(), clientFactory.Object);
 
         await using var provider = serviceCollection.BuildServiceProvider();
@@ -216,7 +212,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAzureKeyVaultRemoteKeyProvider_UnknownSetting_Throws()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVaultRemote(
             CreateConfiguration(
                 ("SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUrii", VaultUri)
@@ -239,7 +235,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAzureKeyVaultRemoteKeyProviderIfConfigured_SectionExists_RegistersProviderAndAlgorithms()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(clientFactory.Object);
 
@@ -258,13 +254,12 @@ public class DefaultRegistrationTests
 
         Assert.Contains(providers, x => x is AzureKeyVaultRemoteKeyProvider);
         Assert.Contains(sources, x => x is AzureKeyVaultSigningAlgorithms);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddAzureKeyVaultRemoteKeyProviderIfConfigured_NoSection_RegistersNeitherProviderNorAlgorithms()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(clientFactory.Object);
 
@@ -283,7 +278,6 @@ public class DefaultRegistrationTests
             provider.GetServices<IRemoteSigningAlgorithmSource>(),
             x => x is AzureKeyVaultSigningAlgorithms
         );
-        clientFactory.Verify();
     }
 
     [Fact]
@@ -313,7 +307,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAzureKeyVaultKeyWrapper_NoSuffixesConfigured_UsesTheDefaultSuffixes()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVault(
             CreateConfiguration(("SecretProtection:RootKeyProviders:AzureKeyVault:KeyId", KeyId)),
             clientFactory.Object
@@ -338,7 +332,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddAzureKeyVaultKeyWrapper_SuffixesConfigured_ReplacesTheDefaultSuffixes()
     {
-        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVault(
             CreateConfiguration(
                 ("SecretProtection:RootKeyProviders:AzureKeyVault:KeyId", KeyId),

@@ -4,7 +4,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Moq;
 using NCode.Identity.Secrets.GoogleCloudKms.Facades;
 using NCode.Identity.Secrets.GoogleCloudKms.Options;
 using NCode.Identity.Secrets.KeyWrapping;
@@ -15,7 +14,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.GoogleCloudKms.Tests;
 
-public class DefaultRegistrationTests
+public class DefaultRegistrationTests : BaseTests
 {
     private const string KeyName =
         "projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root";
@@ -54,7 +53,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddGoogleCloudKmsKeyWrapper_RegistersProviderInCatalogWithoutCreatingClient()
     {
-        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = AddGoogleCloudKms(
             CreateConfiguration(
                 ("SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName", KeyName)
@@ -67,13 +66,12 @@ public class DefaultRegistrationTests
 
         Assert.Contains(rootKeyProviders, x => x.Name == KeyWrapperNames.GoogleCloudKms);
         Assert.Contains(rootKeyProviders, x => x is GoogleCloudKmsKeyWrapper);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddGoogleCloudKmsKeyWrapper_UnknownSetting_Throws()
     {
-        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = AddGoogleCloudKms(
             CreateConfiguration(
                 ("SecretProtection:RootKeyProviders:GoogleCloudKms:KeyNamee", KeyName)
@@ -114,7 +112,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddGoogleCloudKmsRemoteKeyProvider_RegistersProviderAndAlgorithmsWithoutCreatingClient()
     {
-        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = AddGoogleCloudKmsRemote(
             CreateConfiguration(
                 ("SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing", KeyRing)
@@ -134,13 +132,12 @@ public class DefaultRegistrationTests
         Assert.Contains(sources, x => x is GoogleCloudKmsSigningAlgorithms);
         Assert.Equal(KeyRing, options.KeyRing);
         Assert.True(options.HardwareProtected);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddGoogleCloudKmsRemoteKeyProvider_ResolvesThroughTheCatalog()
     {
-        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = AddGoogleCloudKmsRemote(
             CreateConfiguration(
                 ("SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing", KeyRing)
@@ -168,13 +165,12 @@ public class DefaultRegistrationTests
             )
         );
         Assert.Equal("RSA_SIGN_PSS_3072_SHA256", algorithm.KeySpec);
-        clientFactory.Verify();
     }
 
     [Fact]
     public void AddGoogleCloudKmsRemoteKeyProvider_CalledTwice_AddsEachServiceOnce()
     {
-        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = AddGoogleCloudKmsRemote(
             CreateConfiguration(
                 ("SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing", KeyRing)
@@ -210,7 +206,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddGoogleCloudKmsRemoteKeyProvider_NoKeyRing_FailsValidation()
     {
-        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = AddGoogleCloudKmsRemote(
             CreateConfiguration(),
             clientFactory.Object
@@ -228,7 +224,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddGoogleCloudKmsRemoteKeyProvider_UnknownSetting_Throws()
     {
-        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = AddGoogleCloudKmsRemote(
             CreateConfiguration(
                 ("SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRingg", KeyRing)
@@ -251,7 +247,7 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddGoogleCloudKmsRemoteKeyProviderIfConfigured_SectionExists_RegistersProviderAndAlgorithms()
     {
-        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(clientFactory.Object);
 
@@ -270,13 +266,12 @@ public class DefaultRegistrationTests
 
         Assert.Contains(providers, x => x is GoogleCloudKmsRemoteKeyProvider);
         Assert.Contains(sources, x => x is GoogleCloudKmsSigningAlgorithms);
-        clientFactory.Verify();
     }
 
     [Fact]
     public async Task AddGoogleCloudKmsRemoteKeyProviderIfConfigured_NoSection_RegistersNeitherProviderNorAlgorithms()
     {
-        var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
+        var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(clientFactory.Object);
 
@@ -295,7 +290,6 @@ public class DefaultRegistrationTests
             provider.GetServices<IRemoteSigningAlgorithmSource>(),
             x => x is GoogleCloudKmsSigningAlgorithms
         );
-        clientFactory.Verify();
     }
 
     [Fact]

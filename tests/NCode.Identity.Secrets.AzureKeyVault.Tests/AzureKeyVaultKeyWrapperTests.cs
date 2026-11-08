@@ -15,7 +15,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.AzureKeyVault.Tests;
 
-public class AzureKeyVaultKeyWrapperTests : IDisposable
+public class AzureKeyVaultKeyWrapperTests : BaseTests
 {
     private const string KeyId = "https://contoso.vault.azure.net/keys/ncode-identity-root";
 
@@ -32,9 +32,9 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
 
     private static readonly KeyAccess Access = new(DirectoryId, "tenant:acme");
 
-    private Mock<IAzureKeyVaultClientFactory> ClientFactory { get; } = new(MockBehavior.Strict);
+    private Mock<IAzureKeyVaultClientFactory> ClientFactory { get; }
 
-    private Mock<CryptographyClient> Client { get; } = new(MockBehavior.Strict);
+    private Mock<CryptographyClient> Client { get; }
 
     private byte[]? SentArray { get; set; }
 
@@ -42,10 +42,10 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
 
     private byte[]? SentCiphertext { get; set; }
 
-    public void Dispose()
+    public AzureKeyVaultKeyWrapperTests()
     {
-        ClientFactory.Verify();
-        Client.Verify();
+        ClientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
+        Client = CreateStrictMock<CryptographyClient>();
     }
 
     private AzureKeyVaultKeyWrapper CreateProvider(

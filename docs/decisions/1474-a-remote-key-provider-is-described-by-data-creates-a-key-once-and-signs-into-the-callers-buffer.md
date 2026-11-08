@@ -95,4 +95,4 @@ key it created and could not keep.**
 - [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)
 - [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)
 - [ADR-1116](1116-memory-allocations-and-buffer-operations.md)
-- Issues #653, #655, #656, #657, #659, #663, #664
+- Issues [#653](https://github.com/NCodeGroup/Identity/issues/653), [#655](https://github.com/NCodeGroup/Identity/issues/655), [#656](https://github.com/NCodeGroup/Identity/issues/656), [#657](https://github.com/NCodeGroup/Identity/issues/657), [#659](https://github.com/NCodeGroup/Identity/issues/659), [#663](https://github.com/NCodeGroup/Identity/issues/663), [#664](https://github.com/NCodeGroup/Identity/issues/664)

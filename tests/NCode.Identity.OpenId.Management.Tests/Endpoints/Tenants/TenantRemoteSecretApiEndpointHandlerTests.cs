@@ -22,6 +22,7 @@ using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
@@ -229,10 +230,14 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             SecretsConcurrencyToken = "secrets-ct",
         }.Build();
 
-    private static PersistedSecret CreateRemoteSecret(string secretId = "secret-1") =>
+    private static PersistedSecret CreateRemoteSecret(
+        string secretId = "secret-1",
+        string? keyId = null
+    ) =>
         new PersistedSecretBuilder
         {
             SecretId = secretId,
+            KeyId = keyId,
             ConcurrencyToken = "secret-ct",
             Use = "sig",
             Algorithm = "ES256",
@@ -250,6 +255,58 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             Algorithm = "ES256",
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
+
+    private static ImportRemoteSecretRequest CreateImportRemoteSecretRequest() =>
+        new()
+        {
+            RemoteKeyProvider = Provider,
+            RemoteKeyId = "key-1",
+            SecretType = SecretTypes.Ecc,
+            Format = "jwk",
+            KeyMaterial = """{"kty":"EC","crv":"P-256","x":"AQAB","y":"AQAB"}""",
+            Algorithm = "ES256",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+    private void SetupImportRemoteValidation() =>
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateImportRemote(
+                    It.IsAny<ImportRemoteSecretRequest>(),
+                    It.IsAny<DateTimeOffset>()
+                )
+            )
+            .Returns((ManagementError?)null)
+            .Verifiable();
+
+    // Moq cannot capture beside out arguments, so the import request is matched by what the handler builds from the request.
+    private void SetupTryImport(PersistedSecret imported)
+    {
+        var importedSecret = (PersistedSecret?)imported;
+        string? error = null;
+        MockRemoteSecretImporter
+            .Setup(x =>
+                x.TryImport(
+                    It.Is<RemoteSecretImportRequest>(request =>
+                        request.Key.SecretId == "generated-id"
+                        && request.Key.SecretType == SecretTypes.Ecc
+                        && request.Key.Use == SecretKeyUses.Signature
+                        && request.Key.Algorithm == "ES256"
+                        && request.Reference == new RemoteKeyReference(Provider, "key-1")
+                    ),
+                    out importedSecret,
+                    out error
+                )
+            )
+            .Returns(true)
+            .Verifiable();
+    }
+
+    private void SetupVerifyBinding(PersistedSecret secret, ManagementError? error) =>
+        MockRemoteSecretImporter
+            .Setup(x => x.VerifyBindingAsync(secret, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(error)
+            .Verifiable();
 
     #endregion
 
@@ -481,6 +538,181 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region ImportRemoteSecretAsync Tests
+
+    [Fact]
+    public async Task ImportRemoteSecretAsync_WhenAuthorized_BindsTheKeyAndReturnsCreated()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant());
+        SetupImportRemoteValidation();
+        SetupResourceId();
+
+        var secret = CreateRemoteSecret();
+        SetupTryImport(secret);
+        SetupVerifyBinding(secret, null);
+        MockTenantStore
+            .Setup(x => x.AddSecretAsync(TenantId, secret, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupSave();
+        SetupTenantSecretChangedAudit();
+        SetupTenantChangedAnnouncement();
+
+        var httpContext = CreateHttpContext();
+
+        var result = await CreateHandler()
+            .ImportRemoteSecretAsync(
+                httpContext,
+                TenantId,
+                CreateImportRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var created = Assert.IsType<Created<SecretResource>>(result);
+        Assert.Equal("secret-1", created.Value?.SecretId);
+        Assert.Equal(Provider, created.Value?.RemoteKeyProvider);
+        Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+        VerifyTenantChanged(settingsChanged: false);
+    }
+
+    [Fact]
+    public async Task ImportRemoteSecretAsync_WhenTheCallerMayNotUpdateThePlatform_ReturnsForbiddenWithoutReadingTheTenant()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Failed());
+
+        var result = await CreateHandler()
+            .ImportRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateImportRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportRemoteSecretAsync_WhenForbiddenAtTheTenant_ReturnsForbiddenWithoutAuthorizingAtThePlatform()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Failed());
+
+        var result = await CreateHandler()
+            .ImportRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateImportRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportRemoteSecretAsync_WhenTheImportIsRefused_ReturnsBadRequest()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant());
+        SetupImportRemoteValidation();
+        SetupResourceId();
+
+        PersistedSecret? refusedSecret = null;
+        var refusal = "The key is not a public key.";
+        MockRemoteSecretImporter
+            .Setup(x =>
+                x.TryImport(It.IsAny<RemoteSecretImportRequest>(), out refusedSecret, out refusal)
+            )
+            .Returns(false)
+            .Verifiable();
+
+        var result = await CreateHandler()
+            .ImportRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateImportRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportRemoteSecretAsync_WhenTheKidIsTaken_ReturnsConflictWithoutVerifyingTheBinding()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Success());
+        SetupStore();
+        var existing = CreateRemoteSecret("secret-0", keyId: "kid-1");
+        SetupTenant(
+            new PersistedTenantBuilder
+            {
+                TenantId = TenantId,
+                ConcurrencyToken = "tenant-ct",
+                DisplayName = "Tenant One",
+                SettingsConcurrencyToken = "settings-ct",
+                SecretsConcurrencyToken = "secrets-ct",
+                Secrets = [existing],
+            }.Build()
+        );
+        SetupImportRemoteValidation();
+        SetupResourceId();
+        SetupTryImport(CreateRemoteSecret("secret-1", keyId: "kid-1"));
+
+        var result = await CreateHandler()
+            .ImportRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateImportRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportRemoteSecretAsync_WhenTheBindingIsNotProven_ReturnsItsErrorAndStoresNothing()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant());
+        SetupImportRemoteValidation();
+        SetupResourceId();
+
+        var secret = CreateRemoteSecret();
+        SetupTryImport(secret);
+        SetupVerifyBinding(
+            secret,
+            new ManagementError
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+                Detail = "The key does not sign with the supplied public key.",
+            }
+        );
+
+        var result = await CreateHandler()
+            .ImportRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateImportRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
     #endregion

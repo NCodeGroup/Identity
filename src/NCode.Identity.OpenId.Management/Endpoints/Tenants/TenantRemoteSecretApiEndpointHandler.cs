@@ -155,29 +155,31 @@ internal class TenantRemoteSecretApiEndpointHandler(
             return secretIdConflict;
         }
 
+        var generateRequest = new GenerateRemoteSecretRequest
+        {
+            SecretId = secretId,
+            Owner = SecretOwner.ForTenant(tenantId),
+            Provider = request.RemoteKeyProvider,
+            SecretType = request.SecretType,
+            KeySizeBits = parameters.KeySizeBits,
+            Curve = parameters.Curve,
+            Use = SecretKeyUses.Signature,
+            Algorithm = request.Algorithm,
+            CreatedWhen = createdWhen,
+            ActivatesWhen = request.ActivatesWhen,
+            RetiresWhen = request.RetiresWhen,
+            ExpiresWhen = request.ExpiresWhen,
+        };
+
         PersistedSecret secret;
         try
         {
             secret = await SecretGenerator.GenerateRemoteSecretAsync(
-                new GenerateRemoteSecretRequest
-                {
-                    SecretId = secretId,
-                    Owner = SecretOwner.ForTenant(tenantId),
-                    Provider = request.RemoteKeyProvider,
-                    SecretType = request.SecretType,
-                    KeySizeBits = parameters.KeySizeBits,
-                    Curve = parameters.Curve,
-                    Use = SecretKeyUses.Signature,
-                    Algorithm = request.Algorithm,
-                    CreatedWhen = createdWhen,
-                    ActivatesWhen = request.ActivatesWhen,
-                    RetiresWhen = request.RetiresWhen,
-                    ExpiresWhen = request.ExpiresWhen,
-                },
+                generateRequest,
                 cancellationToken
             );
         }
-        catch (InvalidOperationException exception)
+        catch (RemoteSecretRefusedException exception)
         {
             Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
@@ -282,24 +284,23 @@ internal class TenantRemoteSecretApiEndpointHandler(
             return secretIdConflict;
         }
 
-        var import = await RemoteSecretImporter.ImportAsync(
-            new BindRemoteSecretRequest
-            {
-                SecretId = secretId,
-                Provider = request.RemoteKeyProvider,
-                KeyId = request.RemoteKeyId,
-                SecretType = request.SecretType,
-                KeySizeBits = parameters.KeySizeBits,
-                Curve = parameters.Curve,
-                Use = SecretKeyUses.Signature,
-                Algorithm = request.Algorithm,
-                CreatedWhen = createdWhen,
-                ActivatesWhen = request.ActivatesWhen,
-                RetiresWhen = request.RetiresWhen,
-                ExpiresWhen = request.ExpiresWhen,
-            },
-            cancellationToken
-        );
+        var bindRequest = new BindRemoteSecretRequest
+        {
+            SecretId = secretId,
+            Provider = request.RemoteKeyProvider,
+            KeyId = request.RemoteKeyId,
+            SecretType = request.SecretType,
+            KeySizeBits = parameters.KeySizeBits,
+            Curve = parameters.Curve,
+            Use = SecretKeyUses.Signature,
+            Algorithm = request.Algorithm,
+            CreatedWhen = createdWhen,
+            ActivatesWhen = request.ActivatesWhen,
+            RetiresWhen = request.RetiresWhen,
+            ExpiresWhen = request.ExpiresWhen,
+        };
+
+        var import = await RemoteSecretImporter.ImportAsync(bindRequest, cancellationToken);
         if (!import.IsBound)
         {
             return ToErrorResult(import.Error);

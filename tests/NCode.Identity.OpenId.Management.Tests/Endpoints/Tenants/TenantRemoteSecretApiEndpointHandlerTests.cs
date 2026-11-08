@@ -442,7 +442,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Throws(new InvalidOperationException("refused"))
+            .Throws(new RemoteSecretRefusedException("refused"))
             .Verifiable();
 
         var result = await CreateHandler()
@@ -473,6 +473,40 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
                 )
             )
             .Throws(new IOException("unreachable"))
+            .Verifiable();
+
+        var result = await CreateHandler()
+            .CreateRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status502BadGateway, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateRemoteSecretAsync_WhenTheProviderFailsWithAnInvalidOperation_ReturnsBadGateway()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant());
+        SetupValidCreateRemoteValidation();
+        SetupResourceId();
+        MockSecretGenerator
+            .Setup(x =>
+                x.GenerateRemoteSecretAsync(
+                    It.IsAny<GenerateRemoteSecretRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Throws(
+                new InvalidOperationException(
+                    "SecretProtection:RemoteKeyProviders:AwsKms:Region is not set."
+                )
+            )
             .Verifiable();
 
         var result = await CreateHandler()

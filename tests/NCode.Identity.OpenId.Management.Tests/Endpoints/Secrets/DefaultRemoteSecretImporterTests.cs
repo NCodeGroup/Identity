@@ -108,7 +108,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ImportAsync_WhenTheServiceHoldsNoSuchKey_ReturnsBadRequest()
+    public async Task ImportAsync_WhenTheProviderDoesNotReadTheKeyId_ReturnsBadRequest()
     {
         var result = await Importer.ImportAsync(
             CreateBindRequest(keyId: "missing"),
@@ -132,6 +132,11 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.False(result.IsBound);
         Assert.NotNull(result.Error);
         Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
+        Assert.Contains(
+            "no signing algorithm 'ES384'",
+            result.Error.Detail,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -157,6 +162,25 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.False(result.IsBound);
         Assert.NotNull(result.Error);
         Assert.Equal(StatusCodes.Status502BadGateway, result.Error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportAsync_WhenTheProviderFailsWithAnInvalidOperation_ReturnsBadGateway()
+    {
+        Provider.PublicKeyFailure = new InvalidOperationException(
+            "The Application Default Credentials are not available."
+        );
+
+        var result = await Importer.ImportAsync(CreateBindRequest(), CancellationToken.None);
+
+        Assert.False(result.IsBound);
+        Assert.NotNull(result.Error);
+        Assert.Equal(StatusCodes.Status502BadGateway, result.Error.StatusCode);
+        Assert.DoesNotContain(
+            "Application Default Credentials",
+            result.Error.Detail,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion
@@ -316,7 +340,10 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
             if (!string.Equals(request.KeyId, KeyId, StringComparison.Ordinal))
             {
                 return ValueTask.FromException(
-                    new InvalidOperationException($"The key '{request.KeyId}' does not exist.")
+                    new ArgumentException(
+                        $"The key '{request.KeyId}' is not one the provider reads.",
+                        nameof(request)
+                    )
                 );
             }
 

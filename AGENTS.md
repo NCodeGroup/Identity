@@ -404,8 +404,8 @@ everything on it. Only commits pushed from the repository clone survive — work
   admission enforces a namespace labeled `restricted`. Pod-to-pod networking and cluster DNS do not work on the
   runner, so reach a pod with `kubectl port-forward` instead.
 
-[`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) installs the pinned .NET SDK,
-Node, and pnpm and restores the NuGet and pnpm packages before a session starts. The platform runs it only from the
-default branch, so until it is on `main` a session starts without pnpm or the frontend packages. Run
-`npx -y pnpm@<version> install --frozen-lockfile` in `src/frontend`, using the version from `packageManager` in its
+[`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) installs the .NET SDK
+`global.json` selects, Node, and pnpm and restores the NuGet and pnpm packages before a session starts. The platform
+runs it only from the default branch, so until it is on `main` a session starts without pnpm or the frontend packages.
+Run `npx -y pnpm@<version> install --frozen-lockfile` in `src/frontend`, using the version from `packageManager` in its
 `package.json`; it takes seconds. Then run each tool through `npx -y pnpm@<version> exec`.

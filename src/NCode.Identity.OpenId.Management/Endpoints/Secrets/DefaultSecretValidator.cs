@@ -181,6 +181,11 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
+        if (string.IsNullOrEmpty(selector.Provider))
+        {
+            return Invalid(DescribeUnregisteredProvider(providerName: null));
+        }
+
         if (!RemoteKeyDescriptorCatalog.TryGetProvider(selector.Provider, out _))
         {
             return Invalid(DescribeUnregisteredProvider(selector.Provider));
@@ -237,17 +242,18 @@ internal sealed class DefaultSecretValidator(
         return validation;
     }
 
-    private string DescribeUnregisteredProvider(string providerName)
+    private string DescribeUnregisteredProvider(string? providerName)
     {
+        var subject = providerName is null
+            ? "The remote key provider is not named"
+            : $"The remote key provider '{providerName}' is not registered";
         var names = RemoteKeyDescriptorCatalog
             .Providers.Select(provider => provider.Name)
             .Order(StringComparer.Ordinal)
             .ToList();
         return names.Count == 0
-            ? $"The remote key provider '{providerName}' is not registered; the deployment registers no remote key provider."
-            : $"The remote key provider '{providerName}' is not registered; expected "
-                + string.Join(", ", names.Select(name => $"'{name}'"))
-                + ".";
+            ? $"{subject}; the deployment registers no remote key provider."
+            : $"{subject}; expected " + string.Join(", ", names.Select(name => $"'{name}'")) + ".";
     }
 
     private SecretCreateValidation ResolveGeneration(

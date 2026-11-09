@@ -21,7 +21,8 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// endpoint via <see cref="ManagementEnvironmentEndpointFilter"/> but opens no tenant scope, so control-plane
 /// families (platform, teams, tenant provisioning) act on unscoped rows. It declares on every route the
 /// <c>409</c> and <c>503</c> problems that its settings and root-key filters answer. It also describes the problem
-/// responses that every route shares in the OpenAPI document.
+/// responses that every route shares in the OpenAPI document, and answers every error that carries no body as a
+/// problem document.
 /// </summary>
 internal sealed class ManagementRootGroup : IEndpointGroup
 {
@@ -39,7 +40,8 @@ internal sealed class ManagementRootGroup : IEndpointGroup
 
     // See ADR-1480.
     /// <inheritdoc />
-    public void ConfigureRoutes(RouteGroupBuilder group) =>
+    public void ConfigureRoutes(RouteGroupBuilder group)
+    {
         group
             .AddEndpointFilter<RouteGroupBuilder, ManagementEnvironmentEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, ManagementAuthenticationEndpointFilter>()
@@ -51,6 +53,9 @@ internal sealed class ManagementRootGroup : IEndpointGroup
             .AddOpenApiOperationTransformer(
                 new ManagementProblemResponseOperationTransformer().TransformAsync
             );
+
+        ((IEndpointConventionBuilder)group).Add(ProblemResponseEndpointConvention.Apply);
+    }
 
     /// <inheritdoc />
     public void ConfigureServices(IEndpointGroupBuilder builder)

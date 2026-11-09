@@ -729,7 +729,7 @@ internal class TenantApiEndpointHandler(
     /// <response code="201">The created tenant.</response>
     /// <response code="400">The tenant has no display name, its identifier, issuer or mutual-TLS endpoint-alias authority is not valid, or its settings are not valid for a tenant.</response>
     /// <response code="404">The team does not exist.</response>
-    /// <response code="409">The team or a team above it holds its maximum number of tenants.</response>
+    /// <response code="409">A tenant with the identifier already exists, the identifier belonged to a deleted tenant, the issuer or the mutual-TLS endpoint-alias authority conflicts with another tenant's or with one that belonged to another tenant, or the team or a team above it holds its maximum number of tenants.</response>
     [EndpointName("api/teams/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
@@ -1208,7 +1208,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The tenant was deleted.</response>
     /// <response code="404">The tenant does not exist.</response>
-    /// <response code="409">The tenant still has clients or resource servers, or has deletion protection enabled, and cannot be deleted.</response>
+    /// <response code="409">The tenant is required by the deployment, still has clients or resource servers, or has deletion protection enabled, and cannot be deleted.</response>
     [EndpointName("api/tenants/delete")]
     internal virtual async ValueTask<IResult> DeleteTenantAsync(
         HttpContext httpContext,

@@ -1325,13 +1325,17 @@ the OpenID audience that UserInfo requires. The console loads UserInfo and allow
 for `/bff/user`. The `/management/api` remote API declares the resource `urn:ncode:management`, so the BFF obtains a
 separate, audience-restricted, DPoP-bound management token through the refresh-token grant. No token is usable at both
 UserInfo and the management API. A deployment registers `jwks_uri` = `<origin>/bff/jwks`, and the developer seed
-registers the public key by value. The console's `mgmt-client` and `mgmt-dpop` key rings are PEM files
-([ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+registers the public key by value. The console's `mgmt-client` and `mgmt-dpop` key rings hold PEM files, keys a KMS
+holds, or both
+([ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
+[ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
 
 **Deployment.** The console host ships as its own image (`src/NCode.Identity.ManagementConsole.Host/Dockerfile`) and as
-the `managementConsole` component of `charts/ncode-identity-host`, which mounts the two key rings from Secrets and
-routes `manage.<apex>`'s `/api` to the OP and every other path to the console host
-([ADR-1458](decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
+the `managementConsole` component of `charts/ncode-identity-host`, which mounts each key ring's PEM key from a Secret or
+names its keys in a KMS that the console reaches through its own workload identity, and routes `manage.<apex>`'s `/api`
+to the OP and every other path to the console host
+([ADR-1458](decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
+[ADR-1485](decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md)).
 
 **Local development.** The AppHost generates per-machine P-256 keys `mgmt-client.pem` and `mgmt-dpop.pem` beside the
 other development secrets, hands their paths to the console host (`Bff__KeyRings__…`) and the client key's public JWKS

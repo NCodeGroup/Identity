@@ -574,6 +574,8 @@ export type RemoteKeyAlgorithmCapability = {
  */
 export type RemoteKeyProviderCapability = {
   readonly name: string;
+  /** Whether the provider creates keys; the console offers creation only in one that does. */
+  readonly createsKeys: boolean;
   readonly algorithms: readonly RemoteKeyAlgorithmCapability[];
 };
 

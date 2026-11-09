@@ -71,12 +71,21 @@ const withRemoteKeys: ManagementCapabilitiesResource = {
   remoteKeyProviders: [
     {
       name: 'aws-kms',
+      createsKeys: true,
       algorithms: [
         { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
         { algorithm: 'RSA-OAEP-256', use: 'enc', secretType: 'rsa', keySizeBits: 3072 },
       ],
     },
   ],
+};
+
+const withBindOnlyRemoteKeys: ManagementCapabilitiesResource = {
+  ...exportRsaOnly,
+  remoteKeyProviders: withRemoteKeys.remoteKeyProviders?.map((provider) => ({
+    ...provider,
+    createsKeys: false,
+  })),
 };
 
 type Deferred<T> = {
@@ -494,6 +503,14 @@ describe('SecretsManager', () => {
       await renderManager({}, withRemoteKeys);
 
       expect(screen.queryByTestId('bind-remote-secret')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('create-secret'));
+      expect(screen.queryByTestId('secret-custody')).not.toBeInTheDocument();
+    });
+
+    it('offers binding but no custody in a provider that creates no keys', async () => {
+      await renderManager(remoteHandlers(), withBindOnlyRemoteKeys);
+
+      expect(screen.getByTestId('bind-remote-secret')).toBeInTheDocument();
       fireEvent.click(screen.getByTestId('create-secret'));
       expect(screen.queryByTestId('secret-custody')).not.toBeInTheDocument();
     });

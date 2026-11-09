@@ -34,7 +34,7 @@ internal class ManagementProblemResponseMiddleware(RequestDelegate next)
         var response = httpContext.Response;
         if (
             !response.HasStarted
-            && response.StatusCode is >= StatusCodes.Status400BadRequest and < 600
+            && ErrorStatusCodes.Contains(response.StatusCode)
             && response.ContentLength is null
             && string.IsNullOrEmpty(response.ContentType)
         )

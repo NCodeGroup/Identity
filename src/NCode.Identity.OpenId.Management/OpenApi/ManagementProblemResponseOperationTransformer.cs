@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.OpenApi;
+using NCode.Identity.OpenId.Management.Endpoints;
 
 namespace NCode.Identity.OpenId.Management.OpenApi;
 
@@ -20,7 +21,7 @@ namespace NCode.Identity.OpenId.Management.OpenApi;
 /// repeated on each route and none can drift from the others.
 /// </summary>
 // See ADR-1481.
-internal sealed class ManagementProblemResponseOperationTransformer : IOpenApiOperationTransformer
+internal class ManagementProblemResponseOperationTransformer : IOpenApiOperationTransformer
 {
     /// <summary>
     /// The description of a <c>401</c> response that its route does not describe.
@@ -97,7 +98,7 @@ internal sealed class ManagementProblemResponseOperationTransformer : IOpenApiOp
         {
             if (
                 !int.TryParse(key, NumberStyles.None, CultureInfo.InvariantCulture, out var code)
-                || code is < StatusCodes.Status400BadRequest or > 599
+                || !ErrorStatusCodes.Contains(code)
             )
             {
                 continue;

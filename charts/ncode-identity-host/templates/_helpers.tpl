@@ -646,11 +646,11 @@ release resolves its tenant with StaticSingle, else empty.
 {{- end }}
 
 {{/*
-The URL the console calls the server's management API through: managementConsole.managementApiUrl, else /api on the
-console's host.
+The URL the console calls the server's management API through: /api on the origin of the console's authority, the URL
+the server compares the console's DPoP proofs with.
 */}}
 {{- define "identity-host.managementConsole.managementApiUrl" -}}
-{{- .Values.managementConsole.managementApiUrl | default (printf "https://%s/api" .Values.managementConsole.host) }}
+{{- printf "%s/api" (regexFind "^https://[^/]+" (include "identity-host.managementConsole.authority" .)) }}
 {{- end }}
 
 {{/*
@@ -715,9 +715,6 @@ is applied. Rendered for its side effect only.
 {{- end }}
 {{- if contains "*" $console.host }}
 {{- fail "managementConsole.host must be a concrete host name, not a wildcard." }}
-{{- end }}
-{{- if not (has $console.host .Values.allowedHosts) }}
-{{- fail "allowedHosts must list managementConsole.host: the management host routes /api to the server." }}
 {{- end }}
 {{- $authority := include "identity-host.managementConsole.authority" . }}
 {{- if not (hasPrefix "https://" $authority) }}

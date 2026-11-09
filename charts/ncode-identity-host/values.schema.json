@@ -758,10 +758,6 @@
           "type": "string",
           "pattern": "^(https://.+)?$"
         },
-        "managementApiUrl": {
-          "type": "string",
-          "pattern": "^(https://.+)?$"
-        },
         "keyRings": {
           "type": "object",
           "additionalProperties": false,

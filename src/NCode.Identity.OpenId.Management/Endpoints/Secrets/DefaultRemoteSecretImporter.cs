@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -15,6 +14,7 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.RemoteKeys;
+using Nerdbank.Streams;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -214,9 +214,12 @@ internal class DefaultRemoteSecretImporter(
         CancellationToken cancellationToken
     )
     {
-        var challenge = Base64Url.EncodeToString(
-            RandomNumberGenerator.GetBytes(ChallengeSizeBytes)
+        using var challengeLease = BufferFactory.Rent(
+            ChallengeSizeBytes,
+            isSensitive: false,
+            out Memory<byte> challenge
         );
+        RandomNumberGenerator.Fill(challenge.Span);
 
         try
         {
@@ -243,13 +246,17 @@ internal class DefaultRemoteSecretImporter(
                         )
                     )
                 )
-                .EncodeAsync(challenge, cancellationToken);
+                .EncodeAsync((ReadOnlyMemory<byte>)challenge, cancellationToken);
 
-            var payload = await JoseSerializer.DecodeAsync(token, key, cancellationToken);
+            using var payload = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+            await JoseSerializer.DecodeAsync(
+                JoseSerializer.Parse(token),
+                key,
+                payload,
+                cancellationToken
+            );
 
-            return string.Equals(payload, challenge, StringComparison.Ordinal)
-                ? null
-                : DecryptionRefusal(reference);
+            return IsChallenge(payload, challenge.Span) ? null : DecryptionRefusal(reference);
         }
         catch (Exception exception) when (exception is JoseException or CryptographicException)
         {
@@ -263,6 +270,12 @@ internal class DefaultRemoteSecretImporter(
                 $"The key management service of the remote key provider '{reference.Provider}' did not decrypt with the key '{reference.KeyId}': it refused the key or the deployment's identity, or it could not be reached."
             );
         }
+    }
+
+    private static bool IsChallenge(Sequence<byte> payload, ReadOnlySpan<byte> challenge)
+    {
+        using var lease = payload.GetSpanLease(isSensitive: false);
+        return CryptographicOperations.FixedTimeEquals(lease.Span, challenge);
     }
 
     private static ManagementError DecryptionRefusal(RemoteKeyReference reference) =>

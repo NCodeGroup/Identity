@@ -90,12 +90,17 @@ jobs:
           refuse --set 'secretProtection.ownerRootKeys.providers={azure-key-vault}' --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
           refuse --set 'secretProtection.ownerRootKeys.providers={google-cloud-kms}' --set secretProtection.googleCloudKms.workloadIdentityFederation.provider=bad
           refuse --set 'secretProtection.ownerRootKeys.providers={nope}'
-          refuse --set secretProtection.remoteKeyProviders.awsKms.region=Not_A_Region
-          refuse --set secretProtection.remoteKeyProviders.awsKms.region=us-west-2 --set secretProtection.remoteKeyProviders.awsKms.pendingWindowInDays=6
-          refuse --set secretProtection.remoteKeyProviders.awsKms.region=us-west-2 --set secretProtection.remoteKeys.deployment=
-          refuse --set secretProtection.remoteKeyProviders.azureKeyVault.vaultUri=http://contoso.vault.azure.net
-          refuse --set secretProtection.remoteKeyProviders.googleCloudKms.keyRing=projects/p/locations/l/keyRings/r/cryptoKeys/k
-          refuse --set secretProtection.remoteKeyProviders.azureKeyVault.vaultUri=https://contoso.vault.azure.net --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
+          refuse --set secretProtection.remoteKeyProviders.awsKms.enabled=true --set secretProtection.remoteKeyProviders.awsKms.region=Not_A_Region
+          refuse --set secretProtection.remoteKeyProviders.awsKms.enabled=true --set secretProtection.remoteKeyProviders.awsKms.pendingWindowInDays=6
+          refuse --set secretProtection.remoteKeyProviders.awsKms.enabled=true --set secretProtection.remoteKeyProviders.awsKms.region=us-west-2 --set secretProtection.remoteKeys.deployment=
+          refuse --set secretProtection.remoteKeyProviders.azureKeyVault.enabled=true --set secretProtection.remoteKeyProviders.azureKeyVault.vaultUri=http://contoso.vault.azure.net
+          refuse --set secretProtection.remoteKeyProviders.googleCloudKms.enabled=true --set secretProtection.remoteKeyProviders.googleCloudKms.keyRing=projects/p/locations/l/keyRings/r/cryptoKeys/k
+          refuse --set secretProtection.remoteKeyProviders.azureKeyVault.enabled=true --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
+          refuse --set secretProtection.remoteKeyProviders.awsKms.enabled=yes
+          # A location registers nothing on its own: its vendor is enabled explicitly (ADR-1490).
+          refuse --set secretProtection.remoteKeyProviders.awsKms.region=us-west-2
+          refuse --set secretProtection.remoteKeyProviders.azureKeyVault.vaultUri=https://contoso.vault.azure.net
+          refuse --set secretProtection.remoteKeyProviders.googleCloudKms.keyRing=projects/my-project/locations/us-central1/keyRings/ncode-identity-tenant-keys
           refuse --set secretProtection.recovery.publicKeyConfigMap=
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com

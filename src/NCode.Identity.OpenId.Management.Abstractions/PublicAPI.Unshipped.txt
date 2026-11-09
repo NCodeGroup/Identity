@@ -90,6 +90,8 @@ NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabi
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.Algorithms.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource!>!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.Algorithms.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.CreatesKeys.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.CreatesKeys.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.Name.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.Name.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.RemoteKeyProviderCapabilityResource() -> void

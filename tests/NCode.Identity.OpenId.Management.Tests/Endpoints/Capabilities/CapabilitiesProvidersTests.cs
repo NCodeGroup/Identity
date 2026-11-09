@@ -96,7 +96,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         mockCatalog
             .Setup(x => x.Providers)
             .Returns([
-                new RemoteKeyProviderDescriptor { Name = "google-cloud-kms" },
+                new RemoteKeyProviderDescriptor { Name = "google-cloud-kms", CreatesKeys = false },
                 new RemoteKeyProviderDescriptor { Name = "aws-kms" },
             ])
             .Verifiable();
@@ -178,6 +178,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
             capabilities[RemoteKeyProviderCapabilitiesProvider.SectionName]
         );
         Assert.Equal(["aws-kms", "google-cloud-kms"], section.Select(x => x.Name));
+        Assert.Equal([true, false], section.Select(x => x.CreatesKeys));
 
         Assert.Equal(
             [

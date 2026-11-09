@@ -442,9 +442,12 @@ workload identity. The values are:
 - `secretProtection.remoteKeyProviders.googleCloudKms.keyRing`, and `hardwareProtected` (default `true`);
 - `secretProtection.remoteKeys.deployment`, which names this release's keys in a shared KMS scope (an AWS account, a
   vault or a key ring): lowercase letters, digits and hyphens, at most 40 characters. It is required when a provider is
-  registered;
+  registered. A deployment is one database of stored secrets: every replica and release that shares the database uses
+  its name, and no other deployment in the same AWS account, vault or key ring uses it, because each deployment
+  destroys every key of its name that its own database does not name;
 - `secretProtection.remoteKeys.sweepEnabled` (default `true`), `sweepInterval` (default `1.00:00:00`) and
-  `sweepGracePeriod` (default `1.00:00:00`, at least one hour), which control the background sweep that destroys the
+  `sweepGracePeriod` (default `1.00:00:00`, between one hour and 365 days), which control the background sweep that
+  destroys the
   keys no stored secret names
   ([ADR-1478](../../docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
 
@@ -482,6 +485,13 @@ server creates sign-only or decrypt-only keys:
 A key an operator binds through the management API needs only its own operation: AWS `kms:Sign`, `kms:Decrypt` or
 `kms:DeriveSharedSecret`, Azure `Key Vault Crypto User` on the key, Google `cloudkms.cryptoKeyVersions.useToSign` or
 `.useToDecrypt`.
+
+Scope the identity to the deployment's keys: on AWS, condition `kms:ScheduleKeyDeletion` on
+`aws:ResourceTag/ncode-identity:deployment` equal to the deployment name, and `kms:CreateKey` and `kms:TagResource` on
+`aws:RequestTag/ncode-identity:deployment`, so it creates and destroys only keys of its deployment (`kms:ListKeys`
+names no resource, and a bound key carries no such tag); on Azure, a role assignment cannot be conditioned on a key's
+tags, so give each deployment a vault of its own and a custom role without delete and purge; on Google, a grant on a key
+ring covers every crypto key in it, so give each deployment a key ring of its own.
 
 **Choosing a provider.** A tenant, a team or the platform selects a provider with the setting
 `tenant_key_provider`, whose value is empty (local keys) or one of `aws-kms`, `azure-key-vault` and

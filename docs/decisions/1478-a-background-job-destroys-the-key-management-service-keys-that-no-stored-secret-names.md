@@ -29,7 +29,9 @@ every listed key that no stored secret names and that is older than a grace peri
    hyphen-separated groups, at most 40 characters) is required when any remote key provider is described. It tags every
    created key (`ncode-identity:deployment` on AWS, `ncode-identity-deployment` on Azure tags and Google crypto key
    labels) and is hashed first into the group name, so deployments that share an account, a vault or a key ring never
-   share a group and never sweep each other's keys.
+   share a group and never sweep each other's keys. A deployment is one database of stored secrets: every replica and
+   release that shares the database uses its name, and no other deployment in the same AWS account, vault or key ring
+   uses it, because each deployment destroys every key of its name that its own database does not name.
 2. **The provider lists its keys.** `IRemoteKeyProvider.ListKeysAsync(RemoteKeyListRequest { Deployment },
    CancellationToken)` returns an `IAsyncEnumerable<RemoteKeyListing { KeyId, GroupName, CreatedWhen, OwnerId?,
    SecretId? }>` of the enabled keys (key versions) in the provider's configured location that carry an `ncid-` group
@@ -47,7 +49,7 @@ every listed key that no stored secret names and that is older than a grace peri
    `NCode.Identity.OpenId.Core`) waits for the platform, then at start and every `SweepInterval`, under the shared-state
    lease `remote-key-sweep:platform` that lasts half the interval, dispatches one `RemoteKeySweepJob { Provider }` per
    described provider through `IJobDispatcher`. The dispatch port gives each provider its own retries and lets a
-   durable dispatcher run it.
+   durable dispatcher run it. A provider whose dispatch fails is logged, and the others are dispatched.
 5. **A job handler sweeps one provider.** `RemoteKeySweepJobHandler` lists the provider's keys created at or before now
    minus `SweepGracePeriod`, only then reads every stored reference of that provider, and destroys each listed key that
    no reference names through `IRemoteSecretDestroyer.DestroyKeyAsync(RemoteKeyReference)`, the destroyer's bounded,
@@ -62,7 +64,7 @@ every listed key that no stored secret names and that is older than a grace peri
    | `Deployment` | none | required with a provider; the rule 1 format |
    | `SweepEnabled` | `true` | |
    | `SweepInterval` | one day | at least one minute, at most the timer maximum |
-   | `SweepGracePeriod` | one day | at least one hour |
+   | `SweepGracePeriod` | one day | between one hour and 365 days |
 
 7. **A destruction is audited.** A destroyed key emits `RemoteKeyAuditEvent`: event `remote_key.destroyed`, category
    `key`, actor `system`, resource `remote_key` whose identifier is the reference text, in the control-plane tenant,
@@ -73,7 +75,13 @@ every listed key that no stored secret names and that is older than a grace peri
 8. **Every destruction stays recoverable for the service's window.** AWS schedules a pending deletion, Azure disables
    the version and Google schedules the destruction.
 9. **Permissions.** AWS needs `kms:ListKeys`, `kms:ListResourceTags` and `kms:DescribeKey`. Azure `Key Vault Crypto
-   Officer` lists keys. Google needs `cloudkms.cryptoKeys.list` and `cloudkms.cryptoKeyVersions.list`.
+   Officer` lists keys. Google needs `cloudkms.cryptoKeys.list` and `cloudkms.cryptoKeyVersions.list`. Scoping the
+   identity to the deployment's keys limits what it destroys: on AWS, `kms:ScheduleKeyDeletion` conditioned on
+   `aws:ResourceTag/ncode-identity:deployment` equal to the deployment name, and `kms:CreateKey` and `kms:TagResource`
+   on `aws:RequestTag/ncode-identity:deployment` (`kms:ListKeys` names no resource, and a bound key carries no such
+   tag); on Azure, a vault of its own and a custom role without delete and purge, because a role assignment cannot be
+   conditioned on a key's tags; on Google, a key ring of its own, because a grant on a key ring covers every crypto key
+   in it.
 
 ## Options considered
 
@@ -88,6 +96,8 @@ every listed key that no stored secret names and that is older than a grace peri
 ## Consequences
 
 - A deployment names itself before it registers a provider.
+- Two deployments that share a scope and a name sweep each other's keys, so a name is unique to its database within a
+  scope.
 - Each sweep costs list calls proportional to the keys in the scope.
 - A destroyed key stays recoverable for the service's window.
 - A key whose tags cannot be read is never swept, so a provider that strips tags leaves its keys in place.

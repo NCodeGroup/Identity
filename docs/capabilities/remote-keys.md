@@ -125,14 +125,18 @@ without waiting, and a remote key awaits the service.
   also run the AES key unwrap locally.
 - **A remote key refuses an algorithm other than its row's** and a kind it does not hold: an RSA remote key signs or
   decrypts, and an ECC remote key signs or agrees.
-- **A malformed token never reaches a service.** The serializer decodes every binary segment before the unwrap.
+- **A malformed token never reaches a service.** The serializer decodes every binary segment before the unwrap,
+  and RSA-OAEP refuses an encrypted key that is not the size of the key's modulus, which fails at the tag like a refused
+  ciphertext.
 - **A refused ciphertext fails at the tag.** A `CryptographicException`, `JoseException` or `ArgumentException` from an
   unwrap substitutes a random content key (RFC 7516 §11.5), so the JWE fails authentication and a sender cannot tell
-  why. Any other exception (transport, `IOException`, cancellation) propagates.
+  why. Any other exception (transport, `IOException`, cancellation) propagates, and ends the decode of a JSON-serialized
+  JWE rather than moving to its next recipient.
 - **The tag authenticates every remote result.** A wrong key, or a service that answers with another key's result,
   fails the content decryption.
 - **A header's `kid` narrows the keys.** When the JWE header names a `kid` that an eligible decryption key has, the JWT
-  validator tries only the keys with that id, so a well-addressed token costs at most one service call per key.
+  validator tries only the keys with that id, so a well-addressed token costs at most one service call
+  per key, and a token whose `kid` names a held key that does not decrypt it is refused.
 - **COSE never uses a remote key.** COSE and CWT decryption is synchronous, and the synchronous `TryUnwrapKey` of these
   algorithms refuses a remote key.
 
@@ -212,7 +216,7 @@ which binds strictly. The `SecretProtection` section recognizes the `RemoteKeys`
 | `SecretProtection:RemoteKeys:Deployment` | none     | Names this deployment: lowercase letters and digits in hyphen-separated groups, at most 40 characters. Required when any provider is described. |
 | `SweepEnabled`                           | `true`   | Turns the sweep of orphaned keys on or off.                                                                          |
 | `SweepInterval`                          | one day  | How often the sweep runs: at least one minute, at most the timer maximum.                                            |
-| `SweepGracePeriod`                       | one day  | How old a key is before the sweep may destroy it: at least one hour.                                                 |
+| `SweepGracePeriod`                       | one day  | How old a key is before the sweep may destroy it: between one hour and 365 days.                                     |
 
 The reference host's Helm chart configures them with the `secretProtection.remoteKeyProviders` values (`awsKms.region`
 and `pendingWindowInDays`, `azureKeyVault.vaultUri` and `hardwareProtected`, `googleCloudKms.keyRing` and
@@ -293,7 +297,9 @@ destroys them.
 - **A deployment names itself.** `SecretProtection:RemoteKeys:Deployment` tags every created key
   (`ncode-identity:deployment` on AWS, `ncode-identity-deployment` on Azure tags and Google crypto key labels) and is
   hashed first into the key's `ncid-` group name, so deployments that share an AWS account, a vault or a key ring never
-  share a group and never sweep each other's keys.
+  share a group and never sweep each other's keys. A deployment is one database of stored secrets: every replica and
+  release that shares the database uses its name, and no other deployment in the same AWS account, vault or key ring
+  uses it, because each deployment destroys every key of its name that its own database does not name.
 - **Each service lists the deployment's keys.** The provider lists the enabled keys (key versions) in its configured
   location that carry an `ncid-` group and the deployment, as a stream. AWS lists the region's keys, reads their tags
   and describes each (customer-managed and `Enabled`); Azure lists the keys named `ncid-*`, then their enabled versions
@@ -302,7 +308,8 @@ destroys them.
 - **A hosted service dispatches the sweep.** `RemoteKeySweepService` waits for the platform, then at start and every
   `SweepInterval`, under the shared-state lease `remote-key-sweep:platform` that lasts half the interval, dispatches one
   `RemoteKeySweepJob` per described provider through `IJobDispatcher`, so each provider has its own retries and a
-  durable dispatcher can run it. `SweepEnabled` set to `false` turns it off.
+  durable dispatcher can run it. `SweepEnabled` set to `false` turns it off. A provider whose dispatch fails is logged,
+  and the others are dispatched.
 - **A job sweeps one provider.** `RemoteKeySweepJobHandler` lists the provider's keys created at or before the time of the pass minus
   `SweepGracePeriod`, only then reads every stored reference of that provider for every owner, and destroys each listed
   key that no reference names through the destroyer's bounded, logged path. Listing before reading means a key recorded
@@ -333,6 +340,18 @@ read from configuration.
 
 A key an operator binds needs only its own operation: AWS `kms:Sign`, `kms:Decrypt` or `kms:DeriveSharedSecret`, Azure
 `Key Vault Crypto User` on the key, Google `cloudkms.cryptoKeyVersions.useToSign` or `.useToDecrypt`.
+
+**Scoping the identity to the deployment's keys.**
+
+- **AWS:** condition `kms:ScheduleKeyDeletion` on `aws:ResourceTag/ncode-identity:deployment` equal to the deployment
+  name, and `kms:CreateKey` and `kms:TagResource` on `aws:RequestTag/ncode-identity:deployment` equal to it, so the
+  identity can create and destroy only keys of its deployment. `kms:ListKeys` names no resource, and a bound key carries
+  no such tag, so its own operation stays unconditioned.
+- **Azure:** a role assignment cannot be conditioned on a key's tags, so give each deployment a vault of its own. A
+  custom role with `Microsoft.KeyVault/vaults/keys/read`, `Microsoft.KeyVault/vaults/keys/create/action`,
+  `Microsoft.KeyVault/vaults/keys/update/action`, `Microsoft.KeyVault/vaults/keys/sign/action` and
+  `Microsoft.KeyVault/vaults/keys/unwrap/action` grants what the server calls and leaves out delete and purge.
+- **Google:** a grant on a key ring covers every crypto key in it, so give each deployment a key ring of its own.
 
 The server creates sign-only or decrypt-only keys, hardware-protected by default on Azure and Google, and destroys only
 the keys it created. Its logs carry identifiers only, never an input, a digest, a signature, a content key or a shared

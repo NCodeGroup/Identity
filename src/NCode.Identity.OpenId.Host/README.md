@@ -92,18 +92,18 @@ provider selects it and validates its settings when the host starts. A tenant se
 tenant setting `OpenId:Platform:Settings:tenant_key_provider` (`aws-kms`, `azure-key-vault` or
 `google-cloud-kms`).
 
-| Setting                                                                | Meaning                                                                                  |
-|------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| `SecretProtection:RemoteKeyProviders:AwsKms:Region`                    | AWS region in which keys are created, such as `us-west-2`                                |
-| `SecretProtection:RemoteKeyProviders:AwsKms:PendingWindowInDays`       | Days, 7 to 30, that AWS KMS waits before it deletes a destroyed key (default `30`)       |
-| `SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri`           | URI of the Key Vault or Managed HSM, such as `https://contoso.vault.azure.net`           |
-| `SecretProtection:RemoteKeyProviders:AzureKeyVault:HardwareProtected`  | `false` creates software-protected keys (default `true`)                                 |
-| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing`           | Resource name of the key ring, `projects/<project>/locations/<location>/keyRings/<ring>` |
-| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:HardwareProtected` | `false` creates software-protected keys (default `true`)                                 |
-| `SecretProtection:RemoteKeys:Deployment`                               | Required with a provider: lowercase letters, digits and hyphens, at most 40              |
-| `SecretProtection:RemoteKeys:SweepEnabled`                             | `false` turns the orphaned-key sweep off (default `true`)                                |
-| `SecretProtection:RemoteKeys:SweepInterval`                            | Time between sweeps (default one day)                                                    |
-| `SecretProtection:RemoteKeys:SweepGracePeriod`                         | Age a key reaches before the sweep may destroy it (default one day)                      |
+| Setting                                                                | Meaning                                                                                                                       |
+|------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `SecretProtection:RemoteKeyProviders:AwsKms:Region`                    | AWS region in which keys are created, such as `us-west-2`                                                                     |
+| `SecretProtection:RemoteKeyProviders:AwsKms:PendingWindowInDays`       | Days, 7 to 30, that AWS KMS waits before it deletes a destroyed key (default `30`)                                            |
+| `SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri`           | URI of the Key Vault or Managed HSM, such as `https://contoso.vault.azure.net`                                                |
+| `SecretProtection:RemoteKeyProviders:AzureKeyVault:HardwareProtected`  | `false` creates software-protected keys (default `true`)                                                                      |
+| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing`           | Resource name of the key ring, `projects/<project>/locations/<location>/keyRings/<ring>`                                      |
+| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:HardwareProtected` | `false` creates software-protected keys (default `true`)                                                                      |
+| `SecretProtection:RemoteKeys:Deployment`                               | Required with a provider: lowercase letters, digits and hyphens, at most 40; unique to the database within a shared KMS scope |
+| `SecretProtection:RemoteKeys:SweepEnabled`                             | `false` turns the orphaned-key sweep off (default `true`)                                                                     |
+| `SecretProtection:RemoteKeys:SweepInterval`                            | Time between sweeps (default one day)                                                                                         |
+| `SecretProtection:RemoteKeys:SweepGracePeriod`                         | Age a key reaches before the sweep may destroy it (default one day, between one hour and 365 days)                            |
 
 Each provider uses its SDK's default credential chain, and no credential is read from configuration. The server creates
 sign-only or decrypt-only keys and destroys only the keys it created. The deployment's identity needs these permissions:
@@ -113,6 +113,13 @@ sign-only or decrypt-only keys and destroys only the keys it created. The deploy
 - Azure: the `Key Vault Crypto Officer` role on the vault.
 - Google: `cloudkms.cryptoKeys.create` and `cloudkms.cryptoKeys.list`, and `cloudkms.cryptoKeyVersions.create`, `.list`,
   `.get`, `.viewPublicKey`, `.useToSign`, `.useToDecrypt` and `.destroy` on the key ring.
+
+Scope the identity to the deployment's keys: on AWS, condition `kms:ScheduleKeyDeletion` on
+`aws:ResourceTag/ncode-identity:deployment` equal to the deployment name, and `kms:CreateKey` and `kms:TagResource` on
+`aws:RequestTag/ncode-identity:deployment`, so it creates and destroys only keys of its deployment (`kms:ListKeys`
+names no resource, and a bound key carries no such tag); on Azure, a role assignment cannot be conditioned on a key's
+tags, so give each deployment a vault of its own and a custom role without delete and purge; on Google, a grant on a key
+ring covers every crypto key in it, so give each deployment a key ring of its own.
 
 The management API creates a tenant's key in a registered provider with `POST /api/tenants/{tenantId}/secrets/remote`
 and binds a key that a provider already holds, once it proves it signs or decrypts, with

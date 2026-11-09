@@ -103,7 +103,6 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
             .Setup(x => x.TryGetProvider(ProviderName, out provider))
             .Returns(true)
             .Verifiable();
-        _provider.Setup(x => x.Name).Returns(ProviderName).Verifiable();
         _provider
             .Setup(x =>
                 x.ListKeysAsync(

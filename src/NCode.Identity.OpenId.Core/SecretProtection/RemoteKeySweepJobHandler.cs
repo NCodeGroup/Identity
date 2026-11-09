@@ -71,7 +71,7 @@ internal sealed class RemoteKeySweepJobHandler(
             return;
         }
 
-        var providerName = provider.Name;
+        // The catalog finds a provider by its ordinal name, so the job's name is the provider's name.
         var sweptBefore = TimeProvider.GetUtcNow() - RemoteKeys.SweepGracePeriod;
 
         // The keys are listed first, so a key that a secret records during the pass is never a candidate.
@@ -90,7 +90,7 @@ internal sealed class RemoteKeySweepJobHandler(
         if (candidates.Count == 0)
             return;
 
-        var referenced = await ReadReferencedKeyIdsAsync(providerName, cancellationToken);
+        var referenced = await ReadReferencedKeyIdsAsync(job.Provider, cancellationToken);
 
         foreach (var listing in candidates)
         {
@@ -98,7 +98,7 @@ internal sealed class RemoteKeySweepJobHandler(
                 continue;
 
             var destroyed = await RemoteSecretDestroyer.DestroyKeyAsync(
-                new RemoteKeyReference(providerName, listing.KeyId)
+                new RemoteKeyReference(job.Provider, listing.KeyId)
             );
             if (!destroyed)
                 continue;
@@ -106,10 +106,10 @@ internal sealed class RemoteKeySweepJobHandler(
             await PostCommitWork.RunAsync(
                 TimeProvider,
                 PublishAsync,
-                CreateEvent(providerName, listing)
+                CreateEvent(job.Provider, listing)
             );
 
-            Logger.RemoteKeyOrphanDestroyed(providerName, listing.KeyId, listing.GroupName);
+            Logger.RemoteKeyOrphanDestroyed(job.Provider, listing.KeyId, listing.GroupName);
         }
     }
 

@@ -913,4 +913,35 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
     }
 
     #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData(
+        "POST",
+        "/tenants/{tenantId}/secrets/remote",
+        new[] { 400, 401, 403, 404, 409, 412, 502 }
+    )]
+    [InlineData(
+        "POST",
+        "/tenants/{tenantId}/secrets/remote/import",
+        new[] { 400, 401, 403, 404, 409, 412, 502 }
+    )]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(
+                CreateHandler(),
+                httpMethod,
+                routePattern
+            )
+        );
+    }
+
+    #endregion
 }

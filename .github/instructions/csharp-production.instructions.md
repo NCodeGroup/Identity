@@ -614,10 +614,18 @@ than inlining the rationale.
   a missing resource `ManagementProblems.ResourceNotFound()`, never a bare `TypedResults.NotFound()`. Each mapping
   declares its handler's problems with `ProducesProblem` (`ProducesValidationProblem` for a validation problem), and
   `412` when it saves or checks `If-Match`; `ManagementRootGroup` declares the `409` and `503` of its filters on every
-  route. A handler's `Map_Always_DeclaresEveryProblemARouteAnswers` and `ManagementRouteProblemDeclarationTests` pin the
-  declarations. See
-  [ADR-1186](../../docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md) and
-  [ADR-1480](../../docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md).
+  route. `ManagementProblemResponseMiddleware`, which the management library adds through an `IStartupFilter`, answers
+  every error under the management prefix that carries no body as a problem, a failed request binding and the router's
+  `404`, `405` and `415` included. A route that binds a JSON body declares `400` and `415`, and one with a parameter
+  that can fail to parse declares `400`. A handler method's `<response>` lines describe the route's own answers, one per
+  code; the route group describes `401`, `403`, `412`, `415`, its `409` and `503`, and the binding `400`. A handler's
+  `Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers`, `ManagementRouteProblemDeclarationTests`,
+  `ManagementRequestBindingTests` and `ManagementOpenApiDocumentTests` pin them. See
+  [ADR-1186](../../docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md),
+  [ADR-1480](../../docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
+  [ADR-1481](../../docs/decisions/1481-a-management-routes-problem-responses-say-when-each-occurs.md),
+  [ADR-1482](../../docs/decisions/1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md) and
+  [ADR-1483](../../docs/decisions/1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md).
 - 👁 **A stored settings document that cannot be honored is answered `409` once, by the management route group.** A
   management request resolves a document a store holds with
   `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the platform's committed one

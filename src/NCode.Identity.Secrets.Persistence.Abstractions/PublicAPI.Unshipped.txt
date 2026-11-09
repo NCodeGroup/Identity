@@ -68,8 +68,6 @@ NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.SecretId.get -> strin
 NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.SecretId.init -> void
 NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.SecretType.get -> string!
 NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.SecretType.init -> void
-NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.Use.get -> string!
-NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.Use.init -> void
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.ActivatesWhen.init -> void
@@ -96,8 +94,6 @@ NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.SecretId.get -> s
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.SecretId.init -> void
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.SecretType.get -> string!
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.SecretType.init -> void
-NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.Use.get -> string!
-NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.Use.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.get -> string?
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.init -> void

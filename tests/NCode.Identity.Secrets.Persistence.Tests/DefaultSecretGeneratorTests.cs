@@ -1087,8 +1087,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         string provider = RemoteKeyProviderNames.AwsKms,
         DateTimeOffset? activatesWhen = null,
         DateTimeOffset? retiresWhen = null,
-        string? managedBy = null,
-        string use = "sig"
+        string? managedBy = null
     ) =>
         new()
         {
@@ -1098,7 +1097,6 @@ public class DefaultSecretGeneratorTests : BaseTests
             SecretType = secretType,
             KeySizeBits = keySizeBits,
             Curve = curve,
-            Use = use,
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ActivatesWhen = activatesWhen,
@@ -1260,27 +1258,13 @@ public class DefaultSecretGeneratorTests : BaseTests
     }
 
     [Fact]
-    public async Task GenerateRemoteSecretAsync_UseDiffersFromTheRow_ThrowsBeforeCreating()
-    {
-        var request = CreateRemoteRequest(algorithm: "RSA-OAEP-256", use: "sig");
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
-        );
-
-        Assert.Contains("'RSA-OAEP-256'", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("'enc'", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("'sig'", exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task GenerateRemoteSecretAsync_DecryptionRow_StoresAnEncryptionSecret()
     {
         var spki = CreateRsaSubjectPublicKeyInfo();
         SetupCreateAndReadKey(OaepRow, spki);
 
         var secret = await _generator.GenerateRemoteSecretAsync(
-            CreateRemoteRequest(algorithm: "RSA-OAEP-256", use: "enc"),
+            CreateRemoteRequest(algorithm: "RSA-OAEP-256"),
             CancellationToken.None
         );
 
@@ -1453,7 +1437,6 @@ public class DefaultSecretGeneratorTests : BaseTests
             SecretType = secretType,
             KeySizeBits = keySizeBits,
             Curve = curve,
-            Use = "sig",
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
@@ -1501,6 +1484,24 @@ public class DefaultSecretGeneratorTests : BaseTests
         Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
         Assert.Equal(256, secret.KeySizeBits);
         Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+    }
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_DecryptionRow_StoresAnEncryptionSecret()
+    {
+        var spki = CreateRsaSubjectPublicKeyInfo();
+        SetupGetPublicKey(OaepRow, spki);
+
+        var secret = await _generator.BindRemoteSecretAsync(
+            CreateBindRequest(algorithm: "RSA-OAEP-256"),
+            CancellationToken.None
+        );
+
+        Assert.Equal(SecretKeyUses.Encryption, secret.Use);
+        Assert.Equal("RSA-OAEP-256", secret.Algorithm);
+        Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
+        Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+        Assert.Equal(SecretOrigins.Supplied, secret.Origin);
     }
 
     [Theory]
@@ -1602,7 +1603,6 @@ public class DefaultSecretGeneratorTests : BaseTests
             KeyId = "",
             SecretType = SecretTypes.Rsa,
             KeySizeBits = 2048,
-            Use = "sig",
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),

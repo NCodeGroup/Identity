@@ -135,17 +135,17 @@ public interface ISecretGenerator
     );
 
     /// <summary>
-    /// Creates a signing key in the key management service that the request names, reads its public half, and destroys
+    /// Creates a key in the key management service that the request names, reads its public half, and destroys
     /// the key when anything after its creation fails, and returns a <see cref="PersistedSecret"/> that stores the
-    /// public key and a reference to the key. The private key never leaves the service, so nothing is protected under a
-    /// master key. The returned secret's <see cref="PersistedSecret.ConcurrencyToken"/> is left unset for the store to
-    /// assign.
+    /// public key and a reference to the key. The secret takes the use of its algorithm row. The private key never
+    /// leaves the service, so nothing is protected under a master key. The returned secret's
+    /// <see cref="PersistedSecret.ConcurrencyToken"/> is left unset for the store to assign.
     /// </summary>
     /// <param name="request">The <see cref="GenerateRemoteSecretRequest"/> describing the secret to generate.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="PersistedSecret"/> with the <see cref="SecretEncodings.Remote"/> encoding.</returns>
     /// <exception cref="RemoteSecretRefusedException">The secret type does not support remote keys, the provider
-    /// is not registered, no remote signing algorithm matches the request, or the key the service created does not
+    /// is not registered, no algorithm row matches the request, or the key the service created does not
     /// have the requested size or curve. No key is created for the first three; for the last, and for
     /// any other failure after the service creates the key, the key is destroyed.</exception>
     // See ADR-1471.
@@ -155,9 +155,9 @@ public interface ISecretGenerator
     );
 
     /// <summary>
-    /// Reads the public half of a signing key that the key management service the request names already holds, checks
-    /// that it is a key of the type, size and curve of the request's remote signing algorithm, and returns a
-    /// <see cref="PersistedSecret"/> that stores the public key and a reference to the key, with
+    /// Reads the public half of a key that the key management service the request names already holds, checks
+    /// that it is a key of the type, size and curve of the request's algorithm row, and returns a
+    /// <see cref="PersistedSecret"/> that stores the public key and a reference to the key, with the use of the row,
     /// <see cref="PersistedSecret.Origin"/> <see cref="SecretOrigins.Supplied"/> and no
     /// <see cref="PersistedSecret.ManagedBy"/>, so the server never destroys the key. The returned secret's
     /// <see cref="PersistedSecret.ConcurrencyToken"/> is left unset for the store to assign.
@@ -166,7 +166,7 @@ public interface ISecretGenerator
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="PersistedSecret"/> with the <see cref="SecretEncodings.Remote"/> encoding.</returns>
     /// <exception cref="RemoteSecretRefusedException">The secret type does not support remote keys, the provider is
-    /// not registered, no remote signing algorithm matches the request, or the public half the service returns cannot
+    /// not registered, no algorithm row matches the request, or the public half the service returns cannot
     /// be read as a key of the secret type or does not have the algorithm's size or curve.</exception>
     /// <exception cref="System.ArgumentException">The request's key identifier is empty, or the provider does not read
     /// it.</exception>

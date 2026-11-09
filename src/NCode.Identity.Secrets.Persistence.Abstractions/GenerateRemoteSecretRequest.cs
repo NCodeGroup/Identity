@@ -50,12 +50,8 @@ public sealed class GenerateRemoteSecretRequest
     public string? Curve { get; init; }
 
     /// <summary>
-    /// Gets the intended use for the generated secret. See <c>SecretKeyUses</c> for possible values.
-    /// </summary>
-    public required string Use { get; init; }
-
-    /// <summary>
-    /// Gets the JOSE <c>alg</c> value of the signature algorithm the generated secret signs with.
+    /// Gets the JOSE <c>alg</c> value of the row's algorithm: a signature algorithm the key signs with, or a
+    /// key-management algorithm it unwraps content keys with. The row gives the key its use.
     /// </summary>
     public required string Algorithm { get; init; }
 
@@ -65,7 +61,7 @@ public sealed class GenerateRemoteSecretRequest
     public required DateTimeOffset CreatedWhen { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="DateTimeOffset"/> when the generated secret starts to sign, or <c>null</c> to activate it
+    /// Gets the <see cref="DateTimeOffset"/> when the generated secret starts to sign or encrypt, or <c>null</c> to activate it
     /// when it is created. A key published ahead of its use names a later instant. Never before
     /// <see cref="CreatedWhen"/>.
     /// </summary>
@@ -73,7 +69,7 @@ public sealed class GenerateRemoteSecretRequest
     public DateTimeOffset? ActivatesWhen { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="DateTimeOffset"/> when the generated secret stops signing while it still verifies, or
+    /// Gets the <see cref="DateTimeOffset"/> when the generated secret stops signing or encrypting while it still verifies or decrypts, or
     /// <c>null</c> to retire it when it expires. Never before <see cref="ActivatesWhen"/>, never after
     /// <see cref="ExpiresWhen"/>.
     /// </summary>

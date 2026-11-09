@@ -7,10 +7,10 @@ using NCode.Identity.Secrets.RemoteKeys;
 namespace NCode.Identity.Secrets.Persistence;
 
 /// <summary>
-/// The key type descriptor, the registered provider and the provider's signing algorithm row that a remote key
-/// request resolves to, before the key management service is called.
+/// The key type descriptor, the registered provider and the provider's algorithm row that a remote key request
+/// resolves to, before the key management service is called.
 /// </summary>
-internal sealed class RemoteSigningResolution
+internal sealed class RemoteKeyResolution
 {
     /// <summary>
     /// Gets the descriptor of the key type, which a key management service can hold.
@@ -23,7 +23,7 @@ internal sealed class RemoteSigningResolution
     public required IRemoteKeyProvider Provider { get; init; }
 
     /// <summary>
-    /// Gets the provider's row for the key.
+    /// Gets the provider's row for the key, of any kind.
     /// </summary>
-    public required RemoteSigningAlgorithm Algorithm { get; init; }
+    public required RemoteKeyAlgorithm Algorithm { get; init; }
 }

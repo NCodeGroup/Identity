@@ -56,6 +56,65 @@
           "minimum": 600
         }
       }
+    },
+    "remoteKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "keyId",
+        "algorithm",
+        "secretType",
+        "keySizeBits"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "aws-kms",
+            "azure-key-vault",
+            "google-cloud-kms"
+          ]
+        },
+        "keyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm": {
+          "type": "string",
+          "minLength": 1
+        },
+        "secretType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "keySizeBits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "curve": {
+          "type": "string"
+        }
+      }
+    },
+    "keyRing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pemSecret": {
+          "type": "string"
+        },
+        "remoteKeys": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9]+([._-][A-Za-z0-9]+)*$",
+            "maxLength": 64
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/remoteKey"
+          }
+        }
+      }
     }
   },
   "properties": {
@@ -712,6 +771,51 @@
             },
             "dpopKeySecret": {
               "type": "string"
+            }
+          }
+        },
+        "keyRings": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "client": {
+              "$ref": "#/definitions/keyRing"
+            },
+            "dpop": {
+              "$ref": "#/definitions/keyRing"
+            }
+          }
+        },
+        "secretProtection": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "awsKms": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "webIdentity": {
+                  "$ref": "#/definitions/awsWebIdentity"
+                }
+              }
+            },
+            "azureKeyVault": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "workloadIdentity": {
+                  "$ref": "#/definitions/azureWorkloadIdentity"
+                }
+              }
+            },
+            "googleCloudKms": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "workloadIdentityFederation": {
+                  "$ref": "#/definitions/googleWorkloadIdentityFederation"
+                }
+              }
             }
           }
         },

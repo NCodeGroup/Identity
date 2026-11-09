@@ -14,10 +14,10 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 // See ADR-1221 (intervals and retentions are configured and validated when the host starts) and ADR-1407.
 internal sealed class MasterKeyOptionsValidator : IValidateOptions<SecretProtectionOptions>
 {
-    internal static readonly TimeSpan MinimumRotationPeriod = TimeSpan.FromDays(1);
-    internal static readonly TimeSpan MinimumRefreshInterval = TimeSpan.FromSeconds(1);
-    internal static readonly TimeSpan MaximumRefreshInterval = TimeSpan.FromHours(1);
-    internal static readonly TimeSpan MinimumMaintenanceInterval = TimeSpan.FromMinutes(1);
+    internal static TimeSpan MinimumRotationPeriod { get; } = TimeSpan.FromDays(1);
+    internal static TimeSpan MinimumRefreshInterval { get; } = TimeSpan.FromSeconds(1);
+    internal static TimeSpan MaximumRefreshInterval { get; } = TimeSpan.FromHours(1);
+    internal static TimeSpan MinimumMaintenanceInterval { get; } = TimeSpan.FromMinutes(1);
 
     private static string Key(string member) =>
         $"{SecretProtectionOptions.DefaultSectionName}:{nameof(SecretProtectionOptions.MasterKeys)}:{member}";

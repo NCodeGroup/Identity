@@ -14,20 +14,21 @@ internal static class ManagementOpenApiTags
     /// <summary>
     /// The names of the management tags.
     /// </summary>
-    public static readonly FrozenSet<string> Names = new[]
-    {
-        OpenIdConstants.EndpointTags.Clients,
-        OpenIdConstants.EndpointTags.Grants,
-        OpenIdConstants.EndpointTags.AuditRecords,
-        OpenIdConstants.EndpointTags.Sessions,
-        OpenIdConstants.EndpointTags.ClientGrants,
-        OpenIdConstants.EndpointTags.ResourceServers,
-        OpenIdConstants.EndpointTags.Platform,
-        OpenIdConstants.EndpointTags.Tenants,
-        OpenIdConstants.EndpointTags.Teams,
-        OpenIdConstants.EndpointTags.LocalAccounts,
-        OpenIdConstants.EndpointTags.Principals,
-        OpenIdConstants.EndpointTags.Capabilities,
-        OpenIdConstants.EndpointTags.Caller,
-    }.ToFrozenSet(StringComparer.Ordinal);
+    public static FrozenSet<string> Names { get; } =
+        new[]
+        {
+            OpenIdConstants.EndpointTags.Clients,
+            OpenIdConstants.EndpointTags.Grants,
+            OpenIdConstants.EndpointTags.AuditRecords,
+            OpenIdConstants.EndpointTags.Sessions,
+            OpenIdConstants.EndpointTags.ClientGrants,
+            OpenIdConstants.EndpointTags.ResourceServers,
+            OpenIdConstants.EndpointTags.Platform,
+            OpenIdConstants.EndpointTags.Tenants,
+            OpenIdConstants.EndpointTags.Teams,
+            OpenIdConstants.EndpointTags.LocalAccounts,
+            OpenIdConstants.EndpointTags.Principals,
+            OpenIdConstants.EndpointTags.Capabilities,
+            OpenIdConstants.EndpointTags.Caller,
+        }.ToFrozenSet(StringComparer.Ordinal);
 }

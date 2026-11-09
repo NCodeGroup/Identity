@@ -9,8 +9,8 @@ namespace NCode.Identity.Bff.Tests.Tokens;
 
 public class BffTokenCacheTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
-    private static readonly TimeSpan Margin = TimeSpan.FromSeconds(30);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private static TimeSpan Margin { get; } = TimeSpan.FromSeconds(30);
 
     private static BffStoredAccessToken CreateToken(
         string value,

@@ -8,8 +8,8 @@ namespace NCode.Identity.Bff.Tests.Tokens;
 
 public class BffRefreshLocksTests : BaseTests
 {
-    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan ShortTimeout = TimeSpan.FromMilliseconds(50);
+    private static TimeSpan WaitTimeout { get; } = TimeSpan.FromSeconds(30);
+    private static TimeSpan ShortTimeout { get; } = TimeSpan.FromMilliseconds(50);
 
     private const string Purpose = BffRefreshLocks.UserPurpose;
 

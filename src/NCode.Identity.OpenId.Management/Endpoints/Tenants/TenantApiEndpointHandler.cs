@@ -165,35 +165,91 @@ internal class TenantApiEndpointHandler(
         teamTenants
             .MapPost("", CreateTenantAsync)
             .Produces<TenantResource>(StatusCodes.Status201Created)
-            .ProducesValidationProblem();
-        teamTenants.MapGet("", ListTeamTenantsAsync).Produces<CollectionResource<TenantResource>>();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+        teamTenants
+            .MapGet("", ListTeamTenantsAsync)
+            .Produces<CollectionResource<TenantResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
         teamTenants
             .MapGet("/{tenantId}/address", GetTeamTenantAddressAsync)
-            .Produces<TenantAddressResource>();
+            .Produces<TenantAddressResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
-        tenants.MapGet("", ListTenantsAsync).Produces<CollectionResource<TenantResource>>();
-        tenants.MapGet("/{tenantId}", GetTenantAsync).Produces<TenantResource>();
-        tenants.MapPatch("/{tenantId}", UpdateTenantAsync).Produces(StatusCodes.Status204NoContent);
+        tenants
+            .MapGet("", ListTenantsAsync)
+            .Produces<CollectionResource<TenantResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+        tenants
+            .MapGet("/{tenantId}", GetTenantAsync)
+            .Produces<TenantResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        tenants
+            .MapPatch("/{tenantId}", UpdateTenantAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         tenants
             .MapDelete("/{tenantId}", DeleteTenantAsync)
-            .Produces(StatusCodes.Status204NoContent);
-        tenants.MapGet("/{tenantId}/address", GetAddressAsync).Produces<TenantAddressResource>();
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+        tenants
+            .MapGet("/{tenantId}/address", GetAddressAsync)
+            .Produces<TenantAddressResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         tenants
             .MapGet("/{tenantId}/usage", GetUsageAsync)
             .Produces<TenantUsageResource>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
 
-        tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
+        tenants
+            .MapGet("/{tenantId}/settings", GetSettingsAsync)
+            .Produces<TenantSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         tenants
             .MapGet("/{tenantId}/settings/limits", GetSettingLimitsAsync)
-            .Produces<SettingLimitsResource>();
+            .Produces<SettingLimitsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         tenants
             .MapPatch("/{tenantId}/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         tenants
             .MapGet("/{tenantId}/effective-settings", GetEffectiveSettingsAsync)
-            .Produces<TenantEffectiveSettingsResource>();
+            .Produces<TenantEffectiveSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         tenants
             .MapGet("/{tenantId}/secrets", GetSecretsAsync)
@@ -250,49 +306,90 @@ internal class TenantApiEndpointHandler(
         tenants
             .MapGet("/{tenantId}/encryption-keys", GetEncryptionKeysAsync)
             .Produces<EncryptionKeysResource>()
-            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         tenants
             .MapPost("/{tenantId}/encryption-keys/rekey", RekeyEncryptionKeysAsync)
             .Produces<EncryptionKeyRotationResource>()
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         tenants
             .MapPut("/{tenantId}/encryption-keys/root-key", SetRootKeyAsync)
             .Produces<EncryptionRootKeyChangeResource>()
             .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
-            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         tenants
             .MapDelete("/{tenantId}/encryption-keys/root-key", RemoveRootKeyAsync)
             .Produces(StatusCodes.Status204NoContent)
             .Produces<EncryptionRootKeyResource>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         tenants
             .MapPost("/{tenantId}/encryption-keys/root-key/validate", ValidateRootKeyAsync)
             .Produces<EncryptionRootKeyResource>()
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
-        tenants.MapGet("/{tenantId}/owners", ListOwnersAsync).Produces<RoleListResource>();
+        tenants
+            .MapGet("/{tenantId}/owners", ListOwnersAsync)
+            .Produces<RoleListResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         tenants
             .MapPost("/{tenantId}/owners", AddOwnerAsync)
             .Produces<RoleHolderResource>(StatusCodes.Status201Created)
-            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         tenants
             .MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
-        tenants.MapGet("/{tenantId}/admins", ListAdminsAsync).Produces<RoleListResource>();
+        tenants
+            .MapGet("/{tenantId}/admins", ListAdminsAsync)
+            .Produces<RoleListResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         tenants
             .MapPost("/{tenantId}/admins", AddAdminAsync)
             .Produces<RoleHolderResource>(StatusCodes.Status201Created)
-            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         tenants
             .MapDelete("/{tenantId}/admins/{principalId}", RemoveAdminAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     /// <summary>
@@ -650,7 +747,7 @@ internal class TenantApiEndpointHandler(
         var team = await teamStore.GetOrDefaultAsync(teamId, cancellationToken);
         if (team is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // A tenant is named by its creator (ADR-1159); the validator checks the name with the rest of its address.
@@ -846,7 +943,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await PreviewAddressAsync(
@@ -903,7 +1000,7 @@ internal class TenantApiEndpointHandler(
             .GetOrDefaultAsync(teamId, cancellationToken);
         if (team is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var exists =
@@ -1011,7 +1108,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var model = new UpdateTenantRequest
@@ -1118,7 +1215,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Core preconditions (no-dependents) are asserted by the validator (ADR-1014).
@@ -1516,7 +1613,7 @@ internal class TenantApiEndpointHandler(
 
         if (tenantSettings is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (
@@ -1524,7 +1621,7 @@ internal class TenantApiEndpointHandler(
             && !string.Equals(ifMatch, tenantSettings.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return ManagementProblems.PreconditionFailed("settings");
         }
 
         var jsonObject = ToJsonObject(tenantSettings.Value);
@@ -1557,7 +1654,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var changedLimits = SettingSerializer.GetChangedLimits(tenantSettings.Value, settingsValue);
@@ -1681,7 +1778,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
@@ -1796,7 +1893,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
@@ -1972,7 +2069,7 @@ internal class TenantApiEndpointHandler(
         var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
         if (secret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (
@@ -1980,7 +2077,7 @@ internal class TenantApiEndpointHandler(
             && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return ManagementProblems.PreconditionFailed("secret");
         }
 
         var metadataError = SecretValidator.ValidateUpdate(secret, request);
@@ -2046,7 +2143,7 @@ internal class TenantApiEndpointHandler(
         var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
         if (secret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var secretValues = ToResourceValues(ToSecretResource(secret));
@@ -2277,7 +2374,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // An owner that a registered policy refuses, such as the control-plane tenant, reports no root key providers.
@@ -2325,7 +2422,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await EncryptionKeyEndpoints.RekeyAsync(
@@ -2374,7 +2471,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // A registered policy decides which tenants can bring a root key; see ADR-1414.
@@ -2425,7 +2522,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await EncryptionKeyEndpoints.RemoveRootKeyAsync(
@@ -2467,7 +2564,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await EncryptionKeyEndpoints.ValidateRootKeyAsync(

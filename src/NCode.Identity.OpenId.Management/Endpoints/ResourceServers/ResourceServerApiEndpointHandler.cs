@@ -125,48 +125,102 @@ internal class ResourceServerApiEndpointHandler(
 
         resourceServers
             .MapGet("", ListAsync)
-            .Produces<CollectionResource<ResourceServerResource>>();
+            .Produces<CollectionResource<ResourceServerResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
         resourceServers
             .MapPost("", CreateAsync)
             .Produces<ResourceServerResource>(StatusCodes.Status201Created)
-            .ProducesValidationProblem();
-        resourceServers.MapGet("/{resourceServerId}", GetAsync).Produces<ResourceServerResource>();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+        resourceServers
+            .MapGet("/{resourceServerId}", GetAsync)
+            .Produces<ResourceServerResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPatch("/{resourceServerId}", UpdateAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapDelete("/{resourceServerId}", DeleteAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         resourceServers
             .MapGet("/{resourceServerId}/scopes", ListScopesAsync)
-            .Produces<IReadOnlyList<ScopeResource>>();
+            .Produces<IReadOnlyList<ScopeResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPost("/{resourceServerId}/scopes", CreateScopeAsync)
-            .Produces<ScopeResource>(StatusCodes.Status201Created);
+            .Produces<ScopeResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapGet("/{resourceServerId}/scopes/{scopeValue}", GetScopeAsync)
-            .Produces<ScopeResource>();
+            .Produces<ScopeResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPut("/{resourceServerId}/scopes/{scopeValue}", UpdateScopeAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapDelete("/{resourceServerId}/scopes/{scopeValue}", DeleteScopeAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         resourceServers
             .MapGet("/{resourceServerId}/settings", GetSettingsAsync)
-            .Produces<ResourceServerSettingsResource>();
+            .Produces<ResourceServerSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapGet("/{resourceServerId}/settings/limits", GetSettingLimitsAsync)
-            .Produces<SettingLimitsResource>();
+            .Produces<SettingLimitsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPatch("/{resourceServerId}/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapGet("/{resourceServerId}/effective-settings", GetEffectiveSettingsAsync)
-            .Produces<ResourceServerEffectiveSettingsResource>();
+            .Produces<ResourceServerEffectiveSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         resourceServers
             .MapGet("/{resourceServerId}/secrets", GetSecretsAsync)
@@ -224,14 +278,28 @@ internal class ResourceServerApiEndpointHandler(
 
         resourceServers
             .MapGet("/{resourceServerId}/owners", ListOwnersAsync)
-            .Produces<RoleListResource>();
+            .Produces<RoleListResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPost("/{resourceServerId}/owners", AddOwnerAsync)
             .Produces<RoleHolderResource>(StatusCodes.Status201Created)
-            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     // A system resource server's tokens are read by the server itself, which decrypts them with the tenant's keys; a
@@ -241,6 +309,24 @@ internal class ResourceServerApiEndpointHandler(
         TypedResults.Problem(
             detail: "A system resource server is read by the server itself and holds no keys.",
             statusCode: StatusCodes.Status409Conflict
+        );
+
+    /// <summary>
+    /// Finds the scope whose value equals <paramref name="scopeValue"/>, compared with
+    /// <see cref="StringComparison.OrdinalIgnoreCase"/>, among the scopes the resource server holds.
+    /// </summary>
+    /// <param name="resourceServer">The resource server whose scopes are searched.</param>
+    /// <param name="scopeValue">The scope value to find, in any casing.</param>
+    /// <returns>
+    /// The stored scope, with its own casing, or <see langword="null"/> when the resource server holds no scope with
+    /// that value.
+    /// </returns>
+    private static PersistedScope? FindScopeOrDefault(
+        PersistedResourceServer resourceServer,
+        string scopeValue
+    ) =>
+        resourceServer.Scopes.FirstOrDefault(scope =>
+            string.Equals(scope.Value, scopeValue, StringComparison.OrdinalIgnoreCase)
         );
 
     internal virtual ScopeResource ToScopeResource(PersistedScope scope) =>
@@ -471,7 +557,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var error = await ResourceServerValidator.ValidateUpdateAsync(
@@ -550,7 +636,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var error = await ResourceServerValidator.ValidateDeleteAsync(
@@ -612,6 +698,7 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="201">The created scope.</response>
     /// <response code="409">A scope with the same value already exists.</response>
+    // See ADR-1480.
     [EndpointName("api/resource-servers/scopes/create")]
     internal virtual async ValueTask<IResult> CreateScopeAsync(
         HttpContext httpContext,
@@ -644,7 +731,15 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
+        }
+
+        if (FindScopeOrDefault(resourceServer, request.Value) is not null)
+        {
+            return TypedResults.Problem(
+                detail: "A scope with the specified value already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
         }
 
         var persistedScope = new PersistedScope
@@ -654,19 +749,11 @@ internal class ResourceServerApiEndpointHandler(
             IsSystem = false,
         };
 
-        try
-        {
-            await store.AddScopeAsync(resourceServerId, persistedScope, cancellationToken);
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A scope with the specified value already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.AddScopeAsync(resourceServerId, persistedScope, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        var scopeResource = ToScopeResource(persistedScope);
+        var resourceValues = ToResourceValues(scopeResource);
 
         await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
             httpContext,
@@ -674,12 +761,12 @@ internal class ResourceServerApiEndpointHandler(
             resourceServerId,
             persistedScope.Value,
             ResourceChangeTypes.Created,
-            ToResourceValues(ToScopeResource(persistedScope))
+            resourceValues
         );
 
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{request.Value}",
-            ToScopeResource(persistedScope)
+            scopeResource
         );
     }
 
@@ -706,9 +793,9 @@ internal class ResourceServerApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<IResourceServerStore>();
                 var resourceServer = await store.GetOrDefaultAsync(resourceServerId, token);
-                return resourceServer?.Scopes.FirstOrDefault(scope =>
-                    string.Equals(scope.Value, scopeValue, StringComparison.OrdinalIgnoreCase)
-                );
+                return resourceServer is null
+                    ? null
+                    : FindScopeOrDefault(resourceServer, scopeValue);
             },
             ToScopeResource,
             cancellationToken
@@ -719,6 +806,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Updates a scope on a resource server.
     /// </summary>
     /// <response code="204">The scope was updated.</response>
+    // See ADR-1480.
     [EndpointName("api/resource-servers/scopes/update")]
     internal virtual async ValueTask<IResult> UpdateScopeAsync(
         HttpContext httpContext,
@@ -752,44 +840,35 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
-        try
+        var scope = FindScopeOrDefault(resourceServer, scopeValue);
+        if (scope is null)
         {
-            await store.UpdateScopeAsync(
-                resourceServerId,
-                new PersistedScope
-                {
-                    Value = scopeValue,
-                    Description = request.Description,
-                    IsSystem = false,
-                },
-                cancellationToken
-            );
-            await storeManager.SaveChangesAsync(cancellationToken);
+            return ManagementProblems.ResourceNotFound();
         }
-        catch (InvalidOperationException)
+
+        var updatedScope = new PersistedScope
         {
-            return TypedResults.NotFound();
-        }
+            Value = scope.Value,
+            Description = request.Description,
+            IsSystem = scope.IsSystem,
+        };
+
+        await store.UpdateScopeAsync(resourceServerId, updatedScope, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        var scopeResource = ToScopeResource(updatedScope);
+        var resourceValues = ToResourceValues(scopeResource);
 
         await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
             httpContext,
             resourceServer.TenantId,
             resourceServerId,
-            scopeValue,
+            scope.Value,
             ResourceChangeTypes.Updated,
-            ToResourceValues(
-                ToScopeResource(
-                    new PersistedScope
-                    {
-                        Value = scopeValue,
-                        Description = request.Description,
-                        IsSystem = false,
-                    }
-                )
-            )
+            resourceValues
         );
 
         return TypedResults.NoContent();
@@ -800,6 +879,7 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="204">The scope was deleted.</response>
     /// <response code="409">The scope is a system scope and cannot be removed.</response>
+    // See ADR-1480.
     [EndpointName("api/resource-servers/scopes/delete")]
     internal virtual async ValueTask<IResult> DeleteScopeAsync(
         HttpContext httpContext,
@@ -832,35 +912,31 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
-        bool removed;
-        try
+        var scope = FindScopeOrDefault(resourceServer, scopeValue);
+        if (scope is null)
         {
-            removed = await store.RemoveScopeAsync(resourceServerId, scopeValue, cancellationToken);
+            return ManagementProblems.ResourceNotFound();
         }
-        catch (InvalidOperationException exception)
+
+        if (scope.IsSystem)
         {
-            Logger.ResourceConflict(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "A reserved system scope cannot be removed.",
                 statusCode: StatusCodes.Status409Conflict
             );
         }
 
-        if (!removed)
-        {
-            return TypedResults.NotFound();
-        }
-
+        await store.RemoveScopeAsync(resourceServerId, scope.Value, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
             httpContext,
             resourceServer.TenantId,
             resourceServerId,
-            scopeValue,
+            scope.Value,
             ResourceChangeTypes.Deleted,
             resourceValues: null
         );
@@ -1149,7 +1225,7 @@ internal class ResourceServerApiEndpointHandler(
         var settings = resourceServer?.Settings;
         if (settings is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (
@@ -1157,7 +1233,7 @@ internal class ResourceServerApiEndpointHandler(
             && !string.Equals(ifMatch, settings.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return ManagementProblems.PreconditionFailed("settings");
         }
 
         var jsonObject = ToJsonObject(settings.Value);
@@ -1337,7 +1413,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (resourceServer.IsSystem)
@@ -1457,7 +1533,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (resourceServer.IsSystem)
@@ -1647,7 +1723,7 @@ internal class ResourceServerApiEndpointHandler(
         );
         if (resourceServerSecret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var secret = resourceServerSecret.Value;
@@ -1657,7 +1733,7 @@ internal class ResourceServerApiEndpointHandler(
             && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return ManagementProblems.PreconditionFailed("secret");
         }
 
         var metadataError = SecretValidator.ValidateUpdate(secret, request);
@@ -1723,7 +1799,7 @@ internal class ResourceServerApiEndpointHandler(
         );
         if (resourceServerSecret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         await store.RemoveSecretAsync(resourceServerId, secretId, cancellationToken);

@@ -134,7 +134,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
@@ -265,7 +265,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var createdWhen = TimeProvider.GetUtcNow();

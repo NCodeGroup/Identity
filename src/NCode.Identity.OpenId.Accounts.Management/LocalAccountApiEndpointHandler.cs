@@ -102,42 +102,89 @@ internal class LocalAccountApiEndpointHandler(
         accounts
             .MapPost("", CreateLocalAccountAsync)
             .Produces<LocalAccountResource>(StatusCodes.Status201Created)
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         accounts
             .MapGet("", ListLocalAccountsAsync)
-            .Produces<CollectionResource<LocalAccountResource>>();
-        accounts.MapGet("/{localAccountId}", GetLocalAccountAsync).Produces<LocalAccountResource>();
+            .Produces<CollectionResource<LocalAccountResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+        accounts
+            .MapGet("/{localAccountId}", GetLocalAccountAsync)
+            .Produces<LocalAccountResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         accounts
             .MapPatch("/{localAccountId}", UpdateLocalAccountAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         accounts
             .MapDelete("/{localAccountId}", DeleteLocalAccountAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         accounts
             .MapPost("/{localAccountId}/enable", EnableLocalAccountAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         accounts
             .MapPost("/{localAccountId}/disable", DisableLocalAccountAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         accounts
             .MapPost("/{localAccountId}/password", ResetPasswordAsync)
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         accounts
             .MapGet("/{localAccountId}/claims", GetClaimsAsync)
-            .Produces<LocalAccountClaimsResource>();
+            .Produces<LocalAccountClaimsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         accounts
             .MapPut("/{localAccountId}/claims", SetClaimsAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         accounts
             .MapGet("/{localAccountId}/metadata", GetMetadataAsync)
-            .Produces<LocalAccountMetadataResource>();
+            .Produces<LocalAccountMetadataResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         accounts
             .MapPatch("/{localAccountId}/metadata", SetMetadataAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     internal virtual LocalAccountResource ToLocalAccountResource(PersistedLocalAccount account) =>
@@ -359,7 +406,7 @@ internal class LocalAccountApiEndpointHandler(
         var account = await store.GetByIdOrDefaultAsync(localAccountId, cancellationToken);
         if (account is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var ifMatch = httpContext.Request.Headers.IfMatch.ToString();
@@ -417,7 +464,7 @@ internal class LocalAccountApiEndpointHandler(
         var account = await accountStore.GetByIdOrDefaultAsync(localAccountId, cancellationToken);
         if (account is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var error = await LocalAccountValidator.ValidateDeleteAsync(
@@ -529,7 +576,7 @@ internal class LocalAccountApiEndpointHandler(
         var account = await store.GetByIdOrDefaultAsync(localAccountId, cancellationToken);
         if (account is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Disabling an account with a self-issued identity ends its principal's sessions, so the tenant's context is
@@ -596,7 +643,7 @@ internal class LocalAccountApiEndpointHandler(
         var account = await store.GetByIdOrDefaultAsync(localAccountId, cancellationToken);
         if (account is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var passwordError = await ValidatePasswordAsync(
@@ -706,7 +753,7 @@ internal class LocalAccountApiEndpointHandler(
         var account = await store.GetByIdOrDefaultAsync(localAccountId, cancellationToken);
         if (account is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var claims = request
@@ -779,7 +826,7 @@ internal class LocalAccountApiEndpointHandler(
         );
         if (principal is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Set-when-present: a missing bag leaves the current value untouched.

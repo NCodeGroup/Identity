@@ -117,6 +117,7 @@
         <Project Path="tests/NCode.Identity.OpenId.Integration.Tests/NCode.Identity.OpenId.Integration.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.LocalDev.Tests/NCode.Identity.OpenId.LocalDev.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Management.Tests/NCode.Identity.OpenId.Management.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.OpenId.Management.TestSupport/NCode.Identity.OpenId.Management.TestSupport.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Tests/NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Persistence.EntityFramework.Tests/NCode.Identity.OpenId.Persistence.EntityFramework.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Persistence.TestSupport/NCode.Identity.OpenId.Persistence.TestSupport.csproj" />

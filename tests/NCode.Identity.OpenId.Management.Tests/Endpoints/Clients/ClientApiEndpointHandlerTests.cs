@@ -25,7 +25,6 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
-using NCode.Identity.OpenId.Management.Tests.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -1340,7 +1339,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     #endregion
@@ -1758,7 +1758,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -1845,7 +1846,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2001,7 +2003,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2100,7 +2103,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2391,7 +2395,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2874,7 +2879,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<StatusCodeHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
         var node = Assert.IsType<ResourceNode>(authorizedResource);
         Assert.Equal(ResourceNodeTypes.Client, node.ResourceType);
         Assert.Equal(ClientId, node.ResourceId);
@@ -3110,7 +3116,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -3502,7 +3509,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -4081,7 +4089,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -4106,7 +4115,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -4230,7 +4240,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -4321,6 +4332,35 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenIfMatchMismatch_ReturnsPreconditionFailed()
+    {
+        SetupClientLookup();
+        SetupStore();
+        MockClientStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateClientSecret())
+            .Verifiable();
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: "stale",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Theory]
@@ -4483,7 +4523,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -4951,7 +4992,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -5061,8 +5103,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        var status = Assert.IsType<StatusCodeHttpResult>(result);
-        Assert.Equal(StatusCodes.Status412PreconditionFailed, status.StatusCode);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]
@@ -5548,7 +5590,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -5589,6 +5632,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     #region Map Tests
 
     [Theory]
+    [InlineData("POST", "/clients", new[] { 400, 401, 403, 409, 412 })]
+    [InlineData("GET", "/clients", new[] { 401, 403 })]
+    [InlineData("GET", "/clients/{clientId}", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/clients/{clientId}", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("DELETE", "/clients/{clientId}", new[] { 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/clients/{clientId}/settings", new[] { 401, 403, 404 })]
+    [InlineData("GET", "/clients/{clientId}/settings/limits", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/clients/{clientId}/settings", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/clients/{clientId}/effective-settings", new[] { 401, 403, 404 })]
     [InlineData("GET", "/clients/{clientId}/secrets", new[] { 401, 403, 404 })]
     [InlineData("POST", "/clients/{clientId}/secrets", new[] { 400, 401, 403, 404, 409, 412 })]
     [InlineData(
@@ -5617,7 +5669,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         "/clients/{clientId}/secrets/{secretId}/rotate",
         new[] { 400, 401, 403, 404, 409, 412 }
     )]
-    public async Task Map_Always_DeclaresEveryProblemASecretRouteAnswers(
+    [InlineData("GET", "/clients/{clientId}/owners", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/clients/{clientId}/owners", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData(
+        "DELETE",
+        "/clients/{clientId}/owners/{principalId}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/incoherent-clients", new[] { 401, 403 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -5626,6 +5686,31 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+    }
+
+    #endregion
+
+    #region MachineClientEndpointProvider Map Tests
+
+    [Theory]
+    [InlineData("POST", "/platform/clients", new[] { 400, 401, 403, 409, 412 })]
+    [InlineData("GET", "/platform/clients", new[] { 401, 403 })]
+    [InlineData("POST", "/teams/{teamId}/clients", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/teams/{teamId}/clients", new[] { 401, 403 })]
+    public async Task MachineClientEndpointProviderMap_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(
+                new MachineClientEndpointProvider(Handler),
+                httpMethod,
+                routePattern
+            )
         );
     }
 

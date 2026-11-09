@@ -146,7 +146,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         if (!await roleList.ResourceExistsAsync(storeManager, cancellationToken))
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var assignments = await ResourceOwnershipService.GetAssignmentsAsync(
@@ -219,7 +219,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         if (!await roleList.ResourceExistsAsync(storeManager, cancellationToken))
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var grant = await ResourceOwnershipService.AddAssignmentAsync(
@@ -298,7 +298,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         );
         if (removed.Count == 0)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         await storeManager.SaveChangesAsync(cancellationToken);
@@ -360,7 +360,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         switch (removal.Result)
         {
             case OwnerRemovalResult.NotFound:
-                return TypedResults.NotFound();
+                return ManagementProblems.ResourceNotFound();
 
             case OwnerRemovalResult.LastOwnerForbidden:
                 return TypedResults.Problem(

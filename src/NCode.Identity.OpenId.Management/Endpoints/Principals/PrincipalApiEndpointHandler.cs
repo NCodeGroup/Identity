@@ -65,13 +65,26 @@ internal class PrincipalApiEndpointHandler(
             .MapGroup("/principals")
             .WithTags(OpenIdConstants.EndpointTags.Principals);
 
-        principals.MapGet("/{principalId}", GetPrincipalAsync).Produces<PrincipalResource>();
+        principals
+            .MapGet("/{principalId}", GetPrincipalAsync)
+            .Produces<PrincipalResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         principals
             .MapPost("/{principalId}/block", BlockPrincipalAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         principals
             .MapPost("/{principalId}/unblock", UnblockPrincipalAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     /// <summary>
@@ -116,7 +129,7 @@ internal class PrincipalApiEndpointHandler(
             .GetOrDefaultAsync(principalId, cancellationToken);
         if (principal is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         httpContext.Response.Headers.ETag = principal.ConcurrencyToken;
@@ -151,7 +164,7 @@ internal class PrincipalApiEndpointHandler(
         var principal = await store.GetOrDefaultAsync(principalId, cancellationToken);
         if (principal is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // The tenant's context is created before the block is written: a tenant that is not served (disabled, or of a
@@ -210,7 +223,7 @@ internal class PrincipalApiEndpointHandler(
         var principal = await SaveBlockStateAsync(principalId, isBlocked: false, cancellationToken);
         if (principal is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         await RecordPrincipalChangedAsync(httpContext, tenantId, principal);

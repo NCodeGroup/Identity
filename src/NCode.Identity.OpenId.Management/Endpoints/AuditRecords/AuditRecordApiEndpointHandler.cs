@@ -49,7 +49,9 @@ internal class AuditRecordApiEndpointHandler(
             .MapGroup("/audit-records")
             .WithTags(OpenIdConstants.EndpointTags.AuditRecords)
             .MapGet("", ListAuditRecordsAsync)
-            .Produces<CollectionResource<AuditRecordResource>>();
+            .Produces<CollectionResource<AuditRecordResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
     }
 
     /// <summary>

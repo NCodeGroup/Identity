@@ -969,12 +969,16 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#654](https://github.com/NCodeGroup/Identity/issues/654),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
 
-- **A management secret route answers `409` from the secrets it read and declares every problem it answers.** The
-  tenant, client and resource-server routes that create, import or rotate a secret answer `409 Conflict` for a secret
-  identifier or `kid` the owner already holds, decided from the owner's secrets before the store adds the secret, so a
-  store failure is never reported as a conflict, and a write that lost a concurrency race answers `412`. Every tenant,
-  client and resource-server secret route declares its problem answers in the OpenAPI document
-  ([#689](https://github.com/NCodeGroup/Identity/issues/689)).
+- **A management route answers from what it read and declares every problem it answers.** Every management route
+  answers `404 Not Found` and `409 Conflict` from the rows it read before writing — a missing resource, a secret
+  identifier, `kid` or scope value its owner already holds, a reserved system scope — never from a store's exception,
+  so a store failure is never reported as a conflict or a missing resource, and a write that lost a concurrency race
+  answers `412`. Every error it answers is a problem document, `404` included. Each route declares in the OpenAPI
+  document every problem its handler answers and `412` when it writes, and the management route group declares on every
+  route the `409` for a stored settings document it cannot honor and the `503` for an unavailable root key
+  ([#689](https://github.com/NCodeGroup/Identity/issues/689), [#700](https://github.com/NCodeGroup/Identity/issues/700),
+  [#701](https://github.com/NCodeGroup/Identity/issues/701),
+  [ADR-1480](docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm

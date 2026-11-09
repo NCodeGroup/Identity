@@ -20,6 +20,7 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -858,6 +859,39 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
                 LocalAccountId,
                 CancellationToken.None
             )
+        );
+    }
+
+    #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("POST", "/local-accounts", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/local-accounts", new[] { 401, 403 })]
+    [InlineData("GET", "/local-accounts/{localAccountId}", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/local-accounts/{localAccountId}", new[] { 401, 403, 404, 409, 412 })]
+    [InlineData("DELETE", "/local-accounts/{localAccountId}", new[] { 401, 403, 404, 412 })]
+    [InlineData("POST", "/local-accounts/{localAccountId}/enable", new[] { 401, 403, 404, 412 })]
+    [InlineData("POST", "/local-accounts/{localAccountId}/disable", new[] { 401, 403, 404, 412 })]
+    [InlineData(
+        "POST",
+        "/local-accounts/{localAccountId}/password",
+        new[] { 400, 401, 403, 404, 412 }
+    )]
+    [InlineData("GET", "/local-accounts/{localAccountId}/claims", new[] { 401, 403, 404 })]
+    [InlineData("PUT", "/local-accounts/{localAccountId}/claims", new[] { 401, 403, 404, 412 })]
+    [InlineData("GET", "/local-accounts/{localAccountId}/metadata", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/local-accounts/{localAccountId}/metadata", new[] { 401, 403, 404, 412 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
         );
     }
 

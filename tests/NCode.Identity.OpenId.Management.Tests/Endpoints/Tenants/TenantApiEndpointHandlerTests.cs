@@ -22,7 +22,6 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
-using NCode.Identity.OpenId.Management.Tests.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -788,7 +787,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetTenantAsync(httpContext, TenantId, CancellationToken.None);
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -1212,7 +1212,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetSettingsAsync(httpContext, TenantId, CancellationToken.None);
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -1306,7 +1307,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -1379,7 +1381,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2037,8 +2040,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var statusCode = Assert.IsType<StatusCodeHttpResult>(result);
-        Assert.Equal(StatusCodes.Status412PreconditionFailed, statusCode.StatusCode);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]
@@ -2086,7 +2089,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<StatusCodeHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
         var node = Assert.IsType<ResourceNode>(authorizedResource);
         Assert.Equal(ResourceNodeTypes.Tenant, node.ResourceType);
         Assert.Equal(TenantId, node.ResourceId);
@@ -2130,7 +2134,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetSecretsAsync(httpContext, TenantId, CancellationToken.None);
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2358,7 +2363,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2547,6 +2553,19 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     #region Map Tests
 
     [Theory]
+    [InlineData("POST", "/teams/{teamId}/tenants", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/teams/{teamId}/tenants", new[] { 401, 403 })]
+    [InlineData("GET", "/teams/{teamId}/tenants/{tenantId}/address", new[] { 401, 403, 404 })]
+    [InlineData("GET", "/tenants", new[] { 401, 403 })]
+    [InlineData("GET", "/tenants/{tenantId}", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/tenants/{tenantId}", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("DELETE", "/tenants/{tenantId}", new[] { 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/tenants/{tenantId}/address", new[] { 401, 403, 404 })]
+    [InlineData("GET", "/tenants/{tenantId}/usage", new[] { 400, 401, 403 })]
+    [InlineData("GET", "/tenants/{tenantId}/settings", new[] { 401, 403, 404 })]
+    [InlineData("GET", "/tenants/{tenantId}/settings/limits", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/tenants/{tenantId}/settings", new[] { 400, 401, 403, 404, 412 })]
+    [InlineData("GET", "/tenants/{tenantId}/effective-settings", new[] { 401, 403, 404 })]
     [InlineData("GET", "/tenants/{tenantId}/secrets", new[] { 401, 403, 404 })]
     [InlineData("POST", "/tenants/{tenantId}/secrets", new[] { 400, 401, 403, 404, 409, 412 })]
     [InlineData(
@@ -2562,7 +2581,38 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     )]
     [InlineData("PUT", "/tenants/{tenantId}/secrets/{secretId}", new[] { 400, 401, 403, 404, 412 })]
     [InlineData("DELETE", "/tenants/{tenantId}/secrets/{secretId}", new[] { 401, 403, 404, 412 })]
-    public async Task Map_Always_DeclaresEveryProblemASecretRouteAnswers(
+    [InlineData("GET", "/tenants/{tenantId}/encryption-keys", new[] { 401, 403, 404 })]
+    [InlineData(
+        "POST",
+        "/tenants/{tenantId}/encryption-keys/rekey",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData(
+        "PUT",
+        "/tenants/{tenantId}/encryption-keys/root-key",
+        new[] { 400, 401, 403, 404, 409, 412, 422 }
+    )]
+    [InlineData(
+        "DELETE",
+        "/tenants/{tenantId}/encryption-keys/root-key",
+        new[] { 401, 403, 404, 412 }
+    )]
+    [InlineData(
+        "POST",
+        "/tenants/{tenantId}/encryption-keys/root-key/validate",
+        new[] { 401, 403, 404 }
+    )]
+    [InlineData("GET", "/tenants/{tenantId}/owners", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/tenants/{tenantId}/owners", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData(
+        "DELETE",
+        "/tenants/{tenantId}/owners/{principalId}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/tenants/{tenantId}/admins", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/tenants/{tenantId}/admins", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("DELETE", "/tenants/{tenantId}/admins/{principalId}", new[] { 401, 403, 404, 412 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -2642,7 +2692,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2666,7 +2717,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2759,6 +2811,33 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         Assert.IsType<NoContent>(result);
         VerifyTenantChanged(settingsChanged: false);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenIfMatchMismatch_ReturnsPreconditionFailed()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(TenantId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            TenantId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: "stale",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]
@@ -2884,7 +2963,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -3113,7 +3193,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
         MockRemoteSecretDestroyer.Verify(
             x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
             Times.Never
@@ -3384,7 +3465,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.DeleteTenantAsync(httpContext, TenantId, CancellationToken.None);
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -3509,7 +3591,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -3988,7 +4071,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -4090,7 +4174,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -4210,7 +4295,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -4538,7 +4624,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -4678,7 +4765,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -5245,7 +5333,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -5601,7 +5690,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     #endregion
@@ -5836,7 +5926,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -5869,7 +5960,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -6288,7 +6380,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     #endregion

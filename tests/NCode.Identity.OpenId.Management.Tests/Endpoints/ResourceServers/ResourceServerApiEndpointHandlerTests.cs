@@ -19,7 +19,6 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
-using NCode.Identity.OpenId.Management.Tests.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -779,6 +778,327 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateScopeAsync_WhenTheResourceServerHoldsTheValue_ReturnsConflictWithoutAddingTheScope()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateResourceServer(
+                    false,
+                    new PersistedScope
+                    {
+                        Value = "read:x",
+                        Description = "Read.",
+                        IsSystem = false,
+                    }
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.CreateScopeAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new CreateScopeRequest { Value = "READ:X", Description = "Read." },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A scope with the specified value already exists.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
+    [Fact]
+    public async Task CreateScopeAsync_WhenTheStoreFails_PropagatesItsException()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer(false))
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.AddScopeAsync(
+                    ResourceServerId,
+                    It.IsAny<PersistedScope>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new InvalidOperationException("store failure"))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Handler
+                .CreateScopeAsync(
+                    CreateHttpContext(),
+                    TenantId,
+                    ResourceServerId,
+                    new CreateScopeRequest { Value = "read:x", Description = "Read." },
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task UpdateScopeAsync_WhenTheResourceServerHoldsTheScope_UpdatesItAndReturnsNoContent()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupResourceServerScopeChangedAudit();
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateResourceServer(
+                    false,
+                    new PersistedScope
+                    {
+                        Value = "read:x",
+                        Description = "Read.",
+                        IsSystem = false,
+                    }
+                )
+            )
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.UpdateScopeAsync(
+                    ResourceServerId,
+                    It.Is<PersistedScope>(scope =>
+                        scope.Value == "read:x" && scope.Description == "New." && !scope.IsSystem
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.UpdateScopeAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "READ:X",
+            new UpdateScopeRequest { Description = "New." },
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateScopeAsync_WhenTheResourceServerHoldsNoSuchScope_ReturnsNotFoundWithoutUpdating()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer(false))
+            .Verifiable();
+
+        var result = await Handler.UpdateScopeAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "read:x",
+            new UpdateScopeRequest { Description = "New." },
+            CancellationToken.None
+        );
+
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateScopeAsync_WhenTheStoreFails_PropagatesItsException()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateResourceServer(
+                    false,
+                    new PersistedScope
+                    {
+                        Value = "read:x",
+                        Description = "Read.",
+                        IsSystem = false,
+                    }
+                )
+            )
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.UpdateScopeAsync(
+                    ResourceServerId,
+                    It.IsAny<PersistedScope>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new InvalidOperationException("store failure"))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Handler
+                .UpdateScopeAsync(
+                    CreateHttpContext(),
+                    TenantId,
+                    ResourceServerId,
+                    "read:x",
+                    new UpdateScopeRequest { Description = "New." },
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task DeleteScopeAsync_WhenTheResourceServerHoldsTheScope_RemovesItAndReturnsNoContent()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupResourceServerScopeChangedAudit();
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateResourceServer(
+                    false,
+                    new PersistedScope
+                    {
+                        Value = "read:x",
+                        Description = "Read.",
+                        IsSystem = false,
+                    }
+                )
+            )
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.RemoveScopeAsync(ResourceServerId, "read:x", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.DeleteScopeAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "READ:X",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task DeleteScopeAsync_WhenTheResourceServerHoldsNoSuchScope_ReturnsNotFoundWithoutRemoving()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer(false))
+            .Verifiable();
+
+        var result = await Handler.DeleteScopeAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "read:x",
+            CancellationToken.None
+        );
+
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteScopeAsync_WhenTheScopeIsASystemScope_ReturnsConflictWithoutRemoving()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateResourceServer(
+                    false,
+                    new PersistedScope
+                    {
+                        Value = "read:x",
+                        Description = "Read.",
+                        IsSystem = true,
+                    }
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.DeleteScopeAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "read:x",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal("A reserved system scope cannot be removed.", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task DeleteScopeAsync_WhenTheStoreFails_PropagatesItsException()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateResourceServer(
+                    false,
+                    new PersistedScope
+                    {
+                        Value = "read:x",
+                        Description = "Read.",
+                        IsSystem = false,
+                    }
+                )
+            )
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.RemoveScopeAsync(ResourceServerId, "read:x", It.IsAny<CancellationToken>())
+            )
+            .ThrowsAsync(new InvalidOperationException("store failure"))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Handler
+                .DeleteScopeAsync(
+                    CreateHttpContext(),
+                    TenantId,
+                    ResourceServerId,
+                    "read:x",
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
     public async Task ListScopesAsync_WhenForbidden_ReturnsForbiddenWithoutReading()
     {
         SetupResourceServerNodeAuthorization(AuthorizationResult.Failed());
@@ -863,7 +1183,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -1167,7 +1488,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     #endregion
@@ -1498,7 +1820,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<StatusCodeHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
         var node = Assert.IsType<ResourceNode>(authorizedResource);
         Assert.Equal(ResourceNodeTypes.ResourceServer, node.ResourceType);
         Assert.Equal(ResourceServerId, node.ResourceId);
@@ -1761,6 +2084,47 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<Created<SecretResource>>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenIfMatchMismatch_ReturnsPreconditionFailed()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(
+                    ResourceServerId,
+                    "secret-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PersistedResourceServerSecret
+                {
+                    TenantId = TenantId,
+                    ResourceServerId = ResourceServerId,
+                    Value = CreatePersistedSecret(),
+                }
+            )
+            .Verifiable();
+
+        var result = await Handler.UpdateSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "secret-1",
+            new UpdateSecretRequest
+            {
+                Use = "sig",
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(50),
+            },
+            ifMatch: "stale",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]
@@ -2219,7 +2583,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2247,7 +2612,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -2271,6 +2637,52 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     #region Map Tests
 
     [Theory]
+    [InlineData("GET", "/resource-servers", new[] { 401, 403 })]
+    [InlineData("POST", "/resource-servers", new[] { 400, 401, 403, 409, 412 })]
+    [InlineData("GET", "/resource-servers/{resourceServerId}", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/resource-servers/{resourceServerId}", new[] { 400, 401, 403, 404, 412 })]
+    [InlineData(
+        "DELETE",
+        "/resource-servers/{resourceServerId}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/resource-servers/{resourceServerId}/scopes", new[] { 401, 403, 404 })]
+    [InlineData(
+        "POST",
+        "/resource-servers/{resourceServerId}/scopes",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData(
+        "GET",
+        "/resource-servers/{resourceServerId}/scopes/{scopeValue}",
+        new[] { 401, 403, 404 }
+    )]
+    [InlineData(
+        "PUT",
+        "/resource-servers/{resourceServerId}/scopes/{scopeValue}",
+        new[] { 401, 403, 404, 412 }
+    )]
+    [InlineData(
+        "DELETE",
+        "/resource-servers/{resourceServerId}/scopes/{scopeValue}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/resource-servers/{resourceServerId}/settings", new[] { 401, 403, 404 })]
+    [InlineData(
+        "GET",
+        "/resource-servers/{resourceServerId}/settings/limits",
+        new[] { 401, 403, 404 }
+    )]
+    [InlineData(
+        "PATCH",
+        "/resource-servers/{resourceServerId}/settings",
+        new[] { 400, 401, 403, 404, 412 }
+    )]
+    [InlineData(
+        "GET",
+        "/resource-servers/{resourceServerId}/effective-settings",
+        new[] { 401, 403, 404 }
+    )]
     [InlineData("GET", "/resource-servers/{resourceServerId}/secrets", new[] { 401, 403, 404 })]
     [InlineData(
         "POST",
@@ -2302,7 +2714,18 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         "/resource-servers/{resourceServerId}/secrets/{secretId}",
         new[] { 401, 403, 404, 412 }
     )]
-    public async Task Map_Always_DeclaresEveryProblemASecretRouteAnswers(
+    [InlineData("GET", "/resource-servers/{resourceServerId}/owners", new[] { 401, 403, 404 })]
+    [InlineData(
+        "POST",
+        "/resource-servers/{resourceServerId}/owners",
+        new[] { 400, 401, 403, 404, 409, 412 }
+    )]
+    [InlineData(
+        "DELETE",
+        "/resource-servers/{resourceServerId}/owners/{principalId}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes

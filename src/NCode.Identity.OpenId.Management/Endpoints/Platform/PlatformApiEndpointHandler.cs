@@ -97,24 +97,45 @@ internal class PlatformApiEndpointHandler(
             .MapGroup("/platform")
             .WithTags(OpenIdConstants.EndpointTags.Platform);
 
-        platform.MapGet("/settings", GetSettingsAsync).Produces<PlatformSettingsResource>();
+        platform
+            .MapGet("/settings", GetSettingsAsync)
+            .Produces<PlatformSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         platform
             .MapGet("/settings/limits", GetSettingLimitsAsync)
-            .Produces<SettingLimitsResource>();
+            .Produces<SettingLimitsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
         platform
             .MapPatch("/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         platform
             .MapGet("/effective-settings", GetEffectiveSettingsAsync)
-            .Produces<PlatformEffectiveSettingsResource>();
+            .Produces<PlatformEffectiveSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         platform
             .MapGet("/encryption-keys", GetEncryptionKeysAsync)
-            .Produces<EncryptionKeysResource>();
+            .Produces<EncryptionKeysResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         platform
             .MapPost("/encryption-keys/rekey", RekeyEncryptionKeysAsync)
             .Produces<EncryptionKeyRotationResource>()
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     /// <summary>
@@ -253,7 +274,7 @@ internal class PlatformApiEndpointHandler(
 
         if (!await PlatformExistsAsync(cancellationToken))
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // The platform's master keys are always wrapped by the deployment's root key, so it reports no root key and no
@@ -296,7 +317,7 @@ internal class PlatformApiEndpointHandler(
 
         if (!await PlatformExistsAsync(cancellationToken))
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await EncryptionKeyEndpoints.RekeyAsync(
@@ -403,7 +424,7 @@ internal class PlatformApiEndpointHandler(
 
         if (platformSettings is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Enforce the optimistic-concurrency precondition supplied by the caller. Without this check the
@@ -414,7 +435,7 @@ internal class PlatformApiEndpointHandler(
             && !string.Equals(ifMatch, platformSettings.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return ManagementProblems.PreconditionFailed("settings");
         }
 
         var jsonObject = ToJsonObject(platformSettings.Value);

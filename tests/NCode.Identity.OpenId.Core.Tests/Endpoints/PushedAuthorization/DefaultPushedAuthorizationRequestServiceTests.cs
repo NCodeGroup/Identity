@@ -30,10 +30,8 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
     private const string ClientId = "client-1";
     private const string Reference = "par-reference-value";
 
-    private static readonly DateTimeOffset UtcNow = DateTimeOffset.Parse(
-        "2026-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset UtcNow { get; } =
+        DateTimeOffset.Parse("2026-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ICryptoService> MockCryptoService { get; }

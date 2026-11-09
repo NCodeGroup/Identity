@@ -22,15 +22,13 @@ public class DefaultClientSecretIssuerTests : BaseTests
     private const string ComparedMethod = "compared_method";
     private const string KeylessMethod = "keyless_method";
 
-    private static readonly DateTimeOffset Now = new(2026, 11, 3, 0, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 3, 0, 0, 0, TimeSpan.Zero);
 
-    private static readonly JsonElement TenantDocument = JsonSerializer.SerializeToElement(
-        new { tenant = true }
-    );
+    private static JsonElement TenantDocument { get; } =
+        JsonSerializer.SerializeToElement(new { tenant = true });
 
-    private static readonly JsonElement ClientDocument = JsonSerializer.SerializeToElement(
-        new { client = true }
-    );
+    private static JsonElement ClientDocument { get; } =
+        JsonSerializer.SerializeToElement(new { client = true });
 
     private Mock<IClientAuthenticationMethodCatalog> MockCatalog { get; }
     private Mock<IEffectiveSettingsResolver> MockResolver { get; }

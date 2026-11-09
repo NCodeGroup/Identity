@@ -28,10 +28,8 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
 {
     private const string Issuer = "https://issuer.example";
 
-    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
-        "2025-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset CreatedWhen { get; } =
+        DateTimeOffset.Parse("2025-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private FakeTimeProvider TimeProvider { get; } = new(CreatedWhen);
     private Mock<IAuthorizationCodeService> MockAuthorizationCodeService { get; }

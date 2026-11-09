@@ -377,9 +377,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
     #region ValidateCoherence
 
-    private static readonly JsonElement CoherenceSettingsJson = JsonSerializer.SerializeToElement(
-        new Dictionary<string, object>()
-    );
+    private static JsonElement CoherenceSettingsJson { get; } =
+        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
 
     private (
         DefaultClientRegistrationEndpointHandler handler,

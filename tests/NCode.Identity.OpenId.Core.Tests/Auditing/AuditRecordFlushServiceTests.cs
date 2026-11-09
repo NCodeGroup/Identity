@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Auditing;
 
 public sealed class AuditRecordFlushServiceTests : IDisposable
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
 
     private MockRepository MockRepository { get; }
     private Mock<TimeProvider> MockTimeProvider { get; }

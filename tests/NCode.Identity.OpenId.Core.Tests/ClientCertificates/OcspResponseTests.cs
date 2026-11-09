@@ -11,7 +11,7 @@ public sealed class OcspResponseTests
 {
     private const string UnknownExtensionOid = "1.2.3.4";
 
-    private static readonly byte[] NullValue = [0x05, 0x00];
+    private static byte[] NullValue { get; } = [0x05, 0x00];
 
     #region TryParse Tests
 

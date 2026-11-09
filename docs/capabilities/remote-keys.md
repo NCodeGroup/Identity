@@ -7,7 +7,7 @@
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**         | Available: a tenant's signing and encryption keys, in AWS KMS, Azure Key Vault (and Managed HSM) and Google Cloud KMS, chosen per tenant; a background sweep of the keys no stored secret names                                                                                                                         |
 | **Packages**       | `NCode.Identity.Secrets.Abstractions` (the remote vocabulary), `NCode.Identity.Secrets` and `NCode.Identity.Secrets.Persistence` (the key, its storage and its destruction), `NCode.Identity.Jose.Abstractions` and `NCode.Identity.Jose` (the asynchronous signing and decryption seams), `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms` (the providers), `NCode.Identity.OpenId.Core` (the setting, the rollover and the sweep) |
-| **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1473](../decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md), [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md), [ADR-1475](../decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md), [ADR-1476](../decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md), [ADR-1477](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md), [ADR-1478](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) |
+| **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1473](../decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md), [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md), [ADR-1475](../decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md), [ADR-1476](../decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md), [ADR-1477](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md), [ADR-1478](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md), [ADR-1489](../decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md), [ADR-1490](../decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) |
 | **Operator guide** | The reference host's [Remote keys](../../src/NCode.Identity.OpenId.Host/README.md#remote-keys); the tenant setting `tenant_key_provider`; the configuration sections `SecretProtection:RemoteKeys` and `SecretProtection:RemoteKeyProviders`; the Helm chart's `secretProtection.remoteKeys` and `secretProtection.remoteKeyProviders` values, in its [Tenant keys in a key management service](../../charts/ncode-identity-host/README.md#tenant-keys-in-a-key-management-service) |
 
 ## The promises
@@ -224,11 +224,14 @@ which binds strictly. The `SecretProtection` section recognizes the `RemoteKeys`
 | `SweepInterval`                          | one day  | How often the sweep runs: at least one minute, at most the timer maximum.                                            |
 | `SweepGracePeriod`                       | one day  | How old a key is before the sweep may destroy it: between one hour and 365 days.                                     |
 
-The reference host's Helm chart configures them with the `secretProtection.remoteKeyProviders` values (`awsKms.region`
-and `pendingWindowInDays`, `azureKeyVault.vaultUri` and `hardwareProtected`, `googleCloudKms.keyRing` and
-`hardwareProtected`) and the `secretProtection.remoteKeys` values (`deployment`, `sweepEnabled`, `sweepInterval` and
-`sweepGracePeriod`). It registers a provider when its first value is set and mounts that vendor's workload identity
-into the pods; see the chart README's
+The reference host's Helm chart configures them with the `secretProtection.remoteKeyProviders` values
+(`awsKms.enabled`, `region` and `pendingWindowInDays`, `azureKeyVault.enabled`, `vaultUri` and `hardwareProtected`,
+`googleCloudKms.enabled`, `keyRing` and `hardwareProtected`) and the `secretProtection.remoteKeys` values (`deployment`,
+`sweepEnabled`, `sweepInterval` and `sweepGracePeriod`). It registers a provider whose `enabled` is `true` and renders
+its location only when set, so a release binds keys without creating any, and mounts that vendor's workload identity
+into the pods
+([ADR-1490](../decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md));
+see the chart README's
 [Tenant keys in a key management service](../../charts/ncode-identity-host/README.md#tenant-keys-in-a-key-management-service).
 
 A tenant, a team or the platform selects a provider with the setting `tenant_key_provider`, whose value is
@@ -381,13 +384,12 @@ read from configuration.
 - **Google:** `cloudkms.cryptoKeys.create`, `cloudkms.cryptoKeys.list` and `cloudkms.cryptoKeyVersions.create`, `.list`,
   `.get`, `.viewPublicKey`, `.useToSign`, `.useToDecrypt` and `.destroy` on the key ring.
 
-A key an operator binds needs only its own operation: AWS `kms:Sign`, `kms:Decrypt` or `kms:DeriveSharedSecret`, Azure
-`Key Vault Crypto User` on the key, Google `cloudkms.cryptoKeyVersions.useToSign` or `.useToDecrypt`.
+A key an operator binds needs the read of its public half and its own operation, because the server reads the half and
+proves the key before it stores it: AWS `kms:GetPublicKey` plus `kms:Sign`, `kms:Decrypt` or `kms:DeriveSharedSecret`
+as the key's row says, Azure `Key Vault Crypto User` on the key, Google `cloudkms.cryptoKeyVersions.viewPublicKey` plus
+`.useToSign` or `.useToDecrypt`. A provider registered without its location needs only these.
 
-A key ring's remote key needs the permissions of a bound key, plus the read of its public half, because the host reads
-the half when it starts: AWS `kms:GetPublicKey` plus `kms:Sign`, `kms:Decrypt` or `kms:DeriveSharedSecret` as the key's
-row says, Azure `Key Vault Crypto User` on the key, Google `cloudkms.cryptoKeyVersions.viewPublicKey` plus
-`.useToSign` or `.useToDecrypt`.
+A key ring's remote key needs the permissions of a bound key, because the host reads and proves it when it starts.
 
 **Scoping the identity to the deployment's keys.**
 

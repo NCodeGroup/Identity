@@ -6,6 +6,7 @@ import type {
   CreatedSecretResource,
   ManagementCapabilitiesResource,
   PublicKeyResource,
+  RemoteKeyProviderCapability,
   SecretResource,
 } from '@ncode/api';
 import type { BffRuntimeConfig } from '@ncode/config';
@@ -66,26 +67,23 @@ const exportRsaOnly: ManagementCapabilitiesResource = {
   ],
 };
 
+const awsKmsProvider: RemoteKeyProviderCapability = {
+  name: 'aws-kms',
+  createsKeys: true,
+  algorithms: [
+    { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+    { algorithm: 'RSA-OAEP-256', use: 'enc', secretType: 'rsa', keySizeBits: 3072 },
+  ],
+};
+
 const withRemoteKeys: ManagementCapabilitiesResource = {
   ...exportRsaOnly,
-  remoteKeyProviders: [
-    {
-      name: 'aws-kms',
-      createsKeys: true,
-      algorithms: [
-        { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
-        { algorithm: 'RSA-OAEP-256', use: 'enc', secretType: 'rsa', keySizeBits: 3072 },
-      ],
-    },
-  ],
+  remoteKeyProviders: [awsKmsProvider],
 };
 
 const withBindOnlyRemoteKeys: ManagementCapabilitiesResource = {
   ...exportRsaOnly,
-  remoteKeyProviders: withRemoteKeys.remoteKeyProviders?.map((provider) => ({
-    ...provider,
-    createsKeys: false,
-  })),
+  remoteKeyProviders: [{ ...awsKmsProvider, createsKeys: false }],
 };
 
 type Deferred<T> = {

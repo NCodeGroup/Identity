@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -34,8 +33,6 @@ public class TeamManagementTests
 {
     private const string RootIssuer = "http://localhost";
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string RootTenantId = "root";
     private const string ConsoleClientId = "console";
     private const string ConsoleRedirectUri = "https://console.test/callback";
@@ -45,7 +42,7 @@ public class TeamManagementTests
 
     #region Scaffolding
 
-    private static ConfiguredHostApplicationFactory CreateFactory() =>
+    private static BootstrapAdminApplicationFactory CreateFactory() =>
         new(
             new Dictionary<string, string?>
             {
@@ -54,17 +51,17 @@ public class TeamManagementTests
                     .DynamicByHost,
                 ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
                 ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = "root",
-            }
+            },
+            RootTenantId
         );
 
     private static Task<HttpClient> CreateAdministratorClientAsync(
         HostApplicationFactory factory
-    ) => factory.CreateManagementClientAsync(BootstrapClientId, BootstrapClientSecret);
+    ) =>
+        factory.CreateManagementClientAsync(
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
+        );
 
     private static async Task CreateTeamAsync(HttpClient client, string teamId, object settings)
     {
@@ -1714,7 +1711,7 @@ public class TeamManagementTests
         foreach (var caller in new[] { user, administrator })
         {
             using var secret = await caller.PostAsJsonAsync(
-                $"/api/tenants/{RootTenantId}/clients/{BootstrapClientId}/secrets",
+                $"/api/tenants/{RootTenantId}/clients/{BootstrapAdminApplicationFactory.ClientId}/secrets",
                 new
                 {
                     secretType = "symmetric",
@@ -1727,7 +1724,7 @@ public class TeamManagementTests
 
             using var settings = await SendPatchAsync(
                 caller,
-                $"/api/tenants/{RootTenantId}/clients/{BootstrapClientId}/settings",
+                $"/api/tenants/{RootTenantId}/clients/{BootstrapAdminApplicationFactory.ClientId}/settings",
                 new[]
                 {
                     new
@@ -3081,10 +3078,15 @@ public class TeamManagementTests
         );
 
         var preview = await ReadPromotionAsync(response, HttpStatusCode.OK);
-        Assert.True(HasNote(preview, BootstrapClientId, "host_managed"), preview.ToString());
+        Assert.True(
+            HasNote(preview, BootstrapAdminApplicationFactory.ClientId, "host_managed"),
+            preview.ToString()
+        );
         Assert.DoesNotContain(
             preview.GetProperty("changes").EnumerateArray(),
-            change => change.GetProperty("resourceId").GetString() == BootstrapClientId
+            change =>
+                change.GetProperty("resourceId").GetString()
+                == BootstrapAdminApplicationFactory.ClientId
         );
     }
 

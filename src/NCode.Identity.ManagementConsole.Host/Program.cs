@@ -21,18 +21,22 @@ builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger();
 var managementConsole = builder.Services.AddManagementConsole(builder.Configuration);
 managementConsole.IdentityBffBuilder.SharedStateLibraryBuilder.AddValkey(builder.Configuration);
 
-// AWS KMS can hold the console's client, decryption and DPoP keys (Bff:KeyRings:{name}:RemoteKeys); it is registered only when the 'SecretProtection:RemoteKeyProviders:AwsKms' section exists.
-managementConsole.IdentityBffBuilder.SecretsLibraryBuilder.AddAwsKmsRemoteKeyProviderIfConfigured(
+// AWS KMS can hold the console's client, decryption and DPoP keys (Bff:KeyRings:{name}:RemoteKeys). The provider
+// reads each key where its ARN names, so it registers without a region and creates no key.
+managementConsole.IdentityBffBuilder.SecretsLibraryBuilder.AddAwsKmsRemoteKeyProvider(
     builder.Configuration
 );
 
-// Azure Key Vault or Managed HSM can hold the console's client, decryption and DPoP keys (Bff:KeyRings:{name}:RemoteKeys); it is registered only when the 'SecretProtection:RemoteKeyProviders:AzureKeyVault' section exists.
-managementConsole.IdentityBffBuilder.SecretsLibraryBuilder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(
+// Azure Key Vault or Managed HSM can hold the console's client, decryption and DPoP keys
+// (Bff:KeyRings:{name}:RemoteKeys). The provider reads each key where its key identifier names, so it registers
+// without a vault URI and creates no key.
+managementConsole.IdentityBffBuilder.SecretsLibraryBuilder.AddAzureKeyVaultRemoteKeyProvider(
     builder.Configuration
 );
 
-// Google Cloud KMS can hold the console's client, decryption and DPoP keys (Bff:KeyRings:{name}:RemoteKeys); it is registered only when the 'SecretProtection:RemoteKeyProviders:GoogleCloudKms' section exists.
-managementConsole.IdentityBffBuilder.SecretsLibraryBuilder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(
+// Google Cloud KMS can hold the console's client, decryption and DPoP keys (Bff:KeyRings:{name}:RemoteKeys). The
+// provider reads each key where its key version name names, so it registers without a key ring and creates no key.
+managementConsole.IdentityBffBuilder.SecretsLibraryBuilder.AddGoogleCloudKmsRemoteKeyProvider(
     builder.Configuration
 );
 

@@ -33,6 +33,10 @@ updates:
     open-pull-requests-limit: 0
     cooldown:
       default-days: 3
+    ignore:
+      # The repository's analyzer builds against the Roslyn of the oldest SDK global.json admits, which EF Core Design also pins exactly, so this version moves with global.json's floor, deliberately (ADR-1486).
+      - dependency-name: 'Microsoft.CodeAnalysis.CSharp'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
     groups:
       # Patch/minor servicing moves together — this is the stream that clears NuGet advisories, which the full
       # Definition of Done treats as build errors (NU1901-1904), so leaving it to rot eventually breaks CI outright.

@@ -831,9 +831,9 @@ public sealed class TenantPromotionApiEndpointHandlerTests : IDisposable
     #region Map Tests
 
     [Theory]
-    [InlineData("POST", "/teams/{teamId}/promotions/preview", new[] { 400, 401, 403, 404 })]
-    [InlineData("POST", "/teams/{teamId}/promotions", new[] { 400, 401, 403, 404, 409, 412 })]
-    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+    [InlineData("POST", "/teams/{teamId}/promotions/preview", new[] { 400, 401, 403, 404, 415 })]
+    [InlineData("POST", "/teams/{teamId}/promotions", new[] { 400, 401, 403, 404, 409, 412, 415 })]
+    public async Task Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -842,6 +842,13 @@ public sealed class TenantPromotionApiEndpointHandlerTests : IDisposable
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+        Assert.Empty(
+            await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern
+            )
         );
     }
 

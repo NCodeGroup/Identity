@@ -66,7 +66,8 @@ internal class TenantPromotionApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         promotions
             .MapPost("", PromoteAsync)
             .Produces<TenantPromotionResource>()
@@ -75,7 +76,8 @@ internal class TenantPromotionApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
     }
 
     /// <summary>
@@ -88,7 +90,6 @@ internal class TenantPromotionApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The report of the promotion, which is not applied.</response>
     /// <response code="400">The request names no distinct source and target tenant.</response>
-    /// <response code="401">The caller is anonymous.</response>
     /// <response code="403">The caller lacks the authority the promotion needs.</response>
     /// <response code="404">A tenant does not exist or is not the team's.</response>
     [EndpointName("api/teams/promotions/preview")]
@@ -120,7 +121,6 @@ internal class TenantPromotionApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The report of the promotion, which is applied.</response>
     /// <response code="400">The request names no distinct source and target tenant.</response>
-    /// <response code="401">The caller is anonymous.</response>
     /// <response code="403">The caller lacks the authority the promotion needs.</response>
     /// <response code="404">A tenant does not exist or is not the team's.</response>
     /// <response code="409">The promotion has errors, so nothing was written.</response>

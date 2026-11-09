@@ -14,7 +14,7 @@ public class CoseEncrypt0Tests
 
     private static byte[] Hex(string hex) => CoseTestKeys.Hex(hex);
 
-    private static readonly byte[] Content = Hex(CoseTestKeys.Content);
+    private static byte[] Content { get; } = Hex(CoseTestKeys.Content);
 
     private static CoseDecryptionParameters Parameters(params SecretKey[] keys) =>
         new() { ValidAlgorithms = [CoseAlgorithmIdentifiers.A128Gcm], Keys = keys };

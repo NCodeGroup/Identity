@@ -8,7 +8,7 @@ namespace NCode.Identity.Cose.Tests.Cbor;
 
 public class CborGuardTests
 {
-    private static readonly CoseOptions Options = new();
+    private static CoseOptions Options { get; } = new();
 
     private static byte[] Nested(int depth)
     {

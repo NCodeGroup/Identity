@@ -9,7 +9,7 @@ namespace NCode.Identity.Cose.Tests.Messages;
 
 public class CoseHeaderPolicyTests
 {
-    private static readonly IReadOnlyDictionary<CoseLabel, CoseValue> Empty =
+    private static IReadOnlyDictionary<CoseLabel, CoseValue> Empty { get; } =
         new Dictionary<CoseLabel, CoseValue>();
 
     private static CoseValue Value(string hex) =>

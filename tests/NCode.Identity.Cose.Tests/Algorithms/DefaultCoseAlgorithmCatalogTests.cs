@@ -13,7 +13,7 @@ namespace NCode.Identity.Cose.Tests.Algorithms;
 
 public class DefaultCoseAlgorithmCatalogTests
 {
-    private static readonly CoseAlgorithm[] Defaults =
+    private static CoseAlgorithm[] Defaults { get; } =
     [
         CoseAlgorithms.Es256,
         CoseAlgorithms.Es384,

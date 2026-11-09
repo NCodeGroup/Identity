@@ -7,7 +7,7 @@ namespace NCode.Identity.Cose.Tests.Options;
 
 public class CoseOptionsValidatorTests
 {
-    private static readonly CoseOptionsValidator Validator = new();
+    private static CoseOptionsValidator Validator { get; } = new();
 
     #region Validate Tests
 

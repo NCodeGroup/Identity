@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,18 @@ public class ManagementRouteProblemDeclarationTests
             )
             .Select(metadata => metadata.StatusCode)
             .ToHashSet();
+
+    private static bool HasAttribute<TMetadata>(ParameterInfo parameter) =>
+        parameter.GetCustomAttributes(inherit: true).OfType<TMetadata>().Any();
+
+    private static bool CanFailToParse(ParameterInfo parameter) =>
+        (
+            HasAttribute<IFromQueryMetadata>(parameter)
+            || HasAttribute<IFromHeaderMetadata>(parameter)
+            || HasAttribute<IFromRouteMetadata>(parameter)
+        )
+        && (Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType)
+            != typeof(string);
 
     #endregion
 
@@ -109,6 +122,49 @@ public class ManagementRouteProblemDeclarationTests
             Assert.Contains(401, codes);
             Assert.DoesNotContain(403, codes);
         }
+    }
+
+    [Fact]
+    public void ManagementRoutes_WhenTheyBindABody_DeclareBadRequestAndUnsupportedMediaType()
+    {
+        using var factory = new HostApplicationFactory();
+
+        var matched = 0;
+        foreach (var endpoint in GetManagementEndpoints(factory))
+        {
+            var method = endpoint.Metadata.OfType<MethodInfo>().FirstOrDefault();
+            if (method is null || !method.GetParameters().Any(HasAttribute<IFromBodyMetadata>))
+            {
+                continue;
+            }
+
+            matched++;
+            var codes = GetProblemStatusCodes(endpoint);
+            Assert.True(codes.Contains(400) && codes.Contains(415), endpoint.RoutePattern.RawText);
+        }
+
+        Assert.NotEqual(0, matched);
+    }
+
+    [Fact]
+    public void ManagementRoutes_WhenAParameterCanFailToParse_DeclareBadRequest()
+    {
+        using var factory = new HostApplicationFactory();
+
+        var matched = 0;
+        foreach (var endpoint in GetManagementEndpoints(factory))
+        {
+            var method = endpoint.Metadata.OfType<MethodInfo>().FirstOrDefault();
+            if (method is null || !method.GetParameters().Any(CanFailToParse))
+            {
+                continue;
+            }
+
+            matched++;
+            Assert.Contains(400, GetProblemStatusCodes(endpoint));
+        }
+
+        Assert.NotEqual(0, matched);
     }
 
     #endregion

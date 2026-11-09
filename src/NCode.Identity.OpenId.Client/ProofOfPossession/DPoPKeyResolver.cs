@@ -26,7 +26,7 @@ internal class DPoPKeyResolver(
 {
     private const string NoneAlgorithm = "none";
 
-    private static readonly string[] DefaultPreferredAlgorithms =
+    private static string[] DefaultPreferredAlgorithms { get; } =
     [
         AlgorithmCodes.DigitalSignature.EcdsaSha256,
         AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,

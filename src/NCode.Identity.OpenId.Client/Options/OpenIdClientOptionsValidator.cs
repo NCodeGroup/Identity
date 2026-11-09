@@ -11,8 +11,8 @@ namespace NCode.Identity.OpenId.Client.Options;
 /// </summary>
 internal sealed class OpenIdClientOptionsValidator : IValidateOptions<OpenIdClientOptions>
 {
-    private static readonly TimeSpan MinTimeout = TimeSpan.FromMilliseconds(10);
-    private static readonly TimeSpan MaxTimeout = TimeSpan.FromMinutes(5);
+    private static TimeSpan MinTimeout { get; } = TimeSpan.FromMilliseconds(10);
+    private static TimeSpan MaxTimeout { get; } = TimeSpan.FromMinutes(5);
 
     private const int MaxRetryAttemptsLimit = 10;
     private const int MinMaxResponseSizeBytes = 1024;

@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 // See ADR-1301.
 internal sealed record ProviderJwtProfile
 {
-    private static readonly TimeSpan LogoutTokenMaxLifetime = TimeSpan.FromMinutes(10);
+    private static TimeSpan LogoutTokenMaxLifetime { get; } = TimeSpan.FromMinutes(10);
 
     /// <summary>
     /// Gets the client registration the token is issued to.

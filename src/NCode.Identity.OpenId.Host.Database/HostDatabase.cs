@@ -22,7 +22,7 @@ public static class HostDatabase
     /// <see cref="DeveloperDataProtectionDbContext"/>. Both contexts persist into one Postgres database, so the
     /// DataProtection context keeps its own migrations-history table to avoid colliding with the OpenID history.
     /// </summary>
-    public static readonly string MigrationsAssembly =
+    public static string MigrationsAssembly { get; } =
         typeof(HostDatabase).Assembly.GetName().Name
         ?? throw new InvalidOperationException("The host database assembly has no name.");
 

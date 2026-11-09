@@ -35,8 +35,6 @@ public sealed class AuthorizationRequest(string redirectUri, string state, strin
             OpenIdProtocol.Parameters.DPoPJwkThumbprint,
         };
 
-    private IReadOnlyDictionary<string, string>? _additionalParameters;
-
     /// <summary>
     /// Gets the <c>redirect_uri</c> parameter.
     /// </summary>
@@ -78,8 +76,8 @@ public sealed class AuthorizationRequest(string redirectUri, string state, strin
     /// </summary>
     public IReadOnlyDictionary<string, string>? AdditionalParameters
     {
-        get => _additionalParameters;
-        init => _additionalParameters = ValidateAdditionalParameters(value);
+        get;
+        init => field = ValidateAdditionalParameters(value);
     }
 
     private static string ValidateNotEmpty(

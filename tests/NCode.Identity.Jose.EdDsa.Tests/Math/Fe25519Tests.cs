@@ -11,7 +11,7 @@ namespace NCode.Identity.Jose.EdDsa.Tests.Math;
 // field implementation) over randomized inputs, plus encode/decode round-trips and algebraic identities.
 public class Fe25519Tests
 {
-    private static readonly BigInteger P = BigInteger.Pow(2, 255) - 19;
+    private static BigInteger P { get; } = BigInteger.Pow(2, 255) - 19;
 
     private const int Iterations = 2000;
 

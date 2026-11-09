@@ -10,7 +10,7 @@ namespace NCode.Identity.Jose.EdDsa.Tests.Math;
 // Validates the constant-time GF(2^448-2^224-1) field arithmetic against a BigInteger reference.
 public class Fe448Tests
 {
-    private static readonly BigInteger P = BigInteger.Pow(2, 448) - BigInteger.Pow(2, 224) - 1;
+    private static BigInteger P { get; } = BigInteger.Pow(2, 448) - BigInteger.Pow(2, 224) - 1;
 
     private const int Iterations = 1500;
 

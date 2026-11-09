@@ -15,10 +15,8 @@ namespace NCode.Identity.OpenId.Client.Tests.Tokens;
 
 public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
 {
-    private static readonly ProviderEndpoint Endpoint = new(
-        OpenIdProtocol.MetadataNames.TokenEndpoint,
-        "https://op.example.test/token"
-    );
+    private static ProviderEndpoint Endpoint { get; } =
+        new(OpenIdProtocol.MetadataNames.TokenEndpoint, "https://op.example.test/token");
 
     private DPoPTestContext DPoPContext { get; } = new();
 

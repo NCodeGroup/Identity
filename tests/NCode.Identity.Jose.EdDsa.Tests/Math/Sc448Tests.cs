@@ -11,7 +11,7 @@ namespace NCode.Identity.Jose.EdDsa.Tests.Math;
 // Validates the constant-time Ed448 scalar arithmetic modulo L against a BigInteger reference.
 public class Sc448Tests
 {
-    private static readonly BigInteger L =
+    private static BigInteger L { get; } =
         BigInteger.Pow(2, 446)
         - BigInteger.Parse(
             "13818066809895115352007386748515426880336692474882178609894547503885",

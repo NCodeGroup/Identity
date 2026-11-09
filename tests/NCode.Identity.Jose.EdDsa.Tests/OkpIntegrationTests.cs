@@ -26,8 +26,8 @@ public class OkpIntegrationTests
 {
     #region Helpers
 
-    private static readonly SecretKeyMaterialProtector Protect = bytes =>
-        Convert.ToBase64String(bytes);
+    private static SecretKeyMaterialProtector Protect { get; } =
+        bytes => Convert.ToBase64String(bytes);
 
     private static OkpSecretKeyTypeDescriptor CreateDescriptor() =>
         new(new IdentityDataProtectorFactory());

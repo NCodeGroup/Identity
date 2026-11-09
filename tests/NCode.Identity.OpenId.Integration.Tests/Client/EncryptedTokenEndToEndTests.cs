@@ -68,15 +68,19 @@ public class EncryptedTokenEndToEndTests
         RSA clientRsa
     )
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary().AddOpenIdClientLibrary();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddJoseLibrary()
+            .AddJwtLibrary()
+            .AddOpenIdClientLibrary();
         // AddOpenIdClientLibrary registers no IExpiringKeySet for the logout-token validator.
-        services.AddSharedStateServices().AddInProcessExpiringKeySet();
-        services
+        serviceCollection.AddSharedStateServices().AddInProcessExpiringKeySet();
+        serviceCollection
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             KeyRing,
             (serviceProvider, _) =>
             {
@@ -99,7 +103,7 @@ public class EncryptedTokenEndToEndTests
                     ]);
             }
         );
-        return services.BuildServiceProvider();
+        return serviceCollection.BuildServiceProvider();
     }
 
     private static ServiceProvider CreateRemoteClientProvider(
@@ -108,17 +112,21 @@ public class EncryptedTokenEndToEndTests
         Func<SecretKey> decryptionKey
     )
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary().AddOpenIdClientLibrary();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddJoseLibrary()
+            .AddJwtLibrary()
+            .AddOpenIdClientLibrary();
         // AddOpenIdClientLibrary registers no IExpiringKeySet for the logout-token validator.
-        services.AddSharedStateServices().AddInProcessExpiringKeySet();
-        services
+        serviceCollection.AddSharedStateServices().AddInProcessExpiringKeySet();
+        serviceCollection
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
-        services.AddSingleton<IRemoteKeyProvider>(kms);
-        services.AddSingleton<IRemoteKeyDescriptorSource>(kms);
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+        serviceCollection.AddSingleton<IRemoteKeyProvider>(kms);
+        serviceCollection.AddSingleton<IRemoteKeyDescriptorSource>(kms);
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             KeyRing,
             (serviceProvider, _) =>
             {
@@ -134,7 +142,7 @@ public class EncryptedTokenEndToEndTests
                     ]);
             }
         );
-        return services.BuildServiceProvider();
+        return serviceCollection.BuildServiceProvider();
     }
 
     private static ClientRegistration CreateRegistration(string clientId) =>
@@ -482,7 +490,7 @@ public class EncryptedTokenEndToEndTests
         Assert.Equal(Nonce, payload.GetProperty("nonce").GetString());
         Assert.IsAssignableFrom<IRemoteSecretKey>(remoteKey);
         Assert.Equal(SecretKeyUses.Encryption, remoteKey.Metadata.Use);
-        Assert.True(kms.DecryptionCount - decryptionsBefore >= 1);
+        Assert.Equal(1, kms.DecryptionCount - decryptionsBefore);
     }
 
     [Fact]

@@ -59,13 +59,13 @@ internal sealed class BffTestHost : IAsyncDisposable
         IExpiringIndexSet IndexSet
     ) CreateSharedState()
     {
-        var services = new ServiceCollection();
-        services
+        var serviceCollection = new ServiceCollection();
+        serviceCollection
             .AddSharedStateServices()
             .AddInProcessExpiringKeySet()
             .AddInProcessExpiringValueSet()
             .AddInProcessExpiringIndexSet();
-        var provider = services.BuildServiceProvider();
+        var provider = serviceCollection.BuildServiceProvider();
         return (
             provider.GetRequiredService<IExpiringKeySet>(),
             provider.GetRequiredService<IExpiringValueSet>(),
@@ -121,11 +121,11 @@ internal sealed class BffTestHost : IAsyncDisposable
         if (reloadableConfiguration is not null)
             ((IConfigurationBuilder)builder.Configuration).Add(reloadableConfiguration);
 
-        var services = builder.Services;
-        services.AddSingleton(keySet);
-        services.AddSingleton(valueSet);
-        services.AddSingleton(indexSet);
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+        var serviceCollection = builder.Services;
+        serviceCollection.AddSingleton(keySet);
+        serviceCollection.AddSingleton(valueSet);
+        serviceCollection.AddSingleton(indexSet);
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             KeyRing,
             (serviceProvider, _) =>
                 serviceProvider
@@ -140,13 +140,13 @@ internal sealed class BffTestHost : IAsyncDisposable
                     ])
         );
 
-        configureServices?.Invoke(services);
+        configureServices?.Invoke(serviceCollection);
 
         // The replicas share the state registered above; the turnkey composes everything else.
-        services.AddIdentityBff(builder.Configuration);
+        serviceCollection.AddIdentityBff(builder.Configuration);
 
         // Registered after the library, which configures its own primary handler for the named client.
-        var httpClientBuilder = services
+        var httpClientBuilder = serviceCollection
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
         if (exchanges is not null)

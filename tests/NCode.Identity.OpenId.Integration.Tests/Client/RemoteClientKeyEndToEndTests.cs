@@ -40,21 +40,29 @@ public class RemoteClientKeyEndToEndTests
         Func<SecretKey> dpopKey
     )
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary().AddOpenIdClientLibrary();
-        services
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddJoseLibrary()
+            .AddJwtLibrary()
+            .AddOpenIdClientLibrary();
+        serviceCollection
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
-        services.AddSingleton<IRemoteKeyProvider>(kms);
-        services.AddSingleton<IRemoteKeyDescriptorSource>(kms);
-        AddRing(services, ClientKeyRing, clientKey);
-        AddRing(services, DPoPKeyRing, dpopKey);
-        return services.BuildServiceProvider();
+        serviceCollection.AddSingleton<IRemoteKeyProvider>(kms);
+        serviceCollection.AddSingleton<IRemoteKeyDescriptorSource>(kms);
+        AddRing(serviceCollection, ClientKeyRing, clientKey);
+        AddRing(serviceCollection, DPoPKeyRing, dpopKey);
+        return serviceCollection.BuildServiceProvider();
     }
 
-    private static void AddRing(ServiceCollection services, string name, Func<SecretKey> key) =>
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+    private static void AddRing(
+        ServiceCollection serviceCollection,
+        string name,
+        Func<SecretKey> key
+    ) =>
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             name,
             (serviceProvider, _) =>
                 serviceProvider
@@ -180,7 +188,7 @@ public class RemoteClientKeyEndToEndTests
         Assert.True(result.IsSuccess, result.Error?.ToString());
         Assert.Equal(OpenIdProtocol.TokenTypes.DPoP, result.Response.TokenType, ignoreCase: true);
         Assert.Equal(dpopThumbprint, result.DPoPJwkThumbprint);
-        Assert.True(kms.SignatureCount - signaturesBefore >= 2);
+        Assert.Equal(2, kms.SignatureCount - signaturesBefore);
     }
 
     #endregion

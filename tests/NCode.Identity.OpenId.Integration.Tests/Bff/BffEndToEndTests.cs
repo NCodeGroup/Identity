@@ -189,16 +189,16 @@ public class BffEndToEndTests
                 [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Curve"] = "P-256",
             },
             exchanges: exchanges,
-            configureServices: services =>
+            configureServices: serviceCollection =>
             {
-                services.AddSingleton<IRemoteKeyProvider>(kms);
-                services.AddSingleton<IRemoteKeyDescriptorSource>(kms);
+                serviceCollection.AddSingleton<IRemoteKeyProvider>(kms);
+                serviceCollection.AddSingleton<IRemoteKeyDescriptorSource>(kms);
             }
         );
 
         // Each remote key is proved when the host starts: a signature for each signing key, a decryption for the other.
-        Assert.True(kms.SignatureCount >= 2);
-        Assert.True(kms.DecryptionCount >= 1);
+        Assert.Equal(2, kms.SignatureCount);
+        Assert.Equal(1, kms.DecryptionCount);
         var signaturesAfterStart = kms.SignatureCount;
         var decryptionsAfterStart = kms.DecryptionCount;
 
@@ -224,9 +224,13 @@ public class BffEndToEndTests
         Assert.Contains("client_assertion=", token.Body, StringComparison.Ordinal);
         Assert.NotNull(token.DPoPProof);
 
-        // The assertion and the proof are signed, and the ID token is decrypted, in the KMS.
-        Assert.True(kms.SignatureCount - signaturesAfterStart >= 2);
-        Assert.True(kms.DecryptionCount - decryptionsAfterStart >= 1);
+        // The KMS signs one signature for each client assertion and each DPoP proof the BFF sent, and decrypts the ID token.
+        var expectedSignatures =
+            exchanges.Count(exchange =>
+                exchange.Body?.Contains("client_assertion=", StringComparison.Ordinal) == true
+            ) + exchanges.Count(exchange => exchange.DPoPProof is not null);
+        Assert.Equal(expectedSignatures, kms.SignatureCount - signaturesAfterStart);
+        Assert.Equal(1, kms.DecryptionCount - decryptionsAfterStart);
     }
 
     private static async Task<HttpResponseMessage> CompleteLoginAsync(

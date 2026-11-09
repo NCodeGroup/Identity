@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 
 /// <summary>
 /// Validates the remote key options when the host starts: the deployment name is present when a remote key provider
-/// is registered and has the shape that scopes the keys the server creates, and the sweep interval and grace period
+/// that creates keys is registered and has the shape that scopes the keys the server creates, and the sweep interval and grace period
 /// are within the ranges the sweep relies on. Every message names the full configuration key.
 /// </summary>
 // See ADR-1478.
@@ -55,10 +55,10 @@ internal sealed partial class RemoteKeyOptionsValidator(
 
         if (string.IsNullOrEmpty(keys.Deployment))
         {
-            if (remoteKeyDescriptorCatalog.Providers.Count > 0)
+            if (remoteKeyDescriptorCatalog.Providers.Any(provider => provider.CreatesKeys))
             {
                 failures.Add(
-                    $"{Key(nameof(RemoteKeyOptions.Deployment))} is required because a remote key provider is registered."
+                    $"{Key(nameof(RemoteKeyOptions.Deployment))} is required because a remote key provider that creates keys is registered."
                 );
             }
         }

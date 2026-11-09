@@ -5,7 +5,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 
 public class RemoteKeyProviderDescriptorTests : BaseTests
 {
-    #region CreatesKeys Tests
+    #region CreatesKeys Property Tests
 
     [Fact]
     public void CreatesKeys_WhenNotSet_IsTrue()

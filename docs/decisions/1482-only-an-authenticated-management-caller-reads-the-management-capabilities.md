@@ -19,8 +19,6 @@ each problem it answers
 - **OpenID discovery is public for a reason that does not apply here.** Relying parties read the discovery document
   before they hold a token, because they need it to find the token endpoint. No client needs the capabilities document
   before it holds a management access token.
-- **The document describes the deployment.** Any caller who reaches the route would read the deployment's key
-  management services, algorithms and secret types, so the route answers only an authenticated caller.
 
 ## Decision
 

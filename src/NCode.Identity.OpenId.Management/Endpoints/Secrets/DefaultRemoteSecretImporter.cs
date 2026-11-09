@@ -1,11 +1,14 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
+using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.Secrets.Keys;
@@ -18,17 +21,21 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// <summary>
 /// Provides the default implementation of <see cref="IRemoteSecretImporter"/>. It reads the public half of the
 /// referenced key from its key management service through <see cref="ISecretGenerator.BindRemoteSecretAsync"/>, and
-/// proves the binding by signing 32 random bytes through the referenced key with
+/// proves the binding by the algorithm's kind. A signing key signs 32 random bytes through the referenced key with
 /// <see cref="SignatureAlgorithm.SignAsync"/>, which verifies the key management service's signature with the stored
-/// public half. A refusal of the generator (<see cref="RemoteSecretRefusedException"/>), a key identifier the provider
-/// does not read, a key it refuses, a public half that does not match the request and a signature that does not verify
-/// are a <c>400</c>; any other failure is logged and is a <c>502</c>.
+/// public half. An encryption key decrypts 32 random bytes that the server encrypts to the stored public half as a
+/// compact JWE (<c>A256GCM</c>), so a key that does not hold the private half of the public half the service returned
+/// is never stored. A refusal of the generator (<see cref="RemoteSecretRefusedException"/>), a key identifier the
+/// provider does not read, a key it refuses, a public half that does not match the request and a signature or
+/// decryption that does not prove the key are a <c>400</c>; any other failure is logged and is a <c>502</c>.
 /// </summary>
 // See ADR-1475.
 // See ADR-1476.
+// See ADR-1477.
 internal class DefaultRemoteSecretImporter(
     ISecretGenerator secretGenerator,
     ISecretSerializer secretSerializer,
+    IJoseSerializer joseSerializer,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ILogger<DefaultRemoteSecretImporter> logger
 ) : IRemoteSecretImporter
@@ -38,6 +45,8 @@ internal class DefaultRemoteSecretImporter(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
 
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    private IJoseSerializer JoseSerializer { get; } = joseSerializer;
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
@@ -107,20 +116,6 @@ internal class DefaultRemoteSecretImporter(
 
         using var keyDisposal = key as IDisposable;
 
-        if (
-            secret.Algorithm is null
-            || !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
-                secret.Algorithm,
-                out var signatureAlgorithm
-            )
-        )
-        {
-            return Error(
-                StatusCodes.Status400BadRequest,
-                $"The algorithm '{secret.Algorithm}' is not a registered signature algorithm."
-            );
-        }
-
         if (!RemoteKeyReference.TryParse(secret.EncodedValue, out var reference))
         {
             return Error(
@@ -129,6 +124,52 @@ internal class DefaultRemoteSecretImporter(
             );
         }
 
+        if (
+            secret.Algorithm is null
+            || !AlgorithmCollectionProvider.Collection.TryGetKeyedAlgorithm(
+                secret.Algorithm,
+                out var keyedAlgorithm,
+                out _
+            )
+        )
+        {
+            return Error(
+                StatusCodes.Status400BadRequest,
+                $"The algorithm '{secret.Algorithm}' is not a registered signature or key-management algorithm."
+            );
+        }
+
+        return keyedAlgorithm switch
+        {
+            SignatureAlgorithm signatureAlgorithm => await ProveSigningAsync(
+                key,
+                signatureAlgorithm,
+                reference,
+                secret.SecretId,
+                cancellationToken
+            ),
+            KeyManagementAlgorithm keyManagementAlgorithm => await ProveDecryptionAsync(
+                key,
+                keyManagementAlgorithm,
+                reference,
+                secret.SecretId,
+                cancellationToken
+            ),
+            _ => Error(
+                StatusCodes.Status400BadRequest,
+                $"The algorithm '{secret.Algorithm}' is not a registered signature or key-management algorithm."
+            ),
+        };
+    }
+
+    private async ValueTask<ManagementError?> ProveSigningAsync(
+        SecretKey key,
+        SignatureAlgorithm signatureAlgorithm,
+        RemoteKeyReference reference,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
         using var challengeLease = BufferFactory.Rent(
             ChallengeSizeBytes,
             isSensitive: false,
@@ -156,11 +197,77 @@ internal class DefaultRemoteSecretImporter(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            Logger.RemoteKeyProviderFailed(reference.Provider, secret.SecretId, exception);
+            Logger.RemoteKeyProviderFailed(reference.Provider, secretId, exception);
             return Error(
                 StatusCodes.Status502BadGateway,
                 $"The key management service of the remote key provider '{reference.Provider}' did not sign with the key '{reference.KeyId}': it refused the key or the deployment's identity, or it could not be reached."
             );
         }
     }
+
+    // See ADR-1477.
+    private async ValueTask<ManagementError?> ProveDecryptionAsync(
+        SecretKey key,
+        KeyManagementAlgorithm keyManagementAlgorithm,
+        RemoteKeyReference reference,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var challenge = Base64Url.EncodeToString(
+            RandomNumberGenerator.GetBytes(ChallengeSizeBytes)
+        );
+
+        try
+        {
+            if (
+                !AlgorithmCollectionProvider.Collection.TryGetAuthenticatedEncryptionAlgorithm(
+                    AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm,
+                    out var encryptionAlgorithm
+                )
+            )
+            {
+                throw new InvalidOperationException(
+                    "The A256GCM content encryption algorithm is not registered."
+                );
+            }
+
+            var token = await JoseSerializer
+                .CreateEncoder(
+                    new JoseEncryptionOptions(
+                        new JoseEncryptionCredentials(
+                            key,
+                            keyManagementAlgorithm,
+                            encryptionAlgorithm,
+                            null
+                        )
+                    )
+                )
+                .EncodeAsync(challenge, cancellationToken);
+
+            var payload = await JoseSerializer.DecodeAsync(token, key, cancellationToken);
+
+            return string.Equals(payload, challenge, StringComparison.Ordinal)
+                ? null
+                : DecryptionRefusal(reference);
+        }
+        catch (Exception exception) when (exception is JoseException or CryptographicException)
+        {
+            return DecryptionRefusal(reference);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            Logger.RemoteKeyProviderFailed(reference.Provider, secretId, exception);
+            return Error(
+                StatusCodes.Status502BadGateway,
+                $"The key management service of the remote key provider '{reference.Provider}' did not decrypt with the key '{reference.KeyId}': it refused the key or the deployment's identity, or it could not be reached."
+            );
+        }
+    }
+
+    private static ManagementError DecryptionRefusal(RemoteKeyReference reference) =>
+        Error(
+            StatusCodes.Status400BadRequest,
+            $"The key '{reference.KeyId}' of the remote key provider '{reference.Provider}' does not decrypt with the private half of the public key the service returned."
+        );
 }

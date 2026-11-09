@@ -31,15 +31,15 @@ internal class DefaultBffUserTokenService(
     ILogger<DefaultBffUserTokenService> logger
 ) : IBffUserTokenService
 {
-    private readonly IBffSessionManager _sessionManager = sessionManager;
-    private readonly BffInstrumentedSessionStore _sessionStore = sessionStore;
-    private readonly ITokenClient _tokenClient = tokenClient;
-    private readonly BffRefreshLocks _refreshLocks = refreshLocks;
-    private readonly BffMetrics _metrics = metrics;
-    private readonly IBffAuditRecorder _auditRecorder = auditRecorder;
-    private readonly BffFrontendCatalog _frontends = frontends;
-    private readonly TimeProvider _timeProvider = timeProvider;
-    private readonly ILogger<DefaultBffUserTokenService> _logger = logger;
+    private IBffSessionManager SessionManager { get; } = sessionManager;
+    private BffInstrumentedSessionStore SessionStore { get; } = sessionStore;
+    private ITokenClient TokenClient { get; } = tokenClient;
+    private BffRefreshLocks RefreshLocks { get; } = refreshLocks;
+    private BffMetrics Metrics { get; } = metrics;
+    private IBffAuditRecorder AuditRecorder { get; } = auditRecorder;
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<DefaultBffUserTokenService> Logger { get; } = logger;
 
     /// <inheritdoc />
     public async ValueTask<BffTokenResult> GetAccessTokenAsync(
@@ -58,8 +58,8 @@ internal class DefaultBffUserTokenService(
                 BffTokenFailureReasons.SessionRequired
             );
 
-        var now = _timeProvider.GetUtcNow();
-        var refreshBeforeExpiry = _frontends.Current.Options.Tokens.RefreshBeforeExpiry;
+        var now = TimeProvider.GetUtcNow();
+        var refreshBeforeExpiry = Frontends.Current.Options.Tokens.RefreshBeforeExpiry;
         if (
             BffTokenCache.TryGetFresh(
                 state.Payload,
@@ -90,7 +90,7 @@ internal class DefaultBffUserTokenService(
         BffSessionState state
     )
     {
-        await _sessionManager.EndAsync(
+        await SessionManager.EndAsync(
             scope.HttpContext,
             state.StoreKey,
             state.Metadata,
@@ -140,7 +140,7 @@ internal class DefaultBffUserTokenService(
             failure is not null ? BffMetrics.FailedResult
             : attempt.Presented ? BffMetrics.RefreshedResult
             : BffMetrics.JoinedResult;
-        _metrics.TokenRefreshCompleted(startTimestamp, result, failure);
+        Metrics.TokenRefreshCompleted(startTimestamp, result, failure);
 
         if (activity is null)
             return;
@@ -161,10 +161,10 @@ internal class DefaultBffUserTokenService(
         CancellationToken cancellationToken
     )
     {
-        var tokenOptions = _frontends.Current.Options.Tokens;
+        var tokenOptions = Frontends.Current.Options.Tokens;
 
         // inside a replica, refreshes of one session wait on that session's own lock
-        using var held = await _refreshLocks.TryEnterAsync(
+        using var held = await RefreshLocks.TryEnterAsync(
             BffRefreshLocks.UserPurpose,
             state.StoreKey,
             tokenOptions.RefreshLeaseDuration,
@@ -187,7 +187,7 @@ internal class DefaultBffUserTokenService(
         CancellationToken cancellationToken
     )
     {
-        var current = await _sessionManager.LoadAsync(state.Handle, cancellationToken);
+        var current = await SessionManager.LoadAsync(state.Handle, cancellationToken);
         if (current is null)
             return BffTokenResult.Failure(
                 StatusCodes.Status401Unauthorized,
@@ -220,7 +220,7 @@ internal class DefaultBffUserTokenService(
                 request.Resource,
                 request.Scope,
                 now,
-                _frontends.Current.Options.Tokens.RefreshBeforeExpiry,
+                Frontends.Current.Options.Tokens.RefreshBeforeExpiry,
                 out var cached
             )
         )
@@ -252,9 +252,9 @@ internal class DefaultBffUserTokenService(
         CancellationToken cancellationToken
     )
     {
-        var tokenOptions = _frontends.Current.Options.Tokens;
+        var tokenOptions = Frontends.Current.Options.Tokens;
 
-        var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var fresh = TryGetFresh(current.Payload, request, now);
         if (fresh is not null)
             return fresh;
@@ -265,7 +265,7 @@ internal class DefaultBffUserTokenService(
 
         var leaseKey = GetLeaseKey(current, refreshToken);
         var leaseExpiresAt = now + tokenOptions.RefreshLeaseDuration;
-        var acquired = await _sessionStore.TryAcquireRefreshLeaseAsync(
+        var acquired = await SessionStore.TryAcquireRefreshLeaseAsync(
             leaseKey,
             leaseExpiresAt,
             cancellationToken
@@ -297,11 +297,11 @@ internal class DefaultBffUserTokenService(
     {
         try
         {
-            await _sessionStore.ReleaseRefreshLeaseAsync(lease, CancellationToken.None);
+            await SessionStore.ReleaseRefreshLeaseAsync(lease, CancellationToken.None);
         }
         catch (BffStoreUnavailableException exception)
         {
-            _logger.RefreshLeaseReleaseFailed(exception);
+            Logger.RefreshLeaseReleaseFailed(exception);
         }
     }
 
@@ -317,32 +317,30 @@ internal class DefaultBffUserTokenService(
         var seenToken = seen.Payload.RefreshToken ?? string.Empty;
         var leaseKey = GetLeaseKey(seen, seenToken);
         var deadline =
-            _timeProvider.GetUtcNow() + _frontends.Current.Options.Tokens.RefreshLeaseDuration;
+            TimeProvider.GetUtcNow() + Frontends.Current.Options.Tokens.RefreshLeaseDuration;
         var delay = TimeSpan.FromMilliseconds(50);
         var maxDelay = TimeSpan.FromMilliseconds(800);
 
         while (true)
         {
-            await Task.Delay(delay, _timeProvider, cancellationToken);
+            await Task.Delay(delay, TimeProvider, cancellationToken);
             delay = delay * 2 < maxDelay ? delay * 2 : maxDelay;
 
-            var loaded = await _sessionManager.LoadAsync(seen.Handle, cancellationToken);
+            var loaded = await SessionManager.LoadAsync(seen.Handle, cancellationToken);
             if (loaded is null)
                 return BffTokenResult.Failure(
                     StatusCodes.Status401Unauthorized,
                     BffTokenFailureReasons.SessionRequired
                 );
 
-            var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+            var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
             var fresh = TryGetFresh(loaded.Payload, request, now);
             if (fresh is not null)
                 return fresh;
 
             var loadedToken = loaded.Payload.RefreshToken;
             var changed = !string.Equals(loadedToken, seenToken, StringComparison.Ordinal);
-            if (
-                changed || !await _sessionStore.IsRefreshLeaseHeldAsync(leaseKey, cancellationToken)
-            )
+            if (changed || !await SessionStore.IsRefreshLeaseHeldAsync(leaseKey, cancellationToken))
             {
                 var result = await AcquireAndRefreshAsync(
                     scope,
@@ -359,7 +357,7 @@ internal class DefaultBffUserTokenService(
                 leaseKey = GetLeaseKey(seen, seenToken);
             }
 
-            if (_timeProvider.GetUtcNow() >= deadline)
+            if (TimeProvider.GetUtcNow() >= deadline)
                 return BffTokenResult.Failure(
                     StatusCodes.Status503ServiceUnavailable,
                     BffTokenFailureReasons.RefreshWaitTimeout
@@ -389,7 +387,7 @@ internal class DefaultBffUserTokenService(
         {
             // The lease is won: a caller that aborts now must not lose the rotated refresh token, so nothing
             // but the client's request timeout ends the request or the write-back. See ADR-1291.
-            result = await _tokenClient.RequestTokenAsync(
+            result = await TokenClient.RequestTokenAsync(
                 frontend.Registration,
                 refreshRequest,
                 CancellationToken.None
@@ -398,8 +396,8 @@ internal class DefaultBffUserTokenService(
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, CancellationToken.None))
         {
-            _logger.RefreshFailed(BffTokenFailureReasons.ProviderUnavailable, exception);
-            await _auditRecorder.TokenRefreshFailedAsync(
+            Logger.RefreshFailed(BffTokenFailureReasons.ProviderUnavailable, exception);
+            await AuditRecorder.TokenRefreshFailedAsync(
                 scope.HttpContext,
                 subject,
                 BffTokenFailureReasons.ProviderUnavailable,
@@ -414,8 +412,8 @@ internal class DefaultBffUserTokenService(
         if (!result.IsSuccess)
         {
             var error = result.Error.Error;
-            _logger.RefreshFailed(error, null);
-            await _auditRecorder.TokenRefreshFailedAsync(
+            Logger.RefreshFailed(error, null);
+            await AuditRecorder.TokenRefreshFailedAsync(
                 scope.HttpContext,
                 subject,
                 error,
@@ -434,7 +432,7 @@ internal class DefaultBffUserTokenService(
                     BffTokenFailureReasons.ProviderError
                 );
 
-            await _sessionManager.EndAsync(
+            await SessionManager.EndAsync(
                 scope.HttpContext,
                 current.StoreKey,
                 current.Metadata,
@@ -452,8 +450,8 @@ internal class DefaultBffUserTokenService(
         var accessToken = response.AccessToken;
         if (string.IsNullOrEmpty(accessToken))
         {
-            _logger.RefreshFailed(BffTokenFailureReasons.ProviderError, null);
-            await _auditRecorder.TokenRefreshFailedAsync(
+            Logger.RefreshFailed(BffTokenFailureReasons.ProviderError, null);
+            await AuditRecorder.TokenRefreshFailedAsync(
                 scope.HttpContext,
                 subject,
                 BffTokenFailureReasons.ProviderError,
@@ -488,7 +486,7 @@ internal class DefaultBffUserTokenService(
         }
 
         // a lost write is merged onto the newer version and never dropped
-        var updated = await _sessionManager.UpdateAsync(
+        var updated = await SessionManager.UpdateAsync(
             current,
             s => ApplyRefresh(s, entry, refreshToken, response.RefreshToken, refreshExpiresAt),
             CancellationToken.None

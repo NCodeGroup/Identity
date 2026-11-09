@@ -34,8 +34,7 @@ internal class TenantKeyProviderSettingDescriptorDataSource(
         get
         {
             var providerNames = Catalog
-                .Providers.Where(provider => provider.CreatesKeys)
-                .Select(provider => provider.Name)
+                .ProvidersThatCreateKeys.Select(provider => provider.Name)
                 .Order(StringComparer.Ordinal)
                 .ToList();
 

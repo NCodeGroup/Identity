@@ -61,10 +61,7 @@ internal sealed class RemoteKeySweepService(
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (
-            !RemoteKeys.SweepEnabled
-            || !RemoteKeyDescriptorCatalog.Providers.Any(provider => provider.CreatesKeys)
-        )
+        if (!RemoteKeys.SweepEnabled || !RemoteKeyDescriptorCatalog.ProvidersThatCreateKeys.Any())
             return;
 
         try
@@ -115,9 +112,10 @@ internal sealed class RemoteKeySweepService(
             return;
 
         foreach (
-            var descriptor in RemoteKeyDescriptorCatalog
-                .Providers.Where(provider => provider.CreatesKeys)
-                .OrderBy(x => x.Name, StringComparer.Ordinal)
+            var descriptor in RemoteKeyDescriptorCatalog.ProvidersThatCreateKeys.OrderBy(
+                x => x.Name,
+                StringComparer.Ordinal
+            )
         )
         {
             // One provider whose dispatch fails must not stop the pass, as the master key maintenance handles each owner.

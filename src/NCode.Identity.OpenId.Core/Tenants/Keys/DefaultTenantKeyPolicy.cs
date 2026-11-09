@@ -383,8 +383,7 @@ internal class DefaultTenantKeyPolicy(
     )
     {
         var providerNames = RemoteKeyDescriptorCatalog
-            .Providers.Where(provider => provider.CreatesKeys)
-            .Select(provider => provider.Name)
+            .ProvidersThatCreateKeys.Select(provider => provider.Name)
             .Order(StringComparer.Ordinal);
 
         foreach (var name in providerNames)

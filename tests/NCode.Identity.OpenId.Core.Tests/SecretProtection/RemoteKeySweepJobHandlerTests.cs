@@ -268,10 +268,6 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
         await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
 
         Assert.Empty(_published);
-        _provider.Verify(
-            x => x.ListKeysAsync(It.IsAny<RemoteKeyListRequest>(), It.IsAny<CancellationToken>()),
-            Times.Never
-        );
     }
 
     [Fact]

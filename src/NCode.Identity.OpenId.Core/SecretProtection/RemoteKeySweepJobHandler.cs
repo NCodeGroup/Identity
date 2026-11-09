@@ -68,7 +68,7 @@ internal sealed class RemoteKeySweepJobHandler(
         if (
             string.IsNullOrEmpty(deployment)
             || !RemoteKeyProviderCatalog.TryGetProvider(job.Provider, out var provider)
-            || !CreatesKeys(job.Provider)
+            || !RemoteKeyDescriptorCatalog.CreatesKeys(job.Provider)
         )
         {
             Logger.RemoteKeySweepSkipped(job.Provider);
@@ -114,11 +114,6 @@ internal sealed class RemoteKeySweepJobHandler(
             );
         }
     }
-
-    private bool CreatesKeys(string provider) =>
-        RemoteKeyDescriptorCatalog.Providers.Any(p =>
-            string.Equals(p.Name, provider, StringComparison.Ordinal) && p.CreatesKeys
-        );
 
     // Reads the key identifiers that every stored secret of every owner references through the provider, in keyset
     // pages that each open their own store manager.

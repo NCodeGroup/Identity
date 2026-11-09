@@ -978,8 +978,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `409` for a stored settings document it cannot honor and the `503` for an unavailable root key on every route. A
   request whose body is not JSON, is not valid JSON for the operation, or whose parameter is missing or cannot be
   parsed is answered `400` or `415` as a problem its route declares, and every error under `/api` that carries no
-  body — a route's, a failed request binding's, and the router's `404`, `405` and `415` — is a problem document in every
-  host that registers the management library
+  body, whichever endpoint answers it — a route's, a failed request binding's, and the router's `404`, `405` and
+  `415` — is a problem document in every host that registers the management library
   ([#689](https://github.com/NCodeGroup/Identity/issues/689), [#700](https://github.com/NCodeGroup/Identity/issues/700),
   [#701](https://github.com/NCodeGroup/Identity/issues/701), [#706](https://github.com/NCodeGroup/Identity/issues/706),
   [#708](https://github.com/NCodeGroup/Identity/issues/708),

@@ -31,8 +31,8 @@ declares the binding problems it can answer.**
    every response under the management prefix (`ManagementRootGroup.RoutePrefix`, the one source of the prefix) that
    ends with a status of `400` to `599` and no body (not started, no `Content-Length`, no `Content-Type`: the rule the
    status-code pages middleware uses) as `TypedResults.Problem(statusCode: …)`. A route's answer, a failed binding's
-   `400` and the router's `404`, `405` and `415` are therefore problem documents. This replaces the conversion that
-   decision 3 of ADR-1480 gives `ManagementEnvironmentEndpointFilter`.
+   `400` and the router's `404`, `405` and `415` are therefore problem documents. The middleware, not
+   `ManagementEnvironmentEndpointFilter`, converts a bodiless error to a problem.
 2. **The root group keeps `BindingExceptionEndpointConvention`.** A thrown binding failure leaves the route's request
    delegate and meets a host's exception handler, such as the developer exception page, inside the outermost
    middleware, which renders it first. The convention answers the failure with its status and no body, so the middleware
@@ -67,6 +67,8 @@ declares the binding problems it can answer.**
 
 - A client of any host that registers the management library reads a problem document for every error under the
   management prefix, whether a handler, the binding or the router produced it.
+- The management prefix belongs to the management API. An endpoint a host maps under it is answered the same way, so a
+  client reads one error shape under the prefix, and a host maps its own routes outside it.
 - A host adds nothing to get the problem documents, and a host that renders its own error pages still shows a binding
   failure as a problem under the management prefix.
 - The management prefix is matched at the application's root, where `MapEndpointGroups` maps the root group.

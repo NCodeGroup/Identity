@@ -18,6 +18,13 @@ public class ManagementProblemResponseMiddlewareTests
             Response = { Body = new MemoryStream() },
         };
 
+    private static async Task<int> ReadStatusAsync(HttpContext httpContext)
+    {
+        httpContext.Response.Body.Position = 0;
+        var root = await JsonSerializer.DeserializeAsync<JsonElement>(httpContext.Response.Body);
+        return root.GetProperty("status").GetInt32();
+    }
+
     #region InvokeAsync Tests
 
     [Fact]
@@ -213,12 +220,5 @@ public class ManagementProblemResponseMiddlewareTests
     private sealed class StartedResponseFeature : HttpResponseFeature
     {
         public override bool HasStarted => true;
-    }
-
-    private static async Task<int> ReadStatusAsync(HttpContext httpContext)
-    {
-        httpContext.Response.Body.Position = 0;
-        var root = await JsonSerializer.DeserializeAsync<JsonElement>(httpContext.Response.Body);
-        return root.GetProperty("status").GetInt32();
     }
 }

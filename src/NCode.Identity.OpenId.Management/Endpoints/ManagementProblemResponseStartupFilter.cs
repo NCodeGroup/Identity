@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// it also sees the answers of the router and of the host's own middleware.
 /// </summary>
 // See ADR-1483.
-internal sealed class ManagementProblemResponseStartupFilter : IStartupFilter
+internal class ManagementProblemResponseStartupFilter : IStartupFilter
 {
     /// <inheritdoc />
     public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) =>

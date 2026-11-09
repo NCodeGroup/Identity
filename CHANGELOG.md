@@ -364,13 +364,19 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The host chart deploys the management console on a host of its own.** With `managementConsole.enabled`,
   `charts/ncode-identity-host` runs the console host under the restricted Pod Security Standard with its own
-  ServiceAccount without a token, mounts its `mgmt-client` and `mgmt-dpop` keys read-only from Secrets, probes
-  `/health/live` and `/health/ready`, and routes `managementConsole.host` through an Ingress that sends `/api` to the
-  server and every other path to the console. Rendering fails for a missing or wildcard console host, an `allowedHosts`
-  that does not list it, an authority that is not `https`, a missing key Secret, or more than one console replica
-  without the console's own Valkey
+  ServiceAccount without a token, probes `/health/live` and `/health/ready`, and routes `managementConsole.host`
+  through an Ingress that sends `/api` to the server and every other path to the console. Its `mgmt-client` and
+  `mgmt-dpop` key rings, `managementConsole.keyRings.client` and `.dpop`, each hold a PEM key mounted read-only from a
+  Secret (`pemSecret`), keys that AWS KMS, Azure Key Vault or Google Cloud KMS holds (`remoteKeys`, by key id), or
+  both. The chart registers each service a remote key names and mounts the console's own workload identity for it
+  (`managementConsole.secretProtection`), so the console's private keys can stay out of its pods. Rendering fails for
+  a missing or wildcard console host, an `allowedHosts` that does not list it, an authority that is not `https`, a
+  key ring with no key, two keys of a key ring with one id, a remote key whose id is not its service's key form, a
+  half-set console identity, or more than one console replica without the console's own Valkey
   ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
-  issue [#610](https://github.com/NCodeGroup/Identity/issues/610)).
+  [ADR-1485](docs/decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),
+  issues [#610](https://github.com/NCodeGroup/Identity/issues/610) and
+  [#712](https://github.com/NCodeGroup/Identity/issues/712)).
 
 - **The host's chart migrates the database before each rollout.** The chart runs the image's migration worker as a Helm
   `pre-install` and `pre-upgrade` Job, so a failed migration fails the release before any pod is replaced. The Job runs

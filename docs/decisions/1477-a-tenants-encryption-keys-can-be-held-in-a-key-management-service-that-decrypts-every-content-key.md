@@ -92,16 +92,18 @@ to every caller, and one tenant setting chooses the custody of every provisioned
    `ValueTask`, and `VerifyJws` stays synchronous. The serializer decodes every binary segment before the unwrap, so a
    malformed token never reaches a service. A `CryptographicException`, `JoseException` or `ArgumentException` from an
    unwrap substitutes a random content key ([RFC 7516](https://www.rfc-editor.org/rfc/rfc7516) §11.5), and any other
-   exception (transport, `IOException`, cancellation) propagates.
+   exception (transport, `IOException`, cancellation) propagates and ends the decode of a JSON-serialized JWE rather
+   than moving to its next recipient. RSA-OAEP refuses an encrypted key that is not the size of the key's modulus
+   before any service call.
 8. **The JWT validator decrypts asynchronously and tries the key the header names.** When the JWE header names a `kid`
    that an eligible decryption key has, the validator tries only the keys with that id, so a well-addressed token costs
-   at most one service call per key.
+   at most one service call per key, and a token whose `kid` names a held key that does not decrypt it is refused.
 9. **One setting chooses the custody of every provisioned key.** The tenant setting `tenant_key_provider`
    (`OpenIdSettingKeys.TenantKeyProvider`, data source `TenantKeyProviderSettingDescriptorDataSource`) chooses the
    provider of every provisioned key, signature and encryption alike. The host refuses to start when a described
-   provider cannot hold a provisioned key of either use
-   ([ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) rule 11
-   widened). A deployment that registers Azure Key Vault or Google Cloud KMS provisions `RSA-OAEP*` encryption keys
+   provider cannot hold a provisioned key of either use: the check of
+   [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) rule 11
+   covers keys of both uses. A deployment that registers Azure Key Vault or Google Cloud KMS provisions `RSA-OAEP*` encryption keys
    rather than `ECDH-ES` ones.
 10. **The management API and the console create and bind encryption keys.**
     `ISecretValidator.ValidateRemoteKey(RemoteKeyAlgorithmSelector)` resolves a key for a signature or key-management

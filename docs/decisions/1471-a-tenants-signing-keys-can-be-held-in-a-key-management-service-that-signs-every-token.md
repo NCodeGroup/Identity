@@ -99,7 +99,9 @@ public keys without calling the service.**
     (`OpenIdSettingNames.TenantKeyProvider`) applies to a tenant, so a platform or team document carries it to
     its tenants. Its rule is empty or one of the registered provider names; its default is empty (local keys); it is
     not discoverable; it is environment-bound, because each environment chooses its own custody; it merges by
-    replacement. [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md) rule 9 extends it to every provisioned key.
+    replacement. It chooses the custody of every provisioned key, signature and encryption alike
+    ([ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md)
+    rule 9).
 11. **A registered provider holds every provisioned signature key, or the host does not start.**
     `DefaultTenantKeyPolicy.ResolveSpecifications` reports, for each registered provider and each signature
     specification with no mapping row, that the provider cannot hold the provisioned algorithm, key type, size and

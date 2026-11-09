@@ -3,7 +3,11 @@
 - **Status:** Accepted (amends
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
   [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) and
-  [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md))
+  [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md); amended by
+  [ADR-1485](1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md):
+  the console's key rings are `managementConsole.keyRings.client` and `managementConsole.keyRings.dpop`, each a PEM
+  Secret, keys a key management service holds, or both, reached through the console's own workload identity, and the
+  chart refuses a key ring without a key)
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 

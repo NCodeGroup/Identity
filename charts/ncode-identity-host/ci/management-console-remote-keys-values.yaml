@@ -1,0 +1,35 @@
+# A production release whose management console holds its client authentication key in AWS KMS, reached through the
+# console's own web identity, and its DPoP key in a Secret.
+allowedHosts:
+  - id.example.com
+  - manage.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  recovery:
+    publicKeyConfigMap: identity-recovery-key
+managementConsole:
+  enabled: true
+  host: manage.example.com
+  keyRings:
+    client:
+      remoteKeys:
+        mgmt-client:
+          provider: aws-kms
+          keyId: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+          algorithm: ES256
+          secretType: ecc
+          keySizeBits: 256
+          curve: P-256
+    dpop:
+      pemSecret: identity-mgmt-dpop-key
+  secretProtection:
+    awsKms:
+      webIdentity:
+        roleArn: arn:aws:iam::111122223333:role/ncode-identity-management-console

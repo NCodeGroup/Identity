@@ -64,7 +64,9 @@ Rendering fails, before anything is applied, when:
   `secretProtection.azureKeyVault.workloadIdentity.tenantId` and `clientId` is set, or
   `secretProtection.googleCloudKms.workloadIdentityFederation.provider` is set and is not the resource name of a
   workload identity pool provider. Workload credentials themselves are optional: a provider without them signs in
-  with the pod's ambient identity, such as EKS Pod Identity or Workload Identity Federation for GKE;
+  with the pod's ambient identity, such as EKS Pod Identity or Workload Identity Federation for GKE. The console's
+  identities under `managementConsole.secretProtection` are checked the same way for each vendor a console remote key
+  names;
 - `environment` is `Production`, `secretProtection.recovery.publicKeyConfigMap` is empty, and
   `secretProtection.recovery.disabled` is not `true`, because losing the root key would then lose every stored secret;
 - `replicaCount` is above 1 without `valkey.existingSecret`, because replicas share single-use state through Valkey;
@@ -72,8 +74,12 @@ Rendering fails, before anything is applied, when:
 - `managementConsole.enabled` is `true` and `allowedHosts` does not contain `managementConsole.host`, because the
   management host routes `/api` to the server;
 - `managementConsole.enabled` is `true` and the console's authority is empty or does not start with `https://`;
-- `managementConsole.enabled` is `true` and `managementConsole.keys.clientKeySecret` or
-  `managementConsole.keys.dpopKeySecret` is empty;
+- `managementConsole.enabled` is `true` and a console key ring, `managementConsole.keyRings.client` or `.dpop`, names
+  neither `pemSecret` nor a remote key;
+- a console key ring holds two keys with the same id, compared without case, where a `pemSecret` key's id is
+  `mgmt-client` or `mgmt-dpop`;
+- a console remote key's `keyId` is not the form its provider reads: an AWS KMS key or alias ARN, a Key Vault or
+  Managed HSM key version identifier, or a Cloud KMS crypto key version name;
 - `managementConsole.replicaCount` is above 1 without `managementConsole.valkey.existingSecret`, because replicas share
   their sessions through Valkey;
 - a value is unknown or has the wrong type.
@@ -535,9 +541,10 @@ kubectl create secret generic identity-mgmt-client-key --from-file=mgmt-client.p
 kubectl create secret generic identity-mgmt-dpop-key --from-file=mgmt-dpop.pem
 ```
 
-Name the Secrets in `managementConsole.keys.clientKeySecret` and `managementConsole.keys.dpopKeySecret`. The chart
-mounts them read-only and points `Bff__KeyRings__mgmt-client__PemFiles__0` and
-`Bff__KeyRings__mgmt-dpop__PemFiles__0` at the files.
+Name the Secrets in `managementConsole.keyRings.client.pemSecret` and `managementConsole.keyRings.dpop.pemSecret`. The
+chart mounts each read-only and points `Bff__KeyRings__mgmt-client__PemFiles__0` and
+`Bff__KeyRings__mgmt-dpop__PemFiles__0` at the files. To hold a ring's keys in a key management service instead or as
+well, see [The console's keys in a key management service](#the-consoles-keys-in-a-key-management-service).
 
 Register `mgmt-console` with the server as a confidential client of the control-plane tenant, with the metadata of
 [ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
@@ -562,11 +569,85 @@ helm install identity charts/ncode-identity-host \
   --set database.existingSecret=identity-database \
   --set secretProtection.rootKeyProvider=local --set secretProtection.local.keySecret=identity-root-key --set secretProtection.recovery.publicKeyConfigMap=identity-recovery-key \
   --set managementConsole.enabled=true --set managementConsole.host=manage.example.com \
-  --set managementConsole.keys.clientKeySecret=identity-mgmt-client-key \
-  --set managementConsole.keys.dpopKeySecret=identity-mgmt-dpop-key
+  --set managementConsole.keyRings.client.pemSecret=identity-mgmt-client-key \
+  --set managementConsole.keyRings.dpop.pemSecret=identity-mgmt-dpop-key
 ```
 
 `ci/management-console-values.yaml` shows a release with the console on its own host.
+
+### The console's keys in a key management service
+
+Each console key ring, `managementConsole.keyRings.client` (`Bff:KeyRings:mgmt-client`) and
+`managementConsole.keyRings.dpop` (`Bff:KeyRings:mgmt-dpop`), holds a PEM key from a Secret, keys that a key management
+service holds, or both. A key a key management service holds signs every request the console makes, so the private key
+never reaches the pod
+([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
+[ADR-1485](../../docs/decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md)).
+A ring has these values:
+
+- `pemSecret`, the Secret holding `mgmt-client.pem` or `mgmt-dpop.pem`;
+- `remoteKeys`, a map from a key id (`kid`) to the key. The id is letters and digits separated by single `.`, `_` or
+  `-`, at most 64 characters, and a map cannot name one id twice. Each key has `provider` (`aws-kms`,
+  `azure-key-vault` or `google-cloud-kms`), `keyId`, `algorithm`, `secretType`, `keySizeBits` and, for an elliptic
+  curve key, `curve`.
+
+The `keyId` is the form the provider reads: an AWS KMS key or alias ARN, a Key Vault or Managed HSM key version
+identifier, or a Cloud KMS crypto key version name. A release whose client key is in AWS KMS and whose DPoP key is in a
+Secret:
+
+```yaml
+managementConsole:
+  keyRings:
+    client:
+      remoteKeys:
+        mgmt-client:
+          provider: aws-kms
+          keyId: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+          algorithm: ES256
+          secretType: ecc
+          keySizeBits: 256
+          curve: P-256
+    dpop:
+      pemSecret: identity-mgmt-dpop-key
+  secretProtection:
+    awsKms:
+      webIdentity:
+        roleArn: arn:aws:iam::111122223333:role/ncode-identity-management-console
+```
+
+The chart renders each remote key as `Bff__KeyRings__<ring>__RemoteKeys__<kid>__Provider`, `__KeyId`, `__Algorithm`,
+`__SecretType`, `__KeySizeBits` and `__Curve`, where `<ring>` is `mgmt-client` or `mgmt-dpop`. It registers a vendor
+exactly when a console remote key names it, as `SecretProtection__RemoteKeyProviders__AwsKms__Region`,
+`__AzureKeyVault__VaultUri` or `__GoogleCloudKms__KeyRing`, read from the first such key: the region of an AWS ARN,
+`https://<host>` of a Key Vault key identifier, or the key ring of a Cloud KMS crypto key version name. The console
+reads every key where the key's own identifier names, so the section only registers the provider.
+
+**Credentials.** The console has an identity of its own under `managementConsole.secretProtection`:
+`awsKms.webIdentity`, `azureKeyVault.workloadIdentity` and `googleCloudKms.workloadIdentityFederation`, with the same
+fields and defaults as the server's `secretProtection.*` of the same names. The chart mounts them at the same paths and
+sets the same environment variables as for the server, and renders the ConfigMap `<console full name>-google-cloud`
+for a Google federation, with a checksum annotation on the pod so a change restarts it. The federated credentials trust
+the console's service account, `system:serviceaccount:<namespace>:<service account>`, where the service account is
+`managementConsole.serviceAccount.name`, or the console's full name, `<release full name>-management-console`, when
+that is empty. A value left empty means the pod's ambient identity. A console pod carries a vendor's credentials only
+when a console remote key names that vendor: the server never carries the console's identity, nor the console the
+server's.
+
+**What the identity needs.** The console only reads and uses a key:
+
+- AWS KMS: `kms:GetPublicKey` plus `kms:Sign`, or `kms:Decrypt` and `kms:DeriveSharedSecret` for a key that decrypts.
+- Azure Key Vault: the `Key Vault Crypto User` role on the key.
+- Google Cloud KMS: `cloudkms.cryptoKeyVersions.viewPublicKey` plus `cloudkms.cryptoKeyVersions.useToSign`, or
+  `cloudkms.cryptoKeyVersions.useToDecrypt` for a key that decrypts.
+
+The console reads and proves each key at start. A key it cannot read or use stops it, and a rotation of the key takes
+effect when the console restarts. The key is the operator's: the console never creates, tags or destroys it. Keep it
+out of the `ncid-` groups and out of the tag of `secretProtection.remoteKeys.deployment`, in a scope of its own, so the
+server's sweep never names it. Keep the DPoP key in a Secret unless the threat model needs it in a key management
+service and the request rate fits the service's quota
+([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+
+`ci/management-console-remote-keys-values.yaml` shows a release.
 
 ## Strict-Transport-Security
 

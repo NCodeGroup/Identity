@@ -668,6 +668,12 @@ binds a local path prefix to **one** destination base URL. The forwarder:
   then attaches the token and proof for the API's requirement.
 - Strips `Set-Cookie` from upstream responses, so an API cannot plant cookies on the BFF's origin.
 - Never follows upstream redirects. Responses stream through, and each API has its own timeouts.
+- Sends through the `IHttpClientFactory` client named `BffDefaults.RemoteApiHttpClientName`
+  (`NCode.Identity.Bff.RemoteApis`), whose primary handler the BFF configures to follow no redirect, send or store no
+  cookie, use no proxy and decompress nothing. A host adds a handler to it, such as outbound telemetry, or replaces its
+  primary handler, such as a test server's, with `AddHttpClient(BffDefaults.RemoteApiHttpClientName)` after the BFF's
+  registration; the token and its proof are attached before the client's handlers run
+  ([ADR-1487](decisions/1487-the-bff-forwards-a-remote-api-through-a-named-http-client-a-host-can-configure.md)).
 - Retries **once** on an upstream `WWW-Authenticate: DPoP error="use_dpop_nonce"`.
 
 **YARP routes.** A host that already describes its routes in YARP configuration names their token in route metadata

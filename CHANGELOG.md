@@ -2703,9 +2703,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   `MapBffRemoteApi(path, destination, configure)` and `MapBffRemoteApis()` over each frontend's `RemoteApis`
   section, limited to that frontend (`BffRemoteApiOptions`: `Path`, `Destination`, `TokenRequirement`, `Resource`, `Scope`, `AllowedMethods`, `Timeout`)
   forward a BFF API's requests to a remote API through YARP's `IHttpForwarder` with the token attached, DPoP-bound when
-  the token is; `NCode.Identity.Bff` depends on `Yarp.ReverseProxy`
+  the token is, over the `IHttpClientFactory` client `BffDefaults.RemoteApiHttpClientName`, whose handlers a host
+  configures; `NCode.Identity.Bff` depends on `Yarp.ReverseProxy`
   ([#395](https://github.com/NCodeGroup/Identity/issues/395),
-  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
+  [#716](https://github.com/NCodeGroup/Identity/issues/716),
+  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
+  [ADR-1487](docs/decisions/1487-the-bff-forwards-a-remote-api-through-a-named-http-client-a-host-can-configure.md)).
 
 - **YARP-configured routes can carry the BFF's token.** `AddReverseProxy()…AddBffTransforms()` makes every route whose
   metadata names `BffTokenRequirement` (with the optional `BffResource` and `BffScope`) a remote API, and

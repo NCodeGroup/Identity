@@ -42,40 +42,9 @@ internal partial class JoseSerializer(
         out Span<byte> bytes
     )
     {
-        int byteCount;
-        try
-        {
-            byteCount = Base64Url.GetByteCountForDecode(chars.Length);
-        }
-        catch (FormatException exception)
-        {
-            throw InvalidBase64Url(exception);
-        }
-
+        var byteCount = GetDecodedByteCount(chars);
         var lease = BufferFactory.Rent(byteCount, isSensitive, out bytes);
-        try
-        {
-            // The data is read from a token, so data that does not decode whole is refused, never read from a buffer
-            // the decoder wrote only in part.
-            if (
-                !Base64Url.TryDecode(chars, bytes, out var bytesWritten)
-                || bytesWritten != byteCount
-            )
-            {
-                throw InvalidBase64Url();
-            }
-        }
-        catch (FormatException exception)
-        {
-            lease.Dispose();
-            throw InvalidBase64Url(exception);
-        }
-        catch
-        {
-            lease.Dispose();
-            throw;
-        }
-
+        DecodeInto(chars, bytes, lease);
         return lease;
     }
 
@@ -94,24 +63,33 @@ internal partial class JoseSerializer(
         out Memory<byte> bytes
     )
     {
-        int byteCount;
+        var byteCount = GetDecodedByteCount(chars);
+        var lease = BufferFactory.Rent(byteCount, isSensitive, out bytes);
+        DecodeInto(chars, bytes.Span, lease);
+        return lease;
+    }
+
+    private static int GetDecodedByteCount(ReadOnlySpan<char> chars)
+    {
         try
         {
-            byteCount = Base64Url.GetByteCountForDecode(chars.Length);
+            return Base64Url.GetByteCountForDecode(chars.Length);
         }
         catch (FormatException exception)
         {
             throw InvalidBase64Url(exception);
         }
+    }
 
-        var lease = BufferFactory.Rent(byteCount, isSensitive, out bytes);
+    private static void DecodeInto(ReadOnlySpan<char> chars, Span<byte> bytes, IDisposable lease)
+    {
         try
         {
             // The data is read from a token, so data that does not decode whole is refused, never read from a buffer
             // the decoder wrote only in part.
             if (
-                !Base64Url.TryDecode(chars, bytes.Span, out var bytesWritten)
-                || bytesWritten != byteCount
+                !Base64Url.TryDecode(chars, bytes, out var bytesWritten)
+                || bytesWritten != bytes.Length
             )
             {
                 throw InvalidBase64Url();
@@ -127,8 +105,6 @@ internal partial class JoseSerializer(
             lease.Dispose();
             throw;
         }
-
-        return lease;
     }
 
     /// <summary>

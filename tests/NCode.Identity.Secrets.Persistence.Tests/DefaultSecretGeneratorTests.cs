@@ -75,14 +75,14 @@ public class DefaultSecretGeneratorTests : BaseTests
             EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
         };
 
-    private readonly DefaultSecretKeyTypeCatalog _catalog;
-    private readonly DefaultSecretVerifierSchemeCatalog _verifierCatalog;
-    private readonly Mock<IRemoteKeyProvider> _remoteProvider;
-    private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;
-    private readonly DefaultRemoteKeyDescriptorCatalog _remoteDescriptorCatalog;
-    private readonly Mock<IRemoteSecretDestroyer> _remoteDestroyer;
-    private readonly DefaultSecretGenerator _generator;
-    private readonly DefaultSecretSerializer _serializer;
+    private DefaultSecretKeyTypeCatalog Catalog { get; }
+    private DefaultSecretVerifierSchemeCatalog VerifierCatalog { get; }
+    private Mock<IRemoteKeyProvider> RemoteProvider { get; }
+    private DefaultRemoteKeyProviderCatalog RemoteCatalog { get; }
+    private DefaultRemoteKeyDescriptorCatalog RemoteDescriptorCatalog { get; }
+    private Mock<IRemoteSecretDestroyer> RemoteDestroyer { get; }
+    private DefaultSecretGenerator Generator { get; }
+    private DefaultSecretSerializer Serializer { get; }
 
     public DefaultSecretGeneratorTests()
     {
@@ -100,11 +100,11 @@ public class DefaultSecretGeneratorTests : BaseTests
             new EccSecretKeyTypeDescriptor(secretKeyFactory, new DefaultEccCurveCatalog([])),
         ]);
 
-        _catalog = catalog;
-        _verifierCatalog = TestSecretVerifierSchemes.CreateCatalog();
+        Catalog = catalog;
+        VerifierCatalog = TestSecretVerifierSchemes.CreateCatalog();
 
-        _remoteProvider = CreateStrictMock<IRemoteKeyProvider>();
-        _remoteProvider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
+        RemoteProvider = CreateStrictMock<IRemoteKeyProvider>();
+        RemoteProvider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
         var source = CreateStrictMock<IRemoteKeyDescriptorSource>();
         source
@@ -115,18 +115,18 @@ public class DefaultSecretGeneratorTests : BaseTests
             .SetupGet(x => x.Algorithms)
             .Returns([RsaRow, LargeRsaRow, EccRow, OtherCurveEccRow, OaepRow])
             .Verifiable();
-        _remoteDescriptorCatalog = new DefaultRemoteKeyDescriptorCatalog([source.Object]);
-        _remoteCatalog = new DefaultRemoteKeyProviderCatalog(
-            [_remoteProvider.Object],
-            _remoteDescriptorCatalog
+        RemoteDescriptorCatalog = new DefaultRemoteKeyDescriptorCatalog([source.Object]);
+        RemoteCatalog = new DefaultRemoteKeyProviderCatalog(
+            [RemoteProvider.Object],
+            RemoteDescriptorCatalog
         );
 
-        _remoteDestroyer = CreateStrictMock<IRemoteSecretDestroyer>();
+        RemoteDestroyer = CreateStrictMock<IRemoteSecretDestroyer>();
 
-        _generator = CreateGenerator(new SharedSecretVerifierOptions());
-        _serializer = new DefaultSecretSerializer(
+        Generator = CreateGenerator(new SharedSecretVerifierOptions());
+        Serializer = new DefaultSecretSerializer(
             catalog,
-            _verifierCatalog,
+            VerifierCatalog,
             new DefaultRemoteKeyResolver(
                 catalog,
                 new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
@@ -140,11 +140,11 @@ public class DefaultSecretGeneratorTests : BaseTests
         string? deployment = "test"
     ) =>
         new(
-            _catalog,
-            _verifierCatalog,
+            Catalog,
+            VerifierCatalog,
             Microsoft.Extensions.Options.Options.Create(options),
-            new DefaultRemoteKeyResolver(_catalog, _remoteCatalog, _remoteDescriptorCatalog),
-            _remoteDestroyer.Object,
+            new DefaultRemoteKeyResolver(Catalog, RemoteCatalog, RemoteDescriptorCatalog),
+            RemoteDestroyer.Object,
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions { RemoteKeys = { Deployment = deployment } }
             )
@@ -163,7 +163,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     }
 
     private SecretVerifier ReadVerifier(DefaultSecretProtector protector, PersistedSecret secret) =>
-        Assert.Single(_serializer.DeserializeVerifiers(protector, [secret]));
+        Assert.Single(Serializer.DeserializeVerifiers(protector, [secret]));
 
     private static GenerateSecretRequest CreateRequest(string secretType, int keySizeBits) =>
         new()
@@ -297,7 +297,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 256);
 
-        var persisted = _generator.GenerateSecret(protector, request).Secret;
+        var persisted = Generator.GenerateSecret(protector, request).Secret;
 
         Assert.Equal(request.CreatedWhen, persisted.ActivatesWhen);
         Assert.Equal(request.ExpiresWhen, persisted.RetiresWhen);
@@ -320,7 +320,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
         };
 
-        var persisted = _generator.GenerateSecret(protector, request).Secret;
+        var persisted = Generator.GenerateSecret(protector, request).Secret;
 
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), persisted.ActivatesWhen);
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), persisted.RetiresWhen);
@@ -333,7 +333,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 256);
 
-        var persisted = _generator.GenerateSecret(protector, request).Secret;
+        var persisted = Generator.GenerateSecret(protector, request).Secret;
 
         Assert.Null(persisted.ManagedBy);
     }
@@ -354,7 +354,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             ManagedBy = "rotation",
         };
 
-        var persisted = _generator.GenerateSecret(protector, request).Secret;
+        var persisted = Generator.GenerateSecret(protector, request).Secret;
 
         Assert.Equal("rotation", persisted.ManagedBy);
     }
@@ -376,7 +376,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            _generator.GenerateSecret(protector, request)
+            Generator.GenerateSecret(protector, request)
         );
 
         Assert.Contains("cannot expire", exception.Message, StringComparison.Ordinal);
@@ -388,7 +388,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var request = CreateSharedRequest();
 
-        var persisted = _generator.GenerateSharedSecretVerifier(protector, request).Secret;
+        var persisted = Generator.GenerateSharedSecretVerifier(protector, request).Secret;
 
         Assert.Equal(request.CreatedWhen, persisted.ActivatesWhen);
         Assert.Equal(request.ExpiresWhen, persisted.RetiresWhen);
@@ -400,7 +400,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 256);
 
-        var generated = _generator.GenerateSecret(protector, request);
+        var generated = Generator.GenerateSecret(protector, request);
         var persisted = generated.Secret;
 
         Assert.Equal("gen-1", persisted.SecretId);
@@ -413,7 +413,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         Assert.NotEmpty(generated.SecretMaterial);
         Assert.NotEqual(persisted.EncodedValue, generated.SecretMaterial);
 
-        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+        var secretKey = Serializer.DeserializeSecret(protector, persisted);
 
         Assert.IsAssignableFrom<SymmetricSecretKey>(secretKey);
         Assert.Equal(256, secretKey.KeySizeBits);
@@ -425,7 +425,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 100);
 
-        Assert.Throws<ArgumentException>(() => _generator.GenerateSecret(protector, request));
+        Assert.Throws<ArgumentException>(() => Generator.GenerateSecret(protector, request));
     }
 
     #endregion
@@ -440,8 +440,8 @@ public class DefaultSecretGeneratorTests : BaseTests
         bool reversible
     ) =>
         reversible
-            ? _generator.GenerateReversibleSharedSecret(protector, request)
-            : _generator.GenerateSharedSecretVerifier(protector, request);
+            ? Generator.GenerateReversibleSharedSecret(protector, request)
+            : Generator.GenerateSharedSecretVerifier(protector, request);
 
     [Theory]
     [MemberData(nameof(BothSharedSecretForms))]
@@ -493,10 +493,10 @@ public class DefaultSecretGeneratorTests : BaseTests
     public async Task ImportSharedSecret_StoresAVerifierOfTheSameShapeAsGenerateSharedSecret()
     {
         var protector = CreateProtector();
-        var generated = _generator.GenerateSharedSecretVerifier(protector, CreateSharedRequest());
+        var generated = Generator.GenerateSharedSecretVerifier(protector, CreateSharedRequest());
         var secretValue = SecureEncoding.UTF8.GetBytes(generated.SecretMaterial!);
 
-        var imported = _generator.ImportSharedSecretVerifier(
+        var imported = Generator.ImportSharedSecretVerifier(
             protector,
             CreateImportRequest("import-4"),
             secretValue
@@ -526,9 +526,9 @@ public class DefaultSecretGeneratorTests : BaseTests
     public void ImportReversibleSharedSecret_ProducesTheSameStoredShapeAsGenerateReversibleSharedSecret()
     {
         var protector = CreateProtector();
-        var generated = _generator.GenerateReversibleSharedSecret(protector, CreateSharedRequest());
+        var generated = Generator.GenerateReversibleSharedSecret(protector, CreateSharedRequest());
 
-        var imported = _generator.ImportReversibleSharedSecret(
+        var imported = Generator.ImportReversibleSharedSecret(
             protector,
             CreateImportRequest("import-3"),
             SecureEncoding.UTF8.GetBytes(generated.SecretMaterial!)
@@ -539,10 +539,10 @@ public class DefaultSecretGeneratorTests : BaseTests
         Assert.Equal(generated.Secret.KeySizeBits, imported.KeySizeBits);
 
         var generatedKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
-            _serializer.DeserializeSecret(protector, generated.Secret)
+            Serializer.DeserializeSecret(protector, generated.Secret)
         );
         var importedKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
-            _serializer.DeserializeSecret(protector, imported)
+            Serializer.DeserializeSecret(protector, imported)
         );
 
         var generatedWriter = new ArrayBufferWriter<byte>();
@@ -563,7 +563,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Rsa, 2048);
 
-        var generated = _generator.GenerateSecret(protector, request);
+        var generated = Generator.GenerateSecret(protector, request);
         var persisted = generated.Secret;
 
         Assert.Equal(SecretTypes.Rsa, persisted.SecretType);
@@ -572,7 +572,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         // ADR-1050: asymmetric private keys are never revealed.
         Assert.Null(generated.SecretMaterial);
 
-        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+        var secretKey = Serializer.DeserializeSecret(protector, persisted);
 
         Assert.IsAssignableFrom<RsaSecretKey>(secretKey);
         Assert.Equal(2048, secretKey.KeySizeBits);
@@ -588,7 +588,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Ecc, 256);
 
-        var generated = _generator.GenerateSecret(protector, request);
+        var generated = Generator.GenerateSecret(protector, request);
         var persisted = generated.Secret;
 
         Assert.Equal(SecretTypes.Ecc, persisted.SecretType);
@@ -597,7 +597,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         // ADR-1050: asymmetric private keys are never revealed.
         Assert.Null(generated.SecretMaterial);
 
-        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+        var secretKey = Serializer.DeserializeSecret(protector, persisted);
 
         Assert.IsAssignableFrom<EccSecretKey>(secretKey);
         Assert.Equal(256, secretKey.KeySizeBits);
@@ -609,7 +609,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Ecc, 300);
 
-        Assert.Throws<ArgumentException>(() => _generator.GenerateSecret(protector, request));
+        Assert.Throws<ArgumentException>(() => Generator.GenerateSecret(protector, request));
     }
 
     #endregion
@@ -622,7 +622,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 256);
 
-        var persisted = _generator.GenerateSecret(protector, request).Secret;
+        var persisted = Generator.GenerateSecret(protector, request).Secret;
 
         Assert.Equal(request.Use, persisted.Use);
         Assert.Equal(request.Algorithm, persisted.Algorithm);
@@ -637,7 +637,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var request = CreateRequest("x509", 2048);
 
         Assert.Throws<InvalidOperationException>(() =>
-            _generator.GenerateSecret(protector, request)
+            Generator.GenerateSecret(protector, request)
         );
     }
 
@@ -649,9 +649,9 @@ public class DefaultSecretGeneratorTests : BaseTests
     public void GenerateSecret_WhenRsa_ExportsSubjectPublicKeyInfoPem()
     {
         var protector = CreateProtector();
-        var generated = _generator.GenerateSecret(protector, CreateRequest(SecretTypes.Rsa, 2048));
+        var generated = Generator.GenerateSecret(protector, CreateRequest(SecretTypes.Rsa, 2048));
 
-        var secretKey = _serializer.DeserializeSecret(protector, generated.Secret);
+        var secretKey = Serializer.DeserializeSecret(protector, generated.Secret);
 
         var asymmetric = Assert.IsAssignableFrom<AsymmetricSecretKey>(secretKey);
         Assert.StartsWith("-----BEGIN PUBLIC KEY-----", asymmetric.ExportSubjectPublicKeyInfoPem());
@@ -661,10 +661,10 @@ public class DefaultSecretGeneratorTests : BaseTests
     public void GenerateSecret_WhenRsa_StoresTheSubjectPublicKeyInfo()
     {
         var protector = CreateProtector();
-        var generated = _generator.GenerateSecret(protector, CreateRequest(SecretTypes.Rsa, 2048));
+        var generated = Generator.GenerateSecret(protector, CreateRequest(SecretTypes.Rsa, 2048));
 
         var asymmetric = Assert.IsAssignableFrom<AsymmetricSecretKey>(
-            _serializer.DeserializeSecret(protector, generated.Secret)
+            Serializer.DeserializeSecret(protector, generated.Secret)
         );
         var writer = new ArrayBufferWriter<byte>();
         asymmetric.ExportSubjectPublicKeyInfo(ref writer);
@@ -681,7 +681,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var protector = CreateProtector();
 
-        var generated = _generator.GenerateSharedSecretVerifier(protector, CreateSharedRequest());
+        var generated = Generator.GenerateSharedSecretVerifier(protector, CreateSharedRequest());
 
         Assert.Null(generated.Secret.PublicKey);
     }
@@ -707,7 +707,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var protector = CreateProtector();
 
-        var persisted = _generator.GenerateSecret(protector, CreateEccRequest(384, "P-384")).Secret;
+        var persisted = Generator.GenerateSecret(protector, CreateEccRequest(384, "P-384")).Secret;
 
         Assert.Equal(384, persisted.KeySizeBits);
     }
@@ -721,7 +721,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            _generator.GenerateSecret(protector, CreateEccRequest(keySizeBits, "P-384"))
+            Generator.GenerateSecret(protector, CreateEccRequest(keySizeBits, "P-384"))
         );
 
         Assert.StartsWith(
@@ -740,7 +740,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var protector = CreateProtector();
 
-        var persisted = _generator
+        var persisted = Generator
             .GenerateSecret(protector, CreateRequest(SecretTypes.Symmetric, 256))
             .Secret;
 
@@ -762,11 +762,11 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var protector = CreateProtector();
 
-        var persisted = _generator
+        var persisted = Generator
             .GenerateSecret(protector, CreateRequest(secretType, keySizeBits))
             .Secret;
 
-        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+        var secretKey = Serializer.DeserializeSecret(protector, persisted);
 
         Assert.IsAssignableFrom(expectedKeyType, secretKey);
         Assert.Equal("gen-1", secretKey.KeyId);
@@ -778,7 +778,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var protector = CreateProtector();
 
-        var generated = _generator.GenerateSharedSecretVerifier(protector, CreateSharedRequest());
+        var generated = Generator.GenerateSharedSecretVerifier(protector, CreateSharedRequest());
         var persisted = generated.Secret;
 
         Assert.StartsWith(
@@ -819,7 +819,7 @@ public class DefaultSecretGeneratorTests : BaseTests
 
         // A verifier is not key material.
         Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeSecret(protector, persisted)
+            Serializer.DeserializeSecret(protector, persisted)
         );
     }
 
@@ -828,7 +828,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var protector = CreateProtector();
 
-        var generated = _generator.GenerateReversibleSharedSecret(protector, CreateSharedRequest());
+        var generated = Generator.GenerateReversibleSharedSecret(protector, CreateSharedRequest());
         var persisted = generated.Secret;
 
         Assert.StartsWith(
@@ -842,7 +842,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         Assert.NotEmpty(generated.SecretMaterial);
 
         var secretKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
-            _serializer.DeserializeSecret(protector, persisted)
+            Serializer.DeserializeSecret(protector, persisted)
         );
 
         var writer = new ArrayBufferWriter<byte>();
@@ -861,7 +861,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var secretValue = "my-chosen-client-secret"u8.ToArray();
 
-        var persisted = _generator.ImportSharedSecretVerifier(
+        var persisted = Generator.ImportSharedSecretVerifier(
             protector,
             CreateImportRequest("import-1"),
             secretValue
@@ -885,7 +885,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             StringComparison.Ordinal
         );
         Assert.DoesNotContain("my-chosen-client-secret", text, StringComparison.Ordinal);
-        var again = _generator.ImportSharedSecretVerifier(
+        var again = Generator.ImportSharedSecretVerifier(
             protector,
             CreateImportRequest("import-1"),
             secretValue
@@ -917,7 +917,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var protector = CreateProtector();
         var secretValue = "my-chosen-client-secret"u8.ToArray();
 
-        var persisted = _generator.ImportReversibleSharedSecret(
+        var persisted = Generator.ImportReversibleSharedSecret(
             protector,
             CreateImportRequest("import-1"),
             secretValue
@@ -934,7 +934,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         Assert.Equal(secretValue.Length * 8, persisted.KeySizeBits);
 
         var secretKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
-            _serializer.DeserializeSecret(protector, persisted)
+            Serializer.DeserializeSecret(protector, persisted)
         );
 
         var writer = new ArrayBufferWriter<byte>();
@@ -952,16 +952,12 @@ public class DefaultSecretGeneratorTests : BaseTests
 
         Assert.Throws<ArgumentException>(() =>
             reversible
-                ? _generator.ImportReversibleSharedSecret(
+                ? Generator.ImportReversibleSharedSecret(
                     protector,
                     request,
                     ReadOnlySpan<byte>.Empty
                 )
-                : _generator.ImportSharedSecretVerifier(
-                    protector,
-                    request,
-                    ReadOnlySpan<byte>.Empty
-                )
+                : Generator.ImportSharedSecretVerifier(protector, request, ReadOnlySpan<byte>.Empty)
         );
     }
 
@@ -974,8 +970,8 @@ public class DefaultSecretGeneratorTests : BaseTests
         var secretValue = "my-chosen-client-secret"u8.ToArray();
 
         var imported = reversible
-            ? _generator.ImportReversibleSharedSecret(protector, request, secretValue)
-            : _generator.ImportSharedSecretVerifier(protector, request, secretValue);
+            ? Generator.ImportReversibleSharedSecret(protector, request, secretValue)
+            : Generator.ImportSharedSecretVerifier(protector, request, secretValue);
 
         Assert.Equal(SecretOrigins.Supplied, imported.Origin);
     }
@@ -988,10 +984,10 @@ public class DefaultSecretGeneratorTests : BaseTests
     public async Task ConvertToSharedSecretVerifier_WhenTheServerGeneratedTheSecret_StoresItsSha256Verifier()
     {
         var protector = CreateProtector();
-        var generated = _generator.GenerateReversibleSharedSecret(protector, CreateSharedRequest());
+        var generated = Generator.GenerateReversibleSharedSecret(protector, CreateSharedRequest());
         var secretValue = SecureEncoding.UTF8.GetBytes(generated.SecretMaterial!);
 
-        var converted = _generator.ConvertToSharedSecretVerifier(
+        var converted = Generator.ConvertToSharedSecretVerifier(
             protector,
             generated.Secret,
             "converted-1"
@@ -1020,17 +1016,13 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var protector = CreateProtector();
         var secretValue = "my-chosen-client-secret"u8.ToArray();
-        var imported = _generator.ImportReversibleSharedSecret(
+        var imported = Generator.ImportReversibleSharedSecret(
             protector,
             CreateImportRequest("import-8"),
             secretValue
         );
 
-        var converted = _generator.ConvertToSharedSecretVerifier(
-            protector,
-            imported,
-            "converted-2"
-        );
+        var converted = Generator.ConvertToSharedSecretVerifier(protector, imported, "converted-2");
 
         Assert.Equal(SecretOrigins.Supplied, converted.Origin);
         Assert.Equal(secretValue.Length * 8, converted.KeySizeBits);
@@ -1052,10 +1044,10 @@ public class DefaultSecretGeneratorTests : BaseTests
     public void ConvertToSharedSecretVerifier_WhenTheSecretIsAVerifier_Throws()
     {
         var protector = CreateProtector();
-        var generated = _generator.GenerateSharedSecretVerifier(protector, CreateSharedRequest());
+        var generated = Generator.GenerateSharedSecretVerifier(protector, CreateSharedRequest());
 
         Assert.Throws<InvalidOperationException>(() =>
-            _generator.ConvertToSharedSecretVerifier(protector, generated.Secret, "converted-3")
+            Generator.ConvertToSharedSecretVerifier(protector, generated.Secret, "converted-3")
         );
     }
 
@@ -1063,10 +1055,10 @@ public class DefaultSecretGeneratorTests : BaseTests
     public void ConvertToSharedSecretVerifier_WhenTheSecretIsNotShared_Throws()
     {
         var protector = CreateProtector();
-        var generated = _generator.GenerateSecret(protector, CreateRequest(SecretTypes.Rsa, 2048));
+        var generated = Generator.GenerateSecret(protector, CreateRequest(SecretTypes.Rsa, 2048));
 
         Assert.Throws<InvalidOperationException>(() =>
-            _generator.ConvertToSharedSecretVerifier(protector, generated.Secret, "converted-4")
+            Generator.ConvertToSharedSecretVerifier(protector, generated.Secret, "converted-4")
         );
     }
 
@@ -1116,7 +1108,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         IRemoteKeyProvider,
         ValueTask<RemoteKeyCreationResult>
     > SetupCreateKeyCall(RemoteKeyAlgorithm row) =>
-        _remoteProvider.Setup(x =>
+        RemoteProvider.Setup(x =>
             x.CreateKeyAsync(
                 It.Is<RemoteKeyCreationRequest>(request =>
                     request.OwnerId == "tenant:tenant-one"
@@ -1147,7 +1139,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     private Moq.Language.Flow.ISetup<IRemoteKeyProvider, ValueTask> SetupGetPublicKeyCall(
         RemoteKeyAlgorithm row
     ) =>
-        _remoteProvider.Setup(x =>
+        RemoteProvider.Setup(x =>
             x.GetPublicKeyAsync(
                 It.Is<RemotePublicKeyRequest>(request =>
                     request.KeyId == "key-1" && ReferenceEquals(request.Algorithm, row)
@@ -1169,7 +1161,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var spki = CreateRsaSubjectPublicKeyInfo();
         SetupCreateAndReadKey(RsaRow, spki);
 
-        var secret = await _generator.GenerateRemoteSecretAsync(
+        var secret = await Generator.GenerateRemoteSecretAsync(
             CreateRemoteRequest(),
             CancellationToken.None
         );
@@ -1196,7 +1188,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var spki = CreateEccSubjectPublicKeyInfo();
         SetupCreateAndReadKey(EccRow, spki);
 
-        var secret = await _generator.GenerateRemoteSecretAsync(
+        var secret = await Generator.GenerateRemoteSecretAsync(
             CreateRemoteRequest(SecretTypes.Ecc, 256, "P-256", "ES256"),
             CancellationToken.None
         );
@@ -1217,7 +1209,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             managedBy: "rollover"
         );
 
-        var secret = await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None);
+        var secret = await Generator.GenerateRemoteSecretAsync(request, CancellationToken.None);
 
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(1), secret.ActivatesWhen);
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(30), secret.RetiresWhen);
@@ -1234,7 +1226,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var request = CreateRemoteRequest(secretType);
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
+            await Generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
         );
 
         Assert.Contains($"'{secretType}'", exception.Message, StringComparison.Ordinal);
@@ -1246,7 +1238,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var request = CreateRemoteRequest(provider: "unregistered-kms");
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
+            await Generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
         );
 
         Assert.Contains("'unregistered-kms'", exception.Message, StringComparison.Ordinal);
@@ -1258,7 +1250,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var request = CreateRemoteRequest(algorithm: "RS384");
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
+            await Generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
         );
 
         Assert.Contains("'RS384'", exception.Message, StringComparison.Ordinal);
@@ -1270,7 +1262,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var spki = CreateRsaSubjectPublicKeyInfo();
         SetupCreateAndReadKey(OaepRow, spki);
 
-        var secret = await _generator.GenerateRemoteSecretAsync(
+        var secret = await Generator.GenerateRemoteSecretAsync(
             CreateRemoteRequest(algorithm: "RSA-OAEP-256"),
             CancellationToken.None
         );
@@ -1299,7 +1291,7 @@ public class DefaultSecretGeneratorTests : BaseTests
 
     // Expects one call to the destroyer with the one record the generator would have returned for the created key.
     private void SetupDestroy() =>
-        _remoteDestroyer
+        RemoteDestroyer
             .Setup(x =>
                 x.DestroyAsync(
                     It.Is<IReadOnlyCollection<PersistedSecret>>(secrets =>
@@ -1320,7 +1312,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupDestroy();
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(
+            await Generator.GenerateRemoteSecretAsync(
                 CreateRemoteRequest(keySizeBits: 4096),
                 CancellationToken.None
             )
@@ -1336,7 +1328,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupDestroy();
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(
+            await Generator.GenerateRemoteSecretAsync(
                 CreateRemoteRequest(SecretTypes.Ecc, 256, "secp256k1", "ES256"),
                 CancellationToken.None
             )
@@ -1352,10 +1344,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupDestroy();
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(
-                CreateRemoteRequest(),
-                CancellationToken.None
-            )
+            await Generator.GenerateRemoteSecretAsync(CreateRemoteRequest(), CancellationToken.None)
         );
 
         Assert.Contains($"'{SecretTypes.Rsa}' key", exception.Message, StringComparison.Ordinal);
@@ -1369,10 +1358,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupDestroy();
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(
-                CreateRemoteRequest(),
-                CancellationToken.None
-            )
+            await Generator.GenerateRemoteSecretAsync(CreateRemoteRequest(), CancellationToken.None)
         );
 
         Assert.NotNull(exception.InnerException);
@@ -1386,10 +1372,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupDestroy();
 
         await Assert.ThrowsAsync<IOException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(
-                CreateRemoteRequest(),
-                CancellationToken.None
-            )
+            await Generator.GenerateRemoteSecretAsync(CreateRemoteRequest(), CancellationToken.None)
         );
     }
 
@@ -1401,10 +1384,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupDestroy();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(
-                CreateRemoteRequest(),
-                CancellationToken.None
-            )
+            await Generator.GenerateRemoteSecretAsync(CreateRemoteRequest(), CancellationToken.None)
         );
     }
 
@@ -1412,16 +1392,13 @@ public class DefaultSecretGeneratorTests : BaseTests
     public async Task GenerateRemoteSecretAsync_WhenCreationFails_DestroysNothing()
     {
         SetupCreateKeyCall(RsaRow).ThrowsAsync(new IOException()).Verifiable();
-        _remoteDestroyer
+        RemoteDestroyer
             .Setup(x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Never());
 
         await Assert.ThrowsAsync<IOException>(async () =>
-            await _generator.GenerateRemoteSecretAsync(
-                CreateRemoteRequest(),
-                CancellationToken.None
-            )
+            await Generator.GenerateRemoteSecretAsync(CreateRemoteRequest(), CancellationToken.None)
         );
     }
 
@@ -1455,7 +1432,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var spki = CreateRsaSubjectPublicKeyInfo();
         SetupGetPublicKey(RsaRow, spki);
 
-        var secret = await _generator.BindRemoteSecretAsync(
+        var secret = await Generator.BindRemoteSecretAsync(
             CreateBindRequest(),
             CancellationToken.None
         );
@@ -1482,7 +1459,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var spki = CreateEccSubjectPublicKeyInfo();
         SetupGetPublicKey(EccRow, spki);
 
-        var secret = await _generator.BindRemoteSecretAsync(
+        var secret = await Generator.BindRemoteSecretAsync(
             CreateBindRequest(SecretTypes.Ecc, 256, "P-256", "ES256"),
             CancellationToken.None
         );
@@ -1499,7 +1476,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var spki = CreateRsaSubjectPublicKeyInfo();
         SetupGetPublicKey(OaepRow, spki);
 
-        var secret = await _generator.BindRemoteSecretAsync(
+        var secret = await Generator.BindRemoteSecretAsync(
             CreateBindRequest(algorithm: "RSA-OAEP-256"),
             CancellationToken.None
         );
@@ -1521,7 +1498,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var request = CreateBindRequest(secretType);
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+            await Generator.BindRemoteSecretAsync(request, CancellationToken.None)
         );
 
         Assert.Contains($"'{secretType}'", exception.Message, StringComparison.Ordinal);
@@ -1533,7 +1510,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var request = CreateBindRequest(provider: "unregistered-kms");
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+            await Generator.BindRemoteSecretAsync(request, CancellationToken.None)
         );
 
         Assert.Contains("'unregistered-kms'", exception.Message, StringComparison.Ordinal);
@@ -1545,7 +1522,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var request = CreateBindRequest(algorithm: "RS384");
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+            await Generator.BindRemoteSecretAsync(request, CancellationToken.None)
         );
 
         Assert.Contains("'RS384'", exception.Message, StringComparison.Ordinal);
@@ -1558,7 +1535,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var request = CreateBindRequest(keySizeBits: LargeRsaRow.KeySizeBits);
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+            await Generator.BindRemoteSecretAsync(request, CancellationToken.None)
         );
 
         Assert.Contains("'key-1'", exception.Message, StringComparison.Ordinal);
@@ -1570,7 +1547,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupGetPublicKey(RsaRow, [1, 2, 3]);
 
         var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
-            await _generator.BindRemoteSecretAsync(CreateBindRequest(), CancellationToken.None)
+            await Generator.BindRemoteSecretAsync(CreateBindRequest(), CancellationToken.None)
         );
 
         Assert.NotNull(exception.InnerException);
@@ -1584,7 +1561,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             .Verifiable();
 
         await Assert.ThrowsAsync<CryptographicException>(async () =>
-            await _generator.BindRemoteSecretAsync(CreateBindRequest(), CancellationToken.None)
+            await Generator.BindRemoteSecretAsync(CreateBindRequest(), CancellationToken.None)
         );
     }
 
@@ -1596,7 +1573,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             .Verifiable();
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _generator.BindRemoteSecretAsync(CreateBindRequest(), CancellationToken.None)
+            await Generator.BindRemoteSecretAsync(CreateBindRequest(), CancellationToken.None)
         );
     }
 
@@ -1616,7 +1593,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         };
 
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
+            await Generator.BindRemoteSecretAsync(request, CancellationToken.None)
         );
     }
 

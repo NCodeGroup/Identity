@@ -16,73 +16,72 @@ public class DefaultMasterKeyManagerTests : BaseTests
     private static SecretOwner Owner { get; } = SecretOwner.ForTenant("Tenant-A");
     private static SecretOwner NormalizedOwner { get; } = Owner.Normalize();
 
-    private readonly Mock<ISecretProtectorProvider> _provider;
-    private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
-    private readonly Mock<IRecoveryKeyWrapper> _recovery;
-    private readonly Mock<IKeyWrapperCatalog> _catalog;
-    private readonly EphemeralKeyWrapper _rootKey = new();
-    private readonly Mock<IProtectedValueSource> _source;
-    private readonly Mock<IProtectedValueSource> _otherSource;
-    private readonly Mock<IMasterKeyChangeObserver> _observer;
-    private readonly Queue<IStoreManager> _storeManagers = new();
-    private readonly FakeTimeProvider _time = new(
-        new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero)
-    );
-    private readonly MasterKeyOptions _keyOptions = new();
-    private bool _storeManagerFactorySetUp;
+    private Mock<ISecretProtectorProvider> Provider { get; }
+    private Mock<IStoreManagerFactory> StoreManagerFactory { get; }
+    private Mock<IRecoveryKeyWrapper> Recovery { get; }
+    private Mock<IKeyWrapperCatalog> Catalog { get; }
+    private EphemeralKeyWrapper RootKey { get; } = new();
+    private Mock<IProtectedValueSource> Source { get; }
+    private Mock<IProtectedValueSource> OtherSource { get; }
+    private Mock<IMasterKeyChangeObserver> Observer { get; }
+    private Queue<IStoreManager> StoreManagers { get; } = new();
+    private FakeTimeProvider Time { get; } =
+        new(new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero));
+    private MasterKeyOptions KeyOptions { get; } = new();
+    private bool StoreManagerFactorySetUp { get; set; }
 
     public DefaultMasterKeyManagerTests()
     {
-        _provider = CreateStrictMock<ISecretProtectorProvider>();
-        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
-        _recovery = CreateStrictMock<IRecoveryKeyWrapper>();
-        _catalog = CreateStrictMock<IKeyWrapperCatalog>();
-        _source = CreateStrictMock<IProtectedValueSource>();
-        _otherSource = CreateStrictMock<IProtectedValueSource>();
-        _observer = CreateStrictMock<IMasterKeyChangeObserver>();
+        Provider = CreateStrictMock<ISecretProtectorProvider>();
+        StoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        Recovery = CreateStrictMock<IRecoveryKeyWrapper>();
+        Catalog = CreateStrictMock<IKeyWrapperCatalog>();
+        Source = CreateStrictMock<IProtectedValueSource>();
+        OtherSource = CreateStrictMock<IProtectedValueSource>();
+        Observer = CreateStrictMock<IMasterKeyChangeObserver>();
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _rootKey.Dispose();
+            RootKey.Dispose();
         }
 
         base.Dispose(disposing);
 
         if (disposing)
         {
-            Assert.Empty(_storeManagers);
+            Assert.Empty(StoreManagers);
         }
     }
 
     private DefaultMasterKeyManager CreateManager() =>
         new(
-            _provider.Object,
-            _storeManagerFactory.Object,
-            _recovery.Object,
-            new MasterKeyFactory(_catalog.Object, _recovery.Object, _time),
-            [_source.Object, _otherSource.Object],
-            [_observer.Object],
+            Provider.Object,
+            StoreManagerFactory.Object,
+            Recovery.Object,
+            new MasterKeyFactory(Catalog.Object, Recovery.Object, Time),
+            [Source.Object, OtherSource.Object],
+            [Observer.Object],
             Microsoft.Extensions.Options.Options.Create(
-                new SecretProtectionOptions { MasterKeys = _keyOptions }
+                new SecretProtectionOptions { MasterKeys = KeyOptions }
             ),
-            _time,
+            Time,
             NullLogger<DefaultMasterKeyManager>.Instance
         );
 
     private void SetupRootKey() =>
-        _catalog.Setup(x => x.GetConfigured()).Returns(_rootKey).Verifiable();
+        Catalog.Setup(x => x.GetConfigured()).Returns(RootKey).Verifiable();
 
     private (Mock<IMasterKeyStore> Store, Mock<IStoreManager> Manager) EnqueueStoreManager()
     {
-        if (!_storeManagerFactorySetUp)
+        if (!StoreManagerFactorySetUp)
         {
-            _storeManagerFactorySetUp = true;
-            _storeManagerFactory
+            StoreManagerFactorySetUp = true;
+            StoreManagerFactory
                 .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-                .Returns(() => new ValueTask<IStoreManager>(_storeManagers.Dequeue()))
+                .Returns(() => new ValueTask<IStoreManager>(StoreManagers.Dequeue()))
                 .Verifiable();
         }
 
@@ -90,7 +89,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
         var manager = CreateStrictMock<IStoreManager>();
         manager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object).Verifiable();
         manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
-        _storeManagers.Enqueue(manager.Object);
+        StoreManagers.Enqueue(manager.Object);
         return (store, manager);
     }
 
@@ -144,7 +143,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
 
     private void SetupObserverRotated()
     {
-        _observer
+        Observer
             .Setup(x =>
                 x.RotatedAsync(It.IsAny<MasterKeyRotation>(), It.IsAny<CancellationToken>())
             )
@@ -153,7 +152,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
     }
 
     private void SetupRecoveryNotConfigured() =>
-        _recovery.SetupGet(x => x.IsConfigured).Returns(false).Verifiable();
+        Recovery.SetupGet(x => x.IsConfigured).Returns(false).Verifiable();
 
     // Queues the unit of work that retires the active row.
     private void SetupRetire(PersistedMasterKey active, Action? onSave = null)
@@ -269,10 +268,10 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task GetStatus_MapsEveryRowWithoutMaterial()
     {
-        var retired = CreateRow(1, _time.GetUtcNow().AddDays(-400), _time.GetUtcNow().AddDays(-35));
-        var active = CreateRow(2, _time.GetUtcNow().AddDays(-35));
+        var retired = CreateRow(1, Time.GetUtcNow().AddDays(-400), Time.GetUtcNow().AddDays(-35));
+        var active = CreateRow(2, Time.GetUtcNow().AddDays(-35));
         SetupList(active, retired);
-        _recovery.SetupGet(x => x.IsConfigured).Returns(true).Verifiable();
+        Recovery.SetupGet(x => x.IsConfigured).Returns(true).Verifiable();
 
         var status = await CreateManager().GetStatusAsync(Owner, CancellationToken.None);
 
@@ -302,10 +301,10 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task GetStatus_WithAnOwnerRootKey_CarriesItWithoutMaterial()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-1));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-1));
         active.RootKeyReference = "kms://tenant-a/root";
         SetupListWithRootKey(CreateOwnerRootKey(), active);
-        _recovery.SetupGet(x => x.IsConfigured).Returns(true).Verifiable();
+        Recovery.SetupGet(x => x.IsConfigured).Returns(true).Verifiable();
 
         var status = await CreateManager().GetStatusAsync(Owner, CancellationToken.None);
 
@@ -326,21 +325,21 @@ public class DefaultMasterKeyManagerTests : BaseTests
             KeyWrapperName = "fake-kms",
             KeyReference = "kms://tenant-a/root",
             State = state,
-            CreatedWhen = _time.GetUtcNow(),
-            StateChangedWhen = _time.GetUtcNow(),
+            CreatedWhen = Time.GetUtcNow(),
+            StateChangedWhen = Time.GetUtcNow(),
         };
 
     [Fact]
     public async Task Rotate_OfAnOwnerWithAnActiveRootKey_WrapsTheSuccessorUnderItWithoutARecoveryCopy()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         var fake = new FakeReferencedKeyWrapper();
-        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
-        _recovery.SetupGet(x => x.IsConfigured).Returns(true);
+        Catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        Recovery.SetupGet(x => x.IsConfigured).Returns(true);
         SetupListWithRootKey(CreateOwnerRootKey(), active);
         SetupRetire(active);
         var (added, _) = SetupInsert();
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupObserverRotated();
 
         var rotation = await CreateManager().RotateAsync(Owner, CancellationToken.None);
@@ -356,7 +355,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rotate_OfAnOwnerWhoseRootKeyIsUnavailable_ThrowsAndWritesNothing()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         SetupListWithRootKey(CreateOwnerRootKey(OwnerRootKeyStates.Unavailable), active);
 
         await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
@@ -367,13 +366,13 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rotate_OfAnOwnerWhoseRootKeyIsBeingRemoved_WrapsTheSuccessorUnderTheDeploymentRoot()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupListWithRootKey(CreateOwnerRootKey(OwnerRootKeyStates.Removing), active);
         SetupRetire(active);
         var (added, _) = SetupInsert();
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupObserverRotated();
 
         await CreateManager().RotateAsync(Owner, CancellationToken.None);
@@ -384,13 +383,13 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rotate_RetiresTheActiveRowAndStoresTheNextVersion()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupList(active);
         SetupRetire(active);
         var (added, _) = SetupInsert();
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupObserverRotated();
 
         var rotation = await CreateManager().RotateAsync(Owner, CancellationToken.None);
@@ -398,7 +397,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
         var successor = Assert.Single(added);
         Assert.Equal(2, successor.Version);
         Assert.Null(successor.RetiredWhen);
-        Assert.Equal(_time.GetUtcNow(), active.RetiredWhen);
+        Assert.Equal(Time.GetUtcNow(), active.RetiredWhen);
         Assert.Equal(successor.KeyId, rotation.ActiveKey.KeyId);
         Assert.Equal(active.KeyId, rotation.RetiredKey?.KeyId);
         Assert.False(rotation.RetiredKey?.IsActive);
@@ -411,7 +410,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
         SetupRecoveryNotConfigured();
         SetupList();
         var (added, _) = SetupInsert();
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupObserverRotated();
 
         var rotation = await CreateManager().RotateAsync(Owner, CancellationToken.None);
@@ -423,7 +422,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rotate_WhenTheRootKeyProviderFails_WritesNothingAndNotifiesNobody()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         SetupList(active);
         var wrapper = CreateStrictMock<IKeyWrapper>();
         wrapper
@@ -436,20 +435,20 @@ public class DefaultMasterKeyManagerTests : BaseTests
             )
             .Throws(new System.Security.Cryptography.CryptographicException("root key down"))
             .Verifiable();
-        _catalog.Setup(x => x.GetConfigured()).Returns(wrapper.Object).Verifiable();
+        Catalog.Setup(x => x.GetConfigured()).Returns(wrapper.Object).Verifiable();
 
         await Assert.ThrowsAsync<System.Security.Cryptography.CryptographicException>(async () =>
             await CreateManager().RotateAsync(Owner, CancellationToken.None)
         );
 
         Assert.Null(active.RetiredWhen);
-        Assert.Empty(_observer.Invocations);
+        Assert.Empty(Observer.Invocations);
     }
 
     [Fact]
     public async Task Rotate_WhenTheInsertFailsAndNoKeyIsActive_ReactivatesTheRetiredRowAndThrows()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupList(active);
@@ -466,20 +465,20 @@ public class DefaultMasterKeyManagerTests : BaseTests
         Assert.Equal("insert failed", exception.Message);
         Assert.Null(active.RetiredWhen);
         Assert.Equal([(DateTimeOffset?)null], saved);
-        Assert.Empty(_observer.Invocations);
+        Assert.Empty(Observer.Invocations);
     }
 
     [Fact]
     public async Task Rotate_WhenTheInsertTimesOut_ReactivatesTheRetiredRowOnAFreshToken()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupList(active);
         SetupRetire(active);
         SetupInsert(
             new OperationCanceledException("insert timed out"),
-            _ => _time.Advance(TimeSpan.FromSeconds(30))
+            _ => Time.Advance(TimeSpan.FromSeconds(30))
         );
         var findTokensCancelled = new List<bool>();
         SetupFindActive(null, findTokensCancelled);
@@ -495,21 +494,21 @@ public class DefaultMasterKeyManagerTests : BaseTests
         Assert.Equal([false], revertTokensCancelled);
         Assert.Equal([(DateTimeOffset?)null], saved);
         Assert.Null(active.RetiredWhen);
-        Assert.Empty(_observer.Invocations);
+        Assert.Empty(Observer.Invocations);
     }
 
     [Fact]
     public async Task Rotate_WhenAnotherReplicaStoredTheSuccessorFirst_AdoptsItAndAnnounces()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
-        var winner = CreateRow(2, _time.GetUtcNow());
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
+        var winner = CreateRow(2, Time.GetUtcNow());
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupList(active);
         SetupRetire(active);
         SetupInsert(new StoreConcurrencyException());
         SetupFindActive(winner);
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupObserverRotated();
 
         var rotation = await CreateManager().RotateAsync(Owner, CancellationToken.None);
@@ -521,7 +520,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rotate_WhenAnotherWriterCreatedTheFirstKeyFirst_ThrowsStoreConcurrencyException()
     {
-        var winner = CreateRow(1, _time.GetUtcNow());
+        var winner = CreateRow(1, Time.GetUtcNow());
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupList();
@@ -536,14 +535,14 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rotate_WhenTheCallerCancelsAfterTheRetire_StillStoresTheSuccessor()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         using var caller = new CancellationTokenSource();
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupList(active);
         SetupRetire(active, caller.Cancel);
         var (added, cancelled) = SetupInsert();
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupObserverRotated();
 
         var rotation = await CreateManager().RotateAsync(Owner, caller.Token);
@@ -556,7 +555,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rotate_WithRetiredKeysAndNoActiveKey_ThrowsStoreConcurrencyException()
     {
-        SetupList(CreateRow(1, _time.GetUtcNow().AddDays(-400), _time.GetUtcNow().AddDays(-100)));
+        SetupList(CreateRow(1, Time.GetUtcNow().AddDays(-400), Time.GetUtcNow().AddDays(-100)));
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
             await CreateManager().RotateAsync(Owner, CancellationToken.None)
@@ -566,12 +565,8 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rotate_WithinTwiceTheRefreshIntervalOfTheLastRotation_ThrowsTooSoon()
     {
-        var retired = CreateRow(
-            1,
-            _time.GetUtcNow().AddDays(-400),
-            _time.GetUtcNow().AddMinutes(-4)
-        );
-        var active = CreateRow(2, _time.GetUtcNow().AddMinutes(-4));
+        var retired = CreateRow(1, Time.GetUtcNow().AddDays(-400), Time.GetUtcNow().AddMinutes(-4));
+        var active = CreateRow(2, Time.GetUtcNow().AddMinutes(-4));
         SetupList(active, retired);
 
         var exception = await Assert.ThrowsAsync<MasterKeyRotationTooSoonException>(async () =>
@@ -588,16 +583,16 @@ public class DefaultMasterKeyManagerTests : BaseTests
     {
         var retired = CreateRow(
             1,
-            _time.GetUtcNow().AddDays(-400),
-            _time.GetUtcNow().AddMinutes(-10)
+            Time.GetUtcNow().AddDays(-400),
+            Time.GetUtcNow().AddMinutes(-10)
         );
-        var active = CreateRow(2, _time.GetUtcNow().AddMinutes(-10));
+        var active = CreateRow(2, Time.GetUtcNow().AddMinutes(-10));
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupList(active, retired);
         SetupRetire(active);
         var (added, _) = SetupInsert();
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupObserverRotated();
 
         await CreateManager().RotateAsync(Owner, CancellationToken.None);
@@ -608,7 +603,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rotate_WhenAnotherRotationCommittedFirst_PropagatesAndNotifiesNobody()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupList(active);
@@ -626,20 +621,20 @@ public class DefaultMasterKeyManagerTests : BaseTests
             await CreateManager().RotateAsync(Owner, CancellationToken.None)
         );
 
-        Assert.Empty(_observer.Invocations);
+        Assert.Empty(Observer.Invocations);
     }
 
     [Fact]
     public async Task Rotate_WhenAnObserverThrows_StillReturnsTheRotation()
     {
-        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var active = CreateRow(1, Time.GetUtcNow().AddDays(-400));
         SetupRootKey();
         SetupRecoveryNotConfigured();
         SetupList(active);
         SetupRetire(active);
         SetupInsert();
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
-        _observer
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Observer
             .Setup(x =>
                 x.RotatedAsync(It.IsAny<MasterKeyRotation>(), It.IsAny<CancellationToken>())
             )
@@ -663,18 +658,14 @@ public class DefaultMasterKeyManagerTests : BaseTests
     {
         var retiredOld = CreateRow(
             1,
-            _time.GetUtcNow().AddDays(-800),
-            _time.GetUtcNow().AddDays(-400)
+            Time.GetUtcNow().AddDays(-800),
+            Time.GetUtcNow().AddDays(-400)
         );
-        var retiredNew = CreateRow(
-            2,
-            _time.GetUtcNow().AddDays(-400),
-            _time.GetUtcNow().AddDays(-1)
-        );
-        var active = CreateRow(3, _time.GetUtcNow().AddDays(-1));
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        var retiredNew = CreateRow(2, Time.GetUtcNow().AddDays(-400), Time.GetUtcNow().AddDays(-1));
+        var active = CreateRow(3, Time.GetUtcNow().AddDays(-1));
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupList(active, retiredNew, retiredOld);
-        _source
+        Source
             .Setup(x =>
                 x.RewrapAsync(
                     Owner,
@@ -688,7 +679,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
                 new ValueTask<ProtectedValueRewrapResult>(new ProtectedValueRewrapResult(3, 1))
             )
             .Verifiable(Times.Once());
-        _otherSource
+        OtherSource
             .Setup(x =>
                 x.RewrapAsync(
                     Owner,
@@ -711,14 +702,14 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Rewrap_WithoutARetiredKey_AsksNoSource()
     {
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
-        SetupList(CreateRow(1, _time.GetUtcNow().AddDays(-1)));
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        SetupList(CreateRow(1, Time.GetUtcNow().AddDays(-1)));
 
         var result = await CreateManager().RewrapAsync(Owner, CancellationToken.None);
 
         Assert.Equal(ProtectedValueRewrapResult.None, result);
-        Assert.Empty(_source.Invocations);
-        Assert.Empty(_otherSource.Invocations);
+        Assert.Empty(Source.Invocations);
+        Assert.Empty(OtherSource.Invocations);
     }
 
     #endregion
@@ -750,7 +741,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
     }
 
     private void SetupDestroyed(Guid keyId) =>
-        _observer
+        Observer
             .Setup(x =>
                 x.DestroyedAsync(
                     It.Is<MasterKeyInfo>(info => info.KeyId == keyId),
@@ -779,12 +770,12 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Destroy_RemovesAPastGraceUnreferencedKeyAndNotifies()
     {
-        var retired = CreateRow(1, _time.GetUtcNow().AddDays(-400), _time.GetUtcNow().AddDays(-31));
+        var retired = CreateRow(1, Time.GetUtcNow().AddDays(-400), Time.GetUtcNow().AddDays(-31));
         SetupList(retired);
-        SetupReferenced(_source, [retired.KeyId]);
-        SetupReferenced(_otherSource, [retired.KeyId]);
+        SetupReferenced(Source, [retired.KeyId]);
+        SetupReferenced(OtherSource, [retired.KeyId]);
         SetupDestroy(retired);
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupDestroyed(retired.KeyId);
 
         var destroyed = await CreateManager().DestroyRetiredAsync(Owner, CancellationToken.None);
@@ -795,15 +786,15 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Destroy_AsksEachSourceOnceForEveryCandidate()
     {
-        var first = CreateRow(1, _time.GetUtcNow().AddDays(-800), _time.GetUtcNow().AddDays(-60));
-        var second = CreateRow(2, _time.GetUtcNow().AddDays(-60), _time.GetUtcNow().AddDays(-31));
-        var inside = CreateRow(3, _time.GetUtcNow().AddDays(-31), _time.GetUtcNow().AddDays(-1));
+        var first = CreateRow(1, Time.GetUtcNow().AddDays(-800), Time.GetUtcNow().AddDays(-60));
+        var second = CreateRow(2, Time.GetUtcNow().AddDays(-60), Time.GetUtcNow().AddDays(-31));
+        var inside = CreateRow(3, Time.GetUtcNow().AddDays(-31), Time.GetUtcNow().AddDays(-1));
         SetupList(inside, second, first);
-        SetupReferenced(_source, [first.KeyId, second.KeyId]);
-        SetupReferenced(_otherSource, [first.KeyId, second.KeyId]);
+        SetupReferenced(Source, [first.KeyId, second.KeyId]);
+        SetupReferenced(OtherSource, [first.KeyId, second.KeyId]);
         SetupDestroy(second);
         SetupDestroy(first);
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupDestroyed(first.KeyId);
         SetupDestroyed(second.KeyId);
 
@@ -815,13 +806,13 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Destroy_KeepsTheKeyASourceReportsAndDestroysTheOther()
     {
-        var kept = CreateRow(1, _time.GetUtcNow().AddDays(-800), _time.GetUtcNow().AddDays(-60));
-        var gone = CreateRow(2, _time.GetUtcNow().AddDays(-60), _time.GetUtcNow().AddDays(-31));
+        var kept = CreateRow(1, Time.GetUtcNow().AddDays(-800), Time.GetUtcNow().AddDays(-60));
+        var gone = CreateRow(2, Time.GetUtcNow().AddDays(-60), Time.GetUtcNow().AddDays(-31));
         SetupList(gone, kept);
-        SetupReferenced(_source, [kept.KeyId, gone.KeyId], kept.KeyId);
-        SetupReferenced(_otherSource, [kept.KeyId, gone.KeyId]);
+        SetupReferenced(Source, [kept.KeyId, gone.KeyId], kept.KeyId);
+        SetupReferenced(OtherSource, [kept.KeyId, gone.KeyId]);
         SetupDestroy(gone);
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupDestroyed(gone.KeyId);
 
         var destroyed = await CreateManager().DestroyRetiredAsync(Owner, CancellationToken.None);
@@ -832,14 +823,14 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Destroy_WhenALaterRemovalFails_AnnouncesTheKeysAlreadyDestroyedAndThrows()
     {
-        var first = CreateRow(1, _time.GetUtcNow().AddDays(-800), _time.GetUtcNow().AddDays(-60));
-        var second = CreateRow(2, _time.GetUtcNow().AddDays(-60), _time.GetUtcNow().AddDays(-31));
+        var first = CreateRow(1, Time.GetUtcNow().AddDays(-800), Time.GetUtcNow().AddDays(-60));
+        var second = CreateRow(2, Time.GetUtcNow().AddDays(-60), Time.GetUtcNow().AddDays(-31));
         SetupList(first, second);
-        SetupReferenced(_source, [first.KeyId, second.KeyId]);
-        SetupReferenced(_otherSource, [first.KeyId, second.KeyId]);
+        SetupReferenced(Source, [first.KeyId, second.KeyId]);
+        SetupReferenced(OtherSource, [first.KeyId, second.KeyId]);
         SetupDestroy(first);
         SetupDestroy(second, saveFailure: new StoreConcurrencyException());
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupDestroyed(first.KeyId);
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
@@ -850,14 +841,14 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Destroy_WhenCancelledAfterARemoval_AnnouncesTheDestroyedKey()
     {
-        var first = CreateRow(1, _time.GetUtcNow().AddDays(-800), _time.GetUtcNow().AddDays(-60));
-        var second = CreateRow(2, _time.GetUtcNow().AddDays(-60), _time.GetUtcNow().AddDays(-31));
+        var first = CreateRow(1, Time.GetUtcNow().AddDays(-800), Time.GetUtcNow().AddDays(-60));
+        var second = CreateRow(2, Time.GetUtcNow().AddDays(-60), Time.GetUtcNow().AddDays(-31));
         SetupList(first, second);
-        SetupReferenced(_source, [first.KeyId, second.KeyId]);
-        SetupReferenced(_otherSource, [first.KeyId, second.KeyId]);
+        SetupReferenced(Source, [first.KeyId, second.KeyId]);
+        SetupReferenced(OtherSource, [first.KeyId, second.KeyId]);
         SetupDestroy(first);
         SetupDestroy(second, saveFailure: new OperationCanceledException());
-        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        Provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
         SetupDestroyed(first.KeyId);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
@@ -868,33 +859,33 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Destroy_KeepsAKeyInsideTheGrace()
     {
-        var retired = CreateRow(1, _time.GetUtcNow().AddDays(-400), _time.GetUtcNow().AddDays(-29));
+        var retired = CreateRow(1, Time.GetUtcNow().AddDays(-400), Time.GetUtcNow().AddDays(-29));
         SetupList(retired);
 
         var destroyed = await CreateManager().DestroyRetiredAsync(Owner, CancellationToken.None);
 
         Assert.Empty(destroyed);
-        Assert.Empty(_source.Invocations);
+        Assert.Empty(Source.Invocations);
     }
 
     [Fact]
     public async Task Destroy_KeepsAKeyThatASourceReferences()
     {
-        var retired = CreateRow(1, _time.GetUtcNow().AddDays(-400), _time.GetUtcNow().AddDays(-31));
+        var retired = CreateRow(1, Time.GetUtcNow().AddDays(-400), Time.GetUtcNow().AddDays(-31));
         SetupList(retired);
-        SetupReferenced(_source, [retired.KeyId], retired.KeyId);
-        SetupReferenced(_otherSource, [retired.KeyId]);
+        SetupReferenced(Source, [retired.KeyId], retired.KeyId);
+        SetupReferenced(OtherSource, [retired.KeyId]);
 
         var destroyed = await CreateManager().DestroyRetiredAsync(Owner, CancellationToken.None);
 
         Assert.Empty(destroyed);
-        Assert.Empty(_observer.Invocations);
+        Assert.Empty(Observer.Invocations);
     }
 
     [Fact]
     public async Task Destroy_KeepsTheActiveKey()
     {
-        SetupList(CreateRow(1, _time.GetUtcNow().AddDays(-400)));
+        SetupList(CreateRow(1, Time.GetUtcNow().AddDays(-400)));
 
         Assert.Empty(await CreateManager().DestroyRetiredAsync(Owner, CancellationToken.None));
     }
@@ -902,7 +893,7 @@ public class DefaultMasterKeyManagerTests : BaseTests
     [Fact]
     public async Task Destroy_WhenDestructionIsOff_ReadsNothing()
     {
-        _keyOptions.DestroyRetired = false;
+        KeyOptions.DestroyRetired = false;
 
         Assert.Empty(await CreateManager().DestroyRetiredAsync(Owner, CancellationToken.None));
     }

@@ -13,7 +13,7 @@ namespace NCode.Identity.Secrets.Persistence;
 
 public class DefaultSecretImporterTests
 {
-    private readonly DefaultSecretImporter _importer;
+    private DefaultSecretImporter Importer { get; }
 
     public DefaultSecretImporterTests()
     {
@@ -28,7 +28,7 @@ public class DefaultSecretImporterTests
             new RsaSecretKeyTypeDescriptor(secretKeyFactory),
         ]);
 
-        _importer = new DefaultSecretImporter(catalog);
+        Importer = new DefaultSecretImporter(catalog);
     }
 
     private static SecretKeyImportRequest CreateRequest(
@@ -62,7 +62,7 @@ public class DefaultSecretImporterTests
             "client-kid"
         );
 
-        var persisted = _importer.ImportSecret(request);
+        var persisted = Importer.ImportSecret(request);
 
         Assert.Equal("secret-1", persisted.SecretId);
         Assert.Equal("client-kid", persisted.KeyId);
@@ -75,7 +75,7 @@ public class DefaultSecretImporterTests
         using var rsa = RSA.Create(2048);
         var request = CreateRequest(SecretTypes.Rsa, rsa.ExportSubjectPublicKeyInfoPem(), null);
 
-        var persisted = _importer.ImportSecret(request);
+        var persisted = Importer.ImportSecret(request);
 
         Assert.Equal(SecretEncodings.Spki, persisted.SecretEncoding);
         Assert.Equal(
@@ -105,7 +105,7 @@ public class DefaultSecretImporterTests
             format: SecretKeyImportFormats.Certificate
         );
 
-        var persisted = _importer.ImportSecret(request);
+        var persisted = Importer.ImportSecret(request);
 
         Assert.Equal(SecretEncodings.X509, persisted.SecretEncoding);
         Assert.Equal(certificate.RawData, Base64Url.DecodeFromChars(persisted.EncodedValue));
@@ -117,7 +117,7 @@ public class DefaultSecretImporterTests
         using var rsa = RSA.Create(2048);
         var request = CreateRequest(SecretTypes.Rsa, rsa.ExportSubjectPublicKeyInfoPem(), null);
 
-        var persisted = _importer.ImportSecret(request);
+        var persisted = Importer.ImportSecret(request);
 
         Assert.Null(persisted.KeyId);
     }
@@ -128,7 +128,7 @@ public class DefaultSecretImporterTests
         using var rsa = RSA.Create(2048);
         var request = CreateRequest(SecretKeyTypes.Rsa, rsa.ExportSubjectPublicKeyInfoPem(), null);
 
-        var persisted = _importer.ImportSecret(request);
+        var persisted = Importer.ImportSecret(request);
 
         Assert.Equal(request.CreatedWhen, persisted.ActivatesWhen);
         Assert.Equal(request.ExpiresWhen, persisted.RetiresWhen);
@@ -140,7 +140,7 @@ public class DefaultSecretImporterTests
         using var rsa = RSA.Create(2048);
         var request = CreateRequest(SecretKeyTypes.Rsa, rsa.ExportSubjectPublicKeyInfoPem(), null);
 
-        var persisted = _importer.ImportSecret(request);
+        var persisted = Importer.ImportSecret(request);
 
         Assert.Null(persisted.ManagedBy);
     }
@@ -164,7 +164,7 @@ public class DefaultSecretImporterTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
         };
 
-        var persisted = _importer.ImportSecret(request);
+        var persisted = Importer.ImportSecret(request);
 
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), persisted.ActivatesWhen);
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), persisted.RetiresWhen);
@@ -189,7 +189,7 @@ public class DefaultSecretImporterTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
         };
 
-        var exception = Assert.Throws<ArgumentException>(() => _importer.ImportSecret(request));
+        var exception = Assert.Throws<ArgumentException>(() => Importer.ImportSecret(request));
 
         Assert.Contains("cannot expire", exception.Message, StringComparison.Ordinal);
     }
@@ -199,7 +199,7 @@ public class DefaultSecretImporterTests
     {
         var request = CreateRequest(SecretTypes.Symmetric, "material", null);
 
-        Assert.Throws<ArgumentException>(() => _importer.ImportSecret(request));
+        Assert.Throws<ArgumentException>(() => Importer.ImportSecret(request));
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public class DefaultSecretImporterTests
             format: "openssh"
         );
 
-        var exception = Assert.Throws<ArgumentException>(() => _importer.ImportSecret(request));
+        var exception = Assert.Throws<ArgumentException>(() => Importer.ImportSecret(request));
 
         Assert.Contains("'openssh'", exception.Message, StringComparison.Ordinal);
     }

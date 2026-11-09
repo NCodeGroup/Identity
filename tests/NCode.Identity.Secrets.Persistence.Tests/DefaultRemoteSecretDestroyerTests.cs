@@ -12,15 +12,15 @@ namespace NCode.Identity.Secrets.Persistence;
 
 public class DefaultRemoteSecretDestroyerTests : BaseTests
 {
-    private readonly Mock<IRemoteKeyProvider> _provider;
-    private readonly Mock<ILogger<DefaultRemoteSecretDestroyer>> _logger;
-    private readonly DefaultRemoteSecretDestroyer _destroyer;
+    private Mock<IRemoteKeyProvider> Provider { get; }
+    private Mock<ILogger<DefaultRemoteSecretDestroyer>> Logger { get; }
+    private DefaultRemoteSecretDestroyer Destroyer { get; }
 
     public DefaultRemoteSecretDestroyerTests()
     {
-        _provider = CreateStrictMock<IRemoteKeyProvider>();
-        _logger = CreateStrictMock<ILogger<DefaultRemoteSecretDestroyer>>();
-        _provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
+        Provider = CreateStrictMock<IRemoteKeyProvider>();
+        Logger = CreateStrictMock<ILogger<DefaultRemoteSecretDestroyer>>();
+        Provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
         var source = CreateStrictMock<IRemoteKeyDescriptorSource>();
         source
@@ -29,13 +29,13 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
             .Verifiable();
         source.SetupGet(x => x.Algorithms).Returns([]).Verifiable();
 
-        _destroyer = new DefaultRemoteSecretDestroyer(
+        Destroyer = new DefaultRemoteSecretDestroyer(
             new DefaultRemoteKeyProviderCatalog(
-                [_provider.Object],
+                [Provider.Object],
                 new DefaultRemoteKeyDescriptorCatalog([source.Object])
             ),
             new FakeTimeProvider(),
-            _logger.Object
+            Logger.Object
         );
     }
 
@@ -72,8 +72,8 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
 
     private void ExpectLog(int eventId, Type? exceptionType)
     {
-        _logger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
-        _logger
+        Logger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
+        Logger
             .Setup(x =>
                 x.Log(
                     LogLevel.Warning,
@@ -92,8 +92,8 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
 
     private void ExpectErrorLog(int eventId, Type exceptionType)
     {
-        _logger.Setup(x => x.IsEnabled(LogLevel.Error)).Returns(true).Verifiable();
-        _logger
+        Logger.Setup(x => x.IsEnabled(LogLevel.Error)).Returns(true).Verifiable();
+        Logger
             .Setup(x =>
                 x.Log(
                     LogLevel.Error,
@@ -113,12 +113,12 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     [Fact]
     public async Task DestroyAsync_RemoteGenerated_DestroysTheKey()
     {
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync("key-a", It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Once());
 
-        await _destroyer.DestroyAsync([
+        await Destroyer.DestroyAsync([
             CreateSecret("secret-a", Reference(RemoteKeyProviderNames.AwsKms, "key-a")),
         ]);
     }
@@ -126,7 +126,7 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     [Fact]
     public async Task DestroyAsync_NoSecrets_CompletesWithoutCallingTheProvider()
     {
-        await _destroyer.DestroyAsync([]);
+        await Destroyer.DestroyAsync([]);
     }
 
     [Fact]
@@ -134,12 +134,12 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     {
         var reference = Reference(RemoteKeyProviderNames.AwsKms, "key-a");
 
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Never());
 
-        await _destroyer.DestroyAsync([
+        await Destroyer.DestroyAsync([
             CreateSecret("secret-local", reference, SecretEncodings.Pkcs8),
             CreateSecret("secret-public", reference, SecretEncodings.Spki),
             CreateSecret("secret-supplied", reference, origin: SecretOrigins.Supplied),
@@ -149,17 +149,17 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     [Fact]
     public async Task DestroyAsync_DestroyFails_LogsAndContinuesWithTheNextSecret()
     {
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync("key-a", It.IsAny<CancellationToken>()))
             .Returns(() => FailAsync())
             .Verifiable(Times.Once());
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync("key-b", It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Once());
         ExpectLog(EventIds.RemoteKeyDestroyFailed, typeof(InvalidOperationException));
 
-        await _destroyer.DestroyAsync([
+        await Destroyer.DestroyAsync([
             CreateSecret("secret-a", Reference(RemoteKeyProviderNames.AwsKms, "key-a")),
             CreateSecret("secret-b", Reference(RemoteKeyProviderNames.AwsKms, "key-b")),
         ]);
@@ -169,13 +169,13 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     [Fact]
     public async Task DestroyAsync_DestroyThrowsSynchronously_LogsAndDoesNotThrow()
     {
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync("key-a", It.IsAny<CancellationToken>()))
             .Throws(new InvalidOperationException("kms is down"))
             .Verifiable(Times.Once());
         ExpectLog(EventIds.RemoteKeyDestroyFailed, typeof(InvalidOperationException));
 
-        await _destroyer.DestroyAsync([
+        await Destroyer.DestroyAsync([
             CreateSecret("secret-a", Reference(RemoteKeyProviderNames.AwsKms, "key-a")),
         ]);
     }
@@ -183,13 +183,13 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     [Fact]
     public async Task DestroyAsync_MalformedReference_LogsAndContinuesWithTheNextSecret()
     {
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync("key-b", It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Once());
         ExpectLog(EventIds.RemoteKeyDestroySkipped, null);
 
-        await _destroyer.DestroyAsync([
+        await Destroyer.DestroyAsync([
             CreateSecret("secret-a", "not-a-reference"),
             CreateSecret("secret-b", Reference(RemoteKeyProviderNames.AwsKms, "key-b")),
         ]);
@@ -198,13 +198,13 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     [Fact]
     public async Task DestroyAsync_UnregisteredProvider_LogsAndContinuesWithTheNextSecret()
     {
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync("key-b", It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Once());
         ExpectLog(EventIds.RemoteKeyDestroySkipped, null);
 
-        await _destroyer.DestroyAsync([
+        await Destroyer.DestroyAsync([
             CreateSecret("secret-a", Reference(RemoteKeyProviderNames.AzureKeyVault, "key-a")),
             CreateSecret("secret-b", Reference(RemoteKeyProviderNames.AwsKms, "key-b")),
         ]);
@@ -217,12 +217,12 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     [Fact]
     public async Task DestroyKeyAsync_RegisteredProvider_DestroysAndReturnsTrue()
     {
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync("key-a", It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Once());
 
-        var destroyed = await _destroyer.DestroyKeyAsync(
+        var destroyed = await Destroyer.DestroyKeyAsync(
             new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "key-a")
         );
 
@@ -232,13 +232,13 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     [Fact]
     public async Task DestroyKeyAsync_UnregisteredProvider_ReturnsFalse()
     {
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Never());
         ExpectLog(EventIds.RemoteKeyOrphanDestroySkipped, null);
 
-        var destroyed = await _destroyer.DestroyKeyAsync(
+        var destroyed = await Destroyer.DestroyKeyAsync(
             new RemoteKeyReference(RemoteKeyProviderNames.AzureKeyVault, "key-a")
         );
 
@@ -248,13 +248,13 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     [Fact]
     public async Task DestroyKeyAsync_ProviderFails_ReturnsFalse()
     {
-        _provider
+        Provider
             .Setup(x => x.DestroyKeyAsync("key-a", It.IsAny<CancellationToken>()))
             .Returns(() => FailAsync())
             .Verifiable(Times.Once());
         ExpectErrorLog(EventIds.RemoteKeyOrphanDestroyFailed, typeof(InvalidOperationException));
 
-        var destroyed = await _destroyer.DestroyKeyAsync(
+        var destroyed = await Destroyer.DestroyKeyAsync(
             new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "key-a")
         );
 

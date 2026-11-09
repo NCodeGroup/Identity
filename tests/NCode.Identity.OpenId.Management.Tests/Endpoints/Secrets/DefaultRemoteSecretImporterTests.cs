@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
@@ -40,8 +39,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Importer = new DefaultRemoteSecretImporter(
             ServiceProvider.GetRequiredService<ISecretGenerator>(),
             ServiceProvider.GetRequiredService<ISecretSerializer>(),
-            ServiceProvider.GetRequiredService<IJoseSerializer>(),
-            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            ServiceProvider.GetRequiredService<IRemoteKeyProver>(),
             NullLogger<DefaultRemoteSecretImporter>.Instance
         );
     }
@@ -270,7 +268,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
         Assert.Equal(
-            $"The secret '{secret.SecretId}' names the remote key provider 'other-kms', which is not registered.",
+            $"The secret '{secret.SecretId}' cannot be read as a remote key: The remote key provider 'other-kms' is not registered.",
             result.Detail
         );
     }
@@ -291,7 +289,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
         Assert.Equal(
-            $"The secret '{secret.SecretId}' has no remote algorithm for provider 'stub-kms', algorithm 'ES384', secret type '{SecretTypes.Ecc}', key size 384 and curve 'P-384'.",
+            $"The secret '{secret.SecretId}' cannot be read as a remote key: The remote key provider 'stub-kms' has no algorithm 'ES384' for the '{SecretTypes.Ecc}' secret type, key size 384 and curve 'P-384'.",
             result.Detail
         );
     }

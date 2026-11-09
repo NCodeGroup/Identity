@@ -5,6 +5,9 @@ using NCode.AspNetCore;
 using NCode.Identity.Bff.Antiforgery;
 using NCode.Identity.Bff.Hardening;
 using NCode.Identity.ManagementConsole;
+using NCode.Identity.Secrets.AwsKms;
+using NCode.Identity.Secrets.AzureKeyVault;
+using NCode.Identity.Secrets.GoogleCloudKms;
 using NCode.Identity.SharedState.Valkey;
 
 // COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or
@@ -17,6 +20,21 @@ builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger();
 
 var managementConsole = builder.Services.AddManagementConsole(builder.Configuration);
 managementConsole.IdentityBffBuilder.SharedStateLibraryBuilder.AddValkey(builder.Configuration);
+
+// AWS KMS can hold the console's client, decryption and DPoP keys (Bff:KeyRings:{name}:RemoteKeys); it is registered only when the 'SecretProtection:RemoteKeyProviders:AwsKms' section exists.
+managementConsole.IdentityBffBuilder.SecretsLibraryBuilder.AddAwsKmsRemoteKeyProviderIfConfigured(
+    builder.Configuration
+);
+
+// Azure Key Vault or Managed HSM can hold the console's client, decryption and DPoP keys (Bff:KeyRings:{name}:RemoteKeys); it is registered only when the 'SecretProtection:RemoteKeyProviders:AzureKeyVault' section exists.
+managementConsole.IdentityBffBuilder.SecretsLibraryBuilder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(
+    builder.Configuration
+);
+
+// Google Cloud KMS can hold the console's client, decryption and DPoP keys (Bff:KeyRings:{name}:RemoteKeys); it is registered only when the 'SecretProtection:RemoteKeyProviders:GoogleCloudKms' section exists.
+managementConsole.IdentityBffBuilder.SecretsLibraryBuilder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(
+    builder.Configuration
+);
 
 // Trust X-Forwarded-* headers only from the proxies in the 'ForwardedHeaders' configuration section.
 builder.Services.AddTrustedForwardedHeaders(builder.Configuration);

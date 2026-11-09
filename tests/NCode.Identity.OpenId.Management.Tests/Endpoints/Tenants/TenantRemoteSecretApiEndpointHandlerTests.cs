@@ -22,6 +22,7 @@ using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
@@ -441,7 +442,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Throws(new RemoteSecretRefusedException("refused"))
+            .Throws(new RemoteKeyRefusedException("refused"))
             .Verifiable();
 
         var result = await CreateHandler()

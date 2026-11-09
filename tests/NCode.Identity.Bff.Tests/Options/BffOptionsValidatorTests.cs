@@ -59,6 +59,17 @@ public class BffOptionsValidatorTests : BaseTests
     private static BffFrontendOptions Frontend(BffOptions options) =>
         options.Frontends[WebFrontend];
 
+    private static BffRemoteKeyOptions CreateValidRemoteKey() =>
+        new()
+        {
+            Provider = "aws-kms",
+            KeyId = "arn:aws:kms:us-east-1:111122223333:key/1234abcd",
+            Algorithm = "ES256",
+            SecretType = "ecc",
+            KeySizeBits = 256,
+            Curve = "P-256",
+        };
+
     #region Validate Tests
 
     [Fact]
@@ -1189,7 +1200,7 @@ public class BffOptionsValidatorTests : BaseTests
     }
 
     [Fact]
-    public void Validate_WhenKeyRingNull_Fails()
+    public void Validate_WhenKeyRingNull_FailsWithNoKey()
     {
         var options = CreateValidOptions();
         options.KeyRings["client"] = null!;
@@ -1198,13 +1209,13 @@ public class BffOptionsValidatorTests : BaseTests
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "Bff:KeyRings:client:PemFiles must list at least one file.",
+            "Bff:KeyRings:client must list at least one PEM file or remote key.",
             result.Failures ?? []
         );
     }
 
     [Fact]
-    public void Validate_WhenPemFilesEmpty_Fails()
+    public void Validate_WhenPemFilesEmpty_FailsWithNoKey()
     {
         var options = CreateValidOptions();
         options.KeyRings["client"] = new BffKeyRingOptions { PemFiles = [] };
@@ -1213,13 +1224,13 @@ public class BffOptionsValidatorTests : BaseTests
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "Bff:KeyRings:client:PemFiles must list at least one file.",
+            "Bff:KeyRings:client must list at least one PEM file or remote key.",
             result.Failures ?? []
         );
     }
 
     [Fact]
-    public void Validate_WhenPemFilesNull_Fails()
+    public void Validate_WhenPemFilesNull_FailsWithNoKey()
     {
         var options = CreateValidOptions();
         options.KeyRings["client"] = new BffKeyRingOptions { PemFiles = null! };
@@ -1228,7 +1239,135 @@ public class BffOptionsValidatorTests : BaseTests
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "Bff:KeyRings:client:PemFiles must list at least one file.",
+            "Bff:KeyRings:client must list at least one PEM file or remote key.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenKeyRingHasOnlyRemoteKeys_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions
+        {
+            PemFiles = null!,
+            RemoteKeys = { ["kms-sig"] = CreateValidRemoteKey() },
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteKeyHasNoId_Fails()
+    {
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions
+        {
+            RemoteKeys = { [" "] = CreateValidRemoteKey() },
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Equal(
+            ["Bff:KeyRings:client:RemoteKeys has a key without an id."],
+            result.Failures ?? []
+        );
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("AWS-KMS")]
+    public void Validate_WhenRemoteKeyProviderIsInvalid_Fails(string? provider)
+    {
+        var remoteKey = CreateValidRemoteKey();
+        remoteKey.Provider = provider;
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions
+        {
+            RemoteKeys = { ["kms-sig"] = remoteKey },
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Equal(
+            [
+                "Bff:KeyRings:client:RemoteKeys:kms-sig:Provider must name a remote key provider: lowercase letters and digits in groups separated by single hyphens.",
+            ],
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteKeyFieldsAreMissing_FailsForEach()
+    {
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions
+        {
+            RemoteKeys =
+            {
+                ["kms-sig"] = new BffRemoteKeyOptions { Provider = "aws-kms", KeySizeBits = 0 },
+            },
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Equal(
+            [
+                "Bff:KeyRings:client:RemoteKeys:kms-sig:KeyId must not be blank.",
+                "Bff:KeyRings:client:RemoteKeys:kms-sig:Algorithm must not be blank.",
+                "Bff:KeyRings:client:RemoteKeys:kms-sig:SecretType must not be blank.",
+                "Bff:KeyRings:client:RemoteKeys:kms-sig:KeySizeBits must be positive.",
+            ],
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenAPemFileAndARemoteKeyShareAnId_Fails()
+    {
+        File.WriteAllBytes(Path.Combine(KeysDirectory.FullName, "shared.pem"), []);
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions
+        {
+            PemFiles = ["shared.pem"],
+            RemoteKeys = { ["shared"] = CreateValidRemoteKey() },
+        };
+
+        var result = CreateValidator(contentRootPath: KeysDirectory.FullName)
+            .Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Equal(
+            ["Bff:KeyRings:client holds more than one key with the id 'shared'."],
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenTwoPemFilesShareAnId_Fails()
+    {
+        Directory.CreateDirectory(Path.Combine(KeysDirectory.FullName, "a"));
+        Directory.CreateDirectory(Path.Combine(KeysDirectory.FullName, "b"));
+        File.WriteAllBytes(Path.Combine(KeysDirectory.FullName, "a", "shared.pem"), []);
+        File.WriteAllBytes(Path.Combine(KeysDirectory.FullName, "b", "shared.pem"), []);
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions
+        {
+            PemFiles = [Path.Combine("a", "shared.pem"), Path.Combine("b", "shared.pem")],
+        };
+
+        var result = CreateValidator(contentRootPath: KeysDirectory.FullName)
+            .Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Equal(
+            ["Bff:KeyRings:client holds more than one key with the id 'shared'."],
             result.Failures ?? []
         );
     }

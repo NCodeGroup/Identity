@@ -94,7 +94,7 @@ public class DefaultRegistrationTests : BaseTests
 
         serviceCollection.AddSingleton(clientFactory);
 
-        var builder = serviceCollection.AddSecretsLibrary().AddPersistenceLibrary();
+        var builder = serviceCollection.AddSecretsLibrary();
         for (var i = 0; i < times; ++i)
         {
             builder.AddAzureKeyVaultRemoteKeyProvider(configuration);
@@ -242,7 +242,6 @@ public class DefaultRegistrationTests : BaseTests
 
         serviceCollection
             .AddSecretsLibrary()
-            .AddPersistenceLibrary()
             .AddAzureKeyVaultRemoteKeyProviderIfConfigured(
                 CreateConfiguration(
                     ("SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri", VaultUri)
@@ -266,7 +265,6 @@ public class DefaultRegistrationTests : BaseTests
 
         serviceCollection
             .AddSecretsLibrary()
-            .AddPersistenceLibrary()
             .AddAzureKeyVaultRemoteKeyProviderIfConfigured(CreateConfiguration());
 
         await using var provider = serviceCollection.BuildServiceProvider();
@@ -284,7 +282,7 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddAzureKeyVaultRemoteKeyProviderIfConfigured_NullBuilder_Throws()
     {
-        IServiceBuilder<SecretPersistenceLibrary> builder = null!;
+        IServiceBuilder<SecretsLibrary> builder = null!;
 
         Assert.Throws<ArgumentNullException>(() =>
             builder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(CreateConfiguration())
@@ -294,7 +292,7 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddAzureKeyVaultRemoteKeyProviderIfConfigured_NullConfiguration_Throws()
     {
-        var builder = new ServiceCollection().AddSecretsLibrary().AddPersistenceLibrary();
+        var builder = new ServiceCollection().AddSecretsLibrary();
 
         Assert.Throws<ArgumentNullException>(() =>
             builder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(null!)

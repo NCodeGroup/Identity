@@ -122,8 +122,11 @@ public class DefaultSecretGeneratorTests : BaseTests
         _serializer = new DefaultSecretSerializer(
             catalog,
             _verifierCatalog,
-            new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
-            new DefaultRemoteKeyDescriptorCatalog([])
+            new DefaultRemoteKeyResolver(
+                catalog,
+                new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
+                new DefaultRemoteKeyDescriptorCatalog([])
+            )
         );
     }
 
@@ -135,8 +138,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             _catalog,
             _verifierCatalog,
             Microsoft.Extensions.Options.Options.Create(options),
-            _remoteCatalog,
-            _remoteDescriptorCatalog,
+            new DefaultRemoteKeyResolver(_catalog, _remoteCatalog, _remoteDescriptorCatalog),
             _remoteDestroyer.Object,
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions { RemoteKeys = { Deployment = deployment } }
@@ -1226,7 +1228,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var request = CreateRemoteRequest(secretType);
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
         );
 
@@ -1238,7 +1240,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var request = CreateRemoteRequest(provider: "unregistered-kms");
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
         );
 
@@ -1250,7 +1252,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var request = CreateRemoteRequest(algorithm: "RS384");
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.GenerateRemoteSecretAsync(request, CancellationToken.None)
         );
 
@@ -1312,7 +1314,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupCreateAndReadKey(LargeRsaRow, CreateRsaSubjectPublicKeyInfo());
         SetupDestroy();
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.GenerateRemoteSecretAsync(
                 CreateRemoteRequest(keySizeBits: 4096),
                 CancellationToken.None
@@ -1328,7 +1330,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupCreateAndReadKey(OtherCurveEccRow, CreateEccSubjectPublicKeyInfo());
         SetupDestroy();
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.GenerateRemoteSecretAsync(
                 CreateRemoteRequest(SecretTypes.Ecc, 256, "secp256k1", "ES256"),
                 CancellationToken.None
@@ -1344,7 +1346,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupCreateAndReadKey(RsaRow, [1, 2, 3]);
         SetupDestroy();
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.GenerateRemoteSecretAsync(
                 CreateRemoteRequest(),
                 CancellationToken.None
@@ -1361,7 +1363,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupCreateAndReadKey(RsaRow, CreateEccSubjectPublicKeyInfo());
         SetupDestroy();
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.GenerateRemoteSecretAsync(
                 CreateRemoteRequest(),
                 CancellationToken.None
@@ -1513,7 +1515,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var request = CreateBindRequest(secretType);
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
         );
 
@@ -1525,7 +1527,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var request = CreateBindRequest(provider: "unregistered-kms");
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
         );
 
@@ -1537,7 +1539,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         var request = CreateBindRequest(algorithm: "RS384");
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
         );
 
@@ -1550,7 +1552,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         SetupGetPublicKey(LargeRsaRow, CreateRsaSubjectPublicKeyInfo());
         var request = CreateBindRequest(keySizeBits: LargeRsaRow.KeySizeBits);
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.BindRemoteSecretAsync(request, CancellationToken.None)
         );
 
@@ -1562,7 +1564,7 @@ public class DefaultSecretGeneratorTests : BaseTests
     {
         SetupGetPublicKey(RsaRow, [1, 2, 3]);
 
-        var exception = await Assert.ThrowsAsync<RemoteSecretRefusedException>(async () =>
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
             await _generator.BindRemoteSecretAsync(CreateBindRequest(), CancellationToken.None)
         );
 

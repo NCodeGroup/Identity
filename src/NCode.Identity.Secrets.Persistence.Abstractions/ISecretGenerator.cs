@@ -4,6 +4,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -144,7 +145,7 @@ public interface ISecretGenerator
     /// <param name="request">The <see cref="GenerateRemoteSecretRequest"/> describing the secret to generate.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="PersistedSecret"/> with the <see cref="SecretEncodings.Remote"/> encoding.</returns>
-    /// <exception cref="RemoteSecretRefusedException">The secret type does not support remote keys, the provider
+    /// <exception cref="RemoteKeyRefusedException">The secret type does not support remote keys, the provider
     /// is not registered, no algorithm row matches the request, or the key the service created does not
     /// have the requested size or curve. No key is created for the first three; for the last, and for
     /// any other failure after the service creates the key, the key is destroyed.</exception>
@@ -167,7 +168,7 @@ public interface ISecretGenerator
     /// <param name="request">The <see cref="BindRemoteSecretRequest"/> describing the key to bind.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="PersistedSecret"/> with the <see cref="SecretEncodings.Remote"/> encoding.</returns>
-    /// <exception cref="RemoteSecretRefusedException">The secret type does not support remote keys, the provider is
+    /// <exception cref="RemoteKeyRefusedException">The secret type does not support remote keys, the provider is
     /// not registered, no algorithm row matches the request, or the public half the service returns cannot
     /// be read as a key of the secret type or does not have the algorithm's size or curve.</exception>
     /// <exception cref="System.ArgumentException">The request's key identifier is empty, or the provider does not read

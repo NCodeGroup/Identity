@@ -1,6 +1,6 @@
 # 1471. A tenant's signing keys can be held in a key management service that signs every token
 
-- **Status:** Accepted (amends [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md); amended by [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md): providers are described by data, create a key once and sign into the caller's buffer; amended by [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md): the management API creates and binds a tenant's remote keys; amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md); amended by [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md))
+- **Status:** Accepted (amends [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md); amended by [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md): providers are described by data, create a key once and sign into the caller's buffer; amended by [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md): the management API creates and binds a tenant's remote keys; amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md); amended by [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md); amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md): the remote key providers register on the secrets library's builder)
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 
@@ -136,7 +136,7 @@ public keys without calling the service.**
     `Creating` retries `ResourceExhausted` only, up to three attempts, for creation and destruction.
 17. **Providers live in the existing KMS packages, beside each key wrapper.** `AddAwsKmsRemoteKeyProvider`,
     `AddAzureKeyVaultRemoteKeyProvider` and `AddGoogleCloudKmsRemoteKeyProvider` extend
-    `IServiceBuilder<SecretPersistenceLibrary>`. Each binds options strictly from
+    `IServiceBuilder<SecretsLibrary>`. Each binds options strictly from
     `SecretProtection:RemoteKeyProviders:<Vendor>` with `ValidateOnStart` and reuses the wrapper's client factory with
     `access: null`, the deployment's identity. Each package's `Add<Vendor>RemoteKeyProviderIfConfigured` method registers
     its provider only when its section exists, and the reference host calls it.

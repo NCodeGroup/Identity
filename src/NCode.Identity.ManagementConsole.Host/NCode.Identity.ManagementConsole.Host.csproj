@@ -11,6 +11,9 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.ManagementConsole\NCode.Identity.ManagementConsole.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.AwsKms\NCode.Identity.Secrets.AwsKms.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.AzureKeyVault\NCode.Identity.Secrets.AzureKeyVault.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.GoogleCloudKms\NCode.Identity.Secrets.GoogleCloudKms.csproj" />
         <ProjectReference Include="..\NCode.Identity.SharedState.Valkey\NCode.Identity.SharedState.Valkey.csproj" />
     </ItemGroup>
 

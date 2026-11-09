@@ -908,40 +908,41 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A tenant's signing and encryption keys can stay inside a key management service, which signs every token and unwraps
   every content key sent to the tenant.** The tenant setting `tenant_key_provider` names a registered remote key
   provider — `aws-kms`, `azure-key-vault` or `google-cloud-kms`, which `AddAwsKmsRemoteKeyProvider`,
-  `AddAzureKeyVaultRemoteKeyProvider` and `AddGoogleCloudKmsRemoteKeyProvider` register from
-  `SecretProtection:RemoteKeyProviders:<Vendor>` — and every key the tenant provisions, signature and encryption alike,
-  is created in that KMS. The server stores each key's public half and a `remote` reference, publishes the stored public
-  half in the JSON Web Key Set with its `use` without calling the KMS, signs through the KMS, sending a digest and
-  turning an ECDSA DER signature into the `r‖s` form JWS uses, and unwraps a JWE's content key through it: `RSA-OAEP`
-  and `RSA-OAEP-256` on all three services and `RSA-OAEP-512` on Google Cloud KMS through the service's decryption, and
-  `ECDH-ES` and `ECDH-ES+A128KW`, `+A192KW` and `+A256KW` on AWS KMS through `DeriveSharedSecret`, with the Concat KDF
-  and the AES key unwrap run locally. An RSA-OAEP encrypted key that is not the size of the key's modulus fails at the
-  tag without a service call, and the JWT validator tries only the decryption keys whose id a JWE header's `kid` names,
-  or every eligible key when no key has that id. Registered `IRemoteKeyDescriptorSource` instances describe each
-  provider (`RemoteKeyProviderDescriptor`) and contribute the rows of the `RemoteKeyAlgorithm` vocabulary —
-  `RemoteSigningAlgorithm` (`RS*`, `PS*` and `ES*`), `RemoteDecryptionAlgorithm` and `RemoteKeyAgreementAlgorithm` —
-  that map each JOSE algorithm onto a provider's key spec and operation and give the key its use, so a provider holds
-  only the keys its service can use, and a host whose provider cannot hold a provisioned key, or holds it for another
-  use, does not start. A change of custody hands each key over after the activation delay (`custody_changed`), a
-  successor is a new version of its KMS key (a new tagged key on AWS KMS), a removed key the server created is destroyed
-  in its KMS after the commit, each SDK retries a repeatable call with jittered exponential back-off, and a key creation
-  is made once; the setting's domain and the provisioning check read the descriptors, never the providers, and a
-  provider signs, decrypts and agrees into the caller's buffer. The management API creates a tenant's signing or
-  encryption key in a registered provider (`POST /api/tenants/{tenantId}/secrets/remote`) and binds a key a KMS already
-  holds by its identifier and algorithm, reading its public half from the KMS and storing it once the key proves it
-  holds the private half — a challenge the key signs verifies with that half, or a challenge encrypted to that half
-  decrypts through the key (`POST /api/tenants/{tenantId}/secrets/remote/import`, which needs update authority on the
-  platform; the server never destroys a bound key); an update keeps a remote key's algorithm; `SecretResource`'s
-  `remoteKeyProvider` and the console's secrets table name the provider; the capabilities response lists each registered
-  provider with the signature and key-management algorithms, uses, key types, sizes and curves it holds
-  (`remoteKeyProviders`); a tenant's Secrets tab in the console creates a key in a provider through the create-secret
-  form's custody choice and binds a key a KMS holds through a bind dialog, each offering only the provider's algorithms,
-  labelled signing or encryption, and showing each refusal's problem detail; the management API's validation and its
-  capabilities read the descriptors as well. The Helm chart's `secretProtection.remoteKeyProviders` configures each
-  provider and mounts its workload identity. `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`,
-  `IRemoteKeyDescriptorCatalog`, `RemoteKeyAlgorithm`, `IRemoteSecretKey` and `IRemoteSecretKeyTypeDescriptor` are open,
-  so a package adds a provider or a key type. The providers live in `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault`
-  and `.GoogleCloudKms`, beside each service's key wrapper ([#165](https://github.com/NCodeGroup/Identity/issues/165),
+  `AddAzureKeyVaultRemoteKeyProvider` and `AddGoogleCloudKmsRemoteKeyProvider`
+  register on the secrets library's builder from `SecretProtection:RemoteKeyProviders:<Vendor>` — and every key the
+  tenant provisions, signature and encryption alike, is created in that KMS. The server stores each key's public half
+  and a `remote` reference, publishes the stored public half in the JSON Web Key Set with its `use` without calling the
+  KMS, signs through the KMS, sending a digest and turning an ECDSA DER signature into the `r‖s` form JWS uses, and
+  unwraps a JWE's content key through it: `RSA-OAEP` and `RSA-OAEP-256` on all three services and `RSA-OAEP-512` on
+  Google Cloud KMS through the service's decryption, and `ECDH-ES` and `ECDH-ES+A128KW`, `+A192KW` and `+A256KW` on AWS
+  KMS through `DeriveSharedSecret`, with the Concat KDF and the AES key unwrap run locally. An RSA-OAEP encrypted key
+  that is not the size of the key's modulus fails at the tag without a service call, and the JWT validator tries only
+  the decryption keys whose id a JWE header's `kid` names, or every eligible key when no key has that id. Registered
+  `IRemoteKeyDescriptorSource` instances describe each provider (`RemoteKeyProviderDescriptor`) and contribute the rows
+  of the `RemoteKeyAlgorithm` vocabulary — `RemoteSigningAlgorithm` (`RS*`, `PS*` and `ES*`),
+  `RemoteDecryptionAlgorithm` and `RemoteKeyAgreementAlgorithm` — that map each JOSE algorithm onto a provider's key
+  spec and operation and give the key its use, so a provider holds only the keys its service can use, and a host whose
+  provider cannot hold a provisioned key, or holds it for another use, does not start. A change of custody hands each
+  key over after the activation delay (`custody_changed`), a successor is a new version of its KMS key (a new tagged key
+  on AWS KMS), a removed key the server created is destroyed in its KMS after the commit, each SDK retries a repeatable
+  call with jittered exponential back-off, and a key creation is made once; the setting's domain and the provisioning
+  check read the descriptors, never the providers, and a provider signs, decrypts and agrees into the caller's buffer.
+  The management API creates a tenant's signing or encryption key in a registered provider
+  (`POST /api/tenants/{tenantId}/secrets/remote`) and binds a key a KMS already holds by its identifier and algorithm,
+  reading its public half from the KMS and storing it once the key proves it holds the private half — a challenge the
+  key signs verifies with that half, or a challenge encrypted to that half decrypts through the key
+  (`POST /api/tenants/{tenantId}/secrets/remote/import`, which needs update authority on the platform; the server never
+  destroys a bound key); an update keeps a remote key's algorithm; `SecretResource`'s `remoteKeyProvider` and the
+  console's secrets table name the provider; the capabilities response lists each registered provider with the signature
+  and key-management algorithms, uses, key types, sizes and curves it holds (`remoteKeyProviders`); a tenant's Secrets
+  tab in the console creates a key in a provider through the create-secret form's custody choice and binds a key a KMS
+  holds through a bind dialog, each offering only the provider's algorithms, labelled signing or encryption, and showing
+  each refusal's problem detail; the management API's validation and its capabilities read the descriptors as well. The
+  Helm chart's `secretProtection.remoteKeyProviders` configures each provider and mounts its workload identity.
+  `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`, `IRemoteKeyDescriptorCatalog`, `RemoteKeyAlgorithm`,
+  `IRemoteSecretKey` and `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a provider or a key type. The
+  providers live in `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`, beside each service's key
+  wrapper ([#165](https://github.com/NCodeGroup/Identity/issues/165),
   [#648](https://github.com/NCodeGroup/Identity/issues/648), [#649](https://github.com/NCodeGroup/Identity/issues/649),
   [#650](https://github.com/NCodeGroup/Identity/issues/650), [#652](https://github.com/NCodeGroup/Identity/issues/652),
   [#653](https://github.com/NCodeGroup/Identity/issues/653), [#655](https://github.com/NCodeGroup/Identity/issues/655),
@@ -2533,6 +2534,21 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1286](docs/decisions/1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md),
   issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
 
+- **The OpenID protocol client and a BFF keep their keys in a key management service.** A client key ring can hold an
+  `IRemoteSecretKey`, whose remote key provider's row decides whether it signs `private_key_jwt` client assertions and
+  DPoP proofs or decrypts the ID tokens, UserInfo responses and logout tokens encrypted to the client, through its KMS;
+  its JWK, DPoP `jwk` and thumbprint are its public half. `IRemoteKeyResolver` resolves a provider's row for a key's
+  algorithm, secret type, size and curve without calling the KMS, reads a key's public half from the KMS and creates the
+  key with the row's `use` and `alg`; it is the one path by which the secret generator creates and binds a tenant's
+  remote key, the serializer reads a stored one and a BFF loads a key ring's remote keys, and it refuses with
+  `RemoteKeyRefusedException`. `IRemoteKeyProver` proves that a remote key holds the private half of its public half, a
+  signing key by a challenge it signs and an encryption key by a challenge it decrypts, for the management API's bind
+  and a BFF's key rings. The remote key providers register on the secrets library's builder, so a BFF host registers
+  them from `SecretProtection:RemoteKeyProviders:<Vendor>` as the OP does, and the management console's reference host
+  registers each provider whose section exists
+  ([#651](https://github.com/NCodeGroup/Identity/issues/651),
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+
 - **The OpenID protocol client pushes authorization requests.**
   `IAuthorizationRequestClient.CreateAuthorizationUriAsync` takes a `ClientRegistration` and an `AuthorizationRequest`
   (redirect URI, `state`, PKCE verifier, optional `nonce`, `scope`, `response_mode`, resources and open additional
@@ -2760,13 +2776,20 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
   [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
 
-- **A BFF loads its key rings from PEM files.** `Bff:KeyRings:{name}:PemFiles` registers a key ring from EC or RSA
-  private-key PEM files, each key's `kid` is its file name without the extension, and the host validates the files when
-  it starts. A set of frontends whose `ClientAuthentication:KeyRing` or `DPoP:KeyRing` names a key ring that
-  `IClientKeyRingProvider.HasKeyRing` does not find is refused, when the host starts and on every configuration change
+- **A BFF loads its key rings from PEM files and key management services when the host starts.**
+  `Bff:KeyRings:{name}:PemFiles` lists EC or RSA private-key PEM files, each key's `kid` its file name without the
+  extension, and `Bff:KeyRings:{name}:RemoteKeys:{kid}` names a key a KMS holds by its `Provider`, `KeyId`, `Algorithm`,
+  `SecretType`, `KeySizeBits` and `Curve`, the provider's row deciding whether it signs or decrypts. Every configured
+  key ring loads before the host serves: a remote key's public half is read from its KMS and the key proves it holds the
+  private half, and `/bff/jwks` publishes the half without a KMS call. The host validates the entries when it starts,
+  and refuses a key ring that holds no key or one id twice. A set of frontends whose `ClientAuthentication:KeyRing` or
+  `DPoP:KeyRing` names a key ring that `IClientKeyRingProvider.HasKeyRing` does not find is refused, when the host
+  starts and on every configuration change
   ([#614](https://github.com/NCodeGroup/Identity/issues/614),
+  [#651](https://github.com/NCodeGroup/Identity/issues/651),
   [ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
-  [ADR-1446](docs/decisions/1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md)).
+  [ADR-1446](docs/decisions/1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md),
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
 
 - **The management console reads its session from its BFF.** The `RuntimeConfig` union and `loadBffRuntimeConfig`, the
   `session` slice and `fetchBffUser`, `SessionGate` (poll, expiry and visibility probes, `BroadcastChannel`), sign-out
@@ -5784,16 +5807,20 @@ Until the first stable release, the [Unreleased] section describes the product a
   remote signature whose length or verification against the stored public half fails is refused; a remote key is bound
   to one algorithm and fails when its tenant loads if its provider, mapping row or public half is missing; KMS keys are
   created sign-only or decrypt-only and, on Azure Key Vault and Google Cloud KMS, hardware-protected by default; logs
-  carry key identifiers only; and the server destroys only the KMS keys it created; a key it created but could not
-  read, check or record is destroyed at once, and a KMS response that names another key or algorithm, or fails its
-  checksum, is refused. A sweep destroys only keys tagged with its deployment, older than its grace period, that no
-  stored secret names, and each destruction stays recoverable for the service's window
+  carry key identifiers only; and the server destroys only the KMS keys it created; a key it created but could not read,
+  check or record is destroyed at once, and a KMS response that names another key or algorithm, or fails its checksum,
+  is refused. A sweep destroys only keys tagged with its deployment, older than its grace period, that no stored secret
+  names, and each destruction stays recoverable for the service's window. A protocol client's or a BFF's key ring holds
+  only a remote key's public half, a BFF does not start with a remote key whose public half its KMS does not return or
+  that does not prove it holds the private half, and neither creates nor destroys a KMS key
   ([#165](https://github.com/NCodeGroup/Identity/issues/165),
   [#650](https://github.com/NCodeGroup/Identity/issues/650),
   [#653](https://github.com/NCodeGroup/Identity/issues/653),
   [#654](https://github.com/NCodeGroup/Identity/issues/654),
   [#659](https://github.com/NCodeGroup/Identity/issues/659),
+  [#651](https://github.com/NCodeGroup/Identity/issues/651),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
   [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
-  [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
+  [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).

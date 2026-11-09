@@ -5,7 +5,9 @@
   and [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md) decision 4; decision 4
   amended by
   [ADR-1446](1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md): the library also registers
-  `BffKeyRingCheck`)
+  `BffKeyRingCheck`; decision 1 amended by
+  [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md):
+  every key ring loads when the host starts)
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 
@@ -41,9 +43,10 @@ derives from its options reads the current set.**
    `Tokens`. Nothing in the BFF reads `IOptions<BffOptions>`; the catalog's current set is the one live view. A package
    outside the BFF reads the options in effect through `IBffOptionsAccessor.Current`, which is the current set's
    options: the last configuration change that validated as a whole. The `Bff:KeyRings` entries are the exception:
-   `AddBffConfiguration` registers a keyed provider for each entry present when it is called, and a provider reads its
-   files once when it is first resolved, so a change adds, removes and re-reads no key ring until the process starts
-   again ([ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+   `AddBffConfiguration` registers a keyed provider for each entry present when it is called, and every key ring loads
+   once, when the host starts, so a change adds, removes and re-reads no key ring until the process starts
+   again ([ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
+   [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
    `AddBffConfiguration` registers the section's `IOptionsChangeTokenSource<BffOptions>`, so a source that reloads
    drives the catalog.
 2. **No switch.** The configuration source decides whether the frontends change at run time. A host that wants fixed

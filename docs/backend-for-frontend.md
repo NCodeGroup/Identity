@@ -939,10 +939,11 @@ every registered rule, and `IsMatch` reads only the request. Two rules are built
   `Error` (event 19012). The endpoints of `MapBffEndpoints()` and `MapBffRemoteApis()` follow the set, with the
   conventions added to their route group, and the endpoint check runs again. A source that never reloads, such as
   options configured in code, fixes the frontends for the host's life. `Bff:KeyRings` entries are registered when
-  `AddIdentityBff` is called and are not re-read by a change, so a frontend added by a change must name a key ring that
-  the host already has, or the change is refused
+  `AddIdentityBff` is called and load when the host starts, and a change does not re-read them, so a frontend added by a
+  change must name a key ring that the host already has, or the change is refused
   ([ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md),
   [ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
+  [ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
   [ADR-1446](decisions/1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md)).
 - **Removal.** A removed frontend serves no request, so its cookie is never read. A session records its frontend's
   `Authority` and `ClientId`: a request or a connection ends a session whose frontend is configured with another
@@ -1013,8 +1014,9 @@ The sketch below shows the composition. `AddIdentityBff` composes the shared-sta
 ```csharp
 var bff = builder.Services.AddIdentityBff(builder.Configuration); // NCode.Identity.Bff.Server; binds "Bff" strictly
 bff.SharedStateLibraryBuilder.AddValkey(builder.Configuration);    // only when running several replicas
-builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the seam for a key ring held elsewhere, such as a KMS
-    "orders-web-client-key", (serviceProvider, _) => LoadClientKeys(serviceProvider));
+bff.SecretsLibraryBuilder.AddAwsKmsRemoteKeyProviderIfConfigured(builder.Configuration); // a KMS that holds key ring keys; "SecretProtection:RemoteKeyProviders:AwsKms"
+// builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the seam for a key ring from another source
+//     "orders-web-client-key", (serviceProvider, _) => LoadClientKeys(serviceProvider));
 builder.Services.AddTrustedForwardedHeaders(builder.Configuration); // NCode.AspNetCore; "ForwardedHeaders"
 builder.Services.AddStrictTransportSecurity(builder.Configuration);   // "StrictTransportSecurity"
 
@@ -1069,19 +1071,50 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 }
 ```
 
-A BFF reads the key rings its frontends name from PEM files. `Bff:KeyRings:{name}:PemFiles` lists the files of the key
-ring `{name}`, and `AddIdentityBff` registers a keyed `ISecretKeyCollectionProvider` under that name, which a frontend's
-`ClientAuthentication:KeyRing` or `DPoP:KeyRing` refers to. Each file holds one EC or RSA private key (PKCS#8, SEC1 or
-PKCS#1), read through sensitive buffers, and a key's `kid` is its file name without the extension. A relative path
-resolves against the content root. A host that holds a key ring elsewhere, in a KMS for example, registers the keyed
-provider in code and configures no entry for it
-([ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+A BFF reads the key rings its frontends name from PEM files, from keys that a key management service (KMS) holds, or
+from both. `Bff:KeyRings:{name}` configures the key ring `{name}`, and `AddIdentityBff` registers a keyed
+`ISecretKeyCollectionProvider` under that name, which a frontend's `ClientAuthentication:KeyRing` or `DPoP:KeyRing`
+refers to. `PemFiles` lists the files of the ring. Each file holds one EC or RSA private key (PKCS#8, SEC1 or PKCS#1),
+read through sensitive buffers, and a key's `kid` is its file name without the extension. A relative path resolves
+against the content root. `RemoteKeys:{kid}` names a key that a KMS holds, with `Provider` (the remote key provider's
+name, such as `aws-kms`, `azure-key-vault` or `google-cloud-kms`), `KeyId` (the KMS's identifier for the key),
+`Algorithm` (the JOSE `alg`), `SecretType` (`rsa` or `ecc`), `KeySizeBits` and `Curve` (for an elliptic-curve key). The
+host registers the provider on the secrets library's builder, as the sketch shows for AWS KMS.
+
+The remote key provider's row for the algorithm decides whether a remote key signs (client assertions and DPoP proofs)
+or decrypts (encrypted ID tokens and UserInfo responses), so one ring holds a signing key and a decryption key side by
+side, and `/bff/jwks` publishes both halves with their `use`. Every ring loads when the host starts: the BFF reads each
+remote key's public half from its KMS and proves the key by a challenge that it signs or decrypts in the KMS, so
+`/bff/jwks` needs no KMS call. A ring loads once per process, and a rotation takes effect when the host restarts. A
+ring's keyed provider resolves once the host starts: a service that resolves it before the host starts, such as an eager
+singleton or an options validator, gets an `InvalidOperationException` that names the ring, and the BFF itself resolves
+a ring only when a request uses it. A key ring's KMS key is the operator's: the BFF never creates, tags or destroys it,
+so it needs no `SecretProtection:RemoteKeys:Deployment`. An OP deployment's orphaned-key sweep never touches the key as
+long as it carries no `ncid-` group name and no deployment tag, and the key belongs in a scope of its own
+([ADR-1476](decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)).
+A remote DPoP key costs a KMS signature for every proof, that is for each token request and each forwarded call with a
+DPoP-bound token. Hold the client-authentication key and the decryption key in the KMS, and keep the DPoP key local
+unless the threat model needs it and the request rate fits the KMS's quota. A host that holds a key ring from another
+source registers the keyed provider in code and configures no entry for it
+([ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
+[ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
 
 ```jsonc
 {
   "Bff": {
     "KeyRings": {
-      "orders-web-client-key": { "PemFiles": ["/run/secrets/orders-web-client-key.pem"] }, // kid: orders-web-client-key
+      "orders-web-client-key": {
+        "PemFiles": ["/run/secrets/orders-web-client-key.pem"], // kid: orders-web-client-key
+        "RemoteKeys": {
+          "orders-web-enc": {                                   // kid: orders-web-enc; a KMS holds the decryption key
+            "Provider": "aws-kms",
+            "KeyId": "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+            "Algorithm": "RSA-OAEP-256",
+            "SecretType": "rsa",
+            "KeySizeBits": 3072,
+          },
+        },
+      },
       "orders-web-dpop": { "PemFiles": ["/run/secrets/orders-web-dpop.pem"] },
     },
   },
@@ -1116,8 +1149,13 @@ provider in code and configures no entry for it
   `IdleTimeout`.
 - The antiforgery cookie's name does not start with `__Host-`, or the cookie is not `Secure`, has a `Path` other than
   `/`, or has a `Domain`.
-- `Bff:KeyRings` has a key ring without a name, or a key ring's `PemFiles` lists no file, has a blank entry or names a
-  file that does not exist.
+- `Bff:KeyRings` has a key ring without a name, or a key ring lists neither a PEM file nor a remote key. A `PemFiles`
+  entry is blank or names a file that does not exist, a remote key has no id, a remote key's `Provider` is not a remote
+  key provider's name, or its `KeyId`, `Algorithm` or `SecretType` is blank or its `KeySizeBits` is not positive, and
+  one key ring holds two keys with the same id.
+- A remote key's provider is not registered or has no row for its algorithm, size and curve, or its public half cannot
+  be read or its proof fails. The host stops when it starts, and the message names the key ring, the key and the
+  provider.
 - `Bff:Antiforgery:HeaderName` or `HeaderValue` is blank, or the header name is one that skips a CORS preflight or
   carries credentials, or a `Bff:Tokens` duration is out of range.
 - `Bff:Frontends:{name}:DPoP:Mode` is `required` and the OP does not support DPoP. This check runs when discovery is
@@ -1354,6 +1392,7 @@ The Playground stays a public client on purpose: it keeps the `@ncode/auth` prot
 | `invalid_grant` on refresh (revoked, expired, or reuse found) | The session ends                                          | `session.ended` with reason `refresh_failed`                       | `401`, and the SPA logs in again.                                                                                 |
 | The OP rotates its signing key                               | Brief validation misses                                   | Unknown-`kid` refreshes                                           | Refresh the JWKS on an unknown `kid`, rate-limited.                                                               |
 | The BFF's DPoP or client key rotates                         | Existing sessions could break                             | Errors at the token endpoint                                      | Sessions keep their recorded key, and retired keys are kept for the maximum session lifetime ([§5.5](#55-token-management)). |
+| A key ring's KMS is unreachable, or its identity lacks a permission, when a replica starts | The replica does not start | The start error names the key ring, the key and the provider | Fix the KMS or the permission and restart the replica ([ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)). |
 | `UseBff()` or `MapBffEndpoints()` missing, or out of order   | CSRF would be unenforced, or endpoints would `404`        | Startup check                                                     | The host refuses to start.                                                                                       |
 | The proxy strips `Sec-Fetch-*` or `Origin`                   | Fetch Metadata layer inactive                             | Absent-header counters                                            | Layers 1 to 3 of [§5.9](#59-browser-facing-hardening) still hold.                                                 |
 | Clock skew between the BFF and the OP                        | `iat` or `exp` rejections                                 | Validation failure reasons                                        | A bounded, configurable skew (60 seconds at most, matching the family's ceiling).                                 |
@@ -1461,7 +1500,8 @@ The Playground stays a public client on purpose: it keeps the `@ncode/auth` prot
 - **Why:**
   - (b) stores the key next to the tokens it protects.
   - (c) leaves tokens replayable if they leak from the store, logs, or a resource server.
-  - (a) keeps the key apart from the tokens, and allows a non-exportable key.
+  - (a) keeps the key apart from the tokens, and allows a non-exportable key: the key can live in a KMS
+    ([ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
 
 ### D8. Forwarding
 
@@ -1513,7 +1553,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 | Multiple frontends             | One `Bff:Frontends:{name}` entry per frontend, selected per request by the open `IBffFrontendSelector` rules `host` and `path`, with its own cookies, client registration, endpoints, tokens and security headers, validated as a whole at startup ([§5.10](#510-frontends), [ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)). |
 | Endpoint startup check         | The host refuses to start when an endpoint's BFF metadata is incomplete, such as a YARP route that names a token requirement without `AsBffRemoteApis()`; the per-request `502` stays the backstop ([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)). |
 | Server-rendered and Blazor hosts | Pages that accept a form post with the antiforgery token, hubs as a guarded endpoint kind with connection sessions, and the opt-in `NCode.Identity.Bff.Blazor` and `NCode.Identity.Bff.Blazor.Client` packages ([§5.14](#514-server-rendered-and-blazor-hosts), [ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md), [ADR-1436](decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)). |
-| Key rings                      | `Bff:KeyRings:{name}:PemFiles` registers a keyed `ISecretKeyCollectionProvider` that holds the private keys of its PEM files ([§5.12](#512-composition-and-configuration), [ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)). |
+| Key rings                      | `Bff:KeyRings:{name}` registers a keyed `ISecretKeyCollectionProvider` that holds the private keys of its `PemFiles` and the remote keys that a KMS holds (`RemoteKeys:{kid}`), loaded when the host starts ([§5.12](#512-composition-and-configuration), [ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md), [ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)). |
 | Management console            | `NCode.Identity.ManagementConsole.Host` serves `apps/mgmt` as the confidential client `mgmt-console` of the control-plane tenant ([§5.15](#515-the-management-console), [ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md), [ADR-1438](decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)). The Playground stays a public client on purpose.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---

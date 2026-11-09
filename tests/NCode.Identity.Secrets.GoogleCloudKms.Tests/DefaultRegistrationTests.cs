@@ -100,7 +100,7 @@ public class DefaultRegistrationTests : BaseTests
 
         serviceCollection.AddSingleton(clientFactory);
 
-        var builder = serviceCollection.AddSecretsLibrary().AddPersistenceLibrary();
+        var builder = serviceCollection.AddSecretsLibrary();
         for (var i = 0; i < times; ++i)
         {
             builder.AddGoogleCloudKmsRemoteKeyProvider(configuration);
@@ -254,7 +254,6 @@ public class DefaultRegistrationTests : BaseTests
 
         serviceCollection
             .AddSecretsLibrary()
-            .AddPersistenceLibrary()
             .AddGoogleCloudKmsRemoteKeyProviderIfConfigured(
                 CreateConfiguration(
                     ("SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing", KeyRing)
@@ -278,7 +277,6 @@ public class DefaultRegistrationTests : BaseTests
 
         serviceCollection
             .AddSecretsLibrary()
-            .AddPersistenceLibrary()
             .AddGoogleCloudKmsRemoteKeyProviderIfConfigured(CreateConfiguration());
 
         await using var provider = serviceCollection.BuildServiceProvider();
@@ -296,7 +294,7 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddGoogleCloudKmsRemoteKeyProviderIfConfigured_NullBuilder_Throws()
     {
-        IServiceBuilder<SecretPersistenceLibrary> builder = null!;
+        IServiceBuilder<SecretsLibrary> builder = null!;
 
         Assert.Throws<ArgumentNullException>(() =>
             builder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(CreateConfiguration())
@@ -306,7 +304,7 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddGoogleCloudKmsRemoteKeyProviderIfConfigured_NullConfiguration_Throws()
     {
-        var builder = new ServiceCollection().AddSecretsLibrary().AddPersistenceLibrary();
+        var builder = new ServiceCollection().AddSecretsLibrary();
 
         Assert.Throws<ArgumentNullException>(() =>
             builder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(null!)

@@ -25,7 +25,7 @@ public class BffAuthenticationHandlerTests : BaseTests
 {
     private const string PageReloadCookie = "__Host-Http-bff-reload.default=1";
 
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
     private static BffSessionState CreateState() =>
         new(

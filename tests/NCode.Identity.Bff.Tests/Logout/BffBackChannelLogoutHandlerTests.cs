@@ -23,7 +23,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
     private const string Issuer = "https://op.example";
     private const string Token = "the-logout-token";
 
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
     private readonly Mock<ILogoutTokenValidator> _validator;
     private readonly Mock<IBffSessionStore> _store;

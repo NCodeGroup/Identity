@@ -11,11 +11,11 @@ namespace NCode.Identity.Bff.Tests.Cookies;
 
 public class BffCookiesTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     private const string PageReloadCookieName = "__Host-Http-bff-reload.default";
 
-    private static readonly string Value43 = new('a', 43);
+    private static string Value43 { get; } = new('a', 43);
 
     private static BffCookies CreateCookies() => new(new FakeTimeProvider(Now));
 

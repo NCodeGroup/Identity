@@ -13,7 +13,7 @@ namespace NCode.Identity.Bff.Tests.Login;
 
 public class BffLoginTransactionServiceTests : IAsyncLifetime
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
 
     private ServiceProvider Provider { get; }
     private BffLoginTransactionService Service { get; }

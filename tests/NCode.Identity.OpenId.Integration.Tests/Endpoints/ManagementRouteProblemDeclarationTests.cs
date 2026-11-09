@@ -58,13 +58,8 @@ public class ManagementRouteProblemDeclarationTests
     [Fact]
     public void ManagementRoutes_WhenTheyAuthorizeTheCaller_DeclareUnauthorizedAndForbidden()
     {
-        string[] unauthorizedNames =
-        [
-            "api/me/get",
-            "api/me/teams/list",
-            "api/me/tenants/list",
-            "api/capabilities/get",
-        ];
+        string[] anyCallerNames = ["api/me/get", "api/me/teams/list", "api/me/tenants/list"];
+        string[] authenticatedCallerNames = ["api/capabilities/get"];
 
         using var factory = new HostApplicationFactory();
 
@@ -73,7 +68,7 @@ public class ManagementRouteProblemDeclarationTests
         var endpointNames = endpoints
             .Select(e => e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName)
             .ToHashSet();
-        foreach (var name in unauthorizedNames)
+        foreach (var name in anyCallerNames.Concat(authenticatedCallerNames))
         {
             Assert.Contains(name, endpointNames);
         }
@@ -81,13 +76,38 @@ public class ManagementRouteProblemDeclarationTests
         foreach (var endpoint in endpoints)
         {
             var name = endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName;
-            if (name is not null && unauthorizedNames.Contains(name))
+            if (
+                name is not null
+                && (anyCallerNames.Contains(name) || authenticatedCallerNames.Contains(name))
+            )
             {
                 continue;
             }
 
             var codes = GetProblemStatusCodes(endpoint);
             Assert.True(codes.Contains(401) && codes.Contains(403), endpoint.RoutePattern.RawText);
+        }
+    }
+
+    [Fact]
+    public void ManagementRoutes_WhenTheyOnlyAuthenticateTheCaller_DeclareUnauthorizedButNotForbidden()
+    {
+        string[] authenticatedCallerNames = ["api/capabilities/get"];
+
+        using var factory = new HostApplicationFactory();
+
+        var endpoints = GetManagementEndpoints(factory);
+
+        foreach (var name in authenticatedCallerNames)
+        {
+            var endpoint = Assert.Single(
+                endpoints,
+                e => e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName == name
+            );
+
+            var codes = GetProblemStatusCodes(endpoint);
+            Assert.Contains(401, codes);
+            Assert.DoesNotContain(403, codes);
         }
     }
 

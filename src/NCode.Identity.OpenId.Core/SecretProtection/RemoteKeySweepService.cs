@@ -16,9 +16,9 @@ namespace NCode.Identity.OpenId.SecretProtection;
 /// <summary>
 /// Schedules the sweep of the remote keys that no stored secret names, once the replica's platform is materialized and
 /// then every <see cref="RemoteKeyOptions.SweepInterval"/>: it dispatches one <see cref="RemoteKeySweepJob"/> for each
-/// described remote key provider that creates keys. One replica runs each pass, under a lease on the shared-state port that lasts half
-/// the interval, and the dispatcher gives each provider's job its own retries. A provider whose dispatch fails is
-/// logged and the others are dispatched.
+/// described remote key provider that creates keys. One replica runs each pass, under a lease on the shared-state port
+/// that lasts half the interval, and the dispatcher gives each provider's job its own retries. A provider whose
+/// dispatch fails is logged and the others are dispatched.
 /// </summary>
 /// <remarks>
 /// The service does nothing when <see cref="RemoteKeyOptions.SweepEnabled"/> is <c>false</c> or when no described
@@ -90,7 +90,8 @@ internal sealed class RemoteKeySweepService(
     /// Runs one pass, when this replica wins the pass's lease. A pass that fails is logged and run again at the next
     /// interval.
     /// </summary>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous
+    /// operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     internal async ValueTask RunAsync(CancellationToken cancellationToken)
     {

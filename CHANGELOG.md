@@ -369,11 +369,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   management API at `/api` on its authority's origin, the URL the server compares its DPoP proofs with, and machine
   callers reach the API at the server's own host. Its `mgmt-client` and `mgmt-dpop` key rings,
   `managementConsole.keyRings.client` and `.dpop`, each hold a PEM key mounted read-only from a Secret (`pemSecret`),
-  keys that AWS KMS, Azure Key Vault or Google Cloud KMS holds (`remoteKeys`, by key id), or both. The chart mounts
-  the console's own workload identity for each service a remote key names (`managementConsole.secretProtection`), so
-  the console's private keys can stay out of its pods. Rendering fails for a missing or wildcard console host, an
-  authority that is not `https`, a key ring with no key, two keys of a key ring with one id, a remote key whose id is
-  not its service's key form, a half-set console identity, or more than one console replica without the console's own
+  keys that AWS KMS, Azure Key Vault or Google Cloud KMS holds (`remoteKeys`, by key id), or both. The chart mounts the
+  console's own workload identity for each service a remote key names (`managementConsole.secretProtection`), so the
+  console's private keys can stay out of its pods. Rendering fails for a missing or wildcard console host, an authority
+  that is not `https`, a key ring with no key, two keys of a key ring with one id, a remote key whose id is not its
+  service's key form, a half-set console identity, or more than one console replica without the console's own
   Valkey
   ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
   [ADR-1485](docs/decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),

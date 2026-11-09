@@ -12,8 +12,8 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 /// Contributes the <c>remoteKeyProviders</c> section to the management capabilities document, publishing each remote
 /// key provider that the <see cref="IRemoteKeyDescriptorCatalog"/> describes, which is each registered provider, and,
 /// for each, whether it creates keys and the algorithm rows that <see cref="ISecretValidator.ValidateRemoteKey"/>
-/// accepts, so clients can discover which key management services can hold a tenant's signing and encryption keys, the
-/// algorithms they hold them for, and whether each creates keys.
+/// accepts, so clients can discover which key management services can hold a tenant's signing and encryption keys and
+/// the algorithms they hold them for.
 /// </summary>
 // See ADR-1474.
 // See ADR-1476.

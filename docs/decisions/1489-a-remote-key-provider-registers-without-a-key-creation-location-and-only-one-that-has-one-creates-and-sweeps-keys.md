@@ -6,15 +6,14 @@
 
 ## Context
 
-A remote key provider registers when its `SecretProtection:RemoteKeyProviders:<Vendor>` section exists, and its options
-validator requires a location: `Region` for AWS KMS, `VaultUri` for Azure Key Vault and `KeyRing` for Google Cloud KMS.
-The provider uses that location only to create keys and to list them
+Each vendor has a key-creation location: `Region` for AWS KMS, `VaultUri` for Azure Key Vault and `KeyRing` for Google
+Cloud KMS. A provider uses it only to create keys and to list them
 ([ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)).
 It reads, signs with, decrypts with and destroys a key where the key's own identifier names it.
 
 A BFF host only reads the keys its key rings name and proves them when it starts
 ([ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
-It needs no location, yet the validator demands one, so the host chart reads one from the console's keys to satisfy it
+It has no location to name, and a host chart that had to supply one would derive it from the console's keys
 ([ADR-1485](1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md)).
 A server whose identity lacks `kms:CreateKey` and `ListKeys` has the same need: it binds keys an operator created and
 never creates one.

@@ -13,8 +13,8 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// Provides an additive <see cref="SettingDescriptor"/> data source for the tenant <c>tenant_key_provider</c>
 /// setting. The domain of the setting is the empty string, which keeps the tenant's keys in the server's store, or
 /// the name of a provider described by the <see cref="IRemoteKeyDescriptorCatalog"/> that creates keys, so a value
-/// that names no such provider is rejected rather than stored. It is a tenant setting that is not advertised in discovery and
-/// whose value belongs to the environment, so promotion never copies it.
+/// that names no such provider is rejected rather than stored. It is a tenant setting that is not advertised in
+/// discovery and whose value belongs to the environment, so promotion never copies it.
 /// </summary>
 internal class TenantKeyProviderSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,

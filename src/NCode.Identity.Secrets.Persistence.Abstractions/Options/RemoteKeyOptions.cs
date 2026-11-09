@@ -19,7 +19,7 @@ public sealed class RemoteKeyOptions
     /// Gets or sets the name of this deployment, which every key the server creates in a key management service
     /// carries and its group name hashes, so deployments that share a service scope never share or sweep each
     /// other's keys. It is lowercase letters and digits in hyphen-separated groups, at most 40 characters. It is
-    /// required when a remote key provider is registered.
+    /// required when a remote key provider that creates keys is registered.
     /// </summary>
     public string? Deployment { get; set; }
 

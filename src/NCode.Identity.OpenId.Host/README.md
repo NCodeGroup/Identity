@@ -92,18 +92,18 @@ selects a registered provider through the tenant setting `OpenId:Platform:Settin
 `azure-key-vault` or `google-cloud-kms`). A provider registered without its region, vault URI or key ring
 binds a key a KMS already holds and creates none: `tenant_key_provider` cannot name it, and the sweep skips it.
 
-| Setting                                                                | Meaning                                                                                                                                   |
-|------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| `SecretProtection:RemoteKeyProviders:AwsKms:Region`                    | AWS region in which keys are created; empty creates no keys, such as `us-west-2`                                                          |
-| `SecretProtection:RemoteKeyProviders:AwsKms:PendingWindowInDays`       | Days, 7 to 30, that AWS KMS waits before it deletes a destroyed key (default `30`)                                                        |
-| `SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri`           | URI of the Key Vault or Managed HSM in which keys are created; empty creates no keys, such as `https://contoso.vault.azure.net`           |
-| `SecretProtection:RemoteKeyProviders:AzureKeyVault:HardwareProtected`  | `false` creates software-protected keys (default `true`)                                                                                  |
-| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing`           | Resource name of the key ring in which keys are created; empty creates no keys, `projects/<project>/locations/<location>/keyRings/<ring>` |
-| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:HardwareProtected` | `false` creates software-protected keys (default `true`)                                                                                  |
-| `SecretProtection:RemoteKeys:Deployment`                               | Required with a provider: lowercase letters, digits and hyphens, at most 40; unique to the database within a shared KMS scope             |
-| `SecretProtection:RemoteKeys:SweepEnabled`                             | `false` turns the orphaned-key sweep off (default `true`)                                                                                 |
-| `SecretProtection:RemoteKeys:SweepInterval`                            | Time between sweeps (default one day)                                                                                                     |
-| `SecretProtection:RemoteKeys:SweepGracePeriod`                         | Age a key reaches before the sweep may destroy it (default one day, between one hour and 365 days)                                        |
+| Setting                                                                | Meaning                                                                                                                                         |
+|------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `SecretProtection:RemoteKeyProviders:AwsKms:Region`                    | AWS region in which keys are created; empty creates no keys, such as `us-west-2`                                                                |
+| `SecretProtection:RemoteKeyProviders:AwsKms:PendingWindowInDays`       | Days, 7 to 30, that AWS KMS waits before it deletes a destroyed key (default `30`)                                                              |
+| `SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri`           | URI of the Key Vault or Managed HSM in which keys are created; empty creates no keys, such as `https://contoso.vault.azure.net`                 |
+| `SecretProtection:RemoteKeyProviders:AzureKeyVault:HardwareProtected`  | `false` creates software-protected keys (default `true`)                                                                                        |
+| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing`           | Resource name of the key ring in which keys are created; empty creates no keys, `projects/<project>/locations/<location>/keyRings/<ring>`       |
+| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:HardwareProtected` | `false` creates software-protected keys (default `true`)                                                                                        |
+| `SecretProtection:RemoteKeys:Deployment`                               | Required with a provider that creates keys: lowercase letters, digits and hyphens, at most 40; unique to the database within a shared KMS scope |
+| `SecretProtection:RemoteKeys:SweepEnabled`                             | `false` turns the orphaned-key sweep off (default `true`)                                                                                       |
+| `SecretProtection:RemoteKeys:SweepInterval`                            | Time between sweeps (default one day)                                                                                                           |
+| `SecretProtection:RemoteKeys:SweepGracePeriod`                         | Age a key reaches before the sweep may destroy it (default one day, between one hour and 365 days)                                              |
 
 Each provider uses its SDK's default credential chain, and no credential is read from configuration. The server creates
 sign-only or decrypt-only keys and destroys only the keys it created. The deployment's identity needs these permissions:

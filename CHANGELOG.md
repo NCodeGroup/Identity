@@ -973,17 +973,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1489](docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)).
 
 - **A background job destroys the KMS keys that no stored secret names.** Every key the server creates in a KMS carries
-  the deployment that `SecretProtection:RemoteKeys:Deployment` names (required when a remote key provider is
-  registered), and its group name hashes the deployment, so deployments that share an AWS account, a vault or a key
-  ring, each under a name of its own, never share or sweep each other's keys. At start and every
-  `SecretProtection:RemoteKeys:SweepInterval` (one day), one replica dispatches a `RemoteKeySweepJob` per provider
-  through the dispatch port, logging a provider whose dispatch fails and dispatching the others; the job lists the
-  deployment's keys older than `SweepGracePeriod` (one day, between one hour and 365 days) through
-  `IRemoteKeyProvider.ListKeysAsync`, then reads the references every stored secret holds (`IRemoteKeyReferenceStore`),
-  and destroys each key none names through `IRemoteSecretDestroyer.DestroyKeyAsync`, recording `remote_key.destroyed`
-  with the reason `orphaned` in the control-plane tenant; `SweepEnabled` turns it off. The Helm chart's
-  `secretProtection.remoteKeys` sets the deployment and the sweep, and rendering fails for a release that configures
-  a remote key provider without a deployment
+  the deployment that `SecretProtection:RemoteKeys:Deployment` names
+  (required when a remote key provider that creates keys is registered), and its group name hashes the deployment, so
+  deployments that share an AWS account, a vault or a key ring, each under a name of its own, never share or sweep each
+  other's keys. At start and every `SecretProtection:RemoteKeys:SweepInterval` (one day), one replica dispatches
+  a `RemoteKeySweepJob` per provider that creates keys through the dispatch port, logging a provider whose dispatch
+  fails and dispatching the others; the job lists the deployment's keys older than `SweepGracePeriod` (one day, between
+  one hour and 365 days) through `IRemoteKeyProvider.ListKeysAsync`, then reads the references every stored secret holds
+  (`IRemoteKeyReferenceStore`), and destroys each key none names through `IRemoteSecretDestroyer.DestroyKeyAsync`,
+  recording `remote_key.destroyed` with the reason `orphaned` in the control-plane tenant; `SweepEnabled` turns it off.
+  The Helm chart's `secretProtection.remoteKeys` sets the deployment and the sweep, and rendering fails for a release
+  that configures a remote key provider without a deployment
   ([#654](https://github.com/NCodeGroup/Identity/issues/654), [#704](https://github.com/NCodeGroup/Identity/issues/704),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
 

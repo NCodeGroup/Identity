@@ -1006,6 +1006,20 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             )
             .Verifiable();
 
+    private void SetupDescribedProvidersThatCreateNoKeys(params string[] names) =>
+        MockCatalog
+            .Setup(x => x.Providers)
+            .Returns(
+                names
+                    .Select(name => new RemoteKeyProviderDescriptor
+                    {
+                        Name = name,
+                        CreatesKeys = false,
+                    })
+                    .ToArray()
+            )
+            .Verifiable();
+
     private void SetupRow(RemoteKeyAlgorithmSelector selector, RemoteKeyAlgorithm? row)
     {
         MockCatalog
@@ -1082,6 +1096,22 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.True(validation.IsValid);
         Assert.Equal("P-256", validation.GenerationParameters.Curve);
         Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
+    }
+
+    [Fact]
+    public void ValidateCreateRemote_WhenTheProviderCreatesNoKeys_ReturnsBadRequest()
+    {
+        SetupDescribedProvidersThatCreateNoKeys(ProviderName);
+        SetupRow(Es256Selector, Es256Row);
+
+        var error = RemoteValidator.ValidateCreateRemote(CreateRemoteRequest(), CreatedWhen).Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The remote key provider 'aws-kms' creates no keys: it has no key-creation location.",
+            error.Detail
+        );
     }
 
     [Fact]
@@ -1391,6 +1421,18 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.True(validation.IsValid);
         Assert.Equal("P-256", validation.GenerationParameters.Curve);
         Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
+    }
+
+    [Fact]
+    public void ValidateRemoteKey_WhenTheProviderCreatesNoKeys_IsValid()
+    {
+        SetupDescribedProvidersThatCreateNoKeys(ProviderName);
+        SetupRow(Es256Selector, Es256Row);
+
+        var validation = RemoteValidator.ValidateRemoteKey(Es256Selector);
+
+        Assert.True(validation.IsValid);
+        Assert.Equal("P-256", validation.GenerationParameters.Curve);
     }
 
     [Fact]

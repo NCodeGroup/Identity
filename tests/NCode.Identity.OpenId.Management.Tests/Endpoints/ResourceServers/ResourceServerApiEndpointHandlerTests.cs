@@ -2594,6 +2594,52 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     #region Map Tests
 
     [Theory]
+    [InlineData("GET", "/resource-servers", new[] { 401, 403 })]
+    [InlineData("POST", "/resource-servers", new[] { 400, 401, 403, 409, 412 })]
+    [InlineData("GET", "/resource-servers/{resourceServerId}", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/resource-servers/{resourceServerId}", new[] { 400, 401, 403, 404, 412 })]
+    [InlineData(
+        "DELETE",
+        "/resource-servers/{resourceServerId}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/resource-servers/{resourceServerId}/scopes", new[] { 401, 403, 404 })]
+    [InlineData(
+        "POST",
+        "/resource-servers/{resourceServerId}/scopes",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData(
+        "GET",
+        "/resource-servers/{resourceServerId}/scopes/{scopeValue}",
+        new[] { 401, 403, 404 }
+    )]
+    [InlineData(
+        "PUT",
+        "/resource-servers/{resourceServerId}/scopes/{scopeValue}",
+        new[] { 401, 403, 404, 412 }
+    )]
+    [InlineData(
+        "DELETE",
+        "/resource-servers/{resourceServerId}/scopes/{scopeValue}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/resource-servers/{resourceServerId}/settings", new[] { 401, 403, 404 })]
+    [InlineData(
+        "GET",
+        "/resource-servers/{resourceServerId}/settings/limits",
+        new[] { 401, 403, 404 }
+    )]
+    [InlineData(
+        "PATCH",
+        "/resource-servers/{resourceServerId}/settings",
+        new[] { 400, 401, 403, 404, 412 }
+    )]
+    [InlineData(
+        "GET",
+        "/resource-servers/{resourceServerId}/effective-settings",
+        new[] { 401, 403, 404 }
+    )]
     [InlineData("GET", "/resource-servers/{resourceServerId}/secrets", new[] { 401, 403, 404 })]
     [InlineData(
         "POST",
@@ -2625,7 +2671,18 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         "/resource-servers/{resourceServerId}/secrets/{secretId}",
         new[] { 401, 403, 404, 412 }
     )]
-    public async Task Map_Always_DeclaresEveryProblemASecretRouteAnswers(
+    [InlineData("GET", "/resource-servers/{resourceServerId}/owners", new[] { 401, 403, 404 })]
+    [InlineData(
+        "POST",
+        "/resource-servers/{resourceServerId}/owners",
+        new[] { 400, 401, 403, 404, 409, 412 }
+    )]
+    [InlineData(
+        "DELETE",
+        "/resource-servers/{resourceServerId}/owners/{principalId}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes

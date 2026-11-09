@@ -125,48 +125,102 @@ internal class ResourceServerApiEndpointHandler(
 
         resourceServers
             .MapGet("", ListAsync)
-            .Produces<CollectionResource<ResourceServerResource>>();
+            .Produces<CollectionResource<ResourceServerResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
         resourceServers
             .MapPost("", CreateAsync)
             .Produces<ResourceServerResource>(StatusCodes.Status201Created)
-            .ProducesValidationProblem();
-        resourceServers.MapGet("/{resourceServerId}", GetAsync).Produces<ResourceServerResource>();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+        resourceServers
+            .MapGet("/{resourceServerId}", GetAsync)
+            .Produces<ResourceServerResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPatch("/{resourceServerId}", UpdateAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapDelete("/{resourceServerId}", DeleteAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         resourceServers
             .MapGet("/{resourceServerId}/scopes", ListScopesAsync)
-            .Produces<IReadOnlyList<ScopeResource>>();
+            .Produces<IReadOnlyList<ScopeResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPost("/{resourceServerId}/scopes", CreateScopeAsync)
-            .Produces<ScopeResource>(StatusCodes.Status201Created);
+            .Produces<ScopeResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapGet("/{resourceServerId}/scopes/{scopeValue}", GetScopeAsync)
-            .Produces<ScopeResource>();
+            .Produces<ScopeResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPut("/{resourceServerId}/scopes/{scopeValue}", UpdateScopeAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapDelete("/{resourceServerId}/scopes/{scopeValue}", DeleteScopeAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         resourceServers
             .MapGet("/{resourceServerId}/settings", GetSettingsAsync)
-            .Produces<ResourceServerSettingsResource>();
+            .Produces<ResourceServerSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapGet("/{resourceServerId}/settings/limits", GetSettingLimitsAsync)
-            .Produces<SettingLimitsResource>();
+            .Produces<SettingLimitsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPatch("/{resourceServerId}/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapGet("/{resourceServerId}/effective-settings", GetEffectiveSettingsAsync)
-            .Produces<ResourceServerEffectiveSettingsResource>();
+            .Produces<ResourceServerEffectiveSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         resourceServers
             .MapGet("/{resourceServerId}/secrets", GetSecretsAsync)
@@ -224,14 +278,28 @@ internal class ResourceServerApiEndpointHandler(
 
         resourceServers
             .MapGet("/{resourceServerId}/owners", ListOwnersAsync)
-            .Produces<RoleListResource>();
+            .Produces<RoleListResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPost("/{resourceServerId}/owners", AddOwnerAsync)
             .Produces<RoleHolderResource>(StatusCodes.Status201Created)
-            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     // A system resource server's tokens are read by the server itself, which decrypts them with the tenant's keys; a

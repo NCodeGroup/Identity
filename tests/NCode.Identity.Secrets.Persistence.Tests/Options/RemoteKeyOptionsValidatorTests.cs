@@ -161,6 +161,33 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
     }
 
     [Fact]
+    public void Validate_SweepGracePeriodAtTheMaximum_Succeeds()
+    {
+        var result = Validate(
+            new RemoteKeyOptions { Deployment = "prod", SweepGracePeriod = TimeSpan.FromDays(365) }
+        );
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData(366 * TimeSpan.TicksPerDay)]
+    [InlineData(long.MaxValue)]
+    public void Validate_SweepGracePeriodAboveTheMaximum_NamesTheKey(long ticks)
+    {
+        var result = Validate(
+            new RemoteKeyOptions
+            {
+                Deployment = "prod",
+                SweepGracePeriod = TimeSpan.FromTicks(ticks),
+            }
+        );
+
+        var failure = Assert.Single(result.Failures ?? []);
+        Assert.StartsWith("SecretProtection:RemoteKeys:SweepGracePeriod ", failure);
+    }
+
+    [Fact]
     public void Validate_SeveralProblems_ReportsEach()
     {
         var result = Validate(

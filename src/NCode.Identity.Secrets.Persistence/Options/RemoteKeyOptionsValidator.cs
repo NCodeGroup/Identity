@@ -18,10 +18,25 @@ internal sealed partial class RemoteKeyOptionsValidator(
     IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog
 ) : IValidateOptions<SecretProtectionOptions>
 {
+    /// <summary>
+    /// The longest deployment name, in characters.
+    /// </summary>
     internal const int MaximumDeploymentLength = 40;
 
+    /// <summary>
+    /// The shortest sweep interval.
+    /// </summary>
     internal static TimeSpan MinimumSweepInterval { get; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// The shortest grace period.
+    /// </summary>
     internal static TimeSpan MinimumSweepGracePeriod { get; } = TimeSpan.FromHours(1);
+
+    /// <summary>
+    /// The longest grace period.
+    /// </summary>
+    internal static TimeSpan MaximumSweepGracePeriod { get; } = TimeSpan.FromDays(365);
 
     // '\z' rather than '$', which also matches before a trailing newline.
     [GeneratedRegex(@"^[a-z0-9]+(-[a-z0-9]+)*\z")]
@@ -64,10 +79,13 @@ internal sealed partial class RemoteKeyOptionsValidator(
             );
         }
 
-        if (keys.SweepGracePeriod < MinimumSweepGracePeriod)
+        if (
+            keys.SweepGracePeriod < MinimumSweepGracePeriod
+            || keys.SweepGracePeriod > MaximumSweepGracePeriod
+        )
         {
             failures.Add(
-                $"{Key(nameof(RemoteKeyOptions.SweepGracePeriod))} must be at least {MinimumSweepGracePeriod}; it is {keys.SweepGracePeriod}."
+                $"{Key(nameof(RemoteKeyOptions.SweepGracePeriod))} must be between {MinimumSweepGracePeriod} and {MaximumSweepGracePeriod}; it is {keys.SweepGracePeriod}."
             );
         }
 

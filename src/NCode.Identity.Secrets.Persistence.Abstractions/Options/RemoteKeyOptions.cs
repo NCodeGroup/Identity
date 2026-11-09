@@ -37,7 +37,7 @@ public sealed class RemoteKeyOptions
 
     /// <summary>
     /// Gets or sets how old a key must be before a sweep destroys it, so a key whose creation is in flight is never
-    /// swept. It is at least one hour. The default is one day.
+    /// swept. It is between one hour and 365 days. The default is one day.
     /// </summary>
     public TimeSpan SweepGracePeriod { get; set; } = TimeSpan.FromDays(1);
 }

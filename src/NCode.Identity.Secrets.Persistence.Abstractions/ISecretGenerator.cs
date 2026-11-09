@@ -148,6 +148,8 @@ public interface ISecretGenerator
     /// is not registered, no algorithm row matches the request, or the key the service created does not
     /// have the requested size or curve. No key is created for the first three; for the last, and for
     /// any other failure after the service creates the key, the key is destroyed.</exception>
+    /// <exception cref="System.InvalidOperationException">The secret protection options name no deployment, which every
+    /// created key carries. No key is created.</exception>
     // See ADR-1471.
     ValueTask<PersistedSecret> GenerateRemoteSecretAsync(
         GenerateRemoteSecretRequest request,

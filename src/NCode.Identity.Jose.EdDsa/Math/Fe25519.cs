@@ -35,7 +35,7 @@ internal struct Fe25519
     public static Fe25519 FromUInt64(ulong value) => new() { _l0 = value };
 
     /// <summary>A fixed square root of <c>-1</c> modulo <c>p</c>, used to correct the sign during point decompression.</summary>
-    public static readonly Fe25519 SqrtMinusOne = Pow(FromUInt64(2), PMinus1Div4BitsBE);
+    public static Fe25519 SqrtMinusOne { get; } = Pow(FromUInt64(2), PMinus1Div4BitsBE);
 
     [MethodImpl(Opt)]
     public static Fe25519 Add(in Fe25519 a, in Fe25519 b)

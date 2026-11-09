@@ -14,7 +14,7 @@ namespace NCode.Identity.Jose.EdDsa.Algorithms;
 /// </summary>
 internal sealed class EdDsaAlgorithmDataSource : ICollectionDataSource<Algorithm>
 {
-    private static readonly Algorithm[] Algorithms =
+    private static Algorithm[] Algorithms { get; } =
     [
         new EdDsaSignatureAlgorithm(AlgorithmCodes.DigitalSignature.EdDsa, curve: null),
         new EdDsaSignatureAlgorithm(AlgorithmCodes.DigitalSignature.Ed25519, OkpCurves.Ed25519),

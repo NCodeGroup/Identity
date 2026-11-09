@@ -16,7 +16,7 @@ internal static class CoseHeaderPolicy
     /// <summary>
     /// The labels of the parameters that this library itself understands for <c>crit</c>.
     /// </summary>
-    private static readonly long[] UnderstoodLabels =
+    private static long[] UnderstoodLabels { get; } =
     [
         CoseHeaderLabels.Algorithm,
         CoseHeaderLabels.Critical,

@@ -17,8 +17,8 @@ namespace NCode.Json;
 [PublicAPI]
 public static class ObjectGraphExtensions
 {
-    private static readonly BigInteger DecimalMin = new(decimal.MinValue);
-    private static readonly BigInteger DecimalMax = new(decimal.MaxValue);
+    private static BigInteger DecimalMin { get; } = new(decimal.MinValue);
+    private static BigInteger DecimalMax { get; } = new(decimal.MaxValue);
 
     // The receiver is the common base both IDictionary<,> and IReadOnlyDictionary<,> derive from (which are otherwise
     // unrelated), so a single overload serves both — plus any concrete dictionary that implements both — without an

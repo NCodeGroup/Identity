@@ -21,10 +21,8 @@ public static class CoseKeyIdentifiers
     private const string NotationPrefix = "h'";
     private const char NotationSuffix = '\'';
 
-    private static readonly UTF8Encoding StrictUtf8 = new(
-        encoderShouldEmitUTF8Identifier: false,
-        throwOnInvalidBytes: true
-    );
+    private static UTF8Encoding StrictUtf8 { get; } =
+        new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     /// <summary>
     /// Names a COSE key identifier as the text <c>KeyId</c> of a key.

@@ -15,24 +15,25 @@ namespace NCode.Identity.OpenId.Client;
 [PublicAPI]
 public sealed class AuthorizationRequest(string redirectUri, string state, string codeVerifier)
 {
-    private static readonly HashSet<string> ReservedParameterNames = new(StringComparer.Ordinal)
-    {
-        OpenIdProtocol.Parameters.ResponseType,
-        OpenIdProtocol.Parameters.ClientId,
-        OpenIdProtocol.Parameters.RedirectUri,
-        OpenIdProtocol.Parameters.State,
-        OpenIdProtocol.Parameters.Nonce,
-        OpenIdProtocol.Parameters.Scope,
-        OpenIdProtocol.Parameters.Resource,
-        OpenIdProtocol.Parameters.ResponseMode,
-        OpenIdProtocol.Parameters.CodeChallenge,
-        OpenIdProtocol.Parameters.CodeChallengeMethod,
-        OpenIdProtocol.Parameters.RequestUri,
-        OpenIdProtocol.Parameters.ClientSecret,
-        OpenIdProtocol.Parameters.ClientAssertion,
-        OpenIdProtocol.Parameters.ClientAssertionType,
-        OpenIdProtocol.Parameters.DPoPJwkThumbprint,
-    };
+    private static HashSet<string> ReservedParameterNames { get; } =
+        new(StringComparer.Ordinal)
+        {
+            OpenIdProtocol.Parameters.ResponseType,
+            OpenIdProtocol.Parameters.ClientId,
+            OpenIdProtocol.Parameters.RedirectUri,
+            OpenIdProtocol.Parameters.State,
+            OpenIdProtocol.Parameters.Nonce,
+            OpenIdProtocol.Parameters.Scope,
+            OpenIdProtocol.Parameters.Resource,
+            OpenIdProtocol.Parameters.ResponseMode,
+            OpenIdProtocol.Parameters.CodeChallenge,
+            OpenIdProtocol.Parameters.CodeChallengeMethod,
+            OpenIdProtocol.Parameters.RequestUri,
+            OpenIdProtocol.Parameters.ClientSecret,
+            OpenIdProtocol.Parameters.ClientAssertion,
+            OpenIdProtocol.Parameters.ClientAssertionType,
+            OpenIdProtocol.Parameters.DPoPJwkThumbprint,
+        };
 
     private IReadOnlyDictionary<string, string>? _additionalParameters;
 

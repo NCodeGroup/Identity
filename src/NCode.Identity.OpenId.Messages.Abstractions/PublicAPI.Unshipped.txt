@@ -137,64 +137,64 @@ static NCode.Identity.OpenId.Messages.Parameters.Parameter.Load(NCode.Identity.O
 static NCode.Identity.OpenId.Messages.Parameters.Parameter.Load(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, string! parameterName, params System.Collections.Generic.IEnumerable<string!>! stringValues) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
 static NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>.Singleton.get -> NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>!
 static NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Default.get -> NCode.Identity.OpenId.Messages.Parsers.ParameterLoader!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AccessToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AcrValues -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthorizationCode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthorizationSourceType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthReqId -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.BindingMessage -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClaimsLocales -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientId -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientNotificationToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientSecret -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeChallenge -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeChallengeMethod -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeVerifier -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CreatedWhen -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.DateTimeOffset>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DisplayType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DPoPJwkThumbprint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorCode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorDescription -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ExpiresIn -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RefreshTokenExpiresIn -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.GrantType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IdToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IdTokenHint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Issuer -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.LoginHint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.LoginHintToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.MaxAge -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Nonce -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Password -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DeviceCode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.PromptType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RedirectUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RefreshToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestedExpiry -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestJwt -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Resources -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ResponseMode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ResponseTypes -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Scopes -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.SessionState -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.State -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.PostLogoutRedirectUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Token -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.TokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.TokenTypeHint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.UiLocales -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Username -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.Bool -> NCode.Identity.OpenId.Messages.Parsers.BoolParser!
-static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.DateTimeOffset -> NCode.Identity.OpenId.Messages.Parsers.DateTimeOffsetParser!
-static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.DurationSeconds -> NCode.Identity.OpenId.Messages.Parsers.DurationSecondsParser!
-static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.String -> NCode.Identity.OpenId.Messages.Parsers.StringParser!
-static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.StringList -> NCode.Identity.OpenId.Messages.Parsers.StringListParser!
-static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.StringSet -> NCode.Identity.OpenId.Messages.Parsers.StringSetParser!
-static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.StringValues -> NCode.Identity.OpenId.Messages.Parsers.StringValuesParser!
-static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.TimeSpan -> NCode.Identity.OpenId.Messages.Parsers.TimeSpanParser!
-static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.Uri -> NCode.Identity.OpenId.Messages.Parsers.UriParser!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AccessToken.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AcrValues.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthorizationCode.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthorizationSourceType.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthReqId.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.BindingMessage.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClaimsLocales.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientId.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientNotificationToken.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientSecret.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeChallenge.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeChallengeMethod.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeVerifier.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CreatedWhen.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.DateTimeOffset>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DisplayType.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DPoPJwkThumbprint.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorCode.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorDescription.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorUri.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ExpiresIn.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RefreshTokenExpiresIn.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.GrantType.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IdToken.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IdTokenHint.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Issuer.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.LoginHint.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.LoginHintToken.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.MaxAge.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Nonce.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Password.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DeviceCode.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.PromptType.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RedirectUri.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RefreshToken.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestedExpiry.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestJwt.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestUri.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Resources.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ResponseMode.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ResponseTypes.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Scopes.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.SessionState.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.State.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.PostLogoutRedirectUri.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Token.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.TokenType.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.TokenTypeHint.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.UiLocales.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Username.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.Bool.get -> NCode.Identity.OpenId.Messages.Parsers.BoolParser!
+static NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.DateTimeOffset.get -> NCode.Identity.OpenId.Messages.Parsers.DateTimeOffsetParser!
+static NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.DurationSeconds.get -> NCode.Identity.OpenId.Messages.Parsers.DurationSecondsParser!
+static NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.String.get -> NCode.Identity.OpenId.Messages.Parsers.StringParser!
+static NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.StringList.get -> NCode.Identity.OpenId.Messages.Parsers.StringListParser!
+static NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.StringSet.get -> NCode.Identity.OpenId.Messages.Parsers.StringSetParser!
+static NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.StringValues.get -> NCode.Identity.OpenId.Messages.Parsers.StringValuesParser!
+static NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.TimeSpan.get -> NCode.Identity.OpenId.Messages.Parsers.TimeSpanParser!
+static NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.Uri.get -> NCode.Identity.OpenId.Messages.Parsers.UriParser!
 virtual NCode.Identity.OpenId.Messages.OpenIdMessage.CloneMessage() -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
 virtual NCode.Identity.OpenId.Messages.OpenIdMessage.GetKnownParameter<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter) -> T?
 virtual NCode.Identity.OpenId.Messages.OpenIdMessage.SetKnownParameter<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter, T? parsedValue) -> void
@@ -202,10 +202,10 @@ virtual NCode.Identity.OpenId.Messages.OpenIdMessage.TypeDiscriminator.get -> st
 virtual NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Create<T>(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser, T? parsedValue) -> NCode.Identity.OpenId.Messages.Parameters.IParameter<T>!
 virtual NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Clone(T? value) -> T?
 virtual NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Deserialize<T1>(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions! options) -> T1?
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Audience -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.SubjectToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.SubjectTokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ActorToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ActorTokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestedTokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
-static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IssuedTokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Audience.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.SubjectToken.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.SubjectTokenType.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ActorToken.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ActorTokenType.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestedTokenType.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IssuedTokenType.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!

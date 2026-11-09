@@ -15,48 +15,48 @@ public static class CommonParameterParsers
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="string"/> values.
     /// </summary>
-    public static readonly StringParser String = new();
+    public static StringParser String { get; } = new();
 
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse string collections which are separated by the
     /// space ' ' character.
     /// </summary>
-    public static readonly StringSetParser StringSet = new();
+    public static StringSetParser StringSet { get; } = new();
 
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse string collections which are separated by the
     /// space ' ' character.
     /// </summary>
-    public static readonly StringListParser StringList = new();
+    public static StringListParser StringList { get; } = new();
 
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="StringValues"/> values.
     /// </summary>
-    public static readonly StringValuesParser StringValues = new();
+    public static StringValuesParser StringValues { get; } = new();
 
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="TimeSpan"/> values.
     /// </summary>
-    public static readonly TimeSpanParser TimeSpan = new();
+    public static TimeSpanParser TimeSpan { get; } = new();
 
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="Uri"/> values.
     /// </summary>
-    public static readonly UriParser Uri = new();
+    public static UriParser Uri { get; } = new();
 
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="bool"/> values.
     /// </summary>
-    public static readonly BoolParser Bool = new();
+    public static BoolParser Bool { get; } = new();
 
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="DateTimeOffset"/> values.
     /// </summary>
-    public static readonly DateTimeOffsetParser DateTimeOffset = new();
+    public static DateTimeOffsetParser DateTimeOffset { get; } = new();
 
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that parses a nullable <see cref="TimeSpan"/> carried as an integer
     /// number of seconds (a JSON number — for example <c>expires_in</c> per OAuth 2.0 §5.1, or <c>interval</c>).
     /// </summary>
-    public static readonly DurationSecondsParser DurationSeconds = new();
+    public static DurationSecondsParser DurationSeconds { get; } = new();
 }

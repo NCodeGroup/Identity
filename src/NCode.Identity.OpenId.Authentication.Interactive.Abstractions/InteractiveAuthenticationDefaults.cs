@@ -19,7 +19,7 @@ public static class InteractiveAuthenticationDefaults
     /// defaults, meaning a challenge from the authorize endpoint redirects into this surface with no per-client
     /// override.
     /// </summary>
-    public static readonly string CookieSchemeName = IdentityConstants.ApplicationScheme;
+    public static string CookieSchemeName { get; } = IdentityConstants.ApplicationScheme;
 
     /// <summary>
     /// The base request path the interactive surface (its assets and endpoints) is served under.

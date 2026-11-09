@@ -12,3 +12,7 @@ secretProtection:
     keySecret: identity-root-key
   recovery:
     publicKeyConfigMap: identity-recovery-key
+  # Names this release's keys, so a render that sets a remote key provider on top of these values passes the
+  # deployment check; with no provider set, nothing uses it.
+  remoteKeys:
+    deployment: ci-single-replica

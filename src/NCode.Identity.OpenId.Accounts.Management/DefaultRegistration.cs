@@ -37,6 +37,9 @@ public static class DefaultRegistration
 
             var serviceCollection = builder.ServiceCollection;
 
+            // The handlers' XML documentation describes their OpenAPI operations only in a project that calls AddOpenApi.
+            serviceCollection.AddOpenApi();
+
             // Attach the endpoint to the existing tenant-plane group by registering it keyed under the group's name
             // (ADR-1042); the management route tree resolves keyed providers per group when it maps routes.
             serviceCollection.TryAddEnumerable(

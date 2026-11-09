@@ -54,19 +54,41 @@ internal class ClientGrantApiEndpointHandler(
             .MapGroup("/grants")
             .WithTags(OpenIdConstants.EndpointTags.ClientGrants);
 
-        grants.MapGet("", ListAsync).Produces<CollectionResource<ClientGrantResource>>();
+        grants
+            .MapGet("", ListAsync)
+            .Produces<CollectionResource<ClientGrantResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
         grants
             .MapPost("", CreateAsync)
             .Produces<ClientGrantResource>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status422UnprocessableEntity);
-        grants.MapGet("/{resourceServerId}", GetAsync).Produces<ClientGrantResource>();
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        grants
+            .MapGet("/{resourceServerId}", GetAsync)
+            .Produces<ClientGrantResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         grants
             .MapPut("/{resourceServerId}", UpdateAsync)
             .Produces(StatusCodes.Status204NoContent)
-            .Produces(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         grants
             .MapDelete("/{resourceServerId}", DeleteAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     internal virtual ClientGrantResource ToResource(PersistedClientGrant grant) =>

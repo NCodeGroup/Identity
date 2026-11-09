@@ -453,4 +453,26 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("GET", "/grants", new[] { 401, 403 })]
+    [InlineData("POST", "/grants", new[] { 401, 403, 404, 409, 412, 422 })]
+    [InlineData("GET", "/grants/{resourceServerId}", new[] { 401, 403, 404 })]
+    [InlineData("PUT", "/grants/{resourceServerId}", new[] { 401, 403, 404, 412, 422 })]
+    [InlineData("DELETE", "/grants/{resourceServerId}", new[] { 401, 403, 404, 412 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+    }
+
+    #endregion
 }

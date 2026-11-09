@@ -57,6 +57,11 @@ public static class DefaultRegistration
             serviceCollection.AddStore<TDbContext, ISecretEnvelopeStore, SecretEnvelopeStore>();
             serviceCollection.AddStore<
                 TDbContext,
+                IRemoteKeyReferenceStore,
+                RemoteKeyReferenceStore
+            >();
+            serviceCollection.AddStore<
+                TDbContext,
                 IFederatedPrincipalStore,
                 FederatedPrincipalStore
             >();

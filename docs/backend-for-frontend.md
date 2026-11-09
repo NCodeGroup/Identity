@@ -1085,10 +1085,12 @@ The remote key provider's row for the algorithm decides whether a remote key sig
 or decrypts (encrypted ID tokens and UserInfo responses), so one ring holds a signing key and a decryption key side by
 side, and `/bff/jwks` publishes both halves with their `use`. Every ring loads when the host starts: the BFF reads each
 remote key's public half from its KMS and proves the key by a challenge that it signs or decrypts in the KMS, so
-`/bff/jwks` needs no KMS call. A ring loads once per process, and a rotation takes effect when the host restarts. A key
-ring's KMS key is the operator's: the BFF never creates, tags or destroys it, so it needs no
-`SecretProtection:RemoteKeys:Deployment`. An OP deployment's orphaned-key sweep never touches the key as long as it
-carries no `ncid-` group name and no deployment tag, and the key belongs in a scope of its own
+`/bff/jwks` needs no KMS call. A ring loads once per process, and a rotation takes effect when the host restarts. A
+ring's keyed provider resolves once the host starts: a service that resolves it before the host starts, such as an eager
+singleton or an options validator, gets an `InvalidOperationException` that names the ring, and the BFF itself resolves
+a ring only when a request uses it. A key ring's KMS key is the operator's: the BFF never creates, tags or destroys it,
+so it needs no `SecretProtection:RemoteKeys:Deployment`. An OP deployment's orphaned-key sweep never touches the key as
+long as it carries no `ncid-` group name and no deployment tag, and the key belongs in a scope of its own
 ([ADR-1476](decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)).
 A remote DPoP key costs a KMS signature for every proof, that is for each token request and each forwarded call with a
 DPoP-bound token. Hold the client-authentication key and the decryption key in the KMS, and keep the DPoP key local

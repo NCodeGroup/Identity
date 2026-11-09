@@ -1,6 +1,6 @@
 # 1479. A protocol client's and a BFF's keys can be held in a key management service, read and proved at start
 
-- **Status:** Accepted (amends [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md), [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md), [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1473](1473-a-key-management-service-adapter-package-is-named-for-its-service.md), [ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md))
+- **Status:** Accepted (amends [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md), [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md), [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md), [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1473](1473-a-key-management-service-adapter-package-is-named-for-its-service.md), [ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md))
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 
@@ -91,9 +91,20 @@ every key ring when the host starts.**
 7. **BFF key ring entries.** `Bff:KeyRings:{name}:RemoteKeys:{kid}` binds
    `BffRemoteKeyOptions { Provider, KeyId, Algorithm, SecretType, KeySizeBits, Curve }`. The entry's name is the
    `kid`, as a PEM file's name is. All five selector fields are explicit, because an RSA algorithm fits several sizes.
-   A key ring lists PEM files, remote keys or both, at least one key, and no id twice. The row decides each remote
-   key's use, so one client-authentication ring holds a signing key and a decryption key side by side, and
-   `/bff/jwks` publishes both halves with their `use`.
+   A key ring lists PEM files, remote keys or both, at least one key, and no id twice. The options validator fails
+   startup with one message per problem:
+   - `Bff:KeyRings:{name} must list at least one PEM file or remote key.`
+   - `Bff:KeyRings:{name} holds more than one key with the id '{id}'.`
+   - `Bff:KeyRings:{name}:RemoteKeys has a key without an id.`
+   - `Bff:KeyRings:{name}:RemoteKeys:{kid}:Provider must name a remote key provider: lowercase letters and digits in
+     groups separated by single hyphens.`
+   - `Bff:KeyRings:{name}:RemoteKeys:{kid}:KeyId must not be blank.` (likewise `Algorithm` and `SecretType`)
+   - `Bff:KeyRings:{name}:RemoteKeys:{kid}:KeySizeBits must be positive.`
+
+   Whether the provider is registered and has the row is checked when the ring loads (rule 8).
+
+   The row decides each remote key's use, so one client-authentication ring holds a signing key and a decryption key
+   side by side, and `/bff/jwks` publishes both halves with their `use`.
 8. **Every key ring loads when the host starts, and a failure stops the host.** `BffKeyRingLoader`
    (`IHostedLifecycleService.StartingAsync`) loads every `Bff:KeyRings` entry into `BffKeyRings`, and the keyed
    `ISecretKeyCollectionProvider` that `AddBffConfiguration` registers per entry returns the loaded ring. A remote key
@@ -101,7 +112,11 @@ every key ring when the host starts.**
    stops the host with `The BFF cannot load the remote key '{kid}' of the key ring '{ring}' from the remote key
    provider '{provider}': {reason}`, with the cause as the inner exception. PEM keys load at start too, so a malformed
    file stops the host rather than the first login. A ring loads once per process, so a rotation takes effect on
-   restart.
+   restart. A ring's keyed provider resolves once `StartingAsync` has run: a service that resolves it earlier, such as
+   an eager singleton or an options validator, gets an `InvalidOperationException` that names the ring. The BFF
+   resolves a ring only when a request uses it, and the set check of
+   [ADR-1446](1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md) asks only whether the ring is
+   registered (`IClientKeyRingProvider.HasKeyRing`), so nothing resolves a ring before it loads.
 9. **A key ring's KMS key is the operator's.** Neither the BFF nor the protocol client creates, tags or destroys a KMS
    key, so neither needs `SecretProtection:RemoteKeys:Deployment`, and no stored secret names a key ring's key: it is
    not a reference that `IRemoteKeyReferenceStore` reads. The sweep lists only keys whose group name begins `ncid-`
@@ -146,7 +161,8 @@ every key ring when the host starts.**
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)
 - [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)
 - [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)
-- [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)
+- [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
+- [ADR-1446](1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md)- [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)
 - [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)
 - [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)

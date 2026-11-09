@@ -39,11 +39,14 @@ in code.**
 5. **The path.** A relative path resolves against the host's content root, and an absolute path is used as it is.
 6. **Startup validation.** The options validator fails startup with one message per problem:
    - `Bff:KeyRings has a key ring without a name.`
-   - `Bff:KeyRings:{name}:PemFiles must list at least one file.`
+   - `Bff:KeyRings:{name} must list at least one PEM file or remote key.`
    - `Bff:KeyRings:{name}:PemFiles:{i} must not be blank.`
    - `Bff:KeyRings:{name}:PemFiles:{i} names '{path}', which does not exist.`
+   - `Bff:KeyRings:{name} holds more than one key with the id '{id}'.`
 
-   A key ring that fails to load stops the host when it starts.
+   The messages of a `RemoteKeys` entry are in
+   [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)
+   rule 7. A key ring that fails to load stops the host when it starts.
 7. **Code registration is the seam.** A host that holds its keys elsewhere, in another source, registers its own
    keyed `ISecretKeyCollectionProvider` under the key ring's name and configures no `Bff:KeyRings` entry for it. The
    configuration is the built-in source, and keyed dependency injection is the open seam.

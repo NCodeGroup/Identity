@@ -29,11 +29,14 @@ public static class BffLibraryRegistration
         /// the BFF's frontends take a valid change without a restart. Every key ring configured under
         /// <c>Bff:KeyRings</c> is loaded when the host starts, from PEM files and keys that a key management service
         /// holds, and a keyed <see cref="ISecretKeyCollectionProvider"/>, named after the key ring, returns the loaded
-        /// key ring for every key ring configured when this method is called.
+        /// key ring for every key ring configured when this method is called. A keyed provider resolves once the host
+        /// starts: resolving it earlier, such as from an eager singleton or an options validator, throws an
+        /// <see cref="InvalidOperationException"/> that names the key ring.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the BFF settings.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
         // See ADR-1442.
+        // See ADR-1479.
         public IServiceBuilder<BffLibrary> AddBffConfiguration(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(builder);

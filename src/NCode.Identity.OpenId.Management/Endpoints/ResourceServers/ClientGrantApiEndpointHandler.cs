@@ -235,7 +235,7 @@ internal class ClientGrantApiEndpointHandler(
         );
         if (grant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Core preconditions (resource-server existence + scope-subset) are asserted by the validator (ADR-1014).
@@ -287,7 +287,7 @@ internal class ClientGrantApiEndpointHandler(
         var grant = await store.GetOrDefaultAsync(clientId, resourceServerId, cancellationToken);
         if (grant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var error = await ClientGrantValidator.ValidateDeleteAsync(

@@ -650,7 +650,7 @@ internal class TenantApiEndpointHandler(
         var team = await teamStore.GetOrDefaultAsync(teamId, cancellationToken);
         if (team is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // A tenant is named by its creator (ADR-1159); the validator checks the name with the rest of its address.
@@ -846,7 +846,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await PreviewAddressAsync(
@@ -903,7 +903,7 @@ internal class TenantApiEndpointHandler(
             .GetOrDefaultAsync(teamId, cancellationToken);
         if (team is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var exists =
@@ -1011,7 +1011,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var model = new UpdateTenantRequest
@@ -1118,7 +1118,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Core preconditions (no-dependents) are asserted by the validator (ADR-1014).
@@ -1516,7 +1516,7 @@ internal class TenantApiEndpointHandler(
 
         if (tenantSettings is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (
@@ -1557,7 +1557,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var changedLimits = SettingSerializer.GetChangedLimits(tenantSettings.Value, settingsValue);
@@ -1681,7 +1681,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
@@ -1796,7 +1796,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
@@ -1972,7 +1972,7 @@ internal class TenantApiEndpointHandler(
         var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
         if (secret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (
@@ -2046,7 +2046,7 @@ internal class TenantApiEndpointHandler(
         var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
         if (secret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var secretValues = ToResourceValues(ToSecretResource(secret));
@@ -2277,7 +2277,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // An owner that a registered policy refuses, such as the control-plane tenant, reports no root key providers.
@@ -2325,7 +2325,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await EncryptionKeyEndpoints.RekeyAsync(
@@ -2374,7 +2374,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // A registered policy decides which tenants can bring a root key; see ADR-1414.
@@ -2425,7 +2425,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await EncryptionKeyEndpoints.RemoveRootKeyAsync(
@@ -2467,7 +2467,7 @@ internal class TenantApiEndpointHandler(
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await EncryptionKeyEndpoints.ValidateRootKeyAsync(

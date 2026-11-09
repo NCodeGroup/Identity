@@ -30,7 +30,7 @@ internal sealed class TenantScopeEndpointFilter(IAmbientTenantAccessor ambientTe
             || string.IsNullOrEmpty(tenantId)
         )
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         using var scope = AmbientTenantAccessor.BeginScope(tenantId);

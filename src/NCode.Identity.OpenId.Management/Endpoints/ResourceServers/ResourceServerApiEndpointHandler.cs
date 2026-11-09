@@ -479,7 +479,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var error = await ResourceServerValidator.ValidateUpdateAsync(
@@ -558,7 +558,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var error = await ResourceServerValidator.ValidateDeleteAsync(
@@ -653,7 +653,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (FindScopeOrDefault(resourceServer, request.Value) is not null)
@@ -759,13 +759,13 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var scope = FindScopeOrDefault(resourceServer, scopeValue);
         if (scope is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var updatedScope = new PersistedScope
@@ -828,13 +828,13 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var scope = FindScopeOrDefault(resourceServer, scopeValue);
         if (scope is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (scope.IsSystem)
@@ -1141,7 +1141,7 @@ internal class ResourceServerApiEndpointHandler(
         var settings = resourceServer?.Settings;
         if (settings is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (
@@ -1329,7 +1329,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (resourceServer.IsSystem)
@@ -1449,7 +1449,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
         if (resourceServer is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (resourceServer.IsSystem)
@@ -1639,7 +1639,7 @@ internal class ResourceServerApiEndpointHandler(
         );
         if (resourceServerSecret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var secret = resourceServerSecret.Value;
@@ -1715,7 +1715,7 @@ internal class ResourceServerApiEndpointHandler(
         );
         if (resourceServerSecret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         await store.RemoveSecretAsync(resourceServerId, secretId, cancellationToken);

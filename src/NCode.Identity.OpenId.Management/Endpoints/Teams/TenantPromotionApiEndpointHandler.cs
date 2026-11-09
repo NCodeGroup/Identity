@@ -259,7 +259,7 @@ internal class TenantPromotionApiEndpointHandler(
             || !string.Equals(target.TeamId, teamId, StringComparison.Ordinal)
         )
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var openIdContext = httpContext.GetOpenIdContext();

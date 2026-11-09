@@ -253,7 +253,7 @@ internal class PlatformApiEndpointHandler(
 
         if (!await PlatformExistsAsync(cancellationToken))
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // The platform's master keys are always wrapped by the deployment's root key, so it reports no root key and no
@@ -296,7 +296,7 @@ internal class PlatformApiEndpointHandler(
 
         if (!await PlatformExistsAsync(cancellationToken))
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return await EncryptionKeyEndpoints.RekeyAsync(
@@ -403,7 +403,7 @@ internal class PlatformApiEndpointHandler(
 
         if (platformSettings is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Enforce the optimistic-concurrency precondition supplied by the caller. Without this check the

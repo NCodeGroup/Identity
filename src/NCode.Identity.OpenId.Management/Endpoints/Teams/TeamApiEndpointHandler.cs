@@ -562,7 +562,7 @@ internal class TeamApiEndpointHandler(
         var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
         if (team is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var model = new UpdateTeamRequest
@@ -654,7 +654,7 @@ internal class TeamApiEndpointHandler(
         var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
         if (team is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var error = await TeamValidator.ValidateDeleteAsync(
@@ -838,7 +838,7 @@ internal class TeamApiEndpointHandler(
         var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
         if (team is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var teamSettings = team.Settings;
@@ -1089,7 +1089,7 @@ internal class TeamApiEndpointHandler(
         var team = await teamStore.GetOrDefaultAsync(teamId, cancellationToken);
         if (team is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var teamPath = TeamPaths.Format([.. team.AncestorTeamIds, team.TeamId]);

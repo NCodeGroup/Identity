@@ -1016,7 +1016,7 @@ internal class ClientApiEndpointHandler(
             var team = await teamStore.GetOrDefaultAsync(owningNode.ResourceId, cancellationToken);
             if (team is null)
             {
-                return TypedResults.NotFound();
+                return ManagementProblems.ResourceNotFound();
             }
         }
 
@@ -1223,7 +1223,7 @@ internal class ClientApiEndpointHandler(
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (client is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var model = new UpdateClientRequest { IsDisabled = client.IsDisabled };
@@ -1315,7 +1315,7 @@ internal class ClientApiEndpointHandler(
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (client is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // The store removes everything that exists for the client (ADR-1212).
@@ -1527,7 +1527,7 @@ internal class ClientApiEndpointHandler(
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (client is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var clientSettings = client.Settings;
@@ -1815,7 +1815,7 @@ internal class ClientApiEndpointHandler(
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (client is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
@@ -2000,7 +2000,7 @@ internal class ClientApiEndpointHandler(
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (client is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
@@ -2199,7 +2199,7 @@ internal class ClientApiEndpointHandler(
         );
         if (clientSecret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var secret = clientSecret.Value;
@@ -2207,7 +2207,7 @@ internal class ClientApiEndpointHandler(
         var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);
         if (client is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
@@ -2292,13 +2292,13 @@ internal class ClientApiEndpointHandler(
         );
         if (clientSecret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);
         if (client is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
@@ -2398,7 +2398,7 @@ internal class ClientApiEndpointHandler(
         );
         if (client is null || secret is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(

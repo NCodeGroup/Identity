@@ -257,7 +257,7 @@ internal static class EncryptionKeyEndpoints
     {
         var validation = await ownerRootKeyManager.ValidateAsync(owner, cancellationToken);
         if (validation.RootKey is not { } rootKey)
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
 
         if (validation.Change is { } change)
         {

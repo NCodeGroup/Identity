@@ -422,7 +422,7 @@ internal class GrantApiEndpointHandler(
         var grant = await store.GetOrDefaultAsync(grantId, cancellationToken);
         if (grant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return TypedResults.Json(ToGrantResource(grant));
@@ -461,7 +461,7 @@ internal class GrantApiEndpointHandler(
         var grant = await store.GetOrDefaultAsync(grantId, cancellationToken);
         if (grant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Soft-revoke is idempotent: an already-revoked grant is left untouched. A revocation retries a lost race

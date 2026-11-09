@@ -122,8 +122,11 @@ public class DefaultSecretGeneratorTests : BaseTests
         _serializer = new DefaultSecretSerializer(
             catalog,
             _verifierCatalog,
-            new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
-            new DefaultRemoteKeyDescriptorCatalog([])
+            new DefaultRemoteKeyResolver(
+                catalog,
+                new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
+                new DefaultRemoteKeyDescriptorCatalog([])
+            )
         );
     }
 

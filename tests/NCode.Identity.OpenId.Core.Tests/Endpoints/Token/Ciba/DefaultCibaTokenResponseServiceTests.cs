@@ -21,10 +21,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.Ciba;
 
 public class DefaultCibaTokenResponseServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset UtcNow = DateTimeOffset.Parse(
-        "2026-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset UtcNow { get; } =
+        DateTimeOffset.Parse("2026-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ITokenService> MockTokenService { get; }

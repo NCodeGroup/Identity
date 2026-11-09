@@ -31,12 +31,10 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
     private const string TenantId = "tenant-1";
     private const string RefreshTokenValue = "refresh-token";
 
-    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
-        "2025-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset CreatedWhen { get; } =
+        DateTimeOffset.Parse("2025-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
-    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
+    private static TimeSpan RefreshTokenLifetime { get; } = TimeSpan.FromDays(30);
 
     private FakeTimeProvider TimeProvider { get; } = new(CreatedWhen);
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }

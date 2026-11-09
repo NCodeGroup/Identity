@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class DefaultOpenIdPlatformFactoryTests : BaseTests
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(5.0);
+    private static TimeSpan Interval { get; } = TimeSpan.FromMinutes(5.0);
 
     #region Constructor Tests
 

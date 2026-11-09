@@ -31,7 +31,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
 {
     private const string RequesterClientId = "requester";
 
-    private static readonly DateTimeOffset UtcNow = new(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset UtcNow { get; } = new(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
 
     private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ITokenService> MockTokenService { get; }

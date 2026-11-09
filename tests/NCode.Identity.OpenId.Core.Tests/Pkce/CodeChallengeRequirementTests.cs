@@ -15,13 +15,13 @@ public class CodeChallengeRequirementTests : BaseTests
 {
     private const string Nonce = "n-0S6_WzA2Mj";
 
-    private static readonly string[] OpenIdScopes = [OpenIdProtocol.ScopeTypes.OpenId];
+    private static string[] OpenIdScopes { get; } = [OpenIdProtocol.ScopeTypes.OpenId];
 
     #region Scaffolding
 
     private sealed record Policy(bool RequirePkce, bool NonceExemption);
 
-    private static readonly Policy Relaxed = new(RequirePkce: false, NonceExemption: true);
+    private static Policy Relaxed { get; } = new(RequirePkce: false, NonceExemption: true);
 
     private Mock<OpenIdClient> CreateClient(
         Policy policy,

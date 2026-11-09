@@ -18,7 +18,7 @@ public class DefaultGrantPayloadProtectorTests : BaseTests
     private const string HashedKey = "hashed-1";
     private const string Secret = "secret-value";
 
-    private static readonly JsonSerializerOptions JsonOptions = new();
+    private static JsonSerializerOptions JsonOptions { get; } = new();
 
     private Mock<ISecretProtectorProvider> MockProvider { get; }
     private FakeSecretProtector Fake { get; }

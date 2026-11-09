@@ -225,8 +225,8 @@ tolerations:
 {{/*
 Whether the release uses the named key management service, as the root key provider, as a provider a tenant may bring a
 root key from (secretProtection.ownerRootKeys.providers), or as a provider that holds tenants' keys
-(enabled under secretProtection.remoteKeyProviders), so that the pod carries that provider's workload credentials. Takes a dict with
-the chart context as root and the key management service name as name; renders "true" or nothing.
+(enabled under secretProtection.remoteKeyProviders), so that the pod carries that provider's workload credentials. Takes
+a dict with the chart context as root and the key management service name as name; renders "true" or nothing.
 */}}
 {{- define "identity-host.usesKeyManagementService" -}}
 {{- $remoteKeyProviders := .root.Values.secretProtection.remoteKeyProviders }}

@@ -393,11 +393,12 @@ deployment's root key.
 `secretProtection.ownerRootKeys.providers` or is enabled under `secretProtection.remoteKeyProviders`: for AWS KMS the
 web identity (`secretProtection.awsKms.webIdentity.roleArn`), for Azure Key Vault the workload identity
 (`secretProtection.azureKeyVault.workloadIdentity.clientId` and `tenantId`), and for Google Cloud KMS the federation
-(`secretProtection.googleCloudKms.workloadIdentityFederation.provider`), each set up as in the sections above. The provider's own key values (`awsKms.keyArn`, `azureKeyVault.keyId`,
-`googleCloudKms.keyName`) are rendered only when it is the root key provider, because a tenant names its key itself. A
-listed provider with no workload-identity values uses the pod's ambient identity, as the root key provider does. A
-half-set value, such as an Azure `clientId` without a `tenantId`, or a Google Cloud `provider` that is not a pool
-provider resource name, is refused. A pod never carries the credentials of a provider that is neither.
+(`secretProtection.googleCloudKms.workloadIdentityFederation.provider`), each set up as in the sections above. The
+provider's own key values (`awsKms.keyArn`, `azureKeyVault.keyId`, `googleCloudKms.keyName`) are rendered only when it
+is the root key provider, because a tenant names its key itself. A listed provider with no workload-identity values uses
+the pod's ambient identity, as the root key provider does. A half-set value, such as an Azure `clientId` without a
+`tenantId`, or a Google Cloud `provider` that is not a pool provider resource name, is refused. A pod never carries the
+credentials of a provider that is neither.
 
 **What a tenant grants.** The tenant gives the deployment's identity the permission to wrap and unwrap with its one key,
 and nothing else; the server calls no other operation:

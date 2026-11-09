@@ -30,9 +30,8 @@ public class ReconciledTeamSettingsTests
     public async Task Reconciliation_WhenThePlatformSettingsChange_RecordsTheTeamsEffectiveSettings()
     {
         using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
 
         await PatchPlatformSettingAsync(

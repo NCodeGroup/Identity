@@ -3574,4 +3574,43 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("POST", "/teams", new[] { 400, 401, 403, 409, 412 })]
+    [InlineData("GET", "/teams", new[] { 401, 403 })]
+    [InlineData("GET", "/teams/{teamId}", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/teams/{teamId}", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("DELETE", "/teams/{teamId}", new[] { 401, 403, 404, 409, 412 })]
+    [InlineData("POST", "/teams/{teamId}/teams", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/teams/{teamId}/teams", new[] { 401, 403 })]
+    [InlineData("GET", "/teams/{teamId}/settings", new[] { 401, 403, 404 })]
+    [InlineData("GET", "/teams/{teamId}/settings/limits", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/teams/{teamId}/settings", new[] { 400, 401, 403, 404, 412 })]
+    [InlineData("GET", "/teams/{teamId}/effective-settings", new[] { 401, 403, 404 })]
+    [InlineData("GET", "/teams/{teamId}/usage", new[] { 400, 401, 403, 404 })]
+    [InlineData("GET", "/teams/{teamId}/owners", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/teams/{teamId}/owners", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData(
+        "DELETE",
+        "/teams/{teamId}/owners/{principalId}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/teams/{teamId}/admins", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/teams/{teamId}/admins", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("DELETE", "/teams/{teamId}/admins/{principalId}", new[] { 401, 403, 404, 412 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+    }
+
+    #endregion
 }

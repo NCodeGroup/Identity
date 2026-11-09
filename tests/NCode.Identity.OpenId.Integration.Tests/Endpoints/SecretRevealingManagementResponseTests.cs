@@ -26,7 +26,9 @@ public class SecretRevealingManagementResponseTests
     public async Task PostClientSecret_Always_MarksTheResponseNoStore()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var clientId = await CreateClientAsync(administrator);
 
         using var response = await PostClientSecretAsync(administrator, clientId);
@@ -44,7 +46,9 @@ public class SecretRevealingManagementResponseTests
     public async Task PostRotateClientSecret_Always_MarksTheResponseNoStore()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var clientId = await CreateClientAsync(administrator);
         var secretId = await CreateSecretAsync(administrator, clientId);
         var expiresWhen = DateTimeOffset.UtcNow.AddYears(1);
@@ -77,7 +81,9 @@ public class SecretRevealingManagementResponseTests
             ResourceServerAudience,
             ResourceServerScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var expiresWhen = DateTimeOffset.UtcNow.AddYears(1);
 
         using var response = await administrator.PostAsJsonAsync(
@@ -104,7 +110,9 @@ public class SecretRevealingManagementResponseTests
     public async Task PostInitialAccessToken_Always_MarksTheResponseNoStore()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/grants/initial-access-tokens",
@@ -121,14 +129,6 @@ public class SecretRevealingManagementResponseTests
     #region Scaffolding
 
     private static BootstrapAdminApplicationFactory CreateFactory() => new();
-
-    private static Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    ) =>
-        factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
-        );
 
     private static async Task<string> CreateClientAsync(HttpClient administrator)
     {

@@ -36,14 +36,20 @@ public class RoleAssignmentAuditTests
     {
         var recorder = new RecordingAuditEventHandler();
         using var factory = new RoleAssignmentAuditHostApplicationFactory(recorder);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator);
         var (clientId, clientSecret, principalId) = await CreateTeamMachineClientAsync(
             administrator
         );
         using var grant = await PostAdminAsync(administrator, principalId);
         Assert.Equal(HttpStatusCode.Created, grant.StatusCode);
-        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+        using var machine = await factory.CreateManagementClientAsync(
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
         await CreateChildTeamAsync(machine);
 
@@ -70,7 +76,9 @@ public class RoleAssignmentAuditTests
     {
         var recorder = new RecordingAuditEventHandler();
         using var factory = new RoleAssignmentAuditHostApplicationFactory(recorder);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator);
         var (_, _, principalId) = await CreateTeamMachineClientAsync(administrator);
 
@@ -105,7 +113,9 @@ public class RoleAssignmentAuditTests
     {
         var recorder = new RecordingAuditEventHandler();
         using var factory = new RoleAssignmentAuditHostApplicationFactory(recorder);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator);
         var (_, _, principalId) = await CreateTeamMachineClientAsync(administrator);
         using var first = await PostAdminAsync(administrator, principalId);
@@ -130,7 +140,9 @@ public class RoleAssignmentAuditTests
     {
         var recorder = new RecordingAuditEventHandler();
         using var factory = new RoleAssignmentAuditHostApplicationFactory(recorder);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator);
         await CreateTenantAsync(administrator);
         // The resource keeps at least one owner, so a second one holds it while the first is revoked.
@@ -179,14 +191,6 @@ public class RoleAssignmentAuditTests
         && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
-
-    private static Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    ) =>
-        factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
-        );
 
     private static async Task CreateTeamAsync(HttpClient client)
     {

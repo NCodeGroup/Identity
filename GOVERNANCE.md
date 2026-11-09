@@ -61,6 +61,8 @@ any one host feature.
 - **Tags.** A release is an annotated (ideally signed) tag `vMAJOR.MINOR.PATCH` (prereleases `-rc.N` / `-alpha`) on a
   release line. A tag is immutable — one tag = one published package set; the ruleset `release-tags` forbids deleting or
   moving a `v*` tag. Only a **major** is gated behind a release candidate; minors and patches ship straight to GA.
+  The template's `Release` workflow (`.github/workflows/tag-release.yml`) runs on each push to `main` and tags
+  nothing, because the [Landing](AGENTS.md#landing) section of `AGENTS.md` says `release: none`.
 - **Servicing** is upstream-first. A fix merges to `main` first; a backport pull request cherry-picks it
   (`git cherry-pick -x`) onto a branch `backport/<pr>-vX.Y` cut from `release/vX.Y` and targets that line. Label the
   fix's pull request `backport vX.Y`, before or after it merges, and the `Backport` workflow

@@ -30,10 +30,11 @@ POST api/tenants/{tenantId}/secrets/remote/import
 */
 
 /// <summary>
-/// Provides the API endpoints that manage the signing keys a tenant holds in the key management service of a
-/// registered remote key provider. The private half of such a key never leaves the service.
+/// Provides the API endpoints that manage the signing and encryption keys a tenant holds in the key management
+/// service of a registered remote key provider. The private half of such a key never leaves the service.
 /// </summary>
 // See ADR-1475.
+// See ADR-1477.
 internal class TenantRemoteSecretApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
@@ -91,7 +92,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
     }
 
     /// <summary>
-    /// Creates a tenant's signing key in the key management service of a registered remote key provider.
+    /// Creates a tenant's signing or encryption key in the key management service of a registered remote key provider.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
@@ -209,16 +210,17 @@ internal class TenantRemoteSecretApiEndpointHandler(
     }
 
     /// <summary>
-    /// Binds a signing key that the key management service of a registered remote key provider already holds to a
-    /// tenant. The server reads the key's public half from the service, checks it against the request's algorithm and
-    /// proves the key signs with it before it stores the key, and never destroys it.
+    /// Binds a signing or encryption key that the key management service of a registered remote key provider already
+    /// holds to a tenant. The server reads the key's public half from the service, checks it against the request's
+    /// algorithm and proves the key holds its private half — it signs a challenge or decrypts one — before it stores
+    /// the key, and never destroys it.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="request">The <see cref="ImportRemoteSecretRequest"/> naming the key, its type, size, curve and algorithm.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The bound secret.</response>
-    /// <response code="400">The request is not coherent, the provider refuses the key, its public half is not a key of the request's type, size and curve, or the key does not sign with it.</response>
+    /// <response code="400">The request is not coherent, the provider refuses the key, its public half is not a key of the request's type, size and curve, or the key does not prove it holds the private half.</response>
     /// <response code="401">The caller is anonymous.</response>
     /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The tenant does not exist.</response>

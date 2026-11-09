@@ -7,11 +7,13 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 
 /// <summary>
-/// Represents the request body to bind a signing key that a key management service already holds to a tenant. The
-/// request names the key, its type, size, curve and algorithm, and its lifecycle. The server reads the key's public
-/// half from the service and proves the key signs with it before it stores the key, and never destroys it.
+/// Represents the request body to bind a signing or encryption key that a key management service already holds to a
+/// tenant. The request names the key, its type, size, curve and algorithm, and its lifecycle. The server reads the
+/// key's public half from the service and proves the key holds its private half — the key signs a challenge, or
+/// decrypts a challenge encrypted to that half — before it stores the key, and never destroys it.
 /// </summary>
 // See ADR-1476.
+// See ADR-1477.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ImportRemoteSecretRequest
@@ -42,12 +44,13 @@ public sealed class ImportRemoteSecretRequest
 
     /// <summary>
     /// Gets the curve the key the key management service holds is on (the <c>JWK</c> <c>crv</c> name, for example
-    /// <c>P-256</c>) for a secret type with curves, or <c>null</c> to leave it to the signature algorithm.
+    /// <c>P-256</c>) for a secret type with curves, or <c>null</c> to leave it to the algorithm.
     /// </summary>
     public string? Curve { get; init; }
 
     /// <summary>
-    /// Gets the JOSE signature algorithm the key is bound to, such as <c>RS256</c> or <c>ES256</c>.
+    /// Gets the JOSE signature or key-management algorithm the key is bound to, such as <c>RS256</c>, <c>ES256</c> or
+    /// <c>RSA-OAEP-256</c>. The provider's row for it gives the key its use.
     /// </summary>
     public required string Algorithm { get; init; }
 

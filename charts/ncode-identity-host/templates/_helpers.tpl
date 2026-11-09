@@ -661,6 +661,50 @@ Whether the management console shares its single-use state through its own Valke
 {{- end }}
 
 {{/*
+The identifier of the first of the console's remote keys that the named key management service holds, the client key
+ring before the DPoP key ring and key ids in sorted order; empty when no console remote key names the service. Takes a
+dict with the chart context as root and the provider name (aws-kms, azure-key-vault or google-cloud-kms) as name.
+*/}}
+{{- define "identity-host.managementConsole.remoteKeyId" -}}
+{{- $found := "" }}
+{{- range $ring := list "client" "dpop" }}
+{{- range $kid, $key := (index $.root.Values.managementConsole.keyRings $ring).remoteKeys }}
+{{- if and (not $found) (eq $key.provider $.name) }}
+{{- $found = $key.keyId }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- $found }}
+{{- end }}
+
+{{/*
+Whether a remote key of the management console names the key management service, so that the console's pods carry that
+service's workload credentials. Takes a dict with the chart context as root and the provider name as name; renders
+"true" or nothing.
+*/}}
+{{- define "identity-host.managementConsole.usesKeyManagementService" -}}
+{{- if include "identity-host.managementConsole.remoteKeyId" . }}true{{ end }}
+{{- end }}
+
+{{/*
+The workload credentials of the management console, as YAML in the shape that kmsCredentials.server renders: the
+console's full name, whether a remote key of the console names each service, and the console's own identity values from
+managementConsole.secretProtection. Takes the chart context.
+*/}}
+{{- define "identity-host.kmsCredentials.managementConsole" -}}
+name: {{ include "identity-host.managementConsole.fullname" . | quote }}
+awsKms: {{ include "identity-host.managementConsole.usesKeyManagementService" (dict "root" . "name" "aws-kms") | quote }}
+azureKeyVault: {{ include "identity-host.managementConsole.usesKeyManagementService" (dict "root" . "name" "azure-key-vault") | quote }}
+googleCloudKms: {{ include "identity-host.managementConsole.usesKeyManagementService" (dict "root" . "name" "google-cloud-kms") | quote }}
+webIdentity:
+  {{- toYaml .Values.managementConsole.secretProtection.awsKms.webIdentity | nindent 2 }}
+workloadIdentity:
+  {{- toYaml .Values.managementConsole.secretProtection.azureKeyVault.workloadIdentity | nindent 2 }}
+workloadIdentityFederation:
+  {{- toYaml .Values.managementConsole.secretProtection.googleCloudKms.workloadIdentityFederation | nindent 2 }}
+{{- end }}
+
+{{/*
 Refuses a management console the host would refuse, or one that would run replicas without shared state, before anything
 is applied. Rendered for its side effect only.
 */}}
@@ -712,6 +756,7 @@ is applied. Rendered for its side effect only.
 {{- if and (gt (int $console.replicaCount) 1) (not (include "identity-host.managementConsole.valkeyEnabled" .)) }}
 {{- fail "managementConsole.replicaCount above 1 requires managementConsole.valkey.existingSecret: replicas share their sessions through Valkey." }}
 {{- end }}
+{{- include "identity-host.kmsCredentials.validate" (dict "credentials" (include "identity-host.kmsCredentials.managementConsole" . | fromYaml) "path" "managementConsole.secretProtection") }}
 {{- end }}
 
 {{/*
@@ -765,6 +810,23 @@ The environment of the management console container.
 {{- end }}
 {{- end }}
 {{- end }}
+{{- /* A provider registers when its section exists, and reads each key where the key's identifier names, so the section names the first key's region, vault or key ring. */}}
+{{- with include "identity-host.managementConsole.remoteKeyId" (dict "root" $ "name" "aws-kms") }}
+- name: SecretProtection__RemoteKeyProviders__AwsKms__Region
+  value: {{ index (splitList ":" .) 3 | quote }}
+{{- end }}
+{{- with include "identity-host.managementConsole.remoteKeyId" (dict "root" $ "name" "azure-key-vault") }}
+- name: SecretProtection__RemoteKeyProviders__AzureKeyVault__VaultUri
+  value: {{ regexFind "^https://[^/]+" . | quote }}
+{{- end }}
+{{- with include "identity-host.managementConsole.remoteKeyId" (dict "root" $ "name" "google-cloud-kms") }}
+- name: SecretProtection__RemoteKeyProviders__GoogleCloudKms__KeyRing
+  value: {{ regexFind "^projects/[^/]+/locations/[^/]+/keyRings/[^/]+" . | quote }}
+{{- end }}
+{{- $credentials := include "identity-host.kmsCredentials.managementConsole" $ | fromYaml }}
+{{- include "identity-host.kmsCredentials.awsEnv" $credentials }}
+{{- include "identity-host.kmsCredentials.azureEnv" $credentials }}
+{{- include "identity-host.kmsCredentials.googleEnv" $credentials }}
 - name: ManagementConsole__ManagementApiUrl
   value: {{ include "identity-host.managementConsole.managementApiUrl" . | quote }}
 {{- if include "identity-host.managementConsole.valkeyEnabled" . }}

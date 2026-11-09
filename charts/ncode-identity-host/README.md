@@ -59,8 +59,14 @@ Rendering fails, before anything is applied, when:
 - a `secretProtection.remoteKeyProviders` value is malformed: `awsKms.region` is not a system name such as `us-west-2`,
   `awsKms.pendingWindowInDays` is outside 7 to 30, `azureKeyVault.vaultUri` is not an `https` URI, or
   `googleCloudKms.keyRing` is not the resource name of a key ring;
+- a `secretProtection.remoteKeyProviders` location, `awsKms.region`, `azureKeyVault.vaultUri` or
+  `googleCloudKms.keyRing`, is set and the provider's `enabled` is `false`, because a location registers nothing on its
+  own;
+- an enabled `secretProtection.remoteKeyProviders` provider has its location and
+  `secretProtection.remoteKeys.deployment` is empty, because the provider creates keys and the sweep finds them by the
+  deployment;
 - a key management service is used, as `secretProtection.rootKeyProvider`, in `secretProtection.ownerRootKeys.providers`
-  or under `secretProtection.remoteKeyProviders`, and its workload credentials are half set: only one of
+  or enabled under `secretProtection.remoteKeyProviders`, and its workload credentials are half set: only one of
   `secretProtection.azureKeyVault.workloadIdentity.tenantId` and `clientId` is set, or
   `secretProtection.googleCloudKms.workloadIdentityFederation.provider` is set and is not the resource name of a
   workload identity pool provider. Workload credentials themselves are optional: a provider without them signs in
@@ -384,10 +390,10 @@ authenticates against it and a revoked key would lock out the administrators who
 deployment's root key.
 
 **Credentials.** The pods carry a provider's workload credentials when it is the root key provider, is listed in
-`secretProtection.ownerRootKeys.providers` or is configured under `secretProtection.remoteKeyProviders`: for AWS KMS the web identity (`secretProtection.awsKms.webIdentity.roleArn`),
-for Azure Key Vault the workload identity (`secretProtection.azureKeyVault.workloadIdentity.clientId` and `tenantId`),
-and for Google Cloud KMS the federation (`secretProtection.googleCloudKms.workloadIdentityFederation.provider`), each
-set up as in the sections above. The provider's own key values (`awsKms.keyArn`, `azureKeyVault.keyId`,
+`secretProtection.ownerRootKeys.providers` or is enabled under `secretProtection.remoteKeyProviders`: for AWS KMS the
+web identity (`secretProtection.awsKms.webIdentity.roleArn`), for Azure Key Vault the workload identity
+(`secretProtection.azureKeyVault.workloadIdentity.clientId` and `tenantId`), and for Google Cloud KMS the federation
+(`secretProtection.googleCloudKms.workloadIdentityFederation.provider`), each set up as in the sections above. The provider's own key values (`awsKms.keyArn`, `azureKeyVault.keyId`,
 `googleCloudKms.keyName`) are rendered only when it is the root key provider, because a tenant names its key itself. A
 listed provider with no workload-identity values uses the pod's ambient identity, as the root key provider does. A
 half-set value, such as an Azure `clientId` without a `tenantId`, or a Google Cloud `provider` that is not a pool

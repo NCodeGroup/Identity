@@ -31,7 +31,9 @@ public class ManagementCapabilitiesTests
     public async Task GetCapabilities_AsTheBootstrapAdministrator_ReturnsTheDocument()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await factory.CreateAdministratorClientAsync();
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.GetAsync(CapabilitiesPath);
 

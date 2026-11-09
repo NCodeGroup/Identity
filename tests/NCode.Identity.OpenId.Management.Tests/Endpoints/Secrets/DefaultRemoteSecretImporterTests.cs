@@ -84,7 +84,6 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
             SecretType = SecretTypes.Ecc,
             KeySizeBits = 256,
             Curve = "P-256",
-            Use = "sig",
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
@@ -132,11 +131,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.False(result.IsBound);
         Assert.NotNull(result.Error);
         Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
-        Assert.Contains(
-            "no signing algorithm 'ES384'",
-            result.Error.Detail,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("no algorithm 'ES384'", result.Error.Detail, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -255,7 +250,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
         Assert.Equal(
-            $"The secret '{secret.SecretId}' has no remote signing algorithm for provider 'stub-kms', algorithm 'ES384', secret type '{SecretTypes.Ecc}', key size 384 and curve 'P-384'.",
+            $"The secret '{secret.SecretId}' has no remote algorithm for provider 'stub-kms', algorithm 'ES384', secret type '{SecretTypes.Ecc}', key size 384 and curve 'P-384'.",
             result.Detail
         );
     }
@@ -290,7 +285,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
     {
         public const string ProviderName = "stub-kms";
 
-        private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } =
+        private static IReadOnlyList<RemoteKeyAlgorithm> Rows { get; } =
         [
             new RemoteSigningAlgorithm
             {
@@ -319,7 +314,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         public IEnumerable<RemoteKeyProviderDescriptor> Providers { get; } =
         [new RemoteKeyProviderDescriptor { Name = ProviderName }];
 
-        public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;
+        public IEnumerable<RemoteKeyAlgorithm> Algorithms => Rows;
 
         public ValueTask<RemoteKeyCreationResult> CreateKeyAsync(
             RemoteKeyCreationRequest request,
@@ -383,6 +378,23 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 
         public ValueTask DestroyKeyAsync(string keyId, CancellationToken cancellationToken) =>
             ValueTask.FromException(new NotSupportedException());
+
+        public ValueTask<int> DecryptAsync(
+            RemoteDecryptionRequest request,
+            Memory<byte> plaintext,
+            CancellationToken cancellationToken
+        ) => ValueTask.FromException<int>(new NotSupportedException());
+
+        public ValueTask<int> DeriveSharedSecretAsync(
+            RemoteKeyAgreementRequest request,
+            Memory<byte> sharedSecret,
+            CancellationToken cancellationToken
+        ) => ValueTask.FromException<int>(new NotSupportedException());
+
+        public IAsyncEnumerable<RemoteKeyListing> ListKeysAsync(
+            RemoteKeyListRequest request,
+            CancellationToken cancellationToken
+        ) => AsyncEnumerable.Empty<RemoteKeyListing>();
 
         public void Dispose() => Key.Dispose();
     }

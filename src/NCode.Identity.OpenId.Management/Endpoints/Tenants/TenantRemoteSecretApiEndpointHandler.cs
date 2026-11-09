@@ -14,7 +14,6 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -163,7 +162,6 @@ internal class TenantRemoteSecretApiEndpointHandler(
             SecretType = request.SecretType,
             KeySizeBits = parameters.KeySizeBits,
             Curve = parameters.Curve,
-            Use = SecretKeyUses.Signature,
             Algorithm = request.Algorithm,
             CreatedWhen = createdWhen,
             ActivatesWhen = request.ActivatesWhen,
@@ -292,7 +290,6 @@ internal class TenantRemoteSecretApiEndpointHandler(
             SecretType = request.SecretType,
             KeySizeBits = parameters.KeySizeBits,
             Curve = parameters.Curve,
-            Use = SecretKeyUses.Signature,
             Algorithm = request.Algorithm,
             CreatedWhen = createdWhen,
             ActivatesWhen = request.ActivatesWhen,

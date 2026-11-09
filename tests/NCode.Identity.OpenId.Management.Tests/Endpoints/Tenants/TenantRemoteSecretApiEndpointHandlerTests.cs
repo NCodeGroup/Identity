@@ -287,7 +287,6 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
                         && request.SecretType == SecretTypes.Ecc
                         && request.KeySizeBits == 256
                         && request.Curve == "P-256"
-                        && request.Use == SecretKeyUses.Signature
                         && request.Algorithm == "ES256"
                     ),
                     It.IsAny<CancellationToken>()
@@ -357,7 +356,6 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         Assert.Equal(SecretOwner.ForTenant(TenantId), generateRequest.Owner);
         Assert.Equal(Provider, generateRequest.Provider);
         Assert.Equal(SecretTypes.Ecc, generateRequest.SecretType);
-        Assert.Equal(SecretKeyUses.Signature, generateRequest.Use);
         Assert.Equal("ES256", generateRequest.Algorithm);
         Assert.Equal(256, generateRequest.KeySizeBits);
         Assert.Equal("P-256", generateRequest.Curve);

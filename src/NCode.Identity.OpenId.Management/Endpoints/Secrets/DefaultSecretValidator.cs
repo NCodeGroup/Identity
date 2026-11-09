@@ -153,7 +153,7 @@ internal sealed class DefaultSecretValidator(
             return SecretCreateValidation.Invalid(lifecycleError);
         }
 
-        var selector = new RemoteSigningAlgorithmSelector
+        var selector = new RemoteKeyAlgorithmSelector
         {
             Provider = request.RemoteKeyProvider,
             Algorithm = request.Algorithm,
@@ -166,7 +166,8 @@ internal sealed class DefaultSecretValidator(
 
     /// <inheritdoc />
     // See ADR-1476.
-    public SecretCreateValidation ValidateRemoteKey(RemoteSigningAlgorithmSelector selector)
+    // See ADR-1477.
+    public SecretCreateValidation ValidateRemoteKey(RemoteKeyAlgorithmSelector selector)
     {
         var secretType = selector.SecretType;
         if (
@@ -188,7 +189,7 @@ internal sealed class DefaultSecretValidator(
         {
             KeySizeBits = selector.KeySizeBits,
             Curve = selector.Curve,
-            Use = SecretKeyUses.Signature,
+            Use = null,
             Algorithm = selector.Algorithm,
         };
         var validation = ResolveGeneration(descriptor, requested);
@@ -196,7 +197,7 @@ internal sealed class DefaultSecretValidator(
     }
 
     private SecretCreateValidation ValidateRemoteRow(
-        RemoteSigningAlgorithmSelector selector,
+        RemoteKeyAlgorithmSelector selector,
         SecretCreateValidation validation
     )
     {
@@ -211,7 +212,7 @@ internal sealed class DefaultSecretValidator(
             KeySizeBits = resolved.KeySizeBits,
             Curve = resolved.Curve,
         };
-        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(resolvedSelector, out _))
+        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(resolvedSelector, out var row))
         {
             var curveText = resolved.Curve is null
                 ? string.Empty
@@ -219,6 +220,22 @@ internal sealed class DefaultSecretValidator(
             return Invalid(
                 $"The remote key provider '{selector.Provider}' holds no '{selector.Algorithm}' key of the "
                     + $"'{selector.SecretType}' type with {resolved.KeySizeBits} bits{curveText}."
+            );
+        }
+
+        // The generation resolved, so the algorithm is registered and implies a use.
+        AlgorithmCollectionProvider.Collection.TryGetKeyedAlgorithm(
+            selector.Algorithm,
+            out _,
+            out var impliedUse
+        );
+
+        // See ADR-1477.
+        if (!string.Equals(row.Use, impliedUse, StringComparison.Ordinal))
+        {
+            return Invalid(
+                $"The remote key provider '{selector.Provider}' holds '{selector.Algorithm}' keys for the use "
+                    + $"'{row.Use}', but the algorithm implies the use '{impliedUse}'."
             );
         }
 
@@ -368,7 +385,7 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        var selector = new RemoteSigningAlgorithmSelector
+        var selector = new RemoteKeyAlgorithmSelector
         {
             Provider = request.RemoteKeyProvider,
             Algorithm = request.Algorithm,

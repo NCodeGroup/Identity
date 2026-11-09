@@ -19,8 +19,9 @@ public sealed class AzureKeyVaultRemoteKeyProviderOptions
     public const string DefaultSectionName = "SecretProtection:RemoteKeyProviders:AzureKeyVault";
 
     /// <summary>
-    /// Gets or sets the URI of the Key Vault or Managed HSM in which the provider creates keys, such as
-    /// <c>https://contoso.vault.azure.net</c>.
+    /// Gets or sets the URI of the Key Vault or Managed HSM in which the provider creates and lists keys, such as
+    /// <c>https://contoso.vault.azure.net</c>. When it is not set, the provider creates and lists no keys and still
+    /// reads, signs with, decrypts with and disables keys in the vault each key identifier names.
     /// </summary>
     public string? VaultUri { get; set; }
 

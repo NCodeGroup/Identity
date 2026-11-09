@@ -184,6 +184,8 @@ public class DefaultRegistrationTests : BaseTests
             )
         );
         Assert.Equal("RSA_3072", algorithm.KeySpec);
+        var descriptor = Assert.Single(descriptorCatalog.Providers);
+        Assert.True(descriptor.CreatesKeys);
     }
 
     [Fact]
@@ -218,7 +220,7 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     [Fact]
-    public async Task AddAwsKmsRemoteKeyProvider_NoRegion_FailsValidation()
+    public async Task AddAwsKmsRemoteKeyProvider_NoRegion_DescribesAProviderThatCreatesNoKeys()
     {
         var clientFactory = CreateStrictMock<IAwsKmsClientFactory>();
         var serviceCollection = AddAwsKmsRemote(CreateConfiguration(), clientFactory.Object);
@@ -226,8 +228,11 @@ public class DefaultRegistrationTests : BaseTests
         await using var provider = serviceCollection.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptions<AwsKmsRemoteKeyProviderOptions>>();
 
-        var exception = Assert.Throws<OptionsValidationException>(() => options.Value);
-        Assert.Contains("Region", exception.Message);
+        Assert.Null(options.Value.Region);
+        var descriptor = Assert.Single(
+            provider.GetRequiredService<IRemoteKeyDescriptorCatalog>().Providers
+        );
+        Assert.False(descriptor.CreatesKeys);
     }
 
     [Fact]

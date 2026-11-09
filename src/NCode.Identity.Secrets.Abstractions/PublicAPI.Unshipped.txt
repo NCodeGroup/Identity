@@ -296,11 +296,20 @@ NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog.Algorithms.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm!>!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog.Providers.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor!>!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog.TryGetAlgorithm(NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithmSelector selector, out NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm? algorithm) -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyDescriptorCatalogExtensions
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyDescriptorCatalogExtensions.extension(NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog!)
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyDescriptorCatalogExtensions.extension(NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog!).CreatesKeys(string! providerName) -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyDescriptorCatalogExtensions.extension(NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog!).ProvidersThatCreateKeys.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor!>!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyDescriptorCatalogExtensions.extension(NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog!).TryGetProvider(string! providerName, out NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor? descriptor) -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyRefusals
+static NCode.Identity.Secrets.RemoteKeys.RemoteKeyRefusals.CreatesNoKeys(string! providerName) -> string!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorSource
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorSource.Algorithms.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm!>!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorSource.Providers.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor!>!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyGroupNames
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.CreatesKeys.get -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.CreatesKeys.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.Name.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.Name.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.RemoteKeyProviderDescriptor() -> void

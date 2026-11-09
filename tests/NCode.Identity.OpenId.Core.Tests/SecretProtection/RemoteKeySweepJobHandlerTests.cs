@@ -38,6 +38,7 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
     private RemoteKeyOptions RemoteKeyOptions { get; } = new() { Deployment = Deployment };
     private FakeTimeProvider Time { get; } = new(Now);
     private Mock<IRemoteKeyProviderCatalog> Catalog { get; }
+    private Mock<IRemoteKeyDescriptorCatalog> DescriptorCatalog { get; }
     private Mock<IRemoteKeyProvider> Provider { get; }
     private Mock<IStoreManagerFactory> StoreManagerFactory { get; }
     private Mock<IStoreManager> StoreManager { get; }
@@ -50,6 +51,7 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
     public RemoteKeySweepJobHandlerTests()
     {
         Catalog = CreateStrictMock<IRemoteKeyProviderCatalog>();
+        DescriptorCatalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
         Provider = CreateStrictMock<IRemoteKeyProvider>();
         StoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         StoreManager = CreateStrictMock<IStoreManager>();
@@ -62,6 +64,7 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
     private RemoteKeySweepJobHandler CreateHandler() =>
         new(
             Catalog.Object,
+            DescriptorCatalog.Object,
             StoreManagerFactory.Object,
             Destroyer.Object,
             Publisher.Object,
@@ -96,11 +99,23 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
         }
     }
 
-    // The registered provider, which lists the keys, for the tests that sweep.
-    private void SetupProvider(params RemoteKeyListing[] listings)
+    // The registered provider and its descriptor, for the tests that reach the check of whether it creates keys.
+    private void SetupRegisteredProvider(bool createsKeys)
     {
         IRemoteKeyProvider? provider = Provider.Object;
         Catalog.Setup(x => x.TryGetProvider(ProviderName, out provider)).Returns(true).Verifiable();
+        DescriptorCatalog
+            .Setup(x => x.Providers)
+            .Returns([
+                new RemoteKeyProviderDescriptor { Name = ProviderName, CreatesKeys = createsKeys },
+            ])
+            .Verifiable();
+    }
+
+    // The registered provider, which creates keys and lists them, for the tests that sweep.
+    private void SetupProvider(params RemoteKeyListing[] listings)
+    {
+        SetupRegisteredProvider(createsKeys: true);
         Provider
             .Setup(x =>
                 x.ListKeysAsync(
@@ -236,6 +251,16 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
             .Setup(x => x.TryGetProvider(ProviderName, out provider))
             .Returns(false)
             .Verifiable();
+
+        await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
+
+        Assert.Empty(Published);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheProviderCreatesNoKeys_ListsNothing()
+    {
+        SetupRegisteredProvider(createsKeys: false);
 
         await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
 

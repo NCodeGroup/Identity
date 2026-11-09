@@ -18,7 +18,11 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
         );
     }
 
-    private ValidateOptionsResult ValidateWithProviders(RemoteKeyOptions keys, int providerCount)
+    private ValidateOptionsResult ValidateWithProviders(
+        RemoteKeyOptions keys,
+        int providerCount,
+        bool createsKeys = true
+    )
     {
         var catalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
         catalog
@@ -26,7 +30,11 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
             .Returns(
                 Enumerable
                     .Range(0, providerCount)
-                    .Select(index => new RemoteKeyProviderDescriptor { Name = $"provider-{index}" })
+                    .Select(index => new RemoteKeyProviderDescriptor
+                    {
+                        Name = $"provider-{index}",
+                        CreatesKeys = createsKeys,
+                    })
                     .ToList()
             )
             .Verifiable();
@@ -81,9 +89,21 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
 
         var failure = Assert.Single(result.Failures ?? []);
         Assert.Equal(
-            "SecretProtection:RemoteKeys:Deployment is required because a remote key provider is registered.",
+            "SecretProtection:RemoteKeys:Deployment is required because a remote key provider that creates keys is registered.",
             failure
         );
+    }
+
+    [Fact]
+    public void Validate_WhenOnlyProvidersThatCreateNoKeysAreRegistered_DoesNotRequireTheDeployment()
+    {
+        var result = ValidateWithProviders(
+            new RemoteKeyOptions(),
+            providerCount: 2,
+            createsKeys: false
+        );
+
+        Assert.True(result.Succeeded);
     }
 
     [Fact]

@@ -6,6 +6,7 @@ import type {
   CreatedSecretResource,
   ManagementCapabilitiesResource,
   PublicKeyResource,
+  RemoteKeyProviderCapability,
   SecretResource,
 } from '@ncode/api';
 import type { BffRuntimeConfig } from '@ncode/config';
@@ -66,17 +67,23 @@ const exportRsaOnly: ManagementCapabilitiesResource = {
   ],
 };
 
+const awsKmsProvider: RemoteKeyProviderCapability = {
+  name: 'aws-kms',
+  createsKeys: true,
+  algorithms: [
+    { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+    { algorithm: 'RSA-OAEP-256', use: 'enc', secretType: 'rsa', keySizeBits: 3072 },
+  ],
+};
+
 const withRemoteKeys: ManagementCapabilitiesResource = {
   ...exportRsaOnly,
-  remoteKeyProviders: [
-    {
-      name: 'aws-kms',
-      algorithms: [
-        { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
-        { algorithm: 'RSA-OAEP-256', use: 'enc', secretType: 'rsa', keySizeBits: 3072 },
-      ],
-    },
-  ],
+  remoteKeyProviders: [awsKmsProvider],
+};
+
+const withBindOnlyRemoteKeys: ManagementCapabilitiesResource = {
+  ...exportRsaOnly,
+  remoteKeyProviders: [{ ...awsKmsProvider, createsKeys: false }],
 };
 
 type Deferred<T> = {
@@ -494,6 +501,14 @@ describe('SecretsManager', () => {
       await renderManager({}, withRemoteKeys);
 
       expect(screen.queryByTestId('bind-remote-secret')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('create-secret'));
+      expect(screen.queryByTestId('secret-custody')).not.toBeInTheDocument();
+    });
+
+    it('offers binding but no custody in a provider that creates no keys', async () => {
+      await renderManager(remoteHandlers(), withBindOnlyRemoteKeys);
+
+      expect(screen.getByTestId('bind-remote-secret')).toBeInTheDocument();
       fireEvent.click(screen.getByTestId('create-secret'));
       expect(screen.queryByTestId('secret-custody')).not.toBeInTheDocument();
     });

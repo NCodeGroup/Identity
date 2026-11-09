@@ -137,13 +137,15 @@ public class DefaultSecretGeneratorTests : BaseTests
 
     private DefaultSecretGenerator CreateGenerator(
         SharedSecretVerifierOptions options,
-        string? deployment = "test"
+        string? deployment = "test",
+        IRemoteKeyDescriptorCatalog? descriptorCatalog = null
     ) =>
         new(
             Catalog,
             VerifierCatalog,
             Microsoft.Extensions.Options.Options.Create(options),
             new DefaultRemoteKeyResolver(Catalog, RemoteCatalog, RemoteDescriptorCatalog),
+            descriptorCatalog ?? RemoteDescriptorCatalog,
             RemoteDestroyer.Object,
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions { RemoteKeys = { Deployment = deployment } }
@@ -1242,6 +1244,40 @@ public class DefaultSecretGeneratorTests : BaseTests
         );
 
         Assert.Contains("'unregistered-kms'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenTheProviderCreatesNoKeys_ThrowsBeforeAnyProviderCall()
+    {
+        var source = CreateStrictMock<IRemoteKeyDescriptorSource>();
+        source
+            .SetupGet(x => x.Providers)
+            .Returns([
+                new RemoteKeyProviderDescriptor
+                {
+                    Name = RemoteKeyProviderNames.AwsKms,
+                    CreatesKeys = false,
+                },
+            ])
+            .Verifiable();
+        source
+            .SetupGet(x => x.Algorithms)
+            .Returns([RsaRow, LargeRsaRow, EccRow, OtherCurveEccRow, OaepRow])
+            .Verifiable();
+        var descriptorCatalog = new DefaultRemoteKeyDescriptorCatalog([source.Object]);
+        var generator = CreateGenerator(
+            new SharedSecretVerifierOptions(),
+            descriptorCatalog: descriptorCatalog
+        );
+
+        var exception = await Assert.ThrowsAsync<RemoteKeyRefusedException>(async () =>
+            await generator.GenerateRemoteSecretAsync(CreateRemoteRequest(), CancellationToken.None)
+        );
+
+        Assert.Equal(
+            RemoteKeyRefusals.CreatesNoKeys(RemoteKeyProviderNames.AwsKms),
+            exception.Message
+        );
     }
 
     [Fact]

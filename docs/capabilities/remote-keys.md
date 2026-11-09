@@ -196,26 +196,30 @@ A deployment that registers Azure Key Vault or Google Cloud KMS provisions `RSA-
 
 A deployment registers a provider with `AddAwsKmsRemoteKeyProvider`, `AddAzureKeyVaultRemoteKeyProvider` or
 `AddGoogleCloudKmsRemoteKeyProvider`, which bind their options strictly from a configuration section, validate them
-when the host starts and reuse the key wrapper's client with the deployment's own identity. Registering a provider
-selects it: the host does not start unless it holds every provisioned signature and encryption key. Each package's
-`AddAwsKmsRemoteKeyProviderIfConfigured`, `AddAzureKeyVaultRemoteKeyProviderIfConfigured` and
-`AddGoogleCloudKmsRemoteKeyProviderIfConfigured` method registers its provider only when its section exists, and the
-reference host calls them. The providers register on the secrets library's builder (`IServiceBuilder<SecretsLibrary>`),
-so a BFF host registers them too. A host without secret persistence, such as a BFF, needs no
-`SecretProtection:RemoteKeys`.
+when the host starts and reuse the key wrapper's client with the deployment's own identity. A provider whose region,
+vault URI or key ring is set creates and lists keys (`RemoteKeyProviderDescriptor.CreatesKeys`), and the host does not
+start unless every such provider holds every provisioned signature and encryption key. A provider registered without
+one reads, signs with, decrypts with and destroys keys by their identifiers and binds a key a KMS already holds, but
+creates and lists none: `tenant_key_provider` cannot name it, the management API refuses to create a key in it, and the
+sweep skips it. Each package's `AddAwsKmsRemoteKeyProviderIfConfigured`,
+`AddAzureKeyVaultRemoteKeyProviderIfConfigured` and `AddGoogleCloudKmsRemoteKeyProviderIfConfigured` method registers
+its provider only when its section exists, and the reference host calls them. The providers register on the secrets
+library's builder (`IServiceBuilder<SecretsLibrary>`), so a BFF host registers them too. A BFF host, which creates no
+keys, registers the providers with `Add<Vendor>RemoteKeyProvider` and no section. A host without secret persistence,
+such as a BFF, needs no `SecretProtection:RemoteKeys`.
 
-| Provider                    | Section                                                  | Settings                                                                          |
-| --------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `aws-kms`                   | `SecretProtection:RemoteKeyProviders:AwsKms`             | `Region`; `PendingWindowInDays`, 7 to 30 (default 30)                             |
-| `azure-key-vault`           | `SecretProtection:RemoteKeyProviders:AzureKeyVault`      | `VaultUri`; `HardwareProtected` (default `true`)                                  |
-| `google-cloud-kms`          | `SecretProtection:RemoteKeyProviders:GoogleCloudKms`     | `KeyRing`; `HardwareProtected` (default `true`)                                   |
+| Provider                    | Section                                                  | Settings                                                                                 |
+| --------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `aws-kms`                   | `SecretProtection:RemoteKeyProviders:AwsKms`             | `Region` (optional: where keys are created); `PendingWindowInDays`, 7 to 30 (default 30) |
+| `azure-key-vault`           | `SecretProtection:RemoteKeyProviders:AzureKeyVault`      | `VaultUri` (optional: where keys are created); `HardwareProtected` (default `true`)      |
+| `google-cloud-kms`          | `SecretProtection:RemoteKeyProviders:GoogleCloudKms`     | `KeyRing` (optional: where keys are created); `HardwareProtected` (default `true`)       |
 
 The deployment names itself and tunes the sweep ([Orphaned keys](#orphaned-keys)) in `SecretProtection:RemoteKeys`,
 which binds strictly. The `SecretProtection` section recognizes the `RemoteKeys` and `RemoteKeyProviders` children.
 
 | Setting                                  | Default  | Meaning                                                                                                              |
 | ---------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
-| `SecretProtection:RemoteKeys:Deployment` | none     | Names this deployment: lowercase letters and digits in hyphen-separated groups, at most 40 characters. Required when any provider is described. |
+| `SecretProtection:RemoteKeys:Deployment` | none     | Names this deployment: lowercase letters and digits in hyphen-separated groups, at most 40 characters. Required when a provider that creates keys is registered. |
 | `SweepEnabled`                           | `true`   | Turns the sweep of orphaned keys on or off.                                                                          |
 | `SweepInterval`                          | one day  | How often the sweep runs: at least one minute, at most the timer maximum.                                            |
 | `SweepGracePeriod`                       | one day  | How old a key is before the sweep may destroy it: between one hour and 365 days.                                     |
@@ -274,8 +278,9 @@ use (`sig` or `enc`), so a request names no use. Remote keys belong to tenants o
   `kid` the tenant already holds answers `409`; a KMS failure or refusal of the deployment's identity answers `502`.
 - **Updating.** An update keeps the algorithm of a `remote` secret: a different algorithm answers `400`, because the
   key is bound to its algorithm.
-- **Capabilities.** `remoteKeyProviders` lists the registered providers, sorted ordinally, each with `algorithms`: the
-  accepted rows of every kind, each with its `use` (`sig` or `enc`), `secretType`, `keySizeBits` and `curve`, limited to
+- **Capabilities.** `remoteKeyProviders` lists the registered providers, sorted ordinally, each with `createsKeys` and
+  `algorithms`: the accepted rows of every kind, each with its `use` (`sig` or `enc`), `secretType`, `keySizeBits` and
+  `curve`, limited to
   the rows the secret validator accepts (`ISecretValidator.ValidateRemoteKey`, the check a create and a bind run), so a
   client offers exactly what a create or bind accepts.
 - **Console.** A tenant's Secrets tab in the management console creates a key in a registered provider through the
@@ -309,9 +314,9 @@ destroys them.
   group, then their `ENABLED` versions. A key whose tags cannot be read is skipped.
 - **A hosted service dispatches the sweep.** `RemoteKeySweepService` waits for the platform, then at start and every
   `SweepInterval`, under the shared-state lease `remote-key-sweep:platform` that lasts half the interval, dispatches one
-  `RemoteKeySweepJob` per described provider through `IJobDispatcher`, so each provider has its own retries and a
-  durable dispatcher can run it. `SweepEnabled` set to `false` turns it off. A provider whose dispatch fails is logged,
-  and the others are dispatched.
+  `RemoteKeySweepJob` per described provider that creates keys through `IJobDispatcher`, so each provider has its own
+  retries and a durable dispatcher can run it. `SweepEnabled` set to `false` turns it off. A provider whose dispatch
+  fails is logged, and the others are dispatched.
 - **A job sweeps one provider.** `RemoteKeySweepJobHandler` lists the provider's keys created at or before the time of
   the pass minus `SweepGracePeriod`, only then reads every stored reference of that provider for every owner, and
   destroys each listed key that no reference names through the destroyer's bounded, logged path. Listing before reading

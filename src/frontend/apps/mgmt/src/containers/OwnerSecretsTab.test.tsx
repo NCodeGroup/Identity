@@ -74,6 +74,7 @@ describe('OwnerSecretsTab offers the actions each owner supports', () => {
         remoteKeyProviders: [
           {
             name: 'aws-kms',
+            createsKeys: true,
             algorithms: [
               {
                 algorithm: 'ES256',

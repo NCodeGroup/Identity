@@ -646,11 +646,11 @@ release resolves its tenant with StaticSingle, else empty.
 {{- end }}
 
 {{/*
-The URL the console calls the server's management API through: managementConsole.managementApiUrl, else /api on the
-console's host.
+The URL the console calls the server's management API through: /api on the origin of the console's authority, the URL
+the server compares the console's DPoP proofs with.
 */}}
 {{- define "identity-host.managementConsole.managementApiUrl" -}}
-{{- .Values.managementConsole.managementApiUrl | default (printf "https://%s/api" .Values.managementConsole.host) }}
+{{- printf "%s/api" (regexFind "^https://[^/]+" (include "identity-host.managementConsole.authority" .)) }}
 {{- end }}
 
 {{/*
@@ -715,9 +715,6 @@ is applied. Rendered for its side effect only.
 {{- end }}
 {{- if contains "*" $console.host }}
 {{- fail "managementConsole.host must be a concrete host name, not a wildcard." }}
-{{- end }}
-{{- if not (has $console.host .Values.allowedHosts) }}
-{{- fail "allowedHosts must list managementConsole.host: the management host routes /api to the server." }}
 {{- end }}
 {{- $authority := include "identity-host.managementConsole.authority" . }}
 {{- if not (hasPrefix "https://" $authority) }}
@@ -809,19 +806,6 @@ The environment of the management console container.
   value: {{ . | quote }}
 {{- end }}
 {{- end }}
-{{- end }}
-{{- /* A provider registers when its section exists, and reads each key where the key's identifier names, so the section names the first key's region, vault or key ring. */}}
-{{- with include "identity-host.managementConsole.remoteKeyId" (dict "root" $ "name" "aws-kms") }}
-- name: SecretProtection__RemoteKeyProviders__AwsKms__Region
-  value: {{ index (splitList ":" .) 3 | quote }}
-{{- end }}
-{{- with include "identity-host.managementConsole.remoteKeyId" (dict "root" $ "name" "azure-key-vault") }}
-- name: SecretProtection__RemoteKeyProviders__AzureKeyVault__VaultUri
-  value: {{ regexFind "^https://[^/]+" . | quote }}
-{{- end }}
-{{- with include "identity-host.managementConsole.remoteKeyId" (dict "root" $ "name" "google-cloud-kms") }}
-- name: SecretProtection__RemoteKeyProviders__GoogleCloudKms__KeyRing
-  value: {{ regexFind "^projects/[^/]+/locations/[^/]+/keyRings/[^/]+" . | quote }}
 {{- end }}
 {{- $credentials := include "identity-host.kmsCredentials.managementConsole" $ | fromYaml }}
 {{- include "identity-host.kmsCredentials.awsEnv" $credentials }}

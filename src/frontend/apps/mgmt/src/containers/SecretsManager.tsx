@@ -337,7 +337,9 @@ export function SecretsManager({
         secretTypes={secretTypes}
         eccCurves={eccCurves}
         algorithms={algorithms}
-        remoteKeyProviders={onCreateRemote ? remoteKeyProviders : []}
+        remoteKeyProviders={
+          onCreateRemote ? remoteKeyProviders.filter((provider) => provider.createsKeys) : []
+        }
         onSubmit={handleCreate}
         onCancel={() => setDialog(closed)}
       />

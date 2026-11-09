@@ -375,14 +375,15 @@ internal class DefaultTenantKeyPolicy(
 
     // A tenant that opts into a provider has every provisioned key held there, so a provider without a row for one of
     // them, or whose row holds the key for another use, stops the host instead of leaving the tenant's seed or
-    // rollover without that key (ADR-1471, ADR-1477).
+    // rollover without that key (ADR-1471, ADR-1477). A provider that creates no keys never holds a provisioned key,
+    // so it is not checked.
     private void AddUnsupportedProviderErrors(
         List<TenantKeySpecification> specifications,
         List<string> errors
     )
     {
         var providerNames = RemoteKeyDescriptorCatalog
-            .Providers.Select(provider => provider.Name)
+            .ProvidersThatCreateKeys.Select(provider => provider.Name)
             .Order(StringComparer.Ordinal);
 
         foreach (var name in providerNames)

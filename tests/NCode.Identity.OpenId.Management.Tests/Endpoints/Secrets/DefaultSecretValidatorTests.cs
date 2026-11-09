@@ -1006,6 +1006,20 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             )
             .Verifiable();
 
+    private void SetupDescribedProvidersThatCreateNoKeys(params string[] names) =>
+        MockCatalog
+            .Setup(x => x.Providers)
+            .Returns(
+                names
+                    .Select(name => new RemoteKeyProviderDescriptor
+                    {
+                        Name = name,
+                        CreatesKeys = false,
+                    })
+                    .ToArray()
+            )
+            .Verifiable();
+
     private void SetupRow(RemoteKeyAlgorithmSelector selector, RemoteKeyAlgorithm? row)
     {
         MockCatalog
@@ -1085,6 +1099,19 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Fact]
+    public void ValidateCreateRemote_WhenTheProviderCreatesNoKeys_ReturnsBadRequest()
+    {
+        SetupDescribedProvidersThatCreateNoKeys(ProviderName);
+        SetupRow(Es256Selector, Es256Row);
+
+        var error = RemoteValidator.ValidateCreateRemote(CreateRemoteRequest(), CreatedWhen).Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(RemoteKeyRefusals.CreatesNoKeys(ProviderName), error.Detail);
+    }
+
+    [Fact]
     public void ValidateCreateRemote_WhenTheProviderIsNotRegistered_ReturnsBadRequest()
     {
         SetupDescribedProviders(ProviderName);
@@ -1099,6 +1126,22 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             "The remote key provider 'unknown' is not registered; expected 'aws-kms'.",
             error.Detail
         );
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ValidateCreateRemote_WhenTheProviderIsNotNamed_ReturnsBadRequest(string? provider)
+    {
+        SetupDescribedProviders(ProviderName);
+
+        var error = RemoteValidator
+            .ValidateCreateRemote(CreateRemoteRequest(provider: provider!), CreatedWhen)
+            .Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal("The remote key provider is not named; expected 'aws-kms'.", error.Detail);
     }
 
     [Fact]
@@ -1391,6 +1434,41 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.True(validation.IsValid);
         Assert.Equal("P-256", validation.GenerationParameters.Curve);
         Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
+    }
+
+    [Fact]
+    public void ValidateRemoteKey_WhenTheProviderCreatesNoKeys_IsValid()
+    {
+        SetupDescribedProvidersThatCreateNoKeys(ProviderName);
+        SetupRow(Es256Selector, Es256Row);
+
+        var validation = RemoteValidator.ValidateRemoteKey(Es256Selector);
+
+        Assert.True(validation.IsValid);
+        Assert.Equal("P-256", validation.GenerationParameters.Curve);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ValidateRemoteKey_WhenTheProviderIsNotNamed_ReturnsBadRequest(string? provider)
+    {
+        SetupDescribedProviders(ProviderName);
+
+        var validation = RemoteValidator.ValidateRemoteKey(
+            Es256Selector with
+            {
+                Provider = provider!,
+            }
+        );
+
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+        Assert.Equal(
+            "The remote key provider is not named; expected 'aws-kms'.",
+            validation.Error.Detail
+        );
     }
 
     [Fact]

@@ -57,9 +57,35 @@ public class BootstrapAdminApplicationFactory(
     }
 
     /// <summary>
+    /// Gets the token request that the bootstrap administrator sends to the default token endpoint.
+    /// </summary>
+    public static ManagementTokenRequest TokenRequest => new(ClientId, ClientSecret);
+
+    /// <summary>
     /// Creates an <see cref="HttpClient"/> that calls the management API as the bootstrap administrator.
     /// </summary>
     /// <returns>A task that completes with the authenticated client.</returns>
     public Task<HttpClient> CreateAdministratorClientAsync() =>
-        CreateManagementClientAsync(ClientId, ClientSecret);
+        CreateAdministratorClientAsync(CancellationToken.None).AsTask();
+
+    /// <summary>
+    /// Creates an <see cref="HttpClient"/> that calls the management API as the bootstrap administrator.
+    /// </summary>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The authenticated client, which does not follow redirects.</returns>
+    public ValueTask<HttpClient> CreateAdministratorClientAsync(
+        CancellationToken cancellationToken
+    ) => TokenRequest.CreateClientAsync(this, cancellationToken);
+
+    /// <summary>
+    /// Creates an <see cref="HttpClient"/> that calls the management API as the bootstrap administrator, obtaining
+    /// its token from the given token endpoint.
+    /// </summary>
+    /// <param name="tokenPath">The path of the token endpoint.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The authenticated client, which does not follow redirects.</returns>
+    public ValueTask<HttpClient> CreateAdministratorClientAsync(
+        string tokenPath,
+        CancellationToken cancellationToken
+    ) => (TokenRequest with { TokenPath = tokenPath }).CreateClientAsync(this, cancellationToken);
 }

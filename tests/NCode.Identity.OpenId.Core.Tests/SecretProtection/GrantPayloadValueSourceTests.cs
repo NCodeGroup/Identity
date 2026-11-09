@@ -21,35 +21,35 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
     private static Guid ActiveKey { get; } = Guid.NewGuid();
     private static IReadOnlySet<Guid> OldKeys { get; } = new HashSet<Guid> { OldKey };
 
-    private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
-    private readonly Queue<IStoreManager> _storeManagers = new();
-    private readonly FakeRewrapProvider _provider = new(ActiveKey);
-    private bool _storeManagerFactorySetUp;
+    private Mock<IStoreManagerFactory> StoreManagerFactory { get; }
+    private Queue<IStoreManager> StoreManagers { get; } = new();
+    private FakeRewrapProvider Provider { get; } = new(ActiveKey);
+    private bool StoreManagerFactorySetUp { get; set; }
 
     public GrantPayloadValueSourceTests()
     {
-        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        StoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
-            Assert.Empty(_storeManagers);
+            Assert.Empty(StoreManagers);
 
         base.Dispose(disposing);
     }
 
     private GrantPayloadValueSource CreateSource() =>
-        new(_storeManagerFactory.Object, _provider, NullLogger<GrantPayloadValueSource>.Instance);
+        new(StoreManagerFactory.Object, Provider, NullLogger<GrantPayloadValueSource>.Instance);
 
     private (Mock<IGrantStore> Store, Mock<IStoreManager> Manager) EnqueueManager()
     {
-        if (!_storeManagerFactorySetUp)
+        if (!StoreManagerFactorySetUp)
         {
-            _storeManagerFactorySetUp = true;
-            _storeManagerFactory
+            StoreManagerFactorySetUp = true;
+            StoreManagerFactory
                 .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-                .Returns(() => new ValueTask<IStoreManager>(_storeManagers.Dequeue()))
+                .Returns(() => new ValueTask<IStoreManager>(StoreManagers.Dequeue()))
                 .Verifiable();
         }
 
@@ -57,7 +57,7 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
         var manager = CreateStrictMock<IStoreManager>();
         manager.Setup(x => x.GetStore<IGrantStore>()).Returns(store.Object).Verifiable();
         manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
-        _storeManagers.Enqueue(manager.Object);
+        StoreManagers.Enqueue(manager.Object);
         return (store, manager);
     }
 
@@ -138,7 +138,7 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
         var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
 
         Assert.Equal(new ProtectedValueRewrapResult(2, 0), result);
-        var request = Assert.Single(_provider.Requests);
+        var request = Assert.Single(Provider.Requests);
         Assert.Equal(2, request.Count);
         Assert.StartsWith($"k:{ActiveKey:D}|", stale1.ProtectedValue, StringComparison.Ordinal);
         Assert.Equal(
@@ -146,7 +146,7 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
                 new SecretProtectionContext(SecretProtectionPurposes.GrantPayload, "s1"),
                 new SecretProtectionContext(SecretProtectionPurposes.GrantPayload, "s3"),
             ],
-            _provider.Contexts
+            Provider.Contexts
         );
         Assert.StartsWith($"k:{ActiveKey:D}|", stale2.ProtectedValue, StringComparison.Ordinal);
         Assert.Equal(FakeRewrapProvider.Value(ActiveKey, "s2"), current.ProtectedValue);
@@ -168,7 +168,7 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
         var result = await CreateSource().RewrapAsync(Tenant, keys, CancellationToken.None);
 
         Assert.Equal(new ProtectedValueRewrapResult(2, 0), result);
-        Assert.Single(_provider.Requests);
+        Assert.Single(Provider.Requests);
     }
 
     [Fact]
@@ -188,13 +188,13 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
         var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
 
         Assert.Equal(new ProtectedValueRewrapResult(2, 0), result);
-        Assert.Equal(2, _provider.Requests.Count);
+        Assert.Equal(2, Provider.Requests.Count);
     }
 
     [Fact]
     public async Task Rewrap_AValueThatCannotBeRewrapped_IsCountedFailedAndTheOthersAreWritten()
     {
-        _provider.Unrewrappable.Add("bad");
+        Provider.Unrewrappable.Add("bad");
         var bad = Value("bad", OldKey);
         var good = Value("good", OldKey);
         var (store1, manager1) = EnqueueManager();
@@ -278,7 +278,7 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
     [Fact]
     public async Task Rewrap_AMasterKeyThePageNamesIsGone_CountsThePageFailedAndReadsTheNextPage()
     {
-        _provider.KeysMissing = true;
+        Provider.KeysMissing = true;
         var first = Value("s1", OldKey);
         var second = Value("s2", OldKey);
         var third = Value("s3", OldKey);
@@ -290,7 +290,7 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
         var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
 
         Assert.Equal(new ProtectedValueRewrapResult(0, 3), result);
-        Assert.Equal(2, _provider.Requests.Count);
+        Assert.Equal(2, Provider.Requests.Count);
     }
 
     [Fact]
@@ -364,7 +364,7 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
         var found = await CreateSource().FindReferencedAsync(Tenant, keys, CancellationToken.None);
 
         Assert.Equal(keys, found.ToHashSet());
-        Assert.Empty(_storeManagers);
+        Assert.Empty(StoreManagers);
     }
 
     [Fact]

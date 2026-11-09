@@ -11,16 +11,14 @@ namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 
 public class ParameterParserHappyPathTests : BaseTests
 {
-    private readonly OpenIdEnvironment _environment;
-    private readonly ParameterDescriptor _allowMissingDescriptor = new(
-        "test",
-        ParameterLoader.Default
-    );
+    private OpenIdEnvironment Environment { get; }
+    private ParameterDescriptor AllowMissingDescriptor { get; } =
+        new("test", ParameterLoader.Default);
 
     public ParameterParserHappyPathTests()
     {
         // The happy paths under test never touch the environment; a strict mock guards that.
-        _environment = CreateStrictMock<OpenIdEnvironment>().Object;
+        Environment = CreateStrictMock<OpenIdEnvironment>().Object;
     }
 
     #region BoolParser Tests
@@ -32,7 +30,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new BoolParser();
 
-        var result = parser.GetStringValues(_environment, _allowMissingDescriptor, value);
+        var result = parser.GetStringValues(Environment, AllowMissingDescriptor, value);
 
         Assert.Equal(expected, result);
     }
@@ -45,7 +43,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new BoolParser();
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, input);
+        var result = parser.Parse(Environment, AllowMissingDescriptor, input);
 
         Assert.Equal(expected, result);
     }
@@ -55,7 +53,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new BoolParser();
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, StringValues.Empty);
+        var result = parser.Parse(Environment, AllowMissingDescriptor, StringValues.Empty);
 
         Assert.False(result);
     }
@@ -70,7 +68,7 @@ public class ParameterParserHappyPathTests : BaseTests
         var parser = new StringValuesParser();
         var value = new StringValues(["a", "b"]);
 
-        var result = parser.GetStringValues(_environment, _allowMissingDescriptor, value);
+        var result = parser.GetStringValues(Environment, AllowMissingDescriptor, value);
 
         Assert.Equal(value, result);
     }
@@ -81,7 +79,7 @@ public class ParameterParserHappyPathTests : BaseTests
         var parser = new StringValuesParser();
         var value = new StringValues(["a", "b"]);
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, value);
+        var result = parser.Parse(Environment, AllowMissingDescriptor, value);
 
         Assert.Equal(value, result);
     }
@@ -91,7 +89,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new StringValuesParser();
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, StringValues.Empty);
+        var result = parser.Parse(Environment, AllowMissingDescriptor, StringValues.Empty);
 
         Assert.Equal(StringValues.Empty, result);
     }
@@ -105,7 +103,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new StringSetParser();
 
-        var result = parser.GetStringValues(_environment, _allowMissingDescriptor, null);
+        var result = parser.GetStringValues(Environment, AllowMissingDescriptor, null);
 
         Assert.Equal(StringValues.Empty, result);
     }
@@ -115,7 +113,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new StringSetParser();
 
-        var result = parser.GetStringValues(_environment, _allowMissingDescriptor, []);
+        var result = parser.GetStringValues(Environment, AllowMissingDescriptor, []);
 
         Assert.Equal(StringValues.Empty, result);
     }
@@ -131,7 +129,7 @@ public class ParameterParserHappyPathTests : BaseTests
         };
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.GetStringValues(_environment, descriptor, ["c", "a", "b"]);
+        var result = parser.GetStringValues(Environment, descriptor, ["c", "a", "b"]);
 
         Assert.Equal(new StringValues(["a", "b", "c"]), result);
     }
@@ -143,7 +141,7 @@ public class ParameterParserHappyPathTests : BaseTests
         var input =
             $"a{OpenIdProtocol.ParameterSeparatorChar}b{OpenIdProtocol.ParameterSeparatorChar}c";
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, input);
+        var result = parser.Parse(Environment, AllowMissingDescriptor, input);
 
         Assert.NotNull(result);
         Assert.Equal(["a", "b", "c"], result.Order());
@@ -154,7 +152,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new StringSetParser();
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, StringValues.Empty);
+        var result = parser.Parse(Environment, AllowMissingDescriptor, StringValues.Empty);
 
         Assert.Null(result);
     }
@@ -190,7 +188,7 @@ public class ParameterParserHappyPathTests : BaseTests
         var parser = new DateTimeOffsetParser();
         var value = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000);
 
-        var result = parser.GetStringValues(_environment, _allowMissingDescriptor, value);
+        var result = parser.GetStringValues(Environment, AllowMissingDescriptor, value);
 
         Assert.Equal("1700000000", result);
     }
@@ -200,7 +198,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new DateTimeOffsetParser();
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, "1700000000");
+        var result = parser.Parse(Environment, AllowMissingDescriptor, "1700000000");
 
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000), result);
     }
@@ -210,7 +208,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new DateTimeOffsetParser();
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, StringValues.Empty);
+        var result = parser.Parse(Environment, AllowMissingDescriptor, StringValues.Empty);
 
         Assert.Equal(default, result);
     }

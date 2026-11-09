@@ -29,39 +29,39 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     private static SecretOwner PlatformOwner { get; } = SecretOwner.Platform;
     private const string ControlPlaneTenantId = "control-plane";
 
-    private readonly MasterKeyOptions _keyOptions = new();
-    private readonly FakeTimeProvider _time = new(Now);
-    private readonly Mock<IMaterializedPlatformAccessor> _platformAccessor;
-    private readonly Mock<IMasterKeyManager> _manager;
-    private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
-    private readonly Mock<IMasterKeyStore> _store;
-    private readonly Mock<IStoreManager> _storeManager;
-    private readonly Mock<IExpiringKeySet> _keySet;
-    private readonly Mock<IEventPublisher> _publisher;
-    private readonly Mock<ITenantResolver> _tenantResolver;
-    private readonly MasterKeyMaintenanceService _service;
-    private readonly Mock<OpenIdPlatform> _platform;
-    private readonly List<MasterKeyAuditEvent> _published = [];
+    private MasterKeyOptions KeyOptions { get; } = new();
+    private FakeTimeProvider Time { get; } = new(Now);
+    private Mock<IMaterializedPlatformAccessor> PlatformAccessor { get; }
+    private Mock<IMasterKeyManager> Manager { get; }
+    private Mock<IStoreManagerFactory> StoreManagerFactory { get; }
+    private Mock<IMasterKeyStore> Store { get; }
+    private Mock<IStoreManager> StoreManager { get; }
+    private Mock<IExpiringKeySet> KeySet { get; }
+    private Mock<IEventPublisher> Publisher { get; }
+    private Mock<ITenantResolver> TenantResolver { get; }
+    private MasterKeyMaintenanceService Service { get; }
+    private Mock<OpenIdPlatform> Platform { get; }
+    private List<MasterKeyAuditEvent> Published { get; } = [];
 
     public MasterKeyMaintenanceServiceTests()
     {
-        _platformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
-        _manager = CreateStrictMock<IMasterKeyManager>();
-        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
-        _store = CreateStrictMock<IMasterKeyStore>();
-        _storeManager = CreateStrictMock<IStoreManager>();
-        _keySet = CreateStrictMock<IExpiringKeySet>();
-        _publisher = CreateStrictMock<IEventPublisher>();
-        _tenantResolver = CreateStrictMock<ITenantResolver>();
-        _platform = CreateStrictMock<OpenIdPlatform>();
+        PlatformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
+        Manager = CreateStrictMock<IMasterKeyManager>();
+        StoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        Store = CreateStrictMock<IMasterKeyStore>();
+        StoreManager = CreateStrictMock<IStoreManager>();
+        KeySet = CreateStrictMock<IExpiringKeySet>();
+        Publisher = CreateStrictMock<IEventPublisher>();
+        TenantResolver = CreateStrictMock<ITenantResolver>();
+        Platform = CreateStrictMock<OpenIdPlatform>();
 
-        _service = CreateService(CreateLooseMock<ILogger<MasterKeyMaintenanceService>>().Object);
+        Service = CreateService(CreateLooseMock<ILogger<MasterKeyMaintenanceService>>().Object);
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
-            _service.Dispose();
+            Service.Dispose();
 
         base.Dispose(disposing);
     }
@@ -70,16 +70,16 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         ILogger<MasterKeyMaintenanceService> logger
     ) =>
         new(
-            _platformAccessor.Object,
-            _manager.Object,
-            _storeManagerFactory.Object,
-            _keySet.Object,
-            _publisher.Object,
-            _tenantResolver.Object,
+            PlatformAccessor.Object,
+            Manager.Object,
+            StoreManagerFactory.Object,
+            KeySet.Object,
+            Publisher.Object,
+            TenantResolver.Object,
             Microsoft.Extensions.Options.Options.Create(
-                new SecretProtectionOptions { MasterKeys = _keyOptions }
+                new SecretProtectionOptions { MasterKeys = KeyOptions }
             ),
-            _time,
+            Time,
             logger
         );
 
@@ -143,37 +143,37 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     // The store manager that a page read opens, for the tests that read a page.
     private void SetupStore()
     {
-        _storeManagerFactory
+        StoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => new ValueTask<IStoreManager>(_storeManager.Object))
+            .Returns(() => new ValueTask<IStoreManager>(StoreManager.Object))
             .Verifiable();
-        _storeManager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(_store.Object).Verifiable();
-        _storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        StoreManager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(Store.Object).Verifiable();
+        StoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
     // The publisher that records the audit events, for the tests that publish.
     private void SetupPublisher() =>
-        _publisher
+        Publisher
             .Setup(x =>
                 x.PublishAsync(It.IsAny<MasterKeyAuditEvent>(), It.IsAny<CancellationToken>())
             )
-            .Callback<MasterKeyAuditEvent, CancellationToken>((e, _) => _published.Add(e))
+            .Callback<MasterKeyAuditEvent, CancellationToken>((e, _) => Published.Add(e))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
     // The control-plane tenant that a platform event is recorded in, for the tests that publish one.
     private void SetupControlPlaneTenant() =>
-        _tenantResolver
+        TenantResolver
             .Setup(x => x.GetControlPlaneTenantId())
             .Returns(ControlPlaneTenantId)
             .Verifiable();
 
     private void SetupLease(bool acquired) =>
-        _keySet
+        KeySet
             .Setup(x =>
                 x.TryAddAsync(
                     MasterKeyMaintenanceService.LeaseKey,
-                    Now + _keyOptions.MaintenanceInterval / 2,
+                    Now + KeyOptions.MaintenanceInterval / 2,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -185,10 +185,10 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         string? nextCursor,
         params PersistedMasterKey[] rows
     ) =>
-        _store
+        Store
             .Setup(x =>
                 x.GetActivePageAsync(
-                    Now - _keyOptions.RotationPeriod,
+                    Now - KeyOptions.RotationPeriod,
                     It.Is<PageRequest>(page => page.Cursor == cursor),
                     It.IsAny<CancellationToken>()
                 )
@@ -204,7 +204,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupActivePage(null, null, rows);
 
     private void SetupRetired(string? cursor, string? nextCursor, params SecretOwner[] owners) =>
-        _store
+        Store
             .Setup(x =>
                 x.GetRetiredOwnerPageAsync(
                     It.Is<PageRequest>(page => page.Cursor == cursor),
@@ -221,19 +221,19 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     private void SetupRetired(params SecretOwner[] owners) => SetupRetired(null, null, owners);
 
     private void SetupRotate(SecretOwner owner, MasterKeyRotation rotation) =>
-        _manager
+        Manager
             .Setup(x => x.RotateAsync(owner, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<MasterKeyRotation>(rotation))
             .Verifiable(Times.Once());
 
     private void SetupRewrap(SecretOwner owner, ProtectedValueRewrapResult result) =>
-        _manager
+        Manager
             .Setup(x => x.RewrapAsync(owner, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<ProtectedValueRewrapResult>(result))
             .Verifiable(Times.Once());
 
     private void SetupDestroy(SecretOwner owner, params MasterKeyInfo[] destroyed) =>
-        _manager
+        Manager
             .Setup(x => x.DestroyRetiredAsync(owner, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<IReadOnlyList<MasterKeyInfo>>(destroyed))
             .Verifiable(Times.Once());
@@ -265,10 +265,10 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupRotate(PlatformOwner, platformRotation);
         SetupControlPlaneTenant();
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        Assert.Equal(2, _published.Count);
-        var tenantEvent = _published[0];
+        Assert.Equal(2, Published.Count);
+        var tenantEvent = Published[0];
         Assert.Equal("master_key.rotated", tenantEvent.EventName);
         Assert.Equal(MasterKeyChangeReasons.RotationPeriodElapsed, tenantEvent.Reason);
         Assert.Equal(AuditActor.System, tenantEvent.Actor);
@@ -276,7 +276,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         Assert.Equal("acme", tenantEvent.TenantId);
         Assert.Equal(tenantRotation.ActiveKey, tenantEvent.Key);
         Assert.Equal(tenantRotation.RetiredKey, tenantEvent.RetiredKey);
-        Assert.Equal(ControlPlaneTenantId, _published[1].TenantId);
+        Assert.Equal(ControlPlaneTenantId, Published[1].TenantId);
     }
 
     [Fact]
@@ -298,9 +298,9 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         );
         SetupRotate(TenantOwner, rotation);
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        var auditEvent = Assert.Single(_published);
+        var auditEvent = Assert.Single(Published);
         Assert.Equal(rootKeyReference, auditEvent.Key.RootKeyReference);
         Assert.Equal("local", auditEvent.Key.RootKeyProvider);
     }
@@ -324,9 +324,9 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         );
         SetupRotate(TenantOwner, rotation);
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        var auditEvent = Assert.Single(_published);
+        var auditEvent = Assert.Single(Published);
         Assert.Equal(accessIdentity, auditEvent.Key.RootKeyAccessIdentity);
     }
 
@@ -335,11 +335,11 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     {
         SetupLease(false);
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        Assert.Empty(_published);
-        Assert.Empty(_storeManagerFactory.Invocations);
-        Assert.Empty(_manager.Invocations);
+        Assert.Empty(Published);
+        Assert.Empty(StoreManagerFactory.Invocations);
+        Assert.Empty(Manager.Invocations);
     }
 
     [Fact]
@@ -356,9 +356,9 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupRewrap(OtherOwner, ProtectedValueRewrapResult.None);
         SetupDestroy(OtherOwner);
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        var auditEvent = Assert.Single(_published);
+        var auditEvent = Assert.Single(Published);
         Assert.Equal("master_key.destroyed", auditEvent.EventName);
         Assert.Equal(MasterKeyChangeReasons.Unreferenced, auditEvent.Reason);
         Assert.Equal(destroyed, auditEvent.Key);
@@ -377,9 +377,9 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupDestroy(PlatformOwner, Info(PlatformOwner, 1, true));
         SetupControlPlaneTenant();
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        var auditEvent = Assert.Single(_published);
+        var auditEvent = Assert.Single(Published);
         Assert.Equal("master_key.destroyed", auditEvent.EventName);
         Assert.Equal(ControlPlaneTenantId, auditEvent.TenantId);
         Assert.Equal(SecretOwnerTypes.Platform, auditEvent.Key.Owner.OwnerType);
@@ -392,7 +392,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupLease(true);
         SetupActivePage();
         SetupRetired(TenantOwner, OtherOwner);
-        _manager
+        Manager
             .Setup(x => x.RewrapAsync(TenantOwner, It.IsAny<CancellationToken>()))
             .Throws(new InvalidOperationException("boom"))
             .Verifiable(Times.Once());
@@ -416,7 +416,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupLease(true);
         SetupActivePage(Row(TenantOwner, 1, false));
         SetupRetired();
-        _manager
+        Manager
             .Setup(x => x.RotateAsync(TenantOwner, It.IsAny<CancellationToken>()))
             .Throws(new StoreConcurrencyException())
             .Verifiable(Times.Once());
@@ -426,7 +426,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         await service.RunAsync(CancellationToken.None);
 
         Assert.Equal([(LogLevel.Debug, EventIds.MasterKeyRotationLostRace)], entries);
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     [Fact]
@@ -437,7 +437,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupLease(true);
         SetupActivePage(Row(TenantOwner, 1, false), Row(OtherOwner, 1, false));
         SetupRetired();
-        _manager
+        Manager
             .Setup(x => x.RotateAsync(TenantOwner, It.IsAny<CancellationToken>()))
             .Throws(new InvalidOperationException("root key down"))
             .Verifiable(Times.Once());
@@ -448,7 +448,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         await service.RunAsync(CancellationToken.None);
 
         Assert.Equal([(LogLevel.Warning, EventIds.MasterKeyMaintenanceOwnerFailed)], entries);
-        Assert.Equal("globex", Assert.Single(_published).TenantId);
+        Assert.Equal("globex", Assert.Single(Published).TenantId);
     }
 
     [Fact]
@@ -459,7 +459,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupActivePage(Row(TenantOwner, 1, false));
         SetupRetired();
         SetupRotate(TenantOwner, Rotation(TenantOwner));
-        _publisher
+        Publisher
             .Setup(x =>
                 x.PublishAsync(It.IsAny<MasterKeyAuditEvent>(), It.IsAny<CancellationToken>())
             )
@@ -478,7 +478,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     {
         SetupStore();
         SetupLease(true);
-        _store
+        Store
             .Setup(x =>
                 x.GetActivePageAsync(
                     It.IsAny<DateTimeOffset>(),
@@ -501,7 +501,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     {
         using var cancelled = new CancellationTokenSource();
         await cancelled.CancelAsync();
-        _keySet
+        KeySet
             .Setup(x =>
                 x.TryAddAsync(
                     It.IsAny<string>(),
@@ -513,7 +513,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
             .Verifiable(Times.Once());
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await _service.RunAsync(cancelled.Token)
+            await Service.RunAsync(cancelled.Token)
         );
     }
 
@@ -529,9 +529,9 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupRotate(TenantOwner, Rotation(TenantOwner));
         SetupRotate(OtherOwner, Rotation(OtherOwner));
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        Assert.Equal(2, _published.Count);
+        Assert.Equal(2, Published.Count);
     }
 
     [Fact]
@@ -547,9 +547,9 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupRewrap(OtherOwner, ProtectedValueRewrapResult.None);
         SetupDestroy(OtherOwner);
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     #endregion
@@ -559,14 +559,14 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_EveryMaintenanceInterval_RunsAPassUntilStopped()
     {
-        _platformAccessor
+        PlatformAccessor
             .Setup(x => x.GetPlatformAsync(It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<OpenIdPlatform>(_platform.Object))
+            .Returns(new ValueTask<OpenIdPlatform>(Platform.Object))
             .Verifiable(Times.Once());
 
         // The lease answers false, so a pass takes the lease and does nothing else.
         using var leased = new SemaphoreSlim(0);
-        _keySet
+        KeySet
             .Setup(x =>
                 x.TryAddAsync(
                     MasterKeyMaintenanceService.LeaseKey,
@@ -578,7 +578,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
             .ReturnsAsync(false)
             .Verifiable(Times.AtLeast(2));
 
-        await _service.StartAsync(CancellationToken.None);
+        await Service.StartAsync(CancellationToken.None);
 
         // The service may create its timer after StartAsync returns, so the clock advances until the second pass.
         Assert.True(await leased.WaitAsync(TimeSpan.FromSeconds(10)));
@@ -586,15 +586,15 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         var ticked = false;
         while (!ticked && DateTime.UtcNow < deadline)
         {
-            _time.Advance(_keyOptions.MaintenanceInterval);
+            Time.Advance(KeyOptions.MaintenanceInterval);
             ticked = await leased.WaitAsync(TimeSpan.FromMilliseconds(50));
         }
 
         Assert.True(ticked);
 
-        await _service.StopAsync(CancellationToken.None);
+        await Service.StopAsync(CancellationToken.None);
 
-        Assert.True(_service.ExecuteTask is { IsCompleted: true, IsFaulted: false });
+        Assert.True(Service.ExecuteTask is { IsCompleted: true, IsFaulted: false });
     }
 
     #endregion

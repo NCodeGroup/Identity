@@ -10,10 +10,22 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 
 /// <summary>
 /// A <see cref="HostApplicationFactory"/> whose host seeds the bootstrap administrator management client, and that
-/// creates management clients acting as it.
+/// creates management clients acting as it. A test that registers services of its own derives from it.
 /// </summary>
-public sealed class BootstrapAdminApplicationFactory : HostApplicationFactory
+/// <param name="configuration">The configuration keys (colon-delimited paths) and values to overlay on the host's configuration.</param>
+/// <param name="controlPlaneTenantId">The tenant the bootstrap administrator is seeded in.</param>
+public class BootstrapAdminApplicationFactory(
+    IReadOnlyDictionary<string, string?> configuration,
+    string controlPlaneTenantId = HostApplicationFactory.TenantId
+) : HostApplicationFactory
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BootstrapAdminApplicationFactory"/> class that seeds the bootstrap
+    /// administrator in the default tenant and overlays no other configuration.
+    /// </summary>
+    public BootstrapAdminApplicationFactory()
+        : this(new Dictionary<string, string?>()) { }
+
     /// <summary>
     /// The client identifier of the bootstrap administrator.
     /// </summary>
@@ -31,13 +43,13 @@ public sealed class BootstrapAdminApplicationFactory : HostApplicationFactory
 
         builder.ConfigureAppConfiguration(configurationBuilder =>
             configurationBuilder.AddInMemoryCollection(
-                new Dictionary<string, string?>
+                new Dictionary<string, string?>(configuration, StringComparer.Ordinal)
                 {
                     ["BootstrapAdmin:ClientId"] = ClientId,
                     ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
                         SecureEncoding.UTF8.GetBytes(ClientSecret)
                     ),
-                    ["BootstrapAdmin:TenantId"] = TenantId,
+                    ["BootstrapAdmin:TenantId"] = controlPlaneTenantId,
                 }
             )
         );

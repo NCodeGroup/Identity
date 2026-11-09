@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
+using NCode.Identity.Bff;
 using NCode.Identity.ManagementConsole.Host;
 using NCode.Identity.OpenId.Client;
 using NCode.Identity.Secrets.Collections;
@@ -19,7 +20,8 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// <summary>
 /// Hosts the management console's reference host in-process on a <see cref="TestServer"/>. The console's bundle is a
 /// small page and one asset in a temporary directory, its two key rings are in-memory P-256 keys, and, when a
-/// <see cref="HostApplicationFactory"/> is given, the console reaches that OpenID provider through its test server.
+/// <see cref="HostApplicationFactory"/> is given, the console reaches that provider's endpoints and its management API
+/// through its test server.
 /// </summary>
 public sealed class ManagementConsoleApplicationFactory
     : WebApplicationFactory<ManagementConsoleHostMarker>
@@ -135,9 +137,12 @@ public sealed class ManagementConsoleApplicationFactory
 
             if (_provider is not null)
             {
-                // Registered after the library, which configures its own primary handler for the named client.
+                // Registered after the library, which configures its own primary handler for each named client.
                 serviceCollection
                     .AddHttpClient(OpenIdClientDefaults.HttpClientName)
+                    .ConfigurePrimaryHttpMessageHandler(() => _provider.Server.CreateHandler());
+                serviceCollection
+                    .AddHttpClient(BffDefaults.RemoteApiHttpClientName)
                     .ConfigurePrimaryHttpMessageHandler(() => _provider.Server.CreateHandler());
             }
         });

@@ -413,7 +413,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.RemoteKeySweepSkipped,
         Level = LogLevel.Warning,
-        Message = "The remote key sweep of provider '{Provider}' is skipped because the provider is not registered or the deployment name is not configured"
+        Message = "The remote key sweep of provider '{Provider}' is skipped because the provider is not registered, creates no keys, or the deployment name is not configured"
     )]
     internal static partial void RemoteKeySweepSkipped(this ILogger logger, string provider);
 

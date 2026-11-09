@@ -19,32 +19,21 @@ namespace NCode.Identity.Bff.Logout;
 /// <summary>
 /// Handles <c>POST /bff/logout</c>: checks the request and ends the session of the user.
 /// </summary>
-internal class BffLogoutHandler
+internal class BffLogoutHandler(
+    BffFrontendCatalog frontends,
+    BffSessionResolver resolver,
+    BffLogoutService logoutService,
+    IProviderMetadataResolver metadataResolver
+)
 {
     private const string ReturnUrlParameterName = "returnUrl";
     private const string SidParameterName = "sid";
     private const string DefaultReturnUrl = "/";
 
-    private BffFrontendCatalog Frontends { get; }
-    private BffSessionResolver Resolver { get; }
-    private BffLogoutService LogoutService { get; }
-    private IProviderMetadataResolver MetadataResolver { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BffLogoutHandler"/> class.
-    /// </summary>
-    public BffLogoutHandler(
-        BffFrontendCatalog frontends,
-        BffSessionResolver resolver,
-        BffLogoutService logoutService,
-        IProviderMetadataResolver metadataResolver
-    )
-    {
-        Frontends = frontends;
-        Resolver = resolver;
-        LogoutService = logoutService;
-        MetadataResolver = metadataResolver;
-    }
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private BffSessionResolver Resolver { get; } = resolver;
+    private BffLogoutService LogoutService { get; } = logoutService;
+    private IProviderMetadataResolver MetadataResolver { get; } = metadataResolver;
 
     /// <summary>
     /// Handles the logout request.

@@ -21,37 +21,25 @@ namespace NCode.Identity.Bff.Login;
 /// <summary>
 /// Handles <c>GET /bff/login</c>: validates the request and builds the authorization request.
 /// </summary>
-internal class BffLoginHandler
+internal class BffLoginHandler(
+    BffFrontendCatalog frontends,
+    IAuthorizationRequestClient authorizationRequestClient,
+    BffLoginTransactionService transactionService,
+    BffCookies cookies,
+    IBffAuditRecorder auditRecorder,
+    TimeProvider timeProvider
+)
 {
     private const string ReturnUrlParameterName = "returnUrl";
     private const string DefaultReturnUrl = "/";
 
-    private BffFrontendCatalog Frontends { get; }
-    private IAuthorizationRequestClient AuthorizationRequestClient { get; }
-    private BffLoginTransactionService TransactionService { get; }
-    private BffCookies Cookies { get; }
-    private IBffAuditRecorder AuditRecorder { get; }
-    private TimeProvider TimeProvider { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BffLoginHandler"/> class.
-    /// </summary>
-    public BffLoginHandler(
-        BffFrontendCatalog frontends,
-        IAuthorizationRequestClient authorizationRequestClient,
-        BffLoginTransactionService transactionService,
-        BffCookies cookies,
-        IBffAuditRecorder auditRecorder,
-        TimeProvider timeProvider
-    )
-    {
-        Frontends = frontends;
-        AuthorizationRequestClient = authorizationRequestClient;
-        TransactionService = transactionService;
-        Cookies = cookies;
-        AuditRecorder = auditRecorder;
-        TimeProvider = timeProvider;
-    }
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private IAuthorizationRequestClient AuthorizationRequestClient { get; } =
+        authorizationRequestClient;
+    private BffLoginTransactionService TransactionService { get; } = transactionService;
+    private BffCookies Cookies { get; } = cookies;
+    private IBffAuditRecorder AuditRecorder { get; } = auditRecorder;
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <summary>
     /// Handles the login request.

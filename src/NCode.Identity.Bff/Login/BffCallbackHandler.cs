@@ -22,55 +22,35 @@ namespace NCode.Identity.Bff.Login;
 /// <summary>
 /// Handles <c>GET /bff/callback</c>: binds the returning browser to its login transaction.
 /// </summary>
-internal class BffCallbackHandler
+internal class BffCallbackHandler(
+    BffFrontendCatalog frontends,
+    BffLoginTransactionService transactionService,
+    BffCookies cookies,
+    IProviderMetadataResolver metadataResolver,
+    ITokenClient tokenClient,
+    IIdTokenValidator idTokenValidator,
+    IUserInfoClient userInfoClient,
+    IEnumerable<IBffLoginGate> gates,
+    IEnumerable<IBffSessionClaimContributor> claimContributors,
+    IBffSessionManager sessionManager,
+    IBffAuditRecorder auditRecorder,
+    TimeProvider timeProvider,
+    ILogger<BffCallbackHandler> logger
+)
 {
-    private BffFrontendCatalog Frontends { get; }
-    private BffLoginTransactionService TransactionService { get; }
-    private BffCookies Cookies { get; }
-    private IProviderMetadataResolver MetadataResolver { get; }
-    private ITokenClient TokenClient { get; }
-    private IIdTokenValidator IdTokenValidator { get; }
-    private IUserInfoClient UserInfoClient { get; }
-    private IEnumerable<IBffLoginGate> Gates { get; }
-    private IEnumerable<IBffSessionClaimContributor> ClaimContributors { get; }
-    private IBffSessionManager SessionManager { get; }
-    private IBffAuditRecorder AuditRecorder { get; }
-    private TimeProvider TimeProvider { get; }
-    private ILogger<BffCallbackHandler> Logger { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BffCallbackHandler"/> class.
-    /// </summary>
-    public BffCallbackHandler(
-        BffFrontendCatalog frontends,
-        BffLoginTransactionService transactionService,
-        BffCookies cookies,
-        IProviderMetadataResolver metadataResolver,
-        ITokenClient tokenClient,
-        IIdTokenValidator idTokenValidator,
-        IUserInfoClient userInfoClient,
-        IEnumerable<IBffLoginGate> gates,
-        IEnumerable<IBffSessionClaimContributor> claimContributors,
-        IBffSessionManager sessionManager,
-        IBffAuditRecorder auditRecorder,
-        TimeProvider timeProvider,
-        ILogger<BffCallbackHandler> logger
-    )
-    {
-        Frontends = frontends;
-        TransactionService = transactionService;
-        Cookies = cookies;
-        MetadataResolver = metadataResolver;
-        TokenClient = tokenClient;
-        IdTokenValidator = idTokenValidator;
-        UserInfoClient = userInfoClient;
-        Gates = gates;
-        ClaimContributors = claimContributors;
-        SessionManager = sessionManager;
-        AuditRecorder = auditRecorder;
-        TimeProvider = timeProvider;
-        Logger = logger;
-    }
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private BffLoginTransactionService TransactionService { get; } = transactionService;
+    private BffCookies Cookies { get; } = cookies;
+    private IProviderMetadataResolver MetadataResolver { get; } = metadataResolver;
+    private ITokenClient TokenClient { get; } = tokenClient;
+    private IIdTokenValidator IdTokenValidator { get; } = idTokenValidator;
+    private IUserInfoClient UserInfoClient { get; } = userInfoClient;
+    private IEnumerable<IBffLoginGate> Gates { get; } = gates;
+    private IEnumerable<IBffSessionClaimContributor> ClaimContributors { get; } = claimContributors;
+    private IBffSessionManager SessionManager { get; } = sessionManager;
+    private IBffAuditRecorder AuditRecorder { get; } = auditRecorder;
+    private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<BffCallbackHandler> Logger { get; } = logger;
 
     /// <summary>
     /// Handles the callback request.

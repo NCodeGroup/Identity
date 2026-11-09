@@ -31,12 +31,17 @@ internal sealed class ManagementRootGroup : IEndpointGroup
     /// </summary>
     public const string GroupName = "api";
 
+    /// <summary>
+    /// The path every management route starts with.
+    /// </summary>
+    internal const string RoutePrefix = "/api";
+
     /// <inheritdoc />
     public string Name => GroupName;
 
     /// <inheritdoc />
     public RoutePattern GetPrefix(IServiceProvider serviceProvider) =>
-        RoutePatternFactory.Parse("/api");
+        RoutePatternFactory.Parse(RoutePrefix);
 
     // See ADR-1480.
     /// <inheritdoc />

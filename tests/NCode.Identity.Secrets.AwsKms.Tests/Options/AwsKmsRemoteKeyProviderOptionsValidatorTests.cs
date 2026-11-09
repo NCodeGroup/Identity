@@ -44,6 +44,19 @@ public class AwsKmsRemoteKeyProviderOptionsValidatorTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
+    public void Validate_NoRegion_Succeeds(string? region)
+    {
+        var validator = CreateValidator();
+
+        var result = validator.Validate(
+            null,
+            new AwsKmsRemoteKeyProviderOptions { Region = region }
+        );
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
     [InlineData("global")]
     [InlineData("US-WEST-2")]
     [InlineData("us-west-2\n")]
@@ -103,7 +116,7 @@ public class AwsKmsRemoteKeyProviderOptionsValidatorTests
 
         var result = validator.Validate(
             null,
-            new AwsKmsRemoteKeyProviderOptions { Region = null, PendingWindowInDays = 1 }
+            new AwsKmsRemoteKeyProviderOptions { Region = "global", PendingWindowInDays = 1 }
         );
 
         Assert.True(result.Failed);

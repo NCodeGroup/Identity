@@ -19,8 +19,9 @@ public sealed class AwsKmsRemoteKeyProviderOptions
     public const string DefaultSectionName = "SecretProtection:RemoteKeyProviders:AwsKms";
 
     /// <summary>
-    /// Gets or sets the system name of the AWS region in which the provider creates keys, such as
-    /// <c>us-west-2</c>.
+    /// Gets or sets the system name of the AWS region in which the provider creates and lists keys, such as
+    /// <c>us-west-2</c>. When it is not set, the provider creates and lists no keys and still reads, signs with,
+    /// decrypts with and destroys keys in the region each key's ARN names.
     /// </summary>
     public string? Region { get; set; }
 

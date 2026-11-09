@@ -7,10 +7,9 @@ using Microsoft.Extensions.Options;
 namespace NCode.Identity.Secrets.AwsKms.Options;
 
 /// <summary>
-/// Validates the AWS Key Management Service remote key provider options when the host starts, so a missing or
-/// malformed region, or a pending window outside the range that the service allows, stops the host instead of failing
-/// the first time a key is created or destroyed. The options are always validated, because registering the provider
-/// selects it.
+/// Validates the AWS Key Management Service remote key provider options when the host starts, so a malformed region,
+/// or a pending window outside the range that the service allows, stops the host instead of failing the first time a
+/// key is created or destroyed. A provider without a region registers, and creates and lists no keys.
 /// </summary>
 // See ADR-1471 and ADR-1137 (configuration is validated at startup).
 internal sealed partial class AwsKmsRemoteKeyProviderOptionsValidator
@@ -31,7 +30,7 @@ internal sealed partial class AwsKmsRemoteKeyProviderOptionsValidator
 
         List<string>? failures = null;
 
-        if (options.Region is not { } region || !RegionPattern().IsMatch(region))
+        if (!string.IsNullOrEmpty(options.Region) && !RegionPattern().IsMatch(options.Region))
         {
             failures ??= [];
             failures.Add(

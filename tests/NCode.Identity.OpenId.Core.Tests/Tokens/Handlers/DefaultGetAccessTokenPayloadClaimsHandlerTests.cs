@@ -23,10 +23,8 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
     private const string TenantId = "tenant-1";
     private const string ClientId = "client-1";
 
-    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
-        "2025-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset CreatedWhen { get; } =
+        DateTimeOffset.Parse("2025-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private Mock<ICryptoService> MockCryptoService { get; }
     private DefaultGetAccessTokenPayloadClaimsHandler Handler { get; }

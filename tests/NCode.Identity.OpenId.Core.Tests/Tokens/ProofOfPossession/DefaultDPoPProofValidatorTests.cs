@@ -26,8 +26,8 @@ public class DefaultDPoPProofValidatorTests : BaseTests
     private const string Thumbprint = "thumbprint";
     private const string Jti = "jti-1";
 
-    private static readonly DateTimeOffset IssuedAt = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
-    private static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(60);
+    private static DateTimeOffset IssuedAt { get; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private static TimeSpan Lifetime { get; } = TimeSpan.FromSeconds(60);
 
     private Mock<IDPoPProofService> MockProofService { get; }
     private Mock<IDPoPProofReplayCache> MockReplayCache { get; }

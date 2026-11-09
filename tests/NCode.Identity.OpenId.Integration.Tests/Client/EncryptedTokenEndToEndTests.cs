@@ -19,6 +19,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.SharedState;
 using Xunit;
 
@@ -95,6 +96,41 @@ public class EncryptedTokenEndToEndTests
                             },
                             clientRsa
                         ),
+                    ]);
+            }
+        );
+        return services.BuildServiceProvider();
+    }
+
+    private static ServiceProvider CreateRemoteClientProvider(
+        HostApplicationFactory factory,
+        TestRemoteKeyProvider kms,
+        Func<SecretKey> decryptionKey
+    )
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary().AddOpenIdClientLibrary();
+        // AddOpenIdClientLibrary registers no IExpiringKeySet for the logout-token validator.
+        services.AddSharedStateServices().AddInProcessExpiringKeySet();
+        services
+            .AddHttpClient(OpenIdClientDefaults.HttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
+        services.AddSingleton<IRemoteKeyProvider>(kms);
+        services.AddSingleton<IRemoteKeyDescriptorSource>(kms);
+        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+            KeyRing,
+            (serviceProvider, _) =>
+            {
+                var keyFactory = serviceProvider.GetRequiredService<ISecretKeyFactory>();
+                return serviceProvider
+                    .GetRequiredService<ISecretKeyCollectionProviderFactory>()
+                    .CreateStatic([
+                        keyFactory.CreateSymmetric(
+                            new KeyMetadata { KeyId = "s" },
+                            ClientSecret.AsSpan()
+                        ),
+                        decryptionKey(),
                     ]);
             }
         );
@@ -382,6 +418,71 @@ public class EncryptedTokenEndToEndTests
         Assert.False(header.TryGetProperty(JoseClaimNames.Header.Zip, out _));
         Assert.Equal(Nonce, payload.GetProperty("nonce").GetString());
         Assert.False(string.IsNullOrEmpty(payload.GetProperty("sub").GetString()));
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithAnIdTokenEncryptedToAKeyAKmsHolds_DecryptsItInTheKms()
+    {
+        const string clientId = "it-encrypted-e2e-kms-id-token";
+
+        using var kms = new TestRemoteKeyProvider();
+        var clientRsa = RSA.Create(3072);
+        var jwks = BuildEncryptionJwks(clientRsa);
+        var kmsKeyId = kms.AddKey(clientRsa);
+
+        using var factory = new HostApplicationFactory
+        {
+            BackChannelLogoutExchanges = new(),
+            ClientJwksResponder = _ => jwks,
+        };
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await SeedClientAsync(factory, clientId);
+
+        SecretKey? remoteKey = null;
+        await using var provider = CreateRemoteClientProvider(
+            factory,
+            kms,
+            () =>
+                remoteKey ?? throw new InvalidOperationException("The decryption key is not read.")
+        );
+        var resolver = provider.GetRequiredService<IRemoteKeyResolver>();
+        var resolution = resolver.Resolve(
+            new RemoteKeyAlgorithmSelector
+            {
+                Provider = TestRemoteKeyProvider.ProviderName,
+                Algorithm = "RSA-OAEP-256",
+                SecretType = SecretKeyTypes.Rsa,
+                KeySizeBits = 3072,
+            }
+        );
+        remoteKey = await resolver.ReadKeyAsync(
+            resolution.Bind(kmsKeyId),
+            new KeyMetadata { KeyId = EncryptionKeyId },
+            CancellationToken.None
+        );
+        await provider
+            .GetRequiredService<IRemoteKeyProver>()
+            .ProveAsync(remoteKey, CancellationToken.None);
+        var decryptionsBefore = kms.DecryptionCount;
+
+        var registration = CreateRegistration(clientId);
+        var browser = CreateBrowser(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+
+        var (idToken, payload, _) = await RequestIdTokenAsync(
+            browser,
+            sessionCookie,
+            provider,
+            registration
+        );
+
+        var header = ReadEncryptionHeader(idToken);
+        Assert.Equal("RSA-OAEP-256", header.GetProperty(JoseClaimNames.Header.Alg).GetString());
+        Assert.Equal(EncryptionKeyId, header.GetProperty("kid").GetString());
+        Assert.Equal(Nonce, payload.GetProperty("nonce").GetString());
+        Assert.IsAssignableFrom<IRemoteSecretKey>(remoteKey);
+        Assert.Equal(SecretKeyUses.Encryption, remoteKey.Metadata.Use);
+        Assert.True(kms.DecryptionCount - decryptionsBefore >= 1);
     }
 
     [Fact]

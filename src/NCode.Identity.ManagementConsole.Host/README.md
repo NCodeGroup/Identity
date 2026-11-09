@@ -31,5 +31,15 @@ The image starts in the `Production` environment, which refuses to start until t
 - `ConnectionStrings__valkey`: the Valkey connection string that holds the sessions, required for more than one
   replica.
 
+A key ring can come from a key management service instead of a PEM file, or beside one. Each key is an entry
+`Bff__KeyRings__<ring>__RemoteKeys__<kid>__Provider` with `__KeyId`, `__Algorithm`, `__SecretType`, `__KeySizeBits` and
+`__Curve`, and the matching `SecretProtection__RemoteKeyProviders__<Vendor>__…` section configures the vendor: AWS
+`Region`, Azure `VaultUri` or Google `KeyRing`. The provider's row for the algorithm decides whether the key signs or
+decrypts. The console reads each key's public half and proves the key when it starts, so a key that its identity cannot
+read or use stops the host. The deployment's workload identity needs, for each key, `kms:GetPublicKey` plus `kms:Sign`
+or `kms:Decrypt` on AWS, `Key Vault Crypto User` on the key on Azure, or `cloudkms.cryptoKeyVersions.viewPublicKey`
+plus `.useToSign` or `.useToDecrypt` on Google Cloud. The key belongs to the operator, and the console never creates,
+tags or destroys it.
+
 The Helm chart in [`charts/ncode-identity-host`](../../charts/ncode-identity-host/README.md#management-console) deploys
 the image as its `managementConsole` component with these settings.

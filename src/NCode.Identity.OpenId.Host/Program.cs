@@ -95,19 +95,13 @@ identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultKeyWrapper(config
 identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsKeyWrapper(configuration);
 
 // AWS KMS can hold a tenant's keys ('tenant_key_provider' = 'aws-kms'); it is registered only when the 'SecretProtection:RemoteKeyProviders:AwsKms' section exists, because registering it selects it and validates its options at startup.
-identityServer.SecretPersistenceLibraryBuilder.AddAwsKmsRemoteKeyProviderIfConfigured(
-    configuration
-);
+identityServer.SecretsLibraryBuilder.AddAwsKmsRemoteKeyProviderIfConfigured(configuration);
 
 // Azure Key Vault or Managed HSM can hold a tenant's keys ('tenant_key_provider' = 'azure-key-vault'); it is registered only when the 'SecretProtection:RemoteKeyProviders:AzureKeyVault' section exists, because registering it selects it and validates its options at startup.
-identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(
-    configuration
-);
+identityServer.SecretsLibraryBuilder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(configuration);
 
 // Google Cloud KMS can hold a tenant's keys ('tenant_key_provider' = 'google-cloud-kms'); it is registered only when the 'SecretProtection:RemoteKeyProviders:GoogleCloudKms' section exists, because registering it selects it and validates its options at startup.
-identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(
-    configuration
-);
+identityServer.SecretsLibraryBuilder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(configuration);
 
 // Bind the frontend runtime bootstrap document (ADR-1064) from the 'Frontend' configuration section so the host can
 // publish this deployment's coordinates (API base, issuer, client id, feature flags, branding) to the tier-agnostic

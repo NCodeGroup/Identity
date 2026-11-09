@@ -190,6 +190,41 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client whose public keys are published at the given
+    /// <paramref name="jwksUri"/> (resolved at runtime), with no stored secrets, registered with the given redirect URIs
+    /// and the extra client settings, so the client can authenticate via <c>private_key_jwt</c>.
+    /// </summary>
+    public async Task SeedPrivateKeyJwtClientWithSettingsAsync(
+        string clientId,
+        string jwksUri,
+        IReadOnlyDictionary<string, object> settings,
+        params string[] redirectUris
+    )
+    {
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        var allSettings = new Dictionary<string, object>(settings)
+        {
+            ["jwks_uri"] = jwksUri,
+            ["redirect_uris"] = redirectUris,
+            ["token_endpoint_auth_method"] = OpenIdProtocol
+                .ClientAuthenticationMethods
+                .PrivateKeyJwt,
+        };
+
+        using var scope = Services.CreateScope();
+        await AddClientAsync(
+            scope.ServiceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(allSettings),
+            []
+        );
+    }
+
+    /// <summary>
     /// Ensures the tenant exists and seeds a passwordless local account together with the one-to-one self-issued
     /// federated identity that a real interactive login provisions, so the UserInfo scope-claims enricher
     /// can be exercised end-to-end. Returns the provisioned principal id — the value a self-issued access token carries

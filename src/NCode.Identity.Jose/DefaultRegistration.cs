@@ -63,6 +63,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IJoseSerializer, JoseSerializer>();
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<IDPoPProofService, DefaultDPoPProofService>();
+            serviceCollection.TryAddSingleton<IRemoteKeyProver, DefaultRemoteKeyProver>();
 
             return newBuilder;
         }

@@ -29,8 +29,7 @@ namespace NCode.Identity.Secrets.Persistence;
 internal class DefaultSecretSerializer(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
-    IRemoteKeyProviderCatalog remoteKeyProviderCatalog,
-    IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog
+    IRemoteKeyResolver remoteKeyResolver
 ) : ISecretSerializer
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
@@ -38,10 +37,7 @@ internal class DefaultSecretSerializer(
     private ISecretVerifierSchemeCatalog SecretVerifierSchemeCatalog { get; } =
         secretVerifierSchemeCatalog;
 
-    private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
-
-    private IRemoteKeyDescriptorCatalog RemoteKeyDescriptorCatalog { get; } =
-        remoteKeyDescriptorCatalog;
+    private IRemoteKeyResolver RemoteKeyResolver { get; } = remoteKeyResolver;
 
     /// <inheritdoc />
     public IReadOnlyCollection<SecretKey> DeserializeSecrets(
@@ -265,6 +261,7 @@ internal class DefaultSecretSerializer(
     // service holds, and its stored public key is the only key material read. The secret is read fail-closed, so a
     // missing provider, public key or mapping row never yields a key that cannot sign.
     // See ADR-1471.
+    // See ADR-1479.
     private SecretKey DeserializeRemoteSecret(
         PersistedSecret persistedSecret,
         ISecretKeyTypeDescriptor descriptor,
@@ -280,13 +277,6 @@ internal class DefaultSecretSerializer(
             );
         }
 
-        if (!RemoteKeyProviderCatalog.TryGetProvider(reference.Provider, out var provider))
-        {
-            throw new InvalidOperationException(
-                $"The secret '{secretId}' names the remote key provider '{reference.Provider}', which is not registered."
-            );
-        }
-
         var storedPublicKey =
             persistedSecret.PublicKey
             ?? throw new InvalidOperationException(
@@ -299,7 +289,7 @@ internal class DefaultSecretSerializer(
                 $"The secret '{secretId}' holds a remote key and has no algorithm."
             );
 
-        if (descriptor is not IRemoteSecretKeyTypeDescriptor remoteDescriptor)
+        if (descriptor is not IRemoteSecretKeyTypeDescriptor)
         {
             throw new InvalidOperationException(
                 $"The '{persistedSecret.SecretType}' secret type of the secret '{secretId}' does not support remote keys."
@@ -341,41 +331,44 @@ internal class DefaultSecretSerializer(
             }
         }
 
-        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var algorithm))
+        RemoteKeyResolution resolution;
+        try
         {
-            throw new InvalidOperationException(
-                $"The secret '{secretId}' has no remote algorithm for provider '{selector.Provider}', "
-                    + $"algorithm '{selector.Algorithm}', secret type '{selector.SecretType}', key size {selector.KeySizeBits} and curve '{selector.Curve}'."
-            );
+            resolution = RemoteKeyResolver.Resolve(selector);
+        }
+        catch (RemoteKeyRefusedException exception)
+        {
+            throw CreateRefusal(secretId, exception);
         }
 
         // See ADR-1477.
-        if (persistedSecret.Use is { } use && use != algorithm.Use)
+        if (persistedSecret.Use is { } use && use != resolution.Algorithm.Use)
         {
             throw new InvalidOperationException(
-                $"The secret '{secretId}' has the use '{use}', but its remote row '{algorithm.Algorithm}' has the use '{algorithm.Use}'."
+                $"The secret '{secretId}' has the use '{use}', but its remote row '{resolution.Algorithm.Algorithm}' has the use '{resolution.Algorithm.Use}'."
             );
         }
 
-        var binding = new RemoteKeyBinding
-        {
-            Provider = provider,
-            Reference = reference,
-            Algorithm = algorithm,
-        };
+        var binding = resolution.Bind(reference.KeyId);
 
         try
         {
-            return remoteDescriptor.CreateRemoteKey(metadata, publicKeySpanLease.Span, binding);
+            return RemoteKeyResolver.CreateKey(binding, metadata, publicKeySpanLease.Span);
         }
-        catch (ArgumentException exception)
+        catch (RemoteKeyRefusedException exception)
         {
-            throw new InvalidOperationException(
-                $"The secret '{secretId}' holds a remote key that does not match its remote row.",
-                exception
-            );
+            throw CreateRefusal(secretId, exception);
         }
     }
+
+    private static InvalidOperationException CreateRefusal(
+        string secretId,
+        RemoteKeyRefusedException exception
+    ) =>
+        new(
+            $"The secret '{secretId}' cannot be read as a remote key: {exception.Message}",
+            exception
+        );
 
     // Public key material is stored as plain base64url text.
     private static void ReadPublicKeyMaterial(

@@ -85,8 +85,7 @@ public class DefaultSecretSerializerTests : BaseTests
         _serializer = new DefaultSecretSerializer(
             catalog,
             TestSecretVerifierSchemes.CreateCatalog(),
-            _remoteCatalog,
-            _remoteDescriptorCatalog
+            new DefaultRemoteKeyResolver(catalog, _remoteCatalog, _remoteDescriptorCatalog)
         );
     }
 
@@ -736,8 +735,11 @@ public class DefaultSecretSerializerTests : BaseTests
         var serializer = new DefaultSecretSerializer(
             _catalog,
             TestSecretVerifierSchemes.CreateCatalog(),
-            new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
-            new DefaultRemoteKeyDescriptorCatalog([])
+            new DefaultRemoteKeyResolver(
+                _catalog,
+                new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
+                new DefaultRemoteKeyDescriptorCatalog([])
+            )
         );
 
         var secretKey = serializer.DeserializePublicSecret(persisted);
@@ -924,8 +926,7 @@ public class DefaultSecretSerializerTests : BaseTests
         var serializer = new DefaultSecretSerializer(
             _catalog,
             new DefaultSecretVerifierSchemeCatalog([new PlainTextSecretVerifierScheme()]),
-            _remoteCatalog,
-            _remoteDescriptorCatalog
+            new DefaultRemoteKeyResolver(_catalog, _remoteCatalog, _remoteDescriptorCatalog)
         );
         var protector = CreateProtector();
         var persisted = CreateVerifierSecret(protector, "$test-plain$secret");

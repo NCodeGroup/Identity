@@ -4,8 +4,6 @@ const NCode.Identity.Secrets.GoogleCloudKms.Options.GoogleCloudKmsRemoteKeyProvi
 NCode.Identity.Secrets.GoogleCloudKms.DefaultRegistration
 NCode.Identity.Secrets.GoogleCloudKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!)
 NCode.Identity.Secrets.GoogleCloudKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddGoogleCloudKmsKeyWrapper(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
-NCode.Identity.Secrets.GoogleCloudKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddGoogleCloudKmsRemoteKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
-NCode.Identity.Secrets.GoogleCloudKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddGoogleCloudKmsRemoteKeyProviderIfConfigured(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
 NCode.Identity.Secrets.GoogleCloudKms.Options.GoogleCloudKmsKeyWrapperOptions
 NCode.Identity.Secrets.GoogleCloudKms.Options.GoogleCloudKmsKeyWrapperOptions.GoogleCloudKmsKeyWrapperOptions() -> void
 NCode.Identity.Secrets.GoogleCloudKms.Options.GoogleCloudKmsKeyWrapperOptions.KeyName.get -> string?
@@ -16,3 +14,7 @@ NCode.Identity.Secrets.GoogleCloudKms.Options.GoogleCloudKmsRemoteKeyProviderOpt
 NCode.Identity.Secrets.GoogleCloudKms.Options.GoogleCloudKmsRemoteKeyProviderOptions.HardwareProtected.set -> void
 NCode.Identity.Secrets.GoogleCloudKms.Options.GoogleCloudKmsRemoteKeyProviderOptions.KeyRing.get -> string?
 NCode.Identity.Secrets.GoogleCloudKms.Options.GoogleCloudKmsRemoteKeyProviderOptions.KeyRing.set -> void
+NCode.Identity.Secrets.GoogleCloudKms.SecretsLibraryRegistration
+NCode.Identity.Secrets.GoogleCloudKms.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
+NCode.Identity.Secrets.GoogleCloudKms.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddGoogleCloudKmsRemoteKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Secrets.GoogleCloudKms.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddGoogleCloudKmsRemoteKeyProviderIfConfigured(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!

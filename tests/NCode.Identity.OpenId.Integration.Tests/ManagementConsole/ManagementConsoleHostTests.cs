@@ -3,8 +3,10 @@
 
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Bff;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
+using NCode.Identity.Secrets.RemoteKeys;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.ManagementConsole;
@@ -156,6 +158,34 @@ public class ManagementConsoleHostTests
         using var response = await client.GetAsync("/management/api/caller");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    #endregion
+
+    #region RemoteKeyProviders Tests
+
+    [Fact]
+    public async Task Services_WhenEveryRemoteKeyProviderSectionIsConfigured_StartsWithEveryProviderRegistered()
+    {
+        await using var factory = new ManagementConsoleApplicationFactory();
+        await using var derived = factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("SecretProtection:RemoteKeyProviders:AwsKms:Region", "us-west-2");
+            builder.UseSetting(
+                "SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri",
+                "https://contoso.vault.azure.net"
+            );
+            builder.UseSetting(
+                "SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing",
+                "projects/p/locations/l/keyRings/r"
+            );
+        });
+
+        var catalog = derived.Services.GetRequiredService<IRemoteKeyProviderCatalog>();
+
+        Assert.True(catalog.TryGetProvider(RemoteKeyProviderNames.AwsKms, out _));
+        Assert.True(catalog.TryGetProvider(RemoteKeyProviderNames.AzureKeyVault, out _));
+        Assert.True(catalog.TryGetProvider(RemoteKeyProviderNames.GoogleCloudKms, out _));
     }
 
     #endregion

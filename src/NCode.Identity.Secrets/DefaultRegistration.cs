@@ -52,6 +52,7 @@ public static class DefaultRegistration
         /// <item><description><see cref="ISecretKeyCollectionFactory"/> - Factory for creating secret key collections.</description></item>
         /// <item><description><see cref="IRemoteKeyDescriptorCatalog"/> - Lookup over the described remote key providers and signing algorithm rows.</description></item>
         /// <item><description><see cref="IRemoteKeyProviderCatalog"/> - Lookup over the registered remote key providers.</description></item>
+        /// <item><description><see cref="IRemoteKeyResolver"/> - Resolves the provider and the row of a remote key and reads its public half.</description></item>
         /// </list>
         /// <para>
         /// Services are registered using <c>TryAddSingleton</c> semantics where applicable,
@@ -111,6 +112,10 @@ public static class DefaultRegistration
                 IRemoteKeyProviderCatalog,
                 DefaultRemoteKeyProviderCatalog
             >();
+
+            // The remote key resolver reads a key's public half and creates the remote key for the secret generator,
+            // the serializer and every key ring (ADR-1479).
+            serviceCollection.TryAddSingleton<IRemoteKeyResolver, DefaultRemoteKeyResolver>();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

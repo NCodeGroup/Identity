@@ -1,6 +1,6 @@
 # 1473. A key management service's adapter package is named for its service
 
-- **Status:** Accepted (amends [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md))
+- **Status:** Accepted (amends [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md); amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md): the remote key providers register on the secrets library's builder)
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 
@@ -30,7 +30,8 @@ package segment. A package that adds another service names itself the same way.
 
 ## Consequences
 
-- The packages register both roles on the `SecretPersistenceLibrary` builder.
+- The packages register the key wrapper on the `SecretPersistenceLibrary` builder and the remote key provider on the
+  `SecretsLibrary` builder.
 - A host references one package per service, whichever roles it uses.
 - A new role for a service is a new namespace in its package, not a new package.
 

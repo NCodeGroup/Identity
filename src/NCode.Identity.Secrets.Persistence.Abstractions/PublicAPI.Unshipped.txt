@@ -116,10 +116,6 @@ NCode.Identity.Secrets.Persistence.GeneratedSecret.Secret.get -> NCode.Identity.
 NCode.Identity.Secrets.Persistence.GeneratedSecret.Secret.init -> void
 NCode.Identity.Secrets.Persistence.GeneratedSecret.SecretMaterial.get -> string?
 NCode.Identity.Secrets.Persistence.GeneratedSecret.SecretMaterial.init -> void
-NCode.Identity.Secrets.Persistence.RemoteSecretRefusedException
-NCode.Identity.Secrets.Persistence.RemoteSecretRefusedException.RemoteSecretRefusedException() -> void
-NCode.Identity.Secrets.Persistence.RemoteSecretRefusedException.RemoteSecretRefusedException(string! message) -> void
-NCode.Identity.Secrets.Persistence.RemoteSecretRefusedException.RemoteSecretRefusedException(string! message, System.Exception! innerException) -> void
 NCode.Identity.Secrets.Persistence.SharedSecretRequest
 NCode.Identity.Secrets.Persistence.SharedSecretRequest.Algorithm.get -> string?
 NCode.Identity.Secrets.Persistence.SharedSecretRequest.Algorithm.init -> void

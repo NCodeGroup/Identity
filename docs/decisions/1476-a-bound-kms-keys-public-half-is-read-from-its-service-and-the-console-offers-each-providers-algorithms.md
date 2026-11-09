@@ -1,6 +1,6 @@
 # 1476. A bound KMS key's public half is read from its service, and the console offers each provider's algorithms
 
-- **Status:** Accepted (amends [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md); amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md))
+- **Status:** Accepted (amends [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md); amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md); amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md): IRemoteKeyResolver reads a key's public half, IRemoteKeyProver proves it, and RemoteKeyRefusedException signals a refusal)
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 
@@ -37,16 +37,18 @@ rows; and the console creates and binds a tenant's remote keys from them.**
    a KMS can hold, a described provider, an algorithm that resolves the key's size and curve, and a row for them, all
    before any KMS call.
 2. **The generator reads the public half.** `ISecretGenerator.BindRemoteSecretAsync(BindRemoteSecretRequest)`
-   finds the provider and the row, reads the key's `SubjectPublicKeyInfo` with `GetPublicKeyAsync`, which refuses a
-   key whose usage, specification or signing algorithms do not match the row, and checks that the half is a key of
-   the row's type, size and curve, as `GenerateRemoteSecretAsync` checks a key it created. It returns a `remote`
-   secret with `Origin` `supplied` and no `ManagedBy`, so the server never destroys the key.
+   resolves the provider and the row and reads, through `IRemoteKeyResolver`, the key's `SubjectPublicKeyInfo` with
+   `GetPublicKeyAsync`, which refuses a key whose usage, specification or signing algorithms do not match the row, and
+   checks that the half is a key of the row's type, size and curve, as `GenerateRemoteSecretAsync` checks a key it
+   created. It returns a `remote` secret with `Origin` `supplied` and no `ManagedBy`, so the server never destroys the
+   key.
 3. **The binding is proved.** Before the store adds the secret, the server signs 32 random bytes through the key and
-   verifies the signature with the half the KMS returned (`IRemoteSecretImporter.VerifyBindingAsync`), so a key is
-   stored only once the KMS signs with it for the row's algorithm under the deployment's identity.
+   verifies the signature with the half the KMS returned (`IRemoteSecretImporter.VerifyBindingAsync` through
+   `IRemoteKeyProver`), so a key is stored only once the KMS signs with it for the row's algorithm under the
+   deployment's identity.
 4. **A refusal is a `400`, a failure a `502`.** A key identifier the provider does not read, a key it refuses and a
    half that does not match the row answer `400` with the reason; any other failure of the KMS is logged and
-   answers `502`. The generator signals its own refusal with `RemoteSecretRefusedException`, and a provider signals a
+   answers `502`. The generator signals its own refusal with `RemoteKeyRefusedException`, and a provider signals a
    key identifier it does not read with `ArgumentException` and a key it refuses with `CryptographicException`, as
    `IRemoteKeyProvider.GetPublicKeyAsync` documents; no other exception, such as an `InvalidOperationException` from
    a KMS client or its credentials, is read as a refusal. A create answers the generator's refusal `400` and any

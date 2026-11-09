@@ -7,7 +7,9 @@
   [ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md),
   [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md); amended by
   [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md): the
-  console's image and the host chart's management console component)
+  console's image and the host chart's management console component; amended by
+  [ADR-1488](1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md):
+  the console's host serves only the console, and the console reaches the management API at its authority's origin)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 

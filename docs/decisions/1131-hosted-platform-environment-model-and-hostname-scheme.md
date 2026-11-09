@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): `manage.<apex>`
-  serves the management console's BFF host, and routes `/api` to the management API)
+  serves the management console's BFF host, and routes `/api` to the management API; amended by
+  [ADR-1488](1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md):
+  the management API is served at the root tenant's issuer host, and `manage.<apex>` serves only the console)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

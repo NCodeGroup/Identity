@@ -1,10 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Text.Json;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.RemoteKeys;
@@ -20,8 +18,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // See ADR-1478.
 public class RemoteKeyDeploymentTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string JwksPath = "/oauth2/jwks";
     private const string DeploymentKey = "SecretProtection:RemoteKeys:Deployment";
     private const string UnknownKey = "SecretProtection:RemoteKeys:Unknown";
@@ -29,15 +25,7 @@ public class RemoteKeyDeploymentTests
         $"OpenId:Platform:Settings:{OpenIdSettingNames.TenantKeyProvider}";
 
     private static Dictionary<string, string?> CreateStaticConfiguration() =>
-        new()
-        {
-            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-            ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-            ),
-            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            [ProviderSettingConfigKey] = TestRemoteKeyProvider.ProviderName,
-        };
+        new() { [ProviderSettingConfigKey] = TestRemoteKeyProvider.ProviderName };
 
     #region ListKeysAsync Tests
 

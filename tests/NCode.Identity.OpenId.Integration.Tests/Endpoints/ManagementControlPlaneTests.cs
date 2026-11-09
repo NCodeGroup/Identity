@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -21,28 +20,16 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // See ADR-1191.
 public class ManagementControlPlaneTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string HostIssuerTemplate = "https://{tenantId}.auth.test";
     private const string PathIssuerTemplate = "http://localhost/{tenantId}";
 
     #region Helpers
 
-    private static ConfiguredHostApplicationFactory CreateFactory(
+    private static BootstrapAdminApplicationFactory CreateFactory(
         Dictionary<string, string?> strategySettings
-    ) =>
-        new(
-            new Dictionary<string, string?>(strategySettings)
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = "root",
-            }
-        );
+    ) => new(strategySettings, "root");
 
-    private static ConfiguredHostApplicationFactory CreateHostFactory() =>
+    private static BootstrapAdminApplicationFactory CreateHostFactory() =>
         CreateFactory(
             new Dictionary<string, string?>
             {
@@ -54,7 +41,7 @@ public class ManagementControlPlaneTests
             }
         );
 
-    private static ConfiguredHostApplicationFactory CreatePathFactory() =>
+    private static BootstrapAdminApplicationFactory CreatePathFactory() =>
         CreateFactory(
             new Dictionary<string, string?>
             {
@@ -73,7 +60,7 @@ public class ManagementControlPlaneTests
         var client = factory.CreateClient();
 
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, tokenPath)
         {

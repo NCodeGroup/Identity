@@ -35,9 +35,11 @@ GET api/me/tenants
 /// Provides the API endpoints that tell the caller of the management API where it holds authority: the principal it
 /// acts as, whether it administers the platform, the role assignments it holds, and the teams and tenants it holds a
 /// role at. Authority stays per resource and the token names no team, so every answer is read from the caller's role
-/// assignments at the time of the request.
+/// assignments at the time of the request. It answers only a caller that the management authentication filter
+/// authenticated from a management access token, which it reads from <see cref="IManagementCallerFeature"/>; any other
+/// request gets the authentication-required problem.
 /// </summary>
-// See ADR-1420
+// See ADR-1420 and ADR-1484.
 internal class CallerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
@@ -53,7 +55,10 @@ internal class CallerApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var me = endpoints.MapGroup("/me").WithTags(OpenIdConstants.EndpointTags.Caller);
+        var me = endpoints
+            .MapGroup("/me")
+            .WithTags(OpenIdConstants.EndpointTags.Caller)
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
 
         me.MapGet("", GetCallerAsync).Produces<CallerResource>();
         me.MapGet("/teams", ListTeamsAsync).Produces<CollectionResource<TeamResource>>();
@@ -91,36 +96,50 @@ internal class CallerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = httpContext.GetOpenIdContext();
+        return await AnswerCallerAsync(httpContext, DescribeCallerAsync, cancellationToken);
+    }
 
-        using var scope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-
+    /// <summary>
+    /// Describes the caller's principal, its authority at the platform node and the role assignments it holds.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="caller">The <see cref="ClaimsPrincipal"/> of the caller.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> to read through.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the JSON result
+    /// with the caller's principal, platform authority and role assignments.</returns>
+    private async ValueTask<IResult> DescribeCallerAsync(
+        OpenIdContext openIdContext,
+        ClaimsPrincipal caller,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
         var (principalId, assignments) = await GetAssignmentsAsync(
             openIdContext,
-            httpContext.User,
+            caller,
             storeManager,
             cancellationToken
         );
 
+        var platformNode = ResourceNode.For(
+            openIdContext.Tenant.TenantId,
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId
+        );
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            ResourceNode.For(
-                openIdContext.Tenant.TenantId,
-                ResourceNodeTypes.Platform,
-                OpenIdConstants.PlatformResourceId
-            ),
+            caller,
+            platformNode,
             Operations.Read
         );
 
-        return TypedResults.Json(
-            new CallerResource
-            {
-                PrincipalId = principalId,
-                IsPlatformAdministrator = authorizationResult.Succeeded,
-                Assignments = assignments.Select(ToRoleAssignmentResource).ToList(),
-            }
-        );
+        var resource = new CallerResource
+        {
+            PrincipalId = principalId,
+            IsPlatformAdministrator = authorizationResult.Succeeded,
+            Assignments = assignments.Select(ToRoleAssignmentResource).ToList(),
+        };
+        return TypedResults.Json(resource);
     }
 
     /// <summary>
@@ -199,27 +218,62 @@ internal class CallerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        return await AnswerCallerAsync(
+            httpContext,
+            async (openIdContext, caller, storeManager, ct) =>
+            {
+                var (_, assignments) = await GetAssignmentsAsync(
+                    openIdContext,
+                    caller,
+                    storeManager,
+                    ct
+                );
+                var resourceIds = GetResourceIds(assignments, nodeType).ToList();
+                var items = await readAndMapAsync(storeManager, resourceIds, ct);
+                var collection = new CollectionResource<TResource>
+                {
+                    Items = items,
+                    ContinuationToken = null,
+                };
+                return TypedResults.Json(collection);
+            },
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Answers the caller that the management authentication filter authenticated from a management access token,
+    /// read from <see cref="IManagementCallerFeature"/>, in the request's control-plane tenant scope through one
+    /// store manager; any other request gets the authentication-required problem.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="answerAsync">The delegate that answers the caller from the request's <see cref="OpenIdContext"/>,
+    /// the caller's <see cref="ClaimsPrincipal"/> and the <see cref="IStoreManager"/> to read through.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the result that
+    /// answers the caller, or the authentication-required problem.</returns>
+    private async ValueTask<IResult> AnswerCallerAsync(
+        HttpContext httpContext,
+        Func<
+            OpenIdContext,
+            ClaimsPrincipal,
+            IStoreManager,
+            CancellationToken,
+            ValueTask<IResult>
+        > answerAsync,
+        CancellationToken cancellationToken
+    )
+    {
+        var caller = httpContext.Features.Get<IManagementCallerFeature>()?.Caller;
+        if (caller is null)
+            return ManagementProblems.AuthenticationRequired();
+
         var openIdContext = httpContext.GetOpenIdContext();
 
         using var scope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
 
-        var (_, assignments) = await GetAssignmentsAsync(
-            openIdContext,
-            httpContext.User,
-            storeManager,
-            cancellationToken
-        );
-
-        var items = await readAndMapAsync(
-            storeManager,
-            GetResourceIds(assignments, nodeType).ToList(),
-            cancellationToken
-        );
-
-        return TypedResults.Json(
-            new CollectionResource<TResource> { Items = items, ContinuationToken = null }
-        );
+        return await answerAsync(openIdContext, caller, storeManager, cancellationToken);
     }
 
     /// <summary>

@@ -69,6 +69,7 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
         serviceCollection.AddHttpContextAccessor();
         serviceCollection.AddHttpForwarder();
         serviceCollection.AddSingleton(catalog);
+        serviceCollection.AddHttpClient();
         serviceCollection.AddSingleton<BffRemoteApiInvokerFactory>();
         serviceCollection.AddSingleton<BffRemoteApiRegistry>();
         serviceCollection.AddSingleton<BffRemoteApiHandler>();

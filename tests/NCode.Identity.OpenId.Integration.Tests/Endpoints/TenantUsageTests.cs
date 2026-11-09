@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -24,14 +23,12 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // through the management API (ADR-1199).
 public class TenantUsageTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string UsagePath = $"/api/tenants/{HostApplicationFactory.TenantId}/usage";
 
     #region Helpers
 
     private static WebApplicationFactory<HostApiMarker> CreateFactory(
-        ConfiguredHostApplicationFactory host
+        BootstrapAdminApplicationFactory host
     ) =>
         host.WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(services =>
@@ -41,22 +38,15 @@ public class TenantUsageTests
             )
         );
 
-    private static ConfiguredHostApplicationFactory CreateHost(
+    private static BootstrapAdminApplicationFactory CreateHost(
         IReadOnlyDictionary<string, string?>? settings = null
     )
     {
-        var configuration = new Dictionary<string, string?>
-        {
-            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-            ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-            ),
-            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-        };
+        var configuration = new Dictionary<string, string?>();
         foreach (var (name, value) in settings ?? new Dictionary<string, string?>())
             configuration[$"OpenId:Platform:Settings:{name}"] = value;
 
-        return new ConfiguredHostApplicationFactory(configuration);
+        return new BootstrapAdminApplicationFactory(configuration);
     }
 
     // The ledger is written by the periodic flush, so poll until the meter reaches the expected count.
@@ -88,7 +78,7 @@ public class TenantUsageTests
     {
         var client = CreateClient(factory);
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
@@ -232,7 +222,7 @@ public class TenantUsageTests
         var client = CreateClient(factory);
 
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var refusedRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {

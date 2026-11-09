@@ -8,7 +8,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
 using NCode.Identity.Events;
@@ -27,8 +26,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// </summary>
 public class TenantKeyRolloverTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string JwksPath = "/oauth2/jwks";
     private const string SecretsPath = $"/api/tenants/{HostApplicationFactory.TenantId}/secrets";
 
@@ -36,7 +33,7 @@ public class TenantKeyRolloverTests
     public async Task PutSecret_WhenTheActiveKeyRetiresSoon_PublishesItsSuccessorAheadAndKeepsSigningWithIt()
     {
         var recorder = new RecordingAuditEventHandler();
-        using var factory = new ProductionKeysApplicationFactory(recorder);
+        using var factory = new KeyRolloverAuditHostApplicationFactory(recorder);
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
 
@@ -95,7 +92,7 @@ public class TenantKeyRolloverTests
     public async Task PutSecret_WhenAKeyHasExpired_RemovesItFromTheKeySetAndReplacesIt()
     {
         var recorder = new RecordingAuditEventHandler();
-        using var factory = new ProductionKeysApplicationFactory(recorder);
+        using var factory = new KeyRolloverAuditHostApplicationFactory(recorder);
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
 
@@ -142,7 +139,9 @@ public class TenantKeyRolloverTests
     [Fact]
     public async Task PutSecret_WhenTheLifecycleIsOutOfOrder_AnswersBadRequest()
     {
-        using var factory = new ProductionKeysApplicationFactory(new RecordingAuditEventHandler());
+        using var factory = new KeyRolloverAuditHostApplicationFactory(
+            new RecordingAuditEventHandler()
+        );
         using var administrator = await CreateAdministratorClientAsync(factory);
 
         var provisioned = await GetSecretsAsync(administrator);
@@ -262,7 +261,7 @@ public class TenantKeyRolloverTests
     private static async Task<string> GetBootstrapTokenAsync(HttpClient client)
     {
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
@@ -294,27 +293,15 @@ public class TenantKeyRolloverTests
         JsonElement.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[0]));
 
     /// <summary>
-    /// A factory with the bootstrap administrator configured and an audit recorder registered.
+    /// A <see cref="BootstrapAdminApplicationFactory"/> whose host also sends its audit events to a recorder.
     /// </summary>
-    private sealed class ProductionKeysApplicationFactory(RecordingAuditEventHandler recorder)
-        : HostApplicationFactory
+    private sealed class KeyRolloverAuditHostApplicationFactory(RecordingAuditEventHandler recorder)
+        : BootstrapAdminApplicationFactory()
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
 
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                    }
-                )
-            );
             builder.ConfigureServices(services =>
                 services.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
             );

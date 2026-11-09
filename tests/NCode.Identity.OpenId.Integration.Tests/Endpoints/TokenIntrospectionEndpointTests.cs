@@ -7,9 +7,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
@@ -31,8 +29,6 @@ public class TokenIntrospectionEndpointTests
     private const string BillingResourceServerId = "it-billing-rs";
     private const string BillingAudience = "https://billing.introspect.test";
     private const string BillingScope = "billing:read";
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string ManagementScope = "read:clients";
     private const string JwtResponseMediaType = "application/token-introspection+jwt";
     private const string IntrospectPath = "/oauth2/introspect";
@@ -53,7 +49,15 @@ public class TokenIntrospectionEndpointTests
         IReadOnlyDictionary<string, object> tenantSettings
     )
     {
-        var factory = new ProvisionedKeysHostApplicationFactory();
+        // A tenant that encrypts access tokens to itself lists a key-management algorithm among the keys the host
+        // provisions for it (ADR-1169).
+        var factory = new BootstrapAdminApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Tenant:KeyProvisioning:Keys:0:Algorithm"] = "RS256",
+                ["OpenId:Tenant:KeyProvisioning:Keys:1:Algorithm"] = "RSA-OAEP-256",
+            }
+        );
         await factory.SeedTenantSettingsAsync(tenantSettings);
         await factory.SeedConfidentialClientAsync(IssuingClientId, ClientSecret);
         return factory;
@@ -68,7 +72,7 @@ public class TokenIntrospectionEndpointTests
     {
         var client = CreateHttpClient(factory);
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, TokenPath)
         {
@@ -1087,29 +1091,4 @@ public class TokenIntrospectionEndpointTests
     }
 
     #endregion
-
-    // A tenant that encrypts access tokens to itself lists a key-management algorithm among the keys the host
-    // provisions for it (ADR-1169).
-    private sealed class ProvisionedKeysHostApplicationFactory : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["OpenId:Tenant:KeyProvisioning:Keys:0:Algorithm"] = "RS256",
-                        ["OpenId:Tenant:KeyProvisioning:Keys:1:Algorithm"] = "RSA-OAEP-256",
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = TenantId,
-                    }
-                )
-            );
-        }
-    }
 }

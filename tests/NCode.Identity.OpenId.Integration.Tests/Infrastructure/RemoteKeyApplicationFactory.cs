@@ -9,14 +9,16 @@ using NCode.Identity.Secrets.RemoteKeys;
 namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 
 /// <summary>
-/// A factory with the supplied configuration overlaid and <see cref="TestRemoteKeyProvider"/> registered. The host
-/// runs in the deployment <c>integration</c> and does not sweep, unless the configuration says otherwise, so a test
-/// clock never destroys a test's keys.
+/// A <see cref="BootstrapAdminApplicationFactory"/> with the supplied configuration overlaid and
+/// <see cref="TestRemoteKeyProvider"/> registered. The host seeds the bootstrap administrator, runs in the deployment
+/// <c>integration</c> and does not sweep, unless the configuration says otherwise, so a test clock never destroys a
+/// test's keys.
 /// </summary>
 public sealed class RemoteKeyApplicationFactory(
     TestRemoteKeyProvider provider,
-    IReadOnlyDictionary<string, string?> configuration
-) : HostApplicationFactory
+    IReadOnlyDictionary<string, string?> configuration,
+    string controlPlaneTenantId = HostApplicationFactory.TenantId
+) : BootstrapAdminApplicationFactory(new Dictionary<string, string?>(), controlPlaneTenantId)
 {
     private const string DeploymentKey = "SecretProtection:RemoteKeys:Deployment";
     private const string SweepEnabledKey = "SecretProtection:RemoteKeys:SweepEnabled";

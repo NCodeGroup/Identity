@@ -63,4 +63,11 @@ public static class BffDefaults
     /// The name of the configuration section that binds the options of the BFF.
     /// </summary>
     public const string ConfigurationSectionName = "Bff";
+
+    /// <summary>
+    /// The name of the <c>IHttpClientFactory</c> client that the BFF sends the requests of its remote APIs through.
+    /// A host adds handlers to the client, or replaces its primary handler, by configuring the client of this name
+    /// after the BFF's own registration.
+    /// </summary>
+    public const string RemoteApiHttpClientName = "NCode.Identity.Bff.RemoteApis";
 }

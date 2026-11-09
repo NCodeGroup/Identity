@@ -67,20 +67,22 @@ internal class ManagementProblemResponseOperationTransformer : IOpenApiOperation
         "A root key the operation needs is unavailable; retry after the interval in the Retry-After header.";
 
     // The description of a response that its route does not describe.
-    private static readonly FrozenDictionary<int, string> Defaults = new Dictionary<int, string>
-    {
-        [StatusCodes.Status401Unauthorized] = UnauthorizedDescription,
-        [StatusCodes.Status403Forbidden] = ForbiddenDescription,
-        [StatusCodes.Status412PreconditionFailed] = PreconditionFailedDescription,
-        [StatusCodes.Status415UnsupportedMediaType] = UnsupportedMediaTypeDescription,
-    }.ToFrozenDictionary();
+    private static FrozenDictionary<int, string> Defaults { get; } =
+        new Dictionary<int, string>
+        {
+            [StatusCodes.Status401Unauthorized] = UnauthorizedDescription,
+            [StatusCodes.Status403Forbidden] = ForbiddenDescription,
+            [StatusCodes.Status412PreconditionFailed] = PreconditionFailedDescription,
+            [StatusCodes.Status415UnsupportedMediaType] = UnsupportedMediaTypeDescription,
+        }.ToFrozenDictionary();
 
     // The sentence appended to the description of a response, whether or not its route describes it.
-    private static readonly FrozenDictionary<int, string> Additions = new Dictionary<int, string>
-    {
-        [StatusCodes.Status409Conflict] = StoredSettingsConflictDescription,
-        [StatusCodes.Status503ServiceUnavailable] = RootKeyUnavailableDescription,
-    }.ToFrozenDictionary();
+    private static FrozenDictionary<int, string> Additions { get; } =
+        new Dictionary<int, string>
+        {
+            [StatusCodes.Status409Conflict] = StoredSettingsConflictDescription,
+            [StatusCodes.Status503ServiceUnavailable] = RootKeyUnavailableDescription,
+        }.ToFrozenDictionary();
 
     /// <inheritdoc />
     public Task TransformAsync(

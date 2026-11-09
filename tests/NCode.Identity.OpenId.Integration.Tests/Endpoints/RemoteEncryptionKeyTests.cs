@@ -30,22 +30,14 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// </summary>
 public class RemoteEncryptionKeyTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string JwksPath = "/oauth2/jwks";
     private const string ProviderSettingConfigKey =
         $"OpenId:Platform:Settings:{OpenIdSettingNames.TenantKeyProvider}";
-
-    private static string BootstrapClientSecretConfig { get; } =
-        Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(BootstrapClientSecret));
 
     // The test provider's RSA rows are 3072-bit, so the provisioned keys name that size.
     private static Dictionary<string, string?> CreateStaticConfiguration() =>
         new()
         {
-            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
             [ProviderSettingConfigKey] = TestRemoteKeyProvider.ProviderName,
             ["OpenId:Tenant:KeyProvisioning:Keys:0:Algorithm"] = "RS256",
             ["OpenId:Tenant:KeyProvisioning:Keys:0:KeySizeBits"] = "3072",
@@ -204,7 +196,7 @@ public class RemoteEncryptionKeyTests
     private static async Task<string> GetBootstrapTokenAsync(HttpClient client)
     {
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {

@@ -5,9 +5,7 @@ using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
@@ -16,36 +14,16 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 public class TokenEndpointBootstrapAdminTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
-
-    // The server reads the configured secret Base64Url-encoded (the client still presents the plaintext).
-    private static string BootstrapClientSecretConfig { get; } =
-        Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(BootstrapClientSecret));
     private const string ManagementAudience = "urn:ncode:management";
     private const string ManagementScope = "read:clients";
 
     [Fact]
     public async Task PostToken_WithConfiguredBootstrapAdmin_SelfSeedsAndIssuesGlobalAdminToken()
     {
-        using var factory = new HostApplicationFactory();
-
         // The bootstrap credential is supplied out of band (ADR-1044); nothing is pre-seeded.
-        using var configured = factory.WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration(
-                (_, config) =>
-                    config.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-                            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                        }
-                    )
-            )
-        );
+        using var factory = new BootstrapAdminApplicationFactory();
 
-        var client = configured.CreateClient(
+        var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
@@ -81,24 +59,15 @@ public class TokenEndpointBootstrapAdminTests
     {
         // The bootstrap client registers client_secret_basic itself, so a platform-wide default for clients that register
         // no method does not change how it authenticates.
-        using var factory = new HostApplicationFactory();
-        using var configured = factory.WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration(
-                (_, config) =>
-                    config.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-                            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                            ["OpenId:Platform:Settings:token_endpoint_auth_method"] = OpenIdProtocol
-                                .ClientAuthenticationMethods
-                                .PrivateKeyJwt,
-                        }
-                    )
-            )
+        using var factory = new BootstrapAdminApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Platform:Settings:token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .PrivateKeyJwt,
+            }
         );
-        var client = configured.CreateClient(
+        var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
@@ -114,23 +83,14 @@ public class TokenEndpointBootstrapAdminTests
     {
         // The bootstrap client registers client_secret_basic, which the platform's ceiling excludes, so the seed refuses
         // to store a client the tenant could never serve.
-        using var factory = new HostApplicationFactory();
-        using var configured = factory.WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration(
-                (_, config) =>
-                    config.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-                            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                            ["OpenId:Platform:Settings:token_endpoint_auth_methods_supported:0"] =
-                                OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-                        }
-                    )
-            )
+        using var factory = new BootstrapAdminApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Platform:Settings:token_endpoint_auth_methods_supported:0"] =
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            }
         );
-        var client = configured.CreateClient(
+        var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
@@ -162,12 +122,15 @@ public class TokenEndpointBootstrapAdminTests
     [Fact]
     public async Task PostToken_WhenBootstrapClientHasStaleSecret_HealsAndIssuesToken()
     {
-        using var factory = new BootstrapConfiguredFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
 
         // Stage the bootstrap client with a secret that does not match configuration (as a prior run's now-unusable
         // master keys would leave it). The provisioning pass on the first token request must heal it to the
         // configured secret before client authentication; without the self-heal this request fails invalid_client.
-        await factory.SeedClientDirectlyAsync(BootstrapClientId, "stale-secret-value");
+        await factory.SeedClientDirectlyAsync(
+            BootstrapAdminApplicationFactory.ClientId,
+            "stale-secret-value"
+        );
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -191,7 +154,7 @@ public class TokenEndpointBootstrapAdminTests
     private static HttpRequestMessage CreateBootstrapTokenRequest()
     {
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         return new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
@@ -217,28 +180,5 @@ public class TokenEndpointBootstrapAdminTests
         var payloadSegment = jwt.Split('.')[1];
         var payloadBytes = Base64Url.DecodeFromChars(payloadSegment);
         return JsonElement.Parse(payloadBytes);
-    }
-
-    /// <summary>
-    /// A factory that supplies the bootstrap administrator credential through configuration, so both the direct
-    /// seeding helpers and the configured bootstrap feature operate on the same host and in-memory database.
-    /// </summary>
-    private sealed class BootstrapConfiguredFactory : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-            builder.ConfigureAppConfiguration(
-                (_, config) =>
-                    config.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-                            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                        }
-                    )
-            );
-        }
     }
 }

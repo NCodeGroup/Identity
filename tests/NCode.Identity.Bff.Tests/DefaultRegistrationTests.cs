@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Net;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -144,6 +146,34 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         Assert.NotNull(provider.GetRequiredService<BffRemoteApiInvokerFactory>());
         Assert.NotNull(provider.GetRequiredService<BffRemoteApiRegistry>());
         Assert.NotNull(provider.GetRequiredService<BffRemoteApiHandler>());
+    }
+
+    [Fact]
+    public void AddBffLibrary_ConfiguresTheRemoteApiClientsPrimaryHandler()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        var handler = provider
+            .GetRequiredService<IHttpMessageHandlerFactory>()
+            .CreateHandler(BffDefaults.RemoteApiHttpClientName);
+        var chain = new List<HttpMessageHandler> { handler };
+        while (chain[^1] is DelegatingHandler { InnerHandler: { } inner })
+            chain.Add(inner);
+
+        Assert.DoesNotContain(
+            chain,
+            link => link is LoggingHttpMessageHandler or LoggingScopeHttpMessageHandler
+        );
+        var primary = Assert.IsType<SocketsHttpHandler>(chain[^1]);
+        Assert.False(primary.AllowAutoRedirect);
+        Assert.False(primary.UseCookies);
+        Assert.False(primary.UseProxy);
+        Assert.Equal(DecompressionMethods.None, primary.AutomaticDecompression);
+        Assert.Equal(TimeSpan.FromSeconds(15), primary.ConnectTimeout);
+        Assert.True(primary.EnableMultipleHttp2Connections);
+        Assert.IsType<ReverseProxyPropagator>(primary.ActivityHeadersPropagator);
     }
 
     [Fact]

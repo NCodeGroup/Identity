@@ -7,7 +7,6 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
@@ -28,14 +27,9 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// </summary>
 public class TenantKeyProvisioningTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string RootIssuer = "http://localhost";
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
     private const string JwksPath = "/oauth2/jwks";
-
-    private static string BootstrapClientSecretConfig { get; } =
-        Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(BootstrapClientSecret));
 
     // The signing lists of the platform's settings, each of which names the algorithms a tenant uses.
     private static string[] SigningListNames { get; } =
@@ -48,21 +42,13 @@ public class TenantKeyProvisioningTests
     ];
 
     // Each test owns its factory: the keys are protected by the tenant's master key.
-    private static ProductionKeysApplicationFactory CreateStaticFactory() =>
-        new(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            }
-        );
+    private static BootstrapAdminApplicationFactory CreateStaticFactory() => new();
 
-    private static ProductionKeysApplicationFactory CreateDynamicFactory() =>
+    private static BootstrapAdminApplicationFactory CreateDynamicFactory() =>
         CreateDynamicFactory(new Dictionary<string, string?>());
 
     // The platform settings are configuration keys beneath OpenId:Platform:Settings, merged into the dynamic configuration.
-    private static ProductionKeysApplicationFactory CreateDynamicFactory(
+    private static BootstrapAdminApplicationFactory CreateDynamicFactory(
         IReadOnlyDictionary<string, string?> platformSettings
     )
     {
@@ -73,16 +59,13 @@ public class TenantKeyProvisioningTests
                 .DynamicByHost,
             ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
             ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
-            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-            ["BootstrapAdmin:TenantId"] = "root",
         };
         foreach (var (key, value) in platformSettings)
         {
             configuration[key] = value;
         }
 
-        return new ProductionKeysApplicationFactory(configuration);
+        return new BootstrapAdminApplicationFactory(configuration, "root");
     }
 
     [Fact]
@@ -111,7 +94,7 @@ public class TenantKeyProvisioningTests
     [Fact]
     public async Task GetJwks_WhenProvisioningIsDisabled_PublishesOnlyTheKeysAnOperatorImports()
     {
-        using var factory = new ProductionKeysApplicationFactory(
+        using var factory = new BootstrapAdminApplicationFactory(
             new Dictionary<string, string?> { ["OpenId:Tenant:KeyProvisioning:Enabled"] = "false" }
         );
         using var client = factory.CreateClient();
@@ -410,7 +393,7 @@ public class TenantKeyProvisioningTests
     private static async Task<string> GetBootstrapTokenAsync(HttpClient client)
     {
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
@@ -506,22 +489,5 @@ public class TenantKeyProvisioningTests
             .GetStore<ITenantStore>()
             .GetSecretsAsync(tenantId, CancellationToken.None);
         return [.. secrets.Value.Select(secret => secret.SecretId).Order(StringComparer.Ordinal)];
-    }
-
-    /// <summary>
-    /// A factory with the supplied configuration overlaid.
-    /// </summary>
-    private sealed class ProductionKeysApplicationFactory(
-        IReadOnlyDictionary<string, string?> configuration
-    ) : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(configuration)
-            );
-        }
     }
 }

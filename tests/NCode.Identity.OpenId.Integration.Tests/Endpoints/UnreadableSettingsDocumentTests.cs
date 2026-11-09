@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -17,8 +16,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // it cannot honor answers 409 with a problem that names the document. See ADR-1245.
 public class UnreadableSettingsDocumentTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
     private const string UnreadableClientId = "it-unreadable-client";
     private const string RedirectUri = "http://client.example/callback";
@@ -30,8 +27,8 @@ public class UnreadableSettingsDocumentTests
     {
         using var factory = CreateFactory();
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
         await MakeTenantDocumentUnreadableAsync(factory);
 
@@ -49,8 +46,8 @@ public class UnreadableSettingsDocumentTests
     {
         using var factory = CreateFactory();
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
         await MakeTenantDocumentUnreadableAsync(factory);
 
@@ -68,8 +65,8 @@ public class UnreadableSettingsDocumentTests
     {
         using var factory = CreateFactory();
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
         await MakeTenantDocumentUnreadableAsync(factory);
 
@@ -136,8 +133,8 @@ public class UnreadableSettingsDocumentTests
             "unreadable-settings-password"
         );
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
         await MakeTenantDocumentUnreadableAsync(factory);
 
@@ -153,17 +150,7 @@ public class UnreadableSettingsDocumentTests
 
     #region Scaffolding
 
-    private static ConfiguredHostApplicationFactory CreateFactory() =>
-        new(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            }
-        );
+    private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
     private static async Task<HttpClient> SeedUnreadableClientAsync(HostApplicationFactory factory)
     {
@@ -175,8 +162,8 @@ public class UnreadableSettingsDocumentTests
             RedirectUri
         );
         var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
 
         // The report proves the document is unreadable before any write is tried.

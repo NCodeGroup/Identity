@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
@@ -23,8 +22,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // ADR-1234 and ADR-1411.
 public class ReconciledTeamSettingsTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string TeamId = "platform";
 
     #region Reconciliation Tests
@@ -34,8 +31,8 @@ public class ReconciledTeamSettingsTests
     {
         using var factory = CreateFactory();
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
 
         await PatchPlatformSettingAsync(
@@ -70,17 +67,7 @@ public class ReconciledTeamSettingsTests
 
     #region Scaffolding
 
-    private static ConfiguredHostApplicationFactory CreateFactory() =>
-        new(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            }
-        );
+    private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
     private static async Task PatchPlatformSettingAsync(
         HttpClient administrator,

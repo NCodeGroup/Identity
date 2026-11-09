@@ -1,14 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -23,15 +20,13 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // rewrapped under the new one, and everything keeps working (ADR-1407).
 public class MasterKeyRotationTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string ManagementScope = "read:clients";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     [Fact]
     public async Task Rekey_OfATenant_RewrapsItsSecretsAndTheClientStillAuthenticates()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         using var client = CreateHttpClient(factory);
         var clientId = await CreateClientAsync(administrator);
@@ -113,7 +108,7 @@ public class MasterKeyRotationTests
     [Fact]
     public async Task Rekey_OfAnUnknownTenant_ReturnsNotFoundAndCreatesNoKey()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
 
         using var response = await administrator.PostAsync(
@@ -137,7 +132,7 @@ public class MasterKeyRotationTests
     [Fact]
     public async Task Rekey_OfThePlatform_KeepsTheHostServingTheManagementApi()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
 
         // The discovery request materializes the platform, so the store holds it.
@@ -171,7 +166,7 @@ public class MasterKeyRotationTests
     [Fact]
     public async Task SecretProtectionCommand_DryRun_VerifiesEveryMasterKeyAndReturnsZero()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var clientId = await CreateClientAsync(administrator);
         await CreateSecretAsync(administrator, clientId);
@@ -208,7 +203,7 @@ public class MasterKeyRotationTests
     {
         var client = CreateHttpClient(factory);
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
@@ -274,27 +269,6 @@ public class MasterKeyRotationTests
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         return JsonElement.Parse(body).GetProperty("secretMaterial").GetString()
             ?? throw new InvalidOperationException("The response has no secretMaterial.");
-    }
-
-    private sealed class BootstrapAdminHostApplicationFactory : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                    }
-                )
-            );
-        }
     }
 
     #endregion

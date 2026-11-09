@@ -15,41 +15,44 @@ public class DefaultRemoteKeyProverTests : BaseTests
     private const string RemoteKeyId = "remote-key-1";
     private const string RemoteKid = "remote-kid";
 
-    private static readonly RemoteSigningAlgorithm Es256Row = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "ES256",
-        SecretType = "ecc",
-        KeySizeBits = 256,
-        Curve = "P-256",
-        KeySpec = "ECC_NIST_P256",
-        SigningAlgorithm = "ECDSA_SHA_256",
-        DigestAlgorithm = HashAlgorithmName.SHA256,
-        IsDerEncodedSignature = true,
-    };
+    private static RemoteSigningAlgorithm Es256Row { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ES256",
+            SecretType = "ecc",
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            SigningAlgorithm = "ECDSA_SHA_256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+            IsDerEncodedSignature = true,
+        };
 
-    private static readonly RemoteSigningAlgorithm UnregisteredRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "XX999",
-        SecretType = "ecc",
-        KeySizeBits = 256,
-        Curve = "P-256",
-        KeySpec = "ECC_NIST_P256",
-        SigningAlgorithm = "ECDSA_SHA_256",
-        DigestAlgorithm = HashAlgorithmName.SHA256,
-        IsDerEncodedSignature = true,
-    };
+    private static RemoteSigningAlgorithm UnregisteredRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "XX999",
+            SecretType = "ecc",
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            SigningAlgorithm = "ECDSA_SHA_256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+            IsDerEncodedSignature = true,
+        };
 
-    private static readonly RemoteDecryptionAlgorithm RsaOaep256Row = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "RSA-OAEP-256",
-        SecretType = "rsa",
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
-    };
+    private static RemoteDecryptionAlgorithm RsaOaep256Row { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
 
     private ServiceProvider ServiceProvider { get; }
 

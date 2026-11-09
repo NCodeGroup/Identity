@@ -45,9 +45,11 @@ public sealed class DefaultRegistrationTests : BaseTests
 
         var descriptorCatalog = serviceProvider.GetRequiredService<IRemoteKeyDescriptorCatalog>();
         var providerCatalog = serviceProvider.GetRequiredService<IRemoteKeyProviderCatalog>();
+        var resolver = serviceProvider.GetRequiredService<IRemoteKeyResolver>();
 
         Assert.IsType<DefaultRemoteKeyDescriptorCatalog>(descriptorCatalog);
         Assert.IsType<DefaultRemoteKeyProviderCatalog>(providerCatalog);
+        Assert.IsType<DefaultRemoteKeyResolver>(resolver);
         Assert.True(
             providerCatalog.TryGetProvider(RemoteKeyProviderNames.AwsKms, out var provider)
         );

@@ -6,9 +6,9 @@ using Microsoft.Extensions.Options;
 namespace NCode.Identity.Secrets.GoogleCloudKms.Options;
 
 /// <summary>
-/// Validates the Google Cloud Key Management Service remote key provider options when the host starts, so a missing
-/// or malformed key ring name stops the host instead of failing the first time a key is created. The options are always
-/// validated, because registering the provider selects it.
+/// Validates the Google Cloud Key Management Service remote key provider options when the host starts, so a malformed
+/// key ring name stops the host instead of failing the first time a key is created. A provider without a key ring
+/// registers, and creates and lists no keys.
 /// </summary>
 // See ADR-1471 and ADR-1137 (configuration is validated at startup).
 internal sealed class GoogleCloudKmsRemoteKeyProviderOptionsValidator
@@ -22,7 +22,9 @@ internal sealed class GoogleCloudKmsRemoteKeyProviderOptionsValidator
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        return GoogleCloudKmsKeyName.IsKeyRingName(options.KeyRing)
+        return
+            string.IsNullOrEmpty(options.KeyRing)
+            || GoogleCloudKmsKeyName.IsKeyRingName(options.KeyRing)
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(
                 "SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing must be the resource name of a Cloud KMS key ring, such as projects/my-project/locations/us-central1/keyRings/ncode-identity."

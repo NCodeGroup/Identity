@@ -30,13 +30,26 @@ public class GoogleCloudKmsRemoteKeyProviderOptionsValidatorTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
+    public void Validate_NoKeyRing_Succeeds(string? keyRing)
+    {
+        var validator = CreateValidator();
+
+        var result = validator.Validate(
+            null,
+            new GoogleCloudKmsRemoteKeyProviderOptions { KeyRing = keyRing }
+        );
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
     [InlineData("ncode-identity")]
     [InlineData("projects/my-project/locations/us-central1/keyRings/")]
     [InlineData("projects/my-project/locations/us-central1/keyRings/ncode-identity\n")]
     [InlineData(
         "projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root"
     )]
-    public void Validate_InvalidKeyRing_Fails(string? keyRing)
+    public void Validate_InvalidKeyRing_Fails(string keyRing)
     {
         var validator = CreateValidator();
 

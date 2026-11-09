@@ -205,7 +205,7 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     [Fact]
-    public async Task AddGoogleCloudKmsRemoteKeyProvider_NoKeyRing_FailsValidation()
+    public async Task AddGoogleCloudKmsRemoteKeyProvider_NoKeyRing_DescribesAProviderThatCreatesNoKeys()
     {
         var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = AddGoogleCloudKmsRemote(
@@ -218,8 +218,7 @@ public class DefaultRegistrationTests : BaseTests
             IOptions<GoogleCloudKmsRemoteKeyProviderOptions>
         >();
 
-        var exception = Assert.Throws<OptionsValidationException>(() => options.Value);
-        Assert.Contains("KeyRing", exception.Message);
+        Assert.Null(options.Value.KeyRing);
     }
 
     [Fact]

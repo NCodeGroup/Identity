@@ -19,8 +19,10 @@ public sealed class GoogleCloudKmsRemoteKeyProviderOptions
     public const string DefaultSectionName = "SecretProtection:RemoteKeyProviders:GoogleCloudKms";
 
     /// <summary>
-    /// Gets or sets the resource name of the Cloud KMS key ring in which the provider creates crypto keys
-    /// (<c>projects/&lt;project&gt;/locations/&lt;location&gt;/keyRings/&lt;key ring&gt;</c>).
+    /// Gets or sets the resource name of the Cloud KMS key ring in which the provider creates and lists crypto keys
+    /// (<c>projects/&lt;project&gt;/locations/&lt;location&gt;/keyRings/&lt;key ring&gt;</c>). When it is not set, the
+    /// provider creates and lists no keys and still reads, signs with, decrypts with and destroys the key versions each
+    /// name names.
     /// </summary>
     public string? KeyRing { get; set; }
 

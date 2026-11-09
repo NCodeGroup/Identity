@@ -117,6 +117,12 @@ internal class RsaOaepKeyManagementAlgorithm(string code, HashAlgorithmName hash
 
         secretKey.Validate<RsaSecretKey>(StaticKeyBitSizes);
 
+        // the local RSA.TryDecrypt refuses such a key the same way, so a key management service never receives one
+        if (encryptedContentKey.Length != secretKey.KeySizeBytes)
+            throw new CryptographicException(
+                "The encrypted content encryption key (CEK) is not the size of the key's modulus."
+            );
+
         return remoteKey.DecryptAsync(Code, encryptedContentKey, contentKey, cancellationToken);
     }
 }

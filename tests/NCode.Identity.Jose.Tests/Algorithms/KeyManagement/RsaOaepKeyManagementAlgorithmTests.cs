@@ -333,6 +333,44 @@ public class RsaOaepKeyManagementAlgorithmTests : BaseTests
         Assert.Equal("RSA-OAEP-256", capturedRequest.Algorithm.Algorithm);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(255)]
+    [InlineData(257)]
+    public async Task UnwrapKeyAsync_RemoteKeyAndAnEncryptedKeyNotTheModulusSize_ThrowsWithoutCallingTheService(
+        int length
+    )
+    {
+        const string code = "RSA-OAEP-256";
+
+        using var heldRsa = RSA.Create(2048);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+
+        var secretKey = SecretKeyFactory.CreateRsaRemote(
+            new KeyMetadata { KeyId = "remote" },
+            heldRsa.ExportSubjectPublicKeyInfo(),
+            new RemoteKeyBinding
+            {
+                Provider = provider.Object,
+                Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "remote-key-1"),
+                Algorithm = RsaOaep256Row,
+            }
+        );
+
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
+        var header = JsonSerializer.SerializeToElement(new Dictionary<string, object>());
+
+        await Assert.ThrowsAsync<CryptographicException>(async () =>
+            await algorithm.UnwrapKeyAsync(
+                secretKey,
+                header,
+                new byte[length],
+                new byte[32],
+                CancellationToken.None
+            )
+        );
+    }
+
     [Fact]
     public async Task UnwrapKeyAsync_LocalKey_UnwrapsSynchronously()
     {

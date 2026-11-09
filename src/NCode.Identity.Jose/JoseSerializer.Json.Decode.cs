@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -417,11 +418,9 @@ partial class JoseSerializer
                     cancellationToken
                 );
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
+            // a recipient the key does not decrypt is skipped and any other failure (transport, IOException, cancellation) ends the decode, as in the compact path
             catch (Exception exception)
+                when (exception is JoseException or CryptographicException or ArgumentException)
             {
                 (failures ??= []).Add(exception);
                 continue;

@@ -684,6 +684,30 @@ is applied. Rendered for its side effect only.
 {{- if and (not $keyRing.pemSecret) (not $keyRing.remoteKeys) }}
 {{- fail (printf "managementConsole.keyRings.%s must name pemSecret or list a remote key: the console's mgmt-%s key ring needs at least one key." $ring $ring) }}
 {{- end }}
+{{- $ids := list }}
+{{- if $keyRing.pemSecret }}
+{{- $ids = append $ids (printf "mgmt-%s" $ring) }}
+{{- end }}
+{{- range $kid, $key := $keyRing.remoteKeys }}
+{{- $ids = append $ids (lower $kid) }}
+{{- $path := printf "managementConsole.keyRings.%s.remoteKeys.%s.keyId" $ring $kid }}
+{{- if eq $key.provider "aws-kms" }}
+{{- if not (regexMatch "^arn:aws[a-z-]*:kms:[a-z0-9-]+:[0-9]{12}:(key/[A-Za-z0-9-]+|alias/[A-Za-z0-9/_-]+)$" $key.keyId) }}
+{{- fail (printf "%s must be the ARN of an AWS KMS key or alias, such as arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab." $path) }}
+{{- end }}
+{{- else if eq $key.provider "azure-key-vault" }}
+{{- if not (regexMatch "^https://[A-Za-z0-9-]+([.][A-Za-z0-9-]+)+/keys/[A-Za-z0-9-]{1,127}/[A-Za-z0-9]{32}$" $key.keyId) }}
+{{- fail (printf "%s must be the identifier of a Key Vault or Managed HSM key version, such as https://contoso.vault.azure.net/keys/mgmt-client/0123456789abcdef0123456789abcdef." $path) }}
+{{- end }}
+{{- else if eq $key.provider "google-cloud-kms" }}
+{{- if not (regexMatch "^projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63}/cryptoKeys/[A-Za-z0-9_-]{1,63}/cryptoKeyVersions/[0-9]{1,19}$" $key.keyId) }}
+{{- fail (printf "%s must be the resource name of a Cloud KMS crypto key version, such as projects/my-project/locations/us-central1/keyRings/ncode-identity-console/cryptoKeys/mgmt-client/cryptoKeyVersions/1." $path) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if ne (len $ids) (len (uniq $ids)) }}
+{{- fail (printf "managementConsole.keyRings.%s holds two keys with the same id: each remote key's id differs from every other key's in the ring, compared without case, and from mgmt-%s when pemSecret is set." $ring $ring) }}
+{{- end }}
 {{- end }}
 {{- if and (gt (int $console.replicaCount) 1) (not (include "identity-host.managementConsole.valkeyEnabled" .)) }}
 {{- fail "managementConsole.replicaCount above 1 requires managementConsole.valkey.existingSecret: replicas share their sessions through Valkey." }}
@@ -721,6 +745,25 @@ The environment of the management console container.
 {{- if $console.keyRings.dpop.pemSecret }}
 - name: Bff__KeyRings__mgmt-dpop__PemFiles__0
   value: {{ printf "%s/dpop-key/mgmt-dpop.pem" $keyRoot | quote }}
+{{- end }}
+{{- range $ring := list "client" "dpop" }}
+{{- range $kid, $key := (index $console.keyRings $ring).remoteKeys }}
+{{- $prefix := printf "Bff__KeyRings__mgmt-%s__RemoteKeys__%s" $ring $kid }}
+- name: {{ $prefix }}__Provider
+  value: {{ $key.provider | quote }}
+- name: {{ $prefix }}__KeyId
+  value: {{ $key.keyId | quote }}
+- name: {{ $prefix }}__Algorithm
+  value: {{ $key.algorithm | quote }}
+- name: {{ $prefix }}__SecretType
+  value: {{ $key.secretType | quote }}
+- name: {{ $prefix }}__KeySizeBits
+  value: {{ $key.keySizeBits | quote }}
+{{- with $key.curve }}
+- name: {{ $prefix }}__Curve
+  value: {{ . | quote }}
+{{- end }}
+{{- end }}
 {{- end }}
 - name: ManagementConsole__ManagementApiUrl
   value: {{ include "identity-host.managementConsole.managementApiUrl" . | quote }}

@@ -7,18 +7,26 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 
 /// <summary>
-/// Describes one signing algorithm a remote key provider holds keys for, with the type, size and curve of the key,
-/// which a request that creates or binds a key in the provider names.
+/// Describes one signature or key-management algorithm a remote key provider holds keys for, with the use and the
+/// type, size and curve of the key, which a request that creates or binds a key in the provider names.
 /// </summary>
 // See ADR-1476.
+// See ADR-1477.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class RemoteKeyAlgorithmCapabilityResource
 {
     /// <summary>
-    /// Gets the JOSE <c>alg</c> value of the signing algorithm, such as <c>ES256</c>.
+    /// Gets the JOSE <c>alg</c> value of the signature or key-management algorithm, such as <c>ES256</c> or
+    /// <c>RSA-OAEP-256</c>.
     /// </summary>
     public required string Algorithm { get; init; }
+
+    /// <summary>
+    /// Gets the use of a key the provider holds for the algorithm: <c>sig</c> for a signature algorithm, <c>enc</c> for
+    /// a key-management algorithm.
+    /// </summary>
+    public required string Use { get; init; }
 
     /// <summary>
     /// Gets the secret type of the key, either <c>rsa</c> or <c>ecc</c>.

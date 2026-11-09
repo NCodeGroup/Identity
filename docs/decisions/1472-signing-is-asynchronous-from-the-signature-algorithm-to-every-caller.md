@@ -1,6 +1,6 @@
 # 1472. Signing is asynchronous from the signature algorithm to every caller
 
-- **Status:** Accepted (amends [ADR-1120](1120-jwt-validation-requirements-and-handlers.md), [ADR-1176](1176-dpop-proofs-are-a-jose-building-block.md), [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md), [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md))
+- **Status:** Accepted (amends [ADR-1120](1120-jwt-validation-requirements-and-handlers.md), [ADR-1176](1176-dpop-proofs-are-a-jose-building-block.md), [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md), [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md); amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md))
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 

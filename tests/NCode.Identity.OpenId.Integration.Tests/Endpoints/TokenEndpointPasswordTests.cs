@@ -204,7 +204,7 @@ public class TokenEndpointPasswordTests
         Assert.Equal("JWT", encrypted.Header.GetProperty("cty").GetString());
         Assert.False(encrypted.Header.TryGetProperty("zip", out _));
 
-        var signed = joseSerializer.Decode(encrypted, clientKey);
+        var signed = await joseSerializer.DecodeAsync(encrypted, clientKey, CancellationToken.None);
         var segments = signed.Split('.');
         Assert.Equal(3, segments.Length);
         var signedHeader = JsonElement.Parse(Base64Url.DecodeFromChars(segments[0]));

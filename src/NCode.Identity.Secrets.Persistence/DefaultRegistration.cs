@@ -72,7 +72,8 @@ public static class DefaultRegistration
         /// <item><description>Options for <see cref="SecretProtectionOptions"/> and
         /// <see cref="LocalKeyWrapperOptions"/>, which are bound to configuration elsewhere, and for
         /// <see cref="SharedSecretVerifierOptions"/>, <see cref="Pbkdf2SecretVerifierOptions"/> and
-        /// <see cref="SecretVerificationGateOptions"/>, which are validated as the host starts.</description></item>
+        /// <see cref="SecretVerificationGateOptions"/>, which are validated as the host starts. The validators of
+        /// <see cref="SecretProtectionOptions"/> cover the master key, remote key and owner root key options.</description></item>
         /// </list>
         /// <para>
         /// Services are registered using <c>TryAdd*</c> semantics, meaning existing registrations
@@ -151,6 +152,12 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     IValidateOptions<SecretProtectionOptions>,
                     MasterKeyOptionsValidator
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<SecretProtectionOptions>,
+                    RemoteKeyOptionsValidator
                 >()
             );
             serviceCollection.TryAddEnumerable(

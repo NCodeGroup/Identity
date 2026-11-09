@@ -236,7 +236,7 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
         Assert.Equal("kb+jwt", header.GetProperty("typ").GetString());
         Assert.Equal("ES256", header.GetProperty("alg").GetString());
 
-        var payload = Host.DecodePayload(parsed.KeyBindingJwt, Host.HolderKey);
+        var payload = await Host.DecodePayloadAsync(parsed.KeyBindingJwt, Host.HolderKey);
         Assert.Equal(Audience, payload.GetProperty("aud").GetString());
         Assert.Equal(Nonce, payload.GetProperty("nonce").GetString());
         Assert.Equal(
@@ -271,7 +271,7 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
 
         var parsed = Host.Holder.Parse(presentation);
         Assert.True(parsed.HasKeyBinding);
-        var payload = Host.DecodePayload(parsed.KeyBindingJwt, Host.HolderKey);
+        var payload = await Host.DecodePayloadAsync(parsed.KeyBindingJwt, Host.HolderKey);
         var expectedInput = presentation[..(presentation.LastIndexOf('~') + 1)];
         Assert.Equal(
             SdJwtDigestAlgorithms.Sha384.ComputeDigest(expectedInput),

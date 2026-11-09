@@ -20,6 +20,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 {
     private const string KeyId = "key-1";
+    private const string DecryptionKeyId = StubKmsProvider.DecryptionKeyId;
 
     private ServiceProvider ServiceProvider { get; }
     private StubKmsProvider Provider { get; } = new();
@@ -39,6 +40,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Importer = new DefaultRemoteSecretImporter(
             ServiceProvider.GetRequiredService<ISecretGenerator>(),
             ServiceProvider.GetRequiredService<ISecretSerializer>(),
+            ServiceProvider.GetRequiredService<IJoseSerializer>(),
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             NullLogger<DefaultRemoteSecretImporter>.Instance
         );
@@ -72,6 +74,18 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
             Use = "sig",
         }.Build();
 
+    private static PersistedSecret CreateRemoteEncryptionSecret(RSA publicKey) =>
+        new PersistedSecretBuilder
+        {
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = SecretEncodings.Remote,
+            EncodedValue = $"{StubKmsProvider.ProviderName}:{DecryptionKeyId}",
+            PublicKey = Base64Url.EncodeToString(publicKey.ExportSubjectPublicKeyInfo()),
+            KeySizeBits = 2048,
+            Algorithm = "RSA-OAEP-256",
+            Use = "enc",
+        }.Build();
+
     private static BindRemoteSecretRequest CreateBindRequest(
         string keyId = KeyId,
         string algorithm = "ES256"
@@ -84,7 +98,6 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
             SecretType = SecretTypes.Ecc,
             KeySizeBits = 256,
             Curve = "P-256",
-            Use = "sig",
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
@@ -105,6 +118,33 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.Equal(EncodeSubjectPublicKeyInfo(Provider.Key), secret.PublicKey);
         Assert.Equal(SecretOrigins.Supplied, secret.Origin);
         Assert.Null(secret.ManagedBy);
+    }
+
+    [Fact]
+    public async Task ImportAsync_WhenTheServiceHoldsADecryptionKey_ReturnsAnEncryptionSecret()
+    {
+        var request = new BindRemoteSecretRequest
+        {
+            SecretId = "secret-2",
+            Provider = StubKmsProvider.ProviderName,
+            KeyId = DecryptionKeyId,
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 2048,
+            Algorithm = "RSA-OAEP-256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+        var result = await Importer.ImportAsync(request, CancellationToken.None);
+
+        Assert.True(result.IsBound);
+        Assert.Null(result.Error);
+        var secret = result.Secret;
+        Assert.Equal("enc", secret.Use);
+        Assert.Equal(
+            Base64Url.EncodeToString(Provider.DecryptionKey.ExportSubjectPublicKeyInfo()),
+            secret.PublicKey
+        );
     }
 
     [Fact]
@@ -132,11 +172,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.False(result.IsBound);
         Assert.NotNull(result.Error);
         Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
-        Assert.Contains(
-            "no signing algorithm 'ES384'",
-            result.Error.Detail,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("no algorithm 'ES384'", result.Error.Detail, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -255,7 +291,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
         Assert.Equal(
-            $"The secret '{secret.SecretId}' has no remote signing algorithm for provider 'stub-kms', algorithm 'ES384', secret type '{SecretTypes.Ecc}', key size 384 and curve 'P-384'.",
+            $"The secret '{secret.SecretId}' has no remote algorithm for provider 'stub-kms', algorithm 'ES384', secret type '{SecretTypes.Ecc}', key size 384 and curve 'P-384'.",
             result.Detail
         );
     }
@@ -281,6 +317,49 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         );
     }
 
+    [Fact]
+    public async Task VerifyBindingAsync_WhenTheKeyDecryptsWithThePublicKey_ReturnsNull()
+    {
+        var secret = CreateRemoteEncryptionSecret(Provider.DecryptionKey);
+
+        var result = await Importer.VerifyBindingAsync(secret, CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task VerifyBindingAsync_WhenTheServiceDecryptsWithAnotherKey_ReturnsBadRequest()
+    {
+        using var otherKey = RSA.Create(2048);
+        Provider.DecryptingKey = otherKey;
+        var secret = CreateRemoteEncryptionSecret(Provider.DecryptionKey);
+
+        var result = await Importer.VerifyBindingAsync(secret, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Equal(
+            "The key 'key-2' of the remote key provider 'stub-kms' does not decrypt with the private half of the public key the service returned.",
+            result.Detail
+        );
+    }
+
+    [Fact]
+    public async Task VerifyBindingAsync_WhenTheServiceFailsToDecrypt_ReturnsBadGateway()
+    {
+        Provider.DecryptionFailure = new IOException();
+        var secret = CreateRemoteEncryptionSecret(Provider.DecryptionKey);
+
+        var result = await Importer.VerifyBindingAsync(secret, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(StatusCodes.Status502BadGateway, result.StatusCode);
+        Assert.Equal(
+            "The key management service of the remote key provider 'stub-kms' did not decrypt with the key 'key-2': it refused the key or the deployment's identity, or it could not be reached.",
+            result.Detail
+        );
+    }
+
     #endregion
 
     private sealed class StubKmsProvider
@@ -289,8 +368,9 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
             IDisposable
     {
         public const string ProviderName = "stub-kms";
+        public const string DecryptionKeyId = "key-2";
 
-        private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } =
+        private static IReadOnlyList<RemoteKeyAlgorithm> Rows { get; } =
         [
             new RemoteSigningAlgorithm
             {
@@ -304,9 +384,24 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
                 DigestAlgorithm = HashAlgorithmName.SHA256,
                 IsDerEncodedSignature = true,
             },
+            new RemoteDecryptionAlgorithm
+            {
+                Provider = ProviderName,
+                Algorithm = "RSA-OAEP-256",
+                SecretType = SecretKeyTypes.Rsa,
+                KeySizeBits = 2048,
+                KeySpec = "RSA_2048",
+                EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+            },
         ];
 
         public ECDsa Key { get; } = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+
+        public RSA DecryptionKey { get; } = RSA.Create(2048);
+
+        public RSA? DecryptingKey { get; set; }
+
+        public Exception? DecryptionFailure { get; set; }
 
         public Exception? Failure { get; set; }
 
@@ -319,7 +414,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         public IEnumerable<RemoteKeyProviderDescriptor> Providers { get; } =
         [new RemoteKeyProviderDescriptor { Name = ProviderName }];
 
-        public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;
+        public IEnumerable<RemoteKeyAlgorithm> Algorithms => Rows;
 
         public ValueTask<RemoteKeyCreationResult> CreateKeyAsync(
             RemoteKeyCreationRequest request,
@@ -335,6 +430,12 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
             if (PublicKeyFailure is not null)
             {
                 return ValueTask.FromException(PublicKeyFailure);
+            }
+
+            if (string.Equals(request.KeyId, DecryptionKeyId, StringComparison.Ordinal))
+            {
+                subjectPublicKeyInfo.Write(DecryptionKey.ExportSubjectPublicKeyInfo());
+                return ValueTask.CompletedTask;
             }
 
             if (!string.Equals(request.KeyId, KeyId, StringComparison.Ordinal))
@@ -384,6 +485,51 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         public ValueTask DestroyKeyAsync(string keyId, CancellationToken cancellationToken) =>
             ValueTask.FromException(new NotSupportedException());
 
-        public void Dispose() => Key.Dispose();
+        public ValueTask<int> DecryptAsync(
+            RemoteDecryptionRequest request,
+            Memory<byte> plaintext,
+            CancellationToken cancellationToken
+        )
+        {
+            if (DecryptionFailure is not null)
+            {
+                return ValueTask.FromException<int>(DecryptionFailure);
+            }
+
+            try
+            {
+                return (DecryptingKey ?? DecryptionKey).TryDecrypt(
+                    request.Ciphertext.Span,
+                    plaintext.Span,
+                    RSAEncryptionPadding.OaepSHA256,
+                    out var written
+                )
+                    ? ValueTask.FromResult(written)
+                    : ValueTask.FromException<int>(
+                        new CryptographicException("The plaintext does not fit in the buffer.")
+                    );
+            }
+            catch (CryptographicException exception)
+            {
+                return ValueTask.FromException<int>(exception);
+            }
+        }
+
+        public ValueTask<int> DeriveSharedSecretAsync(
+            RemoteKeyAgreementRequest request,
+            Memory<byte> sharedSecret,
+            CancellationToken cancellationToken
+        ) => ValueTask.FromException<int>(new NotSupportedException());
+
+        public IAsyncEnumerable<RemoteKeyListing> ListKeysAsync(
+            RemoteKeyListRequest request,
+            CancellationToken cancellationToken
+        ) => AsyncEnumerable.Empty<RemoteKeyListing>();
+
+        public void Dispose()
+        {
+            Key.Dispose();
+            DecryptionKey.Dispose();
+        }
     }
 }

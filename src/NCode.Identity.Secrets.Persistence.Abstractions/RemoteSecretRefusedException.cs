@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <summary>
 /// The exception that is thrown when the secret generator refuses a request to create or bind a key that a key
 /// management service holds: the request names a secret type a key management service cannot hold, a remote key
-/// provider that is not registered or no signing algorithm row of the provider, or the public half the service
+/// provider that is not registered or no algorithm row of the provider, or the public half the service
 /// returns is not a key of the row's type, size and curve.
 /// </summary>
 /// <remarks>

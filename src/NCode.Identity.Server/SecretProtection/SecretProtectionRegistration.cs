@@ -38,6 +38,7 @@ internal static class SecretProtectionRegistration
             nameof(SecretProtectionOptions.Recovery),
             nameof(SecretProtectionOptions.MasterKeys),
             nameof(SecretProtectionOptions.OwnerRootKeys),
+            nameof(SecretProtectionOptions.RemoteKeys),
             RootKeyProvidersSubsection,
             RemoteKeyProvidersSubsection
         );
@@ -58,8 +59,8 @@ internal static class SecretProtectionRegistration
     /// <param name="configuration">The <see cref="IConfiguration"/> that holds the
     /// <see cref="SecretProtectionOptions.DefaultSectionName"/> section.</param>
     /// <exception cref="InvalidOperationException">The section has a direct child other than the root key provider,
-    /// the recovery options, the master key options, the owner root key options, the root key provider
-    /// options and the remote key provider options.</exception>
+    /// the recovery options, the master key options, the owner root key options, the remote key options, the root key
+    /// provider options and the remote key provider options.</exception>
     public static void AddSecretProtection(
         IIdentityServerBuilder builder,
         IConfiguration configuration
@@ -73,6 +74,7 @@ internal static class SecretProtectionRegistration
         var ownerRootKeysSection = section.GetSection(
             nameof(SecretProtectionOptions.OwnerRootKeys)
         );
+        var remoteKeysSection = section.GetSection(nameof(SecretProtectionOptions.RemoteKeys));
         var localSection = configuration.GetSection(LocalKeyWrapperOptions.DefaultSectionName);
         var keyRingSection = configuration.GetSection(
             DataProtectionKeyRingOptions.DefaultSectionName
@@ -90,6 +92,7 @@ internal static class SecretProtectionRegistration
                 recoverySection.BindStrictly(options.Recovery);
                 masterKeysSection.BindStrictly(options.MasterKeys);
                 ownerRootKeysSection.BindStrictly(options.OwnerRootKeys);
+                remoteKeysSection.BindStrictly(options.RemoteKeys);
             })
             .ValidateOnStart();
 

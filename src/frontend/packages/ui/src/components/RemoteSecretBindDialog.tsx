@@ -28,7 +28,7 @@ export type RemoteSecretBindValues = {
   readonly keySizeBits: number;
   /** The curve of the key, taken from the chosen algorithm row; `''` for none. */
   readonly curve: string;
-  /** The JOSE signing algorithm of the key, taken from the chosen algorithm row. */
+  /** The JOSE signature or key-management algorithm of the key, taken from the chosen algorithm row. */
   readonly algorithm: string;
   readonly expiresWhen: string;
 };
@@ -131,9 +131,10 @@ export function RemoteSecretBindDialog({
           )}
           <DialogContentText component="div">
             The server reads the key&apos;s public half from the key management service, checks that
-            it is a key of the chosen algorithm, and stores it once the key signs a challenge that
-            the public half verifies. Binding needs update authority on the platform, and the server
-            never destroys a bound key.
+            it is a key of the chosen algorithm, and stores it once the key proves it holds the
+            private half: a signing key signs a challenge the public half verifies, and an
+            encryption key decrypts a challenge encrypted to it. Binding needs update authority on
+            the platform, and the server never destroys a bound key.
           </DialogContentText>
           <TextField
             select

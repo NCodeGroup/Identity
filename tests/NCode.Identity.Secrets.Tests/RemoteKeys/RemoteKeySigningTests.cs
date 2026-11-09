@@ -45,7 +45,7 @@ public class RemoteKeySigningTests : BaseTests
             IsDerEncodedSignature = true,
         };
 
-    private RemoteKeyBinding CreateBinding(RemoteSigningAlgorithm algorithm) =>
+    private RemoteKeyBinding CreateBinding(RemoteKeyAlgorithm algorithm) =>
         new()
         {
             Provider = Provider.Object,
@@ -308,6 +308,31 @@ public class RemoteKeySigningTests : BaseTests
                 binding,
                 SigningInput,
                 new byte[63],
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task SignAsync_DecryptionRow_Throws()
+    {
+        var binding = CreateBinding(
+            new RemoteDecryptionAlgorithm
+            {
+                Provider = RemoteKeyProviderNames.AwsKms,
+                Algorithm = "RSA-OAEP-256",
+                SecretType = "rsa",
+                KeySizeBits = 2048,
+                KeySpec = "RSA_2048",
+                EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+            }
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await RemoteKeySigning.SignAsync(
+                binding,
+                SigningInput,
+                new byte[256],
                 CancellationToken.None
             )
         );

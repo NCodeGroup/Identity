@@ -117,12 +117,12 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // The setting that names the remote key provider holding a tenant's signing keys is contributed beside it;
-            // its domain is the providers the remote key provider catalog registers.
+            // The setting that names the remote key provider holding a tenant's keys is contributed beside it; its
+            // domain is the providers the remote key provider catalog registers.
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICollectionDataSource<SettingDescriptor>,
-                    TenantSigningKeySettingDescriptorDataSource
+                    TenantKeyProviderSettingDescriptorDataSource
                 >()
             );
 

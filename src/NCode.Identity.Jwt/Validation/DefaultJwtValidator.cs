@@ -207,15 +207,18 @@ internal sealed class DefaultJwtValidator(
             );
         }
 
-        var enclosedToken = Decrypt(
+        var (enclosedToken, decryptionKey) = await DecryptAsync(
             encryptedToken,
-            FilterKeys(
-                decryptionKeys,
-                SecretKeyUses.Encryption,
-                keyManagementAlgorithm,
-                parameters.ClockSkew
+            NarrowByKeyId(
+                header,
+                FilterKeys(
+                    decryptionKeys,
+                    SecretKeyUses.Encryption,
+                    keyManagementAlgorithm,
+                    parameters.ClockSkew
+                )
             ),
-            out var decryptionKey
+            cancellationToken
         );
 
         var signedToken = ParseCompact(enclosedToken);
@@ -279,7 +282,7 @@ internal sealed class DefaultJwtValidator(
             cancellationToken
         );
 
-        var payload = DeserializePayload(
+        var (payload, secretKey) = await DeserializePayloadAsync(
             signedToken,
             FilterKeys(
                 validationKeys,
@@ -287,7 +290,7 @@ internal sealed class DefaultJwtValidator(
                 signatureAlgorithm,
                 parameters.ClockSkew
             ),
-            out var secretKey
+            cancellationToken
         );
 
         return new DecodedJwt(signedToken, payload, secretKey);
@@ -348,6 +351,28 @@ internal sealed class DefaultJwtValidator(
         );
     }
 
+    // A remote key decrypts through a billed service call, so a header that names a held key costs one call (ADR-1477).
+    private static IEnumerable<SecretKey> NarrowByKeyId(
+        JsonElement header,
+        IEnumerable<SecretKey> keys
+    )
+    {
+        if (
+            !header.TryGetPropertyValue<string>(JoseClaimNames.Header.Kid, out var keyId)
+            || string.IsNullOrEmpty(keyId)
+        )
+        {
+            return keys;
+        }
+
+        var candidates = keys.ToList();
+        var named = candidates.Where(secretKey =>
+            string.Equals(secretKey.KeyId, keyId, StringComparison.Ordinal)
+        );
+
+        return named.Any() ? named.ToList() : candidates;
+    }
+
     private async ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
         JoseToken joseToken,
         JwtValidationParameters parameters,
@@ -385,38 +410,38 @@ internal sealed class DefaultJwtValidator(
         return "One or more token validation requirements were not satisfied.";
     }
 
-    private string Decrypt(
+    private ValueTask<(string Result, SecretKey SecretKey)> DecryptAsync(
         JoseToken encryptedToken,
         IEnumerable<SecretKey> decryptionKeys,
-        out SecretKey secretKey
+        CancellationToken cancellationToken
     ) =>
-        TryEachKey(
+        TryEachKeyAsync(
             encryptedToken,
             decryptionKeys,
             JwtValidationFailureCodes.DecryptionFailed,
-            (token, key) => JoseSerializer.Decode(token, key),
-            out secretKey
+            (token, key, ct) => JoseSerializer.DecodeAsync(token, key, ct),
+            cancellationToken
         );
 
-    private JsonElement DeserializePayload(
+    private ValueTask<(JsonElement Result, SecretKey SecretKey)> DeserializePayloadAsync(
         JoseToken signedToken,
         IEnumerable<SecretKey> validationKeys,
-        out SecretKey secretKey
+        CancellationToken cancellationToken
     ) =>
-        TryEachKey(
+        TryEachKeyAsync(
             signedToken,
             validationKeys,
             JwtValidationFailureCodes.InvalidSignature,
-            (token, key) => JoseSerializer.Deserialize<JsonElement>(token, key),
-            out secretKey
+            (token, key, ct) => JoseSerializer.DeserializeAsync<JsonElement>(token, key, ct),
+            cancellationToken
         );
 
-    private static T TryEachKey<T>(
+    private static async ValueTask<(T Result, SecretKey SecretKey)> TryEachKeyAsync<T>(
         JoseToken joseToken,
         IEnumerable<SecretKey> candidateKeys,
         string decodeFailureCode,
-        Func<JoseToken, SecretKey, T> decode,
-        out SecretKey secretKey
+        Func<JoseToken, SecretKey, CancellationToken, ValueTask<T>> decode,
+        CancellationToken cancellationToken
     )
     {
         StringBuilder? exceptions = null;
@@ -426,12 +451,14 @@ internal sealed class DefaultJwtValidator(
         {
             try
             {
-                var result = decode(joseToken, attemptedKey);
+                var result = await decode(joseToken, attemptedKey, cancellationToken);
 
-                secretKey = attemptedKey;
-                return result;
+                return (result, attemptedKey);
             }
             catch (Exception exception)
+                when (exception is not OperationCanceledException
+                    || !cancellationToken.IsCancellationRequested
+                )
             {
                 exceptions ??= new StringBuilder("Inner exceptions:\n");
                 exceptions.Append(exception);

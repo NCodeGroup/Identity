@@ -68,8 +68,6 @@ NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.SecretId.get -> strin
 NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.SecretId.init -> void
 NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.SecretType.get -> string!
 NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.SecretType.init -> void
-NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.Use.get -> string!
-NCode.Identity.Secrets.Persistence.BindRemoteSecretRequest.Use.init -> void
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.ActivatesWhen.init -> void
@@ -96,8 +94,6 @@ NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.SecretId.get -> s
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.SecretId.init -> void
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.SecretType.get -> string!
 NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.SecretType.init -> void
-NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.Use.get -> string!
-NCode.Identity.Secrets.Persistence.GenerateRemoteSecretRequest.Use.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.get -> string?
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.init -> void
@@ -158,6 +154,7 @@ NCode.Identity.Secrets.Persistence.ISecretImporter
 NCode.Identity.Secrets.Persistence.ISecretImporter.ImportSecret(NCode.Identity.Secrets.Persistence.SecretKeyImportRequest! request) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
 NCode.Identity.Secrets.Persistence.IRemoteSecretDestroyer
 NCode.Identity.Secrets.Persistence.IRemoteSecretDestroyer.DestroyAsync(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! removedSecrets) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Secrets.Persistence.IRemoteSecretDestroyer.DestroyKeyAsync(NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference reference) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Algorithm.get -> string?
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Algorithm.init -> void
@@ -363,6 +360,35 @@ override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.EventCa
 override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.EventName.get -> string!
 override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
 static NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEventNames.For(string! change) -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEventNames.Destroyed = "remote_key.destroyed" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEventNames.Prefix = "remote_key" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyChangeReasons.Orphaned = "orphaned" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyChanges.Destroyed = "destroyed" -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Change.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Change.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.GroupName.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.GroupName.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.KeyCreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.KeyCreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.KeyId.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.KeyId.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.OwnerId.get -> string?
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.OwnerId.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Provider.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Provider.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Reason.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Reason.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.SecretId.get -> string?
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.SecretId.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEventNames
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyChangeReasons
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyChanges
+override NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.EventCategory.get -> string!
+override NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.EventName.get -> string!
+override NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
+static NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEventNames.For(string! change) -> string!
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver.DestroyedAsync(NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo! destroyed, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver.RotatedAsync(NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation! rotation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -590,6 +616,18 @@ NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.RootKey.get -> NCo
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.RootKey.init -> void
 NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.OwnerRootKeys.get -> NCode.Identity.Secrets.Persistence.Options.OwnerRootKeyOptions!
 NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.OwnerRootKeys.set -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.Deployment.get -> string?
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.Deployment.set -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.RemoteKeyOptions() -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepEnabled.get -> bool
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepEnabled.set -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepGracePeriod.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepGracePeriod.set -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepInterval.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepInterval.set -> void
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.RemoteKeys.get -> NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions!
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.RemoteKeys.set -> void
 NCode.Identity.Secrets.Persistence.Options.OwnerRootKeyOptions
 NCode.Identity.Secrets.Persistence.Options.OwnerRootKeyOptions.OwnerRootKeyOptions() -> void
 NCode.Identity.Secrets.Persistence.Options.OwnerRootKeyOptions.Providers.get -> string![]!

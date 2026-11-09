@@ -173,7 +173,7 @@ public class DefaultRegistrationTests : BaseTests
         Assert.IsType<AwsKmsRemoteKeyProvider>(remoteProvider);
         Assert.True(
             descriptorCatalog.TryGetAlgorithm(
-                new RemoteSigningAlgorithmSelector
+                new RemoteKeyAlgorithmSelector
                 {
                     Provider = RemoteKeyProviderNames.AwsKms,
                     Algorithm = "RS256",

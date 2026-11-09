@@ -10,13 +10,13 @@ using NCode.Identity.Settings;
 namespace NCode.Identity.OpenId.Tenants.Keys;
 
 /// <summary>
-/// Provides an additive <see cref="SettingDescriptor"/> data source for the tenant <c>tenant_signing_key_provider</c>
-/// setting. The domain of the setting is the empty string, which keeps the tenant's signing keys in the server's
-/// store, or the name of a provider described by the <see cref="IRemoteKeyDescriptorCatalog"/>, so a value that names
-/// no described provider is rejected rather than stored. It is a tenant setting that is not advertised in discovery
-/// and whose value belongs to the environment, so promotion never copies it.
+/// Provides an additive <see cref="SettingDescriptor"/> data source for the tenant <c>tenant_key_provider</c>
+/// setting. The domain of the setting is the empty string, which keeps the tenant's keys in the server's store, or
+/// the name of a provider described by the <see cref="IRemoteKeyDescriptorCatalog"/>, so a value that names no
+/// described provider is rejected rather than stored. It is a tenant setting that is not advertised in discovery and
+/// whose value belongs to the environment, so promotion never copies it.
 /// </summary>
-internal class TenantSigningKeySettingDescriptorDataSource(
+internal class TenantKeyProviderSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IRemoteKeyDescriptorCatalog catalog
 ) : ICollectionDataSource<SettingDescriptor>
@@ -38,12 +38,12 @@ internal class TenantSigningKeySettingDescriptorDataSource(
                 .Order(StringComparer.Ordinal)
                 .ToList();
 
-            // tenant_signing_key_provider: the name of the registered remote key provider that holds the tenant's
-            // signing keys. Empty by default, which keeps them in the server's store; a platform or team document
-            // carries the value to its tenants. Override (Replace): a child fully replaces the parent value.
+            // tenant_key_provider: the name of the registered remote key provider that holds the tenant's keys.
+            // Empty by default, which keeps them in the server's store; a platform or team document carries the
+            // value to its tenants. Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
-                Name = OpenIdSettingNames.TenantSigningKeyProvider,
+                Name = OpenIdSettingNames.TenantKeyProvider,
                 AppliesTo = [OpenIdSettingScopes.Tenant],
                 Rule = SettingRules.EmptyOr(SettingRules.OneOf(providerNames)),
                 Default = string.Empty,

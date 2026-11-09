@@ -556,13 +556,99 @@ public class DefaultSecretKeyFactoryTests : BaseTests
             IsDerEncodedSignature = true,
         };
 
-    private RemoteKeyBinding CreateBinding(RemoteSigningAlgorithm row) =>
+    private RemoteKeyBinding CreateBinding(RemoteKeyAlgorithm row) =>
         new()
         {
             Provider = CreateStrictMock<IRemoteKeyProvider>().Object,
             Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "key-1"),
             Algorithm = row,
         };
+
+    private static RemoteDecryptionAlgorithm CreateDecryptionRow(
+        string secretType = SecretKeyTypes.Rsa,
+        int keySizeBits = 2048
+    ) =>
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = secretType,
+            KeySizeBits = keySizeBits,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
+
+    private static RemoteKeyAgreementAlgorithm CreateKeyAgreementRow(
+        string secretType = SecretKeyTypes.Ecc
+    ) =>
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ECDH-ES",
+            SecretType = secretType,
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            KeyAgreementAlgorithm = "ECDH",
+        };
+
+    [Fact]
+    public void CreateRsaRemote_DecryptionRow_ReturnsRemoteKey()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var rsa = RSA.Create(2048);
+        var binding = CreateBinding(CreateDecryptionRow());
+
+        var key = factory.CreateRsaRemote(
+            new KeyMetadata { KeyId = "rsa-remote" },
+            rsa.ExportSubjectPublicKeyInfo(),
+            binding
+        );
+
+        var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(key);
+        Assert.Same(binding, remoteKey.Binding);
+    }
+
+    [Fact]
+    public void CreateRsaRemote_KeyAgreementRow_Throws()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var rsa = RSA.Create(2048);
+        var binding = CreateBinding(CreateKeyAgreementRow(secretType: SecretKeyTypes.Rsa));
+
+        Assert.Throws<ArgumentException>(() =>
+            factory.CreateRsaRemote(new KeyMetadata(), rsa.ExportSubjectPublicKeyInfo(), binding)
+        );
+    }
+
+    [Fact]
+    public void CreateEccRemote_KeyAgreementRow_ReturnsRemoteKey()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var binding = CreateBinding(CreateKeyAgreementRow());
+
+        var key = factory.CreateEccRemote(
+            new KeyMetadata { KeyId = "ecc-remote" },
+            ecdsa.ExportSubjectPublicKeyInfo(),
+            binding
+        );
+
+        var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(key);
+        Assert.Same(binding, remoteKey.Binding);
+    }
+
+    [Fact]
+    public void CreateEccRemote_DecryptionRow_Throws()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var binding = CreateBinding(CreateDecryptionRow(secretType: SecretKeyTypes.Ecc));
+
+        Assert.Throws<ArgumentException>(() =>
+            factory.CreateEccRemote(new KeyMetadata(), ecdsa.ExportSubjectPublicKeyInfo(), binding)
+        );
+    }
 
     [Fact]
     public void CreateRsaRemote_WhenTheRowMatches_CreatesARemoteKeyThatVerifies()

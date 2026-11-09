@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.Time.Testing;
+using Moq;
 using NCode.Buffers;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
@@ -16,6 +17,7 @@ using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Json;
 
 namespace NCode.Identity.Jwt.Validation;
@@ -56,6 +58,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     private IAlgorithmCollection Algorithms =>
         _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection;
 
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+
     private SecretKey SigningKey { get; }
     private SecretKey EncryptionKey { get; }
 
@@ -67,6 +71,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         _clientRsa.Dispose();
         _serverRsa.Dispose();
+        MockRepository.Verify();
     }
 
     private SecretKey CreateRsaKey(string keyId, RSA rsa, string? use, string? algorithm) =>
@@ -82,6 +87,31 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 
     private SecretKey CreateRsaKey(RSA rsa, KeyMetadata metadata) =>
         _serviceProvider.GetRequiredService<ISecretKeyFactory>().CreateRsa(metadata, rsa);
+
+    private SecretKey CreateRemoteDecryptionKey(IRemoteKeyProvider provider, string keyId) =>
+        _serviceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateRsaRemote(
+                new KeyMetadata { KeyId = keyId, Use = SecretKeyUses.Encryption },
+                _clientRsa.ExportSubjectPublicKeyInfo(),
+                new RemoteKeyBinding
+                {
+                    Provider = provider,
+                    Reference = new RemoteKeyReference(
+                        RemoteKeyProviderNames.AwsKms,
+                        $"arn:aws:kms:eu-west-1:111122223333:key/{keyId}"
+                    ),
+                    Algorithm = new RemoteDecryptionAlgorithm
+                    {
+                        Provider = RemoteKeyProviderNames.AwsKms,
+                        Algorithm = AlgorithmCodes.KeyManagement.RsaOaep256,
+                        SecretType = "rsa",
+                        KeySizeBits = 2048,
+                        KeySpec = "RSA_2048",
+                        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+                    },
+                }
+            );
 
     private SecretKey CreateCertificateKey(
         DateTimeOffset notBefore,
@@ -734,6 +764,87 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtSecretKeyNotFoundException>(result.Exception);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_JweHeaderNamesAHeldKid_TriesOnlyThatKey()
+    {
+        var provider = MockRepository.Create<IRemoteKeyProvider>();
+        provider
+            .Setup(x =>
+                x.DecryptAsync(
+                    It.IsAny<RemoteDecryptionRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() => ValueTask.FromException<int>(new CryptographicException("refused")))
+            .Verifiable(Times.Never());
+        var remoteKey = CreateRemoteDecryptionKey(provider.Object, "remote-enc");
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            CreateEncryptionCredentials()
+        );
+
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([remoteKey, EncryptionKey])
+        );
+
+        Assert.True(result.IsValid);
+        var decodedJwt = Assert.IsType<DecodedJwt>(result.DecodedJwt);
+        Assert.Same(EncryptionKey, decodedJwt.DecryptionKey);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_JweHeaderNamesAHeldKidThatDoesNotDecrypt_DoesNotTryTheOtherKeys()
+    {
+        using var otherRsa = RSA.Create(2048);
+        var namedKey = CreateRsaKey("server-enc", otherRsa, use: null, algorithm: null);
+        var holderKey = CreateRsaKey("server-other", _serverRsa, use: null, algorithm: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            CreateEncryptionCredentials()
+        );
+
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([namedKey, holderKey])
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(JwtValidationFailureCodes.DecryptionFailed, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_JweHeaderNamesAnUnknownKid_TriesEveryKey()
+    {
+        var provider = MockRepository.Create<IRemoteKeyProvider>();
+        provider
+            .Setup(x =>
+                x.DecryptAsync(
+                    It.IsAny<RemoteDecryptionRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() => ValueTask.FromException<int>(new CryptographicException("refused")))
+            .Verifiable();
+        var remoteKey = CreateRemoteDecryptionKey(provider.Object, "remote-enc");
+        var otherKey = CreateRsaKey("server-other", _serverRsa, use: null, algorithm: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            CreateEncryptionCredentials()
+        );
+
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([remoteKey, otherKey])
+        );
+
+        Assert.True(result.IsValid);
+        var decodedJwt = Assert.IsType<DecodedJwt>(result.DecodedJwt);
+        Assert.Same(otherKey, decodedJwt.DecryptionKey);
     }
 
     #endregion

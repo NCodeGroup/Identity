@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 /// Contributes the <c>remoteKeyProviders</c> section to the management capabilities document, publishing each remote
 /// key provider that the <see cref="IRemoteKeyDescriptorCatalog"/> describes, which is each registered provider, and,
 /// for each, the algorithm rows that <see cref="ISecretValidator.ValidateRemoteKey"/> accepts, so clients can discover
-/// which key management services can hold a tenant's signing keys and the keys they hold them for.
+/// which key management services can hold a tenant's signing and encryption keys and the algorithms they hold them for.
 /// </summary>
 // See ADR-1474.
 // See ADR-1476.
@@ -49,6 +49,7 @@ internal sealed class RemoteKeyProviderCapabilitiesProvider(
                     .Select(row => new RemoteKeyAlgorithmCapabilityResource
                     {
                         Algorithm = row.Algorithm,
+                        Use = row.Use,
                         SecretType = row.SecretType,
                         KeySizeBits = row.KeySizeBits,
                         Curve = row.Curve,
@@ -65,6 +66,6 @@ internal sealed class RemoteKeyProviderCapabilitiesProvider(
     }
 
     // A row the secret validator refuses, such as one whose algorithm no package registers or whose size the algorithm does not accept, is not offered: the capabilities offer exactly what a create or bind accepts.
-    private bool IsAccepted(RemoteSigningAlgorithm row) =>
+    private bool IsAccepted(RemoteKeyAlgorithm row) =>
         SecretValidator.ValidateRemoteKey(row.Selector).IsValid;
 }

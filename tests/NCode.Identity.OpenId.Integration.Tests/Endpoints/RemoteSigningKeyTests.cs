@@ -8,8 +8,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -37,7 +35,7 @@ public class RemoteSigningKeyTests
     private const string RootIssuer = "http://localhost";
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
     private const string JwksPath = "/oauth2/jwks";
-    private const string ProviderSettingName = OpenIdSettingNames.TenantSigningKeyProvider;
+    private const string ProviderSettingName = OpenIdSettingNames.TenantKeyProvider;
     private const string ProviderSettingConfigKey =
         $"OpenId:Platform:Settings:{ProviderSettingName}";
 
@@ -72,10 +70,7 @@ public class RemoteSigningKeyTests
     public async Task GetJwks_WhenTheTenantSelectsAProvider_StoresEachProvisionedKeyAsRemote()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateStaticConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
 
         // The first request serves the tenant, which provisions its keys.
@@ -114,10 +109,7 @@ public class RemoteSigningKeyTests
     public async Task GetJwks_WhenTheKeysAreRemote_PublishesTheirStoredPublicKeysWithoutCallingTheProvider()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateStaticConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
 
         var keys = await GetJwksAsync(client, host: null);
@@ -149,10 +141,7 @@ public class RemoteSigningKeyTests
     public async Task PostToken_WhenTheKeysAreRemote_IssuesATokenTheProviderSignedAndTheKeySetVerifies()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateStaticConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
 
         var accessToken = await GetBootstrapTokenAsync(client);
@@ -166,10 +155,7 @@ public class RemoteSigningKeyTests
     public async Task PostToken_WhenTheSignatureIsAltered_DoesNotVerifyAgainstThePublishedKey()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateStaticConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
 
         var accessToken = await GetBootstrapTokenAsync(client);
@@ -191,10 +177,7 @@ public class RemoteSigningKeyTests
     public async Task PatchPlatformSettings_WhenATenantStartsLocal_PublishesRemoteKeysThatActivateAfterTheDelayWhileLocalKeysSign()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateDynamicConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateDynamicConfiguration());
         using var client = factory.CreateClient();
 
         var accessToken = await GetBootstrapTokenAsync(client);
@@ -262,10 +245,7 @@ public class RemoteSigningKeyTests
     public async Task DeleteSecret_WhenTheSecretIsRemote_DestroysItsKeyInTheProvider()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateStaticConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
         var accessToken = await GetBootstrapTokenAsync(client);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
@@ -295,10 +275,7 @@ public class RemoteSigningKeyTests
     public async Task PostRemoteSecret_WhenTheProviderIsRegistered_CreatesTheKeyInTheProviderAndNamesIt()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateStaticConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
         await AuthorizeAsync(client);
         var expiresWhen = GetExpiresWhen(factory);
@@ -336,10 +313,7 @@ public class RemoteSigningKeyTests
     public async Task PostRemoteSecretImport_WhenTheProviderHoldsTheKey_BindsItWithThePublicKeyTheProviderReturns()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateStaticConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
         await AuthorizeAsync(client);
 
@@ -366,10 +340,7 @@ public class RemoteSigningKeyTests
     public async Task PostRemoteSecretImport_WhenTheKeyIsNotOfTheAlgorithmsKeyType_ReturnsBadRequest()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateStaticConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
         await AuthorizeAsync(client);
         var before = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
@@ -389,10 +360,7 @@ public class RemoteSigningKeyTests
     public async Task DeleteSecret_WhenTheKeyWasBound_LeavesItInTheProvider()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteSigningApplicationFactory(
-            provider,
-            CreateStaticConfiguration()
-        );
+        using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
         await AuthorizeAsync(client);
         var secretId = await BindKeyAsync(factory, client, provider);
@@ -646,28 +614,5 @@ public class RemoteSigningKeyTests
             .GetStore<ITenantStore>()
             .GetSecretsAsync(tenantId, CancellationToken.None);
         return [.. secrets.Value];
-    }
-
-    /// <summary>
-    /// A factory with the supplied configuration overlaid and <see cref="TestRemoteKeyProvider"/> registered.
-    /// </summary>
-    private sealed class RemoteSigningApplicationFactory(
-        TestRemoteKeyProvider provider,
-        IReadOnlyDictionary<string, string?> configuration
-    ) : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(configuration)
-            );
-            builder.ConfigureServices(services =>
-            {
-                services.AddSingleton<IRemoteKeyProvider>(provider);
-                services.AddSingleton<IRemoteKeyDescriptorSource>(provider);
-            });
-        }
     }
 }

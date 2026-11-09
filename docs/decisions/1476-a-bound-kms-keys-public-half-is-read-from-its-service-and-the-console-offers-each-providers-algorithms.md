@@ -1,6 +1,6 @@
 # 1476. A bound KMS key's public half is read from its service, and the console offers each provider's algorithms
 
-- **Status:** Accepted (amends [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md))
+- **Status:** Accepted (amends [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md); amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md))
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 

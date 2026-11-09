@@ -106,9 +106,18 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var unregisteredRow = CreateRow("aws-kms", "XS999", "rsa", 2048, null);
         var ps256Row = CreateRow("google-cloud-kms", "PS256", "rsa", 3072, null);
         var otherRow = CreateRow("other-kms", "RS256", "rsa", 2048, null);
+        var oaepRow = new RemoteDecryptionAlgorithm
+        {
+            Provider = "aws-kms",
+            Algorithm = "RSA-OAEP-256",
+            SecretType = "rsa",
+            KeySizeBits = 3072,
+            KeySpec = "RSA_3072",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
         mockCatalog
             .Setup(x => x.Algorithms)
-            .Returns([es256Row, rs256Row, unregisteredRow, ps256Row, otherRow])
+            .Returns([es256Row, rs256Row, unregisteredRow, oaepRow, ps256Row, otherRow])
             .Verifiable();
 
         // The strict validator is never asked about the row of the provider that is not described.
@@ -138,6 +147,14 @@ public sealed class CapabilitiesProvidersTests : IDisposable
             )
             .Verifiable();
         mockValidator
+            .Setup(x => x.ValidateRemoteKey(oaepRow.Selector))
+            .Returns(
+                SecretCreateValidation.Valid(
+                    new SecretKeyGenerationParameters { KeySizeBits = 3072 }
+                )
+            )
+            .Verifiable();
+        mockValidator
             .Setup(x => x.ValidateRemoteKey(ps256Row.Selector))
             .Returns(
                 SecretCreateValidation.Valid(
@@ -163,23 +180,29 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         Assert.Equal(["aws-kms", "google-cloud-kms"], section.Select(x => x.Name));
 
         Assert.Equal(
-            [("ES256", "ecc", 256, "P-256"), ("RS256", "rsa", 2048, (string?)null)],
-            section[0].Algorithms.Select(x => (x.Algorithm, x.SecretType, x.KeySizeBits, x.Curve))
+            [
+                ("ES256", SecretKeyUses.Signature, "ecc", 256, "P-256"),
+                ("RS256", SecretKeyUses.Signature, "rsa", 2048, (string?)null),
+                ("RSA-OAEP-256", SecretKeyUses.Encryption, "rsa", 3072, (string?)null),
+            ],
+            section[0]
+                .Algorithms.Select(x => (x.Algorithm, x.Use, x.SecretType, x.KeySizeBits, x.Curve))
         );
         var googleAlgorithm = Assert.Single(section[1].Algorithms);
         Assert.Equal("PS256", googleAlgorithm.Algorithm);
+        Assert.Equal(SecretKeyUses.Signature, googleAlgorithm.Use);
         Assert.Equal(3072, googleAlgorithm.KeySizeBits);
         Assert.Null(googleAlgorithm.Curve);
     }
 
-    private static RemoteSigningAlgorithm CreateRow(
+    private static RemoteKeyAlgorithm CreateRow(
         string provider,
         string algorithm,
         string secretType,
         int keySizeBits,
         string? curve
     ) =>
-        new()
+        new RemoteSigningAlgorithm
         {
             Provider = provider,
             Algorithm = algorithm,

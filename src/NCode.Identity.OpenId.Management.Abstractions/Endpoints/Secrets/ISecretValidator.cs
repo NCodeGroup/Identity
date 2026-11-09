@@ -50,7 +50,7 @@ public interface ISecretValidator
     /// Validates that the specified <see cref="CreateRemoteSecretRequest"/> describes a key a registered remote key
     /// provider can create, and resolves the parameters the key is generated with. Everything is checked before the
     /// key management service is called: the lifecycle, a key type a key management service can hold, a registered
-    /// provider, the generation parameters the signature algorithm resolves, and a row of the provider's mapping
+    /// provider, the generation parameters the algorithm resolves, and a row of the provider's mapping
     /// vocabulary for the provider, algorithm, type, size and curve. The key is checked by
     /// <see cref="ValidateRemoteKey"/>.
     /// </summary>
@@ -68,7 +68,7 @@ public interface ISecretValidator
     /// management service holds: the lifecycle, a key type a key management service can hold, a registered provider, a
     /// key identifier the stored reference can hold, an algorithm that resolves the key's size and curve, and a row of
     /// the provider's mapping for them. The key's public half is read from the service and checked against that row,
-    /// and the binding is proved by a signature. The key is checked by <see cref="ValidateRemoteKey"/>.
+    /// and the binding is proved by a signature or a decryption. The key is checked by <see cref="ValidateRemoteKey"/>.
     /// </summary>
     /// <param name="request">The <see cref="ImportRemoteSecretRequest"/> to validate.</param>
     /// <param name="createdWhen">The instant the secret is created at, which its activation cannot precede.</param>
@@ -82,14 +82,16 @@ public interface ISecretValidator
     /// <summary>
     /// Validates that a registered remote key provider can hold the key the selector names, the one check a create and
     /// a bind of such a key run and the capabilities apply to each row they offer: a key type a key management service
-    /// can hold, a described provider, the generation parameters the signature algorithm resolves from the selector's
-    /// size and curve, and a row of the provider's mapping vocabulary for the resolved key.
+    /// can hold, a described provider, the generation parameters the selector's signature or key-management algorithm
+    /// resolves from its size and curve, a row of the provider's mapping vocabulary for the resolved key, and that the
+    /// row holds keys for the use the algorithm implies.
     /// </summary>
     /// <param name="selector">The provider, algorithm, secret type, key size and curve of the key.</param>
     /// <returns>The resolved size and curve of the key, or the error that describes the first failed
     /// check.</returns>
     // See ADR-1476.
-    SecretCreateValidation ValidateRemoteKey(RemoteSigningAlgorithmSelector selector);
+    // See ADR-1477.
+    SecretCreateValidation ValidateRemoteKey(RemoteKeyAlgorithmSelector selector);
 
     /// <summary>
     /// Validates the metadata an <see cref="UpdateSecretRequest"/> declares for an existing key: the <c>use</c> is

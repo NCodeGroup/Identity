@@ -45,6 +45,16 @@ public class DefaultSecretSerializerTests : BaseTests
         IsDerEncodedSignature = true,
     };
 
+    private static readonly RemoteDecryptionAlgorithm OaepRow = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = "RSA-OAEP-256",
+        SecretType = SecretTypes.Rsa,
+        KeySizeBits = 2048,
+        KeySpec = "RSA_2048",
+        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+    };
+
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;
     private readonly DefaultRemoteKeyDescriptorCatalog _remoteDescriptorCatalog;
@@ -84,7 +94,7 @@ public class DefaultSecretSerializerTests : BaseTests
             .SetupGet(x => x.Providers)
             .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
             .Verifiable();
-        source.SetupGet(x => x.Algorithms).Returns([RsaRow, EccRow]).Verifiable();
+        source.SetupGet(x => x.Algorithms).Returns([RsaRow, EccRow, OaepRow]).Verifiable();
 
         return new DefaultRemoteKeyDescriptorCatalog([source.Object]);
     }
@@ -104,7 +114,8 @@ public class DefaultSecretSerializerTests : BaseTests
         int keySizeBits,
         ReadOnlySpan<byte> subjectPublicKeyInfo,
         string? algorithm,
-        string reference = "aws-kms:key-1"
+        string reference = "aws-kms:key-1",
+        string use = "sig"
     ) =>
         CreatePersistedSecretFromEncodedValue(
             secretType,
@@ -114,7 +125,8 @@ public class DefaultSecretSerializerTests : BaseTests
             publicKey: subjectPublicKeyInfo.IsEmpty
                 ? null
                 : Base64Url.EncodeToString(subjectPublicKeyInfo),
-            algorithm: algorithm
+            algorithm: algorithm,
+            use: use
         );
 
     private static PersistedSecret CreatePersistedSecret(
@@ -155,13 +167,14 @@ public class DefaultSecretSerializerTests : BaseTests
         string? publicKey = null,
         DateTimeOffset? activatesWhen = null,
         DateTimeOffset? retiresWhen = null,
-        string? algorithm = null
+        string? algorithm = null,
+        string use = "sig"
     ) =>
         new PersistedSecretBuilder
         {
             SecretId = secretId,
             KeyId = keyId,
-            Use = "sig",
+            Use = use,
             Algorithm = algorithm,
             ActivatesWhen = activatesWhen ?? DateTimeOffset.UnixEpoch,
             RetiresWhen = retiresWhen ?? expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
@@ -785,6 +798,45 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         Assert.Contains("other-kms", exception.Message);
+    }
+
+    [Fact]
+    public void DeserializeRemoteSecret_UseDiffersFromTheRow_Throws()
+    {
+        using var rsa = RSA.Create(2048);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RSA-OAEP-256",
+            use: "sig"
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeRemoteSecret(persisted)
+        );
+
+        Assert.Contains("secret-1", exception.Message);
+        Assert.Contains("RSA-OAEP-256", exception.Message);
+    }
+
+    [Fact]
+    public void DeserializeRemoteSecret_DecryptionRow_ReturnsAnEncryptionKey()
+    {
+        using var rsa = RSA.Create(2048);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RSA-OAEP-256",
+            use: "enc"
+        );
+
+        var secretKey = _serializer.DeserializeRemoteSecret(persisted);
+
+        var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(secretKey);
+        Assert.Equal(SecretKeyUses.Encryption, secretKey.Metadata.Use);
+        Assert.Same(OaepRow, remoteKey.Binding.Algorithm);
     }
 
     #endregion

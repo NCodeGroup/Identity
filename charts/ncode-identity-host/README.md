@@ -427,24 +427,40 @@ tenant's master keys back under the deployment's root key.
 private key never touch it, so the operator cannot read the tenant's data without the tenant's key. Destroying the key,
 without removing it first, loses every value written or rewrapped under it, in the database and in every backup.
 
-### Tenant signing keys
+### Tenant keys in a key management service
 
-A tenant's signing keys can be held in a key management service, which signs every token, so the private key never
-reaches the server
-([ADR-1471](../../docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+A tenant's signing and encryption keys can be held in a key management service, which signs every token and decrypts
+every content key, so the private key never reaches the server
+([ADR-1471](../../docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
+[ADR-1477](../../docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md)).
 The operator registers the providers a tenant may choose from, and the host reaches each with the deployment's own
 workload identity. The values are:
 
 - `secretProtection.remoteKeyProviders.awsKms.region`, and `pendingWindowInDays`, 7 to 30 (default 30), the days a
   deleted key waits before AWS destroys it;
 - `secretProtection.remoteKeyProviders.azureKeyVault.vaultUri`, and `hardwareProtected` (default `true`);
-- `secretProtection.remoteKeyProviders.googleCloudKms.keyRing`, and `hardwareProtected` (default `true`).
+- `secretProtection.remoteKeyProviders.googleCloudKms.keyRing`, and `hardwareProtected` (default `true`);
+- `secretProtection.remoteKeys.deployment`, which names this release's keys in a shared KMS scope (an AWS account, a
+  vault or a key ring): lowercase letters, digits and hyphens, at most 40 characters. It is required when a provider is
+  registered. A deployment is one database of stored secrets: every replica and release that shares the database uses
+  its name, and no other deployment in the same AWS account, vault or key ring uses it, because each deployment
+  destroys every key of its name that its own database does not name;
+- `secretProtection.remoteKeys.sweepEnabled` (default `true`), `sweepInterval` (default `1.00:00:00`) and
+  `sweepGracePeriod` (default `1.00:00:00`, between one hour and 365 days), which control the background sweep that
+  destroys the keys no stored secret names
+  ([ADR-1478](../../docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
 
 The chart renders them as `SecretProtection__RemoteKeyProviders__AwsKms__*`, `__AzureKeyVault__*` and
-`__GoogleCloudKms__*`. A provider is registered when its first value (`region`, `vaultUri` or `keyRing`) is set, as the
-host registers a provider when its configuration section exists; a provider with no value is not registered, and no
-tenant can choose it. Registering a provider selects it: the host does not start unless it holds every signature key
-the database provisions through it. `ci/remote-key-providers-values.yaml` shows a release with all three.
+`__GoogleCloudKms__*`, and the deployment as `SecretProtection__RemoteKeys__Deployment` together with
+`SecretProtection__RemoteKeys__SweepEnabled`, `__SweepInterval` and `__SweepGracePeriod`. A provider is registered when
+its first value (`region`, `vaultUri` or `keyRing`) is set, as the host registers a provider when its configuration
+section exists; a provider with no value is not registered, and no tenant can choose it. A release that registers a
+provider without `secretProtection.remoteKeys.deployment` is refused:
+`secretProtection.remoteKeys.deployment must name this deployment when a remote key provider is set: lowercase letters,
+digits and hyphens.` The sweep destroys only keys tagged with the deployment, older than the grace period, that no
+stored secret names. Registering a provider selects it: the host does not start unless it holds every signing and
+encryption key the database provisions through it. `ci/remote-key-providers-values.yaml` shows a release with all
+three.
 
 **Credentials.** A provider that is configured reuses the credentials set up for it in the sections above, so a pod
 carries them: for AWS KMS the web identity (`secretProtection.awsKms.webIdentity.roleArn`), for Azure Key Vault the
@@ -453,23 +469,34 @@ the federation (`secretProtection.googleCloudKms.workloadIdentityFederation.prov
 workload-identity values uses the pod's ambient identity. The chart renders such a provider on purpose, as it does a
 root key provider, because a cluster can supply the identity itself; it refuses only a half-set value. A pod never carries the credentials of a provider that is not
 the root key provider, listed in `secretProtection.ownerRootKeys.providers` or configured here. One identity serves
-each vendor, so the root key, a tenant's root key and the tenant's signing keys share it.
+each vendor, so the root key, a tenant's root key and the tenant's keys share it.
 
-**What the identity needs.** The deployment's identity creates, signs with and destroys the keys it creates:
+**What the identity needs.** The deployment's identity creates, uses, lists and destroys the keys it creates; the
+server creates sign-only or decrypt-only keys:
 
-- AWS KMS: `kms:CreateKey`, `kms:TagResource`, `kms:GetPublicKey`, `kms:Sign`, `kms:ScheduleKeyDeletion` and
-  `kms:DescribeKey`.
+- AWS KMS: `kms:CreateKey`, `kms:TagResource`, `kms:GetPublicKey`, `kms:Sign`, `kms:Decrypt`,
+  `kms:DeriveSharedSecret`, `kms:ScheduleKeyDeletion`, `kms:DescribeKey`, `kms:ListKeys` and `kms:ListResourceTags`.
 - Azure Key Vault: the `Key Vault Crypto Officer` role on the vault.
-- Google Cloud KMS: `cloudkms.cryptoKeys.create` and `cloudkms.cryptoKeyVersions.create`, `.get`, `.viewPublicKey`,
-  `.useToSign` and `.destroy` on the key ring.
+- Google Cloud KMS: `cloudkms.cryptoKeys.create` and `cloudkms.cryptoKeys.list`, and
+  `cloudkms.cryptoKeyVersions.create`, `.list`, `.get`, `.viewPublicKey`, `.useToSign`, `.useToDecrypt` and `.destroy`
+  on the key ring.
 
-A key an operator binds through the management API needs only signing: AWS `kms:Sign`, Azure `Key Vault Crypto User`
-on the key, Google `cloudkms.cryptoKeyVersions.useToSign`.
+A key an operator binds through the management API needs only its own operation: AWS `kms:Sign`, `kms:Decrypt` or
+`kms:DeriveSharedSecret`, Azure `Key Vault Crypto User` on the key, Google `cloudkms.cryptoKeyVersions.useToSign` or
+`.useToDecrypt`.
+
+Scope the identity to the deployment's keys: on AWS, condition `kms:ScheduleKeyDeletion` on
+`aws:ResourceTag/ncode-identity:deployment` equal to the deployment name, and `kms:CreateKey` and `kms:TagResource` on
+`aws:RequestTag/ncode-identity:deployment`, so it creates and destroys only keys of its deployment (`kms:ListKeys`
+names no resource, and a bound key carries no such tag); on Azure, a role assignment cannot be conditioned on a key's
+tags, so give each deployment a vault of its own and a custom role without delete and purge; on Google, a grant on a key
+ring covers every crypto key in it, so give each deployment a key ring of its own.
 
 **Choosing a provider.** A tenant, a team or the platform selects a provider with the setting
-`tenant_signing_key_provider`, whose value is empty (local keys) or one of `aws-kms`, `azure-key-vault` and
-`google-cloud-kms`. The management API creates a tenant's key in a registered provider and binds a key a provider
-already holds. See [Remote signing keys](../../docs/capabilities/remote-signing-keys.md).
+`tenant_key_provider`, whose value is empty (local keys) or one of `aws-kms`, `azure-key-vault` and
+`google-cloud-kms`, and which chooses the provider of every key the tenant provisions, signing and encryption alike.
+The management API creates a tenant's key in a registered provider and binds a key a provider already holds. See
+[Remote keys](../../docs/capabilities/remote-keys.md).
 
 ### A key the master key cannot decrypt
 

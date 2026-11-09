@@ -75,7 +75,13 @@ describe('OwnerSecretsTab offers the actions each owner supports', () => {
           {
             name: 'aws-kms',
             algorithms: [
-              { algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+              {
+                algorithm: 'ES256',
+                use: 'sig',
+                secretType: 'ecc',
+                keySizeBits: 256,
+                curve: 'P-256',
+              },
             ],
           },
         ],

@@ -481,4 +481,40 @@ internal static partial class Log
         string secretId,
         string provider
     );
+
+    /// <summary>
+    /// Logs that an orphaned remote key was not destroyed because its provider is not registered.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="provider">The name of the provider that the reference names.</param>
+    /// <param name="keyId">The identifier of the key within the provider.</param>
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeyOrphanDestroySkipped,
+        Level = LogLevel.Warning,
+        Message = "The remote key '{KeyId}' of the provider '{Provider}' was not destroyed: the provider is not registered"
+    )]
+    internal static partial void RemoteKeyOrphanDestroySkipped(
+        this ILogger logger,
+        string provider,
+        string keyId
+    );
+
+    /// <summary>
+    /// Logs that the key service failed to destroy an orphaned remote key.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The failure.</param>
+    /// <param name="provider">The name of the provider that holds the key.</param>
+    /// <param name="keyId">The identifier of the key within the provider.</param>
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeyOrphanDestroyFailed,
+        Level = LogLevel.Error,
+        Message = "The remote key provider '{Provider}' failed to destroy the remote key '{KeyId}'"
+    )]
+    internal static partial void RemoteKeyOrphanDestroyFailed(
+        this ILogger logger,
+        Exception exception,
+        string provider,
+        string keyId
+    );
 }

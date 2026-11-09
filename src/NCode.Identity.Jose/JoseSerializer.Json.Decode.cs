@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NCode.Buffers;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;
@@ -147,12 +149,22 @@ partial class JoseSerializer
         return MergeHeaders(protectedHeader, sharedUnprotected, recipientHeader);
     }
 
-    private void DecodeJson(JsonJwt jsonJwt, SecretKey secretKey, IBufferWriter<byte> payloadWriter)
+    private async ValueTask DecodeJsonAsync(
+        JsonJwt jsonJwt,
+        SecretKey secretKey,
+        IBufferWriter<byte> payloadWriter,
+        CancellationToken cancellationToken
+    )
     {
         switch (jsonJwt.ProtectionType)
         {
             case JoseProtectionTypes.Jwe:
-                DecryptJsonJwe(jsonJwt.Root, secretKey, payloadWriter);
+                await DecryptJsonJweAsync(
+                    jsonJwt.Root,
+                    secretKey,
+                    payloadWriter,
+                    cancellationToken
+                );
                 break;
 
             case JoseProtectionTypes.Jws:
@@ -327,10 +339,11 @@ partial class JoseSerializer
         );
     }
 
-    private void DecryptJsonJwe(
+    private async ValueTask DecryptJsonJweAsync(
         JsonElement root,
         SecretKey secretKey,
-        IBufferWriter<byte> payloadWriter
+        IBufferWriter<byte> payloadWriter,
+        CancellationToken cancellationToken
     )
     {
         var encodedProtected = root.TryGetPropertyValue<string>(
@@ -392,7 +405,7 @@ partial class JoseSerializer
 
             try
             {
-                DecryptJsonJweRecipient(
+                await DecryptJsonJweRecipientAsync(
                     secretKey,
                     mergedHeader,
                     encodedProtected,
@@ -401,10 +414,13 @@ partial class JoseSerializer
                     encodedIv,
                     encodedCiphertext,
                     encodedTag,
-                    payloadWriter
+                    payloadWriter,
+                    cancellationToken
                 );
             }
+            // a recipient the key does not decrypt is skipped and any other failure (transport, IOException, cancellation) ends the decode, as in the compact path
             catch (Exception exception)
+                when (exception is JoseException or CryptographicException or ArgumentException)
             {
                 (failures ??= []).Add(exception);
                 continue;
@@ -427,16 +443,17 @@ partial class JoseSerializer
             _ => new AggregateException(failures),
         };
 
-    private void DecryptJsonJweRecipient(
+    private async ValueTask DecryptJsonJweRecipientAsync(
         SecretKey secretKey,
         JsonElement header,
-        ReadOnlySpan<char> encodedProtected,
+        string encodedProtected,
         string? encodedAad,
-        ReadOnlySpan<char> encodedEncryptedKey,
-        ReadOnlySpan<char> encodedIv,
-        ReadOnlySpan<char> encodedCiphertext,
-        ReadOnlySpan<char> encodedTag,
-        IBufferWriter<byte> payloadWriter
+        string encodedEncryptedKey,
+        string encodedIv,
+        string encodedCiphertext,
+        string encodedTag,
+        IBufferWriter<byte> payloadWriter,
+        CancellationToken cancellationToken
     )
     {
         if (
@@ -460,34 +477,66 @@ partial class JoseSerializer
             authenticatedEncryptionAlgorithmCode
         );
 
-        using var encryptedKeyLease = DecodeBase64Url(
+        // Every binary segment is decoded before the unwrap, so a malformed token never reaches a key management
+        // service.
+        using var encryptedKeyLease = DecodeBase64UrlToMemory(
             encodedEncryptedKey,
             isSensitive: true,
             out var encryptedKeyBytes
         );
-        using var ivLease = DecodeBase64Url(encodedIv, isSensitive: false, out var ivBytes);
-        using var cipherTextLease = DecodeBase64Url(
+        using var ivLease = DecodeBase64UrlToMemory(encodedIv, isSensitive: false, out var ivBytes);
+        using var cipherTextLease = DecodeBase64UrlToMemory(
             encodedCiphertext,
             isSensitive: false,
             out var cipherTextBytes
         );
-        using var tagLease = DecodeBase64Url(encodedTag, isSensitive: false, out var tagBytes);
+        using var tagLease = DecodeBase64UrlToMemory(
+            encodedTag,
+            isSensitive: false,
+            out var tagBytes
+        );
 
         var cekSizeBytes = authenticatedEncryptionAlgorithm.ContentKeySizeBytes;
         using var contentKeyLease = BufferFactory.Rent(
             cekSizeBytes,
             isSensitive: true,
-            out Span<byte> contentKey
+            out Memory<byte> contentKey
         );
 
-        UnwrapContentKeyOrSubstitute(
+        await UnwrapContentKeyOrSubstituteAsync(
             keyManagementAlgorithm,
             secretKey,
             header,
             encryptedKeyBytes,
-            contentKey
+            contentKey,
+            cancellationToken
         );
 
+        DecryptJsonJweContent(
+            encodedProtected,
+            encodedAad,
+            header,
+            authenticatedEncryptionAlgorithm,
+            contentKey.Span,
+            ivBytes.Span,
+            cipherTextBytes.Span,
+            tagBytes.Span,
+            payloadWriter
+        );
+    }
+
+    private void DecryptJsonJweContent(
+        ReadOnlySpan<char> encodedProtected,
+        string? encodedAad,
+        JsonElement header,
+        AuthenticatedEncryptionAlgorithm authenticatedEncryptionAlgorithm,
+        ReadOnlySpan<byte> contentKey,
+        ReadOnlySpan<byte> ivBytes,
+        ReadOnlySpan<byte> cipherTextBytes,
+        ReadOnlySpan<byte> tagBytes,
+        IBufferWriter<byte> payloadWriter
+    )
+    {
         using var associatedDataLease = BuildJsonJweAssociatedData(
             encodedProtected,
             encodedAad,

@@ -1006,7 +1006,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             )
             .Verifiable();
 
-    private void SetupRow(RemoteSigningAlgorithmSelector selector, RemoteSigningAlgorithm? row)
+    private void SetupRow(RemoteKeyAlgorithmSelector selector, RemoteKeyAlgorithm? row)
     {
         MockCatalog
             .Setup(x => x.TryGetAlgorithm(selector, out row))
@@ -1014,7 +1014,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             .Verifiable();
     }
 
-    private static RemoteSigningAlgorithmSelector Es256Selector { get; } =
+    private static RemoteKeyAlgorithmSelector Es256Selector { get; } =
         new()
         {
             Provider = ProviderName,
@@ -1034,6 +1034,26 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             Curve = "P-256",
             KeySpec = "ECC_NIST_P256",
             SigningAlgorithm = "ECDSA_SHA_256",
+        };
+
+    private static RemoteKeyAlgorithmSelector Rsa3072OaepSelector { get; } =
+        new()
+        {
+            Provider = ProviderName,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 3072,
+        };
+
+    private static RemoteDecryptionAlgorithm Rsa3072OaepRow { get; } =
+        new()
+        {
+            Provider = ProviderName,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 3072,
+            KeySpec = "RSA_3072",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
         };
 
     private static CreateRemoteSecretRequest CreateRemoteRequest(
@@ -1300,7 +1320,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Fact]
-    public void ValidateImportRemote_WhenTheAlgorithmIsAKeyManagementAlgorithm_ReturnsBadRequest()
+    public void ValidateImportRemote_WhenAKeyManagementAlgorithmHasAnotherKeyType_ReturnsBadRequest()
     {
         SetupDescribedProviders(ProviderName);
 
@@ -1313,9 +1333,28 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.NotNull(validation.Error);
         Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
         Assert.Equal(
-            "The algorithm 'RSA-OAEP' is intended for 'enc' use and is incompatible with the specified use 'sig'.",
+            "The algorithm 'RSA-OAEP' is not compatible with the key's type.",
             validation.Error.Detail
         );
+    }
+
+    [Fact]
+    public void ValidateImportRemote_KeyManagementAlgorithm_IsValid()
+    {
+        SetupDescribedProviders(ProviderName);
+        SetupRow(Rsa3072OaepSelector, Rsa3072OaepRow);
+
+        var validation = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(
+                secretType: SecretTypes.Rsa,
+                algorithm: "RSA-OAEP-256",
+                keySizeBits: 3072
+            ),
+            CreatedWhen
+        );
+
+        Assert.True(validation.IsValid);
+        Assert.Equal(3072, validation.GenerationParameters.KeySizeBits);
     }
 
     [Fact]
@@ -1391,7 +1430,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     public void ValidateRemoteKey_WhenTheSizeIsNotTheAlgorithms_ReturnsBadRequest()
     {
         SetupDescribedProviders(ProviderName);
-        var selector = new RemoteSigningAlgorithmSelector
+        var selector = new RemoteKeyAlgorithmSelector
         {
             Provider = ProviderName,
             Algorithm = "RS256",
@@ -1404,6 +1443,63 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.False(validation.IsValid);
         Assert.NotNull(validation.Error);
         Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+    }
+
+    [Fact]
+    public void ValidateRemoteKey_KeyManagementAlgorithmWithARow_IsValid()
+    {
+        SetupDescribedProviders(ProviderName);
+        SetupRow(Rsa3072OaepSelector, Rsa3072OaepRow);
+
+        var validation = RemoteValidator.ValidateRemoteKey(Rsa3072OaepSelector);
+
+        Assert.True(validation.IsValid);
+        Assert.Equal(3072, validation.GenerationParameters.KeySizeBits);
+    }
+
+    [Fact]
+    public void ValidateRemoteKey_RowHoldsAnotherUse_IsInvalid()
+    {
+        SetupDescribedProviders(ProviderName);
+        var signingRow = new RemoteSigningAlgorithm
+        {
+            Provider = ProviderName,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 3072,
+            KeySpec = "RSA_3072",
+            SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
+        };
+        SetupRow(Rsa3072OaepSelector, signingRow);
+
+        var validation = RemoteValidator.ValidateRemoteKey(Rsa3072OaepSelector);
+
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+        Assert.Contains("'sig'", validation.Error.Detail, StringComparison.Ordinal);
+        Assert.Contains("'enc'", validation.Error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateRemoteKey_UnregisteredAlgorithm_IsInvalid()
+    {
+        SetupDescribedProviders(ProviderName);
+
+        var validation = RemoteValidator.ValidateRemoteKey(
+            Rsa3072OaepSelector with
+            {
+                Algorithm = "XYZ",
+            }
+        );
+
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+        Assert.Equal(
+            "The algorithm 'XYZ' is not a supported signature or key-management algorithm.",
+            validation.Error.Detail
+        );
     }
 
     [Fact]

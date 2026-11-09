@@ -6,12 +6,24 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Jose;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
+using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
 public class RsaOaepKeyManagementAlgorithmTests : BaseTests
 {
+    private static readonly RemoteDecryptionAlgorithm RsaOaep256Row = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = "RSA-OAEP-256",
+        SecretType = "rsa",
+        KeySizeBits = 2048,
+        KeySpec = "RSA_2048",
+        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+    };
+
     [Fact]
     public void Code_ReturnsCode()
     {
@@ -250,6 +262,180 @@ public class RsaOaepKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);
         Assert.Equal(cek.ToArray(), decryptedCek.ToArray());
     }
+
+    #region UnwrapKeyAsync Tests
+
+    [Fact]
+    public async Task UnwrapKeyAsync_RemoteKey_DecryptsThroughTheService()
+    {
+        const string code = "RSA-OAEP-256";
+
+        using var heldRsa = RSA.Create(2048);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+        RemoteDecryptionRequest? capturedRequest = null;
+
+        provider
+            .Setup(x =>
+                x.DecryptAsync(
+                    It.IsAny<RemoteDecryptionRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (RemoteDecryptionRequest request, Memory<byte> plaintext, CancellationToken _) =>
+                {
+                    capturedRequest = request;
+                    var bytes = heldRsa.Decrypt(
+                        request.Ciphertext.ToArray(),
+                        RSAEncryptionPadding.OaepSHA256
+                    );
+                    bytes.CopyTo(plaintext);
+                    return ValueTask.FromResult(bytes.Length);
+                }
+            )
+            .Verifiable();
+
+        var secretKey = SecretKeyFactory.CreateRsaRemote(
+            new KeyMetadata { KeyId = "remote" },
+            heldRsa.ExportSubjectPublicKeyInfo(),
+            new RemoteKeyBinding
+            {
+                Provider = provider.Object,
+                Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "remote-key-1"),
+                Algorithm = RsaOaep256Row,
+            }
+        );
+
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
+        var contentKey = RandomNumberGenerator.GetBytes(32);
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>(
+            algorithm.GetEncryptedContentKeySizeBytes(2048, contentKey.Length)
+        );
+
+        var headerForWrap = new Dictionary<string, object>();
+        algorithm.WrapKey(secretKey, headerForWrap, contentKey, encryptedContentKeyWriter);
+
+        var header = JsonSerializer.SerializeToElement(headerForWrap);
+        var decrypted = new byte[contentKey.Length];
+
+        var bytesWritten = await algorithm.UnwrapKeyAsync(
+            secretKey,
+            header,
+            encryptedContentKeyWriter.WrittenMemory,
+            decrypted,
+            CancellationToken.None
+        );
+
+        Assert.Equal(contentKey.Length, bytesWritten);
+        Assert.Equal(contentKey, decrypted);
+        Assert.NotNull(capturedRequest);
+        Assert.Equal("RSA-OAEP-256", capturedRequest.Algorithm.Algorithm);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(255)]
+    [InlineData(257)]
+    public async Task UnwrapKeyAsync_RemoteKeyAndAnEncryptedKeyNotTheModulusSize_ThrowsWithoutCallingTheService(
+        int length
+    )
+    {
+        const string code = "RSA-OAEP-256";
+
+        using var heldRsa = RSA.Create(2048);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+
+        var secretKey = SecretKeyFactory.CreateRsaRemote(
+            new KeyMetadata { KeyId = "remote" },
+            heldRsa.ExportSubjectPublicKeyInfo(),
+            new RemoteKeyBinding
+            {
+                Provider = provider.Object,
+                Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "remote-key-1"),
+                Algorithm = RsaOaep256Row,
+            }
+        );
+
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
+        var header = JsonSerializer.SerializeToElement(new Dictionary<string, object>());
+
+        await Assert.ThrowsAsync<CryptographicException>(async () =>
+            await algorithm.UnwrapKeyAsync(
+                secretKey,
+                header,
+                new byte[length],
+                new byte[32],
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task UnwrapKeyAsync_LocalKey_UnwrapsSynchronously()
+    {
+        const string code = nameof(code);
+
+        using var key = RSA.Create(2048);
+        var secretKey = SecretKeyFactory.CreateRsa(new KeyMetadata { KeyId = "local" }, key);
+
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
+        var contentKey = RandomNumberGenerator.GetBytes(32);
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>(
+            algorithm.GetEncryptedContentKeySizeBytes(2048, contentKey.Length)
+        );
+
+        var headerForWrap = new Dictionary<string, object>();
+        algorithm.WrapKey(secretKey, headerForWrap, contentKey, encryptedContentKeyWriter);
+
+        var header = JsonSerializer.SerializeToElement(headerForWrap);
+        var decrypted = new byte[contentKey.Length];
+
+        var task = algorithm.UnwrapKeyAsync(
+            secretKey,
+            header,
+            encryptedContentKeyWriter.WrittenMemory,
+            decrypted,
+            CancellationToken.None
+        );
+
+        Assert.True(task.IsCompletedSuccessfully);
+        var bytesWritten = await task;
+        Assert.Equal(contentKey.Length, bytesWritten);
+        Assert.Equal(contentKey, decrypted);
+    }
+
+    #endregion
+
+    #region TryUnwrapKey Tests
+
+    [Fact]
+    public void TryUnwrapKey_RemoteKey_Throws()
+    {
+        const string code = nameof(code);
+
+        using var heldRsa = RSA.Create(2048);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+        var secretKey = SecretKeyFactory.CreateRsaRemote(
+            new KeyMetadata { KeyId = "remote" },
+            heldRsa.ExportSubjectPublicKeyInfo(),
+            new RemoteKeyBinding
+            {
+                Provider = provider.Object,
+                Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "remote-key-1"),
+                Algorithm = RsaOaep256Row,
+            }
+        );
+
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
+        var header = JsonSerializer.SerializeToElement(new Dictionary<string, object>());
+
+        Assert.Throws<JoseInvalidAlgorithmException>(() =>
+            algorithm.TryUnwrapKey(secretKey, header, new byte[256], new byte[32], out _)
+        );
+    }
+
+    #endregion
 
     private static IKeyManagement? GetControlAlgorithm(HashAlgorithmName hashAlgorithmName)
     {

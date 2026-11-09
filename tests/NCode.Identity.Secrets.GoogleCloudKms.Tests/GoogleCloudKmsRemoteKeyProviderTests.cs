@@ -4,9 +4,11 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
+using Google.Api.Gax;
 using Google.Api.Gax.Grpc;
 using Google.Cloud.Kms.V1;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -61,6 +63,17 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
             IsDerEncodedSignature = true,
         };
 
+    private static RemoteDecryptionAlgorithm RsaOaep256 { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.GoogleCloudKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = SecretKeyTypes.Rsa,
+            KeySizeBits = 3072,
+            KeySpec = "RSA_DECRYPT_OAEP_3072_SHA256",
+            EncryptionAlgorithm = "RSA_DECRYPT_OAEP_3072_SHA256",
+        };
+
     private static readonly string PublicKeyPem;
 
     private static readonly byte[] PublicKeySpki;
@@ -102,17 +115,18 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
             TimeProvider
         );
 
-    private static RemoteKeyCreationRequest CreateCreationRequest(RemoteSigningAlgorithm row) =>
+    private static RemoteKeyCreationRequest CreateCreationRequest(RemoteKeyAlgorithm row) =>
         new()
         {
             OwnerId = "tenant-1",
             SecretId = "secret-1",
             Algorithm = row,
             GroupName = "ncid-group-1",
+            Deployment = "deployment-1",
         };
 
     private static RemotePublicKeyRequest CreatePublicKeyRequest(
-        RemoteSigningAlgorithm row,
+        RemoteKeyAlgorithm row,
         string keyId
     ) => new() { KeyId = keyId, Algorithm = row };
 
@@ -389,10 +403,44 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
             cryptoKey.VersionTemplate.Algorithm
         );
         Assert.Equal(protectionLevel, cryptoKey.VersionTemplate.ProtectionLevel);
-        Assert.Equal(2, cryptoKey.Labels.Count);
+        Assert.Equal(3, cryptoKey.Labels.Count);
         Assert.Equal(request.GroupName, cryptoKey.Labels["ncode-identity-group"]);
         Assert.Equal("es256", cryptoKey.Labels["ncode-identity-algorithm"]);
+        Assert.Equal(
+            "deployment-1",
+            cryptoKey.Labels[GoogleCloudKmsRemoteKeyProvider.DeploymentLabelKey]
+        );
         AssertSettings(sentSettings, GoogleCloudKmsCallSettings.Creating, cancellationSource.Token);
+    }
+
+    [Fact]
+    public async Task CreateKeyAsync_DecryptionRow_CreatesTheCryptoKeyForDecryption()
+    {
+        var request = CreateCreationRequest(RsaOaep256);
+        CreateCryptoKeyRequest? sentCryptoKey = null;
+        SetupClient<CryptoKeyVersion>();
+        SetupClient<CryptoKey>();
+        SetupCreateVersion(call =>
+            call == 0
+                ? Task.FromException<CryptoKeyVersion>(CreateRpcException(StatusCode.NotFound))
+                : Task.FromResult(new CryptoKeyVersion { Name = VersionName(request) })
+        );
+        SetupCreateCryptoKey(
+            () => Task.FromResult(new CryptoKey()),
+            (cryptoKeyRequest, _) => sentCryptoKey = cryptoKeyRequest
+        );
+        var provider = CreateProvider();
+
+        var result = await provider.CreateKeyAsync(request, CancellationToken.None);
+
+        Assert.Equal(VersionName(request), result.KeyId);
+        var cryptoKey = Assert.IsType<CreateCryptoKeyRequest>(sentCryptoKey).CryptoKey;
+        Assert.Equal(CryptoKey.Types.CryptoKeyPurpose.AsymmetricDecrypt, cryptoKey.Purpose);
+        Assert.Equal(
+            CryptoKeyVersion.Types.CryptoKeyVersionAlgorithm.RsaDecryptOaep3072Sha256,
+            cryptoKey.VersionTemplate.Algorithm
+        );
+        Assert.Equal("rsa-oaep-256", cryptoKey.Labels["ncode-identity-algorithm"]);
     }
 
     [Fact]
@@ -1040,6 +1088,225 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
 
     #endregion
 
+    #region DecryptAsync Tests
+
+    private void SetupDecrypt(
+        AsymmetricDecryptResponse response,
+        Action<AsymmetricDecryptRequest, CallSettings?>? capture = null
+    ) =>
+        Client
+            .Setup(x =>
+                x.AsymmetricDecryptAsync(
+                    It.IsAny<AsymmetricDecryptRequest>(),
+                    It.IsAny<CallSettings>()
+                )
+            )
+            .Callback<AsymmetricDecryptRequest, CallSettings?>(
+                (request, settings) => capture?.Invoke(request, settings)
+            )
+            .Returns(Task.FromResult(response))
+            .Verifiable();
+
+    private static AsymmetricDecryptResponse CreateDecryptResponse(
+        byte[] plaintext,
+        bool verifiedCiphertext = true,
+        long? plaintextCrc32C = null
+    ) =>
+        new()
+        {
+            Plaintext = ByteString.CopyFrom(plaintext),
+            PlaintextCrc32C = plaintextCrc32C ?? GoogleCloudKmsChecksum.Compute(plaintext),
+            VerifiedCiphertextCrc32C = verifiedCiphertext,
+        };
+
+    private static RemoteDecryptionRequest CreateDecryptionRequest(byte[] ciphertext) =>
+        new()
+        {
+            KeyId = SignKeyName,
+            Algorithm = RsaOaep256,
+            Ciphertext = ciphertext,
+        };
+
+    [Fact]
+    public async Task DecryptAsync_SendsCiphertextWithChecksum_WritesPlaintext()
+    {
+        var ciphertext = RandomNumberGenerator.GetBytes(384);
+        var plaintext = RandomNumberGenerator.GetBytes(32);
+        using var cancellationSource = new CancellationTokenSource();
+        AsymmetricDecryptRequest? sent = null;
+        CallSettings? sentSettings = null;
+        SetupClient<AsymmetricDecryptResponse>();
+        SetupDecrypt(
+            CreateDecryptResponse(plaintext),
+            (request, settings) =>
+            {
+                sent = request;
+                sentSettings = settings;
+            }
+        );
+        var provider = CreateProvider();
+        var buffer = new byte[64];
+
+        var written = await provider.DecryptAsync(
+            CreateDecryptionRequest(ciphertext),
+            buffer,
+            cancellationSource.Token
+        );
+
+        Assert.Equal(plaintext, buffer[..written]);
+        var request = Assert.IsType<AsymmetricDecryptRequest>(sent);
+        Assert.Equal(SignKeyName, request.Name);
+        Assert.Equal(ciphertext, request.Ciphertext.ToByteArray());
+        Assert.Equal(GoogleCloudKmsChecksum.Compute(ciphertext), request.CiphertextCrc32C);
+        AssertSettings(sentSettings, GoogleCloudKmsCallSettings.Retrying, cancellationSource.Token);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_CiphertextChecksumNotVerified_ThrowsIOException()
+    {
+        SetupClient<AsymmetricDecryptResponse>();
+        SetupDecrypt(CreateDecryptResponse([1, 2, 3], verifiedCiphertext: false));
+        var provider = CreateProvider();
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task DecryptAsync_PlaintextChecksumMismatch_ThrowsIOException()
+    {
+        SetupClient<AsymmetricDecryptResponse>();
+        SetupDecrypt(CreateDecryptResponse([1, 2, 3], plaintextCrc32C: 1));
+        var provider = CreateProvider();
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task DecryptAsync_InvalidArgument_ThrowsCryptographicException()
+    {
+        SetupClient<AsymmetricDecryptResponse>();
+        Client
+            .Setup(x =>
+                x.AsymmetricDecryptAsync(
+                    It.IsAny<AsymmetricDecryptRequest>(),
+                    It.IsAny<CallSettings>()
+                )
+            )
+            .Returns(
+                Task.FromException<AsymmetricDecryptResponse>(
+                    CreateRpcException(StatusCode.InvalidArgument)
+                )
+            )
+            .Verifiable();
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(SignKeyName, exception.Message);
+        Assert.IsType<RpcException>(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_PlaintextLongerThanTheBuffer_ThrowsCryptographicException()
+    {
+        SetupClient<AsymmetricDecryptResponse>();
+        SetupDecrypt(CreateDecryptResponse([1, 2, 3, 4]));
+        var provider = CreateProvider();
+
+        await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[384]),
+                    new byte[3],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task DecryptAsync_KeyIdIsNotAVersionName_Throws()
+    {
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider
+                .DecryptAsync(
+                    new RemoteDecryptionRequest
+                    {
+                        KeyId = KeyRing + "/cryptoKeys/signing",
+                        Algorithm = RsaOaep256,
+                        Ciphertext = new byte[384],
+                    },
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Equal("request", exception.ParamName);
+    }
+
+    #endregion
+
+    #region DeriveSharedSecretAsync Tests
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_Always_ThrowsNotSupportedException()
+    {
+        var provider = CreateProvider();
+
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            provider
+                .DeriveSharedSecretAsync(
+                    new RemoteKeyAgreementRequest
+                    {
+                        KeyId = SignKeyName,
+                        Algorithm = new RemoteKeyAgreementAlgorithm
+                        {
+                            Provider = RemoteKeyProviderNames.GoogleCloudKms,
+                            Algorithm = "ECDH-ES",
+                            SecretType = SecretKeyTypes.Ecc,
+                            KeySizeBits = 256,
+                            Curve = "P-256",
+                            KeySpec = "EC_SIGN_P256_SHA256",
+                            KeyAgreementAlgorithm = "ECDH",
+                        },
+                        PeerSubjectPublicKeyInfo = PublicKeySpki,
+                    },
+                    new byte[32],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    #endregion
+
     #region DestroyKeyAsync Tests
 
     private void SetupDestroy(
@@ -1122,6 +1389,234 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         );
 
         Assert.Equal("keyId", exception.ParamName);
+    }
+
+    #endregion
+
+    #region ListKeysAsync Tests
+
+    private static DateTimeOffset CreatedWhen { get; } = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
+
+    private static async Task<List<RemoteKeyListing>> ListAsync(
+        GoogleCloudKmsRemoteKeyProvider provider,
+        string deployment = "deployment-1"
+    )
+    {
+        var listings = new List<RemoteKeyListing>();
+        await foreach (
+            var listing in provider.ListKeysAsync(
+                new RemoteKeyListRequest { Deployment = deployment },
+                CancellationToken.None
+            )
+        )
+        {
+            listings.Add(listing);
+        }
+
+        return listings;
+    }
+
+    private static CryptoKey CreateCryptoKey(
+        string id,
+        string deployment = "deployment-1",
+        string group = "ncid-group-1"
+    ) =>
+        new()
+        {
+            Name = $"{KeyRing}/cryptoKeys/{id}",
+            Labels =
+            {
+                { GoogleCloudKmsRemoteKeyProvider.GroupLabelKey, group },
+                { GoogleCloudKmsRemoteKeyProvider.DeploymentLabelKey, deployment },
+            },
+        };
+
+    private static CryptoKeyVersion CreateEnabledVersion(CryptoKey cryptoKey) =>
+        new()
+        {
+            Name = $"{cryptoKey.Name}/cryptoKeyVersions/1",
+            State = CryptoKeyVersion.Types.CryptoKeyVersionState.Enabled,
+            CreateTime = Timestamp.FromDateTimeOffset(CreatedWhen),
+        };
+
+    private void SetupListCryptoKeys(
+        CryptoKey[] cryptoKeys,
+        Action<ListCryptoKeysRequest, CallSettings?>? capture = null
+    ) =>
+        Client
+            .Setup(x =>
+                x.ListCryptoKeysAsync(It.IsAny<ListCryptoKeysRequest>(), It.IsAny<CallSettings>())
+            )
+            .Callback<ListCryptoKeysRequest, CallSettings?>(
+                (request, settings) => capture?.Invoke(request, settings)
+            )
+            .Returns(new FakePagedAsyncEnumerable<ListCryptoKeysResponse, CryptoKey>(cryptoKeys))
+            .Verifiable();
+
+    private void SetupListCryptoKeyVersions(
+        CryptoKeyVersion[] versions,
+        Action<ListCryptoKeyVersionsRequest, CallSettings?>? capture = null
+    ) =>
+        Client
+            .Setup(x =>
+                x.ListCryptoKeyVersionsAsync(
+                    It.IsAny<ListCryptoKeyVersionsRequest>(),
+                    It.IsAny<CallSettings>()
+                )
+            )
+            .Callback<ListCryptoKeyVersionsRequest, CallSettings?>(
+                (request, settings) => capture?.Invoke(request, settings)
+            )
+            .Returns(
+                new FakePagedAsyncEnumerable<ListCryptoKeyVersionsResponse, CryptoKeyVersion>(
+                    versions
+                )
+            )
+            .Verifiable();
+
+    [Fact]
+    public async Task ListKeysAsync_EnabledVersion_ListsIt()
+    {
+        var cryptoKey = CreateCryptoKey("ncid-group-1-h");
+        var version = CreateEnabledVersion(cryptoKey);
+        SetupClient<List<CryptoKey>>();
+        SetupClient<List<CryptoKeyVersion>>();
+        SetupListCryptoKeys([cryptoKey]);
+        SetupListCryptoKeyVersions([version]);
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        var listing = Assert.Single(listings);
+        Assert.Equal(version.Name, listing.KeyId);
+        Assert.Equal("ncid-group-1", listing.GroupName);
+        Assert.Equal(CreatedWhen, listing.CreatedWhen);
+        Assert.Null(listing.OwnerId);
+        Assert.Null(listing.SecretId);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_Version_IsListedWithTheStateFilterAndTheRetryingSettings()
+    {
+        var cryptoKey = CreateCryptoKey("ncid-group-1-h");
+        ListCryptoKeysRequest? sentCryptoKeys = null;
+        CallSettings? sentCryptoKeySettings = null;
+        ListCryptoKeyVersionsRequest? sentVersions = null;
+        CallSettings? sentVersionSettings = null;
+        SetupClient<List<CryptoKey>>();
+        SetupClient<List<CryptoKeyVersion>>();
+        SetupListCryptoKeys(
+            [cryptoKey],
+            (request, settings) =>
+            {
+                sentCryptoKeys = request;
+                sentCryptoKeySettings = settings;
+            }
+        );
+        SetupListCryptoKeyVersions(
+            [CreateEnabledVersion(cryptoKey)],
+            (request, settings) =>
+            {
+                sentVersions = request;
+                sentVersionSettings = settings;
+            }
+        );
+        var provider = CreateProvider();
+
+        await ListAsync(provider);
+
+        Assert.Equal(KeyRing, Assert.IsType<ListCryptoKeysRequest>(sentCryptoKeys).Parent);
+        var versionsRequest = Assert.IsType<ListCryptoKeyVersionsRequest>(sentVersions);
+        Assert.Equal(cryptoKey.Name, versionsRequest.Parent);
+        Assert.Equal("state=ENABLED", versionsRequest.Filter);
+        AssertSettings(
+            sentCryptoKeySettings,
+            GoogleCloudKmsCallSettings.Retrying,
+            CancellationToken.None
+        );
+        AssertSettings(
+            sentVersionSettings,
+            GoogleCloudKmsCallSettings.Retrying,
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_VersionThatIsNotEnabled_SkipsIt()
+    {
+        var cryptoKey = CreateCryptoKey("ncid-group-1-h");
+        var version = CreateEnabledVersion(cryptoKey);
+        version.State = CryptoKeyVersion.Types.CryptoKeyVersionState.DestroyScheduled;
+        SetupClient<List<CryptoKey>>();
+        SetupClient<List<CryptoKeyVersion>>();
+        SetupListCryptoKeys([cryptoKey]);
+        SetupListCryptoKeyVersions([version]);
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_CryptoKeyOfAnotherDeployment_SkipsIt()
+    {
+        SetupClient<List<CryptoKey>>();
+        SetupListCryptoKeys([CreateCryptoKey("ncid-group-1-h", deployment: "deployment-2")]);
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_CryptoKeyWithoutTheGroupPrefix_SkipsIt()
+    {
+        SetupClient<List<CryptoKey>>();
+        SetupListCryptoKeys([CreateCryptoKey("other-key", group: "other-group")]);
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("projects/my-project/locations/us-central1")]
+    public async Task ListKeysAsync_InvalidKeyRing_Throws(string? keyRing)
+    {
+        var provider = CreateProvider(keyRing: keyRing);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ListAsync(provider));
+    }
+
+    private sealed class FakePagedAsyncEnumerable<TResponse, TResource>(
+        IReadOnlyList<TResource> items
+    ) : PagedAsyncEnumerable<TResponse, TResource>
+        where TResponse : class, IPageResponse<TResource>
+    {
+        public override async IAsyncEnumerator<TResource> GetAsyncEnumerator(
+            CancellationToken cancellationToken = default
+        )
+        {
+            foreach (var item in items)
+            {
+                yield return item;
+            }
+
+            await Task.CompletedTask;
+        }
+
+        public override IAsyncEnumerable<TResponse> AsRawResponses() =>
+            throw new NotSupportedException();
+
+        public override Task<Page<TResource>> ReadPageAsync(
+            int pageSize,
+            CancellationToken cancellationToken = default
+        ) => throw new NotSupportedException();
     }
 
     #endregion

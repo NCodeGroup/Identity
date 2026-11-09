@@ -340,7 +340,11 @@ public class JoseSerializerTests : BaseTests
         }
 
         var decodedToken = JoseSerializer.Parse(token);
-        var decodedPayload = JoseSerializer.Decode(decodedToken, secretKey);
+        var decodedPayload = await JoseSerializer.DecodeAsync(
+            decodedToken,
+            secretKey,
+            CancellationToken.None
+        );
         var decodedHeaders = decodedToken.Header;
         Assert.Equal(JsonSerializer.Serialize(originalPayload), decodedPayload);
         Assert.Equal(
@@ -349,10 +353,9 @@ public class JoseSerializerTests : BaseTests
         );
 
         var deserializedToken = JoseSerializer.Parse(token);
-        var deserializedPayload = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(
-            deserializedToken,
-            secretKey
-        );
+        var deserializedPayload = await JoseSerializer.DeserializeAsync<
+            IReadOnlyDictionary<string, object>
+        >(deserializedToken, secretKey, CancellationToken.None);
         var deserializedHeaders2 = deserializedToken.Header;
         Assert.Equal(
             JsonSerializer.Serialize(originalPayload),
@@ -366,7 +369,7 @@ public class JoseSerializerTests : BaseTests
 
     [Theory]
     [MemberData(nameof(EncodeDecodeJweTestData))]
-    public void Decode_Jwe(
+    public async Task Decode_Jwe(
         JweAlgorithm jweAlgorithm,
         JweEncryption jweEncryption,
         JweCompression? jweCompression
@@ -405,9 +408,10 @@ public class JoseSerializerTests : BaseTests
         Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
 
         var parsedToken = JoseSerializer.Parse(originalToken);
-        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(
+        var actualPayload = await JoseSerializer.DeserializeAsync<Dictionary<string, object>>(
             parsedToken,
-            secretKey
+            secretKey,
+            CancellationToken.None
         );
         var header = parsedToken.Header;
         Assert.Equal(originalPayload, actualPayload);
@@ -441,7 +445,7 @@ public class JoseSerializerTests : BaseTests
     }
 
     [Fact]
-    public void DecodeString_WhenTheJweIsCompressed_ReturnsThePlaintext()
+    public async Task DecodeString_WhenTheJweIsCompressed_ReturnsThePlaintext()
     {
         const string keyId = nameof(keyId);
         const JweAlgorithm jweAlgorithm = JweAlgorithm.A256GCMKW;
@@ -461,13 +465,17 @@ public class JoseSerializerTests : BaseTests
             new JwtSettings()
         );
 
-        var actualPayload = JoseSerializer.Decode(token, secretKey);
+        var actualPayload = await JoseSerializer.DecodeAsync(
+            token,
+            secretKey,
+            CancellationToken.None
+        );
 
         Assert.Equal(originalPayload, actualPayload);
     }
 
     [Fact]
-    public void Decode_WhenJweUsesRsa15_ThrowsJoseInvalidAlgorithmException()
+    public async Task Decode_WhenJweUsesRsa15_ThrowsJoseInvalidAlgorithmException()
     {
         const string keyId = nameof(keyId);
         var (controlKey, secretKey) = CreateRandomRsaKey(keyId);
@@ -478,8 +486,8 @@ public class JoseSerializerTests : BaseTests
         var token = JWT.Encode(payload, controlKey, JweAlgorithm.RSA1_5, JweEncryption.A256GCM);
         var parsedToken = JoseSerializer.Parse(token);
 
-        var exception = Assert.Throws<JoseInvalidAlgorithmException>(() =>
-            JoseSerializer.Decode(parsedToken, secretKey)
+        var exception = await Assert.ThrowsAsync<JoseInvalidAlgorithmException>(async () =>
+            await JoseSerializer.DecodeAsync(parsedToken, secretKey, CancellationToken.None)
         );
 
         Assert.Equal(
@@ -489,7 +497,7 @@ public class JoseSerializerTests : BaseTests
     }
 
     [Fact]
-    public void Deserialize_WhenTheJwsIsUnsecured_ThrowsInvalidAlgorithm()
+    public async Task Deserialize_WhenTheJwsIsUnsecured_ThrowsInvalidAlgorithm()
     {
         var token = JWT.Encode(
             new Dictionary<string, object> { ["key1"] = "value" },
@@ -499,8 +507,12 @@ public class JoseSerializerTests : BaseTests
         var parsedToken = JoseSerializer.Parse(token);
         var (_, secretKey) = CreateRandomSymmetricKey("key-1", 256);
 
-        var exception = Assert.Throws<JoseInvalidAlgorithmException>(() =>
-            JoseSerializer.Deserialize<Dictionary<string, object>>(parsedToken, secretKey)
+        var exception = await Assert.ThrowsAsync<JoseInvalidAlgorithmException>(async () =>
+            await JoseSerializer.DeserializeAsync<Dictionary<string, object>>(
+                parsedToken,
+                secretKey,
+                CancellationToken.None
+            )
         );
 
         Assert.Equal(
@@ -564,7 +576,7 @@ public class JoseSerializerTests : BaseTests
     // The signature is computed over the token's own segments, so the token passes its signature check and only its
     // payload is malformed.
     [Fact]
-    public void Decode_WhenTheJwsPayloadIsNotBase64Url_ThrowsJoseException()
+    public async Task Decode_WhenTheJwsPayloadIsNotBase64Url_ThrowsJoseException()
     {
         var (controlKey, secretKey) = CreateRandomSymmetricKey("key-1", 256);
         var encodedHeader = Base64Url.Encode(
@@ -579,8 +591,12 @@ public class JoseSerializerTests : BaseTests
         );
         var token = $"{signingInput}.{Base64Url.Encode(signature)}";
 
-        var exception = Assert.Throws<JoseException>(() =>
-            JoseSerializer.Decode(JoseSerializer.Parse(token), secretKey)
+        var exception = await Assert.ThrowsAsync<JoseException>(async () =>
+            await JoseSerializer.DecodeAsync(
+                JoseSerializer.Parse(token),
+                secretKey,
+                CancellationToken.None
+            )
         );
 
         Assert.Equal(
@@ -594,7 +610,7 @@ public class JoseSerializerTests : BaseTests
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(4)]
-    public void Decode_WhenAJweSegmentIsNotBase64Url_ThrowsJoseException(int segment)
+    public async Task Decode_WhenAJweSegmentIsNotBase64Url_ThrowsJoseException(int segment)
     {
         var (controlKey, secretKey) = CreateRandomSymmetricKey("key-1", 128);
         var token = JWT.Encode(
@@ -608,8 +624,12 @@ public class JoseSerializerTests : BaseTests
         segments[segment] = "!!!!" + segments[segment][4..];
         var tampered = string.Join('.', segments);
 
-        var exception = Assert.Throws<JoseException>(() =>
-            JoseSerializer.Decode(JoseSerializer.Parse(tampered), secretKey)
+        var exception = await Assert.ThrowsAsync<JoseException>(async () =>
+            await JoseSerializer.DecodeAsync(
+                JoseSerializer.Parse(tampered),
+                secretKey,
+                CancellationToken.None
+            )
         );
 
         Assert.Equal(
@@ -633,7 +653,7 @@ public class JoseSerializerTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetEncodeDecodeJwsTestData))]
-    public void Decode_Jws(JwsAlgorithm jwsAlgorithm, bool encodePayload, bool detachPayload)
+    public async Task Decode_Jws(JwsAlgorithm jwsAlgorithm, bool encodePayload, bool detachPayload)
     {
         const string keyId = nameof(keyId);
 
@@ -695,9 +715,10 @@ public class JoseSerializerTests : BaseTests
         }
         else
         {
-            var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(
+            var actualPayload = await JoseSerializer.DeserializeAsync<Dictionary<string, object>>(
                 parsedToken,
-                secretKey
+                secretKey,
+                CancellationToken.None
             );
             header = parsedToken.Header;
             Assert.Equal(originalPayload, actualPayload);
@@ -789,17 +810,15 @@ public class JoseSerializerTests : BaseTests
         }
         else
         {
-            var deserialized = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(
-                parsedToken,
-                secretKey
-            );
+            var deserialized = await JoseSerializer.DeserializeAsync<
+                IReadOnlyDictionary<string, object>
+            >(parsedToken, secretKey, CancellationToken.None);
             deserializedHeaders = parsedToken.Header;
             Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(deserialized));
 
-            var deserialized2 = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(
-                parsedToken2,
-                secretKey
-            );
+            var deserialized2 = await JoseSerializer.DeserializeAsync<
+                IReadOnlyDictionary<string, object>
+            >(parsedToken2, secretKey, CancellationToken.None);
             var deserializedHeaders2 = parsedToken2.Header;
             Assert.Equal(
                 JsonSerializer.Serialize(payload),

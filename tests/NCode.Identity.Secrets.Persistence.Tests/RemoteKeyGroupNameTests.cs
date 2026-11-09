@@ -8,6 +8,7 @@ namespace NCode.Identity.Secrets.Persistence;
 
 public class RemoteKeyGroupNameTests
 {
+    private const string Deployment = "test";
     private const string OwnerId = "tenant-1";
 
     private static RemoteSigningAlgorithm CreateAlgorithm(
@@ -31,25 +32,36 @@ public class RemoteKeyGroupNameTests
         };
 
     private static string CreateGroupName(
+        string deployment = Deployment,
         string ownerId = OwnerId,
-        RemoteSigningAlgorithm? algorithm = null
-    ) => RemoteKeyGroupName.Create(ownerId, algorithm ?? CreateAlgorithm());
+        RemoteKeyAlgorithm? algorithm = null
+    ) => RemoteKeyGroupName.Create(deployment, ownerId, algorithm ?? CreateAlgorithm());
 
     #region Create Tests
 
     [Fact]
     public void Create_KnownInputs_ReturnsKnownName()
     {
-        Assert.Equal("ncid-229ccce23130965b694dec3fdf622534", CreateGroupName());
+        Assert.Equal("ncid-503e349ffa5932548603af74762e3e07", CreateGroupName());
     }
 
     [Fact]
     public void Create_KnownInputsWithoutCurve_ReturnsKnownName()
     {
         Assert.Equal(
-            "ncid-c7791f6a1c83638f5d85e34a8350999d",
+            "ncid-e41c3d21896a6c756978b7b8a8698a29",
             CreateGroupName(algorithm: CreateAlgorithm(curve: null))
         );
+    }
+
+    [Fact]
+    public void Create_OtherDeployment_OtherGroup()
+    {
+        var baseline = CreateGroupName();
+
+        var actual = CreateGroupName(deployment: "other");
+
+        Assert.NotEqual(baseline, actual);
     }
 
     [Fact]

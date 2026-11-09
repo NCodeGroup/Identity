@@ -389,7 +389,7 @@ public class JwtSecuredAuthorizationResponseTests
         Assert.Equal("RSA-OAEP-256", encrypted.Header.GetProperty("alg").GetString());
         Assert.Equal("A128CBC-HS256", encrypted.Header.GetProperty("enc").GetString());
 
-        var signed = joseSerializer.Decode(encrypted, clientKey);
+        var signed = await joseSerializer.DecodeAsync(encrypted, clientKey, CancellationToken.None);
         var (_, payload) = DecodeJwt(signed);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.LoginRequired,

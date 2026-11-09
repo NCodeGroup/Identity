@@ -11,7 +11,10 @@ using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.RemoteKeys;
 using Base64Url = NCode.Encoders.Base64Url;
+using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
+using JoseInvalidAlgorithmException = NCode.Identity.Jose.Exceptions.JoseInvalidAlgorithmException;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
@@ -225,6 +228,158 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(cekSizeBytes, bytesWritten);
         Assert.Equal(wrapped[0], contentKey);
     }
+
+    #region UnwrapKeyAsync Tests
+
+    private const string RemoteAlgorithmCode = "ECDH-ES+A256KW";
+
+    private EcdhWithAesKeyManagementAlgorithm CreateRemoteAlgorithm() =>
+        new(
+            SecretKeyTypeCatalog,
+            [new EccEcdhKeyAgreement()],
+            DefaultAesKeyWrap.Singleton,
+            RemoteAlgorithmCode,
+            kekSizeBits: 256
+        );
+
+    private static EccSecretKey CreateRemoteKey(
+        ECDiffieHellman heldKey,
+        Mock<IRemoteKeyProvider> provider
+    ) =>
+        SecretKeyFactory.CreateEccRemote(
+            new KeyMetadata { KeyId = "remote" },
+            heldKey.ExportSubjectPublicKeyInfo(),
+            new RemoteKeyBinding
+            {
+                Provider = provider.Object,
+                Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "remote-key-1"),
+                Algorithm = new RemoteKeyAgreementAlgorithm
+                {
+                    Provider = RemoteKeyProviderNames.AwsKms,
+                    Algorithm = RemoteAlgorithmCode,
+                    SecretType = "ecc",
+                    KeySizeBits = 256,
+                    Curve = "P-256",
+                    KeySpec = "ECC_NIST_P256",
+                    KeyAgreementAlgorithm = "ECDH",
+                },
+            }
+        );
+
+    [Fact]
+    public async Task UnwrapKeyAsync_RemoteKey_AgreesThroughTheServiceAndUnwrapsLocally()
+    {
+        const int cekSizeBytes = 32;
+
+        using var heldKey = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+        RemoteKeyAgreementRequest? capturedRequest = null;
+
+        provider
+            .Setup(x =>
+                x.DeriveSharedSecretAsync(
+                    It.IsAny<RemoteKeyAgreementRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (
+                    RemoteKeyAgreementRequest request,
+                    Memory<byte> sharedSecret,
+                    CancellationToken cancellationToken
+                ) =>
+                {
+                    capturedRequest = request;
+                    using var peer = ECDiffieHellman.Create();
+                    peer.ImportSubjectPublicKeyInfo(request.PeerSubjectPublicKeyInfo.Span, out _);
+                    using var peerPublicKey = peer.PublicKey;
+                    var secret = heldKey.DeriveRawSecretAgreement(peerPublicKey);
+                    secret.CopyTo(sharedSecret);
+                    return ValueTask.FromResult(secret.Length);
+                }
+            )
+            .Verifiable();
+
+        var secretKey = CreateRemoteKey(heldKey, provider);
+        var algorithm = CreateRemoteAlgorithm();
+
+        var header = new Dictionary<string, object>
+        {
+            ["alg"] = RemoteAlgorithmCode,
+            ["apu"] = Base64Url.Encode(RandomNumberGenerator.GetBytes(16)),
+            ["apv"] = Base64Url.Encode(RandomNumberGenerator.GetBytes(16)),
+        };
+        var contentKey = new byte[cekSizeBytes];
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
+        algorithm.WrapNewKey(secretKey, header, contentKey, encryptedContentKeyWriter);
+
+        var decrypted = new byte[cekSizeBytes];
+        var bytesWritten = await algorithm.UnwrapKeyAsync(
+            secretKey,
+            JsonSerializer.SerializeToElement(header),
+            encryptedContentKeyWriter.WrittenMemory,
+            decrypted,
+            CancellationToken.None
+        );
+
+        Assert.Equal(cekSizeBytes, bytesWritten);
+        Assert.Equal(contentKey, decrypted);
+        Assert.NotNull(capturedRequest);
+        Assert.Equal(RemoteAlgorithmCode, capturedRequest.Algorithm.Algorithm);
+    }
+
+    [Fact]
+    public async Task UnwrapKeyAsync_RemoteKeyAndTheContentKeyBufferIsTooSmall_Throws()
+    {
+        using var heldKey = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+        var secretKey = CreateRemoteKey(heldKey, provider);
+        var algorithm = CreateRemoteAlgorithm();
+
+        var header = new Dictionary<string, object> { ["alg"] = RemoteAlgorithmCode };
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
+        algorithm.WrapNewKey(secretKey, header, new byte[32], encryptedContentKeyWriter);
+
+        await Assert.ThrowsAsync<JoseException>(async () =>
+            await algorithm.UnwrapKeyAsync(
+                secretKey,
+                JsonSerializer.SerializeToElement(header),
+                encryptedContentKeyWriter.WrittenMemory,
+                new byte[16],
+                CancellationToken.None
+            )
+        );
+    }
+
+    #endregion
+
+    #region TryUnwrapKey Tests
+
+    [Fact]
+    public void TryUnwrapKey_WhenTheKeyIsHeldByAKeyManagementService_Throws()
+    {
+        using var heldKey = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+        var secretKey = CreateRemoteKey(heldKey, provider);
+        var algorithm = CreateRemoteAlgorithm();
+
+        var header = new Dictionary<string, object> { ["alg"] = RemoteAlgorithmCode };
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
+        algorithm.WrapNewKey(secretKey, header, new byte[32], encryptedContentKeyWriter);
+
+        Assert.Throws<JoseInvalidAlgorithmException>(() =>
+            algorithm.TryUnwrapKey(
+                secretKey,
+                JsonSerializer.SerializeToElement(header),
+                encryptedContentKeyWriter.WrittenSpan,
+                new byte[32],
+                out _
+            )
+        );
+    }
+
+    #endregion
 
     // The BCL-backed (ECDiffieHellman) control implementation; despite the name it is the cross-platform one jose-jwt
     // uses on every platform for managed keys, and the CNG-backed Win variant delegates straight to it for such keys.

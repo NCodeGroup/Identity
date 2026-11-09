@@ -225,7 +225,11 @@ public class RemoteKeyJwsTests : BaseTests
             .EncodeAsync(Payload, CancellationToken.None);
 
         var parsed = JoseSerializer.Parse(token);
-        var decoded = JoseSerializer.Decode(parsed, CreatePublicKey(algorithmCode));
+        var decoded = await JoseSerializer.DecodeAsync(
+            parsed,
+            CreatePublicKey(algorithmCode),
+            CancellationToken.None
+        );
         Assert.Equal(Payload, decoded);
         Assert.Equal(algorithmCode, parsed.Header.GetProperty("alg").GetString());
     }
@@ -262,8 +266,18 @@ public class RemoteKeyJwsTests : BaseTests
 
         var signatures = JsonElement.Parse(token).GetProperty("signatures");
         Assert.Equal(2, signatures.GetArrayLength());
-        Assert.Equal(Payload, JoseSerializer.Decode(token, localPublicKey));
-        Assert.Equal(Payload, JoseSerializer.Decode(token, CreatePublicKey("ES256")));
+        Assert.Equal(
+            Payload,
+            await JoseSerializer.DecodeAsync(token, localPublicKey, CancellationToken.None)
+        );
+        Assert.Equal(
+            Payload,
+            await JoseSerializer.DecodeAsync(
+                token,
+                CreatePublicKey("ES256"),
+                CancellationToken.None
+            )
+        );
     }
 
     #endregion

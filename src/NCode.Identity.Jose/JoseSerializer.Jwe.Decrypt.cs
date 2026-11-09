@@ -18,43 +18,44 @@ partial class JoseSerializer
     internal const string JweDecryptionFailedMessage = "Failed to decrypt the JWE.";
 
     /// <summary>
-    /// Unwraps the content encryption key (CEK), or substitutes random bytes for it when the encrypted key cannot be
-    /// unwrapped to a key of the required length, so the decryption fails at the authentication tag like any tampered
-    /// JWE and a recipient never reveals a format, padding or length error of the encrypted key (RFC 7516 §11.5). A key
-    /// of the wrong type, size or curve for the algorithm is the caller's configuration error and is still reported.
+    /// Unwraps the content encryption key (CEK) asynchronously, so a key that a key management service holds can
+    /// unwrap it, and substitutes random bytes for it when the encrypted key cannot be unwrapped to a key of the
+    /// required length, so the decryption fails at the authentication tag like any tampered JWE and a recipient never
+    /// reveals a format, padding or length error of the encrypted key (RFC 7516 §11.5). A key of the wrong type, size
+    /// or curve for the algorithm is the caller's configuration error and is still reported. Any other exception, such
+    /// as a transport failure of a key management service or cancellation, propagates.
     /// </summary>
-    private static void UnwrapContentKeyOrSubstitute(
+    private static async ValueTask UnwrapContentKeyOrSubstituteAsync(
         KeyManagementAlgorithm keyManagementAlgorithm,
         SecretKey secretKey,
         JsonElement header,
-        ReadOnlySpan<byte> encryptedKey,
-        Span<byte> contentKey
+        ReadOnlyMemory<byte> encryptedKey,
+        Memory<byte> contentKey,
+        CancellationToken cancellationToken
     )
     {
         ValidateDecryptionKey(keyManagementAlgorithm, secretKey);
 
-        bool unwrapped;
         int bytesWritten;
         try
         {
-            unwrapped = keyManagementAlgorithm.TryUnwrapKey(
+            bytesWritten = await keyManagementAlgorithm.UnwrapKeyAsync(
                 secretKey,
                 header,
                 encryptedKey,
                 contentKey,
-                out bytesWritten
+                cancellationToken
             );
         }
         catch (Exception exception)
             when (exception is CryptographicException or JoseException or ArgumentException)
         {
-            unwrapped = false;
-            bytesWritten = 0;
+            bytesWritten = -1;
         }
 
-        if (!unwrapped || bytesWritten != contentKey.Length)
+        if (bytesWritten != contentKey.Length)
         {
-            RandomNumberGenerator.Fill(contentKey);
+            RandomNumberGenerator.Fill(contentKey.Span);
         }
     }
 

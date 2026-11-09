@@ -258,7 +258,7 @@ export function SecretFormDialog({
         secretType: selectedRemoteKey.secretType,
         keySizeBits: selectedRemoteKey.keySizeBits,
         curve: selectedRemoteKey.curve ?? '',
-        use: 'sig',
+        use: selectedRemoteKey.use,
         algorithm: selectedRemoteKey.algorithm,
         custody: values.custody,
         expiresWhen: values.expiresWhen,
@@ -328,7 +328,7 @@ export function SecretFormDialog({
                   keySizeBits: row.keySizeBits,
                   curve: row.curve ?? '',
                   algorithm: row.algorithm,
-                  use: 'sig',
+                  use: row.use,
                 }));
               }}
               required

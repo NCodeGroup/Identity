@@ -201,14 +201,14 @@ public interface ISecretKeyFactory
     /// <summary>
     /// Factory method to create an <see cref="RsaSecretKey"/> whose private half a key management service holds, from
     /// the key's stored <c>SubjectPublicKeyInfo</c> (SPKI) DER. The resulting key is an <see cref="IRemoteSecretKey"/>
-    /// that verifies like any public <c>RSA</c> key and signs through its <see cref="RemoteKeyBinding"/>.
+    /// that verifies like any public <c>RSA</c> key and signs or decrypts through its <see cref="RemoteKeyBinding"/>.
     /// </summary>
     /// <param name="metadata">The <see cref="KeyMetadata"/> for the secret key.</param>
     /// <param name="subjectPublicKeyInfo">The <c>RSA</c> public key material encoded as <c>SubjectPublicKeyInfo</c> (SPKI) DER.</param>
     /// <param name="binding">The binding of the key to its provider, reference and mapping row.</param>
     /// <returns>The newly created secret key.</returns>
-    /// <exception cref="ArgumentException">The binding's mapping row is not for <c>RSA</c> keys, or its key size
-    /// differs from the size of the public key.</exception>
+    /// <exception cref="ArgumentException">The binding's mapping row neither signs nor decrypts, is not for <c>RSA</c>
+    /// keys, or its key size differs from the size of the public key.</exception>
     // See ADR-1471.
     RsaSecretKey CreateRsaRemote(
         KeyMetadata metadata,
@@ -219,15 +219,15 @@ public interface ISecretKeyFactory
     /// <summary>
     /// Factory method to create an <see cref="EccSecretKey"/> whose private half a key management service holds, from
     /// the key's stored <c>SubjectPublicKeyInfo</c> (SPKI) DER. The resulting key is an <see cref="IRemoteSecretKey"/>
-    /// that verifies <c>ECDSA</c> signatures like any public elliptic-curve key and signs through its
+    /// that verifies <c>ECDSA</c> signatures like any public elliptic-curve key and signs or agrees keys through its
     /// <see cref="RemoteKeyBinding"/>.
     /// </summary>
     /// <param name="metadata">The <see cref="KeyMetadata"/> for the secret key.</param>
     /// <param name="subjectPublicKeyInfo">The elliptic-curve public key material encoded as <c>SubjectPublicKeyInfo</c> (SPKI) DER.</param>
     /// <param name="binding">The binding of the key to its provider, reference and mapping row.</param>
     /// <returns>The newly created secret key.</returns>
-    /// <exception cref="ArgumentException">The binding's mapping row is not for elliptic-curve keys, or its key size
-    /// or curve differs from the public key's.</exception>
+    /// <exception cref="ArgumentException">The binding's mapping row neither signs nor agrees keys, is not for
+    /// elliptic-curve keys, or its key size or curve differs from the public key's.</exception>
     // See ADR-1471.
     EccSecretKey CreateEccRemote(
         KeyMetadata metadata,

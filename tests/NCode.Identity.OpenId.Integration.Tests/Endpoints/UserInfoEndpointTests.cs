@@ -375,7 +375,7 @@ public class UserInfoEndpointTests
         Assert.Equal("JWT", encrypted.Header.GetProperty("cty").GetString());
         Assert.False(encrypted.Header.TryGetProperty("zip", out _));
 
-        var signed = joseSerializer.Decode(encrypted, clientKey);
+        var signed = await joseSerializer.DecodeAsync(encrypted, clientKey, CancellationToken.None);
         var payload = await VerifyWithTenantJwksAsync(client, signed);
         Assert.Equal(clientId, payload.GetProperty("aud").GetString());
         Assert.Equal(Email, payload.GetProperty("email").GetString());

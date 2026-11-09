@@ -669,7 +669,7 @@ export const managementApi = createApi({
         { type: 'Secret', id: scopeTagId(ownerScope(owner), secretId) },
       ],
     }),
-    // Only a tenant's signing keys are held in a KMS, so the owner is a tenant by type (ADR-1475).
+    // Only a tenant's keys are held in a KMS, so the owner is a tenant by type (ADR-1475).
     createRemoteSecret: build.mutation<
       SecretResource,
       { tenantId: string; body: CreateRemoteSecretRequest }

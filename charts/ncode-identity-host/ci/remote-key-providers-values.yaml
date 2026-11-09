@@ -29,5 +29,7 @@ secretProtection:
       vaultUri: https://contoso.vault.azure.net
     googleCloudKms:
       keyRing: projects/my-project/locations/us-central1/keyRings/ncode-identity-signing
+  remoteKeys:
+    deployment: contoso-prod
   recovery:
     publicKeyConfigMap: identity-recovery-key

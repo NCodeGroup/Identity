@@ -337,6 +337,26 @@
             }
           }
         },
+        "remoteKeys": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "deployment": {
+              "type": "string",
+              "pattern": "^([a-z0-9]+(-[a-z0-9]+)*)?$",
+              "maxLength": 40
+            },
+            "sweepEnabled": {
+              "type": "boolean"
+            },
+            "sweepInterval": {
+              "type": "string"
+            },
+            "sweepGracePeriod": {
+              "type": "string"
+            }
+          }
+        },
         "rewrapJob": {
           "type": "object",
           "additionalProperties": false,

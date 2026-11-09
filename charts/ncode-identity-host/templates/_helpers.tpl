@@ -148,6 +148,10 @@ applied. Rendered for its side effect only.
 {{- fail "secretProtection.googleCloudKms.workloadIdentityFederation.provider must be the resource name of a workload identity pool provider, such as projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster." }}
 {{- end }}
 {{- end }}
+{{- $remoteKeyProviders := .Values.secretProtection.remoteKeyProviders }}
+{{- if and (or $remoteKeyProviders.awsKms.region $remoteKeyProviders.azureKeyVault.vaultUri $remoteKeyProviders.googleCloudKms.keyRing) (not .Values.secretProtection.remoteKeys.deployment) }}
+{{- fail "secretProtection.remoteKeys.deployment must name this deployment when a remote key provider is set: lowercase letters, digits and hyphens." }}
+{{- end }}
 {{- if .Values.secretProtection.rewrapJob.enabled }}
 {{- if and (eq .Values.secretProtection.rewrapJob.command "rewrap-recovery") (not .Values.secretProtection.recovery.publicKeyConfigMap) }}
 {{- fail "secretProtection.rewrapJob.command rewrap-recovery replaces the recovery copies, so secretProtection.recovery.publicKeyConfigMap must name the recovery public key ConfigMap." }}
@@ -376,6 +380,17 @@ same configuration the pods it rewraps keys for read.
   value: {{ . | quote }}
 - name: SecretProtection__RemoteKeyProviders__GoogleCloudKms__HardwareProtected
   value: {{ $remoteKeyProviders.googleCloudKms.hardwareProtected | quote }}
+{{- end }}
+{{- $remoteKeys := .Values.secretProtection.remoteKeys }}
+{{- with $remoteKeys.deployment }}
+- name: SecretProtection__RemoteKeys__Deployment
+  value: {{ . | quote }}
+- name: SecretProtection__RemoteKeys__SweepEnabled
+  value: {{ $remoteKeys.sweepEnabled | quote }}
+- name: SecretProtection__RemoteKeys__SweepInterval
+  value: {{ $remoteKeys.sweepInterval | quote }}
+- name: SecretProtection__RemoteKeys__SweepGracePeriod
+  value: {{ $remoteKeys.sweepGracePeriod | quote }}
 {{- end }}
 {{- if .Values.secretProtection.recovery.publicKeyConfigMap }}
 - name: SecretProtection__Recovery__PublicKeyPath

@@ -1,6 +1,6 @@
 # 1480. A management route answers from what it read and declares every problem it answers
 
-- **Status:** Accepted (amended by [ADR-1481](1481-a-management-routes-problem-responses-say-when-each-occurs.md))
+- **Status:** Accepted (amended by [ADR-1481](1481-a-management-routes-problem-responses-say-when-each-occurs.md); amended by [ADR-1482](1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md))
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0125](project-template/0125-a-write-that-loses-a-race-is-answered-412.md)

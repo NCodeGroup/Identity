@@ -32,9 +32,9 @@ public sealed class OwnerRootKeyChangeAnnouncerTests : BaseTests
         StoreManager = CreateStrictMock<IStoreManager>();
         TenantStore = CreateStrictMock<ITenantStore>();
 
-        var services = new ServiceCollection();
-        services.AddScoped(_ => Mediator.Object);
-        Services = services.BuildServiceProvider();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddScoped(_ => Mediator.Object);
+        Services = serviceCollection.BuildServiceProvider();
     }
 
     protected override void Dispose(bool disposing)

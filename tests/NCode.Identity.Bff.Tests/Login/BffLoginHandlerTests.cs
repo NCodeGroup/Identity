@@ -250,14 +250,14 @@ public class BffLoginHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_Success_StoresTransactionSetsCookieAndRedirects()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
         // The in-process value set expires entries by its TimeProvider, so it shares the handler's fixed clock.
-        services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
-        services
+        serviceCollection.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
+        serviceCollection
             .AddSharedStateServices()
             .AddInProcessExpiringValueSet()
             .AddInProcessExpiringIndexSet();
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
         var values = provider.GetRequiredService<IExpiringValueSet>();
         var indexes = provider.GetRequiredService<IExpiringIndexSet>();
         var transactionService = new BffLoginTransactionService(

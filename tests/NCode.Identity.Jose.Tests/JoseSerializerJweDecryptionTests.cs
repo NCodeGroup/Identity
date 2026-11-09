@@ -38,10 +38,10 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
 
     public JoseSerializerJweDecryptionTests()
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary();
-        ServiceProvider = services.BuildServiceProvider();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
     }
 
     private IJoseSerializer JoseSerializer => ServiceProvider.GetRequiredService<IJoseSerializer>();

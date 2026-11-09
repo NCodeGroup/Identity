@@ -94,8 +94,8 @@ public sealed class BlazorBffApplication : WebApplicationFactory<App>
         builder.ConfigureAppConfiguration(configuration =>
             configuration.AddInMemoryCollection(BffHostSetup.CreateConfiguration(Settings, Origin))
         );
-        builder.ConfigureTestServices(services =>
-            BffHostSetup.AddServices(services, Settings, Keys)
+        builder.ConfigureTestServices(serviceCollection =>
+            BffHostSetup.AddServices(serviceCollection, Settings, Keys)
         );
     }
 }

@@ -84,7 +84,8 @@ internal sealed class BffTestHost : IAsyncDisposable
         IReadOnlyDictionary<string, string?>? extraConfiguration = null,
         ConcurrentQueue<RecordedHttpExchange>? exchanges = null,
         bool authenticateBeforeBff = false,
-        IConfigurationSource? reloadableConfiguration = null
+        IConfigurationSource? reloadableConfiguration = null,
+        Action<IServiceCollection>? configureServices = null
     )
     {
         var builder = WebApplication.CreateBuilder(
@@ -138,6 +139,8 @@ internal sealed class BffTestHost : IAsyncDisposable
                             ),
                     ])
         );
+
+        configureServices?.Invoke(services);
 
         // The replicas share the state registered above; the turnkey composes everything else.
         services.AddIdentityBff(builder.Configuration);

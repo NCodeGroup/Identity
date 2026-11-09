@@ -31,11 +31,11 @@ public class SecretSerializerExtensionsTests : BaseTests
             new FormatException("format"),
         };
 
-    private readonly Mock<ISecretSerializer> _serializer;
+    private Mock<ISecretSerializer> Serializer { get; }
 
     public SecretSerializerExtensionsTests()
     {
-        _serializer = CreateStrictMock<ISecretSerializer>();
+        Serializer = CreateStrictMock<ISecretSerializer>();
     }
 
     #region TryDeserializePublicSecret Tests
@@ -44,9 +44,9 @@ public class SecretSerializerExtensionsTests : BaseTests
     public void TryDeserializePublicSecret_WhenThePublicHalfIsRead_ReturnsIt()
     {
         SecretKey expected = new StubSecretKey();
-        _serializer.Setup(x => x.DeserializePublicSecret(Secret)).Returns(expected).Verifiable();
+        Serializer.Setup(x => x.DeserializePublicSecret(Secret)).Returns(expected).Verifiable();
 
-        var result = _serializer.Object.TryDeserializePublicSecret(
+        var result = Serializer.Object.TryDeserializePublicSecret(
             Secret,
             out var publicKey,
             out var error
@@ -63,9 +63,9 @@ public class SecretSerializerExtensionsTests : BaseTests
         Exception failure
     )
     {
-        _serializer.Setup(x => x.DeserializePublicSecret(Secret)).Throws(failure).Verifiable();
+        Serializer.Setup(x => x.DeserializePublicSecret(Secret)).Throws(failure).Verifiable();
 
-        var result = _serializer.Object.TryDeserializePublicSecret(
+        var result = Serializer.Object.TryDeserializePublicSecret(
             Secret,
             out var publicKey,
             out var error
@@ -79,13 +79,13 @@ public class SecretSerializerExtensionsTests : BaseTests
     [Fact]
     public void TryDeserializePublicSecret_WhenAnotherExceptionIsThrown_PropagatesIt()
     {
-        _serializer
+        Serializer
             .Setup(x => x.DeserializePublicSecret(Secret))
             .Throws(new OperationCanceledException())
             .Verifiable();
 
         Assert.Throws<OperationCanceledException>(() =>
-            _serializer.Object.TryDeserializePublicSecret(Secret, out _, out _)
+            Serializer.Object.TryDeserializePublicSecret(Secret, out _, out _)
         );
     }
 
@@ -93,7 +93,7 @@ public class SecretSerializerExtensionsTests : BaseTests
     public void TryDeserializePublicSecret_WhenThePersistedSecretIsNull_Throws()
     {
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            _serializer.Object.TryDeserializePublicSecret(null!, out _, out _)
+            Serializer.Object.TryDeserializePublicSecret(null!, out _, out _)
         );
 
         Assert.Equal("persistedSecret", exception.ParamName);

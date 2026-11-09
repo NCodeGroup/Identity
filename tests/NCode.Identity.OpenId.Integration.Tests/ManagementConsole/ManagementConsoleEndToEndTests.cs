@@ -187,21 +187,18 @@ public class ManagementConsoleEndToEndTests
         var caller = JsonElement.Parse(await management.Content.ReadAsStringAsync());
         Assert.Equal(JsonValueKind.Object, caller.ValueKind);
 
-        var calls = exchanges.Where(e => e.Path == "/api/me").ToList();
-        Assert.NotEmpty(calls);
-        Assert.All(
-            calls,
-            call =>
-            {
-                Assert.Equal("DPoP", call.AuthorizationScheme);
-                Assert.False(string.IsNullOrEmpty(call.DPoPProof));
-            }
-        );
-        var last = calls[^1];
-        Assert.Equal(HttpStatusCode.OK, last.StatusCode);
-        var proof = Assert.IsType<string>(last.DPoPProof);
-        var payload = JsonElement.Parse(Base64Url.DecodeFromChars(proof.Split('.')[1]));
-        Assert.Equal("http://localhost/api/me", payload.GetProperty("htu").GetString());
+        // The provider requires no DPoP nonce, so the console's one management request reaches it once.
+        var call = Assert.Single(exchanges);
+        Assert.Equal("/api/me", call.Path);
+        Assert.Equal("DPoP", call.AuthorizationScheme);
+        Assert.Equal(HttpStatusCode.OK, call.StatusCode);
+        var proof = Assert.IsType<string>(call.DPoPProof);
+        var proofSegments = proof.Split('.');
+        Assert.Equal(3, proofSegments.Length);
+        var payloadBytes = Base64Url.DecodeFromChars(proofSegments[1]);
+        var payload = JsonElement.Parse(payloadBytes);
+        var htu = payload.GetProperty("htu").GetString();
+        Assert.Equal("http://localhost/api/me", htu);
     }
 
     #endregion

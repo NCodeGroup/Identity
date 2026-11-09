@@ -1,6 +1,6 @@
 # 1439. A BFF loads the key rings its configuration names from PEM files
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md): a key ring lists keys a key management service holds, and every key ring loads when the host starts)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 
@@ -43,9 +43,8 @@ in code.**
    - `Bff:KeyRings:{name}:PemFiles:{i} must not be blank.`
    - `Bff:KeyRings:{name}:PemFiles:{i} names '{path}', which does not exist.`
 
-   A key ring that fails to parse fails the first time the provider is resolved, which is the first time its frontend
-   needs it.
-7. **Code registration is the seam.** A host that holds its keys elsewhere, in a KMS for example, registers its own
+   A key ring that fails to load stops the host when it starts.
+7. **Code registration is the seam.** A host that holds its keys elsewhere, in another source, registers its own
    keyed `ISecretKeyCollectionProvider` under the key ring's name and configures no `Bff:KeyRings` entry for it. The
    configuration is the built-in source, and keyed dependency injection is the open seam.
 
@@ -64,15 +63,15 @@ in code.**
 - A host that mounts its keys as files configures `Bff:KeyRings` and writes no key-loading code.
 - A key's id comes from its file name, so renaming a file changes the `kid` that a published JWKS carries and that a
   client's registration refers to.
-- A key ring's files are read once, when the keyed provider is first resolved, so a rotation takes effect when the
-  process starts again.
+- A key ring's files are read once, when the host starts, so a rotation takes effect when the process starts again.
 - A host that registers a keyed provider in code for a name that `Bff:KeyRings` also configures has two registrations
   for one key; the host configures a name in one place only.
-- The validator checks that each file exists and the loader checks that each file parses; a wrong key type shows when
-  the provider is resolved, not at validation.
+- The validator checks that each file exists and the loader checks that each file parses; a wrong key type stops the
+  host when it starts.
 
 ## References
 
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)
 - [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
-- `src/NCode.Identity.Bff/Secrets/BffPemKeyRing.cs`
+- `src/NCode.Identity.Bff/Secrets/BffPemKeyReader.cs`
+- `src/NCode.Identity.Bff/Secrets/BffKeyRingLoader.cs`

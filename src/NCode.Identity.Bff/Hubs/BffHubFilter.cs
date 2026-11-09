@@ -30,8 +30,8 @@ internal sealed class BffHubFilter(
     ILogger<BffHubFilter> logger
 ) : IHubFilter
 {
-    private static readonly object ValidatedAtKey = new();
-    private static readonly object WatchKey = new();
+    private static object ValidatedAtKey { get; } = new();
+    private static object WatchKey { get; } = new();
 
     /// <inheritdoc />
     public async Task OnConnectedAsync(

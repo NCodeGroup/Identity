@@ -35,7 +35,7 @@ internal sealed class BffPageReload(BffCookies cookies)
 
     // The policy lists no directive, so the page allows nothing: default-src, base-uri, form-action and
     // frame-ancestors are all 'none'.
-    private static readonly HtmlPageSecurityPolicy Policy = new();
+    private static HtmlPageSecurityPolicy Policy { get; } = new();
 
     private BffCookies Cookies { get; } = cookies;
 

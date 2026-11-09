@@ -16,22 +16,10 @@ namespace NCode.Identity.Bff.Options;
 /// </summary>
 internal static class BffFrontendOptionsValidation
 {
-    private static readonly string[] ReservedUserClaims =
-    [
-        "iss",
-        "sid",
-        "nonce",
-        "at_hash",
-        "c_hash",
-        "s_hash",
-        "aud",
-        "azp",
-        "exp",
-        "iat",
-        "nbf",
-    ];
+    private static string[] ReservedUserClaims { get; } =
+    ["iss", "sid", "nonce", "at_hash", "c_hash", "s_hash", "aud", "azp", "exp", "iat", "nbf"];
 
-    private static readonly string[] AllowedLoginParameters =
+    private static string[] AllowedLoginParameters { get; } =
     [
         OpenIdProtocol.Parameters.Prompt,
         OpenIdProtocol.Parameters.MaxAge,

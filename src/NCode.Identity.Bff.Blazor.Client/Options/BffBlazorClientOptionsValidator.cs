@@ -13,7 +13,7 @@ namespace NCode.Identity.Bff.Blazor.Client.Options;
 internal sealed class BffBlazorClientOptionsValidator : IValidateOptions<BffBlazorClientOptions>
 {
     // The server's BffOptionsValidator refuses the same names for Bff:Antiforgery:HeaderName.
-    private static readonly string[] ForbiddenHeaderNames =
+    private static string[] ForbiddenHeaderNames { get; } =
     [
         "Accept",
         "Accept-Language",

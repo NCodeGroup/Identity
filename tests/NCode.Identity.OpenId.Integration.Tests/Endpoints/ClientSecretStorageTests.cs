@@ -1,14 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.Secrets;
@@ -22,15 +19,13 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // the client is registered for (ADR-1391).
 public class ClientSecretStorageTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string ManagementScope = "read:clients";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     [Fact]
     public async Task PostSecret_ForAClientThatComparesItsSecret_StoresOnlyAVerifierAndRevealsTheSecretOnce()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
 
@@ -68,7 +63,7 @@ public class ClientSecretStorageTests
     [Fact]
     public async Task PostSecret_ForAClientSecretJwtClient_StoresASecretThatKeysTheClientAssertion()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
         var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
@@ -94,7 +89,7 @@ public class ClientSecretStorageTests
     [Fact]
     public async Task PatchSettings_WhenSwitchedToClientSecretJwt_IssuesASecretThatKeysTheAssertionAndRevealsItOnce()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
         var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
@@ -142,7 +137,7 @@ public class ClientSecretStorageTests
     [Fact]
     public async Task PatchSettings_WhenSwitchedAwayFromClientSecretJwt_StoresTheSecretAsAVerifier()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
 
@@ -182,7 +177,7 @@ public class ClientSecretStorageTests
     [Fact]
     public async Task PatchSettings_WhenTheMethodIsUnchanged_IssuesNoSecret()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
 
         // A client created without a secret keeps none when other settings change, so an edit never issues one.
@@ -205,7 +200,7 @@ public class ClientSecretStorageTests
     [Fact]
     public async Task PatchTenantSettings_WhenTheTenantsMethodChanges_KeepsEveryStoredClientsMethod()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
 
@@ -246,7 +241,7 @@ public class ClientSecretStorageTests
     public async Task PostClient_WhenAComparedSecretWouldSignRequestObjects_RefusesTheSettings()
     {
         // A secret stored as a one-way verifier keys no HS256 request object. See ADR-1391.
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
 
         using var response = await administrator.PostAsJsonAsync(
@@ -276,10 +271,12 @@ public class ClientSecretStorageTests
     [Fact]
     public async Task BootstrapAdministrator_IsStoredAsAVerifierOfItsConfiguredSecret()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
 
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(BootstrapClientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(BootstrapAdminApplicationFactory.ClientId)
+        );
         Assert.Equal(SecretEncodings.Verifier, stored.SecretEncoding);
     }
 
@@ -294,7 +291,7 @@ public class ClientSecretStorageTests
     {
         var client = CreateHttpClient(factory);
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
@@ -464,27 +461,6 @@ public class ClientSecretStorageTests
         var value = jsonElement.GetProperty(propertyName).GetString();
         Assert.NotNull(value);
         return value;
-    }
-
-    private sealed class BootstrapAdminHostApplicationFactory : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                    }
-                )
-            );
-        }
     }
 
     #endregion

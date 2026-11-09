@@ -20,12 +20,12 @@ namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 /// </summary>
 public sealed class BlazorBffApplication : WebApplicationFactory<App>
 {
-    private readonly BffApplicationSettings _settings;
-    private readonly List<ECDsa> _keys = [];
+    private BffApplicationSettings Settings { get; }
+    private List<ECDsa> Keys { get; } = [];
 
     private BlazorBffApplication(BffApplicationSettings settings)
     {
-        _settings = settings;
+        Settings = settings;
         Origin = $"https://localhost:{settings.Port}";
         WebSocketOrigin = $"wss://localhost:{settings.Port}";
     }
@@ -43,7 +43,7 @@ public sealed class BlazorBffApplication : WebApplicationFactory<App>
     /// <summary>
     /// Gets how often a connection of the BFF revalidates its session.
     /// </summary>
-    public TimeSpan RevalidationInterval => _settings.RevalidationInterval;
+    public TimeSpan RevalidationInterval => Settings.RevalidationInterval;
 
     /// <summary>
     /// Gets the counters of what the host saw.
@@ -80,7 +80,7 @@ public sealed class BlazorBffApplication : WebApplicationFactory<App>
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        foreach (var key in _keys)
+        foreach (var key in Keys)
         {
             key.Dispose();
         }
@@ -92,10 +92,10 @@ public sealed class BlazorBffApplication : WebApplicationFactory<App>
         builder.UseEnvironment(Environments.Development);
         builder.ConfigureLogging(logging => logging.ClearProviders());
         builder.ConfigureAppConfiguration(configuration =>
-            configuration.AddInMemoryCollection(BffHostSetup.CreateConfiguration(_settings, Origin))
+            configuration.AddInMemoryCollection(BffHostSetup.CreateConfiguration(Settings, Origin))
         );
         builder.ConfigureTestServices(services =>
-            BffHostSetup.AddServices(services, _settings, _keys)
+            BffHostSetup.AddServices(services, Settings, Keys)
         );
     }
 }

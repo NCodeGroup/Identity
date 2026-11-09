@@ -20,64 +20,64 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
     private const string BlazorClientId = "bff-blazor";
     private const string ContainerHost = "host.testcontainers.internal";
 
-    private readonly ConcurrentDictionary<string, Task<IBrowser>> _browsers = new();
+    private ConcurrentDictionary<string, Task<IBrowser>> Browsers { get; } = new();
 
-    private TestCertificate? _certificate;
-    private KeycloakProvider? _keycloak;
-    private BffApplication? _strictBff;
-    private BffApplication? _laxBff;
-    private BlazorBffApplication? _blazorBff;
-    private OriginServer? _originServer;
-    private IPlaywright? _playwright;
-    private string? _crossSiteDenied;
-    private string? _crossSiteAdmitted;
-    private string? _sameSiteUntrusted;
-    private string? _sameSiteTrusted;
+    private TestCertificate? Certificate { get; set; }
+    private KeycloakProvider? KeycloakOrNull { get; set; }
+    private BffApplication? StrictBffOrNull { get; set; }
+    private BffApplication? LaxBffOrNull { get; set; }
+    private BlazorBffApplication? BlazorBffOrNull { get; set; }
+    private OriginServer? OriginServer { get; set; }
+    private IPlaywright? PlaywrightOrNull { get; set; }
+    private string? CrossSiteDeniedOrNull { get; set; }
+    private string? CrossSiteAdmittedOrNull { get; set; }
+    private string? SameSiteUntrustedOrNull { get; set; }
+    private string? SameSiteTrustedOrNull { get; set; }
 
     /// <summary>
     /// Gets Keycloak, the OpenID Provider.
     /// </summary>
-    public KeycloakProvider Keycloak => _keycloak ?? throw NotInitialized();
+    public KeycloakProvider Keycloak => KeycloakOrNull ?? throw NotInitialized();
 
     /// <summary>
     /// Gets the BFF whose session cookie is <c>SameSite=Strict</c>.
     /// </summary>
-    public BffApplication StrictBff => _strictBff ?? throw NotInitialized();
+    public BffApplication StrictBff => StrictBffOrNull ?? throw NotInitialized();
 
     /// <summary>
     /// Gets the BFF whose session cookie is <c>SameSite=Lax</c>.
     /// </summary>
-    public BffApplication LaxBff => _laxBff ?? throw NotInitialized();
+    public BffApplication LaxBff => LaxBffOrNull ?? throw NotInitialized();
 
     /// <summary>
     /// Gets the BFF that hosts the Blazor Web App, whose session cookie is <c>SameSite=Strict</c>.
     /// </summary>
-    public BlazorBffApplication BlazorBff => _blazorBff ?? throw NotInitialized();
+    public BlazorBffApplication BlazorBff => BlazorBffOrNull ?? throw NotInitialized();
 
     /// <summary>
     /// Gets the Playwright instance.
     /// </summary>
-    public IPlaywright Playwright => _playwright ?? throw NotInitialized();
+    public IPlaywright Playwright => PlaywrightOrNull ?? throw NotInitialized();
 
     /// <summary>
     /// Gets a cross-site origin that the CORS policy does not admit.
     /// </summary>
-    public string CrossSiteDenied => _crossSiteDenied ?? throw NotInitialized();
+    public string CrossSiteDenied => CrossSiteDeniedOrNull ?? throw NotInitialized();
 
     /// <summary>
     /// Gets a cross-site origin that the CORS policy admits.
     /// </summary>
-    public string CrossSiteAdmitted => _crossSiteAdmitted ?? throw NotInitialized();
+    public string CrossSiteAdmitted => CrossSiteAdmittedOrNull ?? throw NotInitialized();
 
     /// <summary>
     /// Gets a same-site origin that the CORS policy admits and that is not trusted.
     /// </summary>
-    public string SameSiteUntrusted => _sameSiteUntrusted ?? throw NotInitialized();
+    public string SameSiteUntrusted => SameSiteUntrustedOrNull ?? throw NotInitialized();
 
     /// <summary>
     /// Gets a same-site origin that the CORS policy admits and that is trusted.
     /// </summary>
-    public string SameSiteTrusted => _sameSiteTrusted ?? throw NotInitialized();
+    public string SameSiteTrusted => SameSiteTrustedOrNull ?? throw NotInitialized();
 
     /// <inheritdoc />
     public async Task InitializeAsync()
@@ -90,12 +90,12 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
         var sameSiteUntrustedPort = LoopbackPort.Reserve();
         var sameSiteTrustedPort = LoopbackPort.Reserve();
 
-        _crossSiteDenied = $"https://127.0.0.1:{crossSiteDeniedPort}";
-        _crossSiteAdmitted = $"https://127.0.0.1:{crossSiteAdmittedPort}";
-        _sameSiteUntrusted = $"https://localhost:{sameSiteUntrustedPort}";
-        _sameSiteTrusted = $"https://localhost:{sameSiteTrustedPort}";
+        CrossSiteDeniedOrNull = $"https://127.0.0.1:{crossSiteDeniedPort}";
+        CrossSiteAdmittedOrNull = $"https://127.0.0.1:{crossSiteAdmittedPort}";
+        SameSiteUntrustedOrNull = $"https://localhost:{sameSiteUntrustedPort}";
+        SameSiteTrustedOrNull = $"https://localhost:{sameSiteTrustedPort}";
 
-        _certificate = TestCertificate.Create();
+        Certificate = TestCertificate.Create();
 
         await TestcontainersSettings.ExposeHostPortsAsync([
             (ushort)strictPort,
@@ -103,8 +103,8 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
             (ushort)blazorPort,
         ]);
 
-        _keycloak = await KeycloakProvider.StartAsync(
-            _certificate,
+        KeycloakOrNull = await KeycloakProvider.StartAsync(
+            Certificate,
             new Dictionary<string, string>
             {
                 ["BFF_STRICT_ORIGIN"] = $"https://localhost:{strictPort}",
@@ -116,31 +116,31 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
             }
         );
 
-        _strictBff = await BffApplication.StartAsync(
+        StrictBffOrNull = await BffApplication.StartAsync(
             CreateSettings(StrictClientId, strictPort, SameSiteMode.Strict)
         );
-        _laxBff = await BffApplication.StartAsync(
+        LaxBffOrNull = await BffApplication.StartAsync(
             CreateSettings(LaxClientId, laxPort, SameSiteMode.Lax)
         );
-        _blazorBff = await BlazorBffApplication.StartAsync(
+        BlazorBffOrNull = await BlazorBffApplication.StartAsync(
             new BffApplicationSettings(
                 BlazorClientId,
                 blazorPort,
                 SameSiteMode.Strict,
                 Keycloak.Issuer,
-                _certificate,
+                Certificate,
                 [],
                 [],
                 TimeSpan.FromSeconds(2)
             )
         );
 
-        _originServer = await OriginServer.StartAsync(
-            _certificate,
+        OriginServer = await OriginServer.StartAsync(
+            Certificate,
             [crossSiteDeniedPort, crossSiteAdmittedPort, sameSiteUntrustedPort, sameSiteTrustedPort]
         );
 
-        _playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+        PlaywrightOrNull = await Microsoft.Playwright.Playwright.CreateAsync();
     }
 
     /// <summary>
@@ -148,7 +148,7 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
     /// </summary>
     public async Task<IBrowserContext> NewContextAsync(string browserName)
     {
-        var browser = await _browsers.GetOrAdd(browserName, LaunchBrowserAsync);
+        var browser = await Browsers.GetOrAdd(browserName, LaunchBrowserAsync);
         return await browser.NewContextAsync(
             new BrowserNewContextOptions { IgnoreHTTPSErrors = true }
         );
@@ -157,31 +157,31 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
     /// <inheritdoc />
     public async Task DisposeAsync()
     {
-        foreach (var browser in _browsers.Values)
+        foreach (var browser in Browsers.Values)
         {
             await (await browser).DisposeAsync();
         }
 
-        _browsers.Clear();
+        Browsers.Clear();
 
-        _playwright?.Dispose();
+        PlaywrightOrNull?.Dispose();
 
-        if (_originServer is not null)
-            await _originServer.DisposeAsync();
+        if (OriginServer is not null)
+            await OriginServer.DisposeAsync();
 
-        if (_blazorBff is not null)
-            await _blazorBff.DisposeAsync();
+        if (BlazorBffOrNull is not null)
+            await BlazorBffOrNull.DisposeAsync();
 
-        if (_laxBff is not null)
-            await _laxBff.DisposeAsync();
+        if (LaxBffOrNull is not null)
+            await LaxBffOrNull.DisposeAsync();
 
-        if (_strictBff is not null)
-            await _strictBff.DisposeAsync();
+        if (StrictBffOrNull is not null)
+            await StrictBffOrNull.DisposeAsync();
 
-        if (_keycloak is not null)
-            await _keycloak.DisposeAsync();
+        if (KeycloakOrNull is not null)
+            await KeycloakOrNull.DisposeAsync();
 
-        _certificate?.Dispose();
+        Certificate?.Dispose();
     }
 
     private BffApplicationSettings CreateSettings(
@@ -194,7 +194,7 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
             port,
             sameSite,
             Keycloak.Issuer,
-            _certificate ?? throw NotInitialized(),
+            Certificate ?? throw NotInitialized(),
             [SameSiteUntrusted, SameSiteTrusted, CrossSiteAdmitted],
             [SameSiteTrusted],
             TimeSpan.FromMinutes(1)

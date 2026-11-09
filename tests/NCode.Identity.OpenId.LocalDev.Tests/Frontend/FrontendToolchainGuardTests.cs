@@ -11,20 +11,20 @@ public class FrontendToolchainGuardTests : IDisposable
 {
     private const string LockText = "lockfileVersion: '9.0'\nimporters:\n  .: {}\n";
 
-    private readonly string _root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
+    private string Root { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+    private MockRepository Mocks { get; } = new(MockBehavior.Strict);
 
     public void Dispose()
     {
-        _mocks.Verify();
+        Mocks.Verify();
 
-        if (Directory.Exists(_root))
+        if (Directory.Exists(Root))
         {
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(Root, recursive: true);
         }
     }
 
-    private string FrontendDirectory => Path.Combine(_root, "frontend");
+    private string FrontendDirectory => Path.Combine(Root, "frontend");
 
     private void WriteFile(string relativePath, string text)
     {
@@ -50,7 +50,7 @@ public class FrontendToolchainGuardTests : IDisposable
         string? nvsNodeRoot = null
     )
     {
-        var mock = _mocks.Create<FrontendToolchainGuard>(FrontendDirectory);
+        var mock = Mocks.Create<FrontendToolchainGuard>(FrontendDirectory);
         mock.CallBase = true;
 
         mock.Setup(x => x.GetNvsNodeRoot()).Returns(nvsNodeRoot).Verifiable();
@@ -64,7 +64,7 @@ public class FrontendToolchainGuardTests : IDisposable
     [Fact]
     public void PrependToPath_WhenDirectoryIsNew_PrependsIt()
     {
-        var directory = Path.Combine(_root, "node");
+        var directory = Path.Combine(Root, "node");
         var path = $"a{Path.PathSeparator}b";
 
         var result = FrontendToolchainGuard.PrependToPath(path, directory);
@@ -75,7 +75,7 @@ public class FrontendToolchainGuardTests : IDisposable
     [Fact]
     public void PrependToPath_WhenDirectoryIsPresentWithOtherCasing_ReturnsPathUnchanged()
     {
-        var directory = Path.Combine(_root, "node");
+        var directory = Path.Combine(Root, "node");
         var path = $"a{Path.PathSeparator}{directory.ToUpperInvariant()}";
 
         var result = FrontendToolchainGuard.PrependToPath(path, directory);
@@ -86,7 +86,7 @@ public class FrontendToolchainGuardTests : IDisposable
     [Fact]
     public void PrependToPath_WhenPathIsEmpty_ReturnsDirectory()
     {
-        var directory = Path.Combine(_root, "node");
+        var directory = Path.Combine(Root, "node");
 
         var result = FrontendToolchainGuard.PrependToPath(string.Empty, directory);
 
@@ -197,7 +197,7 @@ public class FrontendToolchainGuardTests : IDisposable
     public void EnsureReady_WhenNvsHasThePinnedMajor_PrependsItToPath()
     {
         CreateFrontend();
-        var nvsNodeRoot = Path.Combine(_root, "nvs", "node");
+        var nvsNodeRoot = Path.Combine(Root, "nvs", "node");
         var nodeDirectory = Path.Combine(nvsNodeRoot, "26.1.0", "x64");
         Directory.CreateDirectory(nodeDirectory);
         const string oldPath = "old-path";
@@ -213,7 +213,7 @@ public class FrontendToolchainGuardTests : IDisposable
     public void EnsureReady_WhenNvsHasNoInstallOfThePinnedMajor_DoesNotChangePath()
     {
         CreateFrontend();
-        var nvsNodeRoot = Path.Combine(_root, "nvs", "node");
+        var nvsNodeRoot = Path.Combine(Root, "nvs", "node");
         Directory.CreateDirectory(Path.Combine(nvsNodeRoot, "24.1.0", "x64"));
         var guard = CreateGuard("v26.1.0", nvsNodeRoot);
 

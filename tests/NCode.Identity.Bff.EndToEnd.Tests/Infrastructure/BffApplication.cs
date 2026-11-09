@@ -39,8 +39,8 @@ public sealed class BffApplication : IAsyncDisposable
     /// </summary>
     public const string LoginCookieName = $"{BffDefaults.LoginCookieName}.{FrontendName}";
 
-    private readonly WebApplication _app;
-    private readonly List<ECDsa> _keys = [];
+    private WebApplication App { get; }
+    private List<ECDsa> Keys { get; } = [];
     private int _apiCalls;
     private int _preflightRequests;
 
@@ -68,7 +68,7 @@ public sealed class BffApplication : IAsyncDisposable
 
         var serviceCollection = builder.Services;
         serviceCollection.AddIdentityBff(builder.Configuration);
-        BffHostSetup.AddServices(serviceCollection, settings, _keys);
+        BffHostSetup.AddServices(serviceCollection, settings, Keys);
         serviceCollection.AddCors(options =>
             options.AddDefaultPolicy(policy =>
                 policy
@@ -148,7 +148,7 @@ public sealed class BffApplication : IAsyncDisposable
             )
             .AsBffApi();
 
-        _app = app;
+        App = app;
     }
 
     /// <summary>
@@ -176,7 +176,7 @@ public sealed class BffApplication : IAsyncDisposable
         var application = new BffApplication(settings);
         try
         {
-            await application._app.StartAsync();
+            await application.App.StartAsync();
             return application;
         }
         catch
@@ -189,8 +189,8 @@ public sealed class BffApplication : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await _app.DisposeAsync();
-        foreach (var key in _keys)
+        await App.DisposeAsync();
+        foreach (var key in Keys)
         {
             key.Dispose();
         }

@@ -63,11 +63,11 @@ public sealed class ManagementConsoleApplicationFactory
 
     private static Uri BrowserBaseAddress { get; } = new("https://localhost:5005/");
 
-    private readonly HostApplicationFactory? _provider;
-    private readonly ECDsa _clientKey;
-    private readonly ECDsa _dpopKey;
-    private readonly bool _ownsClientKey;
-    private readonly string _bundleRootPath;
+    private HostApplicationFactory? Provider { get; }
+    private ECDsa ClientKey { get; }
+    private ECDsa DpopKey { get; }
+    private bool OwnsClientKey { get; }
+    private string BundleRootPath { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ManagementConsoleApplicationFactory"/> class.
@@ -79,16 +79,16 @@ public sealed class ManagementConsoleApplicationFactory
         ECDsa? clientKey = null
     )
     {
-        _provider = provider;
-        _ownsClientKey = clientKey is null;
-        _clientKey = clientKey ?? ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        _dpopKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Provider = provider;
+        OwnsClientKey = clientKey is null;
+        ClientKey = clientKey ?? ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        DpopKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 
-        _bundleRootPath = Path.Combine(Path.GetTempPath(), $"mgmt-console-{Guid.NewGuid():N}");
-        var assetsPath = Path.Combine(_bundleRootPath, "assets");
+        BundleRootPath = Path.Combine(Path.GetTempPath(), $"mgmt-console-{Guid.NewGuid():N}");
+        var assetsPath = Path.Combine(BundleRootPath, "assets");
         Directory.CreateDirectory(assetsPath);
         File.WriteAllText(
-            Path.Combine(_bundleRootPath, "index.html"),
+            Path.Combine(BundleRootPath, "index.html"),
             IndexHtml,
             SecureEncoding.UTF8
         );
@@ -125,25 +125,25 @@ public sealed class ManagementConsoleApplicationFactory
                 {
                     ["Bff:Frontends:mgmt:Authority"] = HostApplicationFactory.TestServerIssuer,
                     ["ManagementConsole:ManagementApiUrl"] = "http://localhost/api",
-                    ["ManagementConsole:BundleRootPath"] = _bundleRootPath,
+                    ["ManagementConsole:BundleRootPath"] = BundleRootPath,
                 }
             )
         );
 
         builder.ConfigureTestServices(serviceCollection =>
         {
-            AddKeyRing(serviceCollection, ClientKeyRing, _clientKey);
-            AddKeyRing(serviceCollection, DPoPKeyRing, _dpopKey);
+            AddKeyRing(serviceCollection, ClientKeyRing, ClientKey);
+            AddKeyRing(serviceCollection, DPoPKeyRing, DpopKey);
 
-            if (_provider is not null)
+            if (Provider is not null)
             {
                 // Registered after the library, which configures its own primary handler for each named client.
                 serviceCollection
                     .AddHttpClient(OpenIdClientDefaults.HttpClientName)
-                    .ConfigurePrimaryHttpMessageHandler(() => _provider.Server.CreateHandler());
+                    .ConfigurePrimaryHttpMessageHandler(() => Provider.Server.CreateHandler());
                 serviceCollection
                     .AddHttpClient(BffDefaults.RemoteApiHttpClientName)
-                    .ConfigurePrimaryHttpMessageHandler(() => _provider.Server.CreateHandler());
+                    .ConfigurePrimaryHttpMessageHandler(() => Provider.Server.CreateHandler());
             }
         });
     }
@@ -166,15 +166,15 @@ public sealed class ManagementConsoleApplicationFactory
     {
         await base.DisposeAsync();
 
-        _dpopKey.Dispose();
-        if (_ownsClientKey)
+        DpopKey.Dispose();
+        if (OwnsClientKey)
         {
-            _clientKey.Dispose();
+            ClientKey.Dispose();
         }
 
-        if (Directory.Exists(_bundleRootPath))
+        if (Directory.Exists(BundleRootPath))
         {
-            Directory.Delete(_bundleRootPath, recursive: true);
+            Directory.Delete(BundleRootPath, recursive: true);
         }
 
         GC.SuppressFinalize(this);

@@ -13,13 +13,13 @@ public class DevelopmentKeyFileTests : IDisposable
 {
     private const string FileName = "mgmt-client.pem";
 
-    private readonly string _root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+    private string Root { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public void Dispose()
     {
-        if (Directory.Exists(_root))
+        if (Directory.Exists(Root))
         {
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(Root, recursive: true);
         }
     }
 
@@ -28,7 +28,7 @@ public class DevelopmentKeyFileTests : IDisposable
     [Fact]
     public void EnsureEcPrivateKey_WhenDirectoryIsMissing_CreatesItAndTheFile()
     {
-        var directory = Path.Combine(_root, "nested", "LocalDev");
+        var directory = Path.Combine(Root, "nested", "LocalDev");
 
         var path = DevelopmentKeyFile.EnsureEcPrivateKey(directory, FileName);
 
@@ -39,7 +39,7 @@ public class DevelopmentKeyFileTests : IDisposable
     [Fact]
     public void EnsureEcPrivateKey_WhenFileIsMissing_WritesAP256Pkcs8Key()
     {
-        var path = DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
+        var path = DevelopmentKeyFile.EnsureEcPrivateKey(Root, FileName);
 
         var pem = File.ReadAllText(path, SecureEncoding.UTF8);
         using var key = ECDsa.Create();
@@ -52,10 +52,10 @@ public class DevelopmentKeyFileTests : IDisposable
     [Fact]
     public void EnsureEcPrivateKey_WhenCalledTwice_ReusesTheKey()
     {
-        var firstPath = DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
+        var firstPath = DevelopmentKeyFile.EnsureEcPrivateKey(Root, FileName);
         var firstPem = File.ReadAllText(firstPath, SecureEncoding.UTF8);
 
-        var secondPath = DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
+        var secondPath = DevelopmentKeyFile.EnsureEcPrivateKey(Root, FileName);
         var secondPem = File.ReadAllText(secondPath, SecureEncoding.UTF8);
 
         Assert.Equal(firstPath, secondPath);
@@ -65,10 +65,10 @@ public class DevelopmentKeyFileTests : IDisposable
     [Fact]
     public void EnsureEcPrivateKey_WhenFileIsEmpty_ReplacesIt()
     {
-        Directory.CreateDirectory(_root);
-        File.WriteAllText(Path.Combine(_root, FileName), string.Empty, SecureEncoding.UTF8);
+        Directory.CreateDirectory(Root);
+        File.WriteAllText(Path.Combine(Root, FileName), string.Empty, SecureEncoding.UTF8);
 
-        var path = DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
+        var path = DevelopmentKeyFile.EnsureEcPrivateKey(Root, FileName);
 
         var pem = File.ReadAllText(path, SecureEncoding.UTF8);
         using var key = ECDsa.Create();
@@ -79,9 +79,9 @@ public class DevelopmentKeyFileTests : IDisposable
     [Fact]
     public void EnsureEcPrivateKey_Always_LeavesNoTemporaryFile()
     {
-        DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
+        DevelopmentKeyFile.EnsureEcPrivateKey(Root, FileName);
 
-        var files = Directory.GetFiles(_root);
+        var files = Directory.GetFiles(Root);
 
         Assert.Single(files);
     }
@@ -93,7 +93,7 @@ public class DevelopmentKeyFileTests : IDisposable
     [Fact]
     public void ReadPublicJwks_Always_ReturnsOneEs256SigningKeyNamedAfterTheFileStem()
     {
-        var path = DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
+        var path = DevelopmentKeyFile.EnsureEcPrivateKey(Root, FileName);
 
         var jwks = DevelopmentKeyFile.ReadPublicJwks(path);
 
@@ -111,7 +111,7 @@ public class DevelopmentKeyFileTests : IDisposable
     [Fact]
     public void ReadPublicJwks_Always_ReturnsTheCoordinatesOfThePublicKey()
     {
-        var path = DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
+        var path = DevelopmentKeyFile.EnsureEcPrivateKey(Root, FileName);
         using var key = ECDsa.Create();
         key.ImportFromPem(File.ReadAllText(path, SecureEncoding.UTF8));
         var expected = key.ExportParameters(includePrivateParameters: false);
@@ -126,7 +126,7 @@ public class DevelopmentKeyFileTests : IDisposable
     [Fact]
     public void ReadPublicJwks_Always_HoldsNoPrivateMember()
     {
-        var path = DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
+        var path = DevelopmentKeyFile.EnsureEcPrivateKey(Root, FileName);
 
         var jwks = DevelopmentKeyFile.ReadPublicJwks(path);
 

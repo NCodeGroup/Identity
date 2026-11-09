@@ -28,7 +28,9 @@ The image starts in the `Production` environment, which refuses to start until t
   (`PemFiles__0`), keys that a key management service holds (`RemoteKeys__<kid>__…`), or both.
 - `Bff__KeyRings__mgmt-dpop__…`: the key ring of the console's DPoP key, a PEM file (`PemFiles__0`), keys that a key
   management service holds (`RemoteKeys__<kid>__…`), or both.
-- `ManagementConsole__ManagementApiUrl`: the base URL of the OP's management API.
+- `ManagementConsole__ManagementApiUrl`: the OP's management API, `/api` on the origin of
+  `Bff__Frontends__mgmt__Authority`, such as `https://id.example.com/api`: the OP
+  accepts the console's DPoP proofs only for that URL.
 - `ConnectionStrings__valkey`: the Valkey connection string that holds the sessions, required for more than one
   replica.
 

@@ -1292,8 +1292,9 @@ client `mgmt-console` of the control-plane tenant
   selection rule, and its session cookie is `__Host-Http-bff.mgmt`.
 - The management API keeps one authentication model: sender-constrained bearer tokens of the control-plane tenant. The
   console host forwards `/management/api/*` to the OP's management API with the user's token.
-- `/api` stays free on the console's origin, so the hosted platform's `manage.<apex>` routes `/api` to the OP for
-  machine callers and every other path to the console host.
+- The console's origin serves only the console. The console host reaches the management API at `/api` on its
+  authority's origin, the URL the OP compares a DPoP proof's `htu` with, and machine callers call it there too
+  ([ADR-1488](decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md)).
 
 `AddManagementConsole(configuration)` composes `AddIdentityBff` and binds the `ManagementConsole` section strictly, and
 `MapManagementConsole()` maps the console's endpoints. The host's `Program.cs` adds only the transport layer every host
@@ -1332,10 +1333,11 @@ holds, or both
 
 **Deployment.** The console host ships as its own image (`src/NCode.Identity.ManagementConsole.Host/Dockerfile`) and as
 the `managementConsole` component of `charts/ncode-identity-host`, which mounts each key ring's PEM key from a Secret or
-names its keys in a KMS that the console reaches through its own workload identity, and routes `manage.<apex>`'s `/api`
-to the OP and every other path to the console host
+names its keys in a KMS that the console reaches through its own workload identity, routes every path of the console's
+host to the console host, and sets `ManagementConsole:ManagementApiUrl` to `/api` on the authority's origin
 ([ADR-1458](decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
-[ADR-1485](decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md)).
+[ADR-1485](decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),
+[ADR-1488](decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md)).
 
 **Local development.** The AppHost generates per-machine P-256 keys `mgmt-client.pem` and `mgmt-dpop.pem` beside the
 other development secrets, hands their paths to the console host (`Bff__KeyRings__…`) and the client key's public JWKS

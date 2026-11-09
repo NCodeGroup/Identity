@@ -7,20 +7,21 @@
 ## Context
 
 [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) keeps a
-tenant's signing private keys in a key management service (KMS) so that no replica holds one. Its rule 10 holds a
-tenant's signing keys in a KMS and every encryption key in the server's store, so these forces remain:
+tenant's signing private keys in a key management service (KMS) so that no replica holds one. An encryption private key
+is as sensitive as a signing key, so these forces hold:
 
-- **A replica holds every local encryption private key it loads.** As it once held signing keys, a replica that loads a
-  tenant's encryption private key can leak it, and every replica that decrypts a JWE for the tenant holds it.
+- **A replica holds every local encryption private key it loads.** A replica that loads a tenant's encryption private
+  key can leak it, as it can a signing key, and every replica that decrypts a JWE for the tenant holds it.
 - **JWE decryption is synchronous and span-based.** `KeyManagementAlgorithm.TryUnwrapKey`, the serializer's decode
   members and the JWT validator take a key that is in memory and complete without I/O, so a call to a service has no
   place in them.
 - **The services differ.** AWS KMS decrypts RSA-OAEP and derives ECDH shared secrets, Azure Key Vault unwraps RSA-OAEP
   content keys, and Google Cloud KMS decrypts RSA-OAEP and agrees no keys.
-- **Custody covers signing keys only.** The tenant setting of ADR-1471 rule 10 chooses where a tenant's signing keys
-  are held and has no say over the encryption keys the tenant is provisioned.
+- **Custody is one choice for every key.** One tenant setting chooses where a tenant's keys are held, signing and
+  encryption alike, because a split by use adds vocabulary for a choice no threat model needs.
 - **The management API and the console bind by row.** A create or bind names a provider's algorithm row, the server
-  reads a bound key's public half from the KMS and proves the key with a signature, and the capabilities and the
+  reads a bound key's public half from the KMS and proves the key by its algorithm's kind (a signature or a
+  decryption), and the capabilities and the
   console offer each provider's accepted rows
   ([ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)).
 

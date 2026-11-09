@@ -16,13 +16,13 @@ namespace NCode.Identity.Server.Tests;
 
 public class PlatformSecretProtectorLoaderTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2027, 6, 1, 0, 0, 0, TimeSpan.Zero);
-    private static readonly SecretOwner Owner = SecretOwner.Platform;
+    private static DateTimeOffset Now { get; } = new(2027, 6, 1, 0, 0, 0, TimeSpan.Zero);
+    private static SecretOwner Owner { get; } = SecretOwner.Platform;
 
-    private static readonly Guid ActiveKey = Guid.NewGuid();
-    private static readonly Guid RetiredLiveKey = Guid.NewGuid();
-    private static readonly Guid RetiredExpiredKey = Guid.NewGuid();
-    private static readonly Guid MissingKey = Guid.NewGuid();
+    private static Guid ActiveKey { get; } = Guid.NewGuid();
+    private static Guid RetiredLiveKey { get; } = Guid.NewGuid();
+    private static Guid RetiredExpiredKey { get; } = Guid.NewGuid();
+    private static Guid MissingKey { get; } = Guid.NewGuid();
 
     private static XElement RingKey(Guid masterKeyId, DateTimeOffset expires) =>
         new(

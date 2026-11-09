@@ -7,7 +7,7 @@ namespace NCode.Identity.ManagementConsole.Tests;
 
 public class ManagementConsolePageSecurityTests
 {
-    private static readonly Uri Authority = new("https://id.example");
+    private static Uri Authority { get; } = new("https://id.example");
 
     #region Create Tests
 

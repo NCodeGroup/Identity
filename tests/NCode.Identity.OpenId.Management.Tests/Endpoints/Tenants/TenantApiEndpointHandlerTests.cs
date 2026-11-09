@@ -4788,11 +4788,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #region Root Key Tests
 
-    private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant(TenantId);
+    private static SecretOwner TenantOwner { get; } = SecretOwner.ForTenant(TenantId);
 
     private const string RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd";
 
-    private static readonly OwnerRootKeyRequest RootKeyRequest = new("aws-kms", RootKeyReference);
+    private static OwnerRootKeyRequest RootKeyRequest { get; } = new("aws-kms", RootKeyReference);
 
     private void SetupAllowedKeyWrappers(params string[] names) =>
         MockOwnerRootKeyManager.SetupGet(x => x.AllowedKeyWrapperNames).Returns(names).Verifiable();

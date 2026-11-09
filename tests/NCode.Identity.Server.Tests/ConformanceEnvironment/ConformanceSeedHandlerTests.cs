@@ -35,9 +35,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
     private const string GeneratedSecretId = "generated-secret-id";
 
     // The option holds the Base64Url of the secret's UTF-8 bytes.
-    private static readonly string EncodedSecret = Base64Url.EncodeToString(
-        SecureEncoding.UTF8.GetBytes(SecretText)
-    );
+    private static string EncodedSecret { get; } =
+        Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(SecretText));
 
     private ConformanceSeedHandler CreateHandler(ConformanceSeedOptions options) =>
         CreateHandler(

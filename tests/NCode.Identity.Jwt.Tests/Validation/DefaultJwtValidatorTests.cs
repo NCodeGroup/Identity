@@ -58,6 +58,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     private IAlgorithmCollection Algorithms =>
         _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection;
 
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+
     private SecretKey SigningKey { get; }
     private SecretKey EncryptionKey { get; }
 
@@ -69,6 +71,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         _clientRsa.Dispose();
         _serverRsa.Dispose();
+        MockRepository.Verify();
     }
 
     private SecretKey CreateRsaKey(string keyId, RSA rsa, string? use, string? algorithm) =>
@@ -766,7 +769,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_JweHeaderNamesAHeldKid_TriesOnlyThatKey()
     {
-        var provider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
+        var provider = MockRepository.Create<IRemoteKeyProvider>();
         var remoteKey = CreateRemoteDecryptionKey(provider.Object, "remote-enc");
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
@@ -781,13 +784,12 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         Assert.True(result.IsValid);
         var decodedJwt = Assert.IsType<DecodedJwt>(result.DecodedJwt);
         Assert.Same(EncryptionKey, decodedJwt.DecryptionKey);
-        provider.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task ValidateAsync_JweHeaderNamesAnUnknownKid_TriesEveryKey()
     {
-        var provider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
+        var provider = MockRepository.Create<IRemoteKeyProvider>();
         provider
             .Setup(x =>
                 x.DecryptAsync(
@@ -813,7 +815,6 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         Assert.True(result.IsValid);
         var decodedJwt = Assert.IsType<DecodedJwt>(result.DecodedJwt);
         Assert.Same(otherKey, decodedJwt.DecryptionKey);
-        provider.Verify();
     }
 
     #endregion

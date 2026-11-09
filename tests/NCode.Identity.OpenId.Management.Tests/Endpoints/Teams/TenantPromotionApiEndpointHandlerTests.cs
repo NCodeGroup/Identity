@@ -827,4 +827,23 @@ public sealed class TenantPromotionApiEndpointHandlerTests : IDisposable
     }
 
     #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("POST", "/teams/{teamId}/promotions/preview", new[] { 400, 401, 403, 404 })]
+    [InlineData("POST", "/teams/{teamId}/promotions", new[] { 400, 401, 403, 404, 409, 412 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+    }
+
+    #endregion
 }

@@ -22,13 +22,6 @@ public class BootstrapAdminApplicationFactory(
 ) : HostApplicationFactory
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="BootstrapAdminApplicationFactory"/> class that seeds the bootstrap
-    /// administrator in the default tenant and overlays no other configuration.
-    /// </summary>
-    public BootstrapAdminApplicationFactory()
-        : this(new Dictionary<string, string?>()) { }
-
-    /// <summary>
     /// The client identifier of the bootstrap administrator.
     /// </summary>
     public const string ClientId = "it-bootstrap-admin";
@@ -38,22 +31,28 @@ public class BootstrapAdminApplicationFactory(
     /// </summary>
     public const string ClientSecret = "bootstrap-secret-value";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BootstrapAdminApplicationFactory"/> class that seeds the bootstrap
+    /// administrator in the default tenant and overlays no other configuration.
+    /// </summary>
+    public BootstrapAdminApplicationFactory()
+        : this(new Dictionary<string, string?>()) { }
+
     /// <inheritdoc />
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);
 
+        var secretBytes = SecureEncoding.UTF8.GetBytes(ClientSecret);
+        var settings = new Dictionary<string, string?>(configuration, StringComparer.Ordinal)
+        {
+            ["BootstrapAdmin:ClientId"] = ClientId,
+            ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(secretBytes),
+            ["BootstrapAdmin:TenantId"] = controlPlaneTenantId,
+        };
+
         builder.ConfigureAppConfiguration(configurationBuilder =>
-            configurationBuilder.AddInMemoryCollection(
-                new Dictionary<string, string?>(configuration, StringComparer.Ordinal)
-                {
-                    ["BootstrapAdmin:ClientId"] = ClientId,
-                    ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                        SecureEncoding.UTF8.GetBytes(ClientSecret)
-                    ),
-                    ["BootstrapAdmin:TenantId"] = controlPlaneTenantId,
-                }
-            )
+            configurationBuilder.AddInMemoryCollection(settings)
         );
     }
 

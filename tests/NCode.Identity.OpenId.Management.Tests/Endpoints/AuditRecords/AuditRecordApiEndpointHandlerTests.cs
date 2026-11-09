@@ -78,4 +78,22 @@ public sealed class AuditRecordApiEndpointHandlerTests : IDisposable
     }
 
     #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("GET", "/audit-records", new[] { 401, 403 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+    }
+
+    #endregion
 }

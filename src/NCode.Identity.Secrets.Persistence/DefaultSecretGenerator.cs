@@ -29,7 +29,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// half cannot be read or does not match its row, and a remote key whose creation is followed by any
 /// other failure, is handed to the <see cref="IRemoteSecretDestroyer"/>, which destroys it in its service. A request
 /// whose key type, provider or algorithm row cannot be resolved, and a key whose public half does not match its row,
-/// throw <see cref="RemoteKeyRefusedException"/>.
+/// throw <see cref="RemoteKeyRefusedException"/>. A provider whose descriptor creates no keys is refused.
 /// </summary>
 // See ADR-1067, ADR-1110, ADR-1391, ADR-1471, ADR-1478 and ADR-1479.
 internal class DefaultSecretGenerator(
@@ -37,6 +37,7 @@ internal class DefaultSecretGenerator(
     ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
     IOptions<SharedSecretVerifierOptions> verifierOptionsAccessor,
     IRemoteKeyResolver remoteKeyResolver,
+    IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog,
     IRemoteSecretDestroyer remoteSecretDestroyer,
     IOptions<SecretProtectionOptions> options
 ) : ISecretGenerator
@@ -44,6 +45,9 @@ internal class DefaultSecretGenerator(
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     private IRemoteKeyResolver RemoteKeyResolver { get; } = remoteKeyResolver;
+
+    private IRemoteKeyDescriptorCatalog RemoteKeyDescriptorCatalog { get; } =
+        remoteKeyDescriptorCatalog;
 
     private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
 
@@ -140,6 +144,17 @@ internal class DefaultSecretGenerator(
             Curve = request.Curve,
         };
         var resolution = RemoteKeyResolver.Resolve(selector);
+
+        if (
+            !RemoteKeyDescriptorCatalog.Providers.Any(p =>
+                string.Equals(p.Name, request.Provider, StringComparison.Ordinal) && p.CreatesKeys
+            )
+        )
+        {
+            throw new RemoteKeyRefusedException(
+                $"The remote key provider '{request.Provider}' creates no keys: it has no key-creation location."
+            );
+        }
 
         var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(
             request.CreatedWhen,

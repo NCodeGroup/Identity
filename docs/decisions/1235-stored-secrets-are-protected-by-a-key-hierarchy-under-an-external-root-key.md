@@ -8,7 +8,7 @@
   [ADR-1265](1265-grant-payloads-are-protected-under-the-tenant-master-key.md): grant payloads are protected under the
   tenant master key; amended by
   [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
-  provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`; amended by
+  provider contract is the shared `IKeyWrapper`; amended by
   [ADR-1370](1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md): no root key
   provider is a default, and `ephemeral` is an explicit development opt-in; amended by
   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): an owner's master key rotates, its data keys are rewrapped and a retired key is destroyed, and cached keys
@@ -17,7 +17,8 @@
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): the recovery private key unwraps master keys only inside the offline command, which is the rewrap and recovery tool the Consequences list; amended by
   [ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md): the platform's master key
   protects the Data Protection key ring and the host's own data, and no stored secret; amended by
-  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): an owner may wrap its master keys under a root key it controls, with no recovery copy, re-validated periodically)
+  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): an owner may wrap its master keys under a root key it controls, with no recovery copy, re-validated periodically; amended by
+  [ADR-1473](1473-a-key-management-service-adapter-package-is-named-for-its-service.md): the adapters are `NCode.Identity.Secrets.<Vendor>`)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0127](project-template/0127-the-data-protection-key-ring-is-shared-and-encrypted-at-rest.md)

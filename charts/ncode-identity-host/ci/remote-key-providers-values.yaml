@@ -1,6 +1,6 @@
 # A production release whose root key is a local key, and whose tenants may hold their signing and encryption keys in
-# AWS KMS, Azure Key Vault or Google Cloud KMS, which the host reaches through web identity, workload identity and
-# workload identity federation.
+# AWS KMS, Azure Key Vault or Google Cloud KMS, each enabled with the location in which the host creates its keys, which
+# the host reaches through web identity, workload identity and workload identity federation.
 allowedHosts:
   - id.example.com
 tenantResolution:
@@ -24,10 +24,13 @@ secretProtection:
       provider: projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster
   remoteKeyProviders:
     awsKms:
+      enabled: true
       region: us-west-2
     azureKeyVault:
+      enabled: true
       vaultUri: https://contoso.vault.azure.net
     googleCloudKms:
+      enabled: true
       keyRing: projects/my-project/locations/us-central1/keyRings/ncode-identity-tenant-keys
   remoteKeys:
     deployment: contoso-prod

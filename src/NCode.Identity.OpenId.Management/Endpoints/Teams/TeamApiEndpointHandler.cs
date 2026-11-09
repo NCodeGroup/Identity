@@ -919,10 +919,7 @@ internal class TeamApiEndpointHandler(
             && !string.Equals(ifMatch, teamSettings.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.Problem(
-                detail: "The supplied If-Match token does not match the current settings.",
-                statusCode: StatusCodes.Status412PreconditionFailed
-            );
+            return ManagementProblems.PreconditionFailed("settings");
         }
 
         var jsonObject = ToJsonObject(teamSettings.Value);

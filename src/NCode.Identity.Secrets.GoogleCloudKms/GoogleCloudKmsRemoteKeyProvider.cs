@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Collections.Frozen;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using Google.Api.Gax.Grpc;
 using Google.Cloud.Kms.V1;
@@ -64,6 +65,13 @@ internal class GoogleCloudKmsRemoteKeyProvider(
     /// </summary>
     internal const string AlgorithmLabelKey = "ncode-identity-algorithm";
 
+    /// <summary>
+    /// The key of the label that carries the name of the deployment that created a crypto key.
+    /// </summary>
+    internal const string DeploymentLabelKey = "ncode-identity-deployment";
+
+    private const string GroupNamePrefix = "ncid-";
+
     private static TimeSpan InitialPollDelay { get; } = TimeSpan.FromMilliseconds(250);
     private static TimeSpan MaxPollDelay { get; } = TimeSpan.FromSeconds(4);
     private static TimeSpan PollTimeout { get; } = TimeSpan.FromSeconds(60);
@@ -112,13 +120,7 @@ internal class GoogleCloudKmsRemoteKeyProvider(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var keyRing = ProviderOptions.Value.KeyRing;
-        if (!GoogleCloudKmsKeyName.IsKeyRingName(keyRing))
-        {
-            throw new InvalidOperationException(
-                "SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing is not a Cloud KMS key ring name."
-            );
-        }
+        var keyRing = GetKeyRing();
 
         var row = request.Algorithm;
         if (!KeySpecs.ContainsKey(row.KeySpec))
@@ -429,6 +431,108 @@ internal class GoogleCloudKmsRemoteKeyProvider(
         }
     }
 
+    /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the configured key ring is not a Cloud KMS key ring name.
+    /// </exception>
+    public async IAsyncEnumerable<RemoteKeyListing> ListKeysAsync(
+        RemoteKeyListRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var keyRing = GetKeyRing();
+        var callSettings = CreateCallSettings(
+            GoogleCloudKmsCallSettings.Retrying,
+            cancellationToken
+        );
+
+        var cryptoKeys = await ClientFactory.ExecuteAsync(
+            access: null,
+            async (client, _) =>
+            {
+                var result = new List<CryptoKey>();
+                await foreach (
+                    var cryptoKey in client.ListCryptoKeysAsync(
+                        new ListCryptoKeysRequest { Parent = keyRing },
+                        callSettings
+                    )
+                )
+                {
+                    if (
+                        cryptoKey.Labels.TryGetValue(DeploymentLabelKey, out var deployment)
+                        && string.Equals(deployment, request.Deployment, StringComparison.Ordinal)
+                        && cryptoKey.Labels.TryGetValue(GroupLabelKey, out var group)
+                        && group.StartsWith(GroupNamePrefix, StringComparison.Ordinal)
+                    )
+                    {
+                        result.Add(cryptoKey);
+                    }
+                }
+
+                return result;
+            },
+            cancellationToken
+        );
+
+        foreach (var cryptoKey in cryptoKeys)
+        {
+            var versions = await ClientFactory.ExecuteAsync(
+                access: null,
+                async (client, _) =>
+                {
+                    var result = new List<CryptoKeyVersion>();
+                    await foreach (
+                        var version in client.ListCryptoKeyVersionsAsync(
+                            new ListCryptoKeyVersionsRequest
+                            {
+                                Parent = cryptoKey.Name,
+                                Filter = "state=ENABLED",
+                            },
+                            callSettings
+                        )
+                    )
+                    {
+                        if (
+                            version.State == CryptoKeyVersion.Types.CryptoKeyVersionState.Enabled
+                            && version.CreateTime is not null
+                        )
+                        {
+                            result.Add(version);
+                        }
+                    }
+
+                    return result;
+                },
+                cancellationToken
+            );
+
+            foreach (var version in versions)
+            {
+                yield return new RemoteKeyListing
+                {
+                    KeyId = version.Name,
+                    GroupName = cryptoKey.Labels[GroupLabelKey],
+                    CreatedWhen = version.CreateTime.ToDateTimeOffset(),
+                };
+            }
+        }
+    }
+
+    private string GetKeyRing()
+    {
+        var keyRing = ProviderOptions.Value.KeyRing;
+        if (!GoogleCloudKmsKeyName.IsKeyRingName(keyRing))
+        {
+            throw new InvalidOperationException(
+                "SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing is not a Cloud KMS key ring name."
+            );
+        }
+
+        return keyRing;
+    }
+
     // The suffix separates the crypto keys of the two protection levels, so a change of the option never adds a version
     // of another protection level to an existing crypto key.
     private string GetCryptoKeyId(RemoteKeyCreationRequest request) =>
@@ -509,6 +613,7 @@ internal class GoogleCloudKmsRemoteKeyProvider(
             {
                 { GroupLabelKey, request.GroupName },
                 { AlgorithmLabelKey, request.Algorithm.Algorithm.ToLowerInvariant() },
+                { DeploymentLabelKey, request.Deployment },
             },
         };
 

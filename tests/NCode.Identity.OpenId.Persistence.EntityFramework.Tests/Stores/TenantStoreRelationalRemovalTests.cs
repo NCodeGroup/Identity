@@ -18,45 +18,45 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
     private const string TenantOneId = "tenant-1";
     private const string TenantTwoId = "tenant-2";
 
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _store;
-    private readonly ResourceServerStore _resourceServerStore;
-    private readonly RoleAssignmentStore _roleAssignmentStore;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore Store { get; }
+    private ResourceServerStore ResourceServerStore { get; }
+    private RoleAssignmentStore RoleAssignmentStore { get; }
 
     public TenantStoreRelationalRemovalTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
-        _provider = serviceCollection.BuildServiceProvider();
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
+        Provider = serviceCollection.BuildServiceProvider();
 
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        _dbContext.Database.EnsureCreated();
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        DbContext.Database.EnsureCreated();
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _resourceServerStore = new ResourceServerStore(
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        Store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        ResourceServerStore = new ResourceServerStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext
+            DbContext
         );
-        _roleAssignmentStore = new RoleAssignmentStore(
+        RoleAssignmentStore = new RoleAssignmentStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext
+            DbContext
         );
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
-        _connection.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     #region Helpers
@@ -87,7 +87,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
 
     private async Task SeedTenantAsync(string tenantId)
     {
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateTenant(
                 tenantId,
                 CreateSecret($"{tenantId}-secret-1"),
@@ -95,8 +95,8 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
             ),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task SeedResourceServerAsync(string tenantId, bool isSystem)
@@ -130,14 +130,14 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
             Secrets = [CreateSecret($"{resourceServerId}-secret")],
         }.Build();
 
-        await _resourceServerStore.AddAsync(resourceServer, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await ResourceServerStore.AddAsync(resourceServer, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task SeedRoleAssignmentAsync(string tenantId)
     {
-        await _roleAssignmentStore.AddAsync(
+        await RoleAssignmentStore.AddAsync(
             new PersistedRoleAssignment
             {
                 TenantId = tenantId,
@@ -150,8 +150,8 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
             },
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task SeedTenantWithSystemRowsAsync(string tenantId)
@@ -163,17 +163,17 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
 
     private async Task SeedEndUserDataAsync(string tenantId)
     {
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        var grantStore = new GrantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        var grantStore = new GrantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
         var principalStore = new FederatedPrincipalStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext
+            DbContext
         );
         var identityStore = new FederatedIdentityStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext
+            DbContext
         );
 
         await grantStore.AddAsync(
@@ -196,7 +196,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
             },
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
         await principalStore.AddAsync(
             new PersistedFederatedPrincipal
@@ -207,7 +207,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
             },
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
         await identityStore.AddAsync(
             new PersistedFederatedIdentity
@@ -222,25 +222,25 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
             },
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        _dbContext.ChangeTracker.Clear();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task<RowCounts> CountRowsAsync()
     {
-        _dbContext.ChangeTracker.Clear();
+        DbContext.ChangeTracker.Clear();
 
         return new RowCounts(
-            Tenants: await _dbContext.Tenants.CountAsync(),
-            TenantSecrets: await _dbContext.TenantSecrets.IgnoreQueryFilters().CountAsync(),
-            Secrets: await _dbContext.Secrets.CountAsync(),
-            ResourceServers: await _dbContext.ResourceServers.IgnoreQueryFilters().CountAsync(),
-            Scopes: await _dbContext.Scopes.IgnoreQueryFilters().CountAsync(),
-            ResourceServerSecrets: await _dbContext
+            Tenants: await DbContext.Tenants.CountAsync(),
+            TenantSecrets: await DbContext.TenantSecrets.IgnoreQueryFilters().CountAsync(),
+            Secrets: await DbContext.Secrets.CountAsync(),
+            ResourceServers: await DbContext.ResourceServers.IgnoreQueryFilters().CountAsync(),
+            Scopes: await DbContext.Scopes.IgnoreQueryFilters().CountAsync(),
+            ResourceServerSecrets: await DbContext
                 .ResourceServerSecrets.IgnoreQueryFilters()
                 .CountAsync(),
-            RoleAssignments: await _dbContext.RoleAssignments.IgnoreQueryFilters().CountAsync()
+            RoleAssignments: await DbContext.RoleAssignments.IgnoreQueryFilters().CountAsync()
         );
     }
 
@@ -253,42 +253,42 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
     {
         await SeedTenantWithSystemRowsAsync(TenantOneId);
         await SeedTenantWithSystemRowsAsync(TenantTwoId);
-        _dbContext.ChangeTracker.Clear();
+        DbContext.ChangeTracker.Clear();
 
         Assert.Equal(new RowCounts(2, 4, 6, 2, 4, 2, 2), await CountRowsAsync());
 
-        var removed = await _store.RemoveAsync(TenantOneId, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        var removed = await Store.RemoveAsync(TenantOneId, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
         Assert.True(removed);
         Assert.Equal(new RowCounts(1, 2, 3, 1, 2, 1, 1), await CountRowsAsync());
 
-        var tenant = Assert.Single(await _dbContext.Tenants.ToListAsync());
+        var tenant = Assert.Single(await DbContext.Tenants.ToListAsync());
         Assert.Equal(TenantTwoId, tenant.TenantId);
 
         Assert.All(
-            await _dbContext.TenantSecrets.IgnoreQueryFilters().ToListAsync(),
+            await DbContext.TenantSecrets.IgnoreQueryFilters().ToListAsync(),
             entity => Assert.Equal(TenantTwoId, entity.NormalizedTenantId)
         );
         Assert.All(
-            await _dbContext.ResourceServers.IgnoreQueryFilters().ToListAsync(),
+            await DbContext.ResourceServers.IgnoreQueryFilters().ToListAsync(),
             entity => Assert.Equal(TenantTwoId, entity.NormalizedTenantId)
         );
         Assert.All(
-            await _dbContext.Scopes.IgnoreQueryFilters().ToListAsync(),
+            await DbContext.Scopes.IgnoreQueryFilters().ToListAsync(),
             entity => Assert.Equal(TenantTwoId, entity.NormalizedTenantId)
         );
         Assert.All(
-            await _dbContext.ResourceServerSecrets.IgnoreQueryFilters().ToListAsync(),
+            await DbContext.ResourceServerSecrets.IgnoreQueryFilters().ToListAsync(),
             entity => Assert.Equal(TenantTwoId, entity.NormalizedTenantId)
         );
         Assert.All(
-            await _dbContext.RoleAssignments.IgnoreQueryFilters().ToListAsync(),
+            await DbContext.RoleAssignments.IgnoreQueryFilters().ToListAsync(),
             entity => Assert.Equal(TenantTwoId, entity.NormalizedTenantId)
         );
         Assert.All(
-            await _dbContext.Secrets.ToListAsync(),
+            await DbContext.Secrets.ToListAsync(),
             entity => Assert.Contains(TenantTwoId, entity.SecretId)
         );
     }
@@ -304,7 +304,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         Assert.Equal(new RowCounts(2, 4, 7, 3, 6, 3, 2), before);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.RemoveAsync(TenantTwoId, CancellationToken.None)
+            await Store.RemoveAsync(TenantTwoId, CancellationToken.None)
         );
 
         Assert.Equal(before, await CountRowsAsync());
@@ -318,26 +318,26 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         await SeedEndUserDataAsync(TenantOneId);
         await SeedEndUserDataAsync(TenantTwoId);
 
-        Assert.Equal(2, await _dbContext.Grants.IgnoreQueryFilters().CountAsync());
-        Assert.Equal(2, await _dbContext.FederatedPrincipals.IgnoreQueryFilters().CountAsync());
-        Assert.Equal(2, await _dbContext.FederatedIdentities.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(2, await DbContext.Grants.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(2, await DbContext.FederatedPrincipals.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(2, await DbContext.FederatedIdentities.IgnoreQueryFilters().CountAsync());
 
-        var removed = await _store.RemoveAsync(TenantOneId, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        var removed = await Store.RemoveAsync(TenantOneId, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
         Assert.True(removed);
 
-        var grant = Assert.Single(await _dbContext.Grants.IgnoreQueryFilters().ToListAsync());
+        var grant = Assert.Single(await DbContext.Grants.IgnoreQueryFilters().ToListAsync());
         Assert.Equal(TenantTwoId, grant.NormalizedTenantId);
 
         var principal = Assert.Single(
-            await _dbContext.FederatedPrincipals.IgnoreQueryFilters().ToListAsync()
+            await DbContext.FederatedPrincipals.IgnoreQueryFilters().ToListAsync()
         );
         Assert.Equal(TenantTwoId, principal.NormalizedTenantId);
 
         var identity = Assert.Single(
-            await _dbContext.FederatedIdentities.IgnoreQueryFilters().ToListAsync()
+            await DbContext.FederatedIdentities.IgnoreQueryFilters().ToListAsync()
         );
         Assert.Equal(TenantTwoId, identity.NormalizedTenantId);
     }
@@ -348,7 +348,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         await SeedTenantWithSystemRowsAsync(TenantOneId);
         await SeedTenantWithSystemRowsAsync(TenantTwoId);
         await SeedEndUserDataAsync(TenantOneId);
-        await _roleAssignmentStore.AddAsync(
+        await RoleAssignmentStore.AddAsync(
             new PersistedRoleAssignment
             {
                 TenantId = TenantTwoId,
@@ -361,15 +361,15 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
             },
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var removed = await _store.RemoveAsync(TenantOneId, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        var removed = await Store.RemoveAsync(TenantOneId, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
         Assert.True(removed);
-        var remaining = await _dbContext
+        var remaining = await DbContext
             .RoleAssignments.IgnoreQueryFilters()
             .Select(entity => entity.AssignmentId)
             .OrderBy(assignmentId => assignmentId)
@@ -382,8 +382,8 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
     {
         await SeedTenantWithSystemRowsAsync(TenantOneId);
         var day = new DateOnly(2026, 10, 21);
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        var usageStore = new TenantUsageStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        var usageStore = new TenantUsageStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
         await usageStore.AddAsync(
             Guid.NewGuid(),
             1,
@@ -399,15 +399,15 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
             ],
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var removed = await _store.RemoveAsync(TenantOneId, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        var removed = await Store.RemoveAsync(TenantOneId, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
         Assert.True(removed);
-        Assert.Empty(await _dbContext.Tenants.ToListAsync());
+        Assert.Empty(await DbContext.Tenants.ToListAsync());
         var entries = await usageStore.ListByTeamAsync(
             "/platform/",
             day,

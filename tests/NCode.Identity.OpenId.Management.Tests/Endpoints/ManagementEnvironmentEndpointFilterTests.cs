@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.Results;
@@ -47,7 +48,7 @@ public class ManagementEnvironmentEndpointFilterTests
     #region InvokeAsync Tests
 
     [Fact]
-    public async Task InvokeAsync_WhenTheRouteThrowsAnHttpResultException_ReturnsItsResult()
+    public async Task InvokeAsync_WhenTheRouteThrowsABodilessRefusal_ReturnsAProblemWithItsStatus()
     {
         var mocks = new MockRepository(MockBehavior.Strict);
         var (filter, context, contextFactory) = Create(mocks);
@@ -58,12 +59,29 @@ public class ManagementEnvironmentEndpointFilterTests
 
         var result = await filter.InvokeAsync(context, next);
 
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WhenTheRouteThrowsAProblem_ReturnsIt()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var (filter, context, contextFactory) = Create(mocks);
+        SetupMaterialization(contextFactory);
+        var refusal = TypedResults.Problem(statusCode: StatusCodes.Status409Conflict);
+        EndpointFilterDelegate next = _ =>
+            ValueTask.FromException<object?>(refusal.AsException("x"));
+
+        var result = await filter.InvokeAsync(context, next);
+
         Assert.Same(refusal, result);
         mocks.Verify();
     }
 
     [Fact]
-    public async Task InvokeAsync_WhenTheContextCannotBeMaterialized_ReturnsItsResultWithoutCallingTheRoute()
+    public async Task InvokeAsync_WhenTheContextCannotBeMaterialized_ReturnsAProblemWithoutCallingTheRoute()
     {
         var mocks = new MockRepository(MockBehavior.Strict);
         var (filter, context, contextFactory) = Create(mocks);
@@ -83,7 +101,8 @@ public class ManagementEnvironmentEndpointFilterTests
 
         var result = await filter.InvokeAsync(context, next);
 
-        Assert.Same(refusal, result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
         mocks.Verify();
     }
 

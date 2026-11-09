@@ -9,6 +9,7 @@ const NCode.Identity.Bff.BffDefaults.AntiforgeryCookieName = "__Host-Http-bff-an
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderName = "X-CSRF" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderValue = "1" -> string!
 const NCode.Identity.Bff.BffDefaults.ConfigurationSectionName = "Bff" -> string!
+const NCode.Identity.Bff.BffDefaults.RemoteApiHttpClientName = "NCode.Identity.Bff.RemoteApis" -> string!
 NCode.Identity.Bff.BffClaimTypes
 const NCode.Identity.Bff.BffClaimTypes.LogoutUrl = "bff_logout_url" -> string!
 const NCode.Identity.Bff.BffClaimTypes.LogoutSid = "bff_logout_sid" -> string!

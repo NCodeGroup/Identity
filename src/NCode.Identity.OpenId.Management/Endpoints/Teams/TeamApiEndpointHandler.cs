@@ -902,7 +902,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team's settings were updated.</response>
-    /// <response code="400">The JSON Patch document cannot be applied to the settings, the patched settings are not valid for a team, or a client in the team or beneath it holds a value the patched settings no longer permit.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the settings, the patched settings are not valid for a team, or a client in the team or beneath it holds a value the patched settings do not permit.</response>
     /// <response code="403">The caller lacks <c>Update</c> at the team, or the patch changes a limit and the caller lacks <c>Update</c> at the node above the team.</response>
     /// <response code="404">The team does not exist.</response>
     [EndpointName("api/teams/settings/update")]

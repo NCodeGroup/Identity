@@ -196,7 +196,7 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     [Fact]
-    public async Task AddAzureKeyVaultRemoteKeyProvider_NoVaultUri_FailsValidation()
+    public async Task AddAzureKeyVaultRemoteKeyProvider_NoVaultUri_DescribesAProviderThatCreatesNoKeys()
     {
         var clientFactory = CreateStrictMock<IAzureKeyVaultClientFactory>();
         var serviceCollection = AddAzureKeyVaultRemote(CreateConfiguration(), clientFactory.Object);
@@ -206,8 +206,7 @@ public class DefaultRegistrationTests : BaseTests
             IOptions<AzureKeyVaultRemoteKeyProviderOptions>
         >();
 
-        var exception = Assert.Throws<OptionsValidationException>(() => options.Value);
-        Assert.Contains("VaultUri", exception.Message);
+        Assert.Null(options.Value.VaultUri);
     }
 
     [Fact]

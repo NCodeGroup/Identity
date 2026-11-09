@@ -372,7 +372,8 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -525,7 +526,8 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<NotFound>(result);
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -849,6 +851,28 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         var problem = Assert.IsType<ProblemHttpResult>(result);
 
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("GET", "/grants", new[] { 401, 403 })]
+    [InlineData("DELETE", "/grants", new[] { 400, 401, 403 })]
+    [InlineData("POST", "/grants/initial-access-tokens", new[] { 400, 401, 403 })]
+    [InlineData("GET", "/grants/{grantId}", new[] { 401, 403, 404 })]
+    [InlineData("DELETE", "/grants/{grantId}", new[] { 401, 403, 404 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
     }
 
     #endregion

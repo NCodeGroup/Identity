@@ -17,7 +17,8 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// <summary>
 /// The root management route group (<c>/api</c>). It materializes the OpenID request environment for every management
 /// endpoint via <see cref="ManagementEnvironmentEndpointFilter"/> but opens no tenant scope, so control-plane
-/// families (platform, teams, tenant provisioning) act on unscoped rows.
+/// families (platform, teams, tenant provisioning) act on unscoped rows. It declares on every route the
+/// <c>409</c> and <c>503</c> problems that its settings and root-key filters answer.
 /// </summary>
 internal sealed class ManagementRootGroup : IEndpointGroup
 {
@@ -33,6 +34,7 @@ internal sealed class ManagementRootGroup : IEndpointGroup
     public RoutePattern GetPrefix(IServiceProvider serviceProvider) =>
         RoutePatternFactory.Parse("/api");
 
+    // See ADR-1480.
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group) =>
         group
@@ -40,7 +42,9 @@ internal sealed class ManagementRootGroup : IEndpointGroup
             .AddEndpointFilter<RouteGroupBuilder, ManagementAuthenticationEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, StoreConcurrencyEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, UnreadableSettingsEndpointFilter>()
-            .AddEndpointFilter<RouteGroupBuilder, OwnerRootKeyUnavailableEndpointFilter>();
+            .AddEndpointFilter<RouteGroupBuilder, OwnerRootKeyUnavailableEndpointFilter>()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
     /// <inheritdoc />
     public void ConfigureServices(IEndpointGroupBuilder builder)

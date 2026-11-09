@@ -16,7 +16,6 @@ internal static class EventIds
 
     public const int SecretGenerationFailed = Base + 1;
     public const int JsonPatchFailed = Base + 2;
-    public const int ResourceConflict = Base + 3;
     public const int MissingDependency = Base + 4;
     public const int LostConcurrencyRace = Base + 5;
     public const int ClientSettingsUnreadable = Base + 6;

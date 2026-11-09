@@ -119,8 +119,8 @@ public abstract class ManagementApiEndpointHandler
     /// Processes an HTTP <c>GET</c> request: authorizes the caller against the specified resource, and only then reads
     /// the value and maps it to a response. The value is read only after authorization succeeds, so an unauthorized
     /// request never touches the store. Emits an <c>ETag</c> and honors <c>If-None-Match</c> when the value supports a
-    /// concurrency token. When <paramref name="readAsync"/> returns <c>null</c> the request returns <c>404 Not
-    /// Found</c>.
+    /// concurrency token. When <paramref name="readAsync"/> returns <c>null</c> the request returns the <c>404 Not
+    /// Found</c> problem.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="authorizationResource">The resource, such as a node, to authorize against.</param>
@@ -155,7 +155,7 @@ public abstract class ManagementApiEndpointHandler
     /// the value and maps it to a response. The value is read only after authorization succeeds, so an unauthorized
     /// request never touches the store. Emits an <c>ETag</c> and honors <c>If-None-Match</c> when the value supports a
     /// concurrency token. When <paramref name="readAsync"/> returns <c>null</c> or <paramref name="mapperAsync"/>
-    /// returns <c>null</c>, the request returns <c>404 Not Found</c>.
+    /// returns <c>null</c>, the request returns the <c>404 Not Found</c> problem.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="authorizationResource">The resource, such as a node, to authorize against.</param>
@@ -192,14 +192,14 @@ public abstract class ManagementApiEndpointHandler
         var value = await readAsync(cancellationToken);
         if (value is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Project first so an absent sub-resource short-circuits to 404 before emitting an ETag or a 304.
         var response = await mapperAsync(value, cancellationToken);
         if (response is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         if (value is ISupportConcurrencyToken supportConcurrencyToken)

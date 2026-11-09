@@ -649,6 +649,7 @@ NCode.Identity.OpenId.Management.Endpoints.DefaultResourceValidator.DefaultResou
 NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler
 NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ManagementApiEndpointHandler() -> void
 NCode.Identity.OpenId.Management.Endpoints.ManagementEndpointGroups
+NCode.Identity.OpenId.Management.Endpoints.ManagementProblems
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator.AuthorizeCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator.AuthorizeDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
@@ -738,6 +739,8 @@ override NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent.Resou
 override NCode.Identity.OpenId.Management.Auditing.TenantSecretChangedAuditEvent.ResourceType.get -> string!
 static NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.For(string! tenantId) -> NCode.Identity.OpenId.Management.Authorization.TenantScopeResource!
 static NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ToResourceValues<T>(T resource) -> System.Text.Json.JsonElement
+static NCode.Identity.OpenId.Management.Endpoints.ManagementProblems.PreconditionFailed(string! resource) -> Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult!
+static NCode.Identity.OpenId.Management.Endpoints.ManagementProblems.ResourceNotFound() -> Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult!
 static NCode.Identity.OpenId.Management.Operations.Create.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Delete.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.List.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!

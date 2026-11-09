@@ -66,19 +66,37 @@ internal class GrantApiEndpointHandler(
     {
         var grants = endpoints.MapGroup("/grants").WithTags(OpenIdConstants.EndpointTags.Grants);
 
-        grants.MapGet("", ListGrantsAsync).Produces<CollectionResource<GrantResource>>();
+        grants
+            .MapGet("", ListGrantsAsync)
+            .Produces<CollectionResource<GrantResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
         grants
             .MapDelete("", RevokeGrantsAsync)
             .Produces<GrantRevocationResult>()
-            .Produces(StatusCodes.Status400BadRequest);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
         // The response reveals a secret once, so no cache may keep it (ADR-1345).
         grants
             .MapPost("/initial-access-tokens", CreateInitialAccessTokenAsync)
             .Produces<CreatedInitialAccessTokenResource>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithNoStore();
-        grants.MapGet("/{grantId}", GetGrantAsync).Produces<GrantResource>();
-        grants.MapDelete("/{grantId}", RevokeGrantAsync).Produces(StatusCodes.Status204NoContent);
+        grants
+            .MapGet("/{grantId}", GetGrantAsync)
+            .Produces<GrantResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        grants
+            .MapDelete("/{grantId}", RevokeGrantAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     /// <summary>
@@ -422,7 +440,7 @@ internal class GrantApiEndpointHandler(
         var grant = await store.GetOrDefaultAsync(grantId, cancellationToken);
         if (grant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         return TypedResults.Json(ToGrantResource(grant));
@@ -461,7 +479,7 @@ internal class GrantApiEndpointHandler(
         var grant = await store.GetOrDefaultAsync(grantId, cancellationToken);
         if (grant is null)
         {
-            return TypedResults.NotFound();
+            return ManagementProblems.ResourceNotFound();
         }
 
         // Soft-revoke is idempotent: an already-revoked grant is left untouched. A revocation retries a lost race

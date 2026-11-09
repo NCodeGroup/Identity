@@ -31,13 +31,6 @@ internal static partial class Log
     internal static partial void JsonPatchFailed(this ILogger logger, Exception exception);
 
     [LoggerMessage(
-        EventId = EventIds.ResourceConflict,
-        Level = LogLevel.Debug,
-        Message = "The operation was rejected because of a resource conflict"
-    )]
-    internal static partial void ResourceConflict(this ILogger logger, Exception exception);
-
-    [LoggerMessage(
         EventId = EventIds.MissingDependency,
         Level = LogLevel.Debug,
         Message = "The operation referenced a resource that does not exist"

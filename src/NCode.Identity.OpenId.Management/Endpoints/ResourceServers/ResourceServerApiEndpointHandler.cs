@@ -243,6 +243,14 @@ internal class ResourceServerApiEndpointHandler(
             statusCode: StatusCodes.Status409Conflict
         );
 
+    private static PersistedScope? FindScopeOrDefault(
+        PersistedResourceServer resourceServer,
+        string scopeValue
+    ) =>
+        resourceServer.Scopes.FirstOrDefault(scope =>
+            string.Equals(scope.Value, scopeValue, StringComparison.OrdinalIgnoreCase)
+        );
+
     internal virtual ScopeResource ToScopeResource(PersistedScope scope) =>
         new()
         {
@@ -612,6 +620,7 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="201">The created scope.</response>
     /// <response code="409">A scope with the same value already exists.</response>
+    // See ADR-1480.
     [EndpointName("api/resource-servers/scopes/create")]
     internal virtual async ValueTask<IResult> CreateScopeAsync(
         HttpContext httpContext,
@@ -647,6 +656,14 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
+        if (FindScopeOrDefault(resourceServer, request.Value) is not null)
+        {
+            return TypedResults.Problem(
+                detail: "A scope with the specified value already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
         var persistedScope = new PersistedScope
         {
             Value = request.Value,
@@ -654,19 +671,8 @@ internal class ResourceServerApiEndpointHandler(
             IsSystem = false,
         };
 
-        try
-        {
-            await store.AddScopeAsync(resourceServerId, persistedScope, cancellationToken);
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A scope with the specified value already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.AddScopeAsync(resourceServerId, persistedScope, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
             httpContext,
@@ -706,9 +712,9 @@ internal class ResourceServerApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<IResourceServerStore>();
                 var resourceServer = await store.GetOrDefaultAsync(resourceServerId, token);
-                return resourceServer?.Scopes.FirstOrDefault(scope =>
-                    string.Equals(scope.Value, scopeValue, StringComparison.OrdinalIgnoreCase)
-                );
+                return resourceServer is null
+                    ? null
+                    : FindScopeOrDefault(resourceServer, scopeValue);
             },
             ToScopeResource,
             cancellationToken
@@ -719,6 +725,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Updates a scope on a resource server.
     /// </summary>
     /// <response code="204">The scope was updated.</response>
+    // See ADR-1480.
     [EndpointName("api/resource-servers/scopes/update")]
     internal virtual async ValueTask<IResult> UpdateScopeAsync(
         HttpContext httpContext,
@@ -755,41 +762,29 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        try
-        {
-            await store.UpdateScopeAsync(
-                resourceServerId,
-                new PersistedScope
-                {
-                    Value = scopeValue,
-                    Description = request.Description,
-                    IsSystem = false,
-                },
-                cancellationToken
-            );
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
-        catch (InvalidOperationException)
+        var scope = FindScopeOrDefault(resourceServer, scopeValue);
+        if (scope is null)
         {
             return TypedResults.NotFound();
         }
+
+        var updatedScope = new PersistedScope
+        {
+            Value = scope.Value,
+            Description = request.Description,
+            IsSystem = scope.IsSystem,
+        };
+
+        await store.UpdateScopeAsync(resourceServerId, updatedScope, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
             httpContext,
             resourceServer.TenantId,
             resourceServerId,
-            scopeValue,
+            scope.Value,
             ResourceChangeTypes.Updated,
-            ToResourceValues(
-                ToScopeResource(
-                    new PersistedScope
-                    {
-                        Value = scopeValue,
-                        Description = request.Description,
-                        IsSystem = false,
-                    }
-                )
-            )
+            ToResourceValues(ToScopeResource(updatedScope))
         );
 
         return TypedResults.NoContent();
@@ -800,6 +795,7 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="204">The scope was deleted.</response>
     /// <response code="409">The scope is a system scope and cannot be removed.</response>
+    // See ADR-1480.
     [EndpointName("api/resource-servers/scopes/delete")]
     internal virtual async ValueTask<IResult> DeleteScopeAsync(
         HttpContext httpContext,
@@ -835,32 +831,28 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        bool removed;
-        try
-        {
-            removed = await store.RemoveScopeAsync(resourceServerId, scopeValue, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: exception.Message,
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
-
-        if (!removed)
+        var scope = FindScopeOrDefault(resourceServer, scopeValue);
+        if (scope is null)
         {
             return TypedResults.NotFound();
         }
 
+        if (scope.IsSystem)
+        {
+            return TypedResults.Problem(
+                detail: "A reserved system scope cannot be removed.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await store.RemoveScopeAsync(resourceServerId, scope.Value, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
             httpContext,
             resourceServer.TenantId,
             resourceServerId,
-            scopeValue,
+            scope.Value,
             ResourceChangeTypes.Deleted,
             resourceValues: null
         );

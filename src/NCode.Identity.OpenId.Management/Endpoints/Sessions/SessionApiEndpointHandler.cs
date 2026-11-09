@@ -165,6 +165,7 @@ internal class SessionApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The number of sessions this request terminated.</response>
     /// <response code="400">No subject was supplied.</response>
+    /// <response code="404">The tenant does not exist.</response>
     [EndpointName("api/sessions/revoke-many")]
     internal virtual async ValueTask<IResult> RevokeSessionsAsync(
         HttpContext httpContext,
@@ -225,6 +226,7 @@ internal class SessionApiEndpointHandler(
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>) to revoke.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The session was revoked (or did not exist).</response>
+    /// <response code="404">The tenant does not exist.</response>
     [EndpointName("api/sessions/revoke")]
     internal virtual async ValueTask<IResult> RevokeSessionAsync(
         HttpContext httpContext,

@@ -37,7 +37,6 @@ location read from that key, and gives the console a workload identity of its ow
    `mgmt-client.pem` or `mgmt-dpop.pem`, and `remoteKeys`, a map from key id (`kid`) to `provider`, `keyId`,
    `algorithm`, `secretType`, `keySizeBits` and an optional `curve`. The map mirrors
    `Bff:KeyRings:{name}:RemoteKeys:{kid}` and cannot name one id twice.
-   `managementConsole.keys.clientKeySecret` and `dpopKeySecret` are not values: the two key rings are the one shape.
 2. **A vendor is registered from the keys that name it.** The chart renders a vendor's
    `SecretProtection__RemoteKeyProviders__<Vendor>__<location>` exactly when a console remote key names that vendor.
    The location is read from the first such key, the client ring before the DPoP ring and key ids in sorted order: the

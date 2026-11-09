@@ -34,7 +34,7 @@ internal class DefaultClientAuthenticationService(
 {
     // Per-request memoization key. The result is cached on the HttpContext so it is scoped to the current request;
     // this service is a singleton, so an instance field would leak one request's result to every other request.
-    private static readonly object CacheKey = new();
+    private static object CacheKey { get; } = new();
 
     private ImmutableArray<IClientAuthenticationHandler> Handlers { get; } =
         EnsureEveryMethodIsDescribed([.. handlers], clientAuthenticationMethodCatalog);

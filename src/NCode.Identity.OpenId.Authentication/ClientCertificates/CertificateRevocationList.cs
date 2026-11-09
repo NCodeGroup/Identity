@@ -32,32 +32,23 @@ internal sealed class CertificateRevocationList
     private const string InvalidityDateOid = "2.5.29.24";
     private const string CertificateIssuerOid = "2.5.29.29";
 
-    private static readonly Asn1Tag ExtensionsTag = new(TagClass.ContextSpecific, 0, true);
+    private static Asn1Tag ExtensionsTag { get; } = new(TagClass.ContextSpecific, 0, true);
 
-    private static readonly Asn1Tag DistributionPointNameTag = new(
-        TagClass.ContextSpecific,
-        0,
-        true
-    );
+    private static Asn1Tag DistributionPointNameTag { get; } =
+        new(TagClass.ContextSpecific, 0, true);
 
-    private static readonly Asn1Tag OnlyContainsUserCertificatesTag = new(
-        TagClass.ContextSpecific,
-        1
-    );
+    private static Asn1Tag OnlyContainsUserCertificatesTag { get; } =
+        new(TagClass.ContextSpecific, 1);
 
-    private static readonly Asn1Tag OnlyContainsAuthorityCertificatesTag = new(
-        TagClass.ContextSpecific,
-        2
-    );
+    private static Asn1Tag OnlyContainsAuthorityCertificatesTag { get; } =
+        new(TagClass.ContextSpecific, 2);
 
-    private static readonly Asn1Tag OnlySomeReasonsTag = new(TagClass.ContextSpecific, 3);
+    private static Asn1Tag OnlySomeReasonsTag { get; } = new(TagClass.ContextSpecific, 3);
 
-    private static readonly Asn1Tag IndirectCrlTag = new(TagClass.ContextSpecific, 4);
+    private static Asn1Tag IndirectCrlTag { get; } = new(TagClass.ContextSpecific, 4);
 
-    private static readonly Asn1Tag OnlyContainsAttributeCertificatesTag = new(
-        TagClass.ContextSpecific,
-        5
-    );
+    private static Asn1Tag OnlyContainsAttributeCertificatesTag { get; } =
+        new(TagClass.ContextSpecific, 5);
 
     private ConcurrentDictionary<string, bool> SignerVerdicts { get; } =
         new(StringComparer.Ordinal);

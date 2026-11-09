@@ -18,7 +18,7 @@ internal static class RedirectUriMatcher
     /// The prefixes of the loopback IP redirect URIs whose port may vary (RFC 8252 §7.3). <c>localhost</c> is not one
     /// of them.
     /// </summary>
-    private static readonly string[] LoopbackPrefixes = ["http://127.0.0.1", "http://[::1]"];
+    private static string[] LoopbackPrefixes { get; } = ["http://127.0.0.1", "http://[::1]"];
 
     /// <summary>
     /// Gets a value indicating whether a requested redirect URI equals a registered redirect URI exactly, as ordinal

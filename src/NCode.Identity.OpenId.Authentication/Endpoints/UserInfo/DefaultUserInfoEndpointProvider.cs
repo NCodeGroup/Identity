@@ -51,10 +51,8 @@ internal class DefaultUserInfoEndpointProvider(
 
     // A UserInfo access token binds the OpenID identity resource server, which owns the openid/profile/email scopes
     // (ADR-1027); require that audience so a token minted for a different resource server is rejected.
-    private static readonly string[] UserInfoAudiences =
-    [
-        OpenIdConstants.SystemResourceServerIdentifiers.OpenId,
-    ];
+    private static string[] UserInfoAudiences { get; } =
+    [OpenIdConstants.SystemResourceServerIdentifiers.OpenId];
 
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IOpenIdClientResolver ClientResolver { get; } = clientResolver;

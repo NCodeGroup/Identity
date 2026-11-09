@@ -35,7 +35,7 @@ internal class DefaultConsentService(
 ) : IConsentService
 {
     // Scope values are case-sensitive per RFC 6749.
-    private static readonly StringComparer ScopeComparer = StringComparer.Ordinal;
+    private static StringComparer ScopeComparer { get; } = StringComparer.Ordinal;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;

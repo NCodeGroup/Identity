@@ -275,27 +275,26 @@ jobs:
           }
           aws=$(console)
           expect "$aws" 'name: Bff__KeyRings__mgmt-client__RemoteKeys__mgmt-client__KeyId' \
-            'name: SecretProtection__RemoteKeyProviders__AwsKms__Region' 'value: "us-west-2"' 'name: AWS_ROLE_ARN' \
+            'name: AWS_ROLE_ARN' \
             'name: aws-web-identity' 'name: Bff__KeyRings__mgmt-dpop__PemFiles__0'
           # A key ring without pemSecret mounts no Secret.
-          reject "$aws" 'Bff__KeyRings__mgmt-client__PemFiles' 'name: client-key'
+          # The console registers every vendor without a key-creation location, so it renders no provider section (ADR-1489).
+          reject "$aws" 'Bff__KeyRings__mgmt-client__PemFiles' 'name: client-key' 'RemoteKeyProviders'
           # The server's pods never carry the console's identity.
           reject "$(helm template release "$CHART" --values "$base" --show-only templates/deployment.yaml)" 'AWS_ROLE_ARN'
-          # A vendor no remote key names is neither registered nor given credentials.
+          # A vendor no remote key names gets no credentials.
           azure=$(console --set "$key.provider=azure-key-vault" \
             --set "$key.keyId=https://contoso.vault.azure.net/keys/mgmt-client/0123456789abcdef0123456789abcdef" \
             --set managementConsole.secretProtection.azureKeyVault.workloadIdentity.tenantId=11111111-2222-3333-4444-555555555555 \
             --set managementConsole.secretProtection.azureKeyVault.workloadIdentity.clientId=66666666-7777-8888-9999-000000000000)
-          expect "$azure" 'name: SecretProtection__RemoteKeyProviders__AzureKeyVault__VaultUri' \
-            'value: "https://contoso.vault.azure.net"' 'name: AZURE_CLIENT_ID'
-          reject "$azure" 'AwsKms' 'AWS_ROLE_ARN'
+          expect "$azure" 'name: AZURE_CLIENT_ID'
+          reject "$azure" 'AwsKms' 'AWS_ROLE_ARN' 'RemoteKeyProviders'
           google=$(helm template release "$CHART" --values "$base" --set "$key.provider=google-cloud-kms" \
             --set "$key.keyId=projects/my-project/locations/us-central1/keyRings/ncode-identity-console/cryptoKeys/mgmt-client/cryptoKeyVersions/1" \
             --set managementConsole.secretProtection.googleCloudKms.workloadIdentityFederation.provider=projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster)
-          expect "$google" 'value: "projects/my-project/locations/us-central1/keyRings/ncode-identity-console"' \
-            'name: GOOGLE_APPLICATION_CREDENTIALS' 'name: release-ncode-identity-host-management-console-google-cloud' \
-            'checksum/google-cloud-credentials'
-          reject "$google" 'name: release-ncode-identity-host-google-cloud$' 'AWS_ROLE_ARN'
+          expect "$google" 'name: GOOGLE_APPLICATION_CREDENTIALS' \
+            'name: release-ncode-identity-host-management-console-google-cloud' 'checksum/google-cloud-credentials'
+          reject "$google" 'name: release-ncode-identity-host-google-cloud$' 'AWS_ROLE_ARN' 'RemoteKeyProviders'
           # A console whose keys are all PEM Secrets carries no identity, whatever its identity values say.
           pem=$(helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" \
             --show-only templates/management-console-deployment.yaml \

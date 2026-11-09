@@ -807,19 +807,6 @@ The environment of the management console container.
 {{- end }}
 {{- end }}
 {{- end }}
-{{- /* A provider registers when its section exists, and reads each key where the key's identifier names, so the section names the first key's region, vault or key ring. */}}
-{{- with include "identity-host.managementConsole.remoteKeyId" (dict "root" $ "name" "aws-kms") }}
-- name: SecretProtection__RemoteKeyProviders__AwsKms__Region
-  value: {{ index (splitList ":" .) 3 | quote }}
-{{- end }}
-{{- with include "identity-host.managementConsole.remoteKeyId" (dict "root" $ "name" "azure-key-vault") }}
-- name: SecretProtection__RemoteKeyProviders__AzureKeyVault__VaultUri
-  value: {{ regexFind "^https://[^/]+" . | quote }}
-{{- end }}
-{{- with include "identity-host.managementConsole.remoteKeyId" (dict "root" $ "name" "google-cloud-kms") }}
-- name: SecretProtection__RemoteKeyProviders__GoogleCloudKms__KeyRing
-  value: {{ regexFind "^projects/[^/]+/locations/[^/]+/keyRings/[^/]+" . | quote }}
-{{- end }}
 {{- $credentials := include "identity-host.kmsCredentials.managementConsole" $ | fromYaml }}
 {{- include "identity-host.kmsCredentials.awsEnv" $credentials }}
 {{- include "identity-host.kmsCredentials.azureEnv" $credentials }}

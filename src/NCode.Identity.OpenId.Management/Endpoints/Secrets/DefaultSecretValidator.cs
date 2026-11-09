@@ -130,7 +130,7 @@ internal sealed class DefaultSecretValidator(
             Use = use,
             Algorithm = request.Algorithm,
         };
-        return ResolveGeneration(descriptor, requested);
+        return ResolveGeneration(descriptor, requested, out _);
     }
 
     /// <inheritdoc />
@@ -192,13 +192,14 @@ internal sealed class DefaultSecretValidator(
             Use = null,
             Algorithm = selector.Algorithm,
         };
-        var validation = ResolveGeneration(descriptor, requested);
-        return ValidateRemoteRow(selector, validation);
+        var validation = ResolveGeneration(descriptor, requested, out var impliedUse);
+        return ValidateRemoteRow(selector, validation, impliedUse);
     }
 
     private SecretCreateValidation ValidateRemoteRow(
         RemoteKeyAlgorithmSelector selector,
-        SecretCreateValidation validation
+        SecretCreateValidation validation,
+        string? impliedUse
     )
     {
         if (!validation.IsValid)
@@ -222,13 +223,6 @@ internal sealed class DefaultSecretValidator(
                     + $"'{selector.SecretType}' type with {resolved.KeySizeBits} bits{curveText}."
             );
         }
-
-        // The generation resolved, so the algorithm is registered and implies a use.
-        AlgorithmCollectionProvider.Collection.TryGetKeyedAlgorithm(
-            selector.Algorithm,
-            out _,
-            out var impliedUse
-        );
 
         // See ADR-1477.
         if (!string.Equals(row.Use, impliedUse, StringComparison.Ordinal))
@@ -257,9 +251,11 @@ internal sealed class DefaultSecretValidator(
 
     private SecretCreateValidation ResolveGeneration(
         ISecretKeyTypeDescriptor descriptor,
-        RequestedKeyGeneration requested
+        RequestedKeyGeneration requested,
+        out string? impliedUse
     )
     {
+        impliedUse = null;
         var keySizeBits = requested.KeySizeBits;
         var curve = requested.Curve;
         var use = requested.Use;
@@ -294,6 +290,7 @@ internal sealed class DefaultSecretValidator(
                 return Invalid(algorithmError);
             }
 
+            impliedUse = resolved.Use;
             parameters = new SecretKeyGenerationParameters
             {
                 KeySizeBits = resolved.KeySizeBits,

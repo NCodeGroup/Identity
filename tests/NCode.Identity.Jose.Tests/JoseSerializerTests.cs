@@ -222,7 +222,7 @@ public class JoseSerializerTests : BaseTests
         }
     }
 
-    private static string[] expected { get; } = new[] { "b64" };
+    private static string[] Expected { get; } = new[] { "b64" };
 
     [Theory]
     [MemberData(nameof(EncodeDecodeJweTestData))]
@@ -858,7 +858,7 @@ public class JoseSerializerTests : BaseTests
             Assert.Equal(false, b64Header);
 
             var criticalHeader = Assert.Contains("crit", headerToVerify);
-            Assert.Equal(expected, criticalHeader);
+            Assert.Equal(Expected, criticalHeader);
         }
 
         var typHeader = Assert.Contains("typ", headerToVerify);

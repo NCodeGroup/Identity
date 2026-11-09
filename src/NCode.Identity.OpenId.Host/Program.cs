@@ -98,9 +98,7 @@ identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsKeyWrapper(confi
 identityServer.SecretsLibraryBuilder.AddAwsKmsRemoteKeyProviderIfConfigured(configuration);
 
 // Azure Key Vault or Managed HSM can hold a tenant's keys ('tenant_key_provider' = 'azure-key-vault'); it is registered only when the 'SecretProtection:RemoteKeyProviders:AzureKeyVault' section exists, because registering it selects it and validates its options at startup.
-identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(
-    configuration
-);
+identityServer.SecretsLibraryBuilder.AddAzureKeyVaultRemoteKeyProviderIfConfigured(configuration);
 
 // Google Cloud KMS can hold a tenant's keys ('tenant_key_provider' = 'google-cloud-kms'); it is registered only when the 'SecretProtection:RemoteKeyProviders:GoogleCloudKms' section exists, because registering it selects it and validates its options at startup.
 identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsRemoteKeyProviderIfConfigured(

@@ -10,6 +10,15 @@ namespace NCode.Identity.Analyzers;
 /// </summary>
 internal static class FieldExemptions
 {
+    /// <summary>
+    /// Determines whether a field's declaration alone lets it stay a field.
+    /// </summary>
+    /// <param name="field">The field to examine.</param>
+    /// <returns>
+    /// <see langword="true"/> when the field is compiler-declared, a <c>const</c>, an enum member, a <c>ref</c>,
+    /// fixed-size buffer or <c>volatile</c> field, or a field of a struct with <c>[StructLayout]</c> or
+    /// <c>[InlineArray]</c>; otherwise <see langword="false"/>.
+    /// </returns>
     public static bool IsExempt(IFieldSymbol field)
     {
         if (

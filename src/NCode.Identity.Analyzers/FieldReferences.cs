@@ -12,6 +12,16 @@ namespace NCode.Identity.Analyzers;
 /// </summary>
 internal static class FieldReferences
 {
+    /// <summary>
+    /// Determines whether a reference to a field needs the field itself rather than a property.
+    /// </summary>
+    /// <param name="reference">The reference to the field.</param>
+    /// <returns>
+    /// <see langword="true"/> when the reference is an argument to a <c>ref</c>, <c>out</c>, <c>in</c> or
+    /// <c>ref readonly</c> parameter, the operand of <c>ref</c> or <c>&amp;</c>, or a mutable struct that a
+    /// non-<c>readonly</c> call, a write or a by-reference use of one of its members changes through the field;
+    /// otherwise <see langword="false"/>.
+    /// </returns>
     public static bool IsByReference(IFieldReferenceOperation reference)
     {
         if (

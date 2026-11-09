@@ -62,7 +62,8 @@ management access token authenticates, or an anonymous principal.**
 - An anonymous request to `GET /api/me`, `GET /api/me/teams` or `GET /api/me/tenants` is answered with a `401` problem
   document, and the routes' OpenAPI documents list `401` and no `403`.
 - A capability package's route reads the caller from `IManagementCallerFeature` and answers `401` without it.
-- A management client with a valid management access token reads every route unchanged.
+- A management client with a valid management access token is the caller of every route it requests, and each route
+  authorizes it from its role assignments.
 
 ## References
 

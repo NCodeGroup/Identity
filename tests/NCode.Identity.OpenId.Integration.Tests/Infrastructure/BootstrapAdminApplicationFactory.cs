@@ -12,7 +12,9 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// A <see cref="HostApplicationFactory"/> whose host seeds the bootstrap administrator management client, and that
 /// creates management clients acting as it. A test that registers services of its own derives from it.
 /// </summary>
-/// <param name="configuration">The configuration keys (colon-delimited paths) and values to overlay on the host's configuration.</param>
+/// <param name="configuration">
+/// The configuration keys (colon-delimited paths) and values to overlay on the host's configuration.
+/// </param>
 /// <param name="controlPlaneTenantId">The tenant the bootstrap administrator is seeded in.</param>
 public class BootstrapAdminApplicationFactory(
     IReadOnlyDictionary<string, string?> configuration,

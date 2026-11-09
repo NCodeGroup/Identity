@@ -81,6 +81,38 @@ public class ManagementEnvironmentEndpointFilterTests
     }
 
     [Fact]
+    public async Task InvokeAsync_WhenTheRouteThrowsARefusalWithABody_ReturnsIt()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var (filter, context, contextFactory) = Create(mocks);
+        SetupMaterialization(contextFactory);
+        var refusal = TypedResults.Json("x", statusCode: StatusCodes.Status404NotFound);
+        EndpointFilterDelegate next = _ =>
+            ValueTask.FromException<object?>(refusal.AsException("x"));
+
+        var result = await filter.InvokeAsync(context, next);
+
+        Assert.Same(refusal, result);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WhenTheRouteThrowsABodilessNonErrorResult_ReturnsIt()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var (filter, context, contextFactory) = Create(mocks);
+        SetupMaterialization(contextFactory);
+        var refusal = TypedResults.StatusCode(StatusCodes.Status304NotModified);
+        EndpointFilterDelegate next = _ =>
+            ValueTask.FromException<object?>(refusal.AsException("x"));
+
+        var result = await filter.InvokeAsync(context, next);
+
+        Assert.Same(refusal, result);
+        mocks.Verify();
+    }
+
+    [Fact]
     public async Task InvokeAsync_WhenTheContextCannotBeMaterialized_ReturnsAProblemWithoutCallingTheRoute()
     {
         var mocks = new MockRepository(MockBehavior.Strict);

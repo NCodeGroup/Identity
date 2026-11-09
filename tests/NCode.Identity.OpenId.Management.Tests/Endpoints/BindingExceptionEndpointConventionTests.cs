@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +21,7 @@ public class BindingExceptionEndpointConventionTests
     #region Apply Tests
 
     [Fact]
-    public async Task Apply_WhenTheEndpointThrowsABindingFailure_AnswersItsStatus()
+    public async Task Apply_WhenTheEndpointThrowsABindingFailure_AnswersItsStatusWithNoBody()
     {
         var httpContext = CreateHttpContext();
         var builder = new RouteEndpointBuilder(
@@ -37,6 +38,54 @@ public class BindingExceptionEndpointConventionTests
         await builder.RequestDelegate!(httpContext);
 
         Assert.Equal(StatusCodes.Status415UnsupportedMediaType, httpContext.Response.StatusCode);
+        Assert.Null(httpContext.Response.ContentType);
+        Assert.Equal(0, httpContext.Response.Body.Length);
+    }
+
+    [Fact]
+    public async Task Apply_WhenTheEndpointSetsAnErrorStatus_LeavesTheResponseUntouched()
+    {
+        var httpContext = CreateHttpContext();
+        var builder = new RouteEndpointBuilder(
+            context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return Task.CompletedTask;
+            },
+            RoutePatternFactory.Parse("/"),
+            0
+        );
+
+        BindingExceptionEndpointConvention.Apply(builder);
+        await builder.RequestDelegate!(httpContext);
+
+        Assert.Equal(StatusCodes.Status404NotFound, httpContext.Response.StatusCode);
+        Assert.Null(httpContext.Response.ContentType);
+        Assert.Equal(0, httpContext.Response.Body.Length);
+    }
+
+    [Fact]
+    public async Task Apply_WhenTheResponseHasStartedAndBindingFails_RethrowsTheFailure()
+    {
+        var httpContext = CreateHttpContext();
+        httpContext.Features.Set<IHttpResponseFeature>(
+            new StartedResponseFeature { Body = httpContext.Response.Body }
+        );
+        var builder = new RouteEndpointBuilder(
+            _ =>
+                throw new BadHttpRequestException(
+                    "Unsupported media type.",
+                    StatusCodes.Status415UnsupportedMediaType
+                ),
+            RoutePatternFactory.Parse("/"),
+            0
+        );
+
+        BindingExceptionEndpointConvention.Apply(builder);
+
+        await Assert.ThrowsAsync<BadHttpRequestException>(() =>
+            builder.RequestDelegate!(httpContext)
+        );
     }
 
     [Fact]
@@ -51,41 +100,8 @@ public class BindingExceptionEndpointConventionTests
 
     #endregion
 
-    #region InvokeAsync Tests
-
-    [Fact]
-    public async Task InvokeAsync_WhenBindingThrowsABadHttpRequestException_AnswersItsStatusWithNoBody()
+    private sealed class StartedResponseFeature : HttpResponseFeature
     {
-        var httpContext = CreateHttpContext();
-        RequestDelegate next = _ =>
-            throw new BadHttpRequestException(
-                "Unsupported media type.",
-                StatusCodes.Status415UnsupportedMediaType
-            );
-
-        await BindingExceptionEndpointConvention.InvokeAsync(next, httpContext);
-
-        Assert.Equal(StatusCodes.Status415UnsupportedMediaType, httpContext.Response.StatusCode);
-        Assert.Null(httpContext.Response.ContentType);
-        Assert.Equal(0, httpContext.Response.Body.Length);
+        public override bool HasStarted => true;
     }
-
-    [Fact]
-    public async Task InvokeAsync_WhenTheEndpointSetsAnErrorStatus_LeavesTheResponseUntouched()
-    {
-        var httpContext = CreateHttpContext();
-        RequestDelegate next = context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status404NotFound;
-            return Task.CompletedTask;
-        };
-
-        await BindingExceptionEndpointConvention.InvokeAsync(next, httpContext);
-
-        Assert.Equal(StatusCodes.Status404NotFound, httpContext.Response.StatusCode);
-        Assert.Null(httpContext.Response.ContentType);
-        Assert.Equal(0, httpContext.Response.Body.Length);
-    }
-
-    #endregion
 }

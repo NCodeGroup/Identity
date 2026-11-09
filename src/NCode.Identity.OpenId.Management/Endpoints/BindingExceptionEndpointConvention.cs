@@ -27,7 +27,14 @@ internal static class BindingExceptionEndpointConvention
         builder.RequestDelegate = context => InvokeAsync(next, context);
     }
 
-    internal static async Task InvokeAsync(RequestDelegate next, HttpContext httpContext)
+    /// <summary>
+    /// Runs the wrapped request delegate and answers a request-binding failure it throws with the failure's status and
+    /// no body, unless the response has started.
+    /// </summary>
+    /// <param name="next">The request delegate of the endpoint.</param>
+    /// <param name="httpContext">The context of the request.</param>
+    /// <returns>A task that completes when the request is answered.</returns>
+    private static async Task InvokeAsync(RequestDelegate next, HttpContext httpContext)
     {
         try
         {

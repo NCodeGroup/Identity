@@ -5,13 +5,13 @@ using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Jose.Tests;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.RemoteKeys;
 
-namespace NCode.Identity.Jose.Algorithms;
+namespace NCode.Identity.Jose.Tests.Algorithms;
 
 // See ADR-1477.
 public class KeyManagementAlgorithmTests : BaseTests

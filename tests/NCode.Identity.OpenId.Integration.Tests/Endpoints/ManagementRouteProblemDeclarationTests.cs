@@ -55,5 +55,41 @@ public class ManagementRouteProblemDeclarationTests
         }
     }
 
+    [Fact]
+    public void ManagementRoutes_WhenTheyAuthorizeTheCaller_DeclareUnauthorizedAndForbidden()
+    {
+        string[] unauthorizedNames =
+        [
+            "api/me/get",
+            "api/me/teams/list",
+            "api/me/tenants/list",
+            "api/capabilities/get",
+        ];
+
+        using var factory = new HostApplicationFactory();
+
+        var endpoints = GetManagementEndpoints(factory);
+
+        var endpointNames = endpoints
+            .Select(e => e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName)
+            .ToHashSet();
+        foreach (var name in unauthorizedNames)
+        {
+            Assert.Contains(name, endpointNames);
+        }
+
+        foreach (var endpoint in endpoints)
+        {
+            var name = endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName;
+            if (name is not null && unauthorizedNames.Contains(name))
+            {
+                continue;
+            }
+
+            var codes = GetProblemStatusCodes(endpoint);
+            Assert.True(codes.Contains(401) && codes.Contains(403), endpoint.RoutePattern.RawText);
+        }
+    }
+
     #endregion
 }

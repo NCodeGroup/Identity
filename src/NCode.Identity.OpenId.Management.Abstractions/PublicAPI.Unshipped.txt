@@ -646,6 +646,8 @@ NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateUpda
 NCode.Identity.OpenId.Management.Endpoints.DefaultResourceValidator
 NCode.Identity.OpenId.Management.Endpoints.DefaultResourceValidator.AuthorizeAsync(System.Security.Claims.ClaimsPrincipal! user, object! resource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! operation, string! forbiddenDetail, string! unauthenticatedDetail) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.DefaultResourceValidator.DefaultResourceValidator(Microsoft.AspNetCore.Authorization.IAuthorizationService! authorizationService) -> void
+NCode.Identity.OpenId.Management.Endpoints.IManagementCallerFeature
+NCode.Identity.OpenId.Management.Endpoints.IManagementCallerFeature.Caller.get -> System.Security.Claims.ClaimsPrincipal!
 NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler
 NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ManagementApiEndpointHandler() -> void
 NCode.Identity.OpenId.Management.Endpoints.ManagementEndpointGroups

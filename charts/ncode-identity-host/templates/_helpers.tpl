@@ -130,22 +130,11 @@ applied. Rendered for its side effect only.
 {{- fail "secretProtection.azureKeyVault.keyId must be the identifier of a Key Vault or Managed HSM key, such as https://contoso.vault.azure.net/keys/ncode-identity-root." }}
 {{- end }}
 {{- end }}
-{{- if eq (include "identity-host.usesKeyManagementService" (dict "root" . "name" "azure-key-vault")) "true" }}
-{{- $azureKeyVault := .Values.secretProtection.azureKeyVault }}
-{{- if ne (empty $azureKeyVault.workloadIdentity.tenantId) (empty $azureKeyVault.workloadIdentity.clientId) }}
-{{- fail "secretProtection.azureKeyVault.workloadIdentity needs both tenantId and clientId, or neither." }}
-{{- end }}
-{{- end }}
+{{- include "identity-host.kmsCredentials.validate" (dict "credentials" (include "identity-host.kmsCredentials.server" . | fromYaml) "path" "secretProtection") }}
 {{- if eq .Values.secretProtection.rootKeyProvider "google-cloud-kms" }}
 {{- $googleCloudKms := .Values.secretProtection.googleCloudKms }}
 {{- if not (regexMatch "^projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63}/cryptoKeys/[A-Za-z0-9_-]{1,63}$" $googleCloudKms.keyName) }}
 {{- fail "secretProtection.googleCloudKms.keyName must be the resource name of a Cloud KMS crypto key, such as projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root." }}
-{{- end }}
-{{- end }}
-{{- if eq (include "identity-host.usesKeyManagementService" (dict "root" . "name" "google-cloud-kms")) "true" }}
-{{- $googleCloudKms := .Values.secretProtection.googleCloudKms }}
-{{- if and $googleCloudKms.workloadIdentityFederation.provider (not (regexMatch "^projects/[0-9]+/locations/global/workloadIdentityPools/[a-z0-9-]+/providers/[a-z0-9-]+$" $googleCloudKms.workloadIdentityFederation.provider)) }}
-{{- fail "secretProtection.googleCloudKms.workloadIdentityFederation.provider must be the resource name of a workload identity pool provider, such as projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster." }}
 {{- end }}
 {{- end }}
 {{- $remoteKeyProviders := .Values.secretProtection.remoteKeyProviders }}
@@ -394,6 +383,26 @@ with an identity. Takes the dict that kmsCredentials.server renders.
           items:
             - key: credential-configuration.json
               path: credential-configuration.json
+{{- end }}
+{{- end }}
+
+{{/*
+Refuses workload credentials the component could not use: an Azure identity with only one of tenantId and clientId, or a
+Google workload identity pool provider that is not a resource name. Checks only the services the component uses.
+Rendered for its side effect only. Takes a dict with the dict that kmsCredentials.server renders as credentials and the
+values path of the identity values, such as secretProtection, as path.
+*/}}
+{{- define "identity-host.kmsCredentials.validate" -}}
+{{- $c := .credentials }}
+{{- if $c.azureKeyVault }}
+{{- if ne (empty $c.workloadIdentity.tenantId) (empty $c.workloadIdentity.clientId) }}
+{{- fail (printf "%s.azureKeyVault.workloadIdentity needs both tenantId and clientId, or neither." .path) }}
+{{- end }}
+{{- end }}
+{{- if and $c.googleCloudKms $c.workloadIdentityFederation.provider }}
+{{- if not (regexMatch "^projects/[0-9]+/locations/global/workloadIdentityPools/[a-z0-9-]+/providers/[a-z0-9-]+$" $c.workloadIdentityFederation.provider) }}
+{{- fail (printf "%s.googleCloudKms.workloadIdentityFederation.provider must be the resource name of a workload identity pool provider, such as projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster." .path) }}
+{{- end }}
 {{- end }}
 {{- end }}
 

@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
@@ -10,6 +11,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.Teams;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
+using NCode.Identity.OpenId.Management.OpenApi;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
@@ -18,7 +20,8 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// The root management route group (<c>/api</c>). It materializes the OpenID request environment for every management
 /// endpoint via <see cref="ManagementEnvironmentEndpointFilter"/> but opens no tenant scope, so control-plane
 /// families (platform, teams, tenant provisioning) act on unscoped rows. It declares on every route the
-/// <c>409</c> and <c>503</c> problems that its settings and root-key filters answer.
+/// <c>409</c> and <c>503</c> problems that its settings and root-key filters answer. It also describes the problem
+/// responses that every route shares in the OpenAPI document.
 /// </summary>
 internal sealed class ManagementRootGroup : IEndpointGroup
 {
@@ -44,7 +47,10 @@ internal sealed class ManagementRootGroup : IEndpointGroup
             .AddEndpointFilter<RouteGroupBuilder, UnreadableSettingsEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, OwnerRootKeyUnavailableEndpointFilter>()
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
+            .AddOpenApiOperationTransformer(
+                new ManagementProblemResponseOperationTransformer().TransformAsync
+            );
 
     /// <inheritdoc />
     public void ConfigureServices(IEndpointGroupBuilder builder)

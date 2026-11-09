@@ -31,8 +31,10 @@ only in a provider that does.**
    is set, and null or empty means unset. Every other option keeps its check.
 2. **The descriptor says whether the provider creates keys.** `RemoteKeyProviderDescriptor.CreatesKeys` is `true` by
    default, because a provider that implements creation creates keys unless its source says otherwise. Each vendor
-   source takes the vendor's options and sets it to whether the location is set. The provider's constructor still reads
-   no option
+   source takes the vendor's options and sets it to whether the location is set. The catalog reads the sources when it
+   is built, and each vendor's options are bound from configuration and checked by a validator that reads no service,
+   so a consumer that resolves the catalog inside its own options validation, such as the remote key options
+   validator, builds them without a cycle. The provider's constructor still reads no option
    ([ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)
    rule 1).
 3. **A provider without a location works by identifier.** It reads, signs with, decrypts with, agrees on a secret with
@@ -44,7 +46,9 @@ only in a provider that does.**
    `Deployment` only when such a provider is described. The sweep service dispatches, and the sweep job sweeps, only
    them. The management API's create refuses any other with `400`, and its capabilities carry `createsKeys` for each
    provider, so the console offers creation only in those. One refusal text serves every consumer: `The remote key
-   provider '{name}' creates no keys: it has no key-creation location.`
+   provider '{name}' creates no keys: it has no key-creation location.` `RemoteKeyRefusals.CreatesNoKeys` words it, and
+   every consumer asks the catalog through the `CreatesKeys` and `ProvidersThatCreateKeys` extension members of
+   `IRemoteKeyDescriptorCatalog`.
 5. **Binding works in any registered provider.** A least-privilege identity binds and signs with keys an operator
    created. The OP host keeps `Add<Vendor>RemoteKeyProviderIfConfigured`, because a vendor's section is the operator's
    consent to reach that service with the deployment's identity.

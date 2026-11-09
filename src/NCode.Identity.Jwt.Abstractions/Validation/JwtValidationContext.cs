@@ -15,68 +15,54 @@ namespace NCode.Identity.Jwt.Validation;
 /// <see cref="Succeed"/> (the requirement is satisfied) or <see cref="Fail(string, string)"/> (a hard veto). The token is valid only
 /// when every requirement has succeeded and nothing has failed.
 /// </summary>
+/// <param name="secretKey">The <see cref="SecretKey"/> that was used to decode the JSON Web Token (JWT).</param>
+/// <param name="decodedJwt">The <see cref="DecodedJwt"/> that contains the decoded header and payload.</param>
+/// <param name="requirements">The collection of <see cref="IJwtValidationRequirement"/> instances to evaluate.</param>
+/// <param name="propertyBag">The <see cref="IPropertyBag"/> for custom state information.</param>
+/// <param name="serviceProvider">The <see cref="IServiceProvider"/> used to resolve services.</param>
+/// <param name="timeProvider">The <see cref="TimeProvider"/> used to get the current time.</param>
 [PublicAPI]
-public sealed class JwtValidationContext
+public sealed class JwtValidationContext(
+    SecretKey secretKey,
+    DecodedJwt decodedJwt,
+    IReadOnlyCollection<IJwtValidationRequirement> requirements,
+    IPropertyBag propertyBag,
+    IServiceProvider serviceProvider,
+    TimeProvider timeProvider
+)
 {
-    private HashSet<IJwtValidationRequirement> PendingRequirementSet { get; }
+    private HashSet<IJwtValidationRequirement> PendingRequirementSet { get; } = [.. requirements];
     private List<string> FailureReasonList { get; } = [];
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JwtValidationContext"/> class.
-    /// </summary>
-    /// <param name="secretKey">The <see cref="SecretKey"/> that was used to decode the JSON Web Token (JWT).</param>
-    /// <param name="decodedJwt">The <see cref="DecodedJwt"/> that contains the decoded header and payload.</param>
-    /// <param name="requirements">The collection of <see cref="IJwtValidationRequirement"/> instances to evaluate.</param>
-    /// <param name="propertyBag">The <see cref="IPropertyBag"/> for custom state information.</param>
-    /// <param name="serviceProvider">The <see cref="IServiceProvider"/> used to resolve services.</param>
-    /// <param name="timeProvider">The <see cref="TimeProvider"/> used to get the current time.</param>
-    public JwtValidationContext(
-        SecretKey secretKey,
-        DecodedJwt decodedJwt,
-        IReadOnlyCollection<IJwtValidationRequirement> requirements,
-        IPropertyBag propertyBag,
-        IServiceProvider serviceProvider,
-        TimeProvider timeProvider
-    )
-    {
-        SecretKey = secretKey;
-        DecodedJwt = decodedJwt;
-        Requirements = requirements;
-        PropertyBag = propertyBag;
-        ServiceProvider = serviceProvider;
-        TimeProvider = timeProvider;
-        PendingRequirementSet = [.. requirements];
-    }
 
     /// <summary>
     /// Gets the <see cref="SecretKey"/> that was used to decode the JSON Web Token (JWT).
     /// </summary>
-    public SecretKey SecretKey { get; }
+    public SecretKey SecretKey { get; } = secretKey;
 
     /// <summary>
     /// Gets a <see cref="DecodedJwt"/> that contains the decoded JSON Web Token (JWT) header and payload.
     /// </summary>
-    public DecodedJwt DecodedJwt { get; }
+    public DecodedJwt DecodedJwt { get; } = decodedJwt;
 
     /// <summary>
     /// Gets the collection of <see cref="IJwtValidationRequirement"/> instances being evaluated.
     /// </summary>
-    public IReadOnlyCollection<IJwtValidationRequirement> Requirements { get; }
+    public IReadOnlyCollection<IJwtValidationRequirement> Requirements { get; } = requirements;
 
     /// <summary>
     /// Gets an <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
     /// </summary>
-    public IPropertyBag PropertyBag { get; }
+    public IPropertyBag PropertyBag { get; } = propertyBag;
 
     /// <summary>
     /// Gets an <see cref="IServiceProvider"/> that can be used to resolve services.
     /// </summary>
-    public IServiceProvider ServiceProvider { get; }
+    public IServiceProvider ServiceProvider { get; } = serviceProvider;
 
     /// <summary>
     /// Gets a <see cref="TimeProvider"/> that can be used to get the current time.
     /// </summary>
-    public TimeProvider TimeProvider { get; }
+    public TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <summary>
     /// Gets the machine-readable code of the first failure recorded with <see cref="Fail(string, string)"/>, or

@@ -55,7 +55,7 @@ internal sealed partial class RemoteKeyOptionsValidator(
 
         if (string.IsNullOrEmpty(keys.Deployment))
         {
-            if (remoteKeyDescriptorCatalog.Providers.Any(provider => provider.CreatesKeys))
+            if (remoteKeyDescriptorCatalog.ProvidersThatCreateKeys.Any())
             {
                 failures.Add(
                     $"{Key(nameof(RemoteKeyOptions.Deployment))} is required because a remote key provider that creates keys is registered."

@@ -1283,16 +1283,8 @@ public class DefaultSecretGeneratorTests : BaseTests
         );
 
         Assert.Equal(
-            "The remote key provider 'aws-kms' creates no keys: it has no key-creation location.",
+            RemoteKeyRefusals.CreatesNoKeys(RemoteKeyProviderNames.AwsKms),
             exception.Message
-        );
-        _remoteProvider.Verify(
-            x =>
-                x.CreateKeyAsync(
-                    It.IsAny<RemoteKeyCreationRequest>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Never
         );
     }
 

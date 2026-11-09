@@ -145,15 +145,9 @@ internal class DefaultSecretGenerator(
         };
         var resolution = RemoteKeyResolver.Resolve(selector);
 
-        if (
-            !RemoteKeyDescriptorCatalog.Providers.Any(p =>
-                string.Equals(p.Name, request.Provider, StringComparison.Ordinal) && p.CreatesKeys
-            )
-        )
+        if (!RemoteKeyDescriptorCatalog.CreatesKeys(request.Provider))
         {
-            throw new RemoteKeyRefusedException(
-                $"The remote key provider '{request.Provider}' creates no keys: it has no key-creation location."
-            );
+            throw new RemoteKeyRefusedException(RemoteKeyRefusals.CreatesNoKeys(request.Provider));
         }
 
         var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(

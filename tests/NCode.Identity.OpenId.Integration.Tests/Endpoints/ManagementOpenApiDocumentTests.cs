@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
@@ -98,7 +99,7 @@ public class ManagementOpenApiDocumentTests
                             CultureInfo.InvariantCulture,
                             out var code
                         )
-                        || code < 400
+                        || code < StatusCodes.Status400BadRequest
                     )
                     {
                         continue;

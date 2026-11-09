@@ -94,23 +94,102 @@ public sealed class ManagementProblemResponseOperationTransformerTests
         );
     }
 
-    [Fact]
-    public async Task TransformAsync_WhenA400BindsNothingThatCanFail_KeepsItsOwnDescription()
+    [Theory]
+    [InlineData("Query", typeof(int?), false)]
+    [InlineData("Header", typeof(int), true)]
+    [InlineData("Path", typeof(Guid), true)]
+    [InlineData("Query", typeof(string), true)]
+    [InlineData("Header", typeof(string), true)]
+    public async Task TransformAsync_WhenA400BindsAParameterThatCanFail_AppendsTheBindingSentence(
+        string source,
+        Type type,
+        bool isRequired
+    )
     {
         var operation = CreateOperation(("400", "The settings are invalid."));
         var description = new ApiDescription();
         description.ParameterDescriptions.Add(
             new ApiParameterDescription
             {
-                Source = BindingSource.Path,
-                Type = typeof(string),
-                IsRequired = true,
+                Source = BindingSourceOf(source),
+                Type = type,
+                IsRequired = isRequired,
+            }
+        );
+
+        await TransformAsync(operation, description);
+
+        Assert.Equal(
+            "The settings are invalid. "
+                + ManagementProblemResponseOperationTransformer.BindingFailureDescription,
+            DescriptionOf(operation, "400")
+        );
+    }
+
+    [Theory]
+    [InlineData("Query", typeof(string), false)]
+    [InlineData("Header", typeof(string), false)]
+    [InlineData("Path", typeof(string), true)]
+    [InlineData("Form", typeof(int), true)]
+    public async Task TransformAsync_WhenA400BindsAParameterThatCannotFail_KeepsItsOwnDescription(
+        string source,
+        Type type,
+        bool isRequired
+    )
+    {
+        var operation = CreateOperation(("400", "The settings are invalid."));
+        var description = new ApiDescription();
+        description.ParameterDescriptions.Add(
+            new ApiParameterDescription
+            {
+                Source = BindingSourceOf(source),
+                Type = type,
+                IsRequired = isRequired,
             }
         );
 
         await TransformAsync(operation, description);
 
         Assert.Equal("The settings are invalid.", DescriptionOf(operation, "400"));
+    }
+
+    [Fact]
+    public async Task TransformAsync_WhenA403HasOnlyItsReasonPhrase_FillsTheDefaultDescription()
+    {
+        var operation = CreateOperation(("403", "Forbidden"));
+
+        await TransformAsync(operation, new ApiDescription());
+
+        Assert.Equal(
+            ManagementProblemResponseOperationTransformer.ForbiddenDescription,
+            DescriptionOf(operation, "403")
+        );
+    }
+
+    [Fact]
+    public async Task TransformAsync_WhenA412HasOnlyItsReasonPhrase_FillsTheDefaultDescription()
+    {
+        var operation = CreateOperation(("412", "Precondition Failed"));
+
+        await TransformAsync(operation, new ApiDescription());
+
+        Assert.Equal(
+            ManagementProblemResponseOperationTransformer.PreconditionFailedDescription,
+            DescriptionOf(operation, "412")
+        );
+    }
+
+    [Fact]
+    public async Task TransformAsync_WhenA415HasOnlyItsReasonPhrase_FillsTheDefaultDescription()
+    {
+        var operation = CreateOperation(("415", "Unsupported Media Type"));
+
+        await TransformAsync(operation, new ApiDescription());
+
+        Assert.Equal(
+            ManagementProblemResponseOperationTransformer.UnsupportedMediaTypeDescription,
+            DescriptionOf(operation, "415")
+        );
     }
 
     [Fact]
@@ -137,6 +216,16 @@ public sealed class ManagementProblemResponseOperationTransformerTests
 
         return operation;
     }
+
+    private static BindingSource BindingSourceOf(string source) =>
+        source switch
+        {
+            "Query" => BindingSource.Query,
+            "Header" => BindingSource.Header,
+            "Path" => BindingSource.Path,
+            "Form" => BindingSource.Form,
+            _ => throw new ArgumentOutOfRangeException(nameof(source), source, null),
+        };
 
     private static string? DescriptionOf(OpenApiOperation operation, string code) =>
         operation.Responses?[code].Description;

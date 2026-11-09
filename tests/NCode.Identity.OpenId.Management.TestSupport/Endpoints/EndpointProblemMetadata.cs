@@ -126,16 +126,23 @@ public static class EndpointProblemMetadata
                 if (attributes.OfType<IFromBodyMetadata>().Any())
                     return true;
 
-                var bindsParameter =
+                var bindsRequiredValue =
                     attributes.OfType<IFromQueryMetadata>().Any()
-                    || attributes.OfType<IFromHeaderMetadata>().Any()
-                    || attributes.OfType<IFromRouteMetadata>().Any();
+                    || attributes.OfType<IFromHeaderMetadata>().Any();
+                var bindsParameter =
+                    bindsRequiredValue || attributes.OfType<IFromRouteMetadata>().Any();
                 if (!bindsParameter)
                     return false;
 
                 var type =
                     Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType;
-                return type != typeof(string);
+                if (type != typeof(string))
+                    return true;
+
+                return bindsRequiredValue
+                    && new NullabilityInfoContext().Create(parameter).ReadState
+                        == NullabilityState.NotNull
+                    && !parameter.HasDefaultValue;
             });
 
     private static HashSet<int> ReadDocumentedStatusCodes(MethodInfo method)

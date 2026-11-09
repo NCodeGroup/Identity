@@ -40,14 +40,24 @@ public class ManagementRouteProblemDeclarationTests
     private static bool HasAttribute<TMetadata>(ParameterInfo parameter) =>
         parameter.GetCustomAttributes(inherit: true).OfType<TMetadata>().Any();
 
-    private static bool CanFailToParse(ParameterInfo parameter) =>
-        (
+    private static bool CanFailToBind(ParameterInfo parameter)
+    {
+        var bindsRequiredValue =
             HasAttribute<IFromQueryMetadata>(parameter)
-            || HasAttribute<IFromHeaderMetadata>(parameter)
-            || HasAttribute<IFromRouteMetadata>(parameter)
+            || HasAttribute<IFromHeaderMetadata>(parameter);
+        if (!bindsRequiredValue && !HasAttribute<IFromRouteMetadata>(parameter))
+            return false;
+
+        if (
+            (Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType)
+            != typeof(string)
         )
-        && (Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType)
-            != typeof(string);
+            return true;
+
+        return bindsRequiredValue
+            && new NullabilityInfoContext().Create(parameter).ReadState == NullabilityState.NotNull
+            && !parameter.HasDefaultValue;
+    }
 
     #endregion
 
@@ -64,7 +74,11 @@ public class ManagementRouteProblemDeclarationTests
         foreach (var endpoint in endpoints)
         {
             var codes = GetProblemStatusCodes(endpoint);
-            Assert.True(codes.Contains(409) && codes.Contains(503), endpoint.RoutePattern.RawText);
+            Assert.True(
+                codes.Contains(StatusCodes.Status409Conflict)
+                    && codes.Contains(StatusCodes.Status503ServiceUnavailable),
+                endpoint.RoutePattern.RawText
+            );
         }
     }
 
@@ -98,7 +112,11 @@ public class ManagementRouteProblemDeclarationTests
             }
 
             var codes = GetProblemStatusCodes(endpoint);
-            Assert.True(codes.Contains(401) && codes.Contains(403), endpoint.RoutePattern.RawText);
+            Assert.True(
+                codes.Contains(StatusCodes.Status401Unauthorized)
+                    && codes.Contains(StatusCodes.Status403Forbidden),
+                endpoint.RoutePattern.RawText
+            );
         }
     }
 
@@ -119,8 +137,8 @@ public class ManagementRouteProblemDeclarationTests
             );
 
             var codes = GetProblemStatusCodes(endpoint);
-            Assert.Contains(401, codes);
-            Assert.DoesNotContain(403, codes);
+            Assert.Contains(StatusCodes.Status401Unauthorized, codes);
+            Assert.DoesNotContain(StatusCodes.Status403Forbidden, codes);
         }
     }
 
@@ -140,14 +158,18 @@ public class ManagementRouteProblemDeclarationTests
 
             matched++;
             var codes = GetProblemStatusCodes(endpoint);
-            Assert.True(codes.Contains(400) && codes.Contains(415), endpoint.RoutePattern.RawText);
+            Assert.True(
+                codes.Contains(StatusCodes.Status400BadRequest)
+                    && codes.Contains(StatusCodes.Status415UnsupportedMediaType),
+                endpoint.RoutePattern.RawText
+            );
         }
 
         Assert.NotEqual(0, matched);
     }
 
     [Fact]
-    public void ManagementRoutes_WhenAParameterCanFailToParse_DeclareBadRequest()
+    public void ManagementRoutes_WhenAParameterCanFailToBind_DeclareBadRequest()
     {
         using var factory = new HostApplicationFactory();
 
@@ -155,13 +177,13 @@ public class ManagementRouteProblemDeclarationTests
         foreach (var endpoint in GetManagementEndpoints(factory))
         {
             var method = endpoint.Metadata.OfType<MethodInfo>().FirstOrDefault();
-            if (method is null || !method.GetParameters().Any(CanFailToParse))
+            if (method is null || !method.GetParameters().Any(CanFailToBind))
             {
                 continue;
             }
 
             matched++;
-            Assert.Contains(400, GetProblemStatusCodes(endpoint));
+            Assert.Contains(StatusCodes.Status400BadRequest, GetProblemStatusCodes(endpoint));
         }
 
         Assert.NotEqual(0, matched);

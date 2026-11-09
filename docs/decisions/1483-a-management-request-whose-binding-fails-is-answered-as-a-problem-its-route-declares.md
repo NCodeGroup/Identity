@@ -40,9 +40,10 @@ declares the binding problems it can answer.**
 3. **The environment filter returns an `HttpResultException`'s result and stops a request whose binding failed.** A
    binding failure is answered before authentication.
 4. **A route declares the binding problems it can answer.** A route whose handler has a `[FromBody]` parameter declares
-   `ProducesProblem(StatusCodes.Status415UnsupportedMediaType)`. A route whose handler has a `[FromBody]` parameter, or
-   a `[FromQuery]`, `[FromHeader]` or `[FromRoute]` parameter whose type is not `string`, declares
-   `ProducesProblem(StatusCodes.Status400BadRequest)` unless it already declares `400`. A route declares `400` once.
+   `ProducesProblem(StatusCodes.Status415UnsupportedMediaType)`. A route whose handler has a `[FromBody]` parameter, a
+   `[FromQuery]`, `[FromHeader]` or `[FromRoute]` parameter whose type is not `string`, or a required `[FromQuery]` or
+   `[FromHeader]` `string` parameter, declares `ProducesProblem(StatusCodes.Status400BadRequest)` unless it already
+   declares `400`. A route declares `400` once.
 5. **Tests pin the answers and the declarations.** Each handler's
    `Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers` theory asserts the declared statuses,
    `ManagementRouteProblemDeclarationTests` walks every route in the host, and `ManagementRequestBindingTests` asserts

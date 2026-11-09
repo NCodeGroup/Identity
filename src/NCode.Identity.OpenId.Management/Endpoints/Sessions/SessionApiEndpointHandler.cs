@@ -58,14 +58,25 @@ internal class SessionApiEndpointHandler(
             .MapGroup("/sessions")
             .WithTags(OpenIdConstants.EndpointTags.Sessions);
 
-        sessions.MapGet("", ListSessionsAsync).Produces<CollectionResource<SessionResource>>();
+        sessions
+            .MapGet("", ListSessionsAsync)
+            .Produces<CollectionResource<SessionResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
         sessions
             .MapDelete("", RevokeSessionsAsync)
             .Produces<SessionRevocationResult>()
-            .Produces(StatusCodes.Status400BadRequest);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         sessions
             .MapDelete("/{sessionId}", RevokeSessionAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     /// <summary>

@@ -23,14 +23,12 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
     private const string DummyPasswordHash = "dummy-hash";
     private const string SecurityStamp = "stamp";
     private const string ConcurrencyToken = "ctoken";
-    private static readonly byte[] PasswordBytes = "correct-horse"u8.ToArray();
-    private static readonly byte[] DecomposedPasswordBytes = "cafe\u0301-correct-horse"u8.ToArray();
-    private static readonly Claim RoleClaim = new("role", "admin");
+    private static byte[] PasswordBytes { get; } = "correct-horse"u8.ToArray();
+    private static byte[] DecomposedPasswordBytes { get; } = "cafe\u0301-correct-horse"u8.ToArray();
+    private static Claim RoleClaim { get; } = new("role", "admin");
 
-    private static readonly Func<string, CancellationToken, ValueTask<bool>> NotRefused = static (
-        _,
-        _
-    ) => ValueTask.FromResult(false);
+    private static Func<string, CancellationToken, ValueTask<bool>> NotRefused { get; } =
+        static (_, _) => ValueTask.FromResult(false);
 
     private readonly MockRepository _mocks = new(MockBehavior.Strict);
 

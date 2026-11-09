@@ -13,7 +13,7 @@ public sealed class NormalizingPasswordHasherTests : IDisposable
     private const string StoredHash = "stored-hash";
     private const string MadeHash = "made-hash";
 
-    private static readonly IdentityUser User = new("alice");
+    private static IdentityUser User { get; } = new("alice");
 
     private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IPasswordHasher<IdentityUser>> _innerHasher;

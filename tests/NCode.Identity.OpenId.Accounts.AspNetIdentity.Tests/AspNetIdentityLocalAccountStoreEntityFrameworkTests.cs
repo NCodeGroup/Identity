@@ -29,23 +29,21 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
 
     // Passwords that the password policy accepts but that Identity's default validators refuse (no digit and no
     // upper-case letter).
-    private static readonly byte[] FirstPassword = "correct horse battery staple"u8.ToArray();
-    private static readonly byte[] SecondPassword = "another long passphrase"u8.ToArray();
-    private static readonly byte[] ComposedPasswordBytes =
+    private static byte[] FirstPassword { get; } = "correct horse battery staple"u8.ToArray();
+    private static byte[] SecondPassword { get; } = "another long passphrase"u8.ToArray();
+    private static byte[] ComposedPasswordBytes { get; } =
         "caf\u00E9 correct horse battery"u8.ToArray();
-    private static readonly byte[] DecomposedPasswordBytes =
+    private static byte[] DecomposedPasswordBytes { get; } =
         "cafe\u0301 correct horse battery"u8.ToArray();
-    private static readonly byte[] ComposedHostPasswordBytes =
+    private static byte[] ComposedHostPasswordBytes { get; } =
         "Caf\u00E9-Correct-Horse-1"u8.ToArray();
 
     // A hasher that does not normalize, as the host's pages used before the adapter wrapped it; the user manager's
     // hasher normalizes.
-    private static readonly PasswordHasher<IdentityUser> RawPasswordHasher = new();
+    private static PasswordHasher<IdentityUser> RawPasswordHasher { get; } = new();
 
-    private static readonly Func<string, CancellationToken, ValueTask<bool>> NotRefused = static (
-        _,
-        _
-    ) => ValueTask.FromResult(false);
+    private static Func<string, CancellationToken, ValueTask<bool>> NotRefused { get; } =
+        static (_, _) => ValueTask.FromResult(false);
 
     private readonly ServiceProvider _provider;
     private readonly ILocalAccountStore _store;

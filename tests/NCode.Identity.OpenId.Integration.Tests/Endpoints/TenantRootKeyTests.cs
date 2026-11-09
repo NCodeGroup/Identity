@@ -1,14 +1,12 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
 using NCode.Identity.Events;
@@ -24,8 +22,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // the tenant fail closed, and a restored or removed key brings the tenant back (ADR-1414).
 public class TenantRootKeyTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string ManagementScope = "read:clients";
     private const string ControlPlaneTenantId = "root";
     private const string TenantId = "acme";
@@ -438,7 +434,7 @@ public class TenantRootKeyTests
     {
         var client = CreateHttpClient(factory);
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var tokenRequest = new HttpRequestMessage(
             HttpMethod.Post,
@@ -523,31 +519,25 @@ public class TenantRootKeyTests
     private sealed class TenantRootKeyHostApplicationFactory(
         TestReferencedKeyWrapper wrapper,
         RecordingAuditEventHandler recorder
-    ) : HostApplicationFactory
+    )
+        : BootstrapAdminApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
+                    .TenantStrategyCodes
+                    .DynamicByPath,
+                ["OpenId:TenantResolution:DynamicByPath:IssuerTemplate"] =
+                    "http://localhost/{tenantId}",
+                ["SecretProtection:OwnerRootKeys:Providers:0"] =
+                    TestReferencedKeyWrapper.WrapperName,
+            },
+            ControlPlaneTenantId
+        )
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
 
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = ControlPlaneTenantId,
-                        ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
-                            .TenantStrategyCodes
-                            .DynamicByPath,
-                        ["OpenId:TenantResolution:DynamicByPath:IssuerTemplate"] =
-                            "http://localhost/{tenantId}",
-                        ["SecretProtection:OwnerRootKeys:Providers:0"] =
-                            TestReferencedKeyWrapper.WrapperName,
-                    }
-                )
-            );
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IKeyWrapper>(wrapper);

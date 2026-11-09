@@ -1,14 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -20,8 +17,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // A machine client that deletes itself is still audited as the client that acted (ADR-1450, ADR-1470).
 public class MachineClientAuditTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string RootIssuer = "http://localhost";
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
     private const string ControlPlaneTenantId = "root";
@@ -64,7 +59,11 @@ public class MachineClientAuditTests
 
     private static Task<HttpClient> CreateAdministratorClientAsync(
         HostApplicationFactory factory
-    ) => factory.CreateManagementClientAsync(BootstrapClientId, BootstrapClientSecret);
+    ) =>
+        factory.CreateManagementClientAsync(
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
+        );
 
     private static async Task CreateTeamAsync(HttpClient client)
     {
@@ -138,29 +137,23 @@ public class MachineClientAuditTests
     /// </summary>
     private sealed class MachineClientAuditHostApplicationFactory(
         RecordingAuditEventHandler recorder
-    ) : HostApplicationFactory
+    )
+        : BootstrapAdminApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
+                    .TenantStrategyCodes
+                    .DynamicByHost,
+                ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
+                ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
+            },
+            ControlPlaneTenantId
+        )
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
 
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
-                            .TenantStrategyCodes
-                            .DynamicByHost,
-                        ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
-                        ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = ControlPlaneTenantId,
-                    }
-                )
-            );
             builder.ConfigureServices(services =>
                 services.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
             );

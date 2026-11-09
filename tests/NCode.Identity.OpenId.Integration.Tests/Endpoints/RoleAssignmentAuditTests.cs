@@ -1,14 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -23,8 +20,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // role_assignment.deleted, naming the acting administrator or client (ADR-1449).
 public class RoleAssignmentAuditTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string RootIssuer = "http://localhost";
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
     private const string ControlPlaneTenantId = "root";
@@ -102,7 +97,7 @@ public class RoleAssignmentAuditTests
             }
         );
         Assert.Equal(AuditActorTypes.Client, change.Actor.Type);
-        Assert.Equal(BootstrapClientId, change.Actor.Id);
+        Assert.Equal(BootstrapAdminApplicationFactory.ClientId, change.Actor.Id);
     }
 
     [Fact]
@@ -158,7 +153,7 @@ public class RoleAssignmentAuditTests
         Assert.Equal("role_assignment.deleted", change.EventName);
         Assert.Equal(principalId, change.SubjectId);
         Assert.Equal(BuiltInRoles.Owner, GetRoleName(change));
-        Assert.Equal(BootstrapClientId, change.Actor.Id);
+        Assert.Equal(BootstrapAdminApplicationFactory.ClientId, change.Actor.Id);
     }
 
     #endregion
@@ -187,7 +182,11 @@ public class RoleAssignmentAuditTests
 
     private static Task<HttpClient> CreateAdministratorClientAsync(
         HostApplicationFactory factory
-    ) => factory.CreateManagementClientAsync(BootstrapClientId, BootstrapClientSecret);
+    ) =>
+        factory.CreateManagementClientAsync(
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
+        );
 
     private static async Task CreateTeamAsync(HttpClient client)
     {
@@ -303,29 +302,23 @@ public class RoleAssignmentAuditTests
     /// </summary>
     private sealed class RoleAssignmentAuditHostApplicationFactory(
         RecordingAuditEventHandler recorder
-    ) : HostApplicationFactory
+    )
+        : BootstrapAdminApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
+                    .TenantStrategyCodes
+                    .DynamicByHost,
+                ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
+                ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
+            },
+            ControlPlaneTenantId
+        )
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
 
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
-                            .TenantStrategyCodes
-                            .DynamicByHost,
-                        ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
-                        ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = ControlPlaneTenantId,
-                    }
-                )
-            );
             builder.ConfigureServices(services =>
                 services.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
             );

@@ -41,6 +41,8 @@ public sealed class RemoteKeyAuditEventTests
         return JsonElement.Parse(output.WrittenSpan);
     }
 
+    #region EventName Property Tests
+
     [Fact]
     public void EventName_IsTheRemoteKeyPrefixAndTheChange()
     {
@@ -52,11 +54,19 @@ public sealed class RemoteKeyAuditEventTests
         );
     }
 
+    #endregion
+
+    #region EventCategory Property Tests
+
     [Fact]
     public void EventCategory_IsKey()
     {
         Assert.Equal(AuditEventCategories.Key, CreateEvent().EventCategory);
     }
+
+    #endregion
+
+    #region Resources Property Tests
 
     [Fact]
     public void Resources_ListTheKeyByItsReference()
@@ -71,6 +81,10 @@ public sealed class RemoteKeyAuditEventTests
             CreateEvent().Resources
         );
     }
+
+    #endregion
+
+    #region Serialize Tests
 
     [Fact]
     public void Serialize_WithAnOwnerAndASecret_WritesTheKeyAndItsOrigin()
@@ -94,4 +108,6 @@ public sealed class RemoteKeyAuditEventTests
         Assert.False(details.TryGetProperty("secret_id", out _));
         Assert.True(details.TryGetProperty("key_created_when", out _));
     }
+
+    #endregion
 }

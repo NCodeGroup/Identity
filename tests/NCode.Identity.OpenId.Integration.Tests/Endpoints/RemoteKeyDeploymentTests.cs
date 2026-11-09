@@ -12,12 +12,12 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// See ADR-1478.
 /// <summary>
 /// Drives a host whose tenants keep their keys in a key management service: every key the host creates is tagged
 /// with the deployment and listed under it, and a host whose deployment scope is missing or whose
 /// <c>SecretProtection:RemoteKeys</c> section holds an unknown member does not start.
 /// </summary>
+// See ADR-1478.
 public class RemoteKeyDeploymentTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";

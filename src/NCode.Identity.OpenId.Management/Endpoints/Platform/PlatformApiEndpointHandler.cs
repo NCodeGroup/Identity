@@ -97,24 +97,45 @@ internal class PlatformApiEndpointHandler(
             .MapGroup("/platform")
             .WithTags(OpenIdConstants.EndpointTags.Platform);
 
-        platform.MapGet("/settings", GetSettingsAsync).Produces<PlatformSettingsResource>();
+        platform
+            .MapGet("/settings", GetSettingsAsync)
+            .Produces<PlatformSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         platform
             .MapGet("/settings/limits", GetSettingLimitsAsync)
-            .Produces<SettingLimitsResource>();
+            .Produces<SettingLimitsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
         platform
             .MapPatch("/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         platform
             .MapGet("/effective-settings", GetEffectiveSettingsAsync)
-            .Produces<PlatformEffectiveSettingsResource>();
+            .Produces<PlatformEffectiveSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         platform
             .MapGet("/encryption-keys", GetEncryptionKeysAsync)
-            .Produces<EncryptionKeysResource>();
+            .Produces<EncryptionKeysResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         platform
             .MapPost("/encryption-keys/rekey", RekeyEncryptionKeysAsync)
             .Produces<EncryptionKeyRotationResource>()
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     /// <summary>

@@ -1686,4 +1686,27 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     }
 
     #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("GET", "/platform/settings", new[] { 401, 403, 404 })]
+    [InlineData("GET", "/platform/settings/limits", new[] { 401, 403 })]
+    [InlineData("PATCH", "/platform/settings", new[] { 400, 401, 403, 404, 412 })]
+    [InlineData("GET", "/platform/effective-settings", new[] { 401, 403, 404 })]
+    [InlineData("GET", "/platform/encryption-keys", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/platform/encryption-keys/rekey", new[] { 401, 403, 404, 409, 412 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+    }
+
+    #endregion
 }

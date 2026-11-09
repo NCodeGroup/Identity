@@ -31,8 +31,9 @@ public static class SecretsLibraryRegistration
         /// <see cref="IRemoteKeyDescriptorSource"/> that describes the provider and maps each JOSE algorithm to the
         /// key type and algorithm of the service. The
         /// <c>SecretProtection:RemoteKeyProviders:AzureKeyVault</c> section binds
-        /// <see cref="AzureKeyVaultRemoteKeyProviderOptions"/> strictly and is validated when the host starts, so
-        /// registering the provider selects it. No client is created before the first key is created, signed with,
+        /// <see cref="AzureKeyVaultRemoteKeyProviderOptions"/> strictly and is validated when the host starts.
+        /// Without a vault URI the provider creates and lists no keys and still reads, signs with, decrypts with and
+        /// destroys keys by their identifiers. No client is created before the first key is created, signed with,
         /// decrypted with or destroyed. Credentials come from <see cref="Azure.Identity.DefaultAzureCredential"/>,
         /// never from configuration.
         /// </summary>
@@ -87,9 +88,8 @@ public static class SecretsLibraryRegistration
         /// <summary>
         /// Registers the Azure Key Vault <see cref="IRemoteKeyProvider"/> and its
         /// <see cref="IRemoteKeyDescriptorSource"/> as <c>AddAzureKeyVaultRemoteKeyProvider</c> does, but
-        /// only when the <c>SecretProtection:RemoteKeyProviders:AzureKeyVault</c> section exists. Registering a remote
-        /// key provider selects it and validates its options when the host starts, so this method registers it only
-        /// when its configuration section exists.
+        /// only when the <c>SecretProtection:RemoteKeyProviders:AzureKeyVault</c> section exists. A section without a
+        /// vault URI registers a provider that creates no keys.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> that may hold the <c>SecretProtection:RemoteKeyProviders:AzureKeyVault</c> section.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>

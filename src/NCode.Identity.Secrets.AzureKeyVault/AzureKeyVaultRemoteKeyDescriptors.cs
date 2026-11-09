@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
+using NCode.Identity.Secrets.AzureKeyVault.Options;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.RemoteKeys;
 
@@ -9,7 +11,8 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 
 /// <summary>
 /// Describes the Azure Key Vault remote key provider and its rows of the mapping from a JOSE algorithm to the Azure Key
-/// Vault key type and the signature or key wrap algorithm that create a key and operate with it.
+/// Vault key type and the signature or key wrap algorithm that create a key and operate with it. The provider creates
+/// keys when a vault URI is set.
 /// </summary>
 /// <remarks>
 /// RSA keys of 2048, 3072 and 4096 bits sign with <c>RS256</c>, <c>RS384</c> and <c>RS512</c> (PKCS #1 v1.5) and with
@@ -22,10 +25,11 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 /// </remarks>
 // See ADR-1471.
 // See ADR-1477.
-internal sealed class AzureKeyVaultRemoteKeyDescriptors : IRemoteKeyDescriptorSource
+internal sealed class AzureKeyVaultRemoteKeyDescriptors(
+    IOptions<AzureKeyVaultRemoteKeyProviderOptions> options
+) : IRemoteKeyDescriptorSource
 {
-    private static IReadOnlyList<RemoteKeyProviderDescriptor> ProviderDescriptors { get; } =
-    [new() { Name = RemoteKeyProviderNames.AzureKeyVault }];
+    private IOptions<AzureKeyVaultRemoteKeyProviderOptions> Options { get; } = options;
 
     private static int[] RsaKeySizesBits { get; } = [2048, 3072, 4096];
 
@@ -45,7 +49,14 @@ internal sealed class AzureKeyVaultRemoteKeyDescriptors : IRemoteKeyDescriptorSo
     private static IReadOnlyList<RemoteKeyAlgorithm> Rows { get; } = CreateRows();
 
     /// <inheritdoc />
-    public IEnumerable<RemoteKeyProviderDescriptor> Providers => ProviderDescriptors;
+    public IEnumerable<RemoteKeyProviderDescriptor> Providers =>
+        [
+            new()
+            {
+                Name = RemoteKeyProviderNames.AzureKeyVault,
+                CreatesKeys = !string.IsNullOrEmpty(Options.Value.VaultUri),
+            },
+        ];
 
     /// <inheritdoc />
     public IEnumerable<RemoteKeyAlgorithm> Algorithms => Rows;

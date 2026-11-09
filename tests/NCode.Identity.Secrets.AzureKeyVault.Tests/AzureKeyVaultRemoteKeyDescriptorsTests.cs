@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using NCode.Identity.Secrets.AzureKeyVault.Options;
 using NCode.Identity.Secrets.RemoteKeys;
 using Xunit;
 
@@ -45,16 +46,47 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
         ("ES512", "ecc", 521, "P-521", "EC", Sha512),
     ];
 
+    private static AzureKeyVaultRemoteKeyDescriptors CreateSource(
+        string? vaultUri = "https://contoso.vault.azure.net"
+    ) =>
+        new(
+            Microsoft.Extensions.Options.Options.Create(
+                new AzureKeyVaultRemoteKeyProviderOptions { VaultUri = vaultUri }
+            )
+        );
+
     #region Providers Tests
 
     [Fact]
     public void Providers_DescribesTheAzureKeyVaultProvider()
     {
-        var source = new AzureKeyVaultRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var descriptor = Assert.Single(source.Providers);
 
         Assert.Equal(RemoteKeyProviderNames.AzureKeyVault, descriptor.Name);
+    }
+
+    [Fact]
+    public void Providers_WithVaultUri_CreatesKeys()
+    {
+        var source = CreateSource("https://contoso.vault.azure.net");
+
+        var descriptor = Assert.Single(source.Providers);
+
+        Assert.True(descriptor.CreatesKeys);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Providers_WithoutVaultUri_CreatesNoKeys(string? vaultUri)
+    {
+        var source = CreateSource(vaultUri);
+
+        var descriptor = Assert.Single(source.Providers);
+
+        Assert.False(descriptor.CreatesKeys);
     }
 
     #endregion
@@ -64,7 +96,7 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_Rows_MatchTheMapping()
     {
-        var source = new AzureKeyVaultRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.OfType<RemoteSigningAlgorithm>().ToList();
 
@@ -89,7 +121,7 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_DecryptionRows_MatchTheMapping()
     {
-        var source = new AzureKeyVaultRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.OfType<RemoteDecryptionAlgorithm>().ToList();
 
@@ -122,7 +154,7 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_KeyAgreementRows_AreAbsent()
     {
-        var source = new AzureKeyVaultRemoteKeyDescriptors();
+        var source = CreateSource();
 
         Assert.DoesNotContain(source.Algorithms, x => x is RemoteKeyAgreementAlgorithm);
     }
@@ -130,7 +162,7 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_Rows_CountsEveryKind()
     {
-        var source = new AzureKeyVaultRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.ToList();
 
@@ -140,7 +172,7 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_Rows_HaveUniqueSelectors()
     {
-        var source = new AzureKeyVaultRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var selectors = source
             .Algorithms.Select(x => (x.Provider, x.Algorithm, x.SecretType, x.KeySizeBits, x.Curve))
@@ -152,7 +184,7 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_EveryRow_SignsADigest()
     {
-        var source = new AzureKeyVaultRemoteKeyDescriptors();
+        var source = CreateSource();
 
         Assert.All(
             source.Algorithms.OfType<RemoteSigningAlgorithm>(),
@@ -163,7 +195,7 @@ public class AzureKeyVaultRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_ProvisionedDefaults_ArePresent()
     {
-        var source = new AzureKeyVaultRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.ToList();
 

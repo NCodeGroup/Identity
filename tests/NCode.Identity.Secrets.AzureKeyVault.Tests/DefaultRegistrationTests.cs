@@ -160,6 +160,8 @@ public class DefaultRegistrationTests : BaseTests
             )
         );
         Assert.Equal("RSA", algorithm.KeySpec);
+        var descriptor = Assert.Single(descriptorCatalog.Providers);
+        Assert.True(descriptor.CreatesKeys);
     }
 
     [Fact]
@@ -207,6 +209,10 @@ public class DefaultRegistrationTests : BaseTests
         >();
 
         Assert.Null(options.Value.VaultUri);
+        var descriptor = Assert.Single(
+            provider.GetRequiredService<IRemoteKeyDescriptorCatalog>().Providers
+        );
+        Assert.False(descriptor.CreatesKeys);
     }
 
     [Fact]

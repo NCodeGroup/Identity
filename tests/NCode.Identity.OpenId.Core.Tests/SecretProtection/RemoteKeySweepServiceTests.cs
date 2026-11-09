@@ -92,11 +92,20 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
         return logger.Object;
     }
 
-    private void SetupProviders(params string[] names) =>
+    private void SetupProviders(params string[] names) => SetupProviders(names, []);
+
+    private void SetupProviders(string[] names, string[] namesThatCreateNoKeys) =>
         _catalog
             .Setup(x => x.Providers)
             .Returns(
-                names.Select(name => new RemoteKeyProviderDescriptor { Name = name }).ToArray()
+                names
+                    .Concat(namesThatCreateNoKeys)
+                    .Select(name => new RemoteKeyProviderDescriptor
+                    {
+                        Name = name,
+                        CreatesKeys = !namesThatCreateNoKeys.Contains(name),
+                    })
+                    .ToArray()
             )
             .Verifiable();
 
@@ -139,6 +148,18 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
         await _service.RunAsync(CancellationToken.None);
 
         Assert.Equal(["aws", "azure", "google"], _dispatched.Select(job => job.Provider));
+    }
+
+    [Fact]
+    public async Task RunAsync_WhenAProviderCreatesNoKeys_DispatchesNoJobForIt()
+    {
+        SetupProviders(["google", "azure"], ["aws"]);
+        SetupLease(true);
+        SetupDispatch();
+
+        await _service.RunAsync(CancellationToken.None);
+
+        Assert.Equal(["azure", "google"], _dispatched.Select(job => job.Provider));
     }
 
     [Fact]
@@ -248,6 +269,20 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
     public async Task ExecuteAsync_WhenNoProviderIsDescribed_ReturnsWithoutWaitingForThePlatform()
     {
         SetupProviders();
+
+        await _service.StartAsync(CancellationToken.None);
+        await _service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await _service.StopAsync(CancellationToken.None);
+
+        Assert.Empty(_platformAccessor.Invocations);
+        Assert.Empty(_keySet.Invocations);
+        Assert.Empty(_dispatcher.Invocations);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenNoProviderCreatesKeys_ReturnsWithoutWaitingForThePlatform()
+    {
+        SetupProviders([], ["aws"]);
 
         await _service.StartAsync(CancellationToken.None);
         await _service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));

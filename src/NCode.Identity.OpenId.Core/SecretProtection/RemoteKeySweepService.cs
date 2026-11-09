@@ -16,13 +16,13 @@ namespace NCode.Identity.OpenId.SecretProtection;
 /// <summary>
 /// Schedules the sweep of the remote keys that no stored secret names, once the replica's platform is materialized and
 /// then every <see cref="RemoteKeyOptions.SweepInterval"/>: it dispatches one <see cref="RemoteKeySweepJob"/> for each
-/// described remote key provider. One replica runs each pass, under a lease on the shared-state port that lasts half
+/// described remote key provider that creates keys. One replica runs each pass, under a lease on the shared-state port that lasts half
 /// the interval, and the dispatcher gives each provider's job its own retries. A provider whose dispatch fails is
 /// logged and the others are dispatched.
 /// </summary>
 /// <remarks>
-/// The service does nothing when <see cref="RemoteKeyOptions.SweepEnabled"/> is <c>false</c> or when no remote key
-/// provider is described.
+/// The service does nothing when <see cref="RemoteKeyOptions.SweepEnabled"/> is <c>false</c> or when no described
+/// provider creates keys.
 /// </remarks>
 // See ADR-1478.
 internal sealed class RemoteKeySweepService(
@@ -61,7 +61,10 @@ internal sealed class RemoteKeySweepService(
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!RemoteKeys.SweepEnabled || RemoteKeyDescriptorCatalog.Providers.Count == 0)
+        if (
+            !RemoteKeys.SweepEnabled
+            || !RemoteKeyDescriptorCatalog.Providers.Any(provider => provider.CreatesKeys)
+        )
             return;
 
         try
@@ -111,10 +114,9 @@ internal sealed class RemoteKeySweepService(
             return;
 
         foreach (
-            var descriptor in RemoteKeyDescriptorCatalog.Providers.OrderBy(
-                x => x.Name,
-                StringComparer.Ordinal
-            )
+            var descriptor in RemoteKeyDescriptorCatalog
+                .Providers.Where(provider => provider.CreatesKeys)
+                .OrderBy(x => x.Name, StringComparer.Ordinal)
         )
         {
             // One provider whose dispatch fails must not stop the pass, as the master key maintenance handles each owner.

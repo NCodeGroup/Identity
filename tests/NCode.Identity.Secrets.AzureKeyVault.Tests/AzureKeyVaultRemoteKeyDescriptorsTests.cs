@@ -9,18 +9,18 @@ namespace NCode.Identity.Secrets.AzureKeyVault.Tests;
 
 public class AzureKeyVaultRemoteKeyDescriptorsTests
 {
-    private static readonly HashAlgorithmName Sha256 = HashAlgorithmName.SHA256;
-    private static readonly HashAlgorithmName Sha384 = HashAlgorithmName.SHA384;
-    private static readonly HashAlgorithmName Sha512 = HashAlgorithmName.SHA512;
+    private static HashAlgorithmName Sha256 { get; } = HashAlgorithmName.SHA256;
+    private static HashAlgorithmName Sha384 { get; } = HashAlgorithmName.SHA384;
+    private static HashAlgorithmName Sha512 { get; } = HashAlgorithmName.SHA512;
 
-    private static readonly (
+    private static (
         string Algorithm,
         string SecretType,
         int KeySizeBits,
         string? Curve,
         string KeySpec,
         HashAlgorithmName Digest
-    )[] Expected =
+    )[] Expected { get; } =
     [
         ("RS256", "rsa", 2048, null, "RSA", Sha256),
         ("RS256", "rsa", 3072, null, "RSA", Sha256),

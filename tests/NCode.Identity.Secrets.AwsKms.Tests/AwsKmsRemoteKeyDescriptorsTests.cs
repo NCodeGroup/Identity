@@ -9,11 +9,11 @@ namespace NCode.Identity.Secrets.AwsKms.Tests;
 
 public class AwsKmsRemoteKeyDescriptorsTests
 {
-    private static readonly HashAlgorithmName Sha256 = HashAlgorithmName.SHA256;
-    private static readonly HashAlgorithmName Sha384 = HashAlgorithmName.SHA384;
-    private static readonly HashAlgorithmName Sha512 = HashAlgorithmName.SHA512;
+    private static HashAlgorithmName Sha256 { get; } = HashAlgorithmName.SHA256;
+    private static HashAlgorithmName Sha384 { get; } = HashAlgorithmName.SHA384;
+    private static HashAlgorithmName Sha512 { get; } = HashAlgorithmName.SHA512;
 
-    private static readonly (
+    private static (
         string Algorithm,
         string SecretType,
         int KeySizeBits,
@@ -22,7 +22,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
         string SigningAlgorithm,
         HashAlgorithmName Digest,
         bool IsDer
-    )[] Expected =
+    )[] Expected { get; } =
     [
         ("RS256", "rsa", 2048, null, "RSA_2048", "RSASSA_PKCS1_V1_5_SHA_256", Sha256, false),
         ("RS256", "rsa", 3072, null, "RSA_3072", "RSASSA_PKCS1_V1_5_SHA_256", Sha256, false),

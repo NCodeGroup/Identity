@@ -31,7 +31,7 @@ public class AwsKmsKeyWrapperTests : BaseTests
 
     private const string RoleArn = "arn:aws:iam::444455556666:role/ncode-identity-tenant-root";
 
-    private static readonly KeyAccess Access = new(RoleArn, "tenant:acme");
+    private static KeyAccess Access { get; } = new(RoleArn, "tenant:acme");
 
     private Mock<IAwsKmsClientFactory> ClientFactory { get; }
 

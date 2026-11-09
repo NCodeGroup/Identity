@@ -203,3 +203,38 @@ jobs:
             echo "::error::A management console with Valkey must roll out with maxSurge 1 and maxUnavailable 0."
             exit 1
           fi
+
+      - name: Refuse an unsafe management console key ring
+        run: |
+          base="$CHART/ci/management-console-remote-keys-values.yaml"
+          key=managementConsole.keyRings.client.remoteKeys.mgmt-client
+          refuse() {
+            if helm template release "$CHART" --values "$base" "$@" > /dev/null 2>&1; then
+              echo "::error::The chart rendered a management console key ring it must refuse: $*"
+              exit 1
+            fi
+          }
+          # Another remote key of the client key ring, with every field, under the id given.
+          other() {
+            local id="managementConsole.keyRings.client.remoteKeys.$1"
+            echo --set "$id.provider=aws-kms" --set "$id.keyId=arn:aws:kms:us-west-2:111122223333:key/abcd" \
+              --set "$id.algorithm=ES256" --set "$id.secretType=ecc" --set "$id.keySizeBits=256"
+          }
+          # The same key under an id of its own renders, so each refusal below is the rule it names.
+          helm template release "$CHART" --values "$base" $(other mgmt-client-2) > /dev/null
+          refuse --set managementConsole.keyRings.dpop.pemSecret=
+          refuse --set managementConsole.keyRings.client.pemSecret=identity-mgmt-client-key
+          refuse $(other MGMT-CLIENT)
+          refuse $(other bad__id)
+          refuse --set managementConsole.keyRings.client.remoteKeys.incomplete.provider=aws-kms
+          refuse --set "$key.provider=hashicorp-vault"
+          refuse --set "$key.keySizeBits=0"
+          refuse --set "$key.keyId=arn:aws:kms:us-west-2:111122223333:secret/abcd"
+          refuse --set "$key.provider=azure-key-vault" --set "$key.keyId=https://contoso.vault.azure.net/keys/mgmt-client"
+          refuse --set "$key.provider=google-cloud-kms" --set "$key.keyId=projects/p/locations/l/keyRings/r/cryptoKeys/mgmt-client"
+          refuse --set "$key.provider=azure-key-vault" \
+            --set "$key.keyId=https://contoso.vault.azure.net/keys/mgmt-client/0123456789abcdef0123456789abcdef" \
+            --set managementConsole.secretProtection.azureKeyVault.workloadIdentity.clientId=66666666-7777-8888-9999-000000000000
+          refuse --set "$key.provider=google-cloud-kms" \
+            --set "$key.keyId=projects/p/locations/l/keyRings/r/cryptoKeys/k/cryptoKeyVersions/1" \
+            --set managementConsole.secretProtection.googleCloudKms.workloadIdentityFederation.provider=not-a-provider

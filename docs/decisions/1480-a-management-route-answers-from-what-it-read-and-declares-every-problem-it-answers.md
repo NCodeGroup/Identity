@@ -43,9 +43,12 @@ filters on every route.**
    `resourceServer.Scopes`, comparing a value `OrdinalIgnoreCase` as `GetScopeAsync` does. They write the stored
    scope's own `Value` (its casing) and `IsSystem`, not the route value. Removing a system scope answers `409` with the
    fixed detail "A reserved system scope cannot be removed.", never an exception message.
-3. **Every management error is a problem document.** `ManagementProblems.ResourceNotFound()`, a public static class
-   in `NCode.Identity.OpenId.Management.Abstractions` with the detail "The resource does not exist.", answers every
-   missing resource in place of a bare `TypedResults.NotFound()`. `ManagementEnvironmentEndpointFilter` answers an
+3. **Every management error is a problem document.** `ManagementProblems`, a public static class in
+   `NCode.Identity.OpenId.Management.Abstractions`, creates the problems every management route shares:
+   `ResourceNotFound()`, with the detail "The resource does not exist.", answers every missing resource, and
+   `PreconditionFailed(resource)`, with the detail "The supplied If-Match token does not match the current
+   <resource>.", answers an `If-Match` token that does not match the stored settings or secret.
+   `ManagementEnvironmentEndpointFilter` answers an
    `HttpResultException` whose result has a status of `400` or more and no body (an `IStatusCodeHttpResult` that is not
    an `IValueHttpResult`) with `TypedResults.Problem(statusCode: …)`, because a tenant `OpenIdContextFactory` reports a
    missing tenant as a bare `404`. A declared `ProducesProblem(404)` is therefore truthful.

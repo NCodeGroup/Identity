@@ -2134,10 +2134,13 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The management API tells a caller where it holds authority.** `GET /api/me` returns the caller's principal
   (`CallerResource.principalId`), whether it holds authority at the platform node (`isPlatformAdministrator`) and its
   role assignments (`RoleAssignmentResource`); `GET /api/me/teams` and `GET /api/me/tenants` list the teams and
-  tenants it holds a role at. Every request is authorized per resource from the caller's role assignments, so one
-  token serves every team and tenant the caller administers and names none of them
+  tenants it holds a role at. They answer the caller its management access token authenticates, and a request without
+  one `401` with a problem. Every request is authorized per resource from the caller's role assignments, so one token
+  serves every team and tenant the caller administers and names none of them
   ([#566](https://github.com/NCodeGroup/Identity/issues/566),
-  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md)).
+  [#715](https://github.com/NCodeGroup/Identity/issues/715),
+  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md),
+  [ADR-1484](docs/decisions/1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md)).
 
 - **The management console opens on the caller's home.** `/home` lists the platform for a caller with platform
   authority and the teams and tenants the caller holds a role at, and opens the only one at once when there is one.
@@ -4079,11 +4082,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
   [#556](https://github.com/NCodeGroup/Identity/issues/556)).
 
-- **Only an authenticated management caller reads the management capabilities.** `GET /api/capabilities` answers a
-  request without a valid management access token `401` with a problem, so the deployment's secret types, algorithms
-  and key management services stay undisclosed to anonymous callers
+- **A management route's caller is only the principal its management access token authenticates.** On every management
+  route `HttpContext.User` is the principal a valid management access token authenticates, or an anonymous principal
+  whatever another authentication scheme set, such as a session cookie the host's default scheme reads, and
+  `IManagementCallerFeature` carries the authenticated caller. `GET /api/capabilities`, `GET /api/me`,
+  `GET /api/me/teams` and `GET /api/me/tenants` answer only that caller and answer anyone else `401` with a problem, so
+  the deployment's secret types, algorithms and key management services and a caller's role assignments stay
+  undisclosed to anonymous callers
   ([#707](https://github.com/NCodeGroup/Identity/issues/707),
-  [ADR-1482](docs/decisions/1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md)).
+  [#715](https://github.com/NCodeGroup/Identity/issues/715),
+  [#716](https://github.com/NCodeGroup/Identity/issues/716),
+  [ADR-1482](docs/decisions/1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md),
+  [ADR-1484](docs/decisions/1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md)).
 
 - **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the
   authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a child

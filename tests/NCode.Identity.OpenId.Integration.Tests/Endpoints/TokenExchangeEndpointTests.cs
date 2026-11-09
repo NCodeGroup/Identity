@@ -15,15 +15,16 @@ public class TokenExchangeEndpointTests
     private const string ClientSecret = "confidential-secret-value";
 
     // The platform ceiling lists the grants the test client uses; token exchange is not in the library baseline.
-    private static readonly Dictionary<string, string?> Configuration = new()
-    {
-        ["OpenId:Platform:Settings:grant_types_supported:0"] = OpenIdProtocol
-            .GrantTypes
-            .ClientCredentials,
-        ["OpenId:Platform:Settings:grant_types_supported:1"] = OpenIdProtocol
-            .GrantTypes
-            .TokenExchange,
-    };
+    private static Dictionary<string, string?> Configuration { get; } =
+        new()
+        {
+            ["OpenId:Platform:Settings:grant_types_supported:0"] = OpenIdProtocol
+                .GrantTypes
+                .ClientCredentials,
+            ["OpenId:Platform:Settings:grant_types_supported:1"] = OpenIdProtocol
+                .GrantTypes
+                .TokenExchange,
+        };
 
     // See ADR-1419.
     [Fact]

@@ -18,8 +18,8 @@ public class GrantPruneTests
 {
     private const string GrantType = "authorization_code";
 
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
-    private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(15);
+    private static TimeSpan PollInterval { get; } = TimeSpan.FromMilliseconds(100);
+    private static TimeSpan PollTimeout { get; } = TimeSpan.FromSeconds(15);
 
     #region Helpers
 

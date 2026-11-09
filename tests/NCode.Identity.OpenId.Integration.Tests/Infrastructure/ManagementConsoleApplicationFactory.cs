@@ -59,7 +59,7 @@ public sealed class ManagementConsoleApplicationFactory
         </html>
         """;
 
-    private static readonly Uri BrowserBaseAddress = new("https://localhost:5005/");
+    private static Uri BrowserBaseAddress { get; } = new("https://localhost:5005/");
 
     private readonly HostApplicationFactory? _provider;
     private readonly ECDsa _clientKey;

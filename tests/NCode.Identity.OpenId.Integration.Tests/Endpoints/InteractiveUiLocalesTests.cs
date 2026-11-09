@@ -30,10 +30,8 @@ public class InteractiveUiLocalesTests
     private const string ConsentPath = "/account/consent";
     private const string EndSessionPath = "/oauth2/end_session";
 
-    private static readonly Dictionary<string, object> EnglishAndFrench = new()
-    {
-        [OpenIdSettingNames.UiLocalesSupported] = new[] { "en", "fr" },
-    };
+    private static Dictionary<string, object> EnglishAndFrench { get; } =
+        new() { [OpenIdSettingNames.UiLocalesSupported] = new[] { "en", "fr" } };
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(

@@ -17,9 +17,9 @@ namespace NCode.Identity.Bff.Tests.Sessions;
 
 public class BffSessionResolverTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private static readonly string Handle = new('a', 43);
+    private static string Handle { get; } = new('a', 43);
 
     private Mock<IBffSessionManager> MockManager { get; }
     private BffSessionResolver Resolver { get; }

@@ -13,8 +13,8 @@ public class DefaultBffSessionStoreTests : BaseTests
 {
     private const string StoreKey = "store-key";
 
-    private static readonly DateTimeOffset Absolute = new(2026, 1, 2, 11, 0, 0, TimeSpan.Zero);
-    private static readonly DateTimeOffset Idle = new(2026, 1, 2, 4, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Absolute { get; } = new(2026, 1, 2, 11, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Idle { get; } = new(2026, 1, 2, 4, 0, 0, TimeSpan.Zero);
 
     private Mock<IExpiringValueSet> MockValues { get; }
     private Mock<IExpiringIndexSet> MockIndexes { get; }

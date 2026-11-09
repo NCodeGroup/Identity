@@ -20,13 +20,10 @@ public class BffSessionRetirementTests : BaseTests
 {
     private const string RemovedFrontend = "removed";
 
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private static readonly BffSessionClient CurrentClient = new(
-        BffTestFrontends.Name,
-        BffTestFrontends.Authority,
-        BffTestFrontends.ClientId
-    );
+    private static BffSessionClient CurrentClient { get; } =
+        new(BffTestFrontends.Name, BffTestFrontends.Authority, BffTestFrontends.ClientId);
 
     private readonly Mock<IBffSessionStore> _store;
     private readonly Mock<IBffSessionManager> _manager;
@@ -46,7 +43,7 @@ public class BffSessionRetirementTests : BaseTests
             logger ?? NullLogger<BffSessionRetirement>.Instance
         );
 
-    private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(7);
+    private static TimeSpan LeaseDuration { get; } = TimeSpan.FromMinutes(7);
 
     private static BffFrontendSet CreateSet(Action<BffFrontendOptions>? configure = null) =>
         BffFrontendSet.Create(

@@ -30,7 +30,7 @@ namespace NCode.Identity.Bff.Tests.RemoteApis;
 public sealed class BffRemoteApiForwardingTests : BaseTests
 {
     private const string Jkt = "thumbprint";
-    private static readonly Uri RemoteUri = new("https://api.example.com/v1/items/1?expand=lines");
+    private static Uri RemoteUri { get; } = new("https://api.example.com/v1/items/1?expand=lines");
 
     private ServiceProvider Provider { get; } =
         new ServiceCollection().AddLogging().AddHttpForwarder().BuildServiceProvider();

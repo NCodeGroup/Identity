@@ -14,7 +14,7 @@ namespace NCode.Identity.Bff.Tests.Tokens;
 
 public class BffClientTokenRequirementTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
     private static BffTokenContexts CreateContexts(Mock<IBffSessionManager> manager)
     {
@@ -58,9 +58,8 @@ public class BffClientTokenRequirementTests : BaseTests
         return CreateContexts(sessionManager).ForRequest(httpContext);
     }
 
-    private static readonly BffTokenResult Token = BffTokenResult.Success(
-        new BffAccessToken("access", "Bearer", Now.AddMinutes(5))
-    );
+    private static BffTokenResult Token { get; } =
+        BffTokenResult.Success(new BffAccessToken("access", "Bearer", Now.AddMinutes(5)));
 
     private Mock<IBffClientTokenService> MockService { get; }
     private BffClientTokenRequirement Requirement { get; }

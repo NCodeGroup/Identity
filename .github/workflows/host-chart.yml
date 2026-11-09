@@ -173,8 +173,8 @@ jobs:
           refuse --set 'allowedHosts={id.example.com}'
           refuse --set managementConsole.authority=http://id.example.com
           refuse --set tenantResolution.strategyCode=DynamicByHost --set tenantResolution.staticSingle.issuer=
-          refuse --set managementConsole.keys.clientKeySecret=
-          refuse --set managementConsole.keys.dpopKeySecret=
+          refuse --set managementConsole.keyRings.client.pemSecret=
+          refuse --set managementConsole.keyRings.dpop.pemSecret=
           refuse --set managementConsole.replicaCount=2
           # /api reaches the server for machine callers and every other path reaches the console (ADR-1437).
           ingress=$(helm template release "$CHART" --values "$base" --show-only templates/management-console-ingress.yaml)

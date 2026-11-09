@@ -762,18 +762,6 @@
           "type": "string",
           "pattern": "^(https://.+)?$"
         },
-        "keys": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "clientKeySecret": {
-              "type": "string"
-            },
-            "dpopKeySecret": {
-              "type": "string"
-            }
-          }
-        },
         "keyRings": {
           "type": "object",
           "additionalProperties": false,

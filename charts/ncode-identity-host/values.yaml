@@ -257,11 +257,6 @@ managementConsole:
   authority: ""
   # ManagementConsole:ManagementApiUrl. Defaults to https://<host>/api.
   managementApiUrl: ""
-  keys:
-    # Secret holding the client's private key under the key 'mgmt-client.pem'.
-    clientKeySecret: ""
-    # Secret holding the DPoP private key under the key 'mgmt-dpop.pem'.
-    dpopKeySecret: ""
   # The console's two key rings: client is Bff:KeyRings:mgmt-client, which signs the client's assertions, and dpop is
   # Bff:KeyRings:mgmt-dpop, which signs its DPoP proofs. Each holds a PEM key from a Secret, keys a key management
   # service holds, or both, and at least one key (ADR-1479, ADR-1485).

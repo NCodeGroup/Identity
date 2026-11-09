@@ -166,6 +166,8 @@ public class DefaultRegistrationTests : BaseTests
             )
         );
         Assert.Equal("RSA_SIGN_PSS_3072_SHA256", algorithm.KeySpec);
+        var descriptor = Assert.Single(descriptorCatalog.Providers);
+        Assert.True(descriptor.CreatesKeys);
     }
 
     [Fact]
@@ -219,6 +221,10 @@ public class DefaultRegistrationTests : BaseTests
         >();
 
         Assert.Null(options.Value.KeyRing);
+        var descriptor = Assert.Single(
+            provider.GetRequiredService<IRemoteKeyDescriptorCatalog>().Providers
+        );
+        Assert.False(descriptor.CreatesKeys);
     }
 
     [Fact]

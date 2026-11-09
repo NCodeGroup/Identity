@@ -26,7 +26,7 @@ public class AutoPropertyAnalyzerTests
         Assert.Empty(diagnostics);
     }
 
-    #region Initialize
+    #region Initialize Tests
 
     [Fact]
     public async Task Initialize_InstanceField_ReportsField()
@@ -70,6 +70,15 @@ public class AutoPropertyAnalyzerTests
         await AssertReportsSingleFieldAsync(
             "class C { private System.DateTime _when; public string Text() => _when.ToString(); }",
             "_when"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_MutableStructMemberReadThroughField_ReportsField()
+    {
+        await AssertReportsSingleFieldAsync(
+            "struct Counter { public int Value { get; set; } } class C { private Counter _counter; public int Count => _counter.Value; }",
+            "_counter"
         );
     }
 
@@ -193,6 +202,38 @@ public class AutoPropertyAnalyzerTests
     }
 
     [Fact]
+    public async Task Initialize_MutableStructPropertyAssignedThroughField_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "struct Counter { public int Value { get; set; } } class C { private Counter _counter; public void Set() => _counter.Value = 1; public int Count => _counter.Value; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_MutableStructFieldAssignedThroughField_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "using System.Runtime.InteropServices; [StructLayout(LayoutKind.Sequential)] struct Counter { public int Value; } class C { private Counter _counter; public void Set() => _counter.Value = 1; public int Count => _counter.Value; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_MutableStructFieldIncrementedThroughField_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "using System.Runtime.InteropServices; [StructLayout(LayoutKind.Sequential)] struct Counter { public int Value; } class C { private Counter _counter; public void Bump() => _counter.Value++; public int Count => _counter.Value; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_MutableStructFieldPassedByRefThroughField_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "using System.Threading; struct Counter { public int Value; } class C { private Counter _counter; public int Next() => Interlocked.Increment(ref _counter.Value); }"
+        );
+    }
+
+    [Fact]
     public async Task Initialize_FieldPassedByRefFromNestedType_ReportsNothing()
     {
         await AssertReportsNothingAsync(
@@ -218,7 +259,7 @@ public class AutoPropertyAnalyzerTests
 
     #endregion
 
-    #region SupportedDiagnostics
+    #region SupportedDiagnostics Property Tests
 
     [Fact]
     public void SupportedDiagnostics_Rule_IsEnabledError()

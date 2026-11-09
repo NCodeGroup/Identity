@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -17,8 +16,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // redirect URI kinds (ADR-1206).
 public class ClientCoherenceTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
     private const string RedirectUri = "http://client.example/callback";
 
@@ -190,21 +187,15 @@ public class ClientCoherenceTests
 
     #region Scaffolding
 
-    private static ConfiguredHostApplicationFactory CreateFactory() =>
-        new(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            }
-        );
+    private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
     private static Task<HttpClient> CreateAdministratorClientAsync(
         HostApplicationFactory factory
-    ) => factory.CreateManagementClientAsync(BootstrapClientId, BootstrapClientSecret);
+    ) =>
+        factory.CreateManagementClientAsync(
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
+        );
 
     private static async Task<string> CreateClientAsync(HttpClient administrator)
     {

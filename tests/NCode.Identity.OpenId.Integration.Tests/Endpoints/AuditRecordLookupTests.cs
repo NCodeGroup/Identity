@@ -1,11 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -18,24 +16,12 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // operator investigates with. See ADR-1303.
 public class AuditRecordLookupTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     // A name no audited operation of the host uses, so the records the host writes as the test runs never match.
     private const string SeededEventName = "it.audit_lookup.seeded";
 
-    private static ConfiguredHostApplicationFactory CreateFactory() =>
-        new(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            }
-        );
+    private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
     private static PersistedAuditRecord Record(string tenantId, string clientId) =>
         new()
@@ -80,8 +66,8 @@ public class AuditRecordLookupTests
         var newer = Record(HostApplicationFactory.TenantId, "client-b");
         await SeedAsync(factory, older, newer, Record("another-tenant", "client-a"));
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
 
         using var response = await administrator.GetAsync(
@@ -111,8 +97,8 @@ public class AuditRecordLookupTests
         var match = Record(HostApplicationFactory.TenantId, "client-a");
         await SeedAsync(factory, match, Record(HostApplicationFactory.TenantId, "client-b"));
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
 
         using var response = await administrator.GetAsync(

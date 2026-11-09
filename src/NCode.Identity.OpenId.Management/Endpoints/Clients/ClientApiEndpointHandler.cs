@@ -225,10 +225,12 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         clients
             .MapGet("", ListClientsAsync)
             .Produces<CollectionResource<ClientResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
         clients
@@ -245,7 +247,8 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         clients
             .MapDelete("/{clientId}", DeleteClientAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -278,6 +281,7 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .WithNoStore();
         clients
             .MapGet("/{clientId}/effective-settings", GetEffectiveSettingsAsync)
@@ -302,6 +306,7 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .WithNoStore();
         clients
             .MapPost("/{clientId}/secrets/import", ImportSecretAsync)
@@ -311,7 +316,8 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         clients
             .MapGet("/{clientId}/secrets/{secretId}", GetSecretAsync)
             .Produces<SecretResource>()
@@ -332,7 +338,8 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         clients
             .MapDelete("/{clientId}/secrets/{secretId}", DeleteSecretAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -351,6 +358,7 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .WithNoStore();
 
         clients
@@ -368,7 +376,8 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         clients
             .MapDelete("/{clientId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -383,6 +392,7 @@ internal class ClientApiEndpointHandler(
             .MapGet("/incoherent-clients", ListIncoherentClientsAsync)
             .WithTags(OpenIdConstants.EndpointTags.Clients)
             .Produces<CollectionResource<IncoherentClientResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
     }
@@ -893,6 +903,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The requested client.</response>
+    /// <response code="404">The client does not exist.</response>
     [EndpointName("api/clients/get")]
     internal virtual async ValueTask<IResult> GetClientAsync(
         HttpContext httpContext,
@@ -926,6 +937,8 @@ internal class ClientApiEndpointHandler(
     /// <param name="request">The <see cref="CreateClientRequest"/> describing the client to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created client.</response>
+    /// <response code="400">The settings are not valid for a client, or the resource server the client acts for does not exist in the tenant or is a system resource server.</response>
+    /// <response code="409">A client with the generated identifier already exists.</response>
     [EndpointName("api/clients/create")]
     internal virtual async ValueTask<IResult> CreateClientAsync(
         HttpContext httpContext,
@@ -988,6 +1001,9 @@ internal class ClientApiEndpointHandler(
     /// <param name="request">The <see cref="CreateClientRequest"/> describing the client to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created machine client.</response>
+    /// <response code="400">The request names a resource server, or the settings are not valid for a client or allow a grant other than <c>client_credentials</c>.</response>
+    /// <response code="404">The team does not exist.</response>
+    /// <response code="409">A client with the generated identifier already exists.</response>
     // See ADR-1466.
     [EndpointName("api/teams/clients/create")]
     internal virtual async ValueTask<IResult> CreateTeamClientAsync(
@@ -1008,6 +1024,8 @@ internal class ClientApiEndpointHandler(
     /// <param name="request">The <see cref="CreateClientRequest"/> describing the client to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created machine client.</response>
+    /// <response code="400">The request names a resource server, or the settings are not valid for a client or allow a grant other than <c>client_credentials</c>.</response>
+    /// <response code="409">A client with the generated identifier already exists.</response>
     // See ADR-1466.
     [EndpointName("api/platform/clients/create")]
     internal virtual async ValueTask<IResult> CreatePlatformClientAsync(
@@ -1256,6 +1274,9 @@ internal class ClientApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The client was updated.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the client.</response>
+    /// <response code="404">The client does not exist.</response>
+    /// <response code="409">The host configures the client, so the management API does not change it.</response>
     [EndpointName("api/clients/update")]
     internal virtual async ValueTask<IResult> UpdateClientAsync(
         HttpContext httpContext,
@@ -1350,6 +1371,8 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The client was deleted.</response>
+    /// <response code="404">The client does not exist.</response>
+    /// <response code="409">The host configures the client, so the management API does not change it.</response>
     [EndpointName("api/clients/delete")]
     internal virtual async ValueTask<IResult> DeleteClientAsync(
         HttpContext httpContext,
@@ -1424,6 +1447,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The client's settings.</response>
+    /// <response code="404">The client does not exist.</response>
     [EndpointName("api/clients/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
@@ -1460,6 +1484,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The client's setting limits.</response>
+    /// <response code="404">The client does not exist.</response>
     // See ADR-1448.
     [EndpointName("api/clients/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
@@ -1497,6 +1522,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The client's effective settings.</response>
+    /// <response code="404">The client or its tenant does not exist.</response>
     [EndpointName("api/clients/effective-settings/get")]
     internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
         HttpContext httpContext,
@@ -1558,6 +1584,9 @@ internal class ClientApiEndpointHandler(
     /// <response code="200">The client's settings were updated, and the client was issued the secret in the body, whose
     /// material is revealed only here.</response>
     /// <response code="204">The client's settings were updated, and the client keeps a secret it holds.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the settings, or the patched settings are not valid for a client.</response>
+    /// <response code="404">The client does not exist.</response>
+    /// <response code="409">The host configures the client, so the management API does not change it, or the settings name a <c>jwks_uri</c> while the client holds registered public keys.</response>
     [EndpointName("api/clients/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
@@ -1808,6 +1837,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The client's secrets.</response>
+    /// <response code="404">The client does not exist.</response>
     [EndpointName("api/clients/secrets/get")]
     internal virtual async ValueTask<IResult> GetSecretsAsync(
         HttpContext httpContext,
@@ -1842,8 +1872,6 @@ internal class ClientApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created secret.</response>
     /// <response code="400">The request is not coherent or the secret could not be generated from its parameters.</response>
-    /// <response code="401">The caller is anonymous.</response>
-    /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The client does not exist.</response>
     /// <response code="409">The client already holds a secret with the generated identifier, publishes its keys at a <c>jwks_uri</c>, or is managed by its host.</response>
     /// <response code="412">Another request changed the client's secrets after this request read them.</response>
@@ -2027,8 +2055,6 @@ internal class ClientApiEndpointHandler(
     /// </remarks>
     /// <response code="201">The imported secret.</response>
     /// <response code="400">The request is not coherent or the key could not be imported.</response>
-    /// <response code="401">The caller is anonymous.</response>
-    /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The client does not exist.</response>
     /// <response code="409">The client already holds a secret with the generated identifier or the same <c>kid</c>, publishes its keys at a <c>jwks_uri</c>, or is managed by its host.</response>
     /// <response code="412">Another request changed the client's secrets after this request read them.</response>
@@ -2150,6 +2176,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The requested secret.</response>
+    /// <response code="404">The client or the secret does not exist.</response>
     [EndpointName("api/clients/secrets/get-one")]
     internal virtual async ValueTask<IResult> GetSecretAsync(
         HttpContext httpContext,
@@ -2186,6 +2213,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The public key material of the requested secret.</response>
+    /// <response code="404">The client or the secret does not exist, or the secret holds no public key.</response>
     [EndpointName("api/clients/secrets/get-public-key")]
     internal virtual async ValueTask<IResult> GetPublicKeyAsync(
         HttpContext httpContext,
@@ -2225,6 +2253,9 @@ internal class ClientApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The secret was updated.</response>
+    /// <response code="400">The new metadata is not valid for the secret: an unsupported use or algorithm, a key management service's key whose algorithm changes, or an incoherent lifecycle.</response>
+    /// <response code="404">The client or the secret does not exist.</response>
+    /// <response code="409">The host configures the client, so the management API does not change it.</response>
     [EndpointName("api/clients/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,
@@ -2320,6 +2351,8 @@ internal class ClientApiEndpointHandler(
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The secret was deleted.</response>
+    /// <response code="404">The client or the secret does not exist.</response>
+    /// <response code="409">The host configures the client, so the management API does not change it.</response>
     [EndpointName("api/clients/secrets/delete")]
     internal virtual async ValueTask<IResult> DeleteSecretAsync(
         HttpContext httpContext,
@@ -2408,8 +2441,6 @@ internal class ClientApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The replacement secret.</response>
     /// <response code="400">The secret is not a shared secret or the replacement could not be generated from its parameters.</response>
-    /// <response code="401">The caller is anonymous.</response>
-    /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The client or the secret does not exist.</response>
     /// <response code="409">The client already holds a secret with the generated identifier or is managed by its host.</response>
     /// <response code="412">The <c>If-Match</c> token does not match the rotated secret, or another request changed the client's secrets after this request read them.</response>
@@ -2622,6 +2653,7 @@ internal class ClientApiEndpointHandler(
     /// Lists a client's owners and whether the caller may grant and revoke the role.
     /// </summary>
     /// <response code="200">The client's owners and whether the caller may change them.</response>
+    /// <response code="404">The client does not exist.</response>
     [EndpointName("api/clients/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -2670,6 +2702,9 @@ internal class ClientApiEndpointHandler(
     /// </summary>
     /// <response code="201">The owner was added.</response>
     /// <response code="200">The principal already owns the client.</response>
+    /// <response code="400">The request names no principal.</response>
+    /// <response code="404">The client does not exist.</response>
+    /// <response code="409">The host configures the client, so the management API does not change it, or the principal is a client that cannot own it.</response>
     [EndpointName("api/clients/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -2718,6 +2753,8 @@ internal class ClientApiEndpointHandler(
     /// Removes an owner from a client.
     /// </summary>
     /// <response code="204">The owner was removed.</response>
+    /// <response code="404">The client does not exist, or the principal is not an owner of it.</response>
+    /// <response code="409">The host configures the client, so the management API does not change it, or the principal is the client's last owner.</response>
     [EndpointName("api/clients/owners/remove")]
     internal virtual async ValueTask<IResult> RemoveOwnerAsync(
         HttpContext httpContext,

@@ -35,10 +35,12 @@ internal sealed class MachineClientEndpointProvider(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         platformClients
             .MapGet("", ClientApiEndpointHandler.ListPlatformClientsAsync)
             .Produces<CollectionResource<ClientResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
@@ -54,10 +56,12 @@ internal sealed class MachineClientEndpointProvider(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         teamClients
             .MapGet("", ClientApiEndpointHandler.ListTeamClientsAsync)
             .Produces<CollectionResource<ClientResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
     }

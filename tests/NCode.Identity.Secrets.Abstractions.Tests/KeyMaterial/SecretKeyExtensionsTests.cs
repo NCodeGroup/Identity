@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.KeyMaterial;
 
 public class SecretKeyExtensionsTests
 {
-    private static readonly KeySizes[] LegalSizes = [new(minSize: 256, maxSize: 256, skipSize: 0)];
+    private static KeySizes[] LegalSizes { get; } = [new(minSize: 256, maxSize: 256, skipSize: 0)];
 
     #region Validate Tests
 

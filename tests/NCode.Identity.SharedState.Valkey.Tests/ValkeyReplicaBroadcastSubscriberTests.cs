@@ -15,9 +15,8 @@ public sealed class ValkeyReplicaBroadcastSubscriberTests : BaseTests
 {
     private const string KeyPrefix = "test:";
     private const string Channel = "tenant-changed";
-    private static readonly RedisChannel PrefixedChannel = RedisChannel.Literal(
-        KeyPrefix + Channel
-    );
+    private static RedisChannel PrefixedChannel { get; } =
+        RedisChannel.Literal(KeyPrefix + Channel);
 
     private static TimeSpan Timeout { get; } = TimeSpan.FromSeconds(5);
 

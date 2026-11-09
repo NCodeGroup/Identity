@@ -5,7 +5,7 @@ namespace NCode.Identity.Secrets.Keys;
 
 public class KeyMetadataExtensionsTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
 
     #region IsActive Tests
 

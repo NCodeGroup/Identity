@@ -12,31 +12,33 @@ public class RemoteEccSecretKeyTests : BaseTests
 {
     private const string KeyId = "key-1";
 
-    private static readonly byte[] SigningInput = "signing input"u8.ToArray();
+    private static byte[] SigningInput { get; } = "signing input"u8.ToArray();
 
-    private static readonly RemoteSigningAlgorithm Row = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "ES256",
-        SecretType = "ecc",
-        KeySizeBits = 256,
-        Curve = "P-256",
-        KeySpec = "ECC_NIST_P256",
-        SigningAlgorithm = "ECDSA_SHA_256",
-        DigestAlgorithm = HashAlgorithmName.SHA256,
-        IsDerEncodedSignature = true,
-    };
+    private static RemoteSigningAlgorithm Row { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ES256",
+            SecretType = "ecc",
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            SigningAlgorithm = "ECDSA_SHA_256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+            IsDerEncodedSignature = true,
+        };
 
-    private static readonly RemoteKeyAgreementAlgorithm AgreementRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "ECDH-ES",
-        SecretType = "ecc",
-        KeySizeBits = 256,
-        Curve = "P-256",
-        KeySpec = "ECC_NIST_P256",
-        KeyAgreementAlgorithm = "ECDH",
-    };
+    private static RemoteKeyAgreementAlgorithm AgreementRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ECDH-ES",
+            SecretType = "ecc",
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            KeyAgreementAlgorithm = "ECDH",
+        };
 
     private Mock<IRemoteKeyProvider> Provider { get; }
 

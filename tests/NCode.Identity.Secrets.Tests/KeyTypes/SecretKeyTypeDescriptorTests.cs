@@ -13,7 +13,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 
 public class SecretKeyTypeDescriptorTests : BaseTests
 {
-    private static readonly SecretKeyMaterialProtector Protect = _ => "protected";
+    private static SecretKeyMaterialProtector Protect { get; } = _ => "protected";
 
     private static EccCurveSpecification Brainpool256 { get; } =
         new()

@@ -430,21 +430,20 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.RemoteKeyOrphanDestroyed,
-        Level = LogLevel.Information,
-        Message = "Destroyed the orphaned remote key '{KeyId}' of group '{GroupName}' in provider '{Provider}'"
-    )]
-    internal static partial void RemoteKeyOrphanDestroyed(
-        this ILogger logger,
-        string provider,
-        string keyId,
-        string groupName
-    );
-
-    [LoggerMessage(
         EventId = EventIds.RemoteKeySweepPassFailed,
         Level = LogLevel.Warning,
         Message = "The remote key sweep pass failed; it runs again at the next interval"
     )]
     internal static partial void RemoteKeySweepPassFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeySweepDispatchFailed,
+        Level = LogLevel.Warning,
+        Message = "Dispatching the remote key sweep of provider '{Provider}' failed; it is dispatched again at the next pass"
+    )]
+    internal static partial void RemoteKeySweepDispatchFailed(
+        this ILogger logger,
+        string provider,
+        Exception exception
+    );
 }

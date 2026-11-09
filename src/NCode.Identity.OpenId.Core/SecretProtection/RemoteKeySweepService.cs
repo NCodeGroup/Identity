@@ -17,7 +17,8 @@ namespace NCode.Identity.OpenId.SecretProtection;
 /// Schedules the sweep of the remote keys that no stored secret names, once the replica's platform is materialized and
 /// then every <see cref="RemoteKeyOptions.SweepInterval"/>: it dispatches one <see cref="RemoteKeySweepJob"/> for each
 /// described remote key provider. One replica runs each pass, under a lease on the shared-state port that lasts half
-/// the interval, and the dispatcher gives each provider's job its own retries.
+/// the interval, and the dispatcher gives each provider's job its own retries. A provider whose dispatch fails is
+/// logged and the others are dispatched.
 /// </summary>
 /// <remarks>
 /// The service does nothing when <see cref="RemoteKeyOptions.SweepEnabled"/> is <c>false</c> or when no remote key
@@ -116,10 +117,18 @@ internal sealed class RemoteKeySweepService(
             )
         )
         {
-            await JobDispatcher.DispatchAsync(
-                new RemoteKeySweepJob { Provider = descriptor.Name },
-                cancellationToken: cancellationToken
-            );
+            // One provider whose dispatch fails must not stop the pass, as the master key maintenance handles each owner.
+            try
+            {
+                await JobDispatcher.DispatchAsync(
+                    new RemoteKeySweepJob { Provider = descriptor.Name },
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                Logger.RemoteKeySweepDispatchFailed(descriptor.Name, exception);
+            }
         }
     }
 }

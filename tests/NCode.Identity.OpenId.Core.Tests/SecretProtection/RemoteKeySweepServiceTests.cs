@@ -154,19 +154,45 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task RunAsync_WhenADispatchFails_LogsAndDoesNotThrow()
+    public async Task RunAsync_WhenADispatchFails_LogsTheProviderAndDispatchesTheOthers()
     {
-        SetupProviders("aws");
+        SetupProviders("aws", "google");
         SetupLease(true);
+        SetupDispatch();
         _dispatcher
             .Setup(x =>
                 x.DispatchAsync(
-                    It.IsAny<RemoteKeySweepJob>(),
+                    It.Is<RemoteKeySweepJob>(job => job.Provider == "aws"),
                     It.IsAny<DispatchOptions?>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .ThrowsAsync(new InvalidOperationException("boom"))
+            .Verifiable(Times.Once());
+        var entries = new List<(LogLevel Level, int EventId)>();
+        using var service = CreateService(CreateCapturingLogger(entries));
+
+        await service.RunAsync(CancellationToken.None);
+
+        Assert.Equal(["google"], _dispatched.Select(job => job.Provider));
+        Assert.Equal(
+            [(LogLevel.Warning, EventIds.RemoteKeySweepDispatchFailed)],
+            entries.Where(entry => entry.Level >= LogLevel.Warning)
+        );
+    }
+
+    [Fact]
+    public async Task RunAsync_WhenTheLeaseFails_LogsThePassFailure()
+    {
+        _keySet
+            .Setup(x =>
+                x.TryAddAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Throws(new InvalidOperationException("boom"))
             .Verifiable(Times.Once());
         var entries = new List<(LogLevel Level, int EventId)>();
         using var service = CreateService(CreateCapturingLogger(entries));

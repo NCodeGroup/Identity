@@ -108,8 +108,6 @@ internal sealed class RemoteKeySweepJobHandler(
                 PublishAsync,
                 CreateEvent(job.Provider, listing)
             );
-
-            Logger.RemoteKeyOrphanDestroyed(job.Provider, listing.KeyId, listing.GroupName);
         }
     }
 

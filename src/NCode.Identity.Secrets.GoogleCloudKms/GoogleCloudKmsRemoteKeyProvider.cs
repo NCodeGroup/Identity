@@ -70,8 +70,6 @@ internal class GoogleCloudKmsRemoteKeyProvider(
     /// </summary>
     internal const string DeploymentLabelKey = "ncode-identity-deployment";
 
-    private const string GroupNamePrefix = "ncid-";
-
     private static TimeSpan InitialPollDelay { get; } = TimeSpan.FromMilliseconds(250);
     private static TimeSpan MaxPollDelay { get; } = TimeSpan.FromSeconds(4);
     private static TimeSpan PollTimeout { get; } = TimeSpan.FromSeconds(60);
@@ -464,7 +462,7 @@ internal class GoogleCloudKmsRemoteKeyProvider(
                         cryptoKey.Labels.TryGetValue(DeploymentLabelKey, out var deployment)
                         && string.Equals(deployment, request.Deployment, StringComparison.Ordinal)
                         && cryptoKey.Labels.TryGetValue(GroupLabelKey, out var group)
-                        && group.StartsWith(GroupNamePrefix, StringComparison.Ordinal)
+                        && group.StartsWith(RemoteKeyGroupNames.Prefix, StringComparison.Ordinal)
                     )
                     {
                         result.Add(cryptoKey);

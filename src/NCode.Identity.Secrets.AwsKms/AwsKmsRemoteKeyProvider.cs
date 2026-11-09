@@ -72,7 +72,9 @@ internal class AwsKmsRemoteKeyProvider(
     /// </summary>
     internal const string DeploymentTagKey = "ncode-identity:deployment";
 
-    private const string GroupNamePrefix = "ncid-";
+    // ListKeys returns at most 1,000 keys and ListResourceTags at most 50 tags per page, the service's maximum.
+    private const int ListKeysPageSize = 1000;
+    private const int ListResourceTagsPageSize = 50;
 
     private IAwsKmsClientFactory ClientFactory { get; } = clientFactory;
 
@@ -655,7 +657,7 @@ internal class AwsKmsRemoteKeyProvider(
         string? marker = null;
         do
         {
-            var listRequest = new ListKeysRequest { Limit = 1000, Marker = marker };
+            var listRequest = new ListKeysRequest { Limit = ListKeysPageSize, Marker = marker };
             var page = await ClientFactory.ExecuteAsync(
                 region,
                 access: null,
@@ -698,7 +700,11 @@ internal class AwsKmsRemoteKeyProvider(
             return null;
         }
 
-        var tagsRequest = new ListResourceTagsRequest { KeyId = keyArn, Limit = 50 };
+        var tagsRequest = new ListResourceTagsRequest
+        {
+            KeyId = keyArn,
+            Limit = ListResourceTagsPageSize,
+        };
 
         ListResourceTagsResponse tagsResponse;
         try
@@ -730,7 +736,10 @@ internal class AwsKmsRemoteKeyProvider(
 
         var tags = tagsResponse.Tags ?? [];
         var groupName = FindTag(tags, GroupTagKey);
-        if (groupName is null || !groupName.StartsWith(GroupNamePrefix, StringComparison.Ordinal))
+        if (
+            groupName is null
+            || !groupName.StartsWith(RemoteKeyGroupNames.Prefix, StringComparison.Ordinal)
+        )
         {
             return null;
         }

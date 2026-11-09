@@ -81,8 +81,6 @@ internal class AzureKeyVaultRemoteKeyProvider(
     /// </summary>
     internal const string DeploymentTagKey = "ncode-identity-deployment";
 
-    private const string GroupNamePrefix = "ncid-";
-
     private IAzureKeyVaultClientFactory ClientFactory { get; } = clientFactory;
 
     private IOptions<AzureKeyVaultRemoteKeyProviderOptions> ProviderOptions { get; } = options;
@@ -462,7 +460,12 @@ internal class AzureKeyVaultRemoteKeyProvider(
                 var result = new List<string>();
                 await foreach (var properties in client.GetPropertiesOfKeysAsync(token))
                 {
-                    if (properties.Name.StartsWith(GroupNamePrefix, StringComparison.Ordinal))
+                    if (
+                        properties.Name.StartsWith(
+                            RemoteKeyGroupNames.Prefix,
+                            StringComparison.Ordinal
+                        )
+                    )
                     {
                         result.Add(properties.Name);
                     }
@@ -521,7 +524,7 @@ internal class AzureKeyVaultRemoteKeyProvider(
 
         if (
             !tags.TryGetValue(GroupTagKey, out var groupName)
-            || !groupName.StartsWith(GroupNamePrefix, StringComparison.Ordinal)
+            || !groupName.StartsWith(RemoteKeyGroupNames.Prefix, StringComparison.Ordinal)
         )
         {
             return null;

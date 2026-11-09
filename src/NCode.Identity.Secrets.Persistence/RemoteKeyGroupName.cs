@@ -14,7 +14,6 @@ namespace NCode.Identity.Secrets.Persistence;
 // See ADR-1474 and ADR-1478.
 internal static class RemoteKeyGroupName
 {
-    private const string Prefix = "ncid-";
     private const int HashBytes = 16;
 
     /// <summary>
@@ -42,6 +41,6 @@ internal static class RemoteKeyGroupName
         Span<byte> hash = stackalloc byte[SHA256.HashSizeInBytes];
         SHA256.HashData(bytes, hash);
 
-        return Prefix + Convert.ToHexStringLower(hash[..HashBytes]);
+        return RemoteKeyGroupNames.Prefix + Convert.ToHexStringLower(hash[..HashBytes]);
     }
 }

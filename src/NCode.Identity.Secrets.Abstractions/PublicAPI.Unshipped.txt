@@ -285,6 +285,7 @@ NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>
 NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.Dispose() -> void
 NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.KeyAccessClientCache(System.TimeProvider! timeProvider, System.TimeSpan idleTimeout) -> void
 NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.UseAsync<TResult>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TClient!>>! create, System.Func<TClient!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResult>>! operation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TResult>
+const NCode.Identity.Secrets.RemoteKeys.RemoteKeyGroupNames.Prefix = "ncid-" -> string!
 const NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames.AwsKms = "aws-kms" -> string!
 const NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames.AzureKeyVault = "azure-key-vault" -> string!
 const NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames.GoogleCloudKms = "google-cloud-kms" -> string!
@@ -298,6 +299,7 @@ NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog.TryGetAlgorithm(NC
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorSource
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorSource.Algorithms.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm!>!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorSource.Providers.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor!>!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyGroupNames
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.Name.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.Name.init -> void

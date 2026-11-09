@@ -301,6 +301,8 @@ NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorSource.Algorithms.get -> S
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorSource.Providers.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor!>!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyGroupNames
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.CreatesKeys.get -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.CreatesKeys.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.Name.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.Name.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor.RemoteKeyProviderDescriptor() -> void

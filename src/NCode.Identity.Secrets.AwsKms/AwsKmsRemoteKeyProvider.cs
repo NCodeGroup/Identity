@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Amazon.KeyManagementService;
@@ -22,7 +23,7 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// <remarks>
 /// <para>
 /// AWS KMS has no versions of an asymmetric key, so every key the provider creates is a new KMS key in the configured
-/// region, tagged with its owner, secret, algorithm and group. The identifier of a key is its ARN, and every call that
+/// region, tagged with its owner, secret, algorithm, group and deployment. The identifier of a key is its ARN, and every call that
 /// uses the key goes to the region that the ARN names.
 /// </para>
 /// <para>
@@ -39,6 +40,7 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// </remarks>
 // See ADR-1471.
 // See ADR-1477.
+// See ADR-1478.
 internal class AwsKmsRemoteKeyProvider(
     IAwsKmsClientFactory clientFactory,
     IOptions<AwsKmsRemoteKeyProviderOptions> options
@@ -64,6 +66,13 @@ internal class AwsKmsRemoteKeyProvider(
     /// successive keys.
     /// </summary>
     internal const string GroupTagKey = "ncode-identity:group";
+
+    /// <summary>
+    /// The key of the tag that carries the name of the deployment that created a key.
+    /// </summary>
+    internal const string DeploymentTagKey = "ncode-identity:deployment";
+
+    private const string GroupNamePrefix = "ncid-";
 
     private IAwsKmsClientFactory ClientFactory { get; } = clientFactory;
 
@@ -106,6 +115,7 @@ internal class AwsKmsRemoteKeyProvider(
                 new Tag { TagKey = SecretTagKey, TagValue = request.SecretId },
                 new Tag { TagKey = AlgorithmTagKey, TagValue = row.Algorithm },
                 new Tag { TagKey = GroupTagKey, TagValue = request.GroupName },
+                new Tag { TagKey = DeploymentTagKey, TagValue = request.Deployment },
             ],
         };
 
@@ -622,4 +632,143 @@ internal class AwsKmsRemoteKeyProvider(
 
         return response.KeyMetadata?.KeyState == KeyState.PendingDeletion;
     }
+
+    /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the configured region is not set.
+    /// </exception>
+    public async IAsyncEnumerable<RemoteKeyListing> ListKeysAsync(
+        RemoteKeyListRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var region = ProviderOptions.Value.Region;
+        if (string.IsNullOrEmpty(region))
+        {
+            throw new InvalidOperationException(
+                "SecretProtection:RemoteKeyProviders:AwsKms:Region is not set."
+            );
+        }
+
+        string? marker = null;
+        do
+        {
+            var listRequest = new ListKeysRequest { Limit = 1000, Marker = marker };
+            var page = await ClientFactory.ExecuteAsync(
+                region,
+                access: null,
+                (client, token) =>
+                    new ValueTask<ListKeysResponse>(client.ListKeysAsync(listRequest, token)),
+                cancellationToken
+            );
+
+            if (page.Keys is not null)
+            {
+                foreach (var entry in page.Keys)
+                {
+                    var listing = await ReadListingAsync(
+                        region,
+                        entry.KeyArn,
+                        request.Deployment,
+                        cancellationToken
+                    );
+
+                    if (listing is not null)
+                    {
+                        yield return listing;
+                    }
+                }
+            }
+
+            marker = page.Truncated == true ? page.NextMarker : null;
+        } while (marker is not null);
+    }
+
+    private async ValueTask<RemoteKeyListing?> ReadListingAsync(
+        string region,
+        string? keyArn,
+        string deployment,
+        CancellationToken cancellationToken
+    )
+    {
+        if (string.IsNullOrEmpty(keyArn))
+        {
+            return null;
+        }
+
+        var tagsRequest = new ListResourceTagsRequest { KeyId = keyArn, Limit = 50 };
+
+        ListResourceTagsResponse tagsResponse;
+        try
+        {
+            tagsResponse = await ClientFactory.ExecuteAsync(
+                region,
+                access: null,
+                (client, token) =>
+                    new ValueTask<ListResourceTagsResponse>(
+                        client.ListResourceTagsAsync(tagsRequest, token)
+                    ),
+                cancellationToken
+            );
+        }
+        catch (NotFoundException)
+        {
+            return null;
+        }
+        catch (AmazonKeyManagementServiceException exception)
+            when (string.Equals(
+                    exception.ErrorCode,
+                    "AccessDeniedException",
+                    StringComparison.Ordinal
+                )
+            )
+        {
+            return null;
+        }
+
+        var tags = tagsResponse.Tags ?? [];
+        var groupName = FindTag(tags, GroupTagKey);
+        if (groupName is null || !groupName.StartsWith(GroupNamePrefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (!string.Equals(FindTag(tags, DeploymentTagKey), deployment, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var describeRequest = new DescribeKeyRequest { KeyId = keyArn };
+        var describeResponse = await ClientFactory.ExecuteAsync(
+            region,
+            access: null,
+            (client, token) =>
+                new ValueTask<DescribeKeyResponse>(client.DescribeKeyAsync(describeRequest, token)),
+            cancellationToken
+        );
+
+        var metadata = describeResponse.KeyMetadata;
+        if (
+            metadata is not { CreationDate: { } creationDate }
+            || metadata.KeyManager != KeyManagerType.CUSTOMER
+            || metadata.KeyState != KeyState.Enabled
+        )
+        {
+            return null;
+        }
+
+        return new RemoteKeyListing
+        {
+            KeyId = keyArn,
+            GroupName = groupName,
+            CreatedWhen = new DateTimeOffset(DateTime.SpecifyKind(creationDate, DateTimeKind.Utc)),
+            OwnerId = FindTag(tags, OwnerTagKey),
+            SecretId = FindTag(tags, SecretTagKey),
+        };
+    }
+
+    private static string? FindTag(List<Tag> tags, string key) =>
+        tags.FirstOrDefault(x => string.Equals(x.TagKey, key, StringComparison.Ordinal))?.TagValue;
 }

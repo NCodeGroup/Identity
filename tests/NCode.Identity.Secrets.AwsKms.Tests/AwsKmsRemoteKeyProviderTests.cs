@@ -106,6 +106,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             SecretId = "secret-1",
             Algorithm = row,
             GroupName = "ncid-group-1",
+            Deployment = "deployment-1",
         };
 
     // The factory runs the operation of the provider with the client mock, as it runs it with a client of the region.
@@ -242,11 +243,12 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         Assert.Equal(KeySpec.RSA_3072, createRequest.KeySpec);
         Assert.Equal(KeyUsageType.SIGN_VERIFY, createRequest.KeyUsage);
         Assert.Equal("NCode.Identity key secret-1 of tenant-1", createRequest.Description);
-        Assert.Equal(4, createRequest.Tags.Count);
+        Assert.Equal(5, createRequest.Tags.Count);
         Assert.Equal("tenant-1", Tag(createRequest, "ncode-identity:owner"));
         Assert.Equal("secret-1", Tag(createRequest, "ncode-identity:secret"));
         Assert.Equal("RS256", Tag(createRequest, "ncode-identity:algorithm"));
         Assert.Equal(request.GroupName, Tag(createRequest, "ncode-identity:group"));
+        Assert.Equal("deployment-1", Tag(createRequest, AwsKmsRemoteKeyProvider.DeploymentTagKey));
     }
 
     [Fact]
@@ -1518,6 +1520,298 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         );
 
         Assert.Equal("keyId", exception.ParamName);
+    }
+
+    #endregion
+
+    #region ListKeysAsync Tests
+
+    private static DateTime CreationDate { get; } = new(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+
+    private static async Task<List<RemoteKeyListing>> ListAsync(
+        AwsKmsRemoteKeyProvider provider,
+        string deployment = "deployment-1"
+    )
+    {
+        var listings = new List<RemoteKeyListing>();
+        await foreach (
+            var listing in provider.ListKeysAsync(
+                new RemoteKeyListRequest { Deployment = deployment },
+                CancellationToken.None
+            )
+        )
+        {
+            listings.Add(listing);
+        }
+
+        return listings;
+    }
+
+    private void SetupListKeys(string? marker, ListKeysResponse response) =>
+        Client
+            .Setup(x =>
+                x.ListKeysAsync(
+                    It.Is<ListKeysRequest>(r => r.Limit == 1000 && r.Marker == marker),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(response)
+            .Verifiable();
+
+    private void SetupListTags(string arn, params (string Key, string Value)[] tags) =>
+        Client
+            .Setup(x =>
+                x.ListResourceTagsAsync(
+                    It.Is<ListResourceTagsRequest>(r => r.KeyId == arn && r.Limit == 50),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new ListResourceTagsResponse
+                {
+                    Tags = tags.Select(x => new Tag { TagKey = x.Key, TagValue = x.Value })
+                        .ToList(),
+                }
+            )
+            .Verifiable();
+
+    private void SetupDescribe(string arn, KeyManagerType manager, KeyState state) =>
+        Client
+            .Setup(x =>
+                x.DescribeKeyAsync(
+                    It.Is<DescribeKeyRequest>(r => r.KeyId == arn),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new DescribeKeyResponse
+                {
+                    KeyMetadata = new KeyMetadata
+                    {
+                        KeyManager = manager,
+                        KeyState = state,
+                        CreationDate = CreationDate,
+                    },
+                }
+            )
+            .Verifiable();
+
+    private static ListKeysResponse CreateKeysPage(string? nextMarker, params string[] arns) =>
+        new()
+        {
+            Keys = arns.Select(x => new KeyListEntry { KeyArn = x }).ToList(),
+            Truncated = nextMarker is not null,
+            NextMarker = nextMarker,
+        };
+
+    [Fact]
+    public async Task ListKeysAsync_MatchingKey_ListsItWithItsTagsAndCreationDate()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupClient<ListResourceTagsResponse>("us-west-2");
+        SetupClient<DescribeKeyResponse>("us-west-2");
+        SetupListKeys(null, CreateKeysPage(null, KeyArn));
+        SetupListTags(
+            KeyArn,
+            (AwsKmsRemoteKeyProvider.GroupTagKey, "ncid-group-1"),
+            (AwsKmsRemoteKeyProvider.DeploymentTagKey, "deployment-1"),
+            (AwsKmsRemoteKeyProvider.OwnerTagKey, "tenant-1"),
+            (AwsKmsRemoteKeyProvider.SecretTagKey, "secret-1")
+        );
+        SetupDescribe(KeyArn, KeyManagerType.CUSTOMER, KeyState.Enabled);
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        var listing = Assert.Single(listings);
+        Assert.Equal(KeyArn, listing.KeyId);
+        Assert.Equal("ncid-group-1", listing.GroupName);
+        Assert.Equal(new DateTimeOffset(CreationDate), listing.CreatedWhen);
+        Assert.Equal("tenant-1", listing.OwnerId);
+        Assert.Equal("secret-1", listing.SecretId);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_KeyOfAnotherDeployment_SkipsIt()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupClient<ListResourceTagsResponse>("us-west-2");
+        SetupListKeys(null, CreateKeysPage(null, KeyArn));
+        SetupListTags(
+            KeyArn,
+            (AwsKmsRemoteKeyProvider.GroupTagKey, "ncid-group-1"),
+            (AwsKmsRemoteKeyProvider.DeploymentTagKey, "deployment-2")
+        );
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_KeyWithoutTheGroupPrefix_SkipsIt()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupClient<ListResourceTagsResponse>("us-west-2");
+        SetupListKeys(null, CreateKeysPage(null, KeyArn));
+        SetupListTags(
+            KeyArn,
+            (AwsKmsRemoteKeyProvider.GroupTagKey, "other-group-1"),
+            (AwsKmsRemoteKeyProvider.DeploymentTagKey, "deployment-1")
+        );
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_KeyWithoutTags_SkipsIt()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupClient<ListResourceTagsResponse>("us-west-2");
+        SetupListKeys(null, CreateKeysPage(null, KeyArn));
+        SetupListTags(KeyArn);
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_KeyPendingDeletion_SkipsIt()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupClient<ListResourceTagsResponse>("us-west-2");
+        SetupClient<DescribeKeyResponse>("us-west-2");
+        SetupListKeys(null, CreateKeysPage(null, KeyArn));
+        SetupListTags(
+            KeyArn,
+            (AwsKmsRemoteKeyProvider.GroupTagKey, "ncid-group-1"),
+            (AwsKmsRemoteKeyProvider.DeploymentTagKey, "deployment-1")
+        );
+        SetupDescribe(KeyArn, KeyManagerType.CUSTOMER, KeyState.PendingDeletion);
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_AwsManagedKey_SkipsIt()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupClient<ListResourceTagsResponse>("us-west-2");
+        SetupClient<DescribeKeyResponse>("us-west-2");
+        SetupListKeys(null, CreateKeysPage(null, KeyArn));
+        SetupListTags(
+            KeyArn,
+            (AwsKmsRemoteKeyProvider.GroupTagKey, "ncid-group-1"),
+            (AwsKmsRemoteKeyProvider.DeploymentTagKey, "deployment-1")
+        );
+        SetupDescribe(KeyArn, KeyManagerType.AWS, KeyState.Enabled);
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_TagsAccessDenied_SkipsIt()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupClient<ListResourceTagsResponse>("us-west-2");
+        SetupListKeys(null, CreateKeysPage(null, KeyArn));
+        Client
+            .Setup(x =>
+                x.ListResourceTagsAsync(
+                    It.Is<ListResourceTagsRequest>(r => r.KeyId == KeyArn),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(
+                new AmazonKeyManagementServiceException("denied")
+                {
+                    ErrorCode = "AccessDeniedException",
+                }
+            )
+            .Verifiable();
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_KeyDeletedBeforeItsTagsAreRead_SkipsIt()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupClient<ListResourceTagsResponse>("us-west-2");
+        SetupListKeys(null, CreateKeysPage(null, KeyArn));
+        Client
+            .Setup(x =>
+                x.ListResourceTagsAsync(
+                    It.Is<ListResourceTagsRequest>(r => r.KeyId == KeyArn),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new NotFoundException("missing"))
+            .Verifiable();
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_TruncatedPage_FollowsNextMarker()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupClient<ListResourceTagsResponse>("us-west-2");
+        SetupClient<DescribeKeyResponse>("us-west-2");
+        SetupListKeys("marker-1", CreateKeysPage(null, OtherKeyArn));
+        SetupListKeys(null, CreateKeysPage("marker-1", KeyArn));
+        foreach (var arn in new[] { KeyArn, OtherKeyArn })
+        {
+            SetupListTags(
+                arn,
+                (AwsKmsRemoteKeyProvider.GroupTagKey, "ncid-group-1"),
+                (AwsKmsRemoteKeyProvider.DeploymentTagKey, "deployment-1")
+            );
+            SetupDescribe(arn, KeyManagerType.CUSTOMER, KeyState.Enabled);
+        }
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Equal([KeyArn, OtherKeyArn], listings.Select(x => x.KeyId));
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_ServiceReturnsNoKeys_ListsNothing()
+    {
+        SetupClient<ListKeysResponse>("us-west-2");
+        SetupListKeys(null, new ListKeysResponse { Keys = null, Truncated = null });
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_RegionUnset_Throws()
+    {
+        var provider = CreateProvider(region: null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ListAsync(provider));
     }
 
     #endregion

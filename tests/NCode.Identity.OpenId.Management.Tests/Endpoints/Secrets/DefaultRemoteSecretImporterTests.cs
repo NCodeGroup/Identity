@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
@@ -40,8 +39,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Importer = new DefaultRemoteSecretImporter(
             ServiceProvider.GetRequiredService<ISecretGenerator>(),
             ServiceProvider.GetRequiredService<ISecretSerializer>(),
-            ServiceProvider.GetRequiredService<IJoseSerializer>(),
-            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            ServiceProvider.GetRequiredService<IRemoteKeyProver>(),
             NullLogger<DefaultRemoteSecretImporter>.Instance
         );
     }

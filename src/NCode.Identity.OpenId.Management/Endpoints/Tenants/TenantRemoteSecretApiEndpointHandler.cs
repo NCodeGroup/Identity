@@ -17,6 +17,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 
@@ -178,7 +179,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
                 cancellationToken
             );
         }
-        catch (RemoteSecretRefusedException exception)
+        catch (RemoteKeyRefusedException exception)
         {
             Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(

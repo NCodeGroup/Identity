@@ -16,8 +16,8 @@ starts
 The host chart deploys the console
 ([ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)) and
 refuses a release the host would refuse
-([ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). The chart
-wires the two key rings only as PEM Secrets, so the console's private keys stay in the memory of every replica.
+([ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). A console
+whose keys exist only as PEM files keeps its private keys in the memory of every replica.
 
 A remote key provider registers when its `SecretProtection:RemoteKeyProviders:<Vendor>` section exists, and its options
 validator requires `Region`, `VaultUri` or `KeyRing`. The provider uses that value only to create and list keys. It

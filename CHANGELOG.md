@@ -3642,6 +3642,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#475](https://github.com/NCodeGroup/Identity/issues/475), [#476](https://github.com/NCodeGroup/Identity/issues/476),
   [#477](https://github.com/NCodeGroup/Identity/issues/477), [#490](https://github.com/NCodeGroup/Identity/issues/490)).
 
+- **The build reports a field that could be an auto-property.** `NCode.Identity.Analyzers`, the repository's own Roslyn
+  analyzer project, which every project of the solution loads and no package ships, fails the build with `NCID0001` on
+  a field, instance or static, unless it is a `const`, a `ref` field, a `volatile` or fixed-size buffer field, a field
+  of a `[StructLayout]` or `[InlineArray]` struct, or a field the code uses by reference: passed as `ref`, `out` or `in`
+  (as `Interlocked`, `Volatile` and `LazyInitializer` take it), taken with `ref` or `&`, or a mutable struct called or
+  written in place. A field in generated code is reported only when a `#line` directive maps it to a hand-written file,
+  as a Razor `@code` block's field is, and the analyzer's tests compile their snippets against the test host's own
+  assemblies ([#713](https://github.com/NCodeGroup/Identity/issues/713),
+  [#714](https://github.com/NCodeGroup/Identity/issues/714),
+  [ADR-1486](docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)).
+
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`; `.editorconfig` sets the header as
   `file_header_template` and raises `IDE0073` to `warning`, so a file whose header is missing or differs fails the build

@@ -390,7 +390,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
     [InlineData("GET", "/principals/{principalId}", new[] { 401, 403, 404 })]
     [InlineData("POST", "/principals/{principalId}/block", new[] { 401, 403, 404, 412 })]
     [InlineData("POST", "/principals/{principalId}/unblock", new[] { 401, 403, 404, 412 })]
-    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+    public async Task Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -399,6 +399,13 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+        Assert.Empty(
+            await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern
+            )
         );
     }
 

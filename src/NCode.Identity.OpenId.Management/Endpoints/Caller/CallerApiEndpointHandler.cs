@@ -35,9 +35,11 @@ GET api/me/tenants
 /// Provides the API endpoints that tell the caller of the management API where it holds authority: the principal it
 /// acts as, whether it administers the platform, the role assignments it holds, and the teams and tenants it holds a
 /// role at. Authority stays per resource and the token names no team, so every answer is read from the caller's role
-/// assignments at the time of the request.
+/// assignments at the time of the request. It answers only a caller that the management authentication filter
+/// authenticated from a management access token, which it reads from <see cref="IManagementCallerFeature"/>; any other
+/// request gets the authentication-required problem.
 /// </summary>
-// See ADR-1420
+// See ADR-1420 and ADR-1484.
 internal class CallerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
@@ -53,7 +55,10 @@ internal class CallerApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var me = endpoints.MapGroup("/me").WithTags(OpenIdConstants.EndpointTags.Caller);
+        var me = endpoints
+            .MapGroup("/me")
+            .WithTags(OpenIdConstants.EndpointTags.Caller)
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
 
         me.MapGet("", GetCallerAsync).Produces<CallerResource>();
         me.MapGet("/teams", ListTeamsAsync).Produces<CollectionResource<TeamResource>>();
@@ -91,6 +96,10 @@ internal class CallerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var caller = httpContext.Features.Get<IManagementCallerFeature>()?.Caller;
+        if (caller is null)
+            return ManagementProblems.AuthenticationRequired();
+
         var openIdContext = httpContext.GetOpenIdContext();
 
         using var scope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
@@ -98,13 +107,13 @@ internal class CallerApiEndpointHandler(
 
         var (principalId, assignments) = await GetAssignmentsAsync(
             openIdContext,
-            httpContext.User,
+            caller,
             storeManager,
             cancellationToken
         );
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
+            caller,
             ResourceNode.For(
                 openIdContext.Tenant.TenantId,
                 ResourceNodeTypes.Platform,
@@ -199,6 +208,10 @@ internal class CallerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var caller = httpContext.Features.Get<IManagementCallerFeature>()?.Caller;
+        if (caller is null)
+            return ManagementProblems.AuthenticationRequired();
+
         var openIdContext = httpContext.GetOpenIdContext();
 
         using var scope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
@@ -206,7 +219,7 @@ internal class CallerApiEndpointHandler(
 
         var (_, assignments) = await GetAssignmentsAsync(
             openIdContext,
-            httpContext.User,
+            caller,
             storeManager,
             cancellationToken
         );

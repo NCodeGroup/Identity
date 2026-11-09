@@ -19,16 +19,16 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 public class DefaultMasterKeyRingTests : BaseTests
 {
     // The mixed case proves that the ring matches owners without regard to case.
-    private static readonly SecretOwner Owner = SecretOwner.ForTenant("Tenant-A");
+    private static SecretOwner Owner { get; } = SecretOwner.ForTenant("Tenant-A");
 
-    private static readonly SecretOwner NormalizedOwner = Owner.Normalize();
+    private static SecretOwner NormalizedOwner { get; } = Owner.Normalize();
 
     // A second owner, to prove that different owners do not wait for each other.
-    private static readonly SecretOwner OtherOwner = SecretOwner.ForTenant("Tenant-B");
+    private static SecretOwner OtherOwner { get; } = SecretOwner.ForTenant("Tenant-B");
 
-    private static readonly SecretOwner NormalizedOtherOwner = OtherOwner.Normalize();
+    private static SecretOwner NormalizedOtherOwner { get; } = OtherOwner.Normalize();
 
-    private static readonly SecretProtectionContext Context =
+    private static SecretProtectionContext Context { get; } =
         SecretProtectionContext.ForPersistedSecret("secret-1");
 
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;

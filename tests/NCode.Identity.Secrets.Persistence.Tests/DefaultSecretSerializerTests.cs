@@ -21,39 +21,42 @@ namespace NCode.Identity.Secrets.Persistence;
 
 public class DefaultSecretSerializerTests : BaseTests
 {
-    private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
+    private static SecretOwner TenantOwner { get; } = SecretOwner.ForTenant("tenant-one");
 
-    private static readonly RemoteSigningAlgorithm RsaRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "RS256",
-        SecretType = SecretTypes.Rsa,
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
-    };
+    private static RemoteSigningAlgorithm RsaRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RS256",
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
+        };
 
-    private static readonly RemoteSigningAlgorithm EccRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "ES256",
-        SecretType = SecretTypes.Ecc,
-        KeySizeBits = 256,
-        Curve = "P-256",
-        KeySpec = "ECC_NIST_P256",
-        SigningAlgorithm = "ECDSA_SHA_256",
-        IsDerEncodedSignature = true,
-    };
+    private static RemoteSigningAlgorithm EccRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ES256",
+            SecretType = SecretTypes.Ecc,
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            SigningAlgorithm = "ECDSA_SHA_256",
+            IsDerEncodedSignature = true,
+        };
 
-    private static readonly RemoteDecryptionAlgorithm OaepRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "RSA-OAEP-256",
-        SecretType = SecretTypes.Rsa,
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
-    };
+    private static RemoteDecryptionAlgorithm OaepRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
 
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;

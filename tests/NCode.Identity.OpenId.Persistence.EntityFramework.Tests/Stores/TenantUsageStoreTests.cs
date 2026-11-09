@@ -17,7 +17,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     private const string Requests = "requests";
     private const string TokenRequests = "token_requests";
 
-    private static readonly DateOnly Day = new(2026, 10, 21);
+    private static DateOnly Day { get; } = new(2026, 10, 21);
 
     private readonly SqliteConnection _connection;
     private readonly ServiceProvider _provider;

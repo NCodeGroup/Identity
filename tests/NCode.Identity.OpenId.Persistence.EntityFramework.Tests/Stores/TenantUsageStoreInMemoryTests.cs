@@ -14,7 +14,7 @@ public sealed class TenantUsageStoreInMemoryTests : IDisposable
     private const string TenantId = "tenant-1";
     private const string Requests = "requests";
 
-    private static readonly DateOnly Day = new(2026, 10, 21);
+    private static DateOnly Day { get; } = new(2026, 10, 21);
 
     private readonly ServiceProvider _provider;
 

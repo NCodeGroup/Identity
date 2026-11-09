@@ -1079,7 +1079,7 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
 
     #region Protected Payload Tests
 
-    private static readonly string[] PayloadPrefix = ["prot"];
+    private static string[] PayloadPrefix { get; } = ["prot"];
 
     [Fact]
     public async Task GetProtectedPayloadPageAsync_ReturnsOnlyThePayloadsThatStartWithAPrefix()

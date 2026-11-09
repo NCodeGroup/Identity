@@ -19,7 +19,7 @@ public sealed class MasterKeyStoreTests : IDisposable
     private const string TenantOneId = "Tenant-One";
     private const string TenantTwoId = "tenant-two";
 
-    private static readonly DateTimeOffset CreatedWhen = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset CreatedWhen { get; } = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
 
     private readonly SqliteConnection _connection;
     private readonly ServiceProvider _provider;

@@ -626,6 +626,13 @@ than inlining the rationale.
   [ADR-1481](../../docs/decisions/1481-a-management-routes-problem-responses-say-when-each-occurs.md),
   [ADR-1482](../../docs/decisions/1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md) and
   [ADR-1483](../../docs/decisions/1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md).
+- 👁 **A management route reads its caller only from what `ManagementAuthenticationEndpointFilter` published.** The
+  filter sets `HttpContext.User` to the principal a valid management access token authenticates, or to an anonymous
+  principal whatever an authentication scheme set, and sets `IManagementCallerFeature` only for that authenticated
+  caller. A route that authorizes reads `HttpContext.User`; a route that only authenticates its caller, such as
+  `GET /api/capabilities` and `GET /api/me`, reads `IManagementCallerFeature`, answers
+  `ManagementProblems.AuthenticationRequired()` without it and declares `401` and no `403`. See
+  [ADR-1484](../../docs/decisions/1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md).
 - 👁 **A stored settings document that cannot be honored is answered `409` once, by the management route group.** A
   management request resolves a document a store holds with
   `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the platform's committed one

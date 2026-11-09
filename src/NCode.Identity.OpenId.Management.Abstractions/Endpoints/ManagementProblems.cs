@@ -14,6 +14,15 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 public static class ManagementProblems
 {
     /// <summary>
+    /// Creates the <c>401 Unauthorized</c> problem for a request that carries no valid management access token.
+    /// </summary>
+    public static ProblemHttpResult AuthenticationRequired() =>
+        TypedResults.Problem(
+            detail: "Authentication is required.",
+            statusCode: StatusCodes.Status401Unauthorized
+        );
+
+    /// <summary>
     /// Creates the <c>404 Not Found</c> problem for a resource that the request names and that does not exist.
     /// </summary>
     public static ProblemHttpResult ResourceNotFound() =>

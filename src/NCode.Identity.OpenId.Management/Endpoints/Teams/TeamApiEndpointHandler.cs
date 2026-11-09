@@ -133,10 +133,12 @@ internal class TeamApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         teams
             .MapGet("", ListTeamsAsync)
             .Produces<CollectionResource<TeamResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
         teams
@@ -153,7 +155,8 @@ internal class TeamApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         teams
             .MapDelete("/{teamId}", DeleteTeamAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -171,10 +174,12 @@ internal class TeamApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         teams
             .MapGet("/{teamId}/teams", ListChildTeamsAsync)
             .Produces<CollectionResource<TeamResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
@@ -197,7 +202,8 @@ internal class TeamApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         teams
             .MapGet("/{teamId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<TeamEffectiveSettingsResource>()
@@ -227,7 +233,8 @@ internal class TeamApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         teams
             .MapDelete("/{teamId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -252,7 +259,8 @@ internal class TeamApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         teams
             .MapDelete("/{teamId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -322,6 +330,8 @@ internal class TeamApiEndpointHandler(
     /// <param name="request">The <see cref="CreateTeamRequest"/> describing the team to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created team.</response>
+    /// <response code="400">The team identifier is not 1 to 63 lowercase letters, digits or hyphens that starts and ends with a letter or digit, the display name is missing, or the settings are not valid for a team.</response>
+    /// <response code="409">A team with the identifier already exists, or the identifier belonged to a deleted team and cannot be reused.</response>
     [EndpointName("api/teams/create")]
     internal virtual async ValueTask<IResult> CreateTeamAsync(
         HttpContext httpContext,
@@ -337,9 +347,10 @@ internal class TeamApiEndpointHandler(
     /// <param name="request">The <see cref="CreateTeamRequest"/> describing the team to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created team.</response>
+    /// <response code="400">The team identifier is not 1 to 63 lowercase letters, digits or hyphens that starts and ends with a letter or digit, the display name is missing, or the settings are not valid for a team.</response>
     /// <response code="403">The caller lacks <c>Create</c> at the parent team.</response>
     /// <response code="404">The parent team does not exist.</response>
-    /// <response code="409">The parent is the platform's own team, the team would be nested too deep, or a team above it holds its maximum number of teams.</response>
+    /// <response code="409">The parent is the platform's own team, a team with the identifier already exists, the identifier belonged to a deleted team and cannot be reused, the team would be nested too deep, or a team above it holds its maximum number of teams.</response>
     // See ADR-1424 and ADR-1426.
     [EndpointName("api/teams/teams/create")]
     internal virtual async ValueTask<IResult> CreateChildTeamAsync(
@@ -575,6 +586,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The requested team.</response>
+    /// <response code="404">The team does not exist.</response>
     [EndpointName("api/teams/get")]
     internal virtual async ValueTask<IResult> GetTeamAsync(
         HttpContext httpContext,
@@ -606,7 +618,10 @@ internal class TeamApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team was updated.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the team, or the patched display name is missing.</response>
     /// <response code="403">The caller lacks authority at the team, or at the node above it.</response>
+    /// <response code="404">The team does not exist.</response>
+    /// <response code="409">The patch disables the platform's own team.</response>
     [EndpointName("api/teams/update")]
     internal virtual async ValueTask<IResult> UpdateTeamAsync(
         HttpContext httpContext,
@@ -700,7 +715,8 @@ internal class TeamApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team was deleted.</response>
     /// <response code="403">The caller lacks authority at the team, or at the node above it.</response>
-    /// <response code="409">The team is the platform's own team or still has tenants or teams, and cannot be deleted.</response>
+    /// <response code="404">The team does not exist.</response>
+    /// <response code="409">The team is the platform's own team or still has tenants, teams or machine clients, and cannot be deleted.</response>
     [EndpointName("api/teams/delete")]
     internal virtual async ValueTask<IResult> DeleteTeamAsync(
         HttpContext httpContext,
@@ -769,6 +785,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The team's settings.</response>
+    /// <response code="404">The team does not exist.</response>
     [EndpointName("api/teams/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
@@ -799,6 +816,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The team's setting limits.</response>
+    /// <response code="404">The team does not exist.</response>
     // See ADR-1448.
     [EndpointName("api/teams/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
@@ -841,6 +859,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The team's effective settings.</response>
+    /// <response code="404">The team does not exist.</response>
     [EndpointName("api/teams/effective-settings/get")]
     internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
         HttpContext httpContext,
@@ -883,6 +902,9 @@ internal class TeamApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team's settings were updated.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the settings, the patched settings are not valid for a team, or a client in the team or beneath it holds a value the patched settings do not permit.</response>
+    /// <response code="403">The caller lacks <c>Update</c> at the team, or the patch changes a limit and the caller lacks <c>Update</c> at the node above the team.</response>
+    /// <response code="404">The team does not exist.</response>
     [EndpointName("api/teams/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
@@ -1191,6 +1213,7 @@ internal class TeamApiEndpointHandler(
     /// Lists a team's owners and whether the caller may grant and revoke the role.
     /// </summary>
     /// <response code="200">The team's owners and whether the caller may change them.</response>
+    /// <response code="404">The team does not exist.</response>
     [EndpointName("api/teams/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -1213,6 +1236,9 @@ internal class TeamApiEndpointHandler(
     /// </summary>
     /// <response code="201">The owner was added.</response>
     /// <response code="200">The principal already owns the team.</response>
+    /// <response code="400">The request names no principal.</response>
+    /// <response code="404">The team does not exist.</response>
+    /// <response code="409">The principal is a client that cannot own the team.</response>
     [EndpointName("api/teams/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -1235,6 +1261,7 @@ internal class TeamApiEndpointHandler(
     /// Removes an owner from a team.
     /// </summary>
     /// <response code="204">The owner was removed.</response>
+    /// <response code="404">The team does not exist, or the principal is not an owner of it.</response>
     /// <response code="409">The owner is the team's last owner.</response>
     [EndpointName("api/teams/owners/remove")]
     internal virtual async ValueTask<IResult> RemoveOwnerAsync(
@@ -1253,6 +1280,7 @@ internal class TeamApiEndpointHandler(
     /// caller may grant and revoke the role.
     /// </summary>
     /// <response code="200">The team's administrators and whether the caller may change them.</response>
+    /// <response code="404">The team does not exist.</response>
     [EndpointName("api/teams/admins/list")]
     internal virtual async ValueTask<IResult> ListAdminsAsync(
         HttpContext httpContext,
@@ -1276,6 +1304,9 @@ internal class TeamApiEndpointHandler(
     /// </summary>
     /// <response code="201">The administrator was added.</response>
     /// <response code="200">The principal already administers the team.</response>
+    /// <response code="400">The request names no principal.</response>
+    /// <response code="404">The team does not exist.</response>
+    /// <response code="409">The principal is a client that cannot administer the team.</response>
     [EndpointName("api/teams/admins/add")]
     internal virtual async ValueTask<IResult> AddAdminAsync(
         HttpContext httpContext,
@@ -1299,6 +1330,7 @@ internal class TeamApiEndpointHandler(
     /// team administrator or a global administrator at the team or above can revoke it.
     /// </summary>
     /// <response code="204">The administrator was removed.</response>
+    /// <response code="404">The team does not exist, or the principal is not an administrator of it.</response>
     [EndpointName("api/teams/admins/remove")]
     internal virtual async ValueTask<IResult> RemoveAdminAsync(
         HttpContext httpContext,

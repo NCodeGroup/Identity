@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md): each algorithm in the
-  `algorithms` section lists its compatible secret types with the key sizes and curves legal for each)
+  `algorithms` section lists its compatible secret types with the key sizes and curves legal for each; amended by
+  [ADR-1482](1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md): only an authenticated
+  management caller reads the document)
 - **Date:** 2026-10-11
 - **Deciders:** NCode.Identity maintainers
 

@@ -919,14 +919,14 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
     [InlineData(
         "POST",
         "/tenants/{tenantId}/secrets/remote",
-        new[] { 400, 401, 403, 404, 409, 412, 502 }
+        new[] { 400, 401, 403, 404, 409, 412, 415, 502 }
     )]
     [InlineData(
         "POST",
         "/tenants/{tenantId}/secrets/remote/import",
-        new[] { 400, 401, 403, 404, 409, 412, 502 }
+        new[] { 400, 401, 403, 404, 409, 412, 415, 502 }
     )]
-    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+    public async Task Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -935,6 +935,13 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(
+                CreateHandler(),
+                httpMethod,
+                routePattern
+            )
+        );
+        Assert.Empty(
+            await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
                 CreateHandler(),
                 httpMethod,
                 routePattern

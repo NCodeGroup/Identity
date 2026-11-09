@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,28 @@ public class ManagementRouteProblemDeclarationTests
             .Select(metadata => metadata.StatusCode)
             .ToHashSet();
 
+    private static bool HasAttribute<TMetadata>(ParameterInfo parameter) =>
+        parameter.GetCustomAttributes(inherit: true).OfType<TMetadata>().Any();
+
+    private static bool CanFailToBind(ParameterInfo parameter)
+    {
+        var bindsRequiredValue =
+            HasAttribute<IFromQueryMetadata>(parameter)
+            || HasAttribute<IFromHeaderMetadata>(parameter);
+        if (!bindsRequiredValue && !HasAttribute<IFromRouteMetadata>(parameter))
+            return false;
+
+        if (
+            (Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType)
+            != typeof(string)
+        )
+            return true;
+
+        return bindsRequiredValue
+            && new NullabilityInfoContext().Create(parameter).ReadState == NullabilityState.NotNull
+            && !parameter.HasDefaultValue;
+    }
+
     #endregion
 
     #region Route Tests
@@ -51,20 +74,19 @@ public class ManagementRouteProblemDeclarationTests
         foreach (var endpoint in endpoints)
         {
             var codes = GetProblemStatusCodes(endpoint);
-            Assert.True(codes.Contains(409) && codes.Contains(503), endpoint.RoutePattern.RawText);
+            Assert.True(
+                codes.Contains(StatusCodes.Status409Conflict)
+                    && codes.Contains(StatusCodes.Status503ServiceUnavailable),
+                endpoint.RoutePattern.RawText
+            );
         }
     }
 
     [Fact]
     public void ManagementRoutes_WhenTheyAuthorizeTheCaller_DeclareUnauthorizedAndForbidden()
     {
-        string[] unauthorizedNames =
-        [
-            "api/me/get",
-            "api/me/teams/list",
-            "api/me/tenants/list",
-            "api/capabilities/get",
-        ];
+        string[] anyCallerNames = ["api/me/get", "api/me/teams/list", "api/me/tenants/list"];
+        string[] authenticatedCallerNames = ["api/capabilities/get"];
 
         using var factory = new HostApplicationFactory();
 
@@ -73,7 +95,7 @@ public class ManagementRouteProblemDeclarationTests
         var endpointNames = endpoints
             .Select(e => e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName)
             .ToHashSet();
-        foreach (var name in unauthorizedNames)
+        foreach (var name in anyCallerNames.Concat(authenticatedCallerNames))
         {
             Assert.Contains(name, endpointNames);
         }
@@ -81,14 +103,90 @@ public class ManagementRouteProblemDeclarationTests
         foreach (var endpoint in endpoints)
         {
             var name = endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName;
-            if (name is not null && unauthorizedNames.Contains(name))
+            if (
+                name is not null
+                && (anyCallerNames.Contains(name) || authenticatedCallerNames.Contains(name))
+            )
             {
                 continue;
             }
 
             var codes = GetProblemStatusCodes(endpoint);
-            Assert.True(codes.Contains(401) && codes.Contains(403), endpoint.RoutePattern.RawText);
+            Assert.True(
+                codes.Contains(StatusCodes.Status401Unauthorized)
+                    && codes.Contains(StatusCodes.Status403Forbidden),
+                endpoint.RoutePattern.RawText
+            );
         }
+    }
+
+    [Fact]
+    public void ManagementRoutes_WhenTheyOnlyAuthenticateTheCaller_DeclareUnauthorizedButNotForbidden()
+    {
+        string[] authenticatedCallerNames = ["api/capabilities/get"];
+
+        using var factory = new HostApplicationFactory();
+
+        var endpoints = GetManagementEndpoints(factory);
+
+        foreach (var name in authenticatedCallerNames)
+        {
+            var endpoint = Assert.Single(
+                endpoints,
+                e => e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName == name
+            );
+
+            var codes = GetProblemStatusCodes(endpoint);
+            Assert.Contains(StatusCodes.Status401Unauthorized, codes);
+            Assert.DoesNotContain(StatusCodes.Status403Forbidden, codes);
+        }
+    }
+
+    [Fact]
+    public void ManagementRoutes_WhenTheyBindABody_DeclareBadRequestAndUnsupportedMediaType()
+    {
+        using var factory = new HostApplicationFactory();
+
+        var matched = 0;
+        foreach (var endpoint in GetManagementEndpoints(factory))
+        {
+            var method = endpoint.Metadata.OfType<MethodInfo>().FirstOrDefault();
+            if (method is null || !method.GetParameters().Any(HasAttribute<IFromBodyMetadata>))
+            {
+                continue;
+            }
+
+            matched++;
+            var codes = GetProblemStatusCodes(endpoint);
+            Assert.True(
+                codes.Contains(StatusCodes.Status400BadRequest)
+                    && codes.Contains(StatusCodes.Status415UnsupportedMediaType),
+                endpoint.RoutePattern.RawText
+            );
+        }
+
+        Assert.NotEqual(0, matched);
+    }
+
+    [Fact]
+    public void ManagementRoutes_WhenAParameterCanFailToBind_DeclareBadRequest()
+    {
+        using var factory = new HostApplicationFactory();
+
+        var matched = 0;
+        foreach (var endpoint in GetManagementEndpoints(factory))
+        {
+            var method = endpoint.Metadata.OfType<MethodInfo>().FirstOrDefault();
+            if (method is null || !method.GetParameters().Any(CanFailToBind))
+            {
+                continue;
+            }
+
+            matched++;
+            Assert.Contains(StatusCodes.Status400BadRequest, GetProblemStatusCodes(endpoint));
+        }
+
+        Assert.NotEqual(0, matched);
     }
 
     #endregion

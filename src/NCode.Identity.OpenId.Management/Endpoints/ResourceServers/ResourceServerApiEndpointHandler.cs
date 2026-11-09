@@ -126,6 +126,7 @@ internal class ResourceServerApiEndpointHandler(
         resourceServers
             .MapGet("", ListAsync)
             .Produces<CollectionResource<ResourceServerResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
         resourceServers
@@ -135,7 +136,8 @@ internal class ResourceServerApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         resourceServers
             .MapGet("/{resourceServerId}", GetAsync)
             .Produces<ResourceServerResource>()
@@ -149,7 +151,8 @@ internal class ResourceServerApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         resourceServers
             .MapDelete("/{resourceServerId}", DeleteAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -168,11 +171,13 @@ internal class ResourceServerApiEndpointHandler(
         resourceServers
             .MapPost("/{resourceServerId}/scopes", CreateScopeAsync)
             .Produces<ScopeResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         resourceServers
             .MapGet("/{resourceServerId}/scopes/{scopeValue}", GetScopeAsync)
             .Produces<ScopeResource>()
@@ -182,10 +187,12 @@ internal class ResourceServerApiEndpointHandler(
         resourceServers
             .MapPut("/{resourceServerId}/scopes/{scopeValue}", UpdateScopeAsync)
             .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         resourceServers
             .MapDelete("/{resourceServerId}/scopes/{scopeValue}", DeleteScopeAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -214,7 +221,8 @@ internal class ResourceServerApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         resourceServers
             .MapGet("/{resourceServerId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<ResourceServerEffectiveSettingsResource>()
@@ -238,6 +246,7 @@ internal class ResourceServerApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .WithNoStore();
         resourceServers
             .MapPost("/{resourceServerId}/secrets/import", ImportSecretAsync)
@@ -247,7 +256,8 @@ internal class ResourceServerApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         resourceServers
             .MapGet("/{resourceServerId}/secrets/{secretId}", GetSecretAsync)
             .Produces<SecretResource>()
@@ -267,7 +277,8 @@ internal class ResourceServerApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         resourceServers
             .MapDelete("/{resourceServerId}/secrets/{secretId}", DeleteSecretAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -291,7 +302,8 @@ internal class ResourceServerApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         resourceServers
             .MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -389,6 +401,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Gets a resource server (API).
     /// </summary>
     /// <response code="200">The requested resource server.</response>
+    /// <response code="404">The resource server does not exist.</response>
     [EndpointName("api/resource-servers/get")]
     internal virtual async ValueTask<IResult> GetAsync(
         HttpContext httpContext,
@@ -417,6 +430,8 @@ internal class ResourceServerApiEndpointHandler(
     /// Creates a resource server (API).
     /// </summary>
     /// <response code="201">The created resource server.</response>
+    /// <response code="400">The settings are not valid for a resource server.</response>
+    /// <response code="409">A resource server with the same identifier already exists.</response>
     [EndpointName("api/resource-servers/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
         HttpContext httpContext,
@@ -531,6 +546,8 @@ internal class ResourceServerApiEndpointHandler(
     /// Updates a resource server (API).
     /// </summary>
     /// <response code="204">The resource server was updated.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the resource server.</response>
+    /// <response code="404">The resource server does not exist.</response>
     [EndpointName("api/resource-servers/update")]
     internal virtual async ValueTask<IResult> UpdateAsync(
         HttpContext httpContext,
@@ -610,6 +627,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Deletes a resource server (API).
     /// </summary>
     /// <response code="204">The resource server was deleted.</response>
+    /// <response code="404">The resource server does not exist.</response>
     /// <response code="409">The resource server is a system server, is referenced by a client grant, or a client acts for it.</response>
     [EndpointName("api/resource-servers/delete")]
     internal virtual async ValueTask<IResult> DeleteAsync(
@@ -669,6 +687,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Lists a resource server's scopes.
     /// </summary>
     /// <response code="200">The resource server's scopes.</response>
+    /// <response code="404">The resource server does not exist.</response>
     [EndpointName("api/resource-servers/scopes/list")]
     internal virtual async ValueTask<IResult> ListScopesAsync(
         HttpContext httpContext,
@@ -697,6 +716,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Creates a scope on a resource server.
     /// </summary>
     /// <response code="201">The created scope.</response>
+    /// <response code="404">The resource server does not exist.</response>
     /// <response code="409">A scope with the same value already exists.</response>
     // See ADR-1480.
     [EndpointName("api/resource-servers/scopes/create")]
@@ -774,6 +794,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Gets a scope on a resource server.
     /// </summary>
     /// <response code="200">The requested scope.</response>
+    /// <response code="404">The resource server or the scope does not exist.</response>
     [EndpointName("api/resource-servers/scopes/get")]
     internal virtual async ValueTask<IResult> GetScopeAsync(
         HttpContext httpContext,
@@ -806,6 +827,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Updates a scope on a resource server.
     /// </summary>
     /// <response code="204">The scope was updated.</response>
+    /// <response code="404">The resource server or the scope does not exist.</response>
     // See ADR-1480.
     [EndpointName("api/resource-servers/scopes/update")]
     internal virtual async ValueTask<IResult> UpdateScopeAsync(
@@ -878,6 +900,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Deletes a scope on a resource server.
     /// </summary>
     /// <response code="204">The scope was deleted.</response>
+    /// <response code="404">The resource server or the scope does not exist.</response>
     /// <response code="409">The scope is a system scope and cannot be removed.</response>
     // See ADR-1480.
     [EndpointName("api/resource-servers/scopes/delete")]
@@ -948,6 +971,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Lists a resource server's owners and whether the caller may grant and revoke the role.
     /// </summary>
     /// <response code="200">The resource server's owners and whether the caller may change them.</response>
+    /// <response code="404">The resource server does not exist.</response>
     [EndpointName("api/resource-servers/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -971,6 +995,9 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="201">The owner was added.</response>
     /// <response code="200">The principal already owns the resource server.</response>
+    /// <response code="400">The request names no principal.</response>
+    /// <response code="404">The resource server does not exist.</response>
+    /// <response code="409">The principal is a client that cannot own the resource server.</response>
     [EndpointName("api/resource-servers/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -994,6 +1021,8 @@ internal class ResourceServerApiEndpointHandler(
     /// Removes an owner from a resource server.
     /// </summary>
     /// <response code="204">The owner was removed.</response>
+    /// <response code="404">The resource server does not exist, or the principal is not an owner of it.</response>
+    /// <response code="409">The principal is the resource server's last owner.</response>
     [EndpointName("api/resource-servers/owners/remove")]
     internal virtual async ValueTask<IResult> RemoveOwnerAsync(
         HttpContext httpContext,
@@ -1117,6 +1146,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Gets a resource server's persisted settings.
     /// </summary>
     /// <response code="200">The resource server's settings.</response>
+    /// <response code="404">The resource server does not exist.</response>
     [EndpointName("api/resource-servers/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
@@ -1147,6 +1177,7 @@ internal class ResourceServerApiEndpointHandler(
     /// authority over the resource server's tenant.
     /// </summary>
     /// <response code="200">The resource server's setting limits.</response>
+    /// <response code="404">The resource server does not exist.</response>
     // See ADR-1448.
     [EndpointName("api/resource-servers/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
@@ -1190,6 +1221,8 @@ internal class ResourceServerApiEndpointHandler(
     /// Updates a resource server's persisted settings via a JSON Patch document.
     /// </summary>
     /// <response code="204">The settings were updated.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the settings, or the patched settings are not valid for a resource server.</response>
+    /// <response code="404">The resource server does not exist.</response>
     /// <response code="412">The supplied <c>If-Match</c> concurrency token did not match.</response>
     [EndpointName("api/resource-servers/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
@@ -1300,6 +1333,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Gets a resource server's effective (merged) settings.
     /// </summary>
     /// <response code="200">The resource server's effective settings.</response>
+    /// <response code="404">The resource server or its tenant does not exist.</response>
     [EndpointName("api/resource-servers/effective-settings/get")]
     internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
         HttpContext httpContext,
@@ -1347,6 +1381,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Gets the collection of secrets owned by a resource server.
     /// </summary>
     /// <response code="200">The resource server's secrets.</response>
+    /// <response code="404">The resource server does not exist.</response>
     [EndpointName("api/resource-servers/secrets/get")]
     internal virtual async ValueTask<IResult> GetSecretsAsync(
         HttpContext httpContext,
@@ -1376,8 +1411,6 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="201">The created secret, including its one-time key material.</response>
     /// <response code="400">The request is not coherent or the secret could not be generated from its parameters.</response>
-    /// <response code="401">The caller is anonymous.</response>
-    /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The resource server does not exist.</response>
     /// <response code="409">The resource server is a system resource server, which holds no keys, or already holds a secret with the generated identifier.</response>
     /// <response code="412">Another request changed the resource server's secrets after this request read them.</response>
@@ -1496,8 +1529,6 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="201">The imported secret.</response>
     /// <response code="400">The request is not coherent or the key could not be imported.</response>
-    /// <response code="401">The caller is anonymous.</response>
-    /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The resource server does not exist.</response>
     /// <response code="409">The resource server is a system resource server, which holds no keys, or already holds a secret with the generated identifier or the same <c>kid</c>.</response>
     /// <response code="412">Another request changed the resource server's secrets after this request read them.</response>
@@ -1613,6 +1644,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Gets a single secret owned by a resource server.
     /// </summary>
     /// <response code="200">The requested secret.</response>
+    /// <response code="404">The resource server or the secret does not exist.</response>
     [EndpointName("api/resource-servers/secrets/get-one")]
     internal virtual async ValueTask<IResult> GetSecretAsync(
         HttpContext httpContext,
@@ -1648,6 +1680,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Gets the public key for a resource server's secret, or <c>null</c> for a symmetric secret.
     /// </summary>
     /// <response code="200">The requested public key.</response>
+    /// <response code="404">The resource server or the secret does not exist, or the secret holds no public key.</response>
     [EndpointName("api/resource-servers/secrets/get-public-key")]
     internal virtual async ValueTask<IResult> GetPublicKeyAsync(
         HttpContext httpContext,
@@ -1684,6 +1717,8 @@ internal class ResourceServerApiEndpointHandler(
     /// Updates the metadata of a resource server's secret. Key material is immutable.
     /// </summary>
     /// <response code="204">The secret was updated.</response>
+    /// <response code="400">The new metadata is not valid for the secret: an unsupported use or algorithm, a key management service's key whose algorithm changes, or an incoherent lifecycle.</response>
+    /// <response code="404">The resource server or the secret does not exist.</response>
     /// <response code="412">The supplied <c>If-Match</c> concurrency token did not match.</response>
     [EndpointName("api/resource-servers/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
@@ -1763,6 +1798,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Deletes a resource server's secret.
     /// </summary>
     /// <response code="204">The secret was deleted.</response>
+    /// <response code="404">The resource server or the secret does not exist.</response>
     [EndpointName("api/resource-servers/secrets/delete")]
     internal virtual async ValueTask<IResult> DeleteSecretAsync(
         HttpContext httpContext,

@@ -1692,11 +1692,11 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     [Theory]
     [InlineData("GET", "/platform/settings", new[] { 401, 403, 404 })]
     [InlineData("GET", "/platform/settings/limits", new[] { 401, 403 })]
-    [InlineData("PATCH", "/platform/settings", new[] { 400, 401, 403, 404, 412 })]
+    [InlineData("PATCH", "/platform/settings", new[] { 400, 401, 403, 404, 412, 415 })]
     [InlineData("GET", "/platform/effective-settings", new[] { 401, 403, 404 })]
     [InlineData("GET", "/platform/encryption-keys", new[] { 401, 403, 404 })]
     [InlineData("POST", "/platform/encryption-keys/rekey", new[] { 401, 403, 404, 409, 412 })]
-    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+    public async Task Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -1705,6 +1705,13 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+        Assert.Empty(
+            await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern
+            )
         );
     }
 

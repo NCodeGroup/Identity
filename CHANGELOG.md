@@ -975,11 +975,19 @@ Until the first stable release, the [Unreleased] section describes the product a
   identifier, `kid` or scope value its owner already holds, a reserved system scope — never from a store's exception,
   so a store failure is never reported as a conflict or a missing resource, and a write that lost a concurrency race
   answers `412`. Every error it answers is a problem document, `404` included. Each route declares in the OpenAPI
-  document every problem its handler answers and `412` when it writes, and the management route group declares on every
-  route the `409` for a stored settings document it cannot honor and the `503` for an unavailable root key
+  document every problem it answers and `412` when it writes, and each declared problem says when it occurs: a route's
+  documentation describes its own answers, and the management route group describes `401`, `403`, `412`, `415`, the
+  `409` for a stored settings document it cannot honor and the `503` for an unavailable root key on every route. A
+  request whose body is not JSON, is not valid JSON for the operation, or whose parameter is missing or cannot be
+  parsed is answered `400` or `415` as a problem its route declares, and every error under `/api` that carries no
+  body, whichever endpoint answers it — a route's, a failed request binding's, and the router's `404`, `405` and
+  `415` — is a problem document in every host that registers the management library
   ([#689](https://github.com/NCodeGroup/Identity/issues/689), [#700](https://github.com/NCodeGroup/Identity/issues/700),
-  [#701](https://github.com/NCodeGroup/Identity/issues/701),
-  [ADR-1480](docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md)).
+  [#701](https://github.com/NCodeGroup/Identity/issues/701), [#706](https://github.com/NCodeGroup/Identity/issues/706),
+  [#708](https://github.com/NCodeGroup/Identity/issues/708),
+  [ADR-1480](docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
+  [ADR-1481](docs/decisions/1481-a-management-routes-problem-responses-say-when-each-occurs.md),
+  [ADR-1483](docs/decisions/1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -2150,7 +2158,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1214](docs/decisions/1214-a-management-write-that-loses-a-race-is-answered-412.md), issue
   [#261](https://github.com/NCodeGroup/Identity/issues/261)).
 
-- **`GET /api/capabilities` publishes a management discovery document composed from registered providers**
+- **`GET /api/capabilities` publishes a management discovery document composed from registered providers
+  to an authenticated management caller**
   ([ADR-1067](docs/decisions/1067-secret-type-capability-catalog-and-capabilities-discovery.md)). Like the OpenID
   discovery document, the `[JsonExtensionData]` document is assembled from
   `ICommandHandler<DiscoverManagementCapabilitiesCommand>` providers, so a capability is exposed by registering a
@@ -4069,6 +4078,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   management caller, so authority over the root tenant's clients never yields a `GlobalAdmin` token
   ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
   [#556](https://github.com/NCodeGroup/Identity/issues/556)).
+
+- **Only an authenticated management caller reads the management capabilities.** `GET /api/capabilities` answers a
+  request without a valid management access token `401` with a problem, so the deployment's secret types, algorithms
+  and key management services stay undisclosed to anonymous callers
+  ([#707](https://github.com/NCodeGroup/Identity/issues/707),
+  [ADR-1482](docs/decisions/1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md)).
 
 - **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the
   authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a child

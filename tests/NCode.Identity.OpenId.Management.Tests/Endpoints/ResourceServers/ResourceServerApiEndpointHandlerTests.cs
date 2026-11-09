@@ -2637,10 +2637,14 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     #region Map Tests
 
     [Theory]
-    [InlineData("GET", "/resource-servers", new[] { 401, 403 })]
-    [InlineData("POST", "/resource-servers", new[] { 400, 401, 403, 409, 412 })]
+    [InlineData("GET", "/resource-servers", new[] { 400, 401, 403 })]
+    [InlineData("POST", "/resource-servers", new[] { 400, 401, 403, 409, 412, 415 })]
     [InlineData("GET", "/resource-servers/{resourceServerId}", new[] { 401, 403, 404 })]
-    [InlineData("PATCH", "/resource-servers/{resourceServerId}", new[] { 400, 401, 403, 404, 412 })]
+    [InlineData(
+        "PATCH",
+        "/resource-servers/{resourceServerId}",
+        new[] { 400, 401, 403, 404, 412, 415 }
+    )]
     [InlineData(
         "DELETE",
         "/resource-servers/{resourceServerId}",
@@ -2650,7 +2654,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [InlineData(
         "POST",
         "/resource-servers/{resourceServerId}/scopes",
-        new[] { 401, 403, 404, 409, 412 }
+        new[] { 400, 401, 403, 404, 409, 412, 415 }
     )]
     [InlineData(
         "GET",
@@ -2660,7 +2664,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [InlineData(
         "PUT",
         "/resource-servers/{resourceServerId}/scopes/{scopeValue}",
-        new[] { 401, 403, 404, 412 }
+        new[] { 400, 401, 403, 404, 412, 415 }
     )]
     [InlineData(
         "DELETE",
@@ -2676,7 +2680,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [InlineData(
         "PATCH",
         "/resource-servers/{resourceServerId}/settings",
-        new[] { 400, 401, 403, 404, 412 }
+        new[] { 400, 401, 403, 404, 412, 415 }
     )]
     [InlineData(
         "GET",
@@ -2687,12 +2691,12 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [InlineData(
         "POST",
         "/resource-servers/{resourceServerId}/secrets",
-        new[] { 400, 401, 403, 404, 409, 412 }
+        new[] { 400, 401, 403, 404, 409, 412, 415 }
     )]
     [InlineData(
         "POST",
         "/resource-servers/{resourceServerId}/secrets/import",
-        new[] { 400, 401, 403, 404, 409, 412 }
+        new[] { 400, 401, 403, 404, 409, 412, 415 }
     )]
     [InlineData(
         "GET",
@@ -2707,7 +2711,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [InlineData(
         "PUT",
         "/resource-servers/{resourceServerId}/secrets/{secretId}",
-        new[] { 400, 401, 403, 404, 412 }
+        new[] { 400, 401, 403, 404, 412, 415 }
     )]
     [InlineData(
         "DELETE",
@@ -2718,14 +2722,14 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [InlineData(
         "POST",
         "/resource-servers/{resourceServerId}/owners",
-        new[] { 400, 401, 403, 404, 409, 412 }
+        new[] { 400, 401, 403, 404, 409, 412, 415 }
     )]
     [InlineData(
         "DELETE",
         "/resource-servers/{resourceServerId}/owners/{principalId}",
         new[] { 401, 403, 404, 409, 412 }
     )]
-    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+    public async Task Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -2734,6 +2738,13 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+        Assert.Empty(
+            await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern
+            )
         );
     }
 

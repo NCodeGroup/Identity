@@ -170,10 +170,12 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         teamTenants
             .MapGet("", ListTeamTenantsAsync)
             .Produces<CollectionResource<TenantResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
         teamTenants
@@ -186,6 +188,7 @@ internal class TenantApiEndpointHandler(
         tenants
             .MapGet("", ListTenantsAsync)
             .Produces<CollectionResource<TenantResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
         tenants
@@ -202,7 +205,8 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         tenants
             .MapDelete("/{tenantId}", DeleteTenantAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -243,7 +247,8 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         tenants
             .MapGet("/{tenantId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<TenantEffectiveSettingsResource>()
@@ -265,7 +270,8 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         tenants
             .MapPost("/{tenantId}/secrets/import", ImportSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created)
@@ -274,7 +280,8 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         tenants
             .MapGet("/{tenantId}/secrets/{secretId}", GetSecretAsync)
             .Produces<SecretResource>()
@@ -294,7 +301,8 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         tenants
             .MapDelete("/{tenantId}/secrets/{secretId}", DeleteSecretAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -326,6 +334,7 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         tenants
             .MapDelete("/{tenantId}/encryption-keys/root-key", RemoveRootKeyAsync)
@@ -357,7 +366,8 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         tenants
             .MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -382,7 +392,8 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         tenants
             .MapDelete("/{tenantId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -677,6 +688,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The requested tenant.</response>
+    /// <response code="404">The tenant does not exist.</response>
     [EndpointName("api/tenants/get")]
     internal virtual async ValueTask<IResult> GetTenantAsync(
         HttpContext httpContext,
@@ -715,8 +727,9 @@ internal class TenantApiEndpointHandler(
     /// <param name="request">The <see cref="CreateTenantRequest"/> describing the tenant to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created tenant.</response>
+    /// <response code="400">The tenant has no display name, its identifier, issuer or mutual-TLS endpoint-alias authority is not valid, or its settings are not valid for a tenant.</response>
     /// <response code="404">The team does not exist.</response>
-    /// <response code="409">The team or a team above it holds its maximum number of tenants.</response>
+    /// <response code="409">A tenant with the identifier already exists, the identifier belonged to a deleted tenant, the issuer or the mutual-TLS endpoint-alias authority conflicts with another tenant's or with one that belonged to another tenant, or the team or a team above it holds its maximum number of tenants.</response>
     [EndpointName("api/teams/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
@@ -1083,6 +1096,9 @@ internal class TenantApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The tenant was updated.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the tenant, the patched display name is missing, or the patched issuer or mutual-TLS endpoint-alias authority is not valid.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">The patched issuer or mutual-TLS endpoint-alias authority conflicts with another tenant's or with one that belonged to a deleted tenant.</response>
     [EndpointName("api/tenants/update")]
     internal virtual async ValueTask<IResult> UpdateTenantAsync(
         HttpContext httpContext,
@@ -1191,7 +1207,8 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The tenant was deleted.</response>
-    /// <response code="409">The tenant still has clients or resource servers, or has deletion protection enabled, and cannot be deleted.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">The tenant is required by the deployment, still has clients or resource servers, or has deletion protection enabled, and cannot be deleted.</response>
     [EndpointName("api/tenants/delete")]
     internal virtual async ValueTask<IResult> DeleteTenantAsync(
         HttpContext httpContext,
@@ -1377,6 +1394,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's settings.</response>
+    /// <response code="404">The tenant does not exist.</response>
     [EndpointName("api/tenants/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
@@ -1407,6 +1425,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's setting limits.</response>
+    /// <response code="404">The tenant does not exist.</response>
     // See ADR-1448.
     [EndpointName("api/tenants/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
@@ -1442,6 +1461,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's effective settings.</response>
+    /// <response code="404">The tenant does not exist.</response>
     [EndpointName("api/tenants/effective-settings/get")]
     internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
         HttpContext httpContext,
@@ -1586,6 +1606,8 @@ internal class TenantApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The tenant's settings were updated.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the settings, the patched settings are not valid for a tenant, or a client of the tenant holds a value the patched settings do not permit.</response>
+    /// <response code="404">The tenant does not exist.</response>
     [EndpointName("api/tenants/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
@@ -1716,6 +1738,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's secrets.</response>
+    /// <response code="404">The tenant does not exist.</response>
     [EndpointName("api/tenants/secrets/get")]
     internal virtual async ValueTask<IResult> GetSecretsAsync(
         HttpContext httpContext,
@@ -1747,8 +1770,6 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created secret.</response>
     /// <response code="400">The request is not coherent or the key could not be created from its parameters.</response>
-    /// <response code="401">The caller is anonymous.</response>
-    /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The tenant does not exist.</response>
     /// <response code="409">The tenant already holds a secret with the generated identifier.</response>
     /// <response code="412">Another request changed the tenant's secrets after this request read them.</response>
@@ -1862,8 +1883,6 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <response code="201">The imported secret.</response>
     /// <response code="400">The request is not coherent or the key could not be imported.</response>
-    /// <response code="401">The caller is anonymous.</response>
-    /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The tenant does not exist.</response>
     /// <response code="409">The tenant already holds a secret with the generated identifier or the same <c>kid</c>.</response>
     /// <response code="412">Another request changed the tenant's secrets after this request read them.</response>
@@ -1974,6 +1993,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The requested secret.</response>
+    /// <response code="404">The tenant or the secret does not exist.</response>
     [EndpointName("api/tenants/secrets/get-one")]
     internal virtual async ValueTask<IResult> GetSecretAsync(
         HttpContext httpContext,
@@ -2006,6 +2026,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The public key material of the requested secret.</response>
+    /// <response code="404">The tenant or the secret does not exist.</response>
     [EndpointName("api/tenants/secrets/get-public-key")]
     internal virtual async ValueTask<IResult> GetPublicKeyAsync(
         HttpContext httpContext,
@@ -2041,6 +2062,8 @@ internal class TenantApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The secret was updated.</response>
+    /// <response code="400">The metadata is not coherent for the secret.</response>
+    /// <response code="404">The tenant or the secret does not exist.</response>
     [EndpointName("api/tenants/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,
@@ -2117,6 +2140,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The secret was deleted.</response>
+    /// <response code="404">The tenant or the secret does not exist.</response>
     [EndpointName("api/tenants/secrets/delete")]
     internal virtual async ValueTask<IResult> DeleteSecretAsync(
         HttpContext httpContext,
@@ -2181,6 +2205,7 @@ internal class TenantApiEndpointHandler(
     /// Lists a tenant's owners and whether the caller may grant and revoke the role.
     /// </summary>
     /// <response code="200">The tenant's owners and whether the caller may change them.</response>
+    /// <response code="404">The tenant does not exist.</response>
     [EndpointName("api/tenants/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -2203,6 +2228,9 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <response code="201">The owner was added.</response>
     /// <response code="200">The principal already owns the tenant.</response>
+    /// <response code="400">The request names no principal.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">The principal is a client that cannot own the tenant.</response>
     [EndpointName("api/tenants/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -2225,6 +2253,8 @@ internal class TenantApiEndpointHandler(
     /// Removes an owner from a tenant.
     /// </summary>
     /// <response code="204">The owner was removed.</response>
+    /// <response code="404">The tenant does not exist, or the principal is not an owner of it.</response>
+    /// <response code="409">The owner is the tenant's last owner.</response>
     [EndpointName("api/tenants/owners/remove")]
     internal virtual async ValueTask<IResult> RemoveOwnerAsync(
         HttpContext httpContext,
@@ -2242,6 +2272,7 @@ internal class TenantApiEndpointHandler(
     /// resources, and whether the caller may grant and revoke the role.
     /// </summary>
     /// <response code="200">The tenant's administrators and whether the caller may change them.</response>
+    /// <response code="404">The tenant does not exist.</response>
     // See ADR-1417
     [EndpointName("api/tenants/admins/list")]
     internal virtual async ValueTask<IResult> ListAdminsAsync(
@@ -2266,6 +2297,9 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <response code="201">The administrator was added.</response>
     /// <response code="200">The principal already administers the tenant.</response>
+    /// <response code="400">The request names no principal.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">The principal is a client that cannot administer the tenant.</response>
     // See ADR-1417
     [EndpointName("api/tenants/admins/add")]
     internal virtual async ValueTask<IResult> AddAdminAsync(
@@ -2290,6 +2324,7 @@ internal class TenantApiEndpointHandler(
     /// authority, so only a tenant, team or global administrator at the tenant or above can revoke it.
     /// </summary>
     /// <response code="204">The administrator was removed.</response>
+    /// <response code="404">The principal is not an administrator of the tenant.</response>
     // See ADR-1417
     [EndpointName("api/tenants/admins/remove")]
     internal virtual async ValueTask<IResult> RemoveAdminAsync(

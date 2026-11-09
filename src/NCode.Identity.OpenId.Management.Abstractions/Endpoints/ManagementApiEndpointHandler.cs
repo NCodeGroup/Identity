@@ -72,10 +72,7 @@ public abstract class ManagementApiEndpointHandler
                 detail: "The caller is not authorized for this operation.",
                 statusCode: StatusCodes.Status403Forbidden
             )
-            : TypedResults.Problem(
-                detail: "Authentication is required.",
-                statusCode: StatusCodes.Status401Unauthorized
-            );
+            : ManagementProblems.AuthenticationRequired();
     }
 
     /// <summary>

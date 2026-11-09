@@ -459,7 +459,7 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
     [InlineData("GET", "/sessions", new[] { 400, 401, 403 })]
     [InlineData("DELETE", "/sessions", new[] { 400, 401, 403, 404 })]
     [InlineData("DELETE", "/sessions/{sessionId}", new[] { 401, 403, 404 })]
-    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+    public async Task Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -468,6 +468,13 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+        Assert.Empty(
+            await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern
+            )
         );
     }
 

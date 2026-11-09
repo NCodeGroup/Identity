@@ -867,23 +867,35 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
     #region Map Tests
 
     [Theory]
-    [InlineData("POST", "/local-accounts", new[] { 400, 401, 403, 404, 409, 412 })]
-    [InlineData("GET", "/local-accounts", new[] { 401, 403 })]
+    [InlineData("POST", "/local-accounts", new[] { 400, 401, 403, 404, 409, 412, 415 })]
+    [InlineData("GET", "/local-accounts", new[] { 400, 401, 403 })]
     [InlineData("GET", "/local-accounts/{localAccountId}", new[] { 401, 403, 404 })]
-    [InlineData("PATCH", "/local-accounts/{localAccountId}", new[] { 401, 403, 404, 409, 412 })]
+    [InlineData(
+        "PATCH",
+        "/local-accounts/{localAccountId}",
+        new[] { 400, 401, 403, 404, 409, 412, 415 }
+    )]
     [InlineData("DELETE", "/local-accounts/{localAccountId}", new[] { 401, 403, 404, 412 })]
     [InlineData("POST", "/local-accounts/{localAccountId}/enable", new[] { 401, 403, 404, 412 })]
     [InlineData("POST", "/local-accounts/{localAccountId}/disable", new[] { 401, 403, 404, 412 })]
     [InlineData(
         "POST",
         "/local-accounts/{localAccountId}/password",
-        new[] { 400, 401, 403, 404, 412 }
+        new[] { 400, 401, 403, 404, 412, 415 }
     )]
     [InlineData("GET", "/local-accounts/{localAccountId}/claims", new[] { 401, 403, 404 })]
-    [InlineData("PUT", "/local-accounts/{localAccountId}/claims", new[] { 401, 403, 404, 412 })]
+    [InlineData(
+        "PUT",
+        "/local-accounts/{localAccountId}/claims",
+        new[] { 400, 401, 403, 404, 412, 415 }
+    )]
     [InlineData("GET", "/local-accounts/{localAccountId}/metadata", new[] { 401, 403, 404 })]
-    [InlineData("PATCH", "/local-accounts/{localAccountId}/metadata", new[] { 401, 403, 404, 412 })]
-    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+    [InlineData(
+        "PATCH",
+        "/local-accounts/{localAccountId}/metadata",
+        new[] { 400, 401, 403, 404, 412, 415 }
+    )]
+    public async Task Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -892,6 +904,13 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+        Assert.Empty(
+            await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern
+            )
         );
     }
 

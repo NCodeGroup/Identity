@@ -184,6 +184,8 @@ public class DefaultRegistrationTests : BaseTests
             )
         );
         Assert.Equal("RSA_3072", algorithm.KeySpec);
+        var descriptor = Assert.Single(descriptorCatalog.Providers);
+        Assert.True(descriptor.CreatesKeys);
     }
 
     [Fact]
@@ -227,6 +229,10 @@ public class DefaultRegistrationTests : BaseTests
         var options = provider.GetRequiredService<IOptions<AwsKmsRemoteKeyProviderOptions>>();
 
         Assert.Null(options.Value.Region);
+        var descriptor = Assert.Single(
+            provider.GetRequiredService<IRemoteKeyDescriptorCatalog>().Providers
+        );
+        Assert.False(descriptor.CreatesKeys);
     }
 
     [Fact]

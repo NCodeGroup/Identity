@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
+using NCode.Identity.Secrets.AwsKms.Options;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.RemoteKeys;
 
@@ -10,7 +12,7 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// <summary>
 /// Describes the AWS KMS remote key provider and its rows of the mapping from a JOSE algorithm to the AWS Key
 /// Management Service key specification and the signing, encryption or key agreement algorithm that create a key and
-/// operate with it.
+/// operate with it. The provider creates keys when a region is set.
 /// </summary>
 /// <remarks>
 /// RSA keys of 2048, 3072 and 4096 bits sign with <c>RS256</c>, <c>RS384</c> and <c>RS512</c> (PKCS #1 v1.5) and with
@@ -23,10 +25,10 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// </remarks>
 // See ADR-1471.
 // See ADR-1477.
-internal sealed class AwsKmsRemoteKeyDescriptors : IRemoteKeyDescriptorSource
+internal sealed class AwsKmsRemoteKeyDescriptors(IOptions<AwsKmsRemoteKeyProviderOptions> options)
+    : IRemoteKeyDescriptorSource
 {
-    private static IReadOnlyList<RemoteKeyProviderDescriptor> ProviderDescriptors { get; } =
-    [new() { Name = RemoteKeyProviderNames.AwsKms }];
+    private IOptions<AwsKmsRemoteKeyProviderOptions> Options { get; } = options;
 
     private static int[] RsaKeySizesBits { get; } = [2048, 3072, 4096];
 
@@ -50,7 +52,14 @@ internal sealed class AwsKmsRemoteKeyDescriptors : IRemoteKeyDescriptorSource
     private static IReadOnlyList<RemoteKeyAlgorithm> Rows { get; } = CreateRows();
 
     /// <inheritdoc />
-    public IEnumerable<RemoteKeyProviderDescriptor> Providers => ProviderDescriptors;
+    public IEnumerable<RemoteKeyProviderDescriptor> Providers =>
+        [
+            new()
+            {
+                Name = RemoteKeyProviderNames.AwsKms,
+                CreatesKeys = !string.IsNullOrEmpty(Options.Value.Region),
+            },
+        ];
 
     /// <inheritdoc />
     public IEnumerable<RemoteKeyAlgorithm> Algorithms => Rows;

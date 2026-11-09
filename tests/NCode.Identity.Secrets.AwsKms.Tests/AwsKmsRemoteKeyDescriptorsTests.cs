@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using NCode.Identity.Secrets.AwsKms.Options;
 using NCode.Identity.Secrets.RemoteKeys;
 using Xunit;
 
@@ -47,16 +48,45 @@ public class AwsKmsRemoteKeyDescriptorsTests
         ("ES512", "ecc", 521, "P-521", "ECC_NIST_P521", "ECDSA_SHA_512", Sha512, true),
     ];
 
+    private static AwsKmsRemoteKeyDescriptors CreateSource(string? region = "us-west-2") =>
+        new(
+            Microsoft.Extensions.Options.Options.Create(
+                new AwsKmsRemoteKeyProviderOptions { Region = region }
+            )
+        );
+
     #region Providers Tests
 
     [Fact]
     public void Providers_DescribesTheAwsKmsProvider()
     {
-        var source = new AwsKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var descriptor = Assert.Single(source.Providers);
 
         Assert.Equal(RemoteKeyProviderNames.AwsKms, descriptor.Name);
+    }
+
+    [Fact]
+    public void Providers_WithRegion_CreatesKeys()
+    {
+        var source = CreateSource("us-west-2");
+
+        var descriptor = Assert.Single(source.Providers);
+
+        Assert.True(descriptor.CreatesKeys);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Providers_WithoutRegion_CreatesNoKeys(string? region)
+    {
+        var source = CreateSource(region);
+
+        var descriptor = Assert.Single(source.Providers);
+
+        Assert.False(descriptor.CreatesKeys);
     }
 
     #endregion
@@ -66,7 +96,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_Rows_MatchTheMapping()
     {
-        var source = new AwsKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.OfType<RemoteSigningAlgorithm>().ToList();
 
@@ -91,7 +121,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_DecryptionRows_MatchTheMapping()
     {
-        var source = new AwsKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.OfType<RemoteDecryptionAlgorithm>().ToList();
 
@@ -127,7 +157,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_KeyAgreementRows_MatchTheMapping()
     {
-        var source = new AwsKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.OfType<RemoteKeyAgreementAlgorithm>().ToList();
 
@@ -166,7 +196,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_Rows_CountsEveryKind()
     {
-        var source = new AwsKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.ToList();
 
@@ -176,7 +206,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_Rows_HaveUniqueSelectors()
     {
-        var source = new AwsKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var selectors = source
             .Algorithms.Select(x => (x.Provider, x.Algorithm, x.SecretType, x.KeySizeBits, x.Curve))
@@ -188,7 +218,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_EveryRow_SignsADigest()
     {
-        var source = new AwsKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         Assert.All(
             source.Algorithms.OfType<RemoteSigningAlgorithm>(),
@@ -199,7 +229,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_ProvisionedDefaults_ArePresent()
     {
-        var source = new AwsKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.ToList();
 

@@ -5602,6 +5602,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     #region Map Tests
 
     [Theory]
+    [InlineData("POST", "/clients", new[] { 400, 401, 403, 409, 412 })]
+    [InlineData("GET", "/clients", new[] { 401, 403 })]
+    [InlineData("GET", "/clients/{clientId}", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/clients/{clientId}", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("DELETE", "/clients/{clientId}", new[] { 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/clients/{clientId}/settings", new[] { 401, 403, 404 })]
+    [InlineData("GET", "/clients/{clientId}/settings/limits", new[] { 401, 403, 404 })]
+    [InlineData("PATCH", "/clients/{clientId}/settings", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/clients/{clientId}/effective-settings", new[] { 401, 403, 404 })]
     [InlineData("GET", "/clients/{clientId}/secrets", new[] { 401, 403, 404 })]
     [InlineData("POST", "/clients/{clientId}/secrets", new[] { 400, 401, 403, 404, 409, 412 })]
     [InlineData(
@@ -5630,7 +5639,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         "/clients/{clientId}/secrets/{secretId}/rotate",
         new[] { 400, 401, 403, 404, 409, 412 }
     )]
-    public async Task Map_Always_DeclaresEveryProblemASecretRouteAnswers(
+    [InlineData("GET", "/clients/{clientId}/owners", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/clients/{clientId}/owners", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData(
+        "DELETE",
+        "/clients/{clientId}/owners/{principalId}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/incoherent-clients", new[] { 401, 403 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -5639,6 +5656,31 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+    }
+
+    #endregion
+
+    #region MachineClientEndpointProvider Map Tests
+
+    [Theory]
+    [InlineData("POST", "/platform/clients", new[] { 400, 401, 403, 409, 412 })]
+    [InlineData("GET", "/platform/clients", new[] { 401, 403 })]
+    [InlineData("POST", "/teams/{teamId}/clients", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData("GET", "/teams/{teamId}/clients", new[] { 401, 403 })]
+    public async Task MachineClientEndpointProviderMap_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(
+                new MachineClientEndpointProvider(Handler),
+                httpMethod,
+                routePattern
+            )
         );
     }
 

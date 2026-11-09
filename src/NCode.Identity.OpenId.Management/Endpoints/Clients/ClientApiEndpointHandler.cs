@@ -221,28 +221,70 @@ internal class ClientApiEndpointHandler(
         clients
             .MapPost("", CreateClientAsync)
             .Produces<ClientResource>(StatusCodes.Status201Created)
-            .ProducesValidationProblem();
-        clients.MapGet("", ListClientsAsync).Produces<CollectionResource<ClientResource>>();
-        clients.MapGet("/{clientId}", GetClientAsync).Produces<ClientResource>();
-        clients.MapPatch("/{clientId}", UpdateClientAsync).Produces(StatusCodes.Status204NoContent);
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+        clients
+            .MapGet("", ListClientsAsync)
+            .Produces<CollectionResource<ClientResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+        clients
+            .MapGet("/{clientId}", GetClientAsync)
+            .Produces<ClientResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+        clients
+            .MapPatch("/{clientId}", UpdateClientAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         clients
             .MapDelete("/{clientId}", DeleteClientAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
-        clients.MapGet("/{clientId}/settings", GetSettingsAsync).Produces<ClientSettingsResource>();
+        clients
+            .MapGet("/{clientId}/settings", GetSettingsAsync)
+            .Produces<ClientSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         clients
             .MapGet("/{clientId}/settings/limits", GetSettingLimitsAsync)
-            .Produces<SettingLimitsResource>();
+            .Produces<SettingLimitsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         // The response may reveal a secret the change issues, so no cache may keep it (ADR-1345).
         clients
             .MapPatch("/{clientId}/settings", UpdateSettingsAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
             .WithNoStore();
         clients
             .MapGet("/{clientId}/effective-settings", GetEffectiveSettingsAsync)
-            .Produces<ClientEffectiveSettingsResource>();
+            .Produces<ClientEffectiveSettingsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         clients
             .MapGet("/{clientId}/secrets", GetSecretsAsync)
@@ -311,20 +353,38 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
             .WithNoStore();
 
-        clients.MapGet("/{clientId}/owners", ListOwnersAsync).Produces<RoleListResource>();
+        clients
+            .MapGet("/{clientId}/owners", ListOwnersAsync)
+            .Produces<RoleListResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         clients
             .MapPost("/{clientId}/owners", AddOwnerAsync)
             .Produces<RoleHolderResource>(StatusCodes.Status201Created)
-            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         clients
             .MapDelete("/{clientId}/owners/{principalId}", RemoveOwnerAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         // The report is not under /clients because /clients/{clientId} would answer it as a client identifier.
         endpoints
             .MapGet("/incoherent-clients", ListIncoherentClientsAsync)
             .WithTags(OpenIdConstants.EndpointTags.Clients)
-            .Produces<CollectionResource<IncoherentClientResource>>();
+            .Produces<CollectionResource<IncoherentClientResource>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
     }
 
     /// <summary>

@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics;
+using System.Net;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -27,6 +29,7 @@ using NCode.Identity.Bff.Tokens;
 using NCode.Identity.Events;
 using NCode.Identity.OpenId.Client;
 using NCode.Registration;
+using Yarp.ReverseProxy.Forwarder;
 
 namespace NCode.Identity.Bff;
 
@@ -171,6 +174,25 @@ public static class DefaultRegistration
 
             serviceCollection.AddHttpForwarder();
             serviceCollection.TryAddSingleton<BffRemoteApiInvokerFactory>();
+            // The forwarder logs its own requests; the factory's loggers would log each forwarded URI, query included.
+            serviceCollection
+                .AddHttpClient(BffDefaults.RemoteApiHttpClientName)
+                .ConfigurePrimaryHttpMessageHandler(static () =>
+                    new SocketsHttpHandler
+                    {
+                        AllowAutoRedirect = false,
+                        UseCookies = false,
+                        UseProxy = false,
+                        AutomaticDecompression = DecompressionMethods.None,
+                        ConnectTimeout = TimeSpan.FromSeconds(15),
+                        EnableMultipleHttp2Connections = true,
+                        // Replaces the trace headers that the browser sent with the BFF's own, rather than adding a second set.
+                        ActivityHeadersPropagator = new ReverseProxyPropagator(
+                            DistributedContextPropagator.Current
+                        ),
+                    }
+                )
+                .RemoveAllLoggers();
             serviceCollection.TryAddSingleton<BffRemoteApiRegistry>();
             serviceCollection.TryAddSingleton<BffRemoteApiHandler>();
 

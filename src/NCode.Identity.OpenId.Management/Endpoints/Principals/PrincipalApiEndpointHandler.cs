@@ -65,13 +65,26 @@ internal class PrincipalApiEndpointHandler(
             .MapGroup("/principals")
             .WithTags(OpenIdConstants.EndpointTags.Principals);
 
-        principals.MapGet("/{principalId}", GetPrincipalAsync).Produces<PrincipalResource>();
+        principals
+            .MapGet("/{principalId}", GetPrincipalAsync)
+            .Produces<PrincipalResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         principals
             .MapPost("/{principalId}/block", BlockPrincipalAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         principals
             .MapPost("/{principalId}/unblock", UnblockPrincipalAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     /// <summary>

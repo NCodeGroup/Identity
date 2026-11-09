@@ -383,4 +383,24 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
     }
 
     #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("GET", "/principals/{principalId}", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/principals/{principalId}/block", new[] { 401, 403, 404, 412 })]
+    [InlineData("POST", "/principals/{principalId}/unblock", new[] { 401, 403, 404, 412 })]
+    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+    }
+
+    #endregion
 }

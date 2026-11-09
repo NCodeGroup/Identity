@@ -108,7 +108,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
         }
         else
         {
-            ServiceCollection.AddSingleton(CreateLooseMock<IHostEnvironment>().Object);
+            ServiceCollection.AddSingleton(CreateStrictMock<IHostEnvironment>().Object);
         }
     }
 

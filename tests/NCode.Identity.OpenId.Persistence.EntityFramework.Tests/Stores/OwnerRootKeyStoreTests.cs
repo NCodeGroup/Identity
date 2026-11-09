@@ -17,32 +17,32 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
 {
     private static DateTimeOffset Now { get; } = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
 
     public OwnerRootKeyStoreTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
-        _provider = serviceCollection.BuildServiceProvider();
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
+        Provider = serviceCollection.BuildServiceProvider();
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         scope.ServiceProvider.GetRequiredService<OpenIdDbContext>().Database.EnsureCreated();
     }
 
     public void Dispose()
     {
-        _provider.Dispose();
-        _connection.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     #region Helpers
 
     private OwnerRootKeyStore CreateStore(OpenIdDbContext context) =>
-        new(Mock.Of<IStoreProvider>(), _provider.GetRequiredService<IIdGenerator<long>>(), context);
+        new(Mock.Of<IStoreProvider>(), Provider.GetRequiredService<IIdGenerator<long>>(), context);
 
     private static PersistedOwnerRootKey CreateRootKey(
         string ownerId,
@@ -67,7 +67,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
 
     private async Task AddAsync(params PersistedOwnerRootKey[] rootKeys)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = CreateStore(context);
         foreach (var rootKey in rootKeys)
@@ -78,7 +78,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
 
     private async Task<PersistedOwnerRootKey?> FindAsync(SecretOwner owner)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context).FindAsync(owner, CancellationToken.None);
     }
@@ -146,7 +146,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
         Assert.NotNull(current);
         var originalToken = current.ConcurrencyToken;
 
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             current.State = OwnerRootKeyStates.Unavailable;
@@ -174,7 +174,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
         Assert.NotNull(current);
         current.ConcurrencyToken = "stale";
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
@@ -186,7 +186,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
     public async Task Update_OfARowThatIsGone_ThrowsInvalidOperationException()
     {
         var missing = CreateRootKey("Tenant-One");
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -205,7 +205,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
         var current = await FindAsync(SecretOwner.ForTenant("tenant-one"));
         Assert.NotNull(current);
 
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             var removed = await CreateStore(context).RemoveAsync(current, CancellationToken.None);
@@ -220,7 +220,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
     [Fact]
     public async Task Remove_OfARowThatIsGone_ReturnsFalse()
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
 
         var removed = await CreateStore(context)
@@ -236,7 +236,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
         var current = await FindAsync(SecretOwner.ForTenant("tenant-one"));
         Assert.NotNull(current);
         current.ConcurrencyToken = "stale";
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>

@@ -15,32 +15,32 @@ public sealed class TeamStoreLifecycleTests : IDisposable
 {
     private const string TeamId = "team-1";
 
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
-    private readonly IIdGenerator<long> _idGenerator;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TeamStore _store;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
+    private IIdGenerator<long> IdGenerator { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TeamStore Store { get; }
 
     public TeamStoreLifecycleTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        _dbContext.Database.EnsureCreated();
-        _idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new TeamStore(Mock.Of<IStoreProvider>(), _idGenerator, _dbContext);
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        DbContext.Database.EnsureCreated();
+        IdGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        Store = new TeamStore(Mock.Of<IStoreProvider>(), IdGenerator, DbContext);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
-        _connection.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     private static PersistedTeam CreateTeam(string teamId = TeamId) =>
@@ -48,19 +48,19 @@ public sealed class TeamStoreLifecycleTests : IDisposable
 
     private async Task SaveAndClearAsync()
     {
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task SeedTeamAsync()
     {
-        await _store.AddAsync(CreateTeam(), CancellationToken.None);
+        await Store.AddAsync(CreateTeam(), CancellationToken.None);
         await SaveAndClearAsync();
     }
 
     private async Task<PersistedTeam> GetTeamAsync()
     {
-        var team = await _store.GetOrDefaultAsync(TeamId, CancellationToken.None);
+        var team = await Store.GetOrDefaultAsync(TeamId, CancellationToken.None);
         Assert.NotNull(team);
         return team;
     }
@@ -77,13 +77,13 @@ public sealed class TeamStoreLifecycleTests : IDisposable
 
     private async Task SeedTenantInTeamAsync()
     {
-        var team = _dbContext.SeedTeam(_idGenerator, TeamId);
-        _dbContext
+        var team = DbContext.SeedTeam(IdGenerator, TeamId);
+        DbContext
             .Set<TenantEntity>()
             .Add(
                 new TenantEntity
                 {
-                    Id = _idGenerator.CreateId(),
+                    Id = IdGenerator.CreateId(),
                     TeamId = team.Id,
                     Team = team,
                     TenantId = "tenant-in-team",
@@ -112,7 +112,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     {
         var team = CreateTeam();
 
-        await _store.AddAsync(team, CancellationToken.None);
+        await Store.AddAsync(team, CancellationToken.None);
 
         Assert.False(string.IsNullOrEmpty(team.ConcurrencyToken));
         Assert.False(string.IsNullOrEmpty(team.Settings.ConcurrencyToken));
@@ -124,7 +124,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     {
         var team = CreateTeam();
         team.IsDisabled = true;
-        await _store.AddAsync(team, CancellationToken.None);
+        await Store.AddAsync(team, CancellationToken.None);
         await SaveAndClearAsync();
 
         var loaded = await GetTeamAsync();
@@ -139,7 +139,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
         await SeedTeamAsync();
         var team = await GetTeamAsync();
 
-        var tokens = await _store.GetConcurrencyTokensAsync(
+        var tokens = await Store.GetConcurrencyTokensAsync(
             [TeamId.ToUpperInvariant(), "missing-team"],
             CancellationToken.None
         );
@@ -152,12 +152,12 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     public async Task GetManyAsync_ReturnsTheExistingTeamsOrderedAndSkipsTheMissing()
     {
         var first = CreateTeam();
-        await _store.AddAsync(first, CancellationToken.None);
+        await Store.AddAsync(first, CancellationToken.None);
         var second = CreateTeam("team-2");
-        await _store.AddAsync(second, CancellationToken.None);
+        await Store.AddAsync(second, CancellationToken.None);
         await SaveAndClearAsync();
 
-        var teams = await _store.GetManyAsync(
+        var teams = await Store.GetManyAsync(
             ["TEAM-2", TeamId.ToUpperInvariant(), "missing-team"],
             CancellationToken.None
         );
@@ -174,7 +174,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
         team.ConcurrencyToken = "stale";
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
-            await _store.UpdateAsync(team, CancellationToken.None)
+            await Store.UpdateAsync(team, CancellationToken.None)
         );
     }
 
@@ -186,7 +186,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
         team.IsDisabled = true;
         team.DisplayName = "Renamed Team";
 
-        await _store.UpdateAsync(team, CancellationToken.None);
+        await Store.UpdateAsync(team, CancellationToken.None);
         await SaveAndClearAsync();
 
         var after = await GetTeamAsync();
@@ -203,7 +203,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
         settings.ConcurrencyToken = "stale";
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
-            await _store.UpdateSettingsAsync(settings, CancellationToken.None)
+            await Store.UpdateSettingsAsync(settings, CancellationToken.None)
         );
     }
 
@@ -216,7 +216,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
         team.ReconciledSettingsFingerprint = "fingerprint";
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
-            await _store.UpdateReconciledSettingsAsync(team, CancellationToken.None)
+            await Store.UpdateReconciledSettingsAsync(team, CancellationToken.None)
         );
     }
 
@@ -229,11 +229,11 @@ public sealed class TeamStoreLifecycleTests : IDisposable
         team.ReconciledSettings = JsonSerializer.SerializeToElement(
             new Dictionary<string, object>()
         );
-        await _store.UpdateReconciledSettingsAsync(team, CancellationToken.None);
+        await Store.UpdateReconciledSettingsAsync(team, CancellationToken.None);
         await SaveAndClearAsync();
 
         var reloaded = await GetTeamAsync();
-        await _store.UpdateSettingsAsync(NewSettings(reloaded, "a"), CancellationToken.None);
+        await Store.UpdateSettingsAsync(NewSettings(reloaded, "a"), CancellationToken.None);
         await SaveAndClearAsync();
 
         var after = await GetTeamAsync();
@@ -250,15 +250,15 @@ public sealed class TeamStoreLifecycleTests : IDisposable
         team.ReconciledSettings = JsonSerializer.SerializeToElement(
             new Dictionary<string, object>()
         );
-        await _store.UpdateReconciledSettingsAsync(team, CancellationToken.None);
+        await Store.UpdateReconciledSettingsAsync(team, CancellationToken.None);
         await SaveAndClearAsync();
 
         var first = await GetTeamAsync();
-        await _store.UpdateSettingsAsync(NewSettings(first, "a"), CancellationToken.None);
+        await Store.UpdateSettingsAsync(NewSettings(first, "a"), CancellationToken.None);
         await SaveAndClearAsync();
 
         var second = await GetTeamAsync();
-        await _store.UpdateSettingsAsync(NewSettings(second, "b"), CancellationToken.None);
+        await Store.UpdateSettingsAsync(NewSettings(second, "b"), CancellationToken.None);
         await SaveAndClearAsync();
 
         var after = await GetTeamAsync();
@@ -276,7 +276,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
             new Dictionary<string, object> { ["k"] = 1 }
         );
 
-        await _store.UpdateReconciledSettingsAsync(team, CancellationToken.None);
+        await Store.UpdateReconciledSettingsAsync(team, CancellationToken.None);
         await SaveAndClearAsync();
 
         var after = await GetTeamAsync();
@@ -291,7 +291,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
         await SeedTenantInTeamAsync();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.RemoveAsync(TeamId, CancellationToken.None)
+            await Store.RemoveAsync(TeamId, CancellationToken.None)
         );
 
         Assert.Contains(
@@ -304,11 +304,11 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     public async Task RemoveAsync_RemovesTheTeamNodeAssignmentsAndRetiresTheId()
     {
         await SeedTeamAsync();
-        var tenant = _dbContext.SeedTenant(_idGenerator, "tenant-1");
+        var tenant = DbContext.SeedTenant(IdGenerator, "tenant-1");
         RoleAssignmentEntity CreateAssignment(string assignmentId, string resourceType) =>
             new()
             {
-                Id = _idGenerator.CreateId(),
+                Id = IdGenerator.CreateId(),
                 TenantId = tenant.Id,
                 Tenant = tenant,
                 NormalizedTenantId = tenant.NormalizedTenantId,
@@ -323,7 +323,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
                 NormalizedResourceId = TeamId,
                 ConcurrencyToken = string.Empty,
             };
-        _dbContext
+        DbContext
             .Set<RoleAssignmentEntity>()
             .AddRange(
                 CreateAssignment("assignment-1", OpenIdResourceTypes.Team),
@@ -331,13 +331,13 @@ public sealed class TeamStoreLifecycleTests : IDisposable
             );
         await SaveAndClearAsync();
 
-        var removed = await _store.RemoveAsync(TeamId, CancellationToken.None);
+        var removed = await Store.RemoveAsync(TeamId, CancellationToken.None);
         await SaveAndClearAsync();
 
         Assert.True(removed);
-        Assert.Null(await _store.GetOrDefaultAsync(TeamId, CancellationToken.None));
-        Assert.True(await _store.IsTeamIdRetiredAsync(TeamId, CancellationToken.None));
-        var remaining = await _dbContext.Set<RoleAssignmentEntity>().ToListAsync();
+        Assert.Null(await Store.GetOrDefaultAsync(TeamId, CancellationToken.None));
+        Assert.True(await Store.IsTeamIdRetiredAsync(TeamId, CancellationToken.None));
+        var remaining = await DbContext.Set<RoleAssignmentEntity>().ToListAsync();
         var survivor = Assert.Single(remaining);
         Assert.Equal(OpenIdResourceTypes.Tenant, survivor.ResourceType);
     }
@@ -345,7 +345,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenMissing_ReturnsFalse()
     {
-        Assert.False(await _store.RemoveAsync(TeamId, CancellationToken.None));
+        Assert.False(await Store.RemoveAsync(TeamId, CancellationToken.None));
     }
 
     [Fact]
@@ -353,20 +353,20 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     {
         await SeedTenantInTeamAsync();
 
-        Assert.True(await _store.HasDependentsAsync(TeamId, CancellationToken.None));
+        Assert.True(await Store.HasDependentsAsync(TeamId, CancellationToken.None));
     }
 
     [Fact]
     public async Task HasDependentsAsync_WhenTheTeamOwnsAMachineClient_ReturnsTrue()
     {
-        var team = _dbContext.SeedTeam(_idGenerator, TeamId);
-        var tenant = _dbContext.SeedTenant(_idGenerator, "tenant-1");
-        _dbContext
+        var team = DbContext.SeedTeam(IdGenerator, TeamId);
+        var tenant = DbContext.SeedTenant(IdGenerator, "tenant-1");
+        DbContext
             .Set<ClientEntity>()
             .Add(
                 new ClientEntity
                 {
-                    Id = _idGenerator.CreateId(),
+                    Id = IdGenerator.CreateId(),
                     TenantId = tenant.Id,
                     NormalizedTenantId = tenant.NormalizedTenantId,
                     ClientId = "machine-client",
@@ -391,7 +391,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
             );
         await SaveAndClearAsync();
 
-        Assert.True(await _store.HasDependentsAsync(TeamId, CancellationToken.None));
+        Assert.True(await Store.HasDependentsAsync(TeamId, CancellationToken.None));
     }
 
     [Fact]
@@ -399,7 +399,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     {
         await SeedTeamAsync();
 
-        var team = await _store.GetOrDefaultAsync("TEAM-1", CancellationToken.None);
+        var team = await Store.GetOrDefaultAsync("TEAM-1", CancellationToken.None);
 
         Assert.NotNull(team);
         Assert.Equal(TeamId, team.TeamId);
@@ -410,7 +410,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     {
         await SeedTeamAsync();
 
-        var settings = await _store.GetSettingsAsync("TEAM-1", CancellationToken.None);
+        var settings = await Store.GetSettingsAsync("TEAM-1", CancellationToken.None);
 
         Assert.Equal(TeamId, settings.TeamId);
     }
@@ -420,7 +420,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     {
         await SeedTenantInTeamAsync();
 
-        Assert.True(await _store.HasDependentsAsync("TEAM-1", CancellationToken.None));
+        Assert.True(await Store.HasDependentsAsync("TEAM-1", CancellationToken.None));
     }
 
     [Fact]
@@ -428,32 +428,32 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     {
         await SeedTeamAsync();
 
-        var removed = await _store.RemoveAsync("TEAM-1", CancellationToken.None);
+        var removed = await Store.RemoveAsync("TEAM-1", CancellationToken.None);
         await SaveAndClearAsync();
 
         Assert.True(removed);
-        Assert.Null(await _store.GetOrDefaultAsync(TeamId, CancellationToken.None));
+        Assert.Null(await Store.GetOrDefaultAsync(TeamId, CancellationToken.None));
     }
 
     [Fact]
     public async Task IsTeamIdRetiredAsync_WithADifferentCasing_ReturnsTrueAfterRemoval()
     {
         await SeedTeamAsync();
-        await _store.RemoveAsync(TeamId, CancellationToken.None);
+        await Store.RemoveAsync(TeamId, CancellationToken.None);
         await SaveAndClearAsync();
 
-        Assert.True(await _store.IsTeamIdRetiredAsync("TEAM-1", CancellationToken.None));
+        Assert.True(await Store.IsTeamIdRetiredAsync("TEAM-1", CancellationToken.None));
     }
 
     [Fact]
     public async Task IsTeamIdRetiredAsync_AfterRemoval_ReturnsTrue()
     {
         await SeedTeamAsync();
-        Assert.False(await _store.IsTeamIdRetiredAsync(TeamId, CancellationToken.None));
+        Assert.False(await Store.IsTeamIdRetiredAsync(TeamId, CancellationToken.None));
 
-        await _store.RemoveAsync(TeamId, CancellationToken.None);
+        await Store.RemoveAsync(TeamId, CancellationToken.None);
         await SaveAndClearAsync();
 
-        Assert.True(await _store.IsTeamIdRetiredAsync(TeamId, CancellationToken.None));
+        Assert.True(await Store.IsTeamIdRetiredAsync(TeamId, CancellationToken.None));
     }
 }

@@ -16,11 +16,11 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
     private const string TenantId = "tenant-1";
     private const string Provider = "aws-kms";
 
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _tenantStore;
-    private readonly ClientStore _clientStore;
-    private readonly RemoteKeyReferenceStore _store;
+    private ServiceProvider ServiceProvider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore TenantStore { get; }
+    private ClientStore ClientStore { get; }
+    private RemoteKeyReferenceStore Store { get; }
 
     public RemoteKeyReferenceStoreTests()
     {
@@ -29,23 +29,23 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _clientStore = new ClientStore(
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+        DbContext = ServiceProvider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = ServiceProvider.GetRequiredService<IIdGenerator<long>>();
+        TenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        ClientStore = new ClientStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext,
+            DbContext,
             TestCryptoServices.CreateResourceIdGenerator()
         );
-        _store = new RemoteKeyReferenceStore(Mock.Of<IStoreProvider>(), _dbContext);
+        Store = new RemoteKeyReferenceStore(Mock.Of<IStoreProvider>(), DbContext);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        ServiceProvider.Dispose();
     }
 
     private static PersistedSecret CreateSecret(
@@ -64,11 +64,11 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
 
     private async Task SeedTenantAsync(string tenantId, params PersistedSecret[] secrets)
     {
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext.SeedTeam(ServiceProvider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder { TenantId = tenantId, Secrets = secrets }.Build();
-        await _tenantStore.AddAsync(tenant, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await TenantStore.AddAsync(tenant, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task SeedClientAsync(
@@ -84,9 +84,9 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
             Secrets = secrets,
         }.Build();
 
-        await _clientStore.AddAsync(client, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await ClientStore.AddAsync(client, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     #region GetKeyIdPageAsync Tests
@@ -101,7 +101,7 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
             CreateSecret("client-secret", $"{Provider}:key-2")
         );
 
-        var page = await _store.GetKeyIdPageAsync(
+        var page = await Store.GetKeyIdPageAsync(
             Provider,
             new PageRequest { Limit = 10 },
             CancellationToken.None
@@ -122,7 +122,7 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
             CreateSecret("pkcs8-secret", $"{Provider}:key-4", SecretEncodings.Pkcs8)
         );
 
-        var page = await _store.GetKeyIdPageAsync(
+        var page = await Store.GetKeyIdPageAsync(
             Provider,
             new PageRequest { Limit = 10 },
             CancellationToken.None
@@ -141,7 +141,7 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
             CreateSecret("secret-b", $"{Provider}:key-2")
         );
 
-        var first = await _store.GetKeyIdPageAsync(
+        var first = await Store.GetKeyIdPageAsync(
             Provider,
             new PageRequest { Limit = 1 },
             CancellationToken.None
@@ -150,7 +150,7 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
         Assert.Single(first.Items);
         Assert.NotNull(first.NextCursor);
 
-        var second = await _store.GetKeyIdPageAsync(
+        var second = await Store.GetKeyIdPageAsync(
             Provider,
             new PageRequest { Limit = 1, Cursor = first.NextCursor },
             CancellationToken.None
@@ -164,7 +164,7 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
     [Fact]
     public async Task GetKeyIdPage_NoSecrets_ReturnsEmptyPage()
     {
-        var page = await _store.GetKeyIdPageAsync(
+        var page = await Store.GetKeyIdPageAsync(
             Provider,
             new PageRequest { Limit = 10 },
             CancellationToken.None

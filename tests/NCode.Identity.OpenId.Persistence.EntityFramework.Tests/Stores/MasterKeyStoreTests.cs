@@ -21,32 +21,32 @@ public sealed class MasterKeyStoreTests : IDisposable
 
     private static DateTimeOffset CreatedWhen { get; } = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
 
     public MasterKeyStoreTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
-        _provider = serviceCollection.BuildServiceProvider();
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
+        Provider = serviceCollection.BuildServiceProvider();
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         scope.ServiceProvider.GetRequiredService<OpenIdDbContext>().Database.EnsureCreated();
     }
 
     public void Dispose()
     {
-        _provider.Dispose();
-        _connection.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     #region Helpers
 
     private MasterKeyStore CreateStore(OpenIdDbContext context) =>
-        new(Mock.Of<IStoreProvider>(), _provider.GetRequiredService<IIdGenerator<long>>(), context);
+        new(Mock.Of<IStoreProvider>(), Provider.GetRequiredService<IIdGenerator<long>>(), context);
 
     private static PersistedMasterKey CreateMasterKey(
         string ownerType,
@@ -75,7 +75,7 @@ public sealed class MasterKeyStoreTests : IDisposable
 
     private async Task AddAsync(params PersistedMasterKey[] masterKeys)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = CreateStore(context);
         foreach (var masterKey in masterKeys)
@@ -86,14 +86,14 @@ public sealed class MasterKeyStoreTests : IDisposable
 
     private async Task<IReadOnlyList<PersistedMasterKey>> ListAsync(SecretOwner owner)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context).ListAsync(owner, CancellationToken.None);
     }
 
     private async Task<PersistedMasterKey?> FindActiveAsync(SecretOwner owner)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context).FindActiveAsync(owner, CancellationToken.None);
     }
@@ -103,14 +103,14 @@ public sealed class MasterKeyStoreTests : IDisposable
         params Guid[] keyIds
     )
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context).FindByKeyIdsAsync(owner, keyIds, CancellationToken.None);
     }
 
     private async Task<int> GetLatestVersionAsync(SecretOwner owner)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context).GetLatestVersionAsync(owner, CancellationToken.None);
     }
@@ -179,7 +179,7 @@ public sealed class MasterKeyStoreTests : IDisposable
     {
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true));
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(context)
             .AddAsync(
@@ -195,7 +195,7 @@ public sealed class MasterKeyStoreTests : IDisposable
     {
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(context)
             .AddAsync(
@@ -213,7 +213,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
         var previous = Assert.Single(await ListAsync(owner));
         previous.RetiredWhen = CreatedWhen.AddDays(30);
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             await CreateStore(context).UpdateAsync(previous, CancellationToken.None);
@@ -241,7 +241,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
         masterKey.RetiredWhen = retiredWhen;
 
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             await CreateStore(context).UpdateAsync(masterKey, CancellationToken.None);
@@ -264,7 +264,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         masterKey.RecoveryKeyId = null;
         masterKey.RecoveryWrappedKey = null;
 
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             await CreateStore(context).UpdateAsync(masterKey, CancellationToken.None);
@@ -285,7 +285,7 @@ public sealed class MasterKeyStoreTests : IDisposable
     {
         var masterKey = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1);
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = CreateStore(context);
 
@@ -301,7 +301,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
         masterKey.ConcurrencyToken = "stale";
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = CreateStore(context);
 
@@ -316,7 +316,7 @@ public sealed class MasterKeyStoreTests : IDisposable
 
     private async Task<PagedResult<PersistedMasterKey>> GetPageAsync(PageRequest page)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context).GetPageAsync(page, CancellationToken.None);
     }
@@ -369,7 +369,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         string? cursor = null;
         do
         {
-            using var scope = _provider.CreateScope();
+            using var scope = Provider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             var page = await CreateStore(context)
                 .GetRetiredOwnerPageAsync(
@@ -444,7 +444,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true));
         var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
 
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             Assert.True(await CreateStore(context).RemoveAsync(masterKey, CancellationToken.None));
@@ -457,7 +457,7 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task Remove_WhenAbsent_ReturnsFalse()
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
 
         Assert.False(
@@ -476,7 +476,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
         masterKey.ConcurrencyToken = "stale";
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(() =>
@@ -628,7 +628,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         );
 
         int removed;
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             removed = await CreateStore(context)

@@ -15,7 +15,7 @@ public sealed class OwnerRootKeyStoreDueTests : IDisposable
 {
     private static DateTimeOffset Now { get; } = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly ServiceProvider _provider;
+    private ServiceProvider Provider { get; }
 
     public OwnerRootKeyStoreDueTests()
     {
@@ -24,13 +24,13 @@ public sealed class OwnerRootKeyStoreDueTests : IDisposable
         serviceCollection.AddTestOpenIdDbContext(options =>
             options.UseInMemoryDatabase(databaseName)
         );
-        _provider = serviceCollection.BuildServiceProvider();
+        Provider = serviceCollection.BuildServiceProvider();
     }
 
-    public void Dispose() => _provider.Dispose();
+    public void Dispose() => Provider.Dispose();
 
     private OwnerRootKeyStore CreateStore(OpenIdDbContext context) =>
-        new(Mock.Of<IStoreProvider>(), _provider.GetRequiredService<IIdGenerator<long>>(), context);
+        new(Mock.Of<IStoreProvider>(), Provider.GetRequiredService<IIdGenerator<long>>(), context);
 
     private static PersistedOwnerRootKey CreateRootKey(
         string ownerId,
@@ -54,7 +54,7 @@ public sealed class OwnerRootKeyStoreDueTests : IDisposable
 
     private async Task AddAsync(params PersistedOwnerRootKey[] rootKeys)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = CreateStore(context);
         foreach (var rootKey in rootKeys)
@@ -69,7 +69,7 @@ public sealed class OwnerRootKeyStoreDueTests : IDisposable
         string? cursor = null;
         do
         {
-            using var scope = _provider.CreateScope();
+            using var scope = Provider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             var page = await CreateStore(context)
                 .GetDuePageAsync(

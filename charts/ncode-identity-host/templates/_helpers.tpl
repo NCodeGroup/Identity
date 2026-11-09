@@ -679,11 +679,11 @@ is applied. Rendered for its side effect only.
 {{- if not (hasPrefix "https://" $authority) }}
 {{- fail "managementConsole.authority must be the issuer's https URL; it defaults to tenantResolution.staticSingle.issuer when tenantResolution.strategyCode is StaticSingle." }}
 {{- end }}
-{{- if not $console.keys.clientKeySecret }}
-{{- fail "managementConsole.keys.clientKeySecret must name the Secret holding the client's private key under mgmt-client.pem." }}
+{{- range $ring := list "client" "dpop" }}
+{{- $keyRing := index $console.keyRings $ring }}
+{{- if and (not $keyRing.pemSecret) (not $keyRing.remoteKeys) }}
+{{- fail (printf "managementConsole.keyRings.%s must name pemSecret or list a remote key: the console's mgmt-%s key ring needs at least one key." $ring $ring) }}
 {{- end }}
-{{- if not $console.keys.dpopKeySecret }}
-{{- fail "managementConsole.keys.dpopKeySecret must name the Secret holding the DPoP private key under mgmt-dpop.pem." }}
 {{- end }}
 {{- if and (gt (int $console.replicaCount) 1) (not (include "identity-host.managementConsole.valkeyEnabled" .)) }}
 {{- fail "managementConsole.replicaCount above 1 requires managementConsole.valkey.existingSecret: replicas share their sessions through Valkey." }}
@@ -714,10 +714,14 @@ The environment of the management console container.
   value: {{ include "identity-host.managementConsole.authority" . | quote }}
 - name: Bff__Frontends__mgmt__PublicOrigin
   value: {{ printf "https://%s" $console.host | quote }}
+{{- if $console.keyRings.client.pemSecret }}
 - name: Bff__KeyRings__mgmt-client__PemFiles__0
   value: {{ printf "%s/client-key/mgmt-client.pem" $keyRoot | quote }}
+{{- end }}
+{{- if $console.keyRings.dpop.pemSecret }}
 - name: Bff__KeyRings__mgmt-dpop__PemFiles__0
   value: {{ printf "%s/dpop-key/mgmt-dpop.pem" $keyRoot | quote }}
+{{- end }}
 - name: ManagementConsole__ManagementApiUrl
   value: {{ include "identity-host.managementConsole.managementApiUrl" . | quote }}
 {{- if include "identity-host.managementConsole.valkeyEnabled" . }}

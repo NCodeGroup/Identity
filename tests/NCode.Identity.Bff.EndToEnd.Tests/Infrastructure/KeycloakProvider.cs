@@ -45,11 +45,11 @@ public sealed class KeycloakProvider : IAsyncDisposable
     /// </summary>
     public const string UserEmail = "alice@example.com";
 
-    private readonly TestCertificate _certificate;
-    private readonly IFutureDockerImage _image;
-    private readonly IContainer _container;
-    private readonly string _adminSecret;
-    private readonly int _port;
+    private TestCertificate Certificate { get; }
+    private IFutureDockerImage Image { get; }
+    private IContainer Container { get; }
+    private string AdminSecret { get; }
+    private int Port { get; }
 
     private KeycloakProvider(
         TestCertificate certificate,
@@ -59,18 +59,18 @@ public sealed class KeycloakProvider : IAsyncDisposable
         string userPassword
     )
     {
-        _certificate = certificate;
-        _image = image;
-        _container = container;
-        _adminSecret = adminSecret;
-        _port = container.GetMappedPublicPort(HttpsPort);
+        Certificate = certificate;
+        Image = image;
+        Container = container;
+        AdminSecret = adminSecret;
+        Port = container.GetMappedPublicPort(HttpsPort);
         UserPassword = userPassword;
     }
 
     /// <summary>
     /// Gets the issuer of the realm, which a browser and the host reach through the mapped port.
     /// </summary>
-    public string Issuer => $"https://127.0.0.1:{_port}/realms/{RealmName}";
+    public string Issuer => $"https://127.0.0.1:{Port}/realms/{RealmName}";
 
     /// <summary>
     /// Gets the password of the realm's test user, which is random for each run.
@@ -162,7 +162,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
     {
         var handler = new SocketsHttpHandler();
         handler.SslOptions.RemoteCertificateValidationCallback = (_, presented, _, _) =>
-            _certificate.IsTrusted(presented);
+            Certificate.IsTrusted(presented);
 
         return new HttpClient(handler, disposeHandler: true);
     }
@@ -173,7 +173,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
     public async Task LogOutUserAsync()
     {
         using var client = CreateHttpClient();
-        var adminBase = $"https://127.0.0.1:{_port}/admin/realms/{RealmName}";
+        var adminBase = $"https://127.0.0.1:{Port}/admin/realms/{RealmName}";
 
         using var tokenRequest = new HttpRequestMessage(
             HttpMethod.Post,
@@ -192,7 +192,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
         };
         tokenRequest.Headers.Authorization = new AuthenticationHeaderValue(
             "Basic",
-            Convert.ToBase64String(SecureEncoding.UTF8.GetBytes($"{AdminClientId}:{_adminSecret}"))
+            Convert.ToBase64String(SecureEncoding.UTF8.GetBytes($"{AdminClientId}:{AdminSecret}"))
         );
 
         using var tokenResponse = await client.SendAsync(tokenRequest);
@@ -236,8 +236,8 @@ public sealed class KeycloakProvider : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await _container.DisposeAsync();
-        await _image.DisposeAsync();
+        await Container.DisposeAsync();
+        await Image.DisposeAsync();
     }
 
     // Keycloak's answer to a refused call names no reason, so the failure carries the token's claims and the end of
@@ -248,7 +248,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
             return;
 
         var body = await response.Content.ReadAsStringAsync();
-        var (stdout, stderr) = await _container.GetLogsAsync(timestampsEnabled: false);
+        var (stdout, stderr) = await Container.GetLogsAsync(timestampsEnabled: false);
         var log = string.Join('\n', $"{stdout}{stderr}".Split('\n').TakeLast(LogLinesOnFailure));
         var request = response.RequestMessage;
         throw new HttpRequestException(

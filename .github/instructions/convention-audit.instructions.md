@@ -42,8 +42,8 @@ Scan production code only (test projects are exempt from several rules). Check e
 
 - **§1 language/async** — every _own_ async method returns `ValueTask`/`ValueTask<T>`, has an `Async` suffix, and takes
   `CancellationToken` **last**. `Task` is allowed only at framework boundaries (middleware `InvokeAsync`, minimal-API
-  handlers, mediator handlers). Collection expressions, `const` for literals, and `u8` for UTF-8 bytes. Fields only for
-  `ref`/`Interlocked`/`fixed`/`stackalloc`; everything else an auto-property. Constants/statics at the top.
+  handlers, mediator handlers). Collection expressions, `const` for literals, and `u8` for UTF-8 bytes. Constants/statics
+  at the top.
 - **§2 public API** — vocabularies are **open by default** (ADR-1150): every `enum` must pass the three-part closed test
   (members fixed outside the package's control or by its own operation contract; no other package could need a member;
   a new member would need a library change anyway), and an open vocabulary is `public const string` names plus
@@ -65,9 +65,6 @@ Fast mechanical checks (grep production `.cs`, adapt as needed):
 - `enum ` on a public surface (apply the ADR-1150 closed test to each) · `[Flags]` · a `switch` over a vocabulary's
   members that encodes their relationships · `IList<` returns · `bool ` parameters that switch behavior · `async void` · empty
   `catch` · `.Result` / `.Wait()` / `.GetAwaiter().GetResult()` (banned) · `Newtonsoft` (banned).
-- **Static fields** (§1): grep `\bstatic\s+(readonly|volatile)\b`, and a line that declares `static <type> <name> =` or
-  `static <type> <name>;`, in the `.cs` files under `src/`, `tests/` and `benchmarks/` — each hit is a static field,
-  which is a get-only auto-property unless it is a `ref`, `Interlocked`, `fixed` or `stackalloc` target.
 - **Primary-constructor candidates** (§1): grep `^\s+(public|internal|protected)\s+[A-Z]\w*\(` — one identifier
   immediately before `(` is a **constructor** (a method has `type name(`). Any type whose single ctor body is only
   `X = x;` assignments (or param-derived initializers) should be a primary constructor — **including** an `abstract`

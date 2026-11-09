@@ -15,11 +15,11 @@ namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 /// </summary>
 public sealed class OriginServer : IAsyncDisposable
 {
-    private readonly WebApplication _app;
+    private WebApplication App { get; }
 
     private OriginServer(WebApplication app)
     {
-        _app = app;
+        App = app;
     }
 
     /// <summary>
@@ -59,6 +59,6 @@ public sealed class OriginServer : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await _app.DisposeAsync();
+        await App.DisposeAsync();
     }
 }

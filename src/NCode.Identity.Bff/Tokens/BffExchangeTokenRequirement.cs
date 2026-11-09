@@ -9,7 +9,7 @@ namespace NCode.Identity.Bff.Tokens;
 /// </summary>
 internal class BffExchangeTokenRequirement(IBffExchangeTokenService service) : IBffTokenRequirement
 {
-    private readonly IBffExchangeTokenService _service = service;
+    private IBffExchangeTokenService Service { get; } = service;
 
     /// <inheritdoc />
     public string Name => BffTokenRequirementNames.Exchange;
@@ -25,6 +25,6 @@ internal class BffExchangeTokenRequirement(IBffExchangeTokenService service) : I
         ArgumentNullException.ThrowIfNull(request);
 
         var scope = IBffSessionScope.From(context);
-        return _service.GetAccessTokenAsync(scope, request, cancellationToken);
+        return Service.GetAccessTokenAsync(scope, request, cancellationToken);
     }
 }

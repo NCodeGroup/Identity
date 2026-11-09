@@ -34,8 +34,6 @@ public abstract class AkpSecretKey(
     /// <summary>The <see cref="SecretKey.KeyType"/> value for an AKP key.</summary>
     public const string TypeName = SecretKeyTypes.Akp;
 
-    private readonly ReadOnlyMemory<byte> _publicKey = publicKey;
-
     /// <inheritdoc />
     public override string KeyType => TypeName;
 
@@ -49,13 +47,13 @@ public abstract class AkpSecretKey(
     public abstract bool HasPrivateKey { get; }
 
     /// <summary>Gets the raw ML-DSA public key as read-only memory (the JWK <c>pub</c> material).</summary>
-    protected ReadOnlyMemory<byte> RawPublicKey => _publicKey;
+    protected ReadOnlyMemory<byte> RawPublicKey { get; } = publicKey;
 
     /// <summary>Writes the raw ML-DSA public key bytes to the destination (the JWK <c>pub</c> material).</summary>
     public void ExportPublicKey<TWriter>(ref TWriter destination)
         where TWriter : IBufferWriter<byte>, allows ref struct
     {
-        var source = _publicKey.Span;
+        var source = RawPublicKey.Span;
         var span = destination.GetSpan(source.Length);
         source.CopyTo(span);
         destination.Advance(source.Length);
@@ -71,7 +69,7 @@ public abstract class AkpSecretKey(
     /// <inheritdoc />
     public override void ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination)
     {
-        using var key = MLDsa.ImportMLDsaPublicKey(Algorithm, _publicKey.Span);
+        using var key = MLDsa.ImportMLDsaPublicKey(Algorithm, RawPublicKey.Span);
         var subjectPublicKeyInfo = key.ExportSubjectPublicKeyInfo();
         var span = destination.GetSpan(subjectPublicKeyInfo.Length);
         subjectPublicKeyInfo.CopyTo(span);

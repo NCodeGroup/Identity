@@ -24,20 +24,20 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients;
 
 public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
 {
-    private readonly ServiceProvider _serviceProvider;
-    private readonly RSA _rsa = RSA.Create(2048);
+    private ServiceProvider ServiceProvider { get; }
+    private RSA Rsa { get; } = RSA.Create(2048);
 
     public DefaultClientKeyResolverTests()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary();
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
-        var secretKeyFactory = _serviceProvider.GetRequiredService<ISecretKeyFactory>();
+        var secretKeyFactory = ServiceProvider.GetRequiredService<ISecretKeyFactory>();
         StoredPublicKey = secretKeyFactory.CreateRsaPublicKey(
             new KeyMetadata { KeyId = "stored-public-key", Use = SecretKeyUses.Signature },
-            _rsa
+            Rsa
         );
         SharedSecret = secretKeyFactory.CreateSymmetric(
             new KeyMetadata { KeyId = "shared-secret" },
@@ -46,7 +46,7 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
 
         // The jwks_uri cases here are refused before any fetch, so the fetch collaborators are never called.
         Resolver = new DefaultClientKeyResolver(
-            _serviceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>(),
             TimeProvider.System,
             CreateStrictMock<IHttpClientFactory>().Object,
             CreateStrictMock<IOutboundHttpContentReader>().Object,
@@ -54,7 +54,7 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
             CreateStrictMock<IMemoryCache>().Object,
             CreateStrictMock<IClientKeyImporter>().Object,
             CreateStrictMock<ISecretSerializer>().Object,
-            _serviceProvider.GetRequiredService<ISecretKeyCollectionFactory>()
+            ServiceProvider.GetRequiredService<ISecretKeyCollectionFactory>()
         );
     }
 
@@ -67,9 +67,9 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        await _serviceProvider.DisposeAsync();
+        await ServiceProvider.DisposeAsync();
         MemoryCache.Dispose();
-        _rsa.Dispose();
+        Rsa.Dispose();
     }
 
     private DefaultClientKeyResolver CreateFetchingResolver(
@@ -84,7 +84,7 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
             .Verifiable();
 
         return new DefaultClientKeyResolver(
-            _serviceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>(),
             TimeProvider.System,
             mockHttpClientFactory.Object,
             CreateStrictMock<IOutboundHttpContentReader>().Object,
@@ -92,7 +92,7 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
             MemoryCache,
             CreateStrictMock<IClientKeyImporter>().Object,
             CreateStrictMock<ISecretSerializer>().Object,
-            _serviceProvider.GetRequiredService<ISecretKeyCollectionFactory>()
+            ServiceProvider.GetRequiredService<ISecretKeyCollectionFactory>()
         );
     }
 
@@ -104,8 +104,8 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
         var mockClientKeyImporter = CreateStrictMock<IClientKeyImporter>();
         var mockSecretSerializer = CreateStrictMock<ISecretSerializer>();
         var options = Microsoft.Extensions.Options.Options.Create(new OutboundHttpOptions());
-        var logger = _serviceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>();
-        var collectionFactory = _serviceProvider.GetRequiredService<ISecretKeyCollectionFactory>();
+        var logger = ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>();
+        var collectionFactory = ServiceProvider.GetRequiredService<ISecretKeyCollectionFactory>();
 
         return new DefaultClientKeyResolver(
             logger,
@@ -143,7 +143,7 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
         bool readsClientId
     )
     {
-        var storedKeys = _serviceProvider
+        var storedKeys = ServiceProvider
             .GetRequiredService<ISecretKeyCollectionFactory>()
             .Create([SharedSecret, StoredPublicKey]);
 
@@ -308,13 +308,13 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task ResolveSecretKeysAsync_WhenAKeySetIsCachedBeforeTheFetchStarts_ReturnsItWithoutFetching()
     {
-        var secretKeyFactory = _serviceProvider.GetRequiredService<ISecretKeyFactory>();
+        var secretKeyFactory = ServiceProvider.GetRequiredService<ISecretKeyFactory>();
         var publishedMetadata = new KeyMetadata
         {
             KeyId = "published-key",
             Use = SecretKeyUses.Signature,
         };
-        var publishedKey = secretKeyFactory.CreateRsaPublicKey(publishedMetadata, _rsa);
+        var publishedKey = secretKeyFactory.CreateRsaPublicKey(publishedMetadata, Rsa);
         var acceptedChecks = 0;
         object? accepted = new List<SecretKey> { publishedKey };
         object? notRemembered = null;

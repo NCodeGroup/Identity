@@ -29,51 +29,50 @@ public class BffCallbackHandlerTests : BaseTests
     // 32 random bytes in unpadded base64url.
     private static string LoginSecret { get; } = new('a', 43);
 
-    private readonly Mock<BffLoginTransactionService> _transactionService;
-    private readonly Mock<IProviderMetadataResolver> _metadataResolver;
-    private readonly Mock<IBffAuditRecorder> _auditRecorder;
-    private readonly Mock<ITokenClient> _tokenClient;
-    private readonly Mock<IIdTokenValidator> _idTokenValidator;
-    private readonly Mock<IUserInfoClient> _userInfoClient;
-    private bool _loadUserInfo;
-    private readonly Mock<IBffSessionManager> _sessionManager;
-    private readonly FakeTimeProvider _timeProvider = new(
-        new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero)
-    );
-    private readonly List<IBffLoginGate> _gates = [];
-    private readonly List<IBffSessionClaimContributor> _claimContributors = [];
+    private Mock<BffLoginTransactionService> TransactionService { get; }
+    private Mock<IProviderMetadataResolver> MetadataResolver { get; }
+    private Mock<IBffAuditRecorder> AuditRecorder { get; }
+    private Mock<ITokenClient> TokenClient { get; }
+    private Mock<IIdTokenValidator> IdTokenValidator { get; }
+    private Mock<IUserInfoClient> UserInfoClient { get; }
+    private bool LoadUserInfo { get; set; }
+    private Mock<IBffSessionManager> SessionManager { get; }
+    private FakeTimeProvider TimeProvider { get; } =
+        new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
+    private List<IBffLoginGate> Gates { get; } = [];
+    private List<IBffSessionClaimContributor> ClaimContributors { get; } = [];
 
     public BffCallbackHandlerTests()
     {
-        _transactionService = CreateStrictMock<BffLoginTransactionService>(
+        TransactionService = CreateStrictMock<BffLoginTransactionService>(
             BffTestTelemetry.Instrument(CreateStrictMock<IBffSessionStore>().Object)
         );
-        _metadataResolver = CreateStrictMock<IProviderMetadataResolver>();
-        _auditRecorder = CreateStrictMock<IBffAuditRecorder>();
-        _tokenClient = CreateStrictMock<ITokenClient>();
-        _idTokenValidator = CreateStrictMock<IIdTokenValidator>();
-        _userInfoClient = CreateStrictMock<IUserInfoClient>();
-        _sessionManager = CreateStrictMock<IBffSessionManager>();
+        MetadataResolver = CreateStrictMock<IProviderMetadataResolver>();
+        AuditRecorder = CreateStrictMock<IBffAuditRecorder>();
+        TokenClient = CreateStrictMock<ITokenClient>();
+        IdTokenValidator = CreateStrictMock<IIdTokenValidator>();
+        UserInfoClient = CreateStrictMock<IUserInfoClient>();
+        SessionManager = CreateStrictMock<IBffSessionManager>();
     }
 
     private BffCallbackHandler CreateHandler()
     {
         var frontends = BffTestFrontends.CreateCatalog(options =>
-            options.UserInfo.Load = _loadUserInfo
+            options.UserInfo.Load = LoadUserInfo
         );
-        var timeProvider = _timeProvider;
+        var timeProvider = TimeProvider;
         return new BffCallbackHandler(
             frontends,
-            _transactionService.Object,
+            TransactionService.Object,
             new BffCookies(timeProvider),
-            _metadataResolver.Object,
-            _tokenClient.Object,
-            _idTokenValidator.Object,
-            _userInfoClient.Object,
-            _gates,
-            _claimContributors,
-            _sessionManager.Object,
-            _auditRecorder.Object,
+            MetadataResolver.Object,
+            TokenClient.Object,
+            IdTokenValidator.Object,
+            UserInfoClient.Object,
+            Gates,
+            ClaimContributors,
+            SessionManager.Object,
+            AuditRecorder.Object,
             timeProvider,
             CreateLooseMock<ILogger<BffCallbackHandler>>().Object
         );
@@ -94,7 +93,7 @@ public class BffCallbackHandlerTests : BaseTests
     }
 
     private void SetupTake(string? state, BffLoginTransactionResult result) =>
-        _transactionService
+        TransactionService
             .Setup(x => x.TakeAsync(state, LoginSecret, It.IsAny<CancellationToken>()))
             .ReturnsAsync(result)
             .Verifiable();
@@ -116,14 +115,14 @@ public class BffCallbackHandlerTests : BaseTests
             Issuer = Issuer,
             AuthorizationResponseIssParameterSupported = issSupported,
         };
-        _metadataResolver
+        MetadataResolver
             .Setup(x => x.GetMetadataAsync(Issuer, It.IsAny<CancellationToken>()))
             .ReturnsAsync(metadata)
             .Verifiable();
     }
 
     private void SetupAudit(string reason) =>
-        _auditRecorder
+        AuditRecorder
             .Setup(x =>
                 x.LoginFailedAsync(It.IsAny<HttpContext>(), reason, It.IsAny<CancellationToken>())
             )
@@ -260,7 +259,7 @@ public class BffCallbackHandlerTests : BaseTests
     public async Task HandleAsync_ProviderException_FailsWithProviderUnavailable()
     {
         SetupTransaction(issSupported: false);
-        _tokenClient
+        TokenClient
             .Setup(x =>
                 x.RequestTokenAsync(
                     It.IsAny<ClientRegistration>(),
@@ -282,7 +281,7 @@ public class BffCallbackHandlerTests : BaseTests
     public async Task HandleAsync_TokenTransportFailure_FailsWithProviderUnavailable()
     {
         SetupTransaction(issSupported: false);
-        _tokenClient
+        TokenClient
             .Setup(x =>
                 x.RequestTokenAsync(
                     It.IsAny<ClientRegistration>(),
@@ -309,7 +308,7 @@ public class BffCallbackHandlerTests : BaseTests
             Issuer = Issuer,
         };
         SetupTake(State, new BffLoginTransactionResult(transaction, null));
-        _metadataResolver
+        MetadataResolver
             .Setup(x => x.GetMetadataAsync(Issuer, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OpenIdProviderException("unavailable"))
             .Verifiable();
@@ -326,7 +325,7 @@ public class BffCallbackHandlerTests : BaseTests
     {
         SetupTransaction(issSupported: false);
         SetupSuccessfulToken();
-        _idTokenValidator
+        IdTokenValidator
             .Setup(x =>
                 x.ValidateAsync(
                     It.IsAny<ClientRegistration>(),
@@ -408,7 +407,7 @@ public class BffCallbackHandlerTests : BaseTests
             )
             .ReturnsAsync(false)
             .Verifiable();
-        _gates.Add(gate.Object);
+        Gates.Add(gate.Object);
         SetupAudit(BffLoginFailureReasons.RejectedByGate);
 
         await AssertFailsAsync(
@@ -417,8 +416,8 @@ public class BffCallbackHandlerTests : BaseTests
         );
     }
 
-    private BffSessionMetadata? _createdMetadata;
-    private BffSessionPayload? _createdPayload;
+    private BffSessionMetadata? CreatedMetadata { get; set; }
+    private BffSessionPayload? CreatedPayload { get; set; }
 
     private void SetupSuccess(TokenResponse response)
     {
@@ -429,7 +428,7 @@ public class BffCallbackHandlerTests : BaseTests
             new Claim(JoseClaimNames.Payload.Sid, "sid-1"),
         ]);
         SetupValidation(new IdTokenValidationResult(default(JsonElement)) { Identity = identity });
-        _sessionManager
+        SessionManager
             .Setup(x =>
                 x.CreateAsync(
                     It.IsAny<BffSessionMetadata>(),
@@ -440,8 +439,8 @@ public class BffCallbackHandlerTests : BaseTests
             .Callback<BffSessionMetadata, BffSessionPayload, CancellationToken>(
                 (metadata, payload, _) =>
                 {
-                    _createdMetadata = metadata;
-                    _createdPayload = payload;
+                    CreatedMetadata = metadata;
+                    CreatedPayload = payload;
                 }
             )
             .ReturnsAsync(
@@ -454,7 +453,7 @@ public class BffCallbackHandlerTests : BaseTests
                 )
             )
             .Verifiable();
-        _auditRecorder
+        AuditRecorder
             .Setup(x =>
                 x.LoginSucceededAsync(
                     It.IsAny<HttpContext>(),
@@ -481,8 +480,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await CreateHandler().HandleAsync(httpContext);
 
-        var now = _timeProvider.GetUtcNow();
-        var metadata = Assert.IsType<BffSessionMetadata>(_createdMetadata);
+        var now = TimeProvider.GetUtcNow();
+        var metadata = Assert.IsType<BffSessionMetadata>(CreatedMetadata);
         Assert.Equal(BffTestFrontends.Name, metadata.Frontend);
         Assert.Equal(Issuer, metadata.Issuer);
         Assert.Equal("user-1", metadata.Subject);
@@ -491,7 +490,7 @@ public class BffCallbackHandlerTests : BaseTests
         var sessionOptions = BffTestFrontends.CreateOptions().Session;
         Assert.Equal(now + sessionOptions.AbsoluteLifetime, metadata.AbsoluteExpiresAt);
         Assert.Equal(now + sessionOptions.IdleTimeout, metadata.IdleExpiresAt);
-        var payload = Assert.IsType<BffSessionPayload>(_createdPayload);
+        var payload = Assert.IsType<BffSessionPayload>(CreatedPayload);
         Assert.Equal("idt", payload.IdToken);
         Assert.Equal("rt", payload.RefreshToken);
         Assert.Equal("jkt", payload.DPoPJwkThumbprint);
@@ -515,7 +514,7 @@ public class BffCallbackHandlerTests : BaseTests
 
         await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
 
-        var metadata = Assert.IsType<BffSessionMetadata>(_createdMetadata);
+        var metadata = Assert.IsType<BffSessionMetadata>(CreatedMetadata);
         Assert.Equal(BffTestFrontends.Authority, metadata.Authority);
         Assert.Equal(BffTestFrontends.ClientId, metadata.ClientId);
     }
@@ -536,8 +535,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
 
-        var metadata = Assert.IsType<BffSessionMetadata>(_createdMetadata);
-        var expected = _timeProvider.GetUtcNow() + TimeSpan.FromSeconds(600);
+        var metadata = Assert.IsType<BffSessionMetadata>(CreatedMetadata);
+        var expected = TimeProvider.GetUtcNow() + TimeSpan.FromSeconds(600);
         Assert.Equal(expected, metadata.AbsoluteExpiresAt);
         Assert.Equal(expected, metadata.IdleExpiresAt);
     }
@@ -548,13 +547,13 @@ public class BffCallbackHandlerTests : BaseTests
         SetupSuccess(new TokenResponse { AccessToken = "at", IdToken = "idt" });
         var oldHandle = new string('o', 43);
         var oldMetadata = new BffSessionMetadata { Subject = "old" };
-        _sessionManager
+        SessionManager
             .Setup(x => x.LoadAsync(oldHandle, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 new BffSessionState(oldHandle, "old-key", 1, oldMetadata, new BffSessionPayload())
             )
             .Verifiable();
-        _sessionManager
+        SessionManager
             .Setup(x =>
                 x.EndAsync(
                     It.IsAny<HttpContext?>(),
@@ -626,7 +625,7 @@ public class BffCallbackHandlerTests : BaseTests
     #region UserInfo Tests
 
     private void SetupUserInfo(Func<UserInfoResult> answer) =>
-        _userInfoClient
+        UserInfoClient
             .Setup(x =>
                 x.GetUserInfoAsync(
                     It.IsAny<ClientRegistration>(),
@@ -657,7 +656,7 @@ public class BffCallbackHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WithUserInfoLoad_AddsTheUserInfoClaimsButNeverTheAnchors()
     {
-        _loadUserInfo = true;
+        LoadUserInfo = true;
         SetupSuccess(new TokenResponse { AccessToken = "at", IdToken = "idt" });
         SetupUserInfo(() =>
             new UserInfoResult(
@@ -673,7 +672,7 @@ public class BffCallbackHandlerTests : BaseTests
 
         await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
 
-        var payload = Assert.IsType<BffSessionPayload>(_createdPayload);
+        var payload = Assert.IsType<BffSessionPayload>(CreatedPayload);
         Assert.Equal(
             [
                 (JoseClaimNames.Payload.Sub, "user-1"),
@@ -687,7 +686,7 @@ public class BffCallbackHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WithUserInfoLoad_WhenUserInfoFails_FailsWithUserInfoFailed()
     {
-        _loadUserInfo = true;
+        LoadUserInfo = true;
         SetupUserInfoFailedLogin();
         SetupUserInfo(() =>
             new UserInfoResult(
@@ -706,7 +705,7 @@ public class BffCallbackHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WithUserInfoLoad_WhenTheProviderIsUnavailable_FailsWithProviderUnavailable()
     {
-        _loadUserInfo = true;
+        LoadUserInfo = true;
         SetupUserInfoFailedLogin();
         SetupUserInfo(() => throw new OpenIdProviderException("The UserInfo endpoint is down."));
         SetupAudit(BffLoginFailureReasons.ProviderUnavailable);
@@ -755,12 +754,12 @@ public class BffCallbackHandlerTests : BaseTests
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        _claimContributors.Add(first.Object);
-        _claimContributors.Add(second.Object);
+        ClaimContributors.Add(first.Object);
+        ClaimContributors.Add(second.Object);
 
         await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
 
-        var payload = Assert.IsType<BffSessionPayload>(_createdPayload);
+        var payload = Assert.IsType<BffSessionPayload>(CreatedPayload);
         Assert.Equal(
             [JoseClaimNames.Payload.Sub, JoseClaimNames.Payload.Sid, "role"],
             payload.Claims.Select(claim => claim.Type)
@@ -785,7 +784,7 @@ public class BffCallbackHandlerTests : BaseTests
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        _claimContributors.Add(contributor.Object);
+        ClaimContributors.Add(contributor.Object);
         var gate = CreateStrictMock<IBffLoginGate>();
         gate.Setup(x =>
                 x.AllowAsync(
@@ -797,7 +796,7 @@ public class BffCallbackHandlerTests : BaseTests
             )
             .ReturnsAsync(false)
             .Verifiable();
-        _gates.Add(gate.Object);
+        Gates.Add(gate.Object);
         SetupAudit(BffLoginFailureReasons.RejectedByGate);
 
         await AssertFailsAsync(
@@ -809,7 +808,7 @@ public class BffCallbackHandlerTests : BaseTests
     #endregion
 
     private void SetupToken(TokenResult result) =>
-        _tokenClient
+        TokenClient
             .Setup(x =>
                 x.RequestTokenAsync(
                     It.IsAny<ClientRegistration>(),
@@ -824,7 +823,7 @@ public class BffCallbackHandlerTests : BaseTests
         SetupToken(new TokenResult(new TokenResponse { AccessToken = "at", IdToken = "idt" }));
 
     private void SetupValidation(IdTokenValidationResult result) =>
-        _idTokenValidator
+        IdTokenValidator
             .Setup(x =>
                 x.ValidateAsync(
                     It.IsAny<ClientRegistration>(),

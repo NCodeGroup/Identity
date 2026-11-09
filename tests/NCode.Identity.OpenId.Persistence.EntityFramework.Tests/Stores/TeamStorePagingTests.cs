@@ -11,9 +11,9 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 public sealed class TeamStorePagingTests : IDisposable
 {
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TeamStore _store;
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TeamStore Store { get; }
 
     public TeamStorePagingTests()
     {
@@ -22,16 +22,16 @@ public sealed class TeamStorePagingTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new TeamStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        Store = new TeamStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedTeam CreateTeam(string teamId) =>
@@ -41,10 +41,10 @@ public sealed class TeamStorePagingTests : IDisposable
     {
         for (var index = 1; index <= count; index++)
         {
-            await _store.AddAsync(CreateTeam($"team-{index}"), CancellationToken.None);
+            await Store.AddAsync(CreateTeam($"team-{index}"), CancellationToken.None);
         }
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class TeamStorePagingTests : IDisposable
 
         do
         {
-            var page = await _store.GetPageAsync(
+            var page = await Store.GetPageAsync(
                 new PageRequest { Cursor = cursor, Limit = 2 },
                 CancellationToken.None
             );

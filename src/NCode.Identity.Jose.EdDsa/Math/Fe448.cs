@@ -14,6 +14,8 @@ namespace NCode.Identity.Jose.EdDsa.Math;
 /// field value. Because <c>2^224 = 2^(56*4)</c> is limb-aligned, the reduction <c>2^448 ≡ 2^224 + 1</c> folds whole
 /// limbs. Clean-room implementation of the field defined by RFC 8032 §5.2.
 /// </summary>
+// LimbsOf and ReadOnlyLimbsOf read the eight limbs through one reference, so the layout is part of the type's contract.
+[StructLayout(LayoutKind.Sequential)]
 internal struct Fe448
 {
     private const ulong Mask = (1UL << 56) - 1;

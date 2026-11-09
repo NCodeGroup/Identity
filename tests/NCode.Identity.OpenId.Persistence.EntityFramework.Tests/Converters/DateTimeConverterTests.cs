@@ -5,7 +5,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
 
 public class DateTimeConverterTests
 {
-    private readonly DateTimeConverter _converter = new();
+    private DateTimeConverter Converter { get; } = new();
 
     #region ConvertToProvider Tests
 
@@ -14,7 +14,7 @@ public class DateTimeConverterTests
     {
         var local = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Local);
 
-        var result = Assert.IsType<DateTime>(_converter.ConvertToProvider(local));
+        var result = Assert.IsType<DateTime>(Converter.ConvertToProvider(local));
 
         Assert.Equal(DateTimeKind.Utc, result.Kind);
         Assert.Equal(local.ToUniversalTime(), result);
@@ -29,7 +29,7 @@ public class DateTimeConverterTests
     {
         var utc = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc);
 
-        var result = Assert.IsType<DateTime>(_converter.ConvertFromProvider(utc));
+        var result = Assert.IsType<DateTime>(Converter.ConvertFromProvider(utc));
 
         Assert.Equal(DateTimeKind.Utc, result.Kind);
         Assert.Equal(utc, result);

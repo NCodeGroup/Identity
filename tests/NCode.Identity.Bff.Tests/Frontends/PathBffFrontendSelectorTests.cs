@@ -9,7 +9,7 @@ namespace NCode.Identity.Bff.Tests.Frontends;
 
 public class PathBffFrontendSelectorTests : BaseTests
 {
-    private readonly PathBffFrontendSelector _selector = new();
+    private PathBffFrontendSelector Selector { get; } = new();
 
     private static BffFrontendSelection CreateSelection(string[] values, string[]? paths = null) =>
         new(values, "https://app.example.com", paths ?? []);
@@ -26,7 +26,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     [Fact]
     public void Name_IsThePathRuleName()
     {
-        Assert.Equal(BffFrontendSelectorNames.Path, _selector.Name);
+        Assert.Equal(BffFrontendSelectorNames.Path, Selector.Name);
     }
 
     #endregion
@@ -42,7 +42,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["/admin"]);
 
-        Assert.True(_selector.IsMatch(CreateRequest(path), selection));
+        Assert.True(Selector.IsMatch(CreateRequest(path), selection));
     }
 
     [Theory]
@@ -54,7 +54,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["/admin"]);
 
-        Assert.False(_selector.IsMatch(CreateRequest(path), selection));
+        Assert.False(Selector.IsMatch(CreateRequest(path), selection));
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["/one", "/two"]);
 
-        Assert.True(_selector.IsMatch(CreateRequest("/two/page"), selection));
+        Assert.True(Selector.IsMatch(CreateRequest("/two/page"), selection));
     }
 
     #endregion
@@ -74,7 +74,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["/admin", "/reports"], ["/admin/bff", "/reports/api"]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Empty(failures);
     }
@@ -84,7 +84,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection([]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Equal(["Values must name at least one path."], failures);
     }
@@ -102,7 +102,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["/valid", value], ["/valid/bff"]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Equal(
             [
@@ -117,7 +117,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["/admin"], ["/admin/bff", "/administrator/api", "/other"]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Equal(
             [
@@ -133,7 +133,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["/Admin"], ["/admin/bff"]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Empty(failures);
     }
@@ -143,7 +143,7 @@ public class PathBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["/admin"], ["/admin"]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Empty(failures);
     }
@@ -158,7 +158,7 @@ public class PathBffFrontendSelectorTests : BaseTests
         var first = CreateSelection(["/admin"]);
         var second = CreateSelection(["/ADMIN"]);
 
-        Assert.True(_selector.Overlaps(first, second));
+        Assert.True(Selector.Overlaps(first, second));
     }
 
     [Fact]
@@ -167,8 +167,8 @@ public class PathBffFrontendSelectorTests : BaseTests
         var first = CreateSelection(["/admin"]);
         var second = CreateSelection(["/admin/reports"]);
 
-        Assert.True(_selector.Overlaps(first, second));
-        Assert.True(_selector.Overlaps(second, first));
+        Assert.True(Selector.Overlaps(first, second));
+        Assert.True(Selector.Overlaps(second, first));
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class PathBffFrontendSelectorTests : BaseTests
         var first = CreateSelection(["/admin"]);
         var second = CreateSelection(["/administrator"]);
 
-        Assert.False(_selector.Overlaps(first, second));
+        Assert.False(Selector.Overlaps(first, second));
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public class PathBffFrontendSelectorTests : BaseTests
         var first = CreateSelection(["/one"]);
         var second = CreateSelection(["/two", "/three"]);
 
-        Assert.False(_selector.Overlaps(first, second));
+        Assert.False(Selector.Overlaps(first, second));
     }
 
     #endregion

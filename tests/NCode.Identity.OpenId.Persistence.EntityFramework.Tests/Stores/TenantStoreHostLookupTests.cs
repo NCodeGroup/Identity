@@ -11,9 +11,9 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 public sealed class TenantStoreHostLookupTests : IDisposable
 {
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _store;
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore Store { get; }
 
     public TenantStoreHostLookupTests()
     {
@@ -22,17 +22,17 @@ public sealed class TenantStoreHostLookupTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        Store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedTenant CreateTenant(
@@ -53,12 +53,12 @@ public sealed class TenantStoreHostLookupTests : IDisposable
         string? mtlsEndpointAliasAuthority
     )
     {
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateTenant(tenantId, issuer, mtlsEndpointAliasAuthority),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     #region GetOrDefaultByHostAsync Tests
@@ -68,7 +68,7 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     {
         await SeedTenantAsync("acme", "https://acme.auth.example", "https://acme.mtls.example");
 
-        var tenant = await _store.GetOrDefaultByHostAsync(
+        var tenant = await Store.GetOrDefaultByHostAsync(
             "ACME.auth.example",
             CancellationToken.None
         );
@@ -83,7 +83,7 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     {
         await SeedTenantAsync("acme", "https://acme.auth.example", "https://acme.mtls.example");
 
-        var tenant = await _store.GetOrDefaultByHostAsync(
+        var tenant = await Store.GetOrDefaultByHostAsync(
             "acme.mtls.example",
             CancellationToken.None
         );
@@ -97,7 +97,7 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     {
         await SeedTenantAsync("acme", "https://acme.auth.example", null);
 
-        var tenant = await _store.GetOrDefaultByHostAsync(
+        var tenant = await Store.GetOrDefaultByHostAsync(
             "acme.mtls.example",
             CancellationToken.None
         );
@@ -111,7 +111,7 @@ public sealed class TenantStoreHostLookupTests : IDisposable
         await SeedTenantAsync("acme", "https://acme.auth.example", "https://shared.example");
         await SeedTenantAsync("globex", "https://shared.example", null);
 
-        var tenant = await _store.GetOrDefaultByHostAsync("shared.example", CancellationToken.None);
+        var tenant = await Store.GetOrDefaultByHostAsync("shared.example", CancellationToken.None);
 
         Assert.Null(tenant);
     }
@@ -123,7 +123,7 @@ public sealed class TenantStoreHostLookupTests : IDisposable
         await SeedTenantAsync("globex", "https://shared.example", null);
         await SeedTenantAsync("initech", "https://initech.auth.example", null);
 
-        var tenantIds = await _store.ListTenantIdsByHostAsync(
+        var tenantIds = await Store.ListTenantIdsByHostAsync(
             "SHARED.example",
             CancellationToken.None
         );
@@ -135,16 +135,16 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     public async Task UpdateAsync_WhenTheAliasIsCleared_TheAliasHostNoLongerRoutes()
     {
         await SeedTenantAsync("acme", "https://acme.auth.example", "https://acme.mtls.example");
-        var tenant = await _store.GetOrDefaultAsync("acme", CancellationToken.None);
+        var tenant = await Store.GetOrDefaultAsync("acme", CancellationToken.None);
         Assert.NotNull(tenant);
 
         tenant.MtlsEndpointAliasAuthority = null;
-        await _store.UpdateAsync(tenant, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.UpdateAsync(tenant, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
         Assert.Null(
-            await _store.GetOrDefaultByHostAsync("acme.mtls.example", CancellationToken.None)
+            await Store.GetOrDefaultByHostAsync("acme.mtls.example", CancellationToken.None)
         );
     }
 

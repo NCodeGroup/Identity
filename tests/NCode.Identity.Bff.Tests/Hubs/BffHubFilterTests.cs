@@ -27,23 +27,22 @@ public class BffHubFilterTests : BaseTests
         typeof(TestHub).GetMethod(nameof(TestHub.Ping))
         ?? throw new InvalidOperationException("TestHub.Ping is missing.");
 
-    private readonly FakeTimeProvider _timeProvider = new(Now);
-    private readonly CancellationToken _connectionAborted = new CancellationTokenSource().Token;
-    private readonly Dictionary<object, object?> _items = [];
-    private readonly DefaultBffConnectionSessionAccessor _accessor = new();
-    private readonly ServiceProvider _serviceProvider =
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
+    private CancellationToken ConnectionAborted { get; } = new CancellationTokenSource().Token;
+    private Dictionary<object, object?> Items { get; } = [];
+    private DefaultBffConnectionSessionAccessor Accessor { get; } = new();
+    private ServiceProvider ServiceProvider { get; } =
         new ServiceCollection().BuildServiceProvider();
-    private readonly TestHub _hub = new();
-    private readonly Mock<IBffConnectionRevalidator> _revalidator;
-    private readonly FakeLogger<BffHubFilter> _logger = new();
+    private TestHub Hub { get; } = new();
+    private Mock<IBffConnectionRevalidator> Revalidator { get; }
+    private FakeLogger<BffHubFilter> Logger { get; } = new();
 
     public BffHubFilterTests()
     {
-        _revalidator = CreateStrictMock<IBffConnectionRevalidator>();
+        Revalidator = CreateStrictMock<IBffConnectionRevalidator>();
     }
 
-    private BffHubFilter CreateFilter() =>
-        new(_accessor, _revalidator.Object, _timeProvider, _logger);
+    private BffHubFilter CreateFilter() => new(Accessor, Revalidator.Object, TimeProvider, Logger);
 
     private static TaskCompletionSource CreateSignal() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -56,7 +55,7 @@ public class BffHubFilterTests : BaseTests
     private void SetupWatchContext(Mock<HubCallerContext> context)
     {
         SetupFeatures(context, new FeatureCollection());
-        context.SetupGet(x => x.ConnectionAborted).Returns(_connectionAborted).Verifiable();
+        context.SetupGet(x => x.ConnectionAborted).Returns(ConnectionAborted).Verifiable();
     }
 
     private void SetupIdleWatch(
@@ -66,7 +65,7 @@ public class BffHubFilterTests : BaseTests
     )
     {
         SetupWatchContext(context);
-        _revalidator
+        Revalidator
             .Setup(x => x.WaitUntilEndedAsync(session.Object, It.IsAny<CancellationToken>()))
             .Returns(
                 (IBffConnectionSession _, CancellationToken token) =>
@@ -96,9 +95,9 @@ public class BffHubFilterTests : BaseTests
         );
         var context = CreateContext(user);
         if (readsItems)
-            context.SetupGet(x => x.Items).Returns(_items).Verifiable();
+            context.SetupGet(x => x.Items).Returns(Items).Verifiable();
         if (validate)
-            context.SetupGet(x => x.ConnectionAborted).Returns(_connectionAborted).Verifiable();
+            context.SetupGet(x => x.ConnectionAborted).Returns(ConnectionAborted).Verifiable();
         return context;
     }
 
@@ -138,7 +137,7 @@ public class BffHubFilterTests : BaseTests
     }
 
     private HubInvocationContext CreateInvocation(HubCallerContext context) =>
-        new(context, _serviceProvider, _hub, Method, []);
+        new(context, ServiceProvider, Hub, Method, []);
 
     private static ValueTask<object?> Next(HubInvocationContext _) => new((object?)"result");
 
@@ -148,7 +147,7 @@ public class BffHubFilterTests : BaseTests
     public async Task OnConnectedAsync_WithoutConnection_CallsNext()
     {
         var context = CreateContext(new ClaimsPrincipal());
-        var lifetime = new HubLifetimeContext(context.Object, _serviceProvider, _hub);
+        var lifetime = new HubLifetimeContext(context.Object, ServiceProvider, Hub);
         var called = false;
 
         await CreateFilter()
@@ -172,19 +171,19 @@ public class BffHubFilterTests : BaseTests
         var aborted = CreateSignal();
         context.Setup(x => x.Abort()).Callback(() => aborted.SetResult()).Verifiable();
         SetupWatchContext(context);
-        _revalidator
+        Revalidator
             .Setup(x => x.WaitUntilEndedAsync(session.Object, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
         await CreateFilter()
             .OnConnectedAsync(
-                new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+                new HubLifetimeContext(context.Object, ServiceProvider, Hub),
                 _ => Task.CompletedTask
             );
 
         await aborted.Task.WaitAsync(SignalTimeout);
-        Assert.Empty(_logger.Collector.GetSnapshot());
+        Assert.Empty(Logger.Collector.GetSnapshot());
     }
 
     [Fact]
@@ -196,11 +195,11 @@ public class BffHubFilterTests : BaseTests
 
         await CreateFilter()
             .OnConnectedAsync(
-                new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+                new HubLifetimeContext(context.Object, ServiceProvider, Hub),
                 _ => Task.CompletedTask
             );
 
-        Assert.Empty(_revalidator.Invocations);
+        Assert.Empty(Revalidator.Invocations);
     }
 
     [Fact]
@@ -212,13 +211,13 @@ public class BffHubFilterTests : BaseTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             CreateFilter()
                 .OnConnectedAsync(
-                    new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+                    new HubLifetimeContext(context.Object, ServiceProvider, Hub),
                     _ => throw new InvalidOperationException("connect")
                 )
         );
 
-        Assert.Empty(_revalidator.Invocations);
-        Assert.DoesNotContain(_items.Values, v => v is CancellationTokenSource);
+        Assert.Empty(Revalidator.Invocations);
+        Assert.DoesNotContain(Items.Values, v => v is CancellationTokenSource);
     }
 
     [Fact]
@@ -229,19 +228,19 @@ public class BffHubFilterTests : BaseTests
         var aborted = CreateSignal();
         context.Setup(x => x.Abort()).Callback(() => aborted.SetResult()).Verifiable();
         SetupWatchContext(context);
-        _revalidator
+        Revalidator
             .Setup(x => x.WaitUntilEndedAsync(session.Object, It.IsAny<CancellationToken>()))
             .Throws(new InvalidOperationException("fault"))
             .Verifiable();
 
         await CreateFilter()
             .OnConnectedAsync(
-                new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+                new HubLifetimeContext(context.Object, ServiceProvider, Hub),
                 _ => Task.CompletedTask
             );
 
         await aborted.Task.WaitAsync(SignalTimeout);
-        var record = Assert.Single(_logger.Collector.GetSnapshot());
+        var record = Assert.Single(Logger.Collector.GetSnapshot());
         Assert.Equal(EventIds.HubRevalidationFaulted, record.Id.Id);
         Assert.IsType<InvalidOperationException>(record.Exception);
     }
@@ -256,7 +255,7 @@ public class BffHubFilterTests : BaseTests
         SetupFeatures(context, new FeatureCollection());
         var waiting = CreateSignal();
         Task? wait = null;
-        _revalidator
+        Revalidator
             .Setup(x => x.WaitUntilEndedAsync(session.Object, It.IsAny<CancellationToken>()))
             .Returns(
                 (IBffConnectionSession _, CancellationToken token) =>
@@ -269,7 +268,7 @@ public class BffHubFilterTests : BaseTests
             .Verifiable();
         await CreateFilter()
             .OnConnectedAsync(
-                new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+                new HubLifetimeContext(context.Object, ServiceProvider, Hub),
                 _ => Task.CompletedTask
             );
         await waiting.Task.WaitAsync(SignalTimeout);
@@ -300,7 +299,7 @@ public class BffHubFilterTests : BaseTests
             }
         );
         var filter = CreateFilter();
-        var lifetime = new HubLifetimeContext(context.Object, _serviceProvider, _hub);
+        var lifetime = new HubLifetimeContext(context.Object, ServiceProvider, Hub);
         await filter.OnConnectedAsync(lifetime, _ => Task.CompletedTask);
         await watching.Task.WaitAsync(SignalTimeout);
         Exception? seen = null;
@@ -324,12 +323,12 @@ public class BffHubFilterTests : BaseTests
     public async Task OnDisconnectedAsync_WithoutWatch_CallsNext()
     {
         var context = CreateStrictMock<HubCallerContext>();
-        context.SetupGet(x => x.Items).Returns(_items).Verifiable();
+        context.SetupGet(x => x.Items).Returns(Items).Verifiable();
         var called = false;
 
         await CreateFilter()
             .OnDisconnectedAsync(
-                new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+                new HubLifetimeContext(context.Object, ServiceProvider, Hub),
                 null,
                 (_, _) =>
                 {
@@ -363,10 +362,10 @@ public class BffHubFilterTests : BaseTests
         SetupIdleWatch(context, session);
         var filter = CreateFilter();
         await filter.OnConnectedAsync(
-            new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+            new HubLifetimeContext(context.Object, ServiceProvider, Hub),
             _ => Task.CompletedTask
         );
-        _timeProvider.Advance(Interval - TimeSpan.FromSeconds(1));
+        TimeProvider.Advance(Interval - TimeSpan.FromSeconds(1));
 
         var result = await filter.InvokeMethodAsync(CreateInvocation(context.Object), Next);
 
@@ -381,12 +380,12 @@ public class BffHubFilterTests : BaseTests
         SetupIdleWatch(context, session);
         var filter = CreateFilter();
         await filter.OnConnectedAsync(
-            new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+            new HubLifetimeContext(context.Object, ServiceProvider, Hub),
             _ => Task.CompletedTask
         );
-        _timeProvider.Advance(Interval);
+        TimeProvider.Advance(Interval);
         session
-            .Setup(x => x.ValidateAsync(_timeProvider.GetUtcNow(), _connectionAborted))
+            .Setup(x => x.ValidateAsync(TimeProvider.GetUtcNow(), ConnectionAborted))
             .Returns(new ValueTask<ClaimsPrincipal?>(new ClaimsPrincipal()))
             .Verifiable();
 
@@ -403,7 +402,7 @@ public class BffHubFilterTests : BaseTests
         SetupFeatures(context, new FeatureCollection());
         context.Setup(x => x.Abort()).Verifiable();
         session
-            .Setup(x => x.ValidateAsync(Now, _connectionAborted))
+            .Setup(x => x.ValidateAsync(Now, ConnectionAborted))
             .Returns(new ValueTask<ClaimsPrincipal?>((ClaimsPrincipal?)null))
             .Verifiable();
         var called = false;
@@ -430,7 +429,7 @@ public class BffHubFilterTests : BaseTests
         var context = CreateConnectionContext(session, validate: true);
         SetupFeatures(context, CreateHubFeatures(selfRevalidating: true));
         session
-            .Setup(x => x.ValidateAsync(Now, _connectionAborted))
+            .Setup(x => x.ValidateAsync(Now, ConnectionAborted))
             .Returns(new ValueTask<ClaimsPrincipal?>((ClaimsPrincipal?)null))
             .Verifiable();
         var called = false;
@@ -463,7 +462,7 @@ public class BffHubFilterTests : BaseTests
                 CreateInvocation(context.Object),
                 invocation =>
                 {
-                    seen = _accessor.Current;
+                    seen = Accessor.Current;
                     return Next(invocation);
                 }
             );
@@ -502,7 +501,7 @@ public class BffHubFilterTests : BaseTests
         var session = CreateSession(ended: false);
         var context = CreateConnectionContext(session, validate: true);
         session
-            .Setup(x => x.ValidateAsync(Now, _connectionAborted))
+            .Setup(x => x.ValidateAsync(Now, ConnectionAborted))
             .Throws(new BffStoreUnavailableException("unavailable"))
             .Verifiable();
 
@@ -517,7 +516,7 @@ public class BffHubFilterTests : BaseTests
         var session = CreateSession(ended: false);
         var context = CreateConnectionContext(session, validate: true);
         session
-            .Setup(x => x.ValidateAsync(Now, _connectionAborted))
+            .Setup(x => x.ValidateAsync(Now, ConnectionAborted))
             .Returns(new ValueTask<ClaimsPrincipal?>(new ClaimsPrincipal()))
             .Verifiable();
         IBffConnectionSession? seen = null;
@@ -527,13 +526,13 @@ public class BffHubFilterTests : BaseTests
                 CreateInvocation(context.Object),
                 invocation =>
                 {
-                    seen = _accessor.Current;
+                    seen = Accessor.Current;
                     return Next(invocation);
                 }
             );
 
         Assert.Same(session.Object, seen);
-        Assert.Null(_accessor.Current);
+        Assert.Null(Accessor.Current);
     }
 
     #endregion

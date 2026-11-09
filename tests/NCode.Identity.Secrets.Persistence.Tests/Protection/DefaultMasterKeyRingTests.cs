@@ -31,56 +31,59 @@ public class DefaultMasterKeyRingTests : BaseTests
     private static SecretProtectionContext Context { get; } =
         SecretProtectionContext.ForPersistedSecret("secret-1");
 
-    private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
-    private readonly Queue<IStoreManager> _storeManagers = new();
-    private bool _storeManagerFactorySetUp;
-    private readonly EphemeralKeyWrapper _provider = new();
-    private readonly RecoveryKeyWrapper _recovery = new(
-        Microsoft.Extensions.Options.Options.Create(
-            new SecretProtectionOptions { Recovery = new RecoveryKeyOptions { Disabled = true } }
-        )
-    );
-    private readonly MasterKeyFactory _factory;
+    private Mock<IStoreManagerFactory> StoreManagerFactory { get; }
+    private Queue<IStoreManager> StoreManagers { get; } = new();
+    private bool StoreManagerFactorySetUp { get; set; }
+    private EphemeralKeyWrapper Provider { get; } = new();
+    private RecoveryKeyWrapper Recovery { get; } =
+        new(
+            Microsoft.Extensions.Options.Options.Create(
+                new SecretProtectionOptions
+                {
+                    Recovery = new RecoveryKeyOptions { Disabled = true },
+                }
+            )
+        );
+    private MasterKeyFactory Factory { get; }
 
     public DefaultMasterKeyRingTests()
     {
         var catalog = new DefaultKeyWrapperCatalog(
-            [_provider],
+            [Provider],
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Ephemeral }
             )
         );
-        _factory = new MasterKeyFactory(catalog, _recovery, TimeProvider.System);
-        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        Factory = new MasterKeyFactory(catalog, Recovery, TimeProvider.System);
+        StoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _recovery.Dispose();
-            _provider.Dispose();
+            Recovery.Dispose();
+            Provider.Dispose();
         }
 
         base.Dispose(disposing);
 
         if (disposing)
         {
-            Assert.Empty(_storeManagers);
+            Assert.Empty(StoreManagers);
         }
     }
 
-    private readonly FakeTimeProvider _time = new(
-        new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero)
-    );
+    private FakeTimeProvider Time { get; } =
+        new(new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero));
 
     private DefaultMasterKeyRing CreateRing() =>
         new(
-            _factory,
-            _storeManagerFactory.Object,
-            _recovery,
+            Factory,
+            StoreManagerFactory.Object,
+            Recovery,
             Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions()),
-            _time,
+            Time,
             NullLogger<DefaultMasterKeyRing>.Instance
         );
 
@@ -89,25 +92,25 @@ public class DefaultMasterKeyRingTests : BaseTests
     // queues no store manager leaves the factory without a setup, so the strict mock fails it if the ring reads the
     // store.
     private void SetupStoreManagerFactory() =>
-        _storeManagerFactory
+        StoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => new ValueTask<IStoreManager>(_storeManagers.Dequeue()))
+            .Returns(() => new ValueTask<IStoreManager>(StoreManagers.Dequeue()))
             .Verifiable();
 
     // Queues a store manager whose only expected members are the master key store and its disposal.
     private (Mock<IMasterKeyStore> Store, Mock<IStoreManager> Manager) EnqueueStoreManager()
     {
-        if (!_storeManagerFactorySetUp)
+        if (!StoreManagerFactorySetUp)
         {
             SetupStoreManagerFactory();
-            _storeManagerFactorySetUp = true;
+            StoreManagerFactorySetUp = true;
         }
 
         var store = CreateStrictMock<IMasterKeyStore>();
         var manager = CreateStrictMock<IStoreManager>();
         manager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object).Verifiable();
         manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
-        _storeManagers.Enqueue(manager.Object);
+        StoreManagers.Enqueue(manager.Object);
         return (store, manager);
     }
 
@@ -242,7 +245,7 @@ public class DefaultMasterKeyRingTests : BaseTests
         SecretOwner? normalizedOwner = null
     )
     {
-        var created = await _factory.CreateAsync(
+        var created = await Factory.CreateAsync(
             normalizedOwner ?? NormalizedOwner,
             version,
             rootKey: null,
@@ -362,7 +365,7 @@ public class DefaultMasterKeyRingTests : BaseTests
 
         // The active row is read again and the stored key is reused: a different wrapped key would not unwrap.
         ExpectFindActive(row);
-        _time.Advance(TimeSpan.FromMinutes(6));
+        Time.Advance(TimeSpan.FromMinutes(6));
         var second = await ring.GetProtectorAsync(Owner, [protectedValue], CancellationToken.None);
 
         Assert.Equal("secret"u8.ToArray(), Unprotect(second, protectedValue));
@@ -376,7 +379,7 @@ public class DefaultMasterKeyRingTests : BaseTests
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
 
         // No store manager is queued, so a read of the store would fail the test.
-        _time.Advance(TimeSpan.FromMinutes(4));
+        Time.Advance(TimeSpan.FromMinutes(4));
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
     }
 
@@ -391,7 +394,7 @@ public class DefaultMasterKeyRingTests : BaseTests
 
         // The owner rotated: a new active row exists, the old row is retired and then destroyed.
         var newRow = await CreateRowAsync(version: 2);
-        _time.Advance(TimeSpan.FromMinutes(6));
+        Time.Advance(TimeSpan.FromMinutes(6));
         var (store, _) = EnqueueStoreManager();
         SetupFindActive(store, newRow);
         SetupFindByKeyId(store, oldRow.KeyId);
@@ -760,17 +763,17 @@ public class DefaultMasterKeyRingTests : BaseTests
 
     private const string RootKeyReference = "kms://tenant-a/root";
 
-    private readonly FakeReferencedKeyWrapper _referenced = new();
+    private FakeReferencedKeyWrapper Referenced { get; } = new();
 
     private MasterKeyFactory CreateOwnerRootFactory(IReferencedKeyWrapper? referenced = null)
     {
         var catalog = new DefaultKeyWrapperCatalog(
-            [_provider, referenced ?? _referenced],
+            [Provider, referenced ?? Referenced],
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Ephemeral }
             )
         );
-        return new MasterKeyFactory(catalog, _recovery, _time);
+        return new MasterKeyFactory(catalog, Recovery, Time);
     }
 
     private DefaultMasterKeyRing CreateOwnerRootRing(
@@ -779,10 +782,10 @@ public class DefaultMasterKeyRingTests : BaseTests
     ) =>
         new(
             factory,
-            _storeManagerFactory.Object,
-            _recovery,
+            StoreManagerFactory.Object,
+            Recovery,
             Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions()),
-            _time,
+            Time,
             logger ?? NullLogger<DefaultMasterKeyRing>.Instance
         );
 
@@ -795,12 +798,12 @@ public class DefaultMasterKeyRingTests : BaseTests
         {
             OwnerType = NormalizedOwner.OwnerType,
             OwnerId = NormalizedOwner.OwnerId,
-            KeyWrapperName = _referenced.Name,
+            KeyWrapperName = Referenced.Name,
             KeyReference = keyReference,
             AccessIdentity = accessIdentity,
             State = state,
-            CreatedWhen = _time.GetUtcNow(),
-            StateChangedWhen = _time.GetUtcNow(),
+            CreatedWhen = Time.GetUtcNow(),
+            StateChangedWhen = Time.GetUtcNow(),
         };
 
     private async Task<PersistedMasterKey> CreateOwnerRootedRowAsync(
@@ -877,7 +880,7 @@ public class DefaultMasterKeyRingTests : BaseTests
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
 
         var row = Assert.Single(added);
-        Assert.Equal(_referenced.Name, row.RootKeyProvider);
+        Assert.Equal(Referenced.Name, row.RootKeyProvider);
         Assert.Equal(RootKeyReference, row.RootKeyReference);
         Assert.Null(row.RecoveryWrappedKey);
     }
@@ -891,19 +894,19 @@ public class DefaultMasterKeyRingTests : BaseTests
         ExpectLoad(row, rootKey);
         using var ring = CreateOwnerRootRing(factory);
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
-        Assert.Equal(1, _referenced.UnwrapCount);
+        Assert.Equal(1, Referenced.UnwrapCount);
 
         // A refresh after the refresh interval reads the rows but reuses the material, so nothing is unwrapped.
-        _time.Advance(TimeSpan.FromMinutes(6));
+        Time.Advance(TimeSpan.FromMinutes(6));
         ExpectLoad(row, rootKey);
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
-        Assert.Equal(1, _referenced.UnwrapCount);
+        Assert.Equal(1, Referenced.UnwrapCount);
 
         // The material is as old as the validation interval, so every key is unwrapped again.
-        _time.Advance(TimeSpan.FromMinutes(54));
+        Time.Advance(TimeSpan.FromMinutes(54));
         ExpectLoad(row, rootKey);
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
-        Assert.Equal(2, _referenced.UnwrapCount);
+        Assert.Equal(2, Referenced.UnwrapCount);
     }
 
     [Fact]
@@ -914,7 +917,7 @@ public class DefaultMasterKeyRingTests : BaseTests
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
 
         // Past the validation interval of an owner root key but within the refresh interval, no store is read.
-        _time.Advance(TimeSpan.FromMinutes(4));
+        Time.Advance(TimeSpan.FromMinutes(4));
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
     }
 
@@ -936,13 +939,13 @@ public class DefaultMasterKeyRingTests : BaseTests
         Assert.Equal(NormalizedOwner, exception.Owner);
 
         // No store manager is queued, so a read of the store fails the test.
-        _time.Advance(TimeSpan.FromSeconds(59));
+        Time.Advance(TimeSpan.FromSeconds(59));
         await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
             await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
         );
 
         // After the retry interval the ring tries again and serves the restored key.
-        _time.Advance(TimeSpan.FromSeconds(2));
+        Time.Advance(TimeSpan.FromSeconds(2));
         ExpectLoad(row, CreateRootKey());
         var protector = await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
         Assert.Equal(row.KeyId, ReadKeyId(protector.ProtectToString("secret"u8, Context)));
@@ -953,7 +956,7 @@ public class DefaultMasterKeyRingTests : BaseTests
     {
         var factory = CreateOwnerRootFactory();
         var row = await CreateOwnerRootedRowAsync(factory);
-        _referenced.Revoke(RootKeyReference);
+        Referenced.Revoke(RootKeyReference);
         ExpectLoad(row, CreateRootKey());
         using var ring = CreateOwnerRootRing(factory);
 
@@ -986,14 +989,14 @@ public class DefaultMasterKeyRingTests : BaseTests
         );
 
         Assert.Contains(unknownKeyId.ToString(), exception.Message);
-        Assert.Equal(1, _referenced.UnwrapCount);
+        Assert.Equal(1, Referenced.UnwrapCount);
 
         // No refusal is recorded and the entry stays cached: no store manager is queued, so a store read or another
         // unwrap fails the test.
         var protector = await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
 
         Assert.Equal(row.KeyId, ReadKeyId(protector.ProtectToString("secret"u8, Context)));
-        Assert.Equal(1, _referenced.UnwrapCount);
+        Assert.Equal(1, Referenced.UnwrapCount);
     }
 
     [Fact]
@@ -1005,8 +1008,8 @@ public class DefaultMasterKeyRingTests : BaseTests
         using var ring = CreateOwnerRootRing(factory);
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
 
-        _referenced.Revoke(RootKeyReference);
-        _time.Advance(TimeSpan.FromHours(1));
+        Referenced.Revoke(RootKeyReference);
+        Time.Advance(TimeSpan.FromHours(1));
         ExpectLoad(row, CreateRootKey());
 
         await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
@@ -1025,13 +1028,13 @@ public class DefaultMasterKeyRingTests : BaseTests
         ExpectLoadWithRows(row3, CreateRootKey(), row1, row2);
         using var ring = CreateOwnerRootRing(factory);
         await ring.GetProtectorAsync(Owner, protectedValues, CancellationToken.None);
-        Assert.Equal(3, _referenced.UnwrapCount);
+        Assert.Equal(3, Referenced.UnwrapCount);
 
         // The active row validates the reference, so the other two rows reuse their material.
-        _time.Advance(TimeSpan.FromHours(1));
+        Time.Advance(TimeSpan.FromHours(1));
         ExpectLoadWithRows(row3, CreateRootKey(), row1, row2);
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
-        Assert.Equal(4, _referenced.UnwrapCount);
+        Assert.Equal(4, Referenced.UnwrapCount);
 
         // The entry holds all three keys: no store manager is queued, so a store read fails the test.
         var protector = await ring.GetProtectorAsync(
@@ -1040,7 +1043,7 @@ public class DefaultMasterKeyRingTests : BaseTests
             CancellationToken.None
         );
         Assert.Equal(row3.KeyId, ReadKeyId(protector.ProtectToString("secret"u8, Context)));
-        Assert.Equal(4, _referenced.UnwrapCount);
+        Assert.Equal(4, Referenced.UnwrapCount);
     }
 
     [Fact]
@@ -1061,20 +1064,20 @@ public class DefaultMasterKeyRingTests : BaseTests
         ExpectLoadWithRows(row4, CreateRootKey(), row1, row2, row3);
         using var ring = CreateOwnerRootRing(factory);
         await ring.GetProtectorAsync(Owner, protectedValues, CancellationToken.None);
-        Assert.Equal(4, _referenced.UnwrapCount);
+        Assert.Equal(4, Referenced.UnwrapCount);
 
         // The active row validates its reference and one row validates the other one.
-        _time.Advance(TimeSpan.FromHours(1));
+        Time.Advance(TimeSpan.FromHours(1));
         ExpectLoadWithRows(row4, CreateRootKey(), row1, row2, row3);
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
-        Assert.Equal(6, _referenced.UnwrapCount);
+        Assert.Equal(6, Referenced.UnwrapCount);
 
         // The entry holds all four keys: no store manager is queued, so a store read fails the test.
         await ring.GetProtectorAsync(Owner, protectedValues, CancellationToken.None);
 
         // A reference that no longer unwraps fails the owner closed although the active row's reference works.
-        _referenced.Revoke(otherReference);
-        _time.Advance(TimeSpan.FromHours(1));
+        Referenced.Revoke(otherReference);
+        Time.Advance(TimeSpan.FromHours(1));
         ExpectLoadWithRows(row4, CreateRootKey(), row1, row2, row3);
         await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
             await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
@@ -1086,7 +1089,7 @@ public class DefaultMasterKeyRingTests : BaseTests
     {
         const string identityA = "test-identity-a";
         const string identityB = "test-identity-b";
-        var wrapper = new IdentityRecordingKeyWrapper(_referenced);
+        var wrapper = new IdentityRecordingKeyWrapper(Referenced);
         var factory = CreateOwnerRootFactory(wrapper);
         var row1 = await CreateOwnerRootedRowAsync(factory, version: 1, accessIdentity: identityA);
         var row2 = await CreateOwnerRootedRowAsync(factory, version: 2, accessIdentity: identityB);
@@ -1098,7 +1101,7 @@ public class DefaultMasterKeyRingTests : BaseTests
         Assert.Equal(3, wrapper.UnwrapAccesses.Count);
 
         // The active row validates its identity and one row validates the other identity.
-        _time.Advance(TimeSpan.FromHours(1));
+        Time.Advance(TimeSpan.FromHours(1));
         ExpectLoadWithRows(row3, CreateRootKey(accessIdentity: identityA), row1, row2);
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
         string[] expectedIdentities = [identityA, identityB];
@@ -1110,7 +1113,7 @@ public class DefaultMasterKeyRingTests : BaseTests
 
         // An identity that is revoked fails the owner closed although the active row's identity works.
         wrapper.Refuse(identityB);
-        _time.Advance(TimeSpan.FromHours(1));
+        Time.Advance(TimeSpan.FromHours(1));
         ExpectLoadWithRows(row3, CreateRootKey(accessIdentity: identityA), row1, row2);
         await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
             await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
@@ -1132,7 +1135,7 @@ public class DefaultMasterKeyRingTests : BaseTests
             CancellationToken.None
         );
 
-        _time.Advance(TimeSpan.FromHours(1));
+        Time.Advance(TimeSpan.FromHours(1));
         ExpectLoadWithRows(row2, CreateRootKey(), row1);
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
 
@@ -1144,7 +1147,7 @@ public class DefaultMasterKeyRingTests : BaseTests
     {
         var factory = CreateOwnerRootFactory();
         var row = await CreateOwnerRootedRowAsync(factory);
-        _referenced.Revoke(RootKeyReference);
+        Referenced.Revoke(RootKeyReference);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var (store, manager) = EnqueueStoreManager();
@@ -1172,7 +1175,7 @@ public class DefaultMasterKeyRingTests : BaseTests
         );
 
         // The failed load recorded no refusal, so the next call reads the store again and serves the restored key.
-        _referenced.Restore(RootKeyReference);
+        Referenced.Restore(RootKeyReference);
         ExpectLoad(row, CreateRootKey());
         var protector = await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
 
@@ -1223,7 +1226,7 @@ public class DefaultMasterKeyRingTests : BaseTests
                 new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Ephemeral }
             )
         );
-        var otherFactory = new MasterKeyFactory(catalog, _recovery, _time);
+        var otherFactory = new MasterKeyFactory(catalog, Recovery, Time);
         var created = await otherFactory.CreateAsync(
             NormalizedOwner,
             1,

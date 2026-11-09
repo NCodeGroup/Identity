@@ -16,16 +16,14 @@ namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 public class ParameterParserErrorTests : BaseTests
 {
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
-    private readonly OpenIdEnvironment _environment;
-    private readonly ParameterDescriptor _allowMissingDescriptor = new(
-        "test",
-        ParameterLoader.Default
-    );
+    private OpenIdEnvironment Environment { get; }
+    private ParameterDescriptor AllowMissingDescriptor { get; } =
+        new("test", ParameterLoader.Default);
 
     public ParameterParserErrorTests()
     {
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        _environment = MockEnvironment.Object;
+        Environment = MockEnvironment.Object;
     }
 
     // Only a parser that refuses its input reads the environment's error factory.
@@ -49,7 +47,7 @@ public class ParameterParserErrorTests : BaseTests
         var parser = new BoolParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, RequiredDescriptor(parser), StringValues.Empty)
+            parser.Parse(Environment, RequiredDescriptor(parser), StringValues.Empty)
         );
     }
 
@@ -60,7 +58,7 @@ public class ParameterParserErrorTests : BaseTests
         var parser = new BoolParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, new StringValues(["true", "false"]))
+            parser.Parse(Environment, AllowMissingDescriptor, new StringValues(["true", "false"]))
         );
     }
 
@@ -71,7 +69,7 @@ public class ParameterParserErrorTests : BaseTests
         var parser = new BoolParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, "not-a-bool")
+            parser.Parse(Environment, AllowMissingDescriptor, "not-a-bool")
         );
     }
 
@@ -86,7 +84,7 @@ public class ParameterParserErrorTests : BaseTests
         var parser = new DateTimeOffsetParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, RequiredDescriptor(parser), StringValues.Empty)
+            parser.Parse(Environment, RequiredDescriptor(parser), StringValues.Empty)
         );
     }
 
@@ -97,7 +95,7 @@ public class ParameterParserErrorTests : BaseTests
         var parser = new DateTimeOffsetParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, new StringValues(["1", "2"]))
+            parser.Parse(Environment, AllowMissingDescriptor, new StringValues(["1", "2"]))
         );
     }
 
@@ -108,7 +106,7 @@ public class ParameterParserErrorTests : BaseTests
         var parser = new DateTimeOffsetParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, "not-a-number")
+            parser.Parse(Environment, AllowMissingDescriptor, "not-a-number")
         );
     }
 
@@ -121,7 +119,7 @@ public class ParameterParserErrorTests : BaseTests
         var parser = new DateTimeOffsetParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, value)
+            parser.Parse(Environment, AllowMissingDescriptor, value)
         );
     }
 
@@ -133,7 +131,7 @@ public class ParameterParserErrorTests : BaseTests
         var values = new StringValues([null]);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, values)
+            parser.Parse(Environment, AllowMissingDescriptor, values)
         );
     }
 
@@ -148,7 +146,7 @@ public class ParameterParserErrorTests : BaseTests
         var parser = new StringValuesParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, RequiredDescriptor(parser), StringValues.Empty)
+            parser.Parse(Environment, RequiredDescriptor(parser), StringValues.Empty)
         );
     }
 
@@ -163,7 +161,7 @@ public class ParameterParserErrorTests : BaseTests
         var parser = new StringSetParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, RequiredDescriptor(parser), StringValues.Empty)
+            parser.Parse(Environment, RequiredDescriptor(parser), StringValues.Empty)
         );
     }
 

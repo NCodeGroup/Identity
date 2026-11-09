@@ -27,25 +27,25 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients;
 
 public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncLifetime
 {
-    private readonly ServiceProvider _serviceProvider;
-    private readonly RSA _tenantRsa = RSA.Create(2048);
-    private readonly RSA _clientRsa = RSA.Create(2048);
+    private ServiceProvider ServiceProvider { get; }
+    private RSA TenantRsa { get; } = RSA.Create(2048);
+    private RSA ClientRsa { get; } = RSA.Create(2048);
 
     public DefaultClientJwtCredentialSelectorTests()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
-        var secretKeyFactory = _serviceProvider.GetRequiredService<ISecretKeyFactory>();
+        var secretKeyFactory = ServiceProvider.GetRequiredService<ISecretKeyFactory>();
         TenantSigningKey = secretKeyFactory.CreateRsa(
             new KeyMetadata { KeyId = "tenant-sig", Use = SecretKeyUses.Signature },
-            _tenantRsa
+            TenantRsa
         );
         ClientEncryptionKey = secretKeyFactory.CreateRsaPublicKey(
             new KeyMetadata { KeyId = "client-enc", Use = SecretKeyUses.Encryption },
-            _clientRsa
+            ClientRsa
         );
         ClientSharedSecret = secretKeyFactory.CreateSymmetric(
             new KeyMetadata { KeyId = "client-secret" },
@@ -54,8 +54,8 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
 
         MockClientKeyResolver = CreateStrictMock<IClientKeyResolver>();
         Selector = new DefaultClientJwtCredentialSelector(
-            _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
-            _serviceProvider.GetRequiredService<ICredentialSelector>(),
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            ServiceProvider.GetRequiredService<ICredentialSelector>(),
             MockClientKeyResolver.Object
         );
     }
@@ -70,15 +70,15 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
 
     public async Task DisposeAsync()
     {
-        await _serviceProvider.DisposeAsync();
-        _tenantRsa.Dispose();
-        _clientRsa.Dispose();
+        await ServiceProvider.DisposeAsync();
+        TenantRsa.Dispose();
+        ClientRsa.Dispose();
     }
 
     #region Scaffolding
 
     private ISecretKeyCollection CreateKeys(params SecretKey[] keys) =>
-        _serviceProvider.GetRequiredService<ISecretKeyCollectionFactory>().Create(keys);
+        ServiceProvider.GetRequiredService<ISecretKeyCollectionFactory>().Create(keys);
 
     // Only a selection that signs reads the tenant's keys, and only a refusal reads the error factory.
     private OpenIdContext CreateContext(bool signs, bool refuses)

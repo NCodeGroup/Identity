@@ -18,16 +18,14 @@ namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 public class AdditionalParameterParserTests : BaseTests
 {
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
-    private readonly OpenIdEnvironment _environment;
-    private readonly ParameterDescriptor _allowMissingDescriptor = new(
-        "test",
-        ParameterLoader.Default
-    );
+    private OpenIdEnvironment Environment { get; }
+    private ParameterDescriptor AllowMissingDescriptor { get; } =
+        new("test", ParameterLoader.Default);
 
     public AdditionalParameterParserTests()
     {
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        _environment = MockEnvironment.Object;
+        Environment = MockEnvironment.Object;
     }
 
     // Only a parser that refuses its input reads the environment's error factory.
@@ -49,10 +47,7 @@ public class AdditionalParameterParserTests : BaseTests
     {
         var parser = new StringParser();
 
-        Assert.Equal(
-            "value",
-            parser.GetStringValues(_environment, _allowMissingDescriptor, "value")
-        );
+        Assert.Equal("value", parser.GetStringValues(Environment, AllowMissingDescriptor, "value"));
     }
 
     [Fact]
@@ -60,7 +55,7 @@ public class AdditionalParameterParserTests : BaseTests
     {
         var parser = new StringParser();
 
-        Assert.Equal("value", parser.Parse(_environment, _allowMissingDescriptor, "value"));
+        Assert.Equal("value", parser.Parse(Environment, AllowMissingDescriptor, "value"));
     }
 
     [Fact]
@@ -68,7 +63,7 @@ public class AdditionalParameterParserTests : BaseTests
     {
         var parser = new StringParser();
 
-        Assert.Null(parser.Parse(_environment, _allowMissingDescriptor, StringValues.Empty));
+        Assert.Null(parser.Parse(Environment, AllowMissingDescriptor, StringValues.Empty));
     }
 
     [Fact]
@@ -78,7 +73,7 @@ public class AdditionalParameterParserTests : BaseTests
         var parser = new StringParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, RequiredDescriptor(parser), StringValues.Empty)
+            parser.Parse(Environment, RequiredDescriptor(parser), StringValues.Empty)
         );
     }
 
@@ -89,7 +84,7 @@ public class AdditionalParameterParserTests : BaseTests
         var parser = new StringParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, new StringValues(["a", "b"]))
+            parser.Parse(Environment, AllowMissingDescriptor, new StringValues(["a", "b"]))
         );
     }
 
@@ -110,8 +105,8 @@ public class AdditionalParameterParserTests : BaseTests
 
         var parameter = parser.Read(
             ref reader,
-            _environment,
-            _allowMissingDescriptor,
+            Environment,
+            AllowMissingDescriptor,
             SerializationFormat.OpenId,
             new System.Text.Json.JsonSerializerOptions()
         );
@@ -130,7 +125,7 @@ public class AdditionalParameterParserTests : BaseTests
 
         Assert.Equal(
             StringValues.Empty,
-            parser.GetStringValues(_environment, _allowMissingDescriptor, null)
+            parser.GetStringValues(Environment, AllowMissingDescriptor, null)
         );
     }
 
@@ -141,7 +136,7 @@ public class AdditionalParameterParserTests : BaseTests
         var input =
             $"a{OpenIdProtocol.ParameterSeparatorChar}b{OpenIdProtocol.ParameterSeparatorChar}c";
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, input);
+        var result = parser.Parse(Environment, AllowMissingDescriptor, input);
 
         Assert.Equal(["a", "b", "c"], result);
     }
@@ -153,7 +148,7 @@ public class AdditionalParameterParserTests : BaseTests
         var parser = new StringListParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, RequiredDescriptor(parser), StringValues.Empty)
+            parser.Parse(Environment, RequiredDescriptor(parser), StringValues.Empty)
         );
     }
 
@@ -168,7 +163,7 @@ public class AdditionalParameterParserTests : BaseTests
 
         Assert.Equal(
             StringValues.Empty,
-            parser.GetStringValues(_environment, _allowMissingDescriptor, null)
+            parser.GetStringValues(Environment, AllowMissingDescriptor, null)
         );
     }
 
@@ -180,7 +175,7 @@ public class AdditionalParameterParserTests : BaseTests
 
         Assert.Equal(
             "myapp://callback",
-            parser.GetStringValues(_environment, _allowMissingDescriptor, uri)
+            parser.GetStringValues(Environment, AllowMissingDescriptor, uri)
         );
     }
 
@@ -189,11 +184,7 @@ public class AdditionalParameterParserTests : BaseTests
     {
         var parser = new OpenIdUriParser();
 
-        var result = parser.Parse(
-            _environment,
-            _allowMissingDescriptor,
-            "https://example.com/path"
-        );
+        var result = parser.Parse(Environment, AllowMissingDescriptor, "https://example.com/path");
 
         Assert.Equal(new Uri("https://example.com/path"), result);
     }
@@ -203,7 +194,7 @@ public class AdditionalParameterParserTests : BaseTests
     {
         var parser = new OpenIdUriParser();
 
-        Assert.Null(parser.Parse(_environment, _allowMissingDescriptor, StringValues.Empty));
+        Assert.Null(parser.Parse(Environment, AllowMissingDescriptor, StringValues.Empty));
     }
 
     [Fact]
@@ -213,7 +204,7 @@ public class AdditionalParameterParserTests : BaseTests
         var parser = new OpenIdUriParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, "not a uri")
+            parser.Parse(Environment, AllowMissingDescriptor, "not a uri")
         );
     }
 
@@ -225,8 +216,8 @@ public class AdditionalParameterParserTests : BaseTests
 
         Assert.Throws<OpenIdException>(() =>
             parser.Parse(
-                _environment,
-                _allowMissingDescriptor,
+                Environment,
+                AllowMissingDescriptor,
                 new StringValues(["https://a.example", "https://b.example"])
             )
         );
@@ -243,7 +234,7 @@ public class AdditionalParameterParserTests : BaseTests
 
         Assert.Equal(
             "90",
-            parser.GetStringValues(_environment, _allowMissingDescriptor, TimeSpan.FromSeconds(90))
+            parser.GetStringValues(Environment, AllowMissingDescriptor, TimeSpan.FromSeconds(90))
         );
     }
 
@@ -252,7 +243,7 @@ public class AdditionalParameterParserTests : BaseTests
     {
         var parser = new TimeSpanParser();
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, "90");
+        var result = parser.Parse(Environment, AllowMissingDescriptor, "90");
 
         Assert.Equal(TimeSpan.FromSeconds(90), result);
     }
@@ -264,7 +255,7 @@ public class AdditionalParameterParserTests : BaseTests
 
         Assert.Equal(
             TimeSpan.Zero,
-            parser.Parse(_environment, _allowMissingDescriptor, StringValues.Empty)
+            parser.Parse(Environment, AllowMissingDescriptor, StringValues.Empty)
         );
     }
 
@@ -275,7 +266,7 @@ public class AdditionalParameterParserTests : BaseTests
         var parser = new TimeSpanParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, "not-a-number")
+            parser.Parse(Environment, AllowMissingDescriptor, "not-a-number")
         );
     }
 
@@ -286,7 +277,7 @@ public class AdditionalParameterParserTests : BaseTests
         var parser = new TimeSpanParser();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, new StringValues(["1", "2"]))
+            parser.Parse(Environment, AllowMissingDescriptor, new StringValues(["1", "2"]))
         );
     }
 

@@ -19,32 +19,21 @@ namespace NCode.Identity.Bff.Logout;
 /// <summary>
 /// Handles <c>POST /bff/logout</c>: checks the request and ends the session of the user.
 /// </summary>
-internal class BffLogoutHandler
+internal class BffLogoutHandler(
+    BffFrontendCatalog frontends,
+    BffSessionResolver resolver,
+    BffLogoutService logoutService,
+    IProviderMetadataResolver metadataResolver
+)
 {
     private const string ReturnUrlParameterName = "returnUrl";
     private const string SidParameterName = "sid";
     private const string DefaultReturnUrl = "/";
 
-    private readonly BffFrontendCatalog _frontends;
-    private readonly BffSessionResolver _resolver;
-    private readonly BffLogoutService _logoutService;
-    private readonly IProviderMetadataResolver _metadataResolver;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BffLogoutHandler"/> class.
-    /// </summary>
-    public BffLogoutHandler(
-        BffFrontendCatalog frontends,
-        BffSessionResolver resolver,
-        BffLogoutService logoutService,
-        IProviderMetadataResolver metadataResolver
-    )
-    {
-        _frontends = frontends;
-        _resolver = resolver;
-        _logoutService = logoutService;
-        _metadataResolver = metadataResolver;
-    }
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private BffSessionResolver Resolver { get; } = resolver;
+    private BffLogoutService LogoutService { get; } = logoutService;
+    private IProviderMetadataResolver MetadataResolver { get; } = metadataResolver;
 
     /// <summary>
     /// Handles the logout request.
@@ -56,7 +45,7 @@ internal class BffLogoutHandler
 
         var request = httpContext.Request;
         var cancellationToken = httpContext.RequestAborted;
-        var frontend = _frontends.GetRequired(httpContext);
+        var frontend = Frontends.GetRequired(httpContext);
         var bffOptions = frontend.Options;
 
         httpContext.Response.SetNoStore();
@@ -94,7 +83,7 @@ internal class BffLogoutHandler
             return;
         }
 
-        var session = await _resolver.ResolveAsync(httpContext, cancellationToken);
+        var session = await Resolver.ResolveAsync(httpContext, cancellationToken);
         if (session is null)
         {
             httpContext.Response.Redirect(BffNavigation.LocalUrl(request, returnUrl));
@@ -111,14 +100,14 @@ internal class BffLogoutHandler
 
         var idToken = session.Payload.IdToken;
 
-        await _logoutService.EndSessionAsync(httpContext, session, BffSessionEndReasons.LoggedOut);
+        await LogoutService.EndSessionAsync(httpContext, session, BffSessionEndReasons.LoggedOut);
 
         var registration = frontend.Registration;
 
         OpenIdProviderMetadata metadata;
         try
         {
-            metadata = await _metadataResolver.GetMetadataAsync(
+            metadata = await MetadataResolver.GetMetadataAsync(
                 registration.Authority,
                 cancellationToken
             );

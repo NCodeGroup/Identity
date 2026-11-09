@@ -11,13 +11,13 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class MasterKeyChangeBroadcastHandlerTests : BaseTests
 {
-    private readonly Mock<ISecretProtectorProvider> _provider;
-    private readonly MasterKeyChangeBroadcastHandler _handler;
+    private Mock<ISecretProtectorProvider> Provider { get; }
+    private MasterKeyChangeBroadcastHandler Handler { get; }
 
     public MasterKeyChangeBroadcastHandlerTests()
     {
-        _provider = CreateStrictMock<ISecretProtectorProvider>();
-        _handler = new MasterKeyChangeBroadcastHandler(_provider.Object);
+        Provider = CreateStrictMock<ISecretProtectorProvider>();
+        Handler = new MasterKeyChangeBroadcastHandler(Provider.Object);
     }
 
     #region Channel Tests
@@ -25,7 +25,7 @@ public sealed class MasterKeyChangeBroadcastHandlerTests : BaseTests
     [Fact]
     public void Channel_IsTheMasterKeyChannel()
     {
-        Assert.Equal("master-key-changed", _handler.Channel);
+        Assert.Equal("master-key-changed", Handler.Channel);
     }
 
     #endregion
@@ -35,9 +35,9 @@ public sealed class MasterKeyChangeBroadcastHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_EvictsTheAnnouncedOwner()
     {
-        _provider.Setup(x => x.Evict(SecretOwner.ForTenant("acme"))).Verifiable();
+        Provider.Setup(x => x.Evict(SecretOwner.ForTenant("acme"))).Verifiable();
 
-        await _handler.HandleAsync("tenant:acme", CancellationToken.None);
+        await Handler.HandleAsync("tenant:acme", CancellationToken.None);
     }
 
     [Theory]
@@ -46,9 +46,9 @@ public sealed class MasterKeyChangeBroadcastHandlerTests : BaseTests
     [InlineData(":acme")]
     public async Task HandleAsync_AMessageThatNamesNoOwner_EvictsNothing(string message)
     {
-        await _handler.HandleAsync(message, CancellationToken.None);
+        await Handler.HandleAsync(message, CancellationToken.None);
 
-        Assert.Empty(_provider.Invocations);
+        Assert.Empty(Provider.Invocations);
     }
 
     #endregion
@@ -58,9 +58,9 @@ public sealed class MasterKeyChangeBroadcastHandlerTests : BaseTests
     [Fact]
     public async Task HandleMissedMessagesAsync_EvictsEveryOwner()
     {
-        _provider.Setup(x => x.EvictAll()).Verifiable();
+        Provider.Setup(x => x.EvictAll()).Verifiable();
 
-        await _handler.HandleMissedMessagesAsync(CancellationToken.None);
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
     }
 
     #endregion

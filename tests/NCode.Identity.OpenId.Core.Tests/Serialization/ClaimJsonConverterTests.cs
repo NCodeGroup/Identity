@@ -11,12 +11,12 @@ namespace NCode.Identity.OpenId.Core.Tests.Serialization;
 
 public class ClaimJsonConverterTests
 {
-    private readonly JsonSerializerOptions _options;
+    private JsonSerializerOptions Options { get; }
 
     public ClaimJsonConverterTests()
     {
         var serializer = DefaultClaimsSerializer.Singleton;
-        _options = new JsonSerializerOptions
+        Options = new JsonSerializerOptions
         {
             Converters =
             {
@@ -34,8 +34,8 @@ public class ClaimJsonConverterTests
     {
         var claim = new Claim("name", "alice", "vt", "issuer", "original");
 
-        var json = JsonSerializer.Serialize(claim, _options);
-        var result = JsonSerializer.Deserialize<Claim>(json, _options);
+        var json = JsonSerializer.Serialize(claim, Options);
+        var result = JsonSerializer.Deserialize<Claim>(json, Options);
 
         Assert.NotNull(result);
         Assert.Equal("name", result.Type);
@@ -53,8 +53,8 @@ public class ClaimJsonConverterTests
         var identity = new ClaimsIdentity("pwd", "name", "role");
         identity.AddClaim(new Claim("name", "alice"));
 
-        var json = JsonSerializer.Serialize(identity, _options);
-        var result = JsonSerializer.Deserialize<ClaimsIdentity>(json, _options);
+        var json = JsonSerializer.Serialize(identity, Options);
+        var result = JsonSerializer.Deserialize<ClaimsIdentity>(json, Options);
 
         Assert.NotNull(result);
         Assert.Equal("pwd", result.AuthenticationType);
@@ -72,8 +72,8 @@ public class ClaimJsonConverterTests
         identity.AddClaim(new Claim("name", "alice"));
         var principal = new ClaimsPrincipal(identity);
 
-        var json = JsonSerializer.Serialize(principal, _options);
-        var result = JsonSerializer.Deserialize<ClaimsPrincipal>(json, _options);
+        var json = JsonSerializer.Serialize(principal, Options);
+        var result = JsonSerializer.Deserialize<ClaimsPrincipal>(json, Options);
 
         Assert.NotNull(result);
         var resultIdentity = Assert.Single(result.Identities);

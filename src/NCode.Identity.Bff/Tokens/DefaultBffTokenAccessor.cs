@@ -13,8 +13,8 @@ namespace NCode.Identity.Bff.Tokens;
 /// </summary>
 internal class DefaultBffTokenAccessor : IBffTokenAccessor
 {
-    private readonly FrozenDictionary<string, IBffTokenRequirement> _requirements;
-    private readonly BffTokenContexts _contexts;
+    private FrozenDictionary<string, IBffTokenRequirement> Requirements { get; }
+    private BffTokenContexts Contexts { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultBffTokenAccessor"/> class.
@@ -29,7 +29,7 @@ internal class DefaultBffTokenAccessor : IBffTokenAccessor
         ArgumentNullException.ThrowIfNull(requirements);
         ArgumentNullException.ThrowIfNull(contexts);
 
-        _contexts = contexts;
+        Contexts = contexts;
 
         var map = new Dictionary<string, IBffTokenRequirement>(StringComparer.Ordinal);
         foreach (var requirement in requirements)
@@ -40,7 +40,7 @@ internal class DefaultBffTokenAccessor : IBffTokenAccessor
                 );
         }
 
-        _requirements = map.ToFrozenDictionary(StringComparer.Ordinal);
+        Requirements = map.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
     /// <inheritdoc />
@@ -55,7 +55,7 @@ internal class DefaultBffTokenAccessor : IBffTokenAccessor
 
         ThrowIfNotGuarded(httpContext);
 
-        var context = _contexts.ForRequest(httpContext);
+        var context = Contexts.ForRequest(httpContext);
         return DispatchAsync(context, request, cancellationToken);
     }
 
@@ -90,7 +90,7 @@ internal class DefaultBffTokenAccessor : IBffTokenAccessor
         CancellationToken cancellationToken
     )
     {
-        if (!_requirements.TryGetValue(request.Requirement, out var requirement))
+        if (!Requirements.TryGetValue(request.Requirement, out var requirement))
             throw new InvalidOperationException(
                 $"The token requirement '{request.Requirement}' is not registered."
             );

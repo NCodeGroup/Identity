@@ -18,29 +18,29 @@ public sealed class GrantStoreConcurrencyTests : IAsyncLifetime, IDisposable
     private const string HashedKey = "hashed-key-1";
     private const string TenantId = "tenant-1";
 
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
 
     public GrantStoreConcurrencyTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
-        _provider = serviceCollection.BuildServiceProvider();
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
+        Provider = serviceCollection.BuildServiceProvider();
     }
 
     public async Task InitializeAsync()
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await context.Database.EnsureCreatedAsync();
-        context.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        context.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
         var tenantStore = new TenantStore(
             Mock.Of<IStoreProvider>(),
-            _provider.GetRequiredService<IIdGenerator<long>>(),
+            Provider.GetRequiredService<IIdGenerator<long>>(),
             context
         );
         await tenantStore.AddAsync(CreateTenant(), CancellationToken.None);
@@ -51,12 +51,12 @@ public sealed class GrantStoreConcurrencyTests : IAsyncLifetime, IDisposable
 
     public void Dispose()
     {
-        _provider.Dispose();
-        _connection.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     private GrantStore CreateStore(OpenIdDbContext context) =>
-        new(Mock.Of<IStoreProvider>(), _provider.GetRequiredService<IIdGenerator<long>>(), context);
+        new(Mock.Of<IStoreProvider>(), Provider.GetRequiredService<IIdGenerator<long>>(), context);
 
     private static PersistedTenant CreateTenant() =>
         new PersistedTenantBuilder { TenantId = TenantId, DisplayName = "Tenant One" }.Build();
@@ -82,7 +82,7 @@ public sealed class GrantStoreConcurrencyTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task UpdateAsync_WhenRowChangedConcurrently_ThrowsViaNativeConcurrency()
     {
-        using (var seedScope = _provider.CreateScope())
+        using (var seedScope = Provider.CreateScope())
         {
             var context = seedScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             var store = CreateStore(context);
@@ -91,14 +91,14 @@ public sealed class GrantStoreConcurrencyTests : IAsyncLifetime, IDisposable
         }
 
         // First reader loads the grant.
-        using var scope1 = _provider.CreateScope();
+        using var scope1 = Provider.CreateScope();
         var context1 = scope1.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store1 = CreateStore(context1);
         var grant1 = await store1.GetOrDefaultAsync(GrantType, HashedKey, CancellationToken.None);
         Assert.NotNull(grant1);
 
         // A concurrent writer updates and commits, bumping the row's token.
-        using (var scope2 = _provider.CreateScope())
+        using (var scope2 = Provider.CreateScope())
         {
             var context2 = scope2.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             var store2 = CreateStore(context2);

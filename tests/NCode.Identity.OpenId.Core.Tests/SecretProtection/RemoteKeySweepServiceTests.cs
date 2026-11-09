@@ -20,45 +20,45 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
 {
     private static DateTimeOffset Now { get; } = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly RemoteKeyOptions _keyOptions = new() { Deployment = "acme" };
-    private readonly FakeTimeProvider _time = new(Now);
-    private readonly Mock<IMaterializedPlatformAccessor> _platformAccessor;
-    private readonly Mock<IRemoteKeyDescriptorCatalog> _catalog;
-    private readonly Mock<IJobDispatcher> _dispatcher;
-    private readonly Mock<IExpiringKeySet> _keySet;
-    private readonly Mock<OpenIdPlatform> _platform;
-    private readonly RemoteKeySweepService _service;
-    private readonly List<RemoteKeySweepJob> _dispatched = [];
+    private RemoteKeyOptions KeyOptions { get; } = new() { Deployment = "acme" };
+    private FakeTimeProvider Time { get; } = new(Now);
+    private Mock<IMaterializedPlatformAccessor> PlatformAccessor { get; }
+    private Mock<IRemoteKeyDescriptorCatalog> Catalog { get; }
+    private Mock<IJobDispatcher> Dispatcher { get; }
+    private Mock<IExpiringKeySet> KeySet { get; }
+    private Mock<OpenIdPlatform> Platform { get; }
+    private RemoteKeySweepService Service { get; }
+    private List<RemoteKeySweepJob> Dispatched { get; } = [];
 
     public RemoteKeySweepServiceTests()
     {
-        _platformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
-        _catalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
-        _dispatcher = CreateStrictMock<IJobDispatcher>();
-        _keySet = CreateStrictMock<IExpiringKeySet>();
-        _platform = CreateStrictMock<OpenIdPlatform>();
+        PlatformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
+        Catalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
+        Dispatcher = CreateStrictMock<IJobDispatcher>();
+        KeySet = CreateStrictMock<IExpiringKeySet>();
+        Platform = CreateStrictMock<OpenIdPlatform>();
 
-        _service = CreateService(CreateLooseMock<ILogger<RemoteKeySweepService>>().Object);
+        Service = CreateService(CreateLooseMock<ILogger<RemoteKeySweepService>>().Object);
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
-            _service.Dispose();
+            Service.Dispose();
 
         base.Dispose(disposing);
     }
 
     private RemoteKeySweepService CreateService(ILogger<RemoteKeySweepService> logger) =>
         new(
-            _platformAccessor.Object,
-            _catalog.Object,
-            _dispatcher.Object,
-            _keySet.Object,
+            PlatformAccessor.Object,
+            Catalog.Object,
+            Dispatcher.Object,
+            KeySet.Object,
             Microsoft.Extensions.Options.Options.Create(
-                new SecretProtectionOptions { RemoteKeys = _keyOptions }
+                new SecretProtectionOptions { RemoteKeys = KeyOptions }
             ),
-            _time,
+            Time,
             logger
         );
 
@@ -95,7 +95,7 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
     private void SetupProviders(params string[] names) => SetupProviders(names, []);
 
     private void SetupProviders(string[] names, string[] namesThatCreateNoKeys) =>
-        _catalog
+        Catalog
             .Setup(x => x.Providers)
             .Returns(
                 names
@@ -110,11 +110,11 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
             .Verifiable();
 
     private void SetupLease(bool acquired) =>
-        _keySet
+        KeySet
             .Setup(x =>
                 x.TryAddAsync(
                     RemoteKeySweepService.LeaseKey,
-                    Now + _keyOptions.SweepInterval / 2,
+                    Now + KeyOptions.SweepInterval / 2,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -122,7 +122,7 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
             .Verifiable(Times.Once());
 
     private void SetupDispatch() =>
-        _dispatcher
+        Dispatcher
             .Setup(x =>
                 x.DispatchAsync(
                     It.IsAny<RemoteKeySweepJob>(),
@@ -131,7 +131,7 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
                 )
             )
             .Callback<RemoteKeySweepJob, DispatchOptions?, CancellationToken>(
-                (job, _, _) => _dispatched.Add(job)
+                (job, _, _) => Dispatched.Add(job)
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -145,9 +145,9 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
         SetupLease(true);
         SetupDispatch();
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        Assert.Equal(["aws", "azure", "google"], _dispatched.Select(job => job.Provider));
+        Assert.Equal(["aws", "azure", "google"], Dispatched.Select(job => job.Provider));
     }
 
     [Fact]
@@ -157,9 +157,9 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
         SetupLease(true);
         SetupDispatch();
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        Assert.Equal(["azure", "google"], _dispatched.Select(job => job.Provider));
+        Assert.Equal(["azure", "google"], Dispatched.Select(job => job.Provider));
     }
 
     [Fact]
@@ -167,11 +167,11 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
     {
         SetupLease(false);
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        Assert.Empty(_dispatched);
-        Assert.Empty(_dispatcher.Invocations);
-        Assert.Empty(_catalog.Invocations);
+        Assert.Empty(Dispatched);
+        Assert.Empty(Dispatcher.Invocations);
+        Assert.Empty(Catalog.Invocations);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
         SetupProviders("aws", "google");
         SetupLease(true);
         SetupDispatch();
-        _dispatcher
+        Dispatcher
             .Setup(x =>
                 x.DispatchAsync(
                     It.Is<RemoteKeySweepJob>(job => job.Provider == "aws"),
@@ -195,7 +195,7 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
 
         await service.RunAsync(CancellationToken.None);
 
-        Assert.Equal(["google"], _dispatched.Select(job => job.Provider));
+        Assert.Equal(["google"], Dispatched.Select(job => job.Provider));
         Assert.Equal(
             [(LogLevel.Warning, EventIds.RemoteKeySweepDispatchFailed)],
             entries.Where(entry => entry.Level >= LogLevel.Warning)
@@ -205,7 +205,7 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
     [Fact]
     public async Task RunAsync_WhenTheLeaseFails_LogsThePassFailure()
     {
-        _keySet
+        KeySet
             .Setup(x =>
                 x.TryAddAsync(
                     It.IsAny<string>(),
@@ -231,7 +231,7 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
     {
         using var cancelled = new CancellationTokenSource();
         await cancelled.CancelAsync();
-        _keySet
+        KeySet
             .Setup(x =>
                 x.TryAddAsync(
                     It.IsAny<string>(),
@@ -243,7 +243,7 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
             .Verifiable(Times.Once());
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await _service.RunAsync(cancelled.Token)
+            await Service.RunAsync(cancelled.Token)
         );
     }
 
@@ -254,15 +254,15 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_WhenTheSweepIsDisabled_ReturnsWithoutWaitingForThePlatform()
     {
-        _keyOptions.SweepEnabled = false;
+        KeyOptions.SweepEnabled = false;
 
-        await _service.StartAsync(CancellationToken.None);
-        await _service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await _service.StopAsync(CancellationToken.None);
+        await Service.StartAsync(CancellationToken.None);
+        await Service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await Service.StopAsync(CancellationToken.None);
 
-        Assert.Empty(_platformAccessor.Invocations);
-        Assert.Empty(_keySet.Invocations);
-        Assert.Empty(_dispatcher.Invocations);
+        Assert.Empty(PlatformAccessor.Invocations);
+        Assert.Empty(KeySet.Invocations);
+        Assert.Empty(Dispatcher.Invocations);
     }
 
     [Fact]
@@ -270,13 +270,13 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
     {
         SetupProviders();
 
-        await _service.StartAsync(CancellationToken.None);
-        await _service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await _service.StopAsync(CancellationToken.None);
+        await Service.StartAsync(CancellationToken.None);
+        await Service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await Service.StopAsync(CancellationToken.None);
 
-        Assert.Empty(_platformAccessor.Invocations);
-        Assert.Empty(_keySet.Invocations);
-        Assert.Empty(_dispatcher.Invocations);
+        Assert.Empty(PlatformAccessor.Invocations);
+        Assert.Empty(KeySet.Invocations);
+        Assert.Empty(Dispatcher.Invocations);
     }
 
     [Fact]
@@ -284,27 +284,27 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
     {
         SetupProviders([], ["aws"]);
 
-        await _service.StartAsync(CancellationToken.None);
-        await _service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await _service.StopAsync(CancellationToken.None);
+        await Service.StartAsync(CancellationToken.None);
+        await Service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await Service.StopAsync(CancellationToken.None);
 
-        Assert.Empty(_platformAccessor.Invocations);
-        Assert.Empty(_keySet.Invocations);
-        Assert.Empty(_dispatcher.Invocations);
+        Assert.Empty(PlatformAccessor.Invocations);
+        Assert.Empty(KeySet.Invocations);
+        Assert.Empty(Dispatcher.Invocations);
     }
 
     [Fact]
     public async Task ExecuteAsync_EverySweepInterval_RunsAPassUntilStopped()
     {
         SetupProviders("aws");
-        _platformAccessor
+        PlatformAccessor
             .Setup(x => x.GetPlatformAsync(It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<OpenIdPlatform>(_platform.Object))
+            .Returns(new ValueTask<OpenIdPlatform>(Platform.Object))
             .Verifiable(Times.Once());
 
         // The lease answers false, so a pass takes the lease and does nothing else.
         using var leased = new SemaphoreSlim(0);
-        _keySet
+        KeySet
             .Setup(x =>
                 x.TryAddAsync(
                     RemoteKeySweepService.LeaseKey,
@@ -316,7 +316,7 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
             .ReturnsAsync(false)
             .Verifiable(Times.AtLeast(2));
 
-        await _service.StartAsync(CancellationToken.None);
+        await Service.StartAsync(CancellationToken.None);
 
         // The service may create its timer after StartAsync returns, so the clock advances until the second pass.
         Assert.True(await leased.WaitAsync(TimeSpan.FromSeconds(10)));
@@ -324,15 +324,15 @@ public sealed class RemoteKeySweepServiceTests : BaseTests
         var ticked = false;
         while (!ticked && DateTime.UtcNow < deadline)
         {
-            _time.Advance(_keyOptions.SweepInterval);
+            Time.Advance(KeyOptions.SweepInterval);
             ticked = await leased.WaitAsync(TimeSpan.FromMilliseconds(50));
         }
 
         Assert.True(ticked);
 
-        await _service.StopAsync(CancellationToken.None);
+        await Service.StopAsync(CancellationToken.None);
 
-        Assert.True(_service.ExecuteTask is { IsCompleted: true, IsFaulted: false });
+        Assert.True(Service.ExecuteTask is { IsCompleted: true, IsFaulted: false });
     }
 
     #endregion

@@ -19,37 +19,37 @@ public sealed class TenantStoreContributedEntityRemovalTests : IDisposable
     private const string TenantOneId = "tenant-1";
     private const string TenantTwoId = "tenant-2";
 
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _store;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore Store { get; }
 
     public TenantStoreContributedEntityRemovalTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<IOpenIdModelContributor, TestTenantNoteModelContributor>()
         );
         serviceCollection.AddTestOpenIdDbContext(options =>
-            options.UseSqlite(_connection).EnableServiceProviderCaching(false)
+            options.UseSqlite(Connection).EnableServiceProviderCaching(false)
         );
-        _provider = serviceCollection.BuildServiceProvider();
+        Provider = serviceCollection.BuildServiceProvider();
 
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        _dbContext.Database.EnsureCreated();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        DbContext.Database.EnsureCreated();
 
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        Store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
-        _connection.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     #region Helpers
@@ -83,13 +83,13 @@ public sealed class TenantStoreContributedEntityRemovalTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenAnotherPackageContributesATenantOwnedEntity_RemovesItsRows()
     {
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _dbContext.SeedTenant(idGenerator, TenantOneId);
-        _dbContext.SeedTenant(idGenerator, TenantTwoId);
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        DbContext.SeedTenant(idGenerator, TenantOneId);
+        DbContext.SeedTenant(idGenerator, TenantTwoId);
 
         foreach (var tenantId in new[] { TenantOneId, TenantTwoId })
         {
-            _dbContext
+            DbContext
                 .Set<TestTenantNoteEntity>()
                 .Add(
                     new TestTenantNoteEntity
@@ -101,16 +101,16 @@ public sealed class TenantStoreContributedEntityRemovalTests : IDisposable
                 );
         }
 
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var removed = await _store.RemoveAsync(TenantOneId, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        var removed = await Store.RemoveAsync(TenantOneId, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
         Assert.True(removed);
 
-        var note = Assert.Single(await _dbContext.Set<TestTenantNoteEntity>().ToListAsync());
+        var note = Assert.Single(await DbContext.Set<TestTenantNoteEntity>().ToListAsync());
         Assert.Equal(TenantTwoId, note.NormalizedTenantId);
     }
 

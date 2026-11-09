@@ -42,8 +42,6 @@ public sealed class ClientRegistration(
     /// </summary>
     public string? KeyRing { get; init; }
 
-    private IReadOnlyList<string>? _idTokenSigningAlgorithms;
-
     /// <summary>
     /// Gets the JOSE <c>alg</c> names that ID tokens of this client may be signed with, which is the
     /// <c>id_token_signed_response_alg</c> the client registered at the provider. <see langword="null"/> or empty
@@ -52,12 +50,9 @@ public sealed class ClientRegistration(
     /// </summary>
     public IReadOnlyList<string>? IdTokenSigningAlgorithms
     {
-        get => _idTokenSigningAlgorithms;
-        init =>
-            _idTokenSigningAlgorithms = ValidateAlgorithms(value, "ID-token signing algorithms");
+        get;
+        init => field = ValidateAlgorithms(value, "ID-token signing algorithms");
     }
-
-    private IReadOnlyList<string>? _idTokenKeyManagementAlgorithms;
 
     /// <summary>
     /// Gets the JWE <c>alg</c> names that ID tokens of this client are encrypted with, which is the
@@ -69,15 +64,9 @@ public sealed class ClientRegistration(
     /// </summary>
     public IReadOnlyList<string>? IdTokenKeyManagementAlgorithms
     {
-        get => _idTokenKeyManagementAlgorithms;
-        init =>
-            _idTokenKeyManagementAlgorithms = ValidateAlgorithms(
-                value,
-                "ID-token key management algorithms"
-            );
+        get;
+        init => field = ValidateAlgorithms(value, "ID-token key management algorithms");
     }
-
-    private IReadOnlyList<string>? _idTokenContentEncryptionAlgorithms;
 
     /// <summary>
     /// Gets the JWE <c>enc</c> names that ID tokens of this client are encrypted with, which is the
@@ -88,15 +77,9 @@ public sealed class ClientRegistration(
     /// </summary>
     public IReadOnlyList<string>? IdTokenContentEncryptionAlgorithms
     {
-        get => _idTokenContentEncryptionAlgorithms;
-        init =>
-            _idTokenContentEncryptionAlgorithms = ValidateAlgorithms(
-                value,
-                "ID-token content encryption algorithms"
-            );
+        get;
+        init => field = ValidateAlgorithms(value, "ID-token content encryption algorithms");
     }
-
-    private IReadOnlyList<string>? _userInfoSigningAlgorithms;
 
     /// <summary>
     /// Gets the JOSE <c>alg</c> names that UserInfo responses to this client are signed with, which is the
@@ -109,12 +92,9 @@ public sealed class ClientRegistration(
     // See ADR-1301.
     public IReadOnlyList<string>? UserInfoSigningAlgorithms
     {
-        get => _userInfoSigningAlgorithms;
-        init =>
-            _userInfoSigningAlgorithms = ValidateAlgorithms(value, "UserInfo signing algorithms");
+        get;
+        init => field = ValidateAlgorithms(value, "UserInfo signing algorithms");
     }
-
-    private IReadOnlyList<string>? _userInfoKeyManagementAlgorithms;
 
     /// <summary>
     /// Gets the JWE <c>alg</c> names that UserInfo responses to this client are encrypted with, which is the
@@ -128,15 +108,9 @@ public sealed class ClientRegistration(
     // See ADR-1301.
     public IReadOnlyList<string>? UserInfoKeyManagementAlgorithms
     {
-        get => _userInfoKeyManagementAlgorithms;
-        init =>
-            _userInfoKeyManagementAlgorithms = ValidateAlgorithms(
-                value,
-                "UserInfo key management algorithms"
-            );
+        get;
+        init => field = ValidateAlgorithms(value, "UserInfo key management algorithms");
     }
-
-    private IReadOnlyList<string>? _userInfoContentEncryptionAlgorithms;
 
     /// <summary>
     /// Gets the JWE <c>enc</c> names that UserInfo responses to this client are encrypted with, which is the
@@ -147,12 +121,8 @@ public sealed class ClientRegistration(
     // See ADR-1301.
     public IReadOnlyList<string>? UserInfoContentEncryptionAlgorithms
     {
-        get => _userInfoContentEncryptionAlgorithms;
-        init =>
-            _userInfoContentEncryptionAlgorithms = ValidateAlgorithms(
-                value,
-                "UserInfo content encryption algorithms"
-            );
+        get;
+        init => field = ValidateAlgorithms(value, "UserInfo content encryption algorithms");
     }
 
     /// <summary>

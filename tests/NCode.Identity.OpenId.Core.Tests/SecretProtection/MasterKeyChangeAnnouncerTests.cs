@@ -16,19 +16,19 @@ public sealed class MasterKeyChangeAnnouncerTests : BaseTests
 {
     private static SecretOwner Owner { get; } = SecretOwner.ForTenant("acme");
 
-    private readonly Mock<IReplicaBroadcaster> _broadcaster;
-    private readonly Mock<IJobDispatcher> _dispatcher;
+    private Mock<IReplicaBroadcaster> Broadcaster { get; }
+    private Mock<IJobDispatcher> Dispatcher { get; }
 
     public MasterKeyChangeAnnouncerTests()
     {
-        _broadcaster = CreateStrictMock<IReplicaBroadcaster>();
-        _dispatcher = CreateStrictMock<IJobDispatcher>();
+        Broadcaster = CreateStrictMock<IReplicaBroadcaster>();
+        Dispatcher = CreateStrictMock<IJobDispatcher>();
     }
 
     private MasterKeyChangeAnnouncer CreateAnnouncer() =>
         new(
-            _broadcaster.Object,
-            _dispatcher.Object,
+            Broadcaster.Object,
+            Dispatcher.Object,
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions
                 {
@@ -54,7 +54,7 @@ public sealed class MasterKeyChangeAnnouncerTests : BaseTests
     [Fact]
     public async Task Rotated_BroadcastsTheOwnerAndDispatchesADelayedRewrapJob()
     {
-        _broadcaster
+        Broadcaster
             .Setup(x =>
                 x.PublishAsync("master-key-changed", "tenant:acme", It.IsAny<CancellationToken>())
             )
@@ -62,7 +62,7 @@ public sealed class MasterKeyChangeAnnouncerTests : BaseTests
             .Verifiable();
         DispatchOptions? options = null;
         MasterKeyRewrapJob? job = null;
-        _dispatcher
+        Dispatcher
             .Setup(x =>
                 x.DispatchAsync(
                     It.IsAny<MasterKeyRewrapJob>(),
@@ -95,7 +95,7 @@ public sealed class MasterKeyChangeAnnouncerTests : BaseTests
     [Fact]
     public async Task Rotated_WithoutARetiredKey_BroadcastsOnly()
     {
-        _broadcaster
+        Broadcaster
             .Setup(x =>
                 x.PublishAsync("master-key-changed", "tenant:acme", It.IsAny<CancellationToken>())
             )
@@ -105,7 +105,7 @@ public sealed class MasterKeyChangeAnnouncerTests : BaseTests
         await CreateAnnouncer()
             .RotatedAsync(new MasterKeyRotation(Owner, Info(1), null), CancellationToken.None);
 
-        Assert.Empty(_dispatcher.Invocations);
+        Assert.Empty(Dispatcher.Invocations);
     }
 
     #endregion
@@ -115,7 +115,7 @@ public sealed class MasterKeyChangeAnnouncerTests : BaseTests
     [Fact]
     public async Task Destroyed_BroadcastsTheOwner()
     {
-        _broadcaster
+        Broadcaster
             .Setup(x =>
                 x.PublishAsync("master-key-changed", "tenant:acme", It.IsAny<CancellationToken>())
             )

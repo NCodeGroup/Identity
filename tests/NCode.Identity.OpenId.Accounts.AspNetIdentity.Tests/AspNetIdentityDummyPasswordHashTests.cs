@@ -9,16 +9,16 @@ public sealed class AspNetIdentityDummyPasswordHashTests : IDisposable
 {
     private const string DummyPasswordHash = "dummy-hash";
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
+    private MockRepository Mocks { get; } = new(MockBehavior.Strict);
 
-    public void Dispose() => _mocks.Verify();
+    public void Dispose() => Mocks.Verify();
 
     #region GetOrCreate Tests
 
     [Fact]
     public void GetOrCreate_WhenCalledTwice_HashesOnce()
     {
-        var passwordHasher = _mocks.Create<IPasswordHasher<IdentityUser>>();
+        var passwordHasher = Mocks.Create<IPasswordHasher<IdentityUser>>();
         passwordHasher
             .Setup(x => x.HashPassword(It.IsAny<IdentityUser>(), It.IsAny<string>()))
             .Returns(DummyPasswordHash)
@@ -37,7 +37,7 @@ public sealed class AspNetIdentityDummyPasswordHashTests : IDisposable
     {
         IdentityUser? hashedUser = null;
         string? hashedPassword = null;
-        var passwordHasher = _mocks.Create<IPasswordHasher<IdentityUser>>();
+        var passwordHasher = Mocks.Create<IPasswordHasher<IdentityUser>>();
         passwordHasher
             .Setup(x => x.HashPassword(It.IsAny<IdentityUser>(), It.IsAny<string>()))
             .Callback<IdentityUser, string>(

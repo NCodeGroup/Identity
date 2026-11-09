@@ -12,7 +12,7 @@ public class DefaultOldestFirstSessionEvictionPolicyTests
     private static DateTimeOffset Epoch { get; } =
         DateTimeOffset.Parse("2026-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
-    private readonly DefaultOldestFirstSessionEvictionPolicy _policy = new();
+    private DefaultOldestFirstSessionEvictionPolicy Policy { get; } = new();
 
     private static SessionInfo CreateSession(string sessionId, DateTimeOffset createdWhen) =>
         new(
@@ -41,7 +41,7 @@ public class DefaultOldestFirstSessionEvictionPolicyTests
         };
 
         // With a cap of 2, adding a new session should leave 2 active, so keep the 1 newest and evict the other 2.
-        var evicted = _policy.SelectSessionsToEvict(sessions, maxConcurrentSessions: 2).ToList();
+        var evicted = Policy.SelectSessionsToEvict(sessions, maxConcurrentSessions: 2).ToList();
 
         Assert.Equal(["middle", "oldest"], evicted.Select(session => session.SessionId));
     }
@@ -51,7 +51,7 @@ public class DefaultOldestFirstSessionEvictionPolicyTests
     {
         var sessions = new[] { CreateSession("only", Epoch.AddMinutes(10)) };
 
-        var evicted = _policy.SelectSessionsToEvict(sessions, maxConcurrentSessions: 5).ToList();
+        var evicted = Policy.SelectSessionsToEvict(sessions, maxConcurrentSessions: 5).ToList();
 
         Assert.Empty(evicted);
     }

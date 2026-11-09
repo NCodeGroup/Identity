@@ -17,11 +17,9 @@ namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 public class EnumAndJsonParameterParserTests : BaseTests
 {
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
-    private readonly OpenIdEnvironment _environment;
-    private readonly ParameterDescriptor _allowMissingDescriptor = new(
-        "test",
-        ParameterLoader.Default
-    );
+    private OpenIdEnvironment Environment { get; }
+    private ParameterDescriptor AllowMissingDescriptor { get; } =
+        new("test", ParameterLoader.Default);
 
     public enum SampleColor
     {
@@ -42,7 +40,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
     public EnumAndJsonParameterParserTests()
     {
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        _environment = MockEnvironment.Object;
+        Environment = MockEnvironment.Object;
     }
 
     // Only a parser that refuses its input reads the environment's error factory.
@@ -71,8 +69,8 @@ public class EnumAndJsonParameterParserTests : BaseTests
     public void EnumParser_GetStringValues_ReturnsSnakeCaseName(SampleColor value, string expected)
     {
         var result = EnumParser<SampleColor>.Singleton.GetStringValues(
-            _environment,
-            _allowMissingDescriptor,
+            Environment,
+            AllowMissingDescriptor,
             value
         );
 
@@ -86,8 +84,8 @@ public class EnumAndJsonParameterParserTests : BaseTests
     public void EnumParser_Parse_ReturnsEnum(string input, SampleColor expected)
     {
         var result = EnumParser<SampleColor>.Singleton.Parse(
-            _environment,
-            _allowMissingDescriptor,
+            Environment,
+            AllowMissingDescriptor,
             input
         );
 
@@ -98,8 +96,8 @@ public class EnumAndJsonParameterParserTests : BaseTests
     public void EnumParser_Parse_WhenMissingAndAllowed_ReturnsDefault()
     {
         var result = EnumParser<SampleColor>.Singleton.Parse(
-            _environment,
-            _allowMissingDescriptor,
+            Environment,
+            AllowMissingDescriptor,
             StringValues.Empty
         );
 
@@ -113,7 +111,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
         var parser = EnumParser<SampleColor>.Singleton;
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, RequiredDescriptor(parser), StringValues.Empty)
+            parser.Parse(Environment, RequiredDescriptor(parser), StringValues.Empty)
         );
     }
 
@@ -125,8 +123,8 @@ public class EnumAndJsonParameterParserTests : BaseTests
 
         Assert.Throws<OpenIdException>(() =>
             parser.Parse(
-                _environment,
-                _allowMissingDescriptor,
+                Environment,
+                AllowMissingDescriptor,
                 new StringValues(["red", "dark_green"])
             )
         );
@@ -139,7 +137,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
         var parser = EnumParser<SampleColor>.Singleton;
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, "not-a-color")
+            parser.Parse(Environment, AllowMissingDescriptor, "not-a-color")
         );
     }
 
@@ -147,8 +145,8 @@ public class EnumAndJsonParameterParserTests : BaseTests
     public void EnumParser_Flags_GetStringValues_ReturnsEachFlag()
     {
         var result = EnumParser<SampleAccess>.Singleton.GetStringValues(
-            _environment,
-            _allowMissingDescriptor,
+            Environment,
+            AllowMissingDescriptor,
             SampleAccess.Read | SampleAccess.Write
         );
 
@@ -160,8 +158,8 @@ public class EnumAndJsonParameterParserTests : BaseTests
     public void EnumParser_Flags_Parse_CombinesValues()
     {
         var result = EnumParser<SampleAccess>.Singleton.Parse(
-            _environment,
-            _allowMissingDescriptor,
+            Environment,
+            AllowMissingDescriptor,
             new StringValues(["read", "write"])
         );
 
@@ -179,8 +177,8 @@ public class EnumAndJsonParameterParserTests : BaseTests
         var parser = new JsonParser<SamplePayload>();
 
         var result = parser.GetStringValues(
-            _environment,
-            _allowMissingDescriptor,
+            Environment,
+            AllowMissingDescriptor,
             new SamplePayload("alice", 30)
         );
 
@@ -195,8 +193,8 @@ public class EnumAndJsonParameterParserTests : BaseTests
         var parser = new JsonParser<SamplePayload>();
 
         var result = parser.Parse(
-            _environment,
-            _allowMissingDescriptor,
+            Environment,
+            AllowMissingDescriptor,
             """{"name":"alice","age":30}"""
         );
 
@@ -210,7 +208,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
     {
         var parser = new JsonParser<SamplePayload>();
 
-        var result = parser.Parse(_environment, _allowMissingDescriptor, StringValues.Empty);
+        var result = parser.Parse(Environment, AllowMissingDescriptor, StringValues.Empty);
 
         Assert.Null(result);
     }
@@ -222,7 +220,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
         var parser = new JsonParser<SamplePayload>();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, RequiredDescriptor(parser), StringValues.Empty)
+            parser.Parse(Environment, RequiredDescriptor(parser), StringValues.Empty)
         );
     }
 
@@ -233,7 +231,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
         var parser = new JsonParser<SamplePayload>();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, new StringValues(["{}", "{}"]))
+            parser.Parse(Environment, AllowMissingDescriptor, new StringValues(["{}", "{}"]))
         );
     }
 
@@ -245,7 +243,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
         var parser = new JsonParser<SamplePayload>();
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(_environment, _allowMissingDescriptor, "not json")
+            parser.Parse(Environment, AllowMissingDescriptor, "not json")
         );
     }
 

@@ -35,14 +35,14 @@ internal sealed class BffTestHost : IAsyncDisposable
 
     private static Uri BaseAddress { get; } = new("https://bff.example/");
 
-    private readonly WebApplication _app;
-    private readonly HttpClient _client;
-    private readonly Dictionary<string, string> _cookies = new(StringComparer.Ordinal);
+    private WebApplication App { get; }
+    private HttpClient Client { get; }
+    private Dictionary<string, string> Cookies { get; } = new(StringComparer.Ordinal);
 
     private BffTestHost(WebApplication app, HttpClient client)
     {
-        _app = app;
-        _client = client;
+        App = app;
+        Client = client;
     }
 
     /// <summary>
@@ -208,9 +208,9 @@ internal sealed class BffTestHost : IAsyncDisposable
     )
     {
         using var request = new HttpRequestMessage(method, pathAndQuery) { Content = content };
-        if (_cookies.Count > 0)
+        if (Cookies.Count > 0)
         {
-            var cookie = string.Join("; ", _cookies.Select(pair => $"{pair.Key}={pair.Value}"));
+            var cookie = string.Join("; ", Cookies.Select(pair => $"{pair.Key}={pair.Value}"));
             request.Headers.Add("Cookie", cookie);
         }
 
@@ -219,7 +219,7 @@ internal sealed class BffTestHost : IAsyncDisposable
             request.Headers.Add(name, value);
         }
 
-        var response = await _client.SendAsync(request);
+        var response = await Client.SendAsync(request);
         StoreCookies(response);
         return response;
     }
@@ -227,7 +227,7 @@ internal sealed class BffTestHost : IAsyncDisposable
     /// <summary>
     /// Removes every cookie from the jar.
     /// </summary>
-    public void ClearCookies() => _cookies.Clear();
+    public void ClearCookies() => Cookies.Clear();
 
     /// <summary>
     /// Posts a form without the cookies of the jar, as a server-to-server call from the provider.
@@ -236,7 +236,7 @@ internal sealed class BffTestHost : IAsyncDisposable
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, path);
         request.Content = content;
-        return await _client.SendAsync(request);
+        return await Client.SendAsync(request);
     }
 
     /// <summary>
@@ -245,10 +245,10 @@ internal sealed class BffTestHost : IAsyncDisposable
     /// </summary>
     public void CopyCookiesFrom(BffTestHost other)
     {
-        _cookies.Clear();
-        foreach (var (name, value) in other._cookies)
+        Cookies.Clear();
+        foreach (var (name, value) in other.Cookies)
         {
-            _cookies[name] = value;
+            Cookies[name] = value;
         }
     }
 
@@ -270,16 +270,16 @@ internal sealed class BffTestHost : IAsyncDisposable
                 part.Equals("max-age=0", StringComparison.OrdinalIgnoreCase)
             );
             if (isExpired || value.Length == 0)
-                _cookies.Remove(name);
+                Cookies.Remove(name);
             else
-                _cookies[name] = value;
+                Cookies[name] = value;
         }
     }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        _client.Dispose();
-        await _app.DisposeAsync();
+        Client.Dispose();
+        await App.DisposeAsync();
     }
 }

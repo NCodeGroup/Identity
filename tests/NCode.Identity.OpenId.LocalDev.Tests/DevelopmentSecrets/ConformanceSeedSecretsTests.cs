@@ -10,13 +10,13 @@ namespace NCode.Identity.OpenId.LocalDev.Tests.DevelopmentSecrets;
 
 public class ConformanceSeedSecretsTests : IDisposable
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+    private string Root { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public void Dispose()
     {
-        if (Directory.Exists(_root))
+        if (Directory.Exists(Root))
         {
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(Root, recursive: true);
         }
     }
 
@@ -40,7 +40,7 @@ public class ConformanceSeedSecretsTests : IDisposable
 
     private string ReadFile(string fileName)
     {
-        var path = Path.Combine(_root, fileName);
+        var path = Path.Combine(Root, fileName);
         return File.ReadAllText(path, SecureEncoding.UTF8);
     }
 
@@ -100,28 +100,28 @@ public class ConformanceSeedSecretsTests : IDisposable
     public void GetEnvironment_ForTheGoldenFixtureFiles_ReturnsTheGoldenFixtureEnvironment()
     {
         var golden = ReadJson(GoldenFixturePath);
-        Directory.CreateDirectory(_root);
+        Directory.CreateDirectory(Root);
         var files = ReadStringMap(golden.GetProperty("files"));
         foreach (var (fileName, text) in files)
         {
-            var path = Path.Combine(_root, fileName);
+            var path = Path.Combine(Root, fileName);
             File.WriteAllText(path, text, SecureEncoding.UTF8);
         }
         var expected = ReadStringMap(golden.GetProperty("environment"));
 
-        var environment = ConformanceSeedSecrets.GetEnvironment(_root);
+        var environment = ConformanceSeedSecrets.GetEnvironment(Root);
 
         Assert.Equal(
             expected,
             new SortedDictionary<string, string>(environment.ToDictionary(), StringComparer.Ordinal)
         );
-        Assert.Equal(files.Count, Directory.GetFiles(_root).Length);
+        Assert.Equal(files.Count, Directory.GetFiles(Root).Length);
     }
 
     [Fact]
     public void GetEnvironment_Always_ConfiguresEachClientSecretAndTheTestUserPassword()
     {
-        var environment = ConformanceSeedSecrets.GetEnvironment(_root);
+        var environment = ConformanceSeedSecrets.GetEnvironment(Root);
 
         // The names are the contract the host and the runner share, so they are written out rather than taken from
         // the class under test.
@@ -139,7 +139,7 @@ public class ConformanceSeedSecretsTests : IDisposable
     [Fact]
     public void GetEnvironment_Always_ConfiguresTheClientSecretAsTheBase64UrlOfTheFileText()
     {
-        var environment = ConformanceSeedSecrets.GetEnvironment(_root);
+        var environment = ConformanceSeedSecrets.GetEnvironment(Root);
 
         var fileName = ConformanceSeedSecrets.GetClientSecretFileName("client2");
         var fileText = ReadFile(fileName);
@@ -152,7 +152,7 @@ public class ConformanceSeedSecretsTests : IDisposable
     [Fact]
     public void GetEnvironment_Always_ConfiguresTheTestUserPasswordAsTheFileText()
     {
-        var environment = ConformanceSeedSecrets.GetEnvironment(_root);
+        var environment = ConformanceSeedSecrets.GetEnvironment(Root);
 
         var fileText = ReadFile(ConformanceSeedSecrets.TestUserPasswordFileName);
         Assert.Equal(fileText, environment[ConformanceSeedSecrets.TestUserPasswordVariable]);
@@ -161,7 +161,7 @@ public class ConformanceSeedSecretsTests : IDisposable
     [Fact]
     public void GetEnvironment_WhenTheFilesAreMissing_GeneratesA43CharacterPassword()
     {
-        ConformanceSeedSecrets.GetEnvironment(_root);
+        ConformanceSeedSecrets.GetEnvironment(Root);
 
         var fileText = ReadFile(ConformanceSeedSecrets.TestUserPasswordFileName);
         Assert.Equal(43, fileText.Length);
@@ -170,7 +170,7 @@ public class ConformanceSeedSecretsTests : IDisposable
     [Fact]
     public void GetEnvironment_Always_GeneratesADistinctSecretPerClient()
     {
-        var environment = ConformanceSeedSecrets.GetEnvironment(_root);
+        var environment = ConformanceSeedSecrets.GetEnvironment(Root);
 
         Assert.Equal(
             environment.Count,
@@ -181,9 +181,9 @@ public class ConformanceSeedSecretsTests : IDisposable
     [Fact]
     public void GetEnvironment_WhenCalledTwice_ReturnsTheSameValues()
     {
-        var first = ConformanceSeedSecrets.GetEnvironment(_root);
+        var first = ConformanceSeedSecrets.GetEnvironment(Root);
 
-        var second = ConformanceSeedSecrets.GetEnvironment(_root);
+        var second = ConformanceSeedSecrets.GetEnvironment(Root);
 
         Assert.Equal(first, second);
     }
@@ -191,11 +191,11 @@ public class ConformanceSeedSecretsTests : IDisposable
     [Fact]
     public void GetEnvironment_WhenAFileExists_KeepsItsValue()
     {
-        Directory.CreateDirectory(_root);
-        var path = Path.Combine(_root, ConformanceSeedSecrets.TestUserPasswordFileName);
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, ConformanceSeedSecrets.TestUserPasswordFileName);
         File.WriteAllText(path, ExistingPassword, SecureEncoding.UTF8);
 
-        var environment = ConformanceSeedSecrets.GetEnvironment(_root);
+        var environment = ConformanceSeedSecrets.GetEnvironment(Root);
 
         Assert.Equal(
             ExistingPassword,

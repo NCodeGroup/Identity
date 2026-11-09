@@ -141,7 +141,7 @@ public class SettingDescriptor<TValue> : SettingDescriptor
 
     /// <inheritdoc />
     [MemberNotNullWhen(true, nameof(DefaultOrNull))]
-    public override bool HasDefault => _hasDefault;
+    public override bool HasDefault => IsDefaultConfigured;
 
     /// <inheritdoc />
     public override bool HasLatticeMerge => SettingMerge.IsLatticeOperation(OnMerge);
@@ -149,8 +149,7 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <inheritdoc />
     public override bool HasMeetMerge => SettingMerge.IsMeetOperation(OnMerge);
 
-    private readonly TValue? _defaultValue;
-    private readonly bool _hasDefault;
+    private bool IsDefaultConfigured { get; init; }
 
     /// <summary>
     /// Gets the default value for the setting, or <c>null</c>/<c>default</c> when no default was configured. Use
@@ -160,11 +159,11 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// </summary>
     public TValue? DefaultOrNull
     {
-        get => _defaultValue;
+        get;
         init
         {
-            _defaultValue = value;
-            _hasDefault = true;
+            field = value;
+            IsDefaultConfigured = true;
         }
     }
 
@@ -174,14 +173,10 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     public TValue Default
     {
         get =>
-            _hasDefault && _defaultValue is { } value
+            IsDefaultConfigured && DefaultOrNull is { } value
                 ? value
                 : throw new InvalidOperationException();
-        init
-        {
-            _defaultValue = value;
-            _hasDefault = true;
-        }
+        init => DefaultOrNull = value;
     }
 
     /// <summary>

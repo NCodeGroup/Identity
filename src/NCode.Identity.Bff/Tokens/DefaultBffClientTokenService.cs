@@ -25,10 +25,10 @@ internal class DefaultBffClientTokenService(
     TimeProvider timeProvider
 ) : IBffClientTokenService
 {
-    private readonly BffGrantClient _grantClient = grantClient;
-    private readonly BffRefreshLocks _locks = locks;
-    private readonly BffFrontendCatalog _frontends = frontends;
-    private readonly TimeProvider _timeProvider = timeProvider;
+    private BffGrantClient GrantClient { get; } = grantClient;
+    private BffRefreshLocks Locks { get; } = locks;
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     private ConditionalWeakTable<
         BffFrontend,
@@ -58,10 +58,10 @@ internal class DefaultBffClientTokenService(
         if (fresh is not null)
             return fresh;
 
-        using var held = await _locks.TryEnterAsync(
+        using var held = await Locks.TryEnterAsync(
             BffRefreshLocks.ClientPurpose,
             $"{frontend.Name}\n{request.Resource}\n{request.Scope}",
-            _frontends.Current.Options.Tokens.RefreshLeaseDuration,
+            Frontends.Current.Options.Tokens.RefreshLeaseDuration,
             cancellationToken
         );
         if (held is null)
@@ -80,7 +80,7 @@ internal class DefaultBffClientTokenService(
             Resources = request.Resource is null ? [] : [request.Resource],
             Scope = request.Scope,
         };
-        var result = await _grantClient.RequestAsync(frontend, grantRequest, cancellationToken);
+        var result = await GrantClient.RequestAsync(frontend, grantRequest, cancellationToken);
         if (result.Token is { } token)
         {
             tokens[key] = token;
@@ -97,8 +97,8 @@ internal class DefaultBffClientTokenService(
         if (!tokens.TryGetValue(key, out var token))
             return null;
 
-        var now = _timeProvider.GetUtcNow();
-        var refreshBeforeExpiry = _frontends.Current.Options.Tokens.RefreshBeforeExpiry;
+        var now = TimeProvider.GetUtcNow();
+        var refreshBeforeExpiry = Frontends.Current.Options.Tokens.RefreshBeforeExpiry;
         return token.ExpiresAt - refreshBeforeExpiry > now ? BffTokenResult.Success(token) : null;
     }
 }

@@ -19,39 +19,38 @@ public class MasterKeyFactoryTests : BaseTests
     // The mixed case proves that the row keeps the owner as given while the key and the key check normalize it.
     private static SecretOwner Owner { get; } = SecretOwner.ForTenant("Tenant-A");
 
-    private readonly Mock<IKeyWrapperCatalog> _catalog;
-    private readonly FakeTimeProvider _timeProvider = new(Now);
-    private readonly EphemeralKeyWrapper _provider = new();
-    private readonly RecoveryKeyWrapper _disabledRecovery = new(
-        Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions())
-    );
+    private Mock<IKeyWrapperCatalog> Catalog { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
+    private EphemeralKeyWrapper Provider { get; } = new();
+    private RecoveryKeyWrapper DisabledRecovery { get; } =
+        new(Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions()));
 
     public MasterKeyFactoryTests()
     {
-        _catalog = CreateStrictMock<IKeyWrapperCatalog>();
+        Catalog = CreateStrictMock<IKeyWrapperCatalog>();
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _disabledRecovery.Dispose();
-            _provider.Dispose();
+            DisabledRecovery.Dispose();
+            Provider.Dispose();
         }
 
         base.Dispose(disposing);
     }
 
     private MasterKeyFactory CreateFactory(IRecoveryKeyWrapper recovery) =>
-        new(_catalog.Object, recovery, _timeProvider);
+        new(Catalog.Object, recovery, TimeProvider);
 
     // CreateAsync selects the configured provider.
     private void ExpectCreate() =>
-        _catalog.Setup(x => x.GetConfigured()).Returns(_provider).Verifiable();
+        Catalog.Setup(x => x.GetConfigured()).Returns(Provider).Verifiable();
 
     // UnwrapAsync looks the provider up by the name that the row records.
     private void ExpectGet(IKeyWrapper provider) =>
-        _catalog.Setup(x => x.Get(KeyWrapperNames.Ephemeral)).Returns(provider).Verifiable();
+        Catalog.Setup(x => x.Get(KeyWrapperNames.Ephemeral)).Returns(provider).Verifiable();
 
     private static PersistedMasterKey CopyRow(
         PersistedMasterKey row,
@@ -100,8 +99,8 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task CreateThenUnwrap_RoundTripsMaterial()
     {
         ExpectCreate();
-        ExpectGet(_provider);
-        var factory = CreateFactory(_disabledRecovery);
+        ExpectGet(Provider);
+        var factory = CreateFactory(DisabledRecovery);
 
         var created = await factory.CreateAsync(
             Owner,
@@ -128,7 +127,7 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Create_MapsOwnerVersionAndTimes()
     {
         ExpectCreate();
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
 
         var created = await factory.CreateAsync(
             Owner,
@@ -167,13 +166,13 @@ public class MasterKeyFactoryTests : BaseTests
         using var key = created.Key;
         var row = created.Row;
         var context = CreateRootContext(row.KeyId, Owner);
-        var probe = await _provider.WrapAsync(
+        var probe = await Provider.WrapAsync(
             new byte[SecretProtectionFormat.MasterKeySizeBytes],
             context,
             CancellationToken.None
         );
         var rootDestination = new ArrayBufferWriter<byte>();
-        await _provider.UnwrapAsync(
+        await Provider.UnwrapAsync(
             new WrappedKey
             {
                 WrapperName = row.RootKeyProvider,
@@ -202,7 +201,7 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Create_RecoveryDisabled_LeavesRecoveryNull()
     {
         ExpectCreate();
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
 
         var created = await factory.CreateAsync(
             Owner,
@@ -224,7 +223,7 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Unwrap_KeyCheckForOtherOwner_Throws()
     {
         ExpectCreate();
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
         var created = await factory.CreateAsync(
             Owner,
             version: 1,
@@ -252,7 +251,7 @@ public class MasterKeyFactoryTests : BaseTests
                     ReadOnlyMemory<byte> _,
                     IBufferWriter<byte> destination,
                     CancellationToken token
-                ) => _provider.UnwrapAsync(wrapped, originalContext, destination, token)
+                ) => Provider.UnwrapAsync(wrapped, originalContext, destination, token)
             )
             .Verifiable();
         ExpectGet(provider.Object);
@@ -270,8 +269,8 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Unwrap_RootContextForOtherOwner_Throws()
     {
         ExpectCreate();
-        ExpectGet(_provider);
-        var factory = CreateFactory(_disabledRecovery);
+        ExpectGet(Provider);
+        var factory = CreateFactory(DisabledRecovery);
         var created = await factory.CreateAsync(
             Owner,
             version: 1,
@@ -290,8 +289,8 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Unwrap_OtherVersion_Throws()
     {
         ExpectCreate();
-        ExpectGet(_provider);
-        var factory = CreateFactory(_disabledRecovery);
+        ExpectGet(Provider);
+        var factory = CreateFactory(DisabledRecovery);
         var created = await factory.CreateAsync(
             Owner,
             version: 1,
@@ -359,7 +358,7 @@ public class MasterKeyFactoryTests : BaseTests
             )
             .Verifiable();
         ExpectGet(provider.Object);
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(async () =>
             await factory.UnwrapAsync(row, CancellationToken.None)
@@ -410,7 +409,7 @@ public class MasterKeyFactoryTests : BaseTests
             )
             .Verifiable();
         ExpectGet(provider.Object);
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(async () =>
             await factory.UnwrapAsync(row, CancellationToken.None)
@@ -426,8 +425,8 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Unwrap_MalformedKeyCheck_Throws(string keyCheck)
     {
         ExpectCreate();
-        ExpectGet(_provider);
-        var factory = CreateFactory(_disabledRecovery);
+        ExpectGet(Provider);
+        var factory = CreateFactory(DisabledRecovery);
         var created = await factory.CreateAsync(
             Owner,
             version: 1,
@@ -454,7 +453,7 @@ public class MasterKeyFactoryTests : BaseTests
         using var pair = RSA.Create(3072);
         using var unwrapper = RecoveryKeyUnwrapper.FromPem(pair.ExportPkcs8PrivateKeyPem());
         ExpectCreate();
-        var created = await CreateFactory(_disabledRecovery)
+        var created = await CreateFactory(DisabledRecovery)
             .CreateAsync(Owner.Normalize(), 1, rootKey: null, CancellationToken.None);
         created.Key.Dispose();
 
@@ -484,12 +483,12 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Wrap_WithoutARecoveryKey_ReturnsNoRecoveryCopy()
     {
         ExpectCreate();
-        var created = await CreateFactory(_disabledRecovery)
+        var created = await CreateFactory(DisabledRecovery)
             .CreateAsync(Owner.Normalize(), 1, rootKey: null, CancellationToken.None);
         using var key = created.Key;
         ExpectCreate();
 
-        var wraps = await CreateFactory(_disabledRecovery)
+        var wraps = await CreateFactory(DisabledRecovery)
             .WrapAsync(key, rootKey: null, CancellationToken.None);
 
         Assert.Null(wraps.Recovery);
@@ -541,8 +540,8 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Create_OwnerRootKeyWithAnAccessIdentity_WrapsThroughTheBindingAndRecordsTheIdentity()
     {
         var fake = new FakeReferencedKeyWrapper();
-        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
-        var factory = CreateFactory(_disabledRecovery);
+        Catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        var factory = CreateFactory(DisabledRecovery);
 
         var created = await factory.CreateAsync(
             SecretOwner.ForTenant("Acme"),
@@ -560,8 +559,8 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Create_OwnerRootKeyWithoutAnAccessIdentity_WrapsWithoutAccess()
     {
         var fake = new FakeReferencedKeyWrapper();
-        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
-        var factory = CreateFactory(_disabledRecovery);
+        Catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        var factory = CreateFactory(DisabledRecovery);
 
         var created = await factory.CreateAsync(
             Owner.Normalize(),
@@ -579,8 +578,8 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Unwrap_RowWithAnAccessIdentity_UnwrapsThroughTheAccessOverload()
     {
         var fake = new FakeReferencedKeyWrapper();
-        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
-        var factory = CreateFactory(_disabledRecovery);
+        Catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        var factory = CreateFactory(DisabledRecovery);
         var created = await factory.CreateAsync(
             SecretOwner.ForTenant("Acme"),
             version: 1,
@@ -599,9 +598,9 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Wrap_OwnerRootKeyWithAnAccessIdentity_ReturnsTheIdentity()
     {
         var fake = new FakeReferencedKeyWrapper();
-        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        Catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
         ExpectCreate();
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
         var created = await factory.CreateAsync(
             Owner.Normalize(),
             1,
@@ -626,7 +625,7 @@ public class MasterKeyFactoryTests : BaseTests
         using var pair = RSA.Create(3072);
         using var recovery = RecoveryKeyWrapper.FromPem(pair.ExportSubjectPublicKeyInfoPem());
         var fake = new FakeReferencedKeyWrapper();
-        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        Catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
         ExpectGetFake(fake);
         var factory = CreateFactory(recovery);
 
@@ -652,7 +651,7 @@ public class MasterKeyFactoryTests : BaseTests
     [InlineData("unknown-state")]
     public async Task Create_UnavailableOwnerRootKey_ThrowsBeforeAnyWrap(string state)
     {
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
 
         var exception = await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
             await factory.CreateAsync(
@@ -671,7 +670,7 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Create_RemovingOwnerRootKey_WrapsUnderTheDeploymentRoot()
     {
         ExpectCreate();
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
 
         var created = await factory.CreateAsync(
             Owner.Normalize(),
@@ -689,9 +688,9 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Wrap_ActiveOwnerRootKey_ClearsTheRecoveryCopy()
     {
         var fake = new FakeReferencedKeyWrapper();
-        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        Catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
         ExpectCreate();
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
         var created = await factory.CreateAsync(
             Owner.Normalize(),
             1,
@@ -712,7 +711,7 @@ public class MasterKeyFactoryTests : BaseTests
     public async Task Wrap_UnavailableOwnerRootKey_Throws()
     {
         ExpectCreate();
-        var factory = CreateFactory(_disabledRecovery);
+        var factory = CreateFactory(DisabledRecovery);
         var created = await factory.CreateAsync(
             Owner.Normalize(),
             1,
@@ -860,7 +859,7 @@ public class MasterKeyFactoryTests : BaseTests
         };
 
     private void ExpectGetFake(IKeyWrapper provider) =>
-        _catalog.Setup(x => x.Get("fake-kms")).Returns(provider).Verifiable();
+        Catalog.Setup(x => x.Get("fake-kms")).Returns(provider).Verifiable();
 
     #endregion
 }

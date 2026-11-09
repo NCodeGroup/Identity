@@ -15,13 +15,13 @@ public class SecretProtectorProviderExtensionsTests : BaseTests
 
     private static SecretOwner Owner { get; } = SecretOwner.ForTenant("tenant-one");
 
-    private readonly Mock<ISecretProtectorProvider> _provider;
-    private readonly Mock<ISecretProtector> _protector;
+    private Mock<ISecretProtectorProvider> Provider { get; }
+    private Mock<ISecretProtector> Protector { get; }
 
     public SecretProtectorProviderExtensionsTests()
     {
-        _provider = CreateStrictMock<ISecretProtectorProvider>();
-        _protector = CreateStrictMock<ISecretProtector>();
+        Provider = CreateStrictMock<ISecretProtectorProvider>();
+        Protector = CreateStrictMock<ISecretProtector>();
     }
 
     private static PersistedSecret CreateSecret(string secretEncoding, string encodedValue) =>
@@ -36,7 +36,7 @@ public class SecretProtectorProviderExtensionsTests : BaseTests
 
     // The setup matches only the protected values that the predicate accepts, so any other collection fails the test.
     private void SetupGetProtector(Func<IReadOnlyCollection<string>, bool> predicate) =>
-        _provider
+        Provider
             .Setup(x =>
                 x.GetProtectorAsync(
                     Owner,
@@ -44,7 +44,7 @@ public class SecretProtectorProviderExtensionsTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<ISecretProtector>(_protector.Object))
+            .Returns(new ValueTask<ISecretProtector>(Protector.Object))
             .Verifiable();
 
     #region GetProtectorForSecretsAsync Tests
@@ -60,13 +60,13 @@ public class SecretProtectorProviderExtensionsTests : BaseTests
         ];
         SetupGetProtector(values => values.SequenceEqual([FirstPrivateValue, SecondPrivateValue]));
 
-        var result = await _provider.Object.GetProtectorForSecretsAsync(
+        var result = await Provider.Object.GetProtectorForSecretsAsync(
             Owner,
             secrets,
             CancellationToken.None
         );
 
-        Assert.Same(_protector.Object, result);
+        Assert.Same(Protector.Object, result);
     }
 
     [Fact]
@@ -79,13 +79,13 @@ public class SecretProtectorProviderExtensionsTests : BaseTests
         ];
         SetupGetProtector(values => values.Count == 0);
 
-        var result = await _provider.Object.GetProtectorForSecretsAsync(
+        var result = await Provider.Object.GetProtectorForSecretsAsync(
             Owner,
             secrets,
             CancellationToken.None
         );
 
-        Assert.Same(_protector.Object, result);
+        Assert.Same(Protector.Object, result);
     }
 
     [Fact]
@@ -98,13 +98,13 @@ public class SecretProtectorProviderExtensionsTests : BaseTests
         ];
         SetupGetProtector(values => values.SequenceEqual([FirstPrivateValue]));
 
-        var result = await _provider.Object.GetProtectorForSecretsAsync(
+        var result = await Provider.Object.GetProtectorForSecretsAsync(
             Owner,
             secrets,
             CancellationToken.None
         );
 
-        Assert.Same(_protector.Object, result);
+        Assert.Same(Protector.Object, result);
     }
 
     [Fact]
@@ -113,20 +113,20 @@ public class SecretProtectorProviderExtensionsTests : BaseTests
         PersistedSecret[] secrets = [CreateSecret(SecretEncodings.Remote, RemoteValue)];
         SetupGetProtector(values => values.Count == 0);
 
-        var result = await _provider.Object.GetProtectorForSecretsAsync(
+        var result = await Provider.Object.GetProtectorForSecretsAsync(
             Owner,
             secrets,
             CancellationToken.None
         );
 
-        Assert.Same(_protector.Object, result);
+        Assert.Same(Protector.Object, result);
     }
 
     [Fact]
     public async Task GetProtectorForSecretsAsync_NullSecrets_Throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await _provider.Object.GetProtectorForSecretsAsync(Owner, null!, CancellationToken.None)
+            await Provider.Object.GetProtectorForSecretsAsync(Owner, null!, CancellationToken.None)
         );
     }
 

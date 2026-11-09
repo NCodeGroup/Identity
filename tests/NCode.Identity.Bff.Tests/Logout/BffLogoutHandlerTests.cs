@@ -24,29 +24,29 @@ public class BffLogoutHandlerTests : BaseTests
 
     private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private readonly Mock<BffSessionResolver> _resolver;
-    private readonly Mock<BffLogoutService> _logoutService;
-    private readonly Mock<IProviderMetadataResolver> _metadataResolver;
+    private Mock<BffSessionResolver> Resolver { get; }
+    private Mock<BffLogoutService> LogoutService { get; }
+    private Mock<IProviderMetadataResolver> MetadataResolver { get; }
 
     public BffLogoutHandlerTests()
     {
         var timeProvider = new FakeTimeProvider(Now);
         var cookies = new BffCookies(timeProvider);
-        _resolver = CreateStrictMock<BffSessionResolver>(
+        Resolver = CreateStrictMock<BffSessionResolver>(
             CreateStrictMock<IBffSessionManager>().Object,
             cookies,
             Array.Empty<IBffSessionValidator>(),
             CreateFrontends(),
             timeProvider
         );
-        _logoutService = CreateStrictMock<BffLogoutService>(
+        LogoutService = CreateStrictMock<BffLogoutService>(
             CreateStrictMock<IBffSessionManager>().Object,
             CreateStrictMock<ITokenRevocationClient>().Object,
             CreateFrontends(),
             cookies,
             CreateLooseMock<ILogger<BffLogoutService>>().Object
         );
-        _metadataResolver = CreateStrictMock<IProviderMetadataResolver>();
+        MetadataResolver = CreateStrictMock<IProviderMetadataResolver>();
     }
 
     private static BffFrontendCatalog CreateFrontends() =>
@@ -59,7 +59,7 @@ public class BffLogoutHandlerTests : BaseTests
         });
 
     private BffLogoutHandler CreateHandler() =>
-        new(CreateFrontends(), _resolver.Object, _logoutService.Object, _metadataResolver.Object);
+        new(CreateFrontends(), Resolver.Object, LogoutService.Object, MetadataResolver.Object);
 
     private static BffSessionState CreateState() =>
         new(
@@ -93,7 +93,7 @@ public class BffLogoutHandlerTests : BaseTests
     }
 
     private void SetupResolve(BffSessionState? state) =>
-        _resolver
+        Resolver
             .Setup(x => x.ResolveAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(state)
             .Verifiable();
@@ -175,7 +175,7 @@ public class BffLogoutHandlerTests : BaseTests
         await handler.HandleAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
-        _logoutService.Verify(
+        LogoutService.Verify(
             x =>
                 x.EndSessionAsync(
                     It.IsAny<HttpContext>(),
@@ -187,7 +187,7 @@ public class BffLogoutHandlerTests : BaseTests
     }
 
     private void SetupEnd(DefaultHttpContext httpContext, BffSessionState state) =>
-        _logoutService
+        LogoutService
             .Setup(x => x.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -201,7 +201,7 @@ public class BffLogoutHandlerTests : BaseTests
         httpContext.Request.Scheme = "https";
         httpContext.Request.Host = new HostString("attacker.example");
         SetupEnd(httpContext, state);
-        _metadataResolver
+        MetadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 new OpenIdProviderMetadata { EndSessionEndpoint = "https://op.example/logout" }
@@ -231,7 +231,7 @@ public class BffLogoutHandlerTests : BaseTests
         SetupResolve(state);
         var httpContext = CreateHttpContext("sid=guard-value");
         SetupEnd(httpContext, state);
-        _metadataResolver
+        MetadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OpenIdProviderMetadata())
             .Verifiable();
@@ -250,7 +250,7 @@ public class BffLogoutHandlerTests : BaseTests
         SetupResolve(state);
         var httpContext = CreateHttpContext("sid=guard-value");
         SetupEnd(httpContext, state);
-        _metadataResolver
+        MetadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
             .Throws(new OpenIdProviderException("unavailable"))
             .Verifiable();
@@ -269,7 +269,7 @@ public class BffLogoutHandlerTests : BaseTests
         SetupResolve(state);
         var httpContext = CreateHttpContext("sid=guard-value");
         SetupEnd(httpContext, state);
-        _metadataResolver
+        MetadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("down"))
             .Verifiable();

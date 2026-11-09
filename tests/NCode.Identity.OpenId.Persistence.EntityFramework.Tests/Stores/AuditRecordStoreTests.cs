@@ -20,30 +20,30 @@ public sealed class AuditRecordStoreTests : IDisposable
 {
     private static DateTimeOffset Now { get; } = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
 
     public AuditRecordStoreTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
-        _provider = serviceCollection.BuildServiceProvider();
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
+        Provider = serviceCollection.BuildServiceProvider();
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         scope.ServiceProvider.GetRequiredService<OpenIdDbContext>().Database.EnsureCreated();
     }
 
     public void Dispose()
     {
-        _provider.Dispose();
-        _connection.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     private AuditRecordStore CreateStore(OpenIdDbContext context) =>
-        new(Mock.Of<IStoreProvider>(), _provider.GetRequiredService<IIdGenerator<long>>(), context);
+        new(Mock.Of<IStoreProvider>(), Provider.GetRequiredService<IIdGenerator<long>>(), context);
 
     private static PersistedAuditRecord Record(
         Guid? eventId = null,
@@ -81,7 +81,7 @@ public sealed class AuditRecordStoreTests : IDisposable
     }
 
     private Task<int> AddAsync(params PersistedAuditRecord[] records) =>
-        AddAsync(_provider, records);
+        AddAsync(Provider, records);
 
     private async Task<int> AddAsync(
         ServiceProvider provider,
@@ -109,7 +109,7 @@ public sealed class AuditRecordStoreTests : IDisposable
         return removed;
     }
 
-    private Task<(int Records, int Resources)> CountAsync() => CountAsync(_provider);
+    private Task<(int Records, int Resources)> CountAsync() => CountAsync(Provider);
 
     private static async Task<(int Records, int Resources)> CountAsync(ServiceProvider provider)
     {
@@ -136,7 +136,7 @@ public sealed class AuditRecordStoreTests : IDisposable
         var added = await AddAsync(record);
 
         Assert.Equal(1, added);
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var entity = await context
             .AuditRecords.Include(e => e.Resources)
@@ -179,7 +179,7 @@ public sealed class AuditRecordStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenEmpty_Throws()
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
@@ -375,7 +375,7 @@ public sealed class AuditRecordStoreTests : IDisposable
     public async Task RemoveBeforeAsync_WhenTheLimitIsBelowOne_Throws()
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
-            await RemoveBeforeAsync(_provider, Now, limit: 0)
+            await RemoveBeforeAsync(Provider, Now, limit: 0)
         );
     }
 

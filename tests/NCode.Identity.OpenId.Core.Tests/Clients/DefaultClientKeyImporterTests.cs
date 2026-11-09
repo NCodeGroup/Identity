@@ -30,9 +30,9 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     private const string Ed25519PublicKey = "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo";
     private const string X25519PublicKey = "3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08";
 
-    private readonly ServiceProvider _serviceProvider;
-    private readonly RSA _rsa = RSA.Create(2048);
-    private readonly ECDsa _ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+    private ServiceProvider ServiceProvider { get; }
+    private RSA Rsa { get; } = RSA.Create(2048);
+    private ECDsa Ecdsa { get; } = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 
     public DefaultClientKeyImporterTests()
     {
@@ -42,15 +42,15 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddPersistenceLibrary();
         secrets.AddJoseLibrary();
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
         Importer = new DefaultClientKeyImporter(
-            _serviceProvider.GetRequiredService<ILogger<DefaultClientKeyImporter>>(),
-            _serviceProvider.GetRequiredService<ICryptoService>(),
-            _serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            _serviceProvider.GetRequiredService<ISecretImporter>(),
-            _serviceProvider.GetRequiredService<ISecretSerializer>(),
-            _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>()
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyImporter>>(),
+            ServiceProvider.GetRequiredService<ICryptoService>(),
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            ServiceProvider.GetRequiredService<ISecretImporter>(),
+            ServiceProvider.GetRequiredService<ISecretSerializer>(),
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>()
         );
     }
 
@@ -60,16 +60,16 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        await _serviceProvider.DisposeAsync();
-        _rsa.Dispose();
-        _ecdsa.Dispose();
+        await ServiceProvider.DisposeAsync();
+        Rsa.Dispose();
+        Ecdsa.Dispose();
     }
 
     #region Scaffolding
 
     private JsonObject RsaKey(string? kid)
     {
-        var parameters = _rsa.ExportParameters(includePrivateParameters: false);
+        var parameters = Rsa.ExportParameters(includePrivateParameters: false);
         var jwk = new JsonObject
         {
             ["kty"] = "RSA",
@@ -83,7 +83,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
 
     private JsonObject EcKey(string kid)
     {
-        var parameters = _ecdsa.ExportParameters(includePrivateParameters: false);
+        var parameters = Ecdsa.ExportParameters(includePrivateParameters: false);
         return new JsonObject
         {
             ["kty"] = "EC",
@@ -482,12 +482,12 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
         var catalog = new Mock<ISecretKeyTypeCatalog>();
         catalog.Setup(x => x.TryGetByJwkKeyType("XKP", out descriptor)).Returns(true);
         var importer = new DefaultClientKeyImporter(
-            _serviceProvider.GetRequiredService<ILogger<DefaultClientKeyImporter>>(),
-            _serviceProvider.GetRequiredService<ICryptoService>(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyImporter>>(),
+            ServiceProvider.GetRequiredService<ICryptoService>(),
             catalog.Object,
-            _serviceProvider.GetRequiredService<ISecretImporter>(),
-            _serviceProvider.GetRequiredService<ISecretSerializer>(),
-            _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>()
+            ServiceProvider.GetRequiredService<ISecretImporter>(),
+            ServiceProvider.GetRequiredService<ISecretSerializer>(),
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>()
         );
         var keySet = KeySet(
             new JsonObject
@@ -654,7 +654,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     [InlineData("PEM")]
     public void TryImportKey_WhenTheKeyTypeDoesNotImportTheFormat_ReturnsError(string format)
     {
-        var request = CreateImportRequest(format, _rsa.ExportSubjectPublicKeyInfoPem());
+        var request = CreateImportRequest(format, Rsa.ExportSubjectPublicKeyInfoPem());
 
         var imported = Importer.TryImportKey(request, out _, out var error);
 
@@ -668,7 +668,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     {
         var request = CreateImportRequest(
             SecretKeyImportFormats.Pem,
-            _rsa.ExportSubjectPublicKeyInfoPem(),
+            Rsa.ExportSubjectPublicKeyInfoPem(),
             use: "sig",
             algorithm: "RS256"
         );
@@ -686,7 +686,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     {
         var request = CreateImportRequest(
             SecretKeyImportFormats.Pem,
-            _rsa.ExportSubjectPublicKeyInfoPem(),
+            Rsa.ExportSubjectPublicKeyInfoPem(),
             algorithm: "ES256"
         );
 
@@ -704,7 +704,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
             SecretId = "secret-1",
             SecretType = "unknown",
             Format = SecretKeyImportFormats.Pem,
-            KeyMaterial = _rsa.ExportSubjectPublicKeyInfoPem(),
+            KeyMaterial = Rsa.ExportSubjectPublicKeyInfoPem(),
             Use = null,
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,

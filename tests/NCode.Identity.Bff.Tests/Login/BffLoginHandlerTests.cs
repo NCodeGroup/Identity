@@ -23,15 +23,15 @@ public class BffLoginHandlerTests : BaseTests
 {
     private static DateTimeOffset Now { get; } = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly Mock<IAuthorizationRequestClient> _client;
-    private readonly Mock<IBffAuditRecorder> _auditRecorder;
-    private readonly Mock<IBffSessionStore> _store;
+    private Mock<IAuthorizationRequestClient> Client { get; }
+    private Mock<IBffAuditRecorder> AuditRecorder { get; }
+    private Mock<IBffSessionStore> Store { get; }
 
     public BffLoginHandlerTests()
     {
-        _client = CreateStrictMock<IAuthorizationRequestClient>();
-        _auditRecorder = CreateStrictMock<IBffAuditRecorder>();
-        _store = CreateStrictMock<IBffSessionStore>();
+        Client = CreateStrictMock<IAuthorizationRequestClient>();
+        AuditRecorder = CreateStrictMock<IBffAuditRecorder>();
+        Store = CreateStrictMock<IBffSessionStore>();
     }
 
     private BffLoginHandler CreateHandler(
@@ -46,11 +46,11 @@ public class BffLoginHandlerTests : BaseTests
                 ConfigureDefaults(x);
                 configure?.Invoke(x);
             }),
-            _client.Object,
+            Client.Object,
             transactionService
-                ?? new BffLoginTransactionService(BffTestTelemetry.Instrument(_store.Object)),
+                ?? new BffLoginTransactionService(BffTestTelemetry.Instrument(Store.Object)),
             new BffCookies(timeProvider),
-            _auditRecorder.Object,
+            AuditRecorder.Object,
             timeProvider
         );
     }
@@ -114,7 +114,7 @@ public class BffLoginHandlerTests : BaseTests
     {
         var httpContext = CreateHttpContext("?returnUrl=/app&prompt=login&ignored=1");
         AuthorizationRequest? captured = null;
-        _client
+        Client
             .Setup(x =>
                 x.CreateAuthorizationUriAsync(
                     It.IsAny<ClientRegistration>(),
@@ -133,7 +133,7 @@ public class BffLoginHandlerTests : BaseTests
                 )
             )
             .Verifiable();
-        _auditRecorder
+        AuditRecorder
             .Setup(x =>
                 x.LoginFailedAsync(
                     httpContext,
@@ -177,7 +177,7 @@ public class BffLoginHandlerTests : BaseTests
     {
         var httpContext = CreateHttpContext("?returnUrl=/app");
         AuthorizationRequest? captured = null;
-        _client
+        Client
             .Setup(x =>
                 x.CreateAuthorizationUriAsync(
                     It.IsAny<ClientRegistration>(),
@@ -196,7 +196,7 @@ public class BffLoginHandlerTests : BaseTests
                 )
             )
             .Verifiable();
-        _auditRecorder
+        AuditRecorder
             .Setup(x =>
                 x.LoginFailedAsync(
                     httpContext,
@@ -217,7 +217,7 @@ public class BffLoginHandlerTests : BaseTests
     public async Task HandleAsync_ProviderUnavailable_RedirectsToErrorUrl()
     {
         var httpContext = CreateHttpContext("?returnUrl=/app");
-        _client
+        Client
             .Setup(x =>
                 x.CreateAuthorizationUriAsync(
                     It.IsAny<ClientRegistration>(),
@@ -227,7 +227,7 @@ public class BffLoginHandlerTests : BaseTests
             )
             .ThrowsAsync(new OpenIdProviderException("metadata unavailable"))
             .Verifiable();
-        _auditRecorder
+        AuditRecorder
             .Setup(x =>
                 x.LoginFailedAsync(
                     httpContext,
@@ -250,14 +250,14 @@ public class BffLoginHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_Success_StoresTransactionSetsCookieAndRedirects()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
         // The in-process value set expires entries by its TimeProvider, so it shares the handler's fixed clock.
-        services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
-        services
+        serviceCollection.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
+        serviceCollection
             .AddSharedStateServices()
             .AddInProcessExpiringValueSet()
             .AddInProcessExpiringIndexSet();
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
         var values = provider.GetRequiredService<IExpiringValueSet>();
         var indexes = provider.GetRequiredService<IExpiringIndexSet>();
         var transactionService = new BffLoginTransactionService(
@@ -267,7 +267,7 @@ public class BffLoginHandlerTests : BaseTests
         var httpContext = CreateHttpContext("?returnUrl=/app");
         var authorizationUri = new Uri("https://op.example.com/authorize?client_id=bff");
         AuthorizationRequest? captured = null;
-        _client
+        Client
             .Setup(x =>
                 x.CreateAuthorizationUriAsync(
                     It.IsAny<ClientRegistration>(),

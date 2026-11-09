@@ -13,21 +13,19 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 public class LocalKeyWrapperTests : IDisposable
 {
-    private readonly string _tempDirectory = Path.Combine(
-        Path.GetTempPath(),
-        $"{nameof(LocalKeyWrapperTests)}-{Guid.NewGuid():N}"
-    );
+    private string TempDirectory { get; } =
+        Path.Combine(Path.GetTempPath(), $"{nameof(LocalKeyWrapperTests)}-{Guid.NewGuid():N}");
 
     public LocalKeyWrapperTests()
     {
-        Directory.CreateDirectory(_tempDirectory);
+        Directory.CreateDirectory(TempDirectory);
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDirectory))
+        if (Directory.Exists(TempDirectory))
         {
-            Directory.Delete(_tempDirectory, recursive: true);
+            Directory.Delete(TempDirectory, recursive: true);
         }
     }
 
@@ -41,7 +39,7 @@ public class LocalKeyWrapperTests : IDisposable
 
     private string WriteKeyFile(string content)
     {
-        var path = Path.Combine(_tempDirectory, $"{Guid.NewGuid():N}.key");
+        var path = Path.Combine(TempDirectory, $"{Guid.NewGuid():N}.key");
         File.WriteAllText(path, content, SecureEncoding.UTF8);
         return path;
     }
@@ -125,7 +123,7 @@ public class LocalKeyWrapperTests : IDisposable
     [Fact]
     public async Task WrapThenUnwrap_KeyFileWithUtf8Bom_RoundTrips()
     {
-        var path = Path.Combine(_tempDirectory, $"{Guid.NewGuid():N}.key");
+        var path = Path.Combine(TempDirectory, $"{Guid.NewGuid():N}.key");
         File.WriteAllText(
             path,
             Base64Url.EncodeToString(CreateKey()) + Environment.NewLine,
@@ -289,7 +287,7 @@ public class LocalKeyWrapperTests : IDisposable
     [Fact]
     public async Task Wrap_KeyFileUtf16_Throws()
     {
-        var path = Path.Combine(_tempDirectory, $"{Guid.NewGuid():N}.key");
+        var path = Path.Combine(TempDirectory, $"{Guid.NewGuid():N}.key");
         File.WriteAllText(
             path,
             Base64Url.EncodeToString(CreateKey()),
@@ -309,7 +307,7 @@ public class LocalKeyWrapperTests : IDisposable
     [Fact]
     public async Task Wrap_KeyPathOfMissingFile_Throws()
     {
-        var path = Path.Combine(_tempDirectory, "missing.key");
+        var path = Path.Combine(TempDirectory, "missing.key");
         using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>

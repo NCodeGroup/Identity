@@ -12,10 +12,10 @@
 
 <span id="circuit-state">@(RendererInfo.IsInteractive ? "interactive" : "static")</span>
 <button id="circuit-ping" @onclick="Ping">ping</button>
-<span id="circuit-pings">@_pings</span>
+<span id="circuit-pings">@Pings</span>
 
 @code {
-    private int _pings;
+    private int Pings { get; set; }
 
-    private void Ping() => _pings++;
+    private void Ping() => Pings++;
 }

@@ -16,7 +16,7 @@ public sealed class MasterKeyStoreActivePageTests : IDisposable
 {
     private static DateTimeOffset CreatedWhen { get; } = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly ServiceProvider _provider;
+    private ServiceProvider Provider { get; }
 
     public MasterKeyStoreActivePageTests()
     {
@@ -25,10 +25,10 @@ public sealed class MasterKeyStoreActivePageTests : IDisposable
         serviceCollection.AddTestOpenIdDbContext(options =>
             options.UseInMemoryDatabase(databaseName)
         );
-        _provider = serviceCollection.BuildServiceProvider();
+        Provider = serviceCollection.BuildServiceProvider();
     }
 
-    public void Dispose() => _provider.Dispose();
+    public void Dispose() => Provider.Dispose();
 
     private static PersistedMasterKey CreateMasterKey(
         string ownerId,
@@ -61,11 +61,11 @@ public sealed class MasterKeyStoreActivePageTests : IDisposable
         var old = CreateMasterKey("tenant-one", 2, CreatedWhen, retired: false);
         var recent = CreateMasterKey("tenant-two", 1, CreatedWhen.AddDays(10), retired: false);
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = new MasterKeyStore(
             Mock.Of<IStoreProvider>(),
-            _provider.GetRequiredService<IIdGenerator<long>>(),
+            Provider.GetRequiredService<IIdGenerator<long>>(),
             context
         );
         foreach (var key in new[] { retired, old, recent })

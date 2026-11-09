@@ -11,20 +11,20 @@ public class DevelopmentSecretFileTests : IDisposable
 {
     private const string FileName = "secret";
 
-    private readonly string _root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+    private string Root { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public void Dispose()
     {
-        if (Directory.Exists(_root))
+        if (Directory.Exists(Root))
         {
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(Root, recursive: true);
         }
     }
 
     private string WriteFile(string text)
     {
-        Directory.CreateDirectory(_root);
-        var path = Path.Combine(_root, FileName);
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, FileName);
         File.WriteAllText(path, text, SecureEncoding.UTF8);
         return path;
     }
@@ -34,7 +34,7 @@ public class DevelopmentSecretFileTests : IDisposable
     [Fact]
     public void Ensure_WhenDirectoryIsMissing_CreatesItAndTheFile()
     {
-        var directory = Path.Combine(_root, "nested", "LocalDev");
+        var directory = Path.Combine(Root, "nested", "LocalDev");
 
         var path = DevelopmentSecretFile.Ensure(directory, FileName);
 
@@ -45,7 +45,7 @@ public class DevelopmentSecretFileTests : IDisposable
     [Fact]
     public void Ensure_WhenFileIsMissing_WritesA32ByteBase64UrlValue()
     {
-        var path = DevelopmentSecretFile.Ensure(_root, FileName);
+        var path = DevelopmentSecretFile.Ensure(Root, FileName);
 
         var text = File.ReadAllText(path, SecureEncoding.UTF8);
 
@@ -58,7 +58,7 @@ public class DevelopmentSecretFileTests : IDisposable
     {
         var existingPath = WriteFile("existing-secret");
 
-        var path = DevelopmentSecretFile.Ensure(_root, FileName);
+        var path = DevelopmentSecretFile.Ensure(Root, FileName);
 
         Assert.Equal(existingPath, path);
         Assert.Equal("existing-secret", File.ReadAllText(path, SecureEncoding.UTF8));
@@ -69,7 +69,7 @@ public class DevelopmentSecretFileTests : IDisposable
     {
         WriteFile(string.Empty);
 
-        var path = DevelopmentSecretFile.Ensure(_root, FileName);
+        var path = DevelopmentSecretFile.Ensure(Root, FileName);
 
         var text = File.ReadAllText(path, SecureEncoding.UTF8);
         Assert.Equal(43, text.Length);
@@ -78,10 +78,10 @@ public class DevelopmentSecretFileTests : IDisposable
     [Fact]
     public void Ensure_WhenCalledTwice_ReturnsTheSameValue()
     {
-        var firstPath = DevelopmentSecretFile.Ensure(_root, FileName);
+        var firstPath = DevelopmentSecretFile.Ensure(Root, FileName);
         var firstText = File.ReadAllText(firstPath, SecureEncoding.UTF8);
 
-        var secondPath = DevelopmentSecretFile.Ensure(_root, FileName);
+        var secondPath = DevelopmentSecretFile.Ensure(Root, FileName);
         var secondText = File.ReadAllText(secondPath, SecureEncoding.UTF8);
 
         Assert.Equal(firstPath, secondPath);
@@ -91,9 +91,9 @@ public class DevelopmentSecretFileTests : IDisposable
     [Fact]
     public void Ensure_Always_LeavesNoTemporaryFile()
     {
-        DevelopmentSecretFile.Ensure(_root, FileName);
+        DevelopmentSecretFile.Ensure(Root, FileName);
 
-        var files = Directory.GetFiles(_root);
+        var files = Directory.GetFiles(Root);
 
         Assert.Single(files);
     }
@@ -105,10 +105,10 @@ public class DevelopmentSecretFileTests : IDisposable
     [Fact]
     public void MoveIntoPlace_WhenFileIsMissing_MovesTheNewFile()
     {
-        Directory.CreateDirectory(_root);
-        var temporaryPath = Path.Combine(_root, "new.tmp");
+        Directory.CreateDirectory(Root);
+        var temporaryPath = Path.Combine(Root, "new.tmp");
         File.WriteAllText(temporaryPath, "new-secret", SecureEncoding.UTF8);
-        var path = Path.Combine(_root, FileName);
+        var path = Path.Combine(Root, FileName);
 
         DevelopmentSecretFile.MoveIntoPlace(temporaryPath, path);
 
@@ -120,7 +120,7 @@ public class DevelopmentSecretFileTests : IDisposable
     public void MoveIntoPlace_WhenAnotherAppHostMovedItsFileFirst_KeepsThatFileAndDeletesTheNewOne()
     {
         var path = WriteFile("winning-secret");
-        var temporaryPath = Path.Combine(_root, "new.tmp");
+        var temporaryPath = Path.Combine(Root, "new.tmp");
         File.WriteAllText(temporaryPath, "losing-secret", SecureEncoding.UTF8);
 
         DevelopmentSecretFile.MoveIntoPlace(temporaryPath, path);

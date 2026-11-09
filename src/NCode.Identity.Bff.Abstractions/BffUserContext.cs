@@ -17,7 +17,7 @@ namespace NCode.Identity.Bff;
 [PublicAPI]
 public sealed class BffUserContext
 {
-    private readonly OrderedDictionary<string, JsonNode?> _fields = new(StringComparer.Ordinal);
+    private OrderedDictionary<string, JsonNode?> FieldMap { get; } = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Gets the names of the fields the BFF writes itself: <c>sub</c>, <c>name</c>, <c>claims</c>, <c>session</c>,
@@ -73,7 +73,7 @@ public sealed class BffUserContext
     /// <summary>
     /// Gets the fields the contributors added, in the order they were added.
     /// </summary>
-    public IReadOnlyDictionary<string, JsonNode?> Fields => _fields;
+    public IReadOnlyDictionary<string, JsonNode?> Fields => FieldMap;
 
     /// <summary>
     /// Adds a field to the response.
@@ -91,7 +91,7 @@ public sealed class BffUserContext
                 nameof(name)
             );
 
-        if (!_fields.TryAdd(name, value))
+        if (!FieldMap.TryAdd(name, value))
             throw new ArgumentException($"The field '{name}' was already added.", nameof(name));
     }
 }

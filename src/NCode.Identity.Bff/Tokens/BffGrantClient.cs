@@ -22,9 +22,9 @@ internal class BffGrantClient(
     ILogger<BffGrantClient> logger
 )
 {
-    private readonly ITokenClient _tokenClient = tokenClient;
-    private readonly TimeProvider _timeProvider = timeProvider;
-    private readonly ILogger<BffGrantClient> _logger = logger;
+    private ITokenClient TokenClient { get; } = tokenClient;
+    private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<BffGrantClient> Logger { get; } = logger;
 
     /// <summary>
     /// Requests an access token as the frontend's client registration, answering <c>503</c> when the provider cannot
@@ -52,16 +52,16 @@ internal class BffGrantClient(
         CancellationToken cancellationToken
     )
     {
-        var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         TokenResult result;
         try
         {
-            result = await _tokenClient.RequestTokenAsync(registration, request, cancellationToken);
+            result = await TokenClient.RequestTokenAsync(registration, request, cancellationToken);
         }
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            _logger.TokenRequestFailed(
+            Logger.TokenRequestFailed(
                 request.GrantType,
                 BffTokenFailureReasons.ProviderUnavailable,
                 exception
@@ -74,7 +74,7 @@ internal class BffGrantClient(
 
         if (!result.IsSuccess)
         {
-            _logger.TokenRequestFailed(request.GrantType, result.Error.Error, null);
+            Logger.TokenRequestFailed(request.GrantType, result.Error.Error, null);
             return BffTokenResult.Failure(
                 StatusCodes.Status502BadGateway,
                 BffTokenFailureReasons.ProviderError
@@ -85,7 +85,7 @@ internal class BffGrantClient(
         var accessToken = response.AccessToken;
         if (string.IsNullOrEmpty(accessToken))
         {
-            _logger.TokenRequestFailed(
+            Logger.TokenRequestFailed(
                 request.GrantType,
                 BffTokenFailureReasons.ProviderError,
                 null

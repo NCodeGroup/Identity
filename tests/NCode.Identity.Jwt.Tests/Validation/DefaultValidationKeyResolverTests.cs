@@ -17,14 +17,14 @@ namespace NCode.Identity.Jwt.Validation;
 
 public sealed class DefaultValidationKeyResolverTests : IAsyncLifetime, IDisposable
 {
-    private readonly ServiceProvider _serviceProvider;
-    private readonly X509Certificate2 _certificate;
+    private ServiceProvider ServiceProvider { get; }
+    private X509Certificate2 Certificate { get; }
 
     public DefaultValidationKeyResolverTests()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSecretsLibrary();
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest(
@@ -33,18 +33,18 @@ public sealed class DefaultValidationKeyResolverTests : IAsyncLifetime, IDisposa
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1
         );
-        _certificate = request.CreateSelfSigned(
+        Certificate = request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddMinutes(-1),
             DateTimeOffset.UtcNow.AddMinutes(10)
         );
 
-        CertificateKey = _serviceProvider
+        CertificateKey = ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
-            .Create(new KeyMetadata { KeyId = "certificate-key" }, _certificate);
-        OtherKey = _serviceProvider
+            .Create(new KeyMetadata { KeyId = "certificate-key" }, Certificate);
+        OtherKey = ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
             .CreateSymmetric(new KeyMetadata { KeyId = "other-key" }, new byte[32]);
-        SecretKeys = _serviceProvider
+        SecretKeys = ServiceProvider
             .GetRequiredService<ISecretKeyCollectionFactory>()
             .Create([OtherKey, CertificateKey]);
     }
@@ -57,9 +57,9 @@ public sealed class DefaultValidationKeyResolverTests : IAsyncLifetime, IDisposa
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public async Task DisposeAsync() => await _serviceProvider.DisposeAsync();
+    public async Task DisposeAsync() => await ServiceProvider.DisposeAsync();
 
-    public void Dispose() => _certificate.Dispose();
+    public void Dispose() => Certificate.Dispose();
 
     private IEnumerable<SecretKey> Resolve(string name, string thumbprint) =>
         DefaultValidationKeyResolver.ResolveValidationKeys(
@@ -77,7 +77,7 @@ public sealed class DefaultValidationKeyResolverTests : IAsyncLifetime, IDisposa
     )
     {
         var thumbprint = Base64Url.Encode(
-            _certificate.GetCertHash(new HashAlgorithmName(hashAlgorithm))
+            Certificate.GetCertHash(new HashAlgorithmName(hashAlgorithm))
         );
 
         Assert.Same(CertificateKey, Assert.Single(Resolve(name, thumbprint)));

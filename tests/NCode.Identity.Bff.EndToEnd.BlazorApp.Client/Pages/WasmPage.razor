@@ -11,15 +11,15 @@
     </NotAuthorized>
 </AuthorizeView>
 
-@if (_api is not null)
+@if (Api is not null)
 {
-    <span id="wasm-api">@_api</span>
+    <span id="wasm-api">@Api</span>
 }
 
 @code {
     public const string ApiClientName = "api";
 
-    private string? _api;
+    private string? Api { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -30,7 +30,7 @@
 
         var client = HttpClientFactory.CreateClient(ApiClientName);
         var response = await client.GetAsync("api/me");
-        _api = $"{(int)response.StatusCode}:{await response.Content.ReadAsStringAsync()}";
+        Api = $"{(int)response.StatusCode}:{await response.Content.ReadAsStringAsync()}";
         StateHasChanged();
     }
 }

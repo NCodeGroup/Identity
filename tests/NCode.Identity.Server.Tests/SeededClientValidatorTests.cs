@@ -16,7 +16,7 @@ public class SeededClientValidatorTests : BaseTests
 {
     private const string TenantId = "default";
 
-    private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+    private JsonSerializerOptions JsonOptions { get; } = new(JsonSerializerDefaults.Web);
 
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
@@ -46,18 +46,14 @@ public class SeededClientValidatorTests : BaseTests
     private void SetupEnvironment()
     {
         var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
-        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(_jsonOptions);
+        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(JsonOptions);
         MockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
     }
 
     private void SetupValidateSettings(params SettingError[] settingErrors) =>
         MockSettingSerializer
             .Setup(x =>
-                x.ValidateSettings(
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Client,
-                    _jsonOptions
-                )
+                x.ValidateSettings(It.IsAny<JsonElement>(), OpenIdSettingScopes.Client, JsonOptions)
             )
             .Returns(settingErrors)
             .Verifiable();

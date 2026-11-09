@@ -12,35 +12,35 @@ namespace NCode.Identity.OpenId.Tenants;
 /// </summary>
 internal sealed class DefaultAmbientTenantAccessor : IAmbientTenantAccessor
 {
-    private readonly AsyncLocal<string?> _tenantId = new();
+    private AsyncLocal<string?> AmbientTenantId { get; } = new();
 
     /// <inheritdoc />
-    public bool IsScoped => _tenantId.Value is not null;
+    public bool IsScoped => AmbientTenantId.Value is not null;
 
     /// <inheritdoc />
-    public string? TenantId => _tenantId.Value;
+    public string? TenantId => AmbientTenantId.Value;
 
     /// <inheritdoc />
     public IDisposable BeginScope(string tenantId)
     {
         ArgumentNullException.ThrowIfNull(tenantId);
 
-        var previous = _tenantId.Value;
-        _tenantId.Value = tenantId;
+        var previous = AmbientTenantId.Value;
+        AmbientTenantId.Value = tenantId;
         return new Scope(this, previous);
     }
 
     private sealed class Scope(DefaultAmbientTenantAccessor owner, string? previous) : IDisposable
     {
-        private bool _disposed;
+        private bool Disposed { get; set; }
 
         public void Dispose()
         {
-            if (_disposed)
+            if (Disposed)
                 return;
 
-            _disposed = true;
-            owner._tenantId.Value = previous;
+            Disposed = true;
+            owner.AmbientTenantId.Value = previous;
         }
     }
 }

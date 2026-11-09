@@ -11,19 +11,19 @@ public class WorkspaceInstallTests : IDisposable
     private const string PnpmVersion = "10.34.7";
     private const string LockText = "lockfileVersion: '9.0'\nimporters:\n  .: {}\n";
 
-    private readonly string _root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+    private string Root { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public void Dispose()
     {
-        if (Directory.Exists(_root))
+        if (Directory.Exists(Root))
         {
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(Root, recursive: true);
         }
     }
 
     private void WriteFile(string relativePath, string text)
     {
-        var path = Path.Combine(_root, relativePath);
+        var path = Path.Combine(Root, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, text, SecureEncoding.UTF8);
     }
@@ -34,7 +34,7 @@ public class WorkspaceInstallTests : IDisposable
         string? lockText = LockText
     )
     {
-        Directory.CreateDirectory(_root);
+        Directory.CreateDirectory(Root);
         WriteFile(Path.Combine("node_modules", ".modules.yaml"), modulesText);
 
         if (installedLockText is not null)
@@ -55,7 +55,7 @@ public class WorkspaceInstallTests : IDisposable
     {
         CreateWorkspace();
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         Assert.Empty(result);
     }
@@ -63,10 +63,10 @@ public class WorkspaceInstallTests : IDisposable
     [Fact]
     public void FindProblems_WhenNodeModulesMissing_ReturnsNotInstalled()
     {
-        Directory.CreateDirectory(_root);
+        Directory.CreateDirectory(Root);
         WriteFile("pnpm-lock.yaml", LockText);
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         var problem = Assert.Single(result);
         Assert.Equal(
@@ -80,7 +80,7 @@ public class WorkspaceInstallTests : IDisposable
     {
         CreateWorkspace(modulesText: "not json: [");
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         var problem = Assert.Single(result);
         Assert.Equal(
@@ -94,7 +94,7 @@ public class WorkspaceInstallTests : IDisposable
     {
         CreateWorkspace(modulesText: """{"packageManager":"pnpm@9.12.0"}""");
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         var problem = Assert.Single(result);
         Assert.Contains("pnpm@9.12.0", problem, StringComparison.Ordinal);
@@ -106,7 +106,7 @@ public class WorkspaceInstallTests : IDisposable
     {
         CreateWorkspace(modulesText: "{}");
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         var problem = Assert.Single(result);
         Assert.Contains("an unknown pnpm", problem, StringComparison.Ordinal);
@@ -118,7 +118,7 @@ public class WorkspaceInstallTests : IDisposable
     {
         CreateWorkspace(lockText: LockText + "packages:\n  left-pad@1.0.0: {}\n");
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         var problem = Assert.Single(result);
         Assert.Contains("pnpm-lock.yaml", problem, StringComparison.Ordinal);
@@ -129,7 +129,7 @@ public class WorkspaceInstallTests : IDisposable
     {
         CreateWorkspace(lockText: LockText.ReplaceLineEndings("\r\n"));
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         Assert.Empty(result);
     }
@@ -139,7 +139,7 @@ public class WorkspaceInstallTests : IDisposable
     {
         CreateWorkspace(installedLockText: null);
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         var problem = Assert.Single(result);
         Assert.Contains("pnpm-lock.yaml", problem, StringComparison.Ordinal);
@@ -150,7 +150,7 @@ public class WorkspaceInstallTests : IDisposable
     {
         CreateWorkspace(installedLockText: null, lockText: null);
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         Assert.Empty(result);
     }
@@ -163,7 +163,7 @@ public class WorkspaceInstallTests : IDisposable
             lockText: LockText + "packages:\n  left-pad@1.0.0: {}\n"
         );
 
-        var result = WorkspaceInstall.FindProblems(_root, PnpmVersion);
+        var result = WorkspaceInstall.FindProblems(Root, PnpmVersion);
 
         Assert.Equal(2, result.Count);
         Assert.Contains("pnpm@9.12.0", result[0], StringComparison.Ordinal);

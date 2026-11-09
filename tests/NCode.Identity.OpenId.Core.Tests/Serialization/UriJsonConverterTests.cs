@@ -9,10 +9,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Serialization;
 
 public class UriJsonConverterTests
 {
-    private readonly JsonSerializerOptions _options = new()
-    {
-        Converters = { new UriJsonConverter() },
-    };
+    private JsonSerializerOptions Options { get; } =
+        new() { Converters = { new UriJsonConverter() } };
 
     #region Round-Trip Tests
 
@@ -21,8 +19,8 @@ public class UriJsonConverterTests
     {
         var original = new Uri("https://example.com/path?query=1");
 
-        var json = JsonSerializer.Serialize(original, _options);
-        var result = JsonSerializer.Deserialize<Uri>(json, _options);
+        var json = JsonSerializer.Serialize(original, Options);
+        var result = JsonSerializer.Deserialize<Uri>(json, Options);
 
         Assert.NotNull(result);
         Assert.True(result.IsAbsoluteUri);
@@ -34,8 +32,8 @@ public class UriJsonConverterTests
     {
         var original = new Uri("/relative/path", UriKind.Relative);
 
-        var json = JsonSerializer.Serialize(original, _options);
-        var result = JsonSerializer.Deserialize<Uri>(json, _options);
+        var json = JsonSerializer.Serialize(original, Options);
+        var result = JsonSerializer.Deserialize<Uri>(json, Options);
 
         Assert.NotNull(result);
         Assert.False(result.IsAbsoluteUri);
@@ -49,7 +47,7 @@ public class UriJsonConverterTests
     [Fact]
     public void Write_WhenNull_WritesNull()
     {
-        var json = JsonSerializer.Serialize<Uri?>(null, _options);
+        var json = JsonSerializer.Serialize<Uri?>(null, Options);
 
         Assert.Equal("null", json);
     }
@@ -57,7 +55,7 @@ public class UriJsonConverterTests
     [Fact]
     public void Read_WhenNull_ReturnsNull()
     {
-        var result = JsonSerializer.Deserialize<Uri?>("null", _options);
+        var result = JsonSerializer.Deserialize<Uri?>("null", Options);
 
         Assert.Null(result);
     }

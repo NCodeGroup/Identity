@@ -96,6 +96,9 @@ compiles it and no gate tests it
 - **Composition / host** — `NCode.Registration` (the `IServiceBuilder<TMarker>` builder), `NCode.Identity`,
   `NCode.Identity.Server` (`AddIdentityServer()`), `NCode.Identity.OpenId.Host` (ASP.NET Core reference host),
   `NCode.Identity.OpenId.LocalDev` (.NET Aspire local-dev orchestrator — [ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md))
+- **Build analyzers** — `NCode.Identity.Analyzers`, the repository's own Roslyn analyzers, which every project's build
+  loads and no package ships: `NCID0001` reports a field that could be an auto-property
+  ([ADR-1486](docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md))
 
 The central extensibility model — **service** vs **strategy collection** vs **mediator** — is captured in
 [ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md). Extensibility is the family's goal: a

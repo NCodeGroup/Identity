@@ -24,38 +24,38 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
     private static SecretOwner TenantOwner { get; } = SecretOwner.ForTenant("acme");
     private static SecretOwner OtherOwner { get; } = SecretOwner.ForTenant("globex");
 
-    private readonly OwnerRootKeyOptions _rootKeyOptions = new();
-    private readonly FakeTimeProvider _time = new(Now);
-    private readonly Mock<IMaterializedPlatformAccessor> _platformAccessor;
-    private readonly Mock<IOwnerRootKeyManager> _manager;
-    private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
-    private readonly Mock<IOwnerRootKeyStore> _store;
-    private readonly Mock<IStoreManager> _storeManager;
-    private readonly Mock<IExpiringKeySet> _keySet;
-    private readonly Mock<IEventPublisher> _publisher;
-    private readonly OwnerRootKeyValidationService _service;
-    private readonly List<AuditEvent> _published = [];
+    private OwnerRootKeyOptions RootKeyOptions { get; } = new();
+    private FakeTimeProvider Time { get; } = new(Now);
+    private Mock<IMaterializedPlatformAccessor> PlatformAccessor { get; }
+    private Mock<IOwnerRootKeyManager> Manager { get; }
+    private Mock<IStoreManagerFactory> StoreManagerFactory { get; }
+    private Mock<IOwnerRootKeyStore> Store { get; }
+    private Mock<IStoreManager> StoreManager { get; }
+    private Mock<IExpiringKeySet> KeySet { get; }
+    private Mock<IEventPublisher> Publisher { get; }
+    private OwnerRootKeyValidationService Service { get; }
+    private List<AuditEvent> Published { get; } = [];
 
     public OwnerRootKeyValidationServiceTests()
     {
-        _platformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
-        _manager = CreateStrictMock<IOwnerRootKeyManager>();
-        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
-        _store = CreateStrictMock<IOwnerRootKeyStore>();
-        _storeManager = CreateStrictMock<IStoreManager>();
-        _keySet = CreateStrictMock<IExpiringKeySet>();
-        _publisher = CreateStrictMock<IEventPublisher>();
+        PlatformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
+        Manager = CreateStrictMock<IOwnerRootKeyManager>();
+        StoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        Store = CreateStrictMock<IOwnerRootKeyStore>();
+        StoreManager = CreateStrictMock<IStoreManager>();
+        KeySet = CreateStrictMock<IExpiringKeySet>();
+        Publisher = CreateStrictMock<IEventPublisher>();
 
-        _service = new OwnerRootKeyValidationService(
-            _platformAccessor.Object,
-            _manager.Object,
-            _storeManagerFactory.Object,
-            _keySet.Object,
-            _publisher.Object,
+        Service = new OwnerRootKeyValidationService(
+            PlatformAccessor.Object,
+            Manager.Object,
+            StoreManagerFactory.Object,
+            KeySet.Object,
+            Publisher.Object,
             Microsoft.Extensions.Options.Options.Create(
-                new SecretProtectionOptions { OwnerRootKeys = _rootKeyOptions }
+                new SecretProtectionOptions { OwnerRootKeys = RootKeyOptions }
             ),
-            _time,
+            Time,
             CreateLooseMock<Microsoft.Extensions.Logging.ILogger<OwnerRootKeyValidationService>>().Object
         );
     }
@@ -63,7 +63,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
     protected override void Dispose(bool disposing)
     {
         if (disposing)
-            _service.Dispose();
+            Service.Dispose();
 
         base.Dispose(disposing);
     }
@@ -94,11 +94,11 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
         );
 
     private void SetupLease(bool acquired) =>
-        _keySet
+        KeySet
             .Setup(x =>
                 x.TryAddAsync(
                     OwnerRootKeyValidationService.LeaseKey,
-                    Now + _rootKeyOptions.RetryInterval / 2,
+                    Now + RootKeyOptions.RetryInterval / 2,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -107,20 +107,20 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
 
     private void SetupDuePage(params PersistedOwnerRootKey[] rows)
     {
-        _storeManagerFactory
+        StoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => new ValueTask<IStoreManager>(_storeManager.Object))
+            .Returns(() => new ValueTask<IStoreManager>(StoreManager.Object))
             .Verifiable();
-        _storeManager
+        StoreManager
             .Setup(x => x.GetStore<IOwnerRootKeyStore>())
-            .Returns(_store.Object)
+            .Returns(Store.Object)
             .Verifiable();
-        _storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
-        _store
+        StoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        Store
             .Setup(x =>
                 x.GetDuePageAsync(
-                    Now - _rootKeyOptions.ValidationInterval,
-                    Now - _rootKeyOptions.RetryInterval,
+                    Now - RootKeyOptions.ValidationInterval,
+                    Now - RootKeyOptions.RetryInterval,
                     It.Is<PageRequest>(page => page.Cursor == null),
                     It.IsAny<CancellationToken>()
                 )
@@ -134,14 +134,14 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
     }
 
     private void SetupPublisher() =>
-        _publisher
+        Publisher
             .Setup(x => x.PublishAsync(It.IsAny<AuditEvent>(), It.IsAny<CancellationToken>()))
-            .Callback<AuditEvent, CancellationToken>((e, _) => _published.Add(e))
+            .Callback<AuditEvent, CancellationToken>((e, _) => Published.Add(e))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
     private void SetupValidate(SecretOwner owner, OwnerRootKeyValidation validation) =>
-        _manager
+        Manager
             .Setup(x => x.ValidateAsync(owner, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<OwnerRootKeyValidation>(validation))
             .Verifiable();
@@ -153,7 +153,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
     {
         SetupLease(acquired: false);
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
     {
         SetupLease(acquired: true);
         SetupDuePage(Row(TenantOwner), Row(OtherOwner));
-        _manager
+        Manager
             .Setup(x => x.ValidateAsync(TenantOwner, It.IsAny<CancellationToken>()))
             .Returns(
                 new ValueTask<OwnerRootKeyValidation>(
@@ -181,9 +181,9 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     [Fact]
@@ -202,9 +202,9 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        var auditEvent = Assert.IsType<RootKeyAuditEvent>(Assert.Single(_published));
+        var auditEvent = Assert.IsType<RootKeyAuditEvent>(Assert.Single(Published));
         Assert.Equal("root_key.unavailable", auditEvent.EventName);
         Assert.Equal(AuditOutcome.Failure, auditEvent.Outcome);
         Assert.Equal(RootKeyChangeReasons.ValidationFailed, auditEvent.Reason);
@@ -230,9 +230,9 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        var auditEvent = Assert.IsType<RootKeyAuditEvent>(Assert.Single(_published));
+        var auditEvent = Assert.IsType<RootKeyAuditEvent>(Assert.Single(Published));
         Assert.Equal("root_key.restored", auditEvent.EventName);
         Assert.Equal(AuditOutcome.Success, auditEvent.Outcome);
         Assert.Equal(RootKeyChangeReasons.ValidationSucceeded, auditEvent.Reason);
@@ -279,9 +279,9 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        var auditEvent = Assert.IsType<MasterKeyAuditEvent>(Assert.Single(_published));
+        var auditEvent = Assert.IsType<MasterKeyAuditEvent>(Assert.Single(Published));
         Assert.Equal("master_key.rotated", auditEvent.EventName);
         Assert.Equal(MasterKeyChangeReasons.RootKeyChanged, auditEvent.Reason);
         Assert.Equal(active, auditEvent.Key);
@@ -303,9 +303,9 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
     {
         SetupLease(acquired: true);
         SetupDuePage(Row(TenantOwner), Row(OtherOwner));
-        _publisher
+        Publisher
             .Setup(x => x.PublishAsync(It.IsAny<AuditEvent>(), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask(Task.FromException(new InvalidOperationException("down"))))
             .Verifiable(Times.Once());
@@ -336,6 +336,6 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(CancellationToken.None);
+        await Service.RunAsync(CancellationToken.None);
     }
 }

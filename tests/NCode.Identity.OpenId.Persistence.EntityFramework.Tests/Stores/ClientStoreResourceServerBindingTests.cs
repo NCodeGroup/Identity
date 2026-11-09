@@ -17,11 +17,11 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
     private const string ResourceServerId = "rs-1";
     private const string OtherResourceServerId = "rs-2";
 
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _tenantStore;
-    private readonly ResourceServerStore _resourceServerStore;
-    private readonly ClientStore _store;
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore TenantStore { get; }
+    private ResourceServerStore ResourceServerStore { get; }
+    private ClientStore Store { get; }
 
     public ClientStoreResourceServerBindingTests()
     {
@@ -30,27 +30,27 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _resourceServerStore = new ResourceServerStore(
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        TenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        ResourceServerStore = new ResourceServerStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext
+            DbContext
         );
-        _store = new ClientStore(
+        Store = new ClientStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext,
+            DbContext,
             TestCryptoServices.CreateResourceIdGenerator()
         );
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     #region Helpers
@@ -74,32 +74,32 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
 
     private async Task SeedTenantAndResourceServersAsync()
     {
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder { TenantId = TenantId }.Build();
-        await _tenantStore.AddAsync(tenant, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
-        await _resourceServerStore.AddAsync(
+        await ResourceServerStore.AddAsync(
             CreateResourceServer(ResourceServerId),
             CancellationToken.None
         );
-        await _resourceServerStore.AddAsync(
+        await ResourceServerStore.AddAsync(
             CreateResourceServer(OtherResourceServerId),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task AddClientsAsync(params PersistedClient[] clients)
     {
         foreach (var client in clients)
         {
-            await _store.AddAsync(client, CancellationToken.None);
+            await Store.AddAsync(client, CancellationToken.None);
         }
 
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     #endregion
@@ -115,8 +115,8 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
             CreateClient("ordinary", resourceServerId: null)
         );
 
-        var bound = await _store.GetOrDefaultAsync("bound", CancellationToken.None);
-        var ordinary = await _store.GetOrDefaultAsync("ordinary", CancellationToken.None);
+        var bound = await Store.GetOrDefaultAsync("bound", CancellationToken.None);
+        var ordinary = await Store.GetOrDefaultAsync("ordinary", CancellationToken.None);
 
         Assert.Equal(ResourceServerId, bound?.ResourceServerId);
         Assert.NotNull(ordinary);
@@ -129,7 +129,7 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
         await SeedTenantAndResourceServersAsync();
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.AddAsync(CreateClient("bound", "rs-unknown"), CancellationToken.None)
+            await Store.AddAsync(CreateClient("bound", "rs-unknown"), CancellationToken.None)
         );
     }
 
@@ -149,7 +149,7 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
         string? cursor = null;
         do
         {
-            var page = await _store.GetPageByResourceServerAsync(
+            var page = await Store.GetPageByResourceServerAsync(
                 ResourceServerId,
                 new PageRequest { Cursor = cursor, Limit = 2 },
                 CancellationToken.None
@@ -171,11 +171,11 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
         await SeedTenantAndResourceServersAsync();
         await AddClientsAsync(CreateClient("bound", ResourceServerId));
 
-        var hasDependents = await _resourceServerStore.HasDependentsAsync(
+        var hasDependents = await ResourceServerStore.HasDependentsAsync(
             ResourceServerId,
             CancellationToken.None
         );
-        var otherHasDependents = await _resourceServerStore.HasDependentsAsync(
+        var otherHasDependents = await ResourceServerStore.HasDependentsAsync(
             OtherResourceServerId,
             CancellationToken.None
         );
@@ -191,7 +191,7 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
         await AddClientsAsync(CreateClient("bound", ResourceServerId));
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _resourceServerStore.RemoveAsync(ResourceServerId, CancellationToken.None)
+            await ResourceServerStore.RemoveAsync(ResourceServerId, CancellationToken.None)
         );
     }
 

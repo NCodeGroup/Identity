@@ -23,7 +23,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
             Algorithm = "RS256",
         };
 
-    private readonly ISecretKeyFactory _factory;
+    private ISecretKeyFactory Factory { get; }
 
     public AsymmetricSecretKeyImportExportTests()
     {
@@ -33,14 +33,14 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
         var mockFactory = CreateStrictMock<IDataProtectorFactory<SecretKey>>();
         mockFactory.Setup(x => x.CreateDataProtector()).Returns(protector).Verifiable();
 
-        _factory = new DefaultSecretKeyFactory(mockFactory.Object, new DefaultEccCurveCatalog([]));
+        Factory = new DefaultSecretKeyFactory(mockFactory.Object, new DefaultEccCurveCatalog([]));
     }
 
-    private RsaSecretKeyTypeDescriptor Rsa() => new(_factory);
+    private RsaSecretKeyTypeDescriptor Rsa() => new(Factory);
 
-    private EccSecretKeyTypeDescriptor Ecc() => new(_factory, new DefaultEccCurveCatalog([]));
+    private EccSecretKeyTypeDescriptor Ecc() => new(Factory, new DefaultEccCurveCatalog([]));
 
-    private SymmetricSecretKeyTypeDescriptor Symmetric() => new(_factory);
+    private SymmetricSecretKeyTypeDescriptor Symmetric() => new(Factory);
 
     // Reads a key-type-specific JWK member (for example 'n' or 'x') by name.
     private static string? Member(JsonWebKey jwk, string name) => jwk.GetMember(name);
@@ -339,7 +339,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
     public void Ecc_ExportPublicKey_WhenTheCatalogDoesNotHoldTheCurve_ReturnsNull()
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.brainpoolP256r1);
-        var secretKey = _factory.CreateEcc(Metadata, ecdsa);
+        var secretKey = Factory.CreateEcc(Metadata, ecdsa);
 
         Assert.Null(Ecc().ExportPublicKey(secretKey));
     }

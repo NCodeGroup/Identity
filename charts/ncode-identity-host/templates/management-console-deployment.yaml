@@ -3,6 +3,8 @@
 {{- $console := .Values.managementConsole }}
 {{- $valkey := include "identity-host.managementConsole.valkeyEnabled" . }}
 {{- $keyRoot := "/etc/ncode-identity/management-console" }}
+{{- $credentials := include "identity-host.kmsCredentials.managementConsole" . | fromYaml }}
+{{- $googleCloudCredentials := include "identity-host.kmsCredentials.googleCloudCredentialConfiguration" $credentials }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -35,9 +37,15 @@ spec:
         {{- with $console.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with $console.podAnnotations }}
+      {{- if or $console.podAnnotations $googleCloudCredentials }}
       annotations:
+        {{- with $console.podAnnotations }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if $googleCloudCredentials }}
+        # A changed configuration restarts the pods, which read it only at start.
+        checksum/google-cloud-credentials: {{ sha256sum $googleCloudCredentials | quote }}
+        {{- end }}
       {{- end }}
     spec:
       serviceAccountName: {{ include "identity-host.managementConsole.serviceAccountName" . }}
@@ -123,12 +131,19 @@ spec:
             # The root filesystem is read-only; the runtime's diagnostics socket and temporary files go here.
             - name: tmp
               mountPath: /tmp
+            {{- if $console.keyRings.client.pemSecret }}
             - name: client-key
               mountPath: {{ printf "%s/client-key" $keyRoot }}
               readOnly: true
+            {{- end }}
+            {{- if $console.keyRings.dpop.pemSecret }}
             - name: dpop-key
               mountPath: {{ printf "%s/dpop-key" $keyRoot }}
               readOnly: true
+            {{- end }}
+            {{- with include "identity-host.kmsCredentials.volumeMounts" $credentials }}
+            {{- . | trim | nindent 12 }}
+            {{- end }}
             {{- with $console.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -136,20 +151,27 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+        {{- if $console.keyRings.client.pemSecret }}
         - name: client-key
           secret:
-            secretName: {{ $console.keys.clientKeySecret }}
+            secretName: {{ $console.keyRings.client.pemSecret }}
             items:
               - key: mgmt-client.pem
                 path: mgmt-client.pem
             defaultMode: 0440
+        {{- end }}
+        {{- if $console.keyRings.dpop.pemSecret }}
         - name: dpop-key
           secret:
-            secretName: {{ $console.keys.dpopKeySecret }}
+            secretName: {{ $console.keyRings.dpop.pemSecret }}
             items:
               - key: mgmt-dpop.pem
                 path: mgmt-dpop.pem
             defaultMode: 0440
+        {{- end }}
+        {{- with include "identity-host.kmsCredentials.volumes" $credentials }}
+        {{- . | trim | nindent 8 }}
+        {{- end }}
         {{- with $console.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

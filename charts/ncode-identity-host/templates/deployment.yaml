@@ -1,6 +1,6 @@
 {{- include "identity-host.validate" . }}
 {{- $valkey := include "identity-host.valkeyEnabled" . }}
-{{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
+{{- $googleCloudCredentials := include "identity-host.kmsCredentials.googleCloudCredentialConfiguration" (include "identity-host.kmsCredentials.server" . | fromYaml) }}
 {{- $probeHost := include "identity-host.probeHost" . }}
 apiVersion: apps/v1
 kind: Deployment

@@ -354,9 +354,14 @@ rows as a tenant's keys.
 - **The key is the operator's.** Neither a protocol client nor a BFF creates, tags or destroys a KMS key, and no stored
   secret names it, so the sweep ([Orphaned keys](#orphaned-keys)) never lists it unless it carries an `ncid-` group name
   and the deployment's tag. Give it neither, and keep it in a scope of its own.
+- **The Helm chart holds the management console's keys.** `managementConsole.keyRings.client` and `.dpop` name each key
+  ring's PEM Secret and remote keys, the chart registers each vendor a remote key names, and the console reaches it
+  through its own workload identity under `managementConsole.secretProtection`; see
+  [The console's keys in a key management service](../../charts/ncode-identity-host/README.md#the-consoles-keys-in-a-key-management-service).
 
 > [!TIP]
 > [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
+> [ADR-1485](../decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),
 > [Backend for Frontend](../backend-for-frontend.md), `IRemoteKeyResolver`, `IRemoteKeyProver`,
 > `RemoteKeyRefusedException`.
 

@@ -257,11 +257,55 @@ managementConsole:
   authority: ""
   # ManagementConsole:ManagementApiUrl. Defaults to https://<host>/api.
   managementApiUrl: ""
-  keys:
-    # Secret holding the client's private key under the key 'mgmt-client.pem'.
-    clientKeySecret: ""
-    # Secret holding the DPoP private key under the key 'mgmt-dpop.pem'.
-    dpopKeySecret: ""
+  # The console's two key rings: client is Bff:KeyRings:mgmt-client, which signs the client's assertions, and dpop is
+  # Bff:KeyRings:mgmt-dpop, which signs its DPoP proofs. Each holds a PEM key from a Secret, keys a key management
+  # service holds, or both, and at least one key (ADR-1479, ADR-1485).
+  keyRings:
+    client:
+      # Secret holding the client's private key under the key 'mgmt-client.pem'; the key's id is mgmt-client.
+      pemSecret: ""
+      # Keys a key management service holds, by key id: provider (aws-kms, azure-key-vault or google-cloud-kms), keyId
+      # (an AWS KMS key or alias ARN, a Key Vault key version identifier or a Cloud KMS crypto key version name),
+      # algorithm, secretType, keySizeBits and, for an elliptic-curve key, curve.
+      remoteKeys: {}
+      #  mgmt-client:
+      #    provider: aws-kms
+      #    keyId: arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+      #    algorithm: ES256
+      #    secretType: ecc
+      #    keySizeBits: 256
+      #    curve: P-256
+    dpop:
+      # Secret holding the DPoP private key under the key 'mgmt-dpop.pem'; the key's id is mgmt-dpop.
+      pemSecret: ""
+      # Keys a key management service holds, as for the client key ring. Each DPoP proof is then a call to the service.
+      remoteKeys: {}
+  # The console's own workload identities, through which it reaches the key management services its remote keys name.
+  # Each has the shape of the server's identity of the same vendor under secretProtection and federates the console's
+  # service account. The pods carry a vendor's credentials only when a remote key names that vendor.
+  secretProtection:
+    awsKms:
+      webIdentity:
+        # IAM role the console's service account assumes through the cluster's IAM OIDC identity provider.
+        roleArn: ""
+        audience: sts.amazonaws.com
+        tokenExpirationSeconds: 3600
+    azureKeyVault:
+      workloadIdentity:
+        # Entra tenant of the identity whose federated credential trusts the console's service account.
+        tenantId: ""
+        # Client ID of the identity whose federated credential trusts the console's service account.
+        clientId: ""
+        audience: api://AzureADTokenExchange
+        tokenExpirationSeconds: 3600
+    googleCloudKms:
+      workloadIdentityFederation:
+        # Workload identity pool provider:
+        # projects/<project number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>.
+        provider: ""
+        # Service account to impersonate; empty when the key grants its role to the federated principal.
+        serviceAccountEmail: ""
+        tokenExpirationSeconds: 3600
   # The console's own Valkey, never the server's.
   valkey:
     existingSecret: ""

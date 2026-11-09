@@ -24,9 +24,11 @@ ingress:
 managementConsole:
   enabled: true
   host: manage.example.com
-  keys:
-    clientKeySecret: identity-mgmt-client-key
-    dpopKeySecret: identity-mgmt-dpop-key
+  keyRings:
+    client:
+      pemSecret: identity-mgmt-client-key
+    dpop:
+      pemSecret: identity-mgmt-dpop-key
   ingress:
     enabled: true
     className: traefik

@@ -138,8 +138,15 @@ applied. Rendered for its side effect only.
 {{- end }}
 {{- end }}
 {{- $remoteKeyProviders := .Values.secretProtection.remoteKeyProviders }}
-{{- if and (or $remoteKeyProviders.awsKms.region $remoteKeyProviders.azureKeyVault.vaultUri $remoteKeyProviders.googleCloudKms.keyRing) (not .Values.secretProtection.remoteKeys.deployment) }}
-{{- fail "secretProtection.remoteKeys.deployment must name this deployment when a remote key provider is set: lowercase letters, digits and hyphens." }}
+{{- range $vendor, $location := dict "awsKms" "region" "azureKeyVault" "vaultUri" "googleCloudKms" "keyRing" }}
+{{- $provider := index $remoteKeyProviders $vendor }}
+{{- if and (index $provider $location) (not $provider.enabled) }}
+{{- fail (printf "secretProtection.remoteKeyProviders.%s.%s is set and %s.enabled is false: set enabled to register the provider, or clear %s." $vendor $location $vendor $location) }}
+{{- end }}
+{{- end }}
+{{- $createsKeys := or (and $remoteKeyProviders.awsKms.enabled $remoteKeyProviders.awsKms.region) (and $remoteKeyProviders.azureKeyVault.enabled $remoteKeyProviders.azureKeyVault.vaultUri) (and $remoteKeyProviders.googleCloudKms.enabled $remoteKeyProviders.googleCloudKms.keyRing) }}
+{{- if and $createsKeys (not .Values.secretProtection.remoteKeys.deployment) }}
+{{- fail "secretProtection.remoteKeys.deployment must name this deployment when an enabled remote key provider creates keys, because its region, vaultUri or keyRing is set: lowercase letters, digits and hyphens." }}
 {{- end }}
 {{- if .Values.secretProtection.rewrapJob.enabled }}
 {{- if and (eq .Values.secretProtection.rewrapJob.command "rewrap-recovery") (not .Values.secretProtection.recovery.publicKeyConfigMap) }}
@@ -218,12 +225,12 @@ tolerations:
 {{/*
 Whether the release uses the named key management service, as the root key provider, as a provider a tenant may bring a
 root key from (secretProtection.ownerRootKeys.providers), or as a provider that holds tenants' keys
-(secretProtection.remoteKeyProviders), so that the pod carries that provider's workload credentials. Takes a dict with
+(enabled under secretProtection.remoteKeyProviders), so that the pod carries that provider's workload credentials. Takes a dict with
 the chart context as root and the key management service name as name; renders "true" or nothing.
 */}}
 {{- define "identity-host.usesKeyManagementService" -}}
 {{- $remoteKeyProviders := .root.Values.secretProtection.remoteKeyProviders }}
-{{- $remoteKeyProvider := or (and (eq .name "aws-kms") $remoteKeyProviders.awsKms.region) (and (eq .name "azure-key-vault") $remoteKeyProviders.azureKeyVault.vaultUri) (and (eq .name "google-cloud-kms") $remoteKeyProviders.googleCloudKms.keyRing) }}
+{{- $remoteKeyProvider := or (and (eq .name "aws-kms") $remoteKeyProviders.awsKms.enabled) (and (eq .name "azure-key-vault") $remoteKeyProviders.azureKeyVault.enabled) (and (eq .name "google-cloud-kms") $remoteKeyProviders.googleCloudKms.enabled) }}
 {{- if or (eq .root.Values.secretProtection.rootKeyProvider .name) (has .name .root.Values.secretProtection.ownerRootKeys.providers) $remoteKeyProvider }}true{{ end }}
 {{- end }}
 
@@ -481,21 +488,27 @@ same configuration the pods it rewraps keys for read.
   value: {{ $provider | quote }}
 {{- end }}
 {{- $remoteKeyProviders := .Values.secretProtection.remoteKeyProviders }}
+{{- if $remoteKeyProviders.awsKms.enabled }}
 {{- with $remoteKeyProviders.awsKms.region }}
 - name: SecretProtection__RemoteKeyProviders__AwsKms__Region
   value: {{ . | quote }}
+{{- end }}
 - name: SecretProtection__RemoteKeyProviders__AwsKms__PendingWindowInDays
   value: {{ $remoteKeyProviders.awsKms.pendingWindowInDays | quote }}
 {{- end }}
+{{- if $remoteKeyProviders.azureKeyVault.enabled }}
 {{- with $remoteKeyProviders.azureKeyVault.vaultUri }}
 - name: SecretProtection__RemoteKeyProviders__AzureKeyVault__VaultUri
   value: {{ . | quote }}
+{{- end }}
 - name: SecretProtection__RemoteKeyProviders__AzureKeyVault__HardwareProtected
   value: {{ $remoteKeyProviders.azureKeyVault.hardwareProtected | quote }}
 {{- end }}
+{{- if $remoteKeyProviders.googleCloudKms.enabled }}
 {{- with $remoteKeyProviders.googleCloudKms.keyRing }}
 - name: SecretProtection__RemoteKeyProviders__GoogleCloudKms__KeyRing
   value: {{ . | quote }}
+{{- end }}
 - name: SecretProtection__RemoteKeyProviders__GoogleCloudKms__HardwareProtected
   value: {{ $remoteKeyProviders.googleCloudKms.hardwareProtected | quote }}
 {{- end }}

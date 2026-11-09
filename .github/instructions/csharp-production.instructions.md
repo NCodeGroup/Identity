@@ -71,8 +71,12 @@ than inlining the rationale.
   checks an issuer's raw string, and an identifier compared byte for byte, such as a redirect URI, is never normalized
   through `UriBuilder` or `UriJsonConverter` either
   ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
-- 👁 **Auto-properties over fields, `private` members and a `Lock` included** — template
-  [Members and Constructors](csharp.instructions.md#members-and-constructors).
+- ✅ **Auto-properties over fields, `private` members and a `Lock` included** — template
+  [Members and Constructors](csharp.instructions.md#members-and-constructors). `NCID0001`, from
+  `src/NCode.Identity.Analyzers`, fails the build of every project on a field that is not a `const`, a `ref` field, a
+  `volatile` or fixed-size buffer field, a field of a `[StructLayout]` or `[InlineArray]` struct, or a field the code
+  uses by reference (`ref`, `out` or `in`, `Interlocked`, `Volatile`, `&`, or an in-place call on a mutable struct)
+  ([ADR-1486](../../docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)).
 - 👁 **The narrowest accessor shape** — template
   [Members and Constructors](csharp.instructions.md#members-and-constructors).
 - 👁 **Primary constructors wherever they can express the type**, converting single-purpose constructors too — template

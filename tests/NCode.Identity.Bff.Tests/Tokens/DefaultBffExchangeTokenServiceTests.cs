@@ -18,13 +18,13 @@ namespace NCode.Identity.Bff.Tests.Tokens;
 
 public class DefaultBffExchangeTokenServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private static readonly string Handle = new('a', 43);
+    private static string Handle { get; } = new('a', 43);
 
     private const string Resource = "https://downstream.example";
 
-    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(30);
+    private static TimeSpan WaitTimeout { get; } = TimeSpan.FromSeconds(30);
 
     private static BffTokenRequest ExchangeRequest { get; } =
         new(BffTokenRequirementNames.Exchange) { Resource = Resource, Scope = "read" };

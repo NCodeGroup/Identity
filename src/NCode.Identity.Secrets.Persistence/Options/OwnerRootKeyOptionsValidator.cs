@@ -16,9 +16,9 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 // See ADR-1221 (intervals and retentions are configured and validated when the host starts) and ADR-1414.
 internal sealed class OwnerRootKeyOptionsValidator : IValidateOptions<SecretProtectionOptions>
 {
-    internal static readonly TimeSpan MinimumValidationInterval = TimeSpan.FromMinutes(1);
-    internal static readonly TimeSpan MaximumValidationInterval = TimeSpan.FromDays(1);
-    internal static readonly TimeSpan MinimumRetryInterval = TimeSpan.FromSeconds(1);
+    internal static TimeSpan MinimumValidationInterval { get; } = TimeSpan.FromMinutes(1);
+    internal static TimeSpan MaximumValidationInterval { get; } = TimeSpan.FromDays(1);
+    internal static TimeSpan MinimumRetryInterval { get; } = TimeSpan.FromSeconds(1);
 
     private static string Key(string member) =>
         $"{SecretProtectionOptions.DefaultSectionName}:{nameof(SecretProtectionOptions.OwnerRootKeys)}:{member}";

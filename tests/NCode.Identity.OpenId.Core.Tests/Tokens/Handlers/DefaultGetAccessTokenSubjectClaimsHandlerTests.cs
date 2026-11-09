@@ -48,10 +48,8 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
             .Returns((OpenIdContext _, OpenIdClient _, string principalId) => principalId)
             .Verifiable();
 
-    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
-        "2025-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset CreatedWhen { get; } =
+        DateTimeOffset.Parse("2025-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private GetAccessTokenSubjectClaimsCommand CreateCommand(
         SubjectAuthentication? subjectAuthentication,

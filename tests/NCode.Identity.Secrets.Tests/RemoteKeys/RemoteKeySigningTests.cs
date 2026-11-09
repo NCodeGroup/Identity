@@ -10,7 +10,7 @@ public class RemoteKeySigningTests : BaseTests
 {
     private const string KeyId = "key-1";
 
-    private static readonly byte[] SigningInput = "signing input"u8.ToArray();
+    private static byte[] SigningInput { get; } = "signing input"u8.ToArray();
 
     private Mock<IRemoteKeyProvider> Provider { get; }
 

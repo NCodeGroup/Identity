@@ -26,10 +26,8 @@ internal sealed class ManagementAuthenticationEndpointFilter(
     private const string BearerPrefix = "Bearer ";
     private const string DPoPPrefix = "DPoP ";
 
-    private static readonly string[] ManagementAudiences =
-    [
-        OpenIdConstants.SystemResourceServerIdentifiers.Management,
-    ];
+    private static string[] ManagementAudiences { get; } =
+    [OpenIdConstants.SystemResourceServerIdentifiers.Management];
 
     private IClientPrincipalResolver ClientPrincipalResolver { get; } = clientPrincipalResolver;
 

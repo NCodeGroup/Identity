@@ -14,9 +14,9 @@ namespace NCode.Identity.OpenId.Core.Tests.Auditing;
 
 public sealed class AuditRecordPruneServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
-    private static readonly TimeSpan PruneInterval = TimeSpan.FromHours(1);
-    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
+    private static TimeSpan PruneInterval { get; } = TimeSpan.FromHours(1);
+    private static TimeSpan WaitTimeout { get; } = TimeSpan.FromSeconds(5);
 
     private FakeTimeProvider TimeProvider { get; } = new(Now);
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }

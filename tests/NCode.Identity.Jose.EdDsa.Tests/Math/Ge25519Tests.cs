@@ -24,7 +24,7 @@ public class Ge25519Tests
     }
 
     // The group order L, little-endian.
-    private static readonly byte[] OrderL =
+    private static byte[] OrderL { get; } =
     [
         0xED,
         0xD3,

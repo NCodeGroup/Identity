@@ -965,8 +965,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IRemoteKeyProvider.ListKeysAsync`, then reads the references every stored secret holds (`IRemoteKeyReferenceStore`),
   and destroys each key none names through `IRemoteSecretDestroyer.DestroyKeyAsync`, recording `remote_key.destroyed`
   with the reason `orphaned` in the control-plane tenant; `SweepEnabled` turns it off. The Helm chart's
-  `secretProtection.remoteKeys` sets the deployment and the sweep
-  ([#654](https://github.com/NCodeGroup/Identity/issues/654),
+  `secretProtection.remoteKeys` sets the deployment and the sweep, and rendering fails for a release that configures
+  a remote key provider without a deployment
+  ([#654](https://github.com/NCodeGroup/Identity/issues/654), [#704](https://github.com/NCodeGroup/Identity/issues/704),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
 
 - **A management route answers from what it read and declares every problem it answers.** Every management route

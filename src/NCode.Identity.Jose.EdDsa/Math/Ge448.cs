@@ -24,7 +24,7 @@ internal struct Ge448
     private Fe448 _t;
 
     // Curve constant d = -39081.
-    private static readonly Fe448 D = Fe448.Neg(Fe448.FromUInt64(39081));
+    private static Fe448 D { get; } = Fe448.Neg(Fe448.FromUInt64(39081));
 
     public static Ge448 Identity =>
         new()
@@ -36,7 +36,7 @@ internal struct Ge448
         };
 
     /// <summary>The edwards448 base point B (generator), per RFC 8032 §5.2.</summary>
-    public static readonly Ge448 Base = ComputeBase();
+    public static Ge448 Base { get; } = ComputeBase();
 
     // Compressed base-point encoding (little-endian y with x even), RFC 8032 §5.2.
     private static ReadOnlySpan<byte> BaseEncoding =>

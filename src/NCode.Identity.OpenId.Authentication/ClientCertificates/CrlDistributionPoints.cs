@@ -17,21 +17,18 @@ internal static class CrlDistributionPoints
     private const string ExtensionOid = "2.5.29.31";
     private const string FreshestCrlOid = "2.5.29.46";
 
-    private static readonly Asn1Tag DistributionPointNameTag = new(
-        TagClass.ContextSpecific,
-        0,
-        true
-    );
+    private static Asn1Tag DistributionPointNameTag { get; } =
+        new(TagClass.ContextSpecific, 0, true);
 
-    private static readonly Asn1Tag ReasonsTag = new(TagClass.ContextSpecific, 1);
+    private static Asn1Tag ReasonsTag { get; } = new(TagClass.ContextSpecific, 1);
 
-    private static readonly Asn1Tag CrlIssuerTag = new(TagClass.ContextSpecific, 2, true);
+    private static Asn1Tag CrlIssuerTag { get; } = new(TagClass.ContextSpecific, 2, true);
 
-    private static readonly Asn1Tag FullNameTag = new(TagClass.ContextSpecific, 0, true);
+    private static Asn1Tag FullNameTag { get; } = new(TagClass.ContextSpecific, 0, true);
 
-    private static readonly Asn1Tag DirectoryNameTag = new(TagClass.ContextSpecific, 4, true);
+    private static Asn1Tag DirectoryNameTag { get; } = new(TagClass.ContextSpecific, 4, true);
 
-    private static readonly Asn1Tag UniformResourceIdentifierTag = new(TagClass.ContextSpecific, 6);
+    private static Asn1Tag UniformResourceIdentifierTag { get; } = new(TagClass.ContextSpecific, 6);
 
     /// <summary>
     /// Reads the distribution points that the certificate names in its CRL distribution points extension. A point

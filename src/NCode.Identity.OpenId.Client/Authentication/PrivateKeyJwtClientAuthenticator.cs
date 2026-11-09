@@ -29,9 +29,9 @@ internal class PrivateKeyJwtClientAuthenticator(
 {
     private const string NoneAlgorithm = "none";
 
-    private static readonly TimeSpan AssertionLifetime = TimeSpan.FromSeconds(60);
+    private static TimeSpan AssertionLifetime { get; } = TimeSpan.FromSeconds(60);
 
-    private static readonly string[] DefaultPreferredAlgorithms =
+    private static string[] DefaultPreferredAlgorithms { get; } =
     [
         AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
         AlgorithmCodes.DigitalSignature.EcdsaSha256,

@@ -26,7 +26,7 @@ public static class DefaultRegistration
     /// The algorithms that <c>AddCoseLibrary</c> registers. Those that need weaker primitives or serve interoperability
     /// only, HMAC 256/64, RSAES-OAEP with SHA-1 and RSASSA-PKCS1-v1_5, are offered for an application to register.
     /// </summary>
-    private static readonly CoseAlgorithm[] DefaultAlgorithms =
+    private static CoseAlgorithm[] DefaultAlgorithms { get; } =
     [
         CoseAlgorithms.Es256,
         CoseAlgorithms.Es384,
@@ -58,7 +58,7 @@ public static class DefaultRegistration
         CoseAlgorithms.RsaesOaepSha512,
     ];
 
-    private static readonly CoseKeyTypeDescriptor[] DefaultKeyTypes =
+    private static CoseKeyTypeDescriptor[] DefaultKeyTypes { get; } =
     [
         CoseKeyTypeDescriptors.Okp,
         CoseKeyTypeDescriptors.Ec2,
@@ -67,7 +67,7 @@ public static class DefaultRegistration
         CoseKeyTypeDescriptors.Akp,
     ];
 
-    private static readonly CoseEllipticCurve[] DefaultCurves =
+    private static CoseEllipticCurve[] DefaultCurves { get; } =
     [
         CoseEllipticCurves.P256,
         CoseEllipticCurves.P384,

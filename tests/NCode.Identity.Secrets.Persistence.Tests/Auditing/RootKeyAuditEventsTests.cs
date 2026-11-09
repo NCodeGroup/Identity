@@ -10,7 +10,7 @@ public sealed class RootKeyAuditEventsTests
 {
     private const string KeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd";
 
-    private static readonly DateTimeOffset Now = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
 
     private static OwnerRootKeyInfo CreateRootKey(
         SecretOwner owner,

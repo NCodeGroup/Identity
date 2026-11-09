@@ -16,7 +16,7 @@ public class BffConnectionSessionsTests : BaseTests
     private const string Handle = "handle-1";
     private const string LogoutUrl = "/bff/logout";
 
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
     private readonly FakeTimeProvider _timeProvider = new(Now);
 

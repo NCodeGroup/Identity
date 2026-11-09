@@ -21,9 +21,9 @@ internal static class TestOcspResponses
     private const string BasicResponseTypeOid = "1.3.6.1.5.5.7.48.1.1";
     private const string EcdsaWithSha256Oid = "1.2.840.10045.4.3.2";
 
-    private static readonly Asn1Tag ExplicitZeroTag = new(TagClass.ContextSpecific, 0, true);
-    private static readonly Asn1Tag ExplicitOneTag = new(TagClass.ContextSpecific, 1, true);
-    private static readonly Asn1Tag ExplicitTwoTag = new(TagClass.ContextSpecific, 2, true);
+    private static Asn1Tag ExplicitZeroTag { get; } = new(TagClass.ContextSpecific, 0, true);
+    private static Asn1Tag ExplicitOneTag { get; } = new(TagClass.ContextSpecific, 1, true);
+    private static Asn1Tag ExplicitTwoTag { get; } = new(TagClass.ContextSpecific, 2, true);
 
     public static byte[] Build(
         X509Certificate2 certificate,

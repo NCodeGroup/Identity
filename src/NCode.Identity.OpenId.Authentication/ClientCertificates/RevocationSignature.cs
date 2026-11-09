@@ -20,10 +20,10 @@ internal static class RevocationSignature
     private const string Sha384Oid = "2.16.840.1.101.3.4.2.2";
     private const string Sha512Oid = "2.16.840.1.101.3.4.2.3";
 
-    private static readonly Asn1Tag PssHashAlgorithmTag = new(TagClass.ContextSpecific, 0, true);
-    private static readonly Asn1Tag PssMaskGenAlgorithmTag = new(TagClass.ContextSpecific, 1, true);
-    private static readonly Asn1Tag PssSaltLengthTag = new(TagClass.ContextSpecific, 2, true);
-    private static readonly Asn1Tag PssTrailerFieldTag = new(TagClass.ContextSpecific, 3, true);
+    private static Asn1Tag PssHashAlgorithmTag { get; } = new(TagClass.ContextSpecific, 0, true);
+    private static Asn1Tag PssMaskGenAlgorithmTag { get; } = new(TagClass.ContextSpecific, 1, true);
+    private static Asn1Tag PssSaltLengthTag { get; } = new(TagClass.ContextSpecific, 2, true);
+    private static Asn1Tag PssTrailerFieldTag { get; } = new(TagClass.ContextSpecific, 3, true);
 
     /// <summary>
     /// Determines whether a signature over the signed data verifies with the public key of the signer. Returns

@@ -22,10 +22,8 @@ public class DefaultGetIdTokenPayloadClaimsHandlerTests : BaseTests
 {
     private const string ClientId = "client-1";
 
-    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
-        "2025-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset CreatedWhen { get; } =
+        DateTimeOffset.Parse("2025-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private Mock<ISessionService> MockSessionService { get; }
     private DefaultGetIdTokenPayloadClaimsHandler Handler { get; }

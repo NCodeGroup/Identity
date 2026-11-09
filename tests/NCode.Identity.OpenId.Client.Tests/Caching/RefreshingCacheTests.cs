@@ -11,11 +11,12 @@ public class RefreshingCacheTests : BaseTests
 {
     private const string Key = "key";
 
-    private static readonly RefreshingCachePolicy Policy = new(
-        RefreshInterval: TimeSpan.FromHours(1),
-        MinimumRefreshInterval: TimeSpan.FromMinutes(5),
-        StaleLifetime: TimeSpan.FromHours(24)
-    );
+    private static RefreshingCachePolicy Policy { get; } =
+        new(
+            RefreshInterval: TimeSpan.FromHours(1),
+            MinimumRefreshInterval: TimeSpan.FromMinutes(5),
+            StaleLifetime: TimeSpan.FromHours(24)
+        );
 
     private FakeTimeProvider TimeProvider { get; } = new(DateTimeOffset.UnixEpoch);
 

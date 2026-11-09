@@ -63,7 +63,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
             EncryptionAlgorithm = "RSA-OAEP-256",
         };
 
-    private static readonly KvSignatureAlgorithm Rs256Algorithm = new("RS256");
+    private static KvSignatureAlgorithm Rs256Algorithm { get; } = new("RS256");
 
     private static KeyWrapAlgorithm RsaOaep256Algorithm { get; } = new("RSA-OAEP-256");
 

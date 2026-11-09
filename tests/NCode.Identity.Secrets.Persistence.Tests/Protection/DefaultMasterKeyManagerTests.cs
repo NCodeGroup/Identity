@@ -13,8 +13,8 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 public class DefaultMasterKeyManagerTests : BaseTests
 {
-    private static readonly SecretOwner Owner = SecretOwner.ForTenant("Tenant-A");
-    private static readonly SecretOwner NormalizedOwner = Owner.Normalize();
+    private static SecretOwner Owner { get; } = SecretOwner.ForTenant("Tenant-A");
+    private static SecretOwner NormalizedOwner { get; } = Owner.Normalize();
 
     private readonly Mock<ISecretProtectorProvider> _provider;
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;

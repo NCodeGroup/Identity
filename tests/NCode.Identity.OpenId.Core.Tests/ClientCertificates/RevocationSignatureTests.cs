@@ -13,7 +13,7 @@ public sealed class RevocationSignatureTests
     private const string EcdsaWithSha256Oid = "1.2.840.10045.4.3.2";
     private const string EcdsaWithSha1Oid = "1.2.840.10045.4.1";
 
-    private static readonly byte[] SignedData = [0x01, 0x02, 0x03, 0x04];
+    private static byte[] SignedData { get; } = [0x01, 0x02, 0x03, 0x04];
 
     private static byte[] Sign(X509Certificate2 signer, byte[] data)
     {

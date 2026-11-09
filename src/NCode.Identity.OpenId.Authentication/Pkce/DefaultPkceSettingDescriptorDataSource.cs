@@ -22,7 +22,7 @@ internal class DefaultPkceSettingDescriptorDataSource(
     ICodeChallengeMethodCollectionProvider codeChallengeMethodCollectionProvider
 ) : ICollectionDataSource<SettingDescriptor>
 {
-    private static readonly string[] DefaultMethods = [OpenIdProtocol.CodeChallengeMethods.S256];
+    private static string[] DefaultMethods { get; } = [OpenIdProtocol.CodeChallengeMethods.S256];
 
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
 

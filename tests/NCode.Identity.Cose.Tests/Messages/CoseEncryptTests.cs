@@ -18,7 +18,7 @@ public class CoseEncryptTests
 
     private static byte[] Hex(string hex) => CoseTestKeys.Hex(hex);
 
-    private static readonly byte[] Content = Hex(CoseTestKeys.Content);
+    private static byte[] Content { get; } = Hex(CoseTestKeys.Content);
 
     private static CoseDecryptionParameters Parameters(
         int[] keyDistribution,

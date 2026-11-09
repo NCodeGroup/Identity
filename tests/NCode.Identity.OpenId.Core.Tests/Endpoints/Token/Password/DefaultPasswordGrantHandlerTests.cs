@@ -26,10 +26,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.Password;
 
 public class DefaultPasswordGrantHandlerTests : BaseTests
 {
-    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
-        "2025-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset CreatedWhen { get; } =
+        DateTimeOffset.Parse("2025-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private FakeTimeProvider TimeProvider { get; } = new(CreatedWhen);
     private Mock<ITokenService> MockTokenService { get; }

@@ -26,7 +26,7 @@ internal class ProviderJwtValidator(
     /// <summary>
     /// The clock skew allowed when comparing a token's times with the current time.
     /// </summary>
-    public static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
+    public static TimeSpan ClockSkew { get; } = TimeSpan.FromMinutes(5);
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;

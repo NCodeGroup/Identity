@@ -7,7 +7,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 public class MasterKeyRotationSpacingTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
 
     private static PersistedMasterKey CreateRow(DateTimeOffset? retiredWhen) =>
         new()

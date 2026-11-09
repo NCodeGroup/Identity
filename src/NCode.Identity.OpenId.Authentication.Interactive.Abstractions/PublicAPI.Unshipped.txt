@@ -35,7 +35,7 @@ const NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChange
 const NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeErrors.InvalidRequest = "invalid_request" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeErrors.NotSupported = "not_supported" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeErrors.PasswordMismatch = "password_mismatch" -> string!
-static readonly NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.CookieSchemeName -> string!
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.CookieSchemeName.get -> string!
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingColorMode = "branding_color_mode" -> string!

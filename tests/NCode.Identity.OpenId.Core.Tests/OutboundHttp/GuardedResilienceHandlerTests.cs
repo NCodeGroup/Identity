@@ -14,9 +14,9 @@ namespace NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 
 public sealed class GuardedResilienceHandlerTests : IDisposable
 {
-    private static readonly DateTimeOffset Start = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Start { get; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    private static readonly TimeSpan EnteredDeadline = TimeSpan.FromSeconds(10);
+    private static TimeSpan EnteredDeadline { get; } = TimeSpan.FromSeconds(10);
 
     private static Task<HttpResponseMessage> RespondServiceUnavailable(
         HttpRequestMessage request,

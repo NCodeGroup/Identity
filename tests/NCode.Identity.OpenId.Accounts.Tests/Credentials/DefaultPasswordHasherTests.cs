@@ -14,10 +14,10 @@ public sealed class DefaultPasswordHasherTests
     private const string ComposedPassword = "caf\u00E9 correct horse battery";
     private const string DecomposedPassword = "cafe\u0301 correct horse battery";
 
-    private static readonly byte[] PasswordBytes = "correct horse battery staple"u8.ToArray();
-    private static readonly byte[] ComposedBytes = "caf\u00E9 correct horse battery"u8.ToArray();
-    private static readonly byte[] DecomposedBytes = "cafe\u0301 correct horse battery"u8.ToArray();
-    private static readonly byte[] WrongDecomposedBytes =
+    private static byte[] PasswordBytes { get; } = "correct horse battery staple"u8.ToArray();
+    private static byte[] ComposedBytes { get; } = "caf\u00E9 correct horse battery"u8.ToArray();
+    private static byte[] DecomposedBytes { get; } = "cafe\u0301 correct horse battery"u8.ToArray();
+    private static byte[] WrongDecomposedBytes { get; } =
         "cafe\u0301 wrong horse battery"u8.ToArray();
 
     private static DefaultPasswordHasher CreateHasher(int iterations = 1000) =>

@@ -19,7 +19,7 @@ internal class BffOptionsValidator(
 {
     private const string Key = "Bff";
 
-    private static readonly string[] ForbiddenHeaderNames =
+    private static string[] ForbiddenHeaderNames { get; } =
     [
         "Accept",
         "Accept-Language",

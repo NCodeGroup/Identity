@@ -9,11 +9,11 @@ namespace NCode.Identity.Secrets.GoogleCloudKms.Tests;
 
 public class GoogleCloudKmsRemoteKeyDescriptorsTests
 {
-    private static readonly HashAlgorithmName Sha256 = HashAlgorithmName.SHA256;
-    private static readonly HashAlgorithmName Sha384 = HashAlgorithmName.SHA384;
-    private static readonly HashAlgorithmName Sha512 = HashAlgorithmName.SHA512;
+    private static HashAlgorithmName Sha256 { get; } = HashAlgorithmName.SHA256;
+    private static HashAlgorithmName Sha384 { get; } = HashAlgorithmName.SHA384;
+    private static HashAlgorithmName Sha512 { get; } = HashAlgorithmName.SHA512;
 
-    private static readonly (
+    private static (
         string Algorithm,
         string SecretType,
         int KeySizeBits,
@@ -21,7 +21,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
         string KeySpec,
         HashAlgorithmName Digest,
         bool IsDer
-    )[] Expected =
+    )[] Expected { get; } =
     [
         ("RS256", "rsa", 2048, null, "RSA_SIGN_PKCS1_2048_SHA256", Sha256, false),
         ("RS256", "rsa", 3072, null, "RSA_SIGN_PKCS1_3072_SHA256", Sha256, false),
@@ -35,11 +35,11 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
         ("ES384", "ecc", 384, "P-384", "EC_SIGN_P384_SHA384", Sha384, true),
     ];
 
-    private static readonly (
+    private static (
         string Algorithm,
         int KeySizeBits,
         string KeySpec
-    )[] ExpectedDecryption =
+    )[] ExpectedDecryption { get; } =
     [
         ("RSA-OAEP", 2048, "RSA_DECRYPT_OAEP_2048_SHA1"),
         ("RSA-OAEP", 3072, "RSA_DECRYPT_OAEP_3072_SHA1"),

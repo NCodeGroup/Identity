@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 
 public class DefaultSecretKeyTypeCatalogTests : BaseTests
 {
-    private static readonly ISecretKeyFactory Factory = Mock.Of<ISecretKeyFactory>();
+    private static ISecretKeyFactory Factory { get; } = Mock.Of<ISecretKeyFactory>();
 
     private Mock<ISecretKeyTypeDescriptor> CreateDescriptor(string keyType, string? jwkKeyType)
     {

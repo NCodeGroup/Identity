@@ -9,8 +9,8 @@ namespace NCode.Identity.Bff.Tests.Sessions;
 
 public class BffPayloadProtectorTests : BaseTests
 {
-    private static readonly byte[] Plaintext = [1, 2, 3, 4, 5, 6, 7, 8];
-    private static readonly byte[] AssociatedData = [9, 8, 7];
+    private static byte[] Plaintext { get; } = [1, 2, 3, 4, 5, 6, 7, 8];
+    private static byte[] AssociatedData { get; } = [9, 8, 7];
 
     #region Protect and TryUnprotect Tests
 

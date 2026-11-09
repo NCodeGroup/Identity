@@ -26,12 +26,13 @@ public class AuthorizationCodePkceTests
     private const string RedirectUri = "https://client.example/callback";
     private const string Nonce = "n-0S6_WzA2Mj";
 
-    private static readonly Dictionary<string, string?> NonceExemptionConfiguration = new()
-    {
-        ["OpenId:Platform:Settings:require_pkce"] = "false",
-        ["OpenId:Platform:Settings:pkce_nonce_exemption"] = "true",
-        ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
-    };
+    private static Dictionary<string, string?> NonceExemptionConfiguration { get; } =
+        new()
+        {
+            ["OpenId:Platform:Settings:require_pkce"] = "false",
+            ["OpenId:Platform:Settings:pkce_nonce_exemption"] = "true",
+            ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
+        };
 
     #region Scaffolding
 

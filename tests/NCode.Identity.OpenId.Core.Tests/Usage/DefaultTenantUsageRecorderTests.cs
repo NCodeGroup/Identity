@@ -10,8 +10,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Usage;
 
 public sealed class DefaultTenantUsageRecorderTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 21, 23, 59, 59, TimeSpan.Zero);
-    private static readonly DateOnly Today = new(2026, 10, 21);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 21, 23, 59, 59, TimeSpan.Zero);
+    private static DateOnly Today { get; } = new(2026, 10, 21);
     private const string TeamPath = "/team-1/";
 
     private FakeTimeProvider TimeProvider { get; } = new(Now);

@@ -11,20 +11,21 @@ namespace NCode.Identity.Bff.Sessions;
 /// </summary>
 internal static class BffSessionPrincipal
 {
-    private static readonly HashSet<string> DroppedClaimTypes = new(StringComparer.Ordinal)
-    {
-        JoseClaimNames.Payload.Nonce,
-        JoseClaimNames.Payload.AtHash,
-        JoseClaimNames.Payload.CHash,
-        JoseClaimNames.Payload.SHash,
-        JoseClaimNames.Payload.Exp,
-        JoseClaimNames.Payload.Iat,
-        JoseClaimNames.Payload.Nbf,
-        JoseClaimNames.Payload.Aud,
-        JoseClaimNames.Payload.Azp,
-        BffClaimTypes.LogoutUrl,
-        BffClaimTypes.LogoutSid,
-    };
+    private static HashSet<string> DroppedClaimTypes { get; } =
+        new(StringComparer.Ordinal)
+        {
+            JoseClaimNames.Payload.Nonce,
+            JoseClaimNames.Payload.AtHash,
+            JoseClaimNames.Payload.CHash,
+            JoseClaimNames.Payload.SHash,
+            JoseClaimNames.Payload.Exp,
+            JoseClaimNames.Payload.Iat,
+            JoseClaimNames.Payload.Nbf,
+            JoseClaimNames.Payload.Aud,
+            JoseClaimNames.Payload.Azp,
+            BffClaimTypes.LogoutUrl,
+            BffClaimTypes.LogoutSid,
+        };
 
     /// <summary>
     /// Selects the claims of an ID token that a session keeps, dropping the ones that only matter during validation.

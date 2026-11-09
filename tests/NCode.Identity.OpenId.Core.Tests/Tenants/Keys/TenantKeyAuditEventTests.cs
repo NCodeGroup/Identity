@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 
 public sealed class TenantKeyAuditEventTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
 
     private static TenantKeyAuditEvent CreateEvent(string? tenantId = "acme") =>
         new()

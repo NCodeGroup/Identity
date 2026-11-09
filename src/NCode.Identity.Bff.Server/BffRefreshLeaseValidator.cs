@@ -18,7 +18,7 @@ namespace NCode.Identity.Bff.Server;
 internal sealed class BffRefreshLeaseValidator(IOptions<OpenIdClientOptions> clientOptions)
     : IValidateOptions<BffOptions>
 {
-    private static readonly TimeSpan Margin = TimeSpan.FromSeconds(10);
+    private static TimeSpan Margin { get; } = TimeSpan.FromSeconds(10);
 
     /// <inheritdoc />
     public ValidateOptionsResult Validate(string? name, BffOptions options)

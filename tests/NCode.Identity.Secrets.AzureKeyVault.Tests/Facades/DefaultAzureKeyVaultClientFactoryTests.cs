@@ -19,9 +19,9 @@ public class DefaultAzureKeyVaultClientFactoryTests
 
     private const string OtherDirectoryId = "66666666-7777-8888-9999-aaaaaaaaaaaa";
 
-    private static readonly Uri VaultUri = new("https://contoso.vault.azure.net");
+    private static Uri VaultUri { get; } = new("https://contoso.vault.azure.net");
 
-    private static readonly Uri OtherVaultUri = new("https://fabrikam.vault.azure.net");
+    private static Uri OtherVaultUri { get; } = new("https://fabrikam.vault.azure.net");
 
     private static DefaultAzureKeyVaultClientFactory CreateFactory() => new(TimeProvider.System);
 

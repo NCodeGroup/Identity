@@ -11,7 +11,7 @@ namespace NCode.Identity.Jose.EdDsa.Tests.Math;
 // Validates the constant-time scalar arithmetic modulo L against a BigInteger reference over randomized inputs.
 public class Sc25519Tests
 {
-    private static readonly BigInteger L =
+    private static BigInteger L { get; } =
         BigInteger.Pow(2, 252)
         + BigInteger.Parse("27742317777372353535851937790883648493", CultureInfo.InvariantCulture);
 

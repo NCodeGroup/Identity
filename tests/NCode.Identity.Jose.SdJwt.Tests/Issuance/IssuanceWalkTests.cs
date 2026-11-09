@@ -13,7 +13,7 @@ namespace NCode.Identity.Jose.SdJwt.Tests.Issuance;
 /// </summary>
 public class IssuanceWalkTests : BaseTests
 {
-    private static readonly string[] Salts = ["c2FsdC0w", "c2FsdC0x", "c2FsdC0y", "c2FsdC0z"];
+    private static string[] Salts { get; } = ["c2FsdC0w", "c2FsdC0x", "c2FsdC0y", "c2FsdC0z"];
 
     private static SdJwtDigestAlgorithm Algorithm => SdJwtDigestAlgorithms.Sha256;
 

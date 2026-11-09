@@ -18,7 +18,7 @@ namespace NCode.Identity.Cose.Tests.Keys;
 
 public class DefaultCoseKeyConverterTests
 {
-    private static readonly ServiceProvider Provider = CreateProvider();
+    private static ServiceProvider Provider { get; } = CreateProvider();
 
     private static ServiceProvider CreateProvider()
     {

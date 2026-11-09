@@ -23,7 +23,7 @@ public class BffAccessTokenHandlerTests : BaseTests
     private const string Jkt = "thumbprint";
     private const string Proof = "proof-jwt";
     private const string Nonce = "server-nonce";
-    private static readonly Uri RequestUri = new("https://api.example.com/items");
+    private static Uri RequestUri { get; } = new("https://api.example.com/items");
 
     private readonly Mock<IHttpContextAccessor> _accessor;
     private readonly Mock<IBffTokenAccessor> _tokens;

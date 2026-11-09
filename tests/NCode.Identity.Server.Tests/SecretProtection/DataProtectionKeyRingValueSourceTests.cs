@@ -14,9 +14,9 @@ namespace NCode.Identity.Server.Tests;
 
 public class DataProtectionKeyRingValueSourceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2027, 6, 1, 0, 0, 0, TimeSpan.Zero);
-    private static readonly SecretOwner Owner = SecretOwner.Platform;
-    private static readonly Guid KeyId = Guid.NewGuid();
+    private static DateTimeOffset Now { get; } = new(2027, 6, 1, 0, 0, 0, TimeSpan.Zero);
+    private static SecretOwner Owner { get; } = SecretOwner.Platform;
+    private static Guid KeyId { get; } = Guid.NewGuid();
 
     private DataProtectionKeyRingValueSource CreateSource(
         DataProtectionKeyRingReader reader,
@@ -55,7 +55,7 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
     private static DataProtectionKeyRingReader CreateUnreadableReader() =>
         new(Options.Create(new KeyManagementOptions()));
 
-    private static readonly IReadOnlySet<Guid> Keys = new HashSet<Guid> { KeyId };
+    private static IReadOnlySet<Guid> Keys { get; } = new HashSet<Guid> { KeyId };
 
     #region RewrapAsync Tests
 

@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 // Uses the in-memory provider because SQLite cannot compare DateTimeOffset values in a query.
 public sealed class MasterKeyStoreActivePageTests : IDisposable
 {
-    private static readonly DateTimeOffset CreatedWhen = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset CreatedWhen { get; } = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
 
     private readonly ServiceProvider _provider;
 

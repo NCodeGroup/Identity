@@ -19,23 +19,21 @@ internal sealed partial class ManagementParameterDocumentTransformer : IOpenApiD
 {
     // Path parameters; these may be bound by a route group rather than a handler argument, so they are also
     // declared when the framework omits them from the operation.
-    private static readonly FrozenDictionary<string, string> PathParameters = new Dictionary<
-        string,
-        string
-    >(StringComparer.Ordinal)
-    {
-        ["tenantId"] = "The identifier of the tenant that scopes the request.",
-        ["teamId"] = "The identifier of the team.",
-        ["clientId"] = "The identifier of the client.",
-        ["resourceServerId"] = "The identifier of the API (resource server).",
-        ["secretId"] = "The identifier of the secret.",
-        ["scopeValue"] = "The scope value.",
-        ["grantId"] = "The identifier of the grant.",
-        ["principalId"] = "The identifier of the principal (an owner of the resource).",
-    }.ToFrozenDictionary(StringComparer.Ordinal);
+    private static FrozenDictionary<string, string> PathParameters { get; } =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["tenantId"] = "The identifier of the tenant that scopes the request.",
+            ["teamId"] = "The identifier of the team.",
+            ["clientId"] = "The identifier of the client.",
+            ["resourceServerId"] = "The identifier of the API (resource server).",
+            ["secretId"] = "The identifier of the secret.",
+            ["scopeValue"] = "The scope value.",
+            ["grantId"] = "The identifier of the grant.",
+            ["principalId"] = "The identifier of the principal (an owner of the resource).",
+        }.ToFrozenDictionary(StringComparer.Ordinal);
 
     // Header and query parameters; described in place wherever they already appear on an operation.
-    private static readonly FrozenDictionary<string, string> HeaderAndQueryParameters =
+    private static FrozenDictionary<string, string> HeaderAndQueryParameters { get; } =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["If-Match"] =

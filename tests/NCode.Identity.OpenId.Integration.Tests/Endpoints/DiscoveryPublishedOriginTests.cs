@@ -28,13 +28,8 @@ public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
 
     private HostApplicationFactory Factory { get; } = factory;
 
-    private static readonly string[] CredentialBearingEndpoints =
-    [
-        "token_endpoint",
-        "authorization_endpoint",
-        "jwks_uri",
-        "userinfo_endpoint",
-    ];
+    private static string[] CredentialBearingEndpoints { get; } =
+    ["token_endpoint", "authorization_endpoint", "jwks_uri", "userinfo_endpoint"];
 
     private static HttpRequestMessage CreateDiscoveryRequest(string host)
     {

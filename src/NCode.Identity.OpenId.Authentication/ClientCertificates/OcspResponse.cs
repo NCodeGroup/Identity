@@ -19,11 +19,11 @@ internal sealed class OcspResponse
     private const string OcspNoCheckOid = "1.3.6.1.5.5.7.48.1.5";
     private const string OcspSigningOid = "1.3.6.1.5.5.7.3.9";
 
-    private static readonly Asn1Tag ExplicitZeroTag = new(TagClass.ContextSpecific, 0, true);
-    private static readonly Asn1Tag ExplicitOneTag = new(TagClass.ContextSpecific, 1, true);
-    private static readonly Asn1Tag ExplicitTwoTag = new(TagClass.ContextSpecific, 2, true);
-    private static readonly Asn1Tag GoodTag = new(TagClass.ContextSpecific, 0);
-    private static readonly Asn1Tag UnknownTag = new(TagClass.ContextSpecific, 2);
+    private static Asn1Tag ExplicitZeroTag { get; } = new(TagClass.ContextSpecific, 0, true);
+    private static Asn1Tag ExplicitOneTag { get; } = new(TagClass.ContextSpecific, 1, true);
+    private static Asn1Tag ExplicitTwoTag { get; } = new(TagClass.ContextSpecific, 2, true);
+    private static Asn1Tag GoodTag { get; } = new(TagClass.ContextSpecific, 0);
+    private static Asn1Tag UnknownTag { get; } = new(TagClass.ContextSpecific, 2);
 
     /// <summary>
     /// Gets the status of the response: <c>0</c> successful, <c>1</c> malformed request, <c>2</c> internal error,

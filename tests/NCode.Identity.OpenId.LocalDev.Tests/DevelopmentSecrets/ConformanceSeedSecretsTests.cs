@@ -22,19 +22,21 @@ public class ConformanceSeedSecretsTests : IDisposable
 
     // The golden fixture that build/tests/conformance-seed-credentials.tests.ps1 also reads, and the reference host's
     // conformance overlay; the project copies both beside the test assembly.
-    private static readonly string GoldenFixturePath = Path.Combine(
-        AppContext.BaseDirectory,
-        "DevelopmentSecrets",
-        "conformance-seed-golden.json"
-    );
+    private static string GoldenFixturePath { get; } =
+        Path.Combine(
+            AppContext.BaseDirectory,
+            "DevelopmentSecrets",
+            "conformance-seed-golden.json"
+        );
 
     private const string ExistingPassword = "existing-password";
 
-    private static readonly string ConformanceSettingsPath = Path.Combine(
-        AppContext.BaseDirectory,
-        "DevelopmentSecrets",
-        "appsettings.Conformance.json"
-    );
+    private static string ConformanceSettingsPath { get; } =
+        Path.Combine(
+            AppContext.BaseDirectory,
+            "DevelopmentSecrets",
+            "appsettings.Conformance.json"
+        );
 
     private string ReadFile(string fileName)
     {

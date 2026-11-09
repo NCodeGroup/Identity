@@ -10,9 +10,9 @@ namespace NCode.Identity.Secrets.Persistence.Auditing;
 
 public sealed class MasterKeyAuditEventTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
-    private static readonly Guid KeyId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    private static readonly Guid RetiredKeyId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+    private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    private static Guid KeyId { get; } = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static Guid RetiredKeyId { get; } = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
     private static MasterKeyInfo CreateKey(Guid keyId, int version) =>
         new(

@@ -23,12 +23,13 @@ internal struct Ge25519
     private Fe25519 _t;
 
     // Curve constant d = -121665 / 121666, and 2*d (used by the addition formula). Computed once at type load.
-    private static readonly Fe25519 D = Fe25519.Mul(
-        Fe25519.Neg(Fe25519.FromUInt64(121665)),
-        Fe25519.Invert(Fe25519.FromUInt64(121666))
-    );
+    private static Fe25519 D { get; } =
+        Fe25519.Mul(
+            Fe25519.Neg(Fe25519.FromUInt64(121665)),
+            Fe25519.Invert(Fe25519.FromUInt64(121666))
+        );
 
-    private static readonly Fe25519 D2 = Fe25519.Add(D, D);
+    private static Fe25519 D2 { get; } = Fe25519.Add(D, D);
 
     public static Ge25519 Identity =>
         new()
@@ -40,7 +41,7 @@ internal struct Ge25519
         };
 
     /// <summary>The Ed25519 base point B (generator), with <c>y = 4/5</c> and the even <c>x</c>.</summary>
-    public static readonly Ge25519 Base = ComputeBase();
+    public static Ge25519 Base { get; } = ComputeBase();
 
     private static Ge25519 ComputeBase()
     {

@@ -36,7 +36,7 @@ public class InteractiveTenantRouteTests
     private const string AntiforgeryFieldName = "__RequestVerificationToken";
     private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
 
-    private static readonly string AcmeSessionCookieName =
+    private static string AcmeSessionCookieName { get; } =
         $"{SessionCookieName}.{Base64Url.EncodeToString(SHA256.HashData(SecureEncoding.UTF8.GetBytes("/acme")))}";
 
     private const string BundleIndexHtml =

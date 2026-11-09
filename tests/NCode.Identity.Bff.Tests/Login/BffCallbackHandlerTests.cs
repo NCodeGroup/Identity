@@ -27,7 +27,7 @@ public class BffCallbackHandlerTests : BaseTests
     private const string Nonce = "nonce-value";
 
     // 32 random bytes in unpadded base64url.
-    private static readonly string LoginSecret = new('a', 43);
+    private static string LoginSecret { get; } = new('a', 43);
 
     private readonly Mock<BffLoginTransactionService> _transactionService;
     private readonly Mock<IProviderMetadataResolver> _metadataResolver;

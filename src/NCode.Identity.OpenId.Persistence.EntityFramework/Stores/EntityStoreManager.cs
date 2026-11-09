@@ -25,9 +25,9 @@ internal sealed class EntityStoreManager<TDbContext>(
     private ConcurrentDictionary<Type, IStore> Stores { get; } = new();
 
     // ReSharper disable once StaticMemberInGenericType
-    private static readonly ConcurrentDictionary<Type, MethodInvoker> StoreMethodInvokers = new();
+    private static ConcurrentDictionary<Type, MethodInvoker> StoreMethodInvokers { get; } = new();
 
-    private static readonly MethodInfo GetStoreMethod =
+    private static MethodInfo GetStoreMethod { get; } =
         typeof(EntityStoreManager<TDbContext>).GetMethod(nameof(GetStore))
         ?? throw new InvalidOperationException($"Method {nameof(GetStore)} not found.");
 

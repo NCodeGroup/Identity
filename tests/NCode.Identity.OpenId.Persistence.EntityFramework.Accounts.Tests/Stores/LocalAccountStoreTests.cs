@@ -15,10 +15,8 @@ public sealed class LocalAccountStoreTests : IDisposable
 {
     private const string TenantId = "tenant-1";
 
-    private static readonly Func<string, CancellationToken, ValueTask<bool>> NotRefused = static (
-        _,
-        _
-    ) => ValueTask.FromResult(false);
+    private static Func<string, CancellationToken, ValueTask<bool>> NotRefused { get; } =
+        static (_, _) => ValueTask.FromResult(false);
 
     private readonly ServiceProvider _provider;
     private readonly OpenIdDbContext _dbContext;

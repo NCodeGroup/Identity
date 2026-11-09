@@ -46,7 +46,7 @@ internal sealed class DefaultOwnerRootKeyManager(
     ILogger<DefaultOwnerRootKeyManager> logger
 ) : IOwnerRootKeyManager
 {
-    private static readonly MasterKeyRewrapResult NoRewrap = new(0, 0, 0, 0);
+    private static MasterKeyRewrapResult NoRewrap { get; } = new(0, 0, 0, 0);
 
     private IKeyWrapperCatalog Catalog { get; } = catalog;
 

@@ -17,7 +17,7 @@ namespace NCode.Identity.Bff.Tests.Logout;
 
 public class BffLogoutServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
     private static BffSessionState CreateState(string? refreshToken) =>
         new(

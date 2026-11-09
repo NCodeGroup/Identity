@@ -12,8 +12,8 @@ namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 // See ADR-1315.
 internal sealed class OutboundHttpOptionsValidator : IValidateOptions<OutboundHttpOptions>
 {
-    private static readonly TimeSpan MinTimeout = TimeSpan.FromMilliseconds(10);
-    private static readonly TimeSpan MaxTimeout = TimeSpan.FromDays(1);
+    private static TimeSpan MinTimeout { get; } = TimeSpan.FromMilliseconds(10);
+    private static TimeSpan MaxTimeout { get; } = TimeSpan.FromDays(1);
 
     private const int MaxRetryAttemptsLimit = 10;
 

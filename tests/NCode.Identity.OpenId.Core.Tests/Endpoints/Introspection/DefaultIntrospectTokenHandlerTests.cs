@@ -34,12 +34,10 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
     private const string Audience = "https://api.example.com";
     private const string OtherAudience = "https://other.example.com";
 
-    private static readonly DateTimeOffset UtcNow = DateTimeOffset.Parse(
-        "2025-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset UtcNow { get; } =
+        DateTimeOffset.Parse("2025-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
-    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
+    private static TimeSpan RefreshTokenLifetime { get; } = TimeSpan.FromDays(30);
 
     private Mock<IIssuedTokenValidator> MockIssuedTokenValidator { get; }
     private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }

@@ -18,8 +18,8 @@ namespace NCode.Identity.Bff.Tests.Hosting;
 
 public sealed class BffSessionRetirementServiceTests : BaseTests
 {
-    private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan RetryDelay = TimeSpan.FromMinutes(2);
+    private static TimeSpan WaitLimit { get; } = TimeSpan.FromSeconds(10);
+    private static TimeSpan RetryDelay { get; } = TimeSpan.FromMinutes(2);
 
     private readonly BffTestOptionsSource _source;
     private readonly BffFrontendCatalog _frontends;

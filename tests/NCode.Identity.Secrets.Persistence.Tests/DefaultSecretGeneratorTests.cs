@@ -22,53 +22,58 @@ namespace NCode.Identity.Secrets.Persistence;
 
 public class DefaultSecretGeneratorTests : BaseTests
 {
-    private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
+    private static SecretOwner TenantOwner { get; } = SecretOwner.ForTenant("tenant-one");
 
-    private static readonly RemoteSigningAlgorithm RsaRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "RS256",
-        SecretType = SecretTypes.Rsa,
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
-    };
+    private static RemoteSigningAlgorithm RsaRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RS256",
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
+        };
 
     // Asks for a larger key than the 2048-bit key the tests make the provider return.
-    private static readonly RemoteSigningAlgorithm LargeRsaRow = RsaRow with
-    {
-        KeySizeBits = 4096,
-        KeySpec = "RSA_4096",
-    };
+    private static RemoteSigningAlgorithm LargeRsaRow { get; } =
+        RsaRow with
+        {
+            KeySizeBits = 4096,
+            KeySpec = "RSA_4096",
+        };
 
-    private static readonly RemoteSigningAlgorithm EccRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "ES256",
-        SecretType = SecretTypes.Ecc,
-        KeySizeBits = 256,
-        Curve = "P-256",
-        KeySpec = "ECC_NIST_P256",
-        SigningAlgorithm = "ECDSA_SHA_256",
-        IsDerEncodedSignature = true,
-    };
+    private static RemoteSigningAlgorithm EccRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ES256",
+            SecretType = SecretTypes.Ecc,
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            SigningAlgorithm = "ECDSA_SHA_256",
+            IsDerEncodedSignature = true,
+        };
 
     // Asks for a curve other than the P-256 curve of the key the tests make the provider return.
-    private static readonly RemoteSigningAlgorithm OtherCurveEccRow = EccRow with
-    {
-        Curve = "secp256k1",
-        KeySpec = "ECC_SECG_P256K1",
-    };
+    private static RemoteSigningAlgorithm OtherCurveEccRow { get; } =
+        EccRow with
+        {
+            Curve = "secp256k1",
+            KeySpec = "ECC_SECG_P256K1",
+        };
 
-    private static readonly RemoteDecryptionAlgorithm OaepRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "RSA-OAEP-256",
-        SecretType = SecretTypes.Rsa,
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
-    };
+    private static RemoteDecryptionAlgorithm OaepRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
 
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultSecretVerifierSchemeCatalog _verifierCatalog;

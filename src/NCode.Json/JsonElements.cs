@@ -20,7 +20,7 @@ namespace NCode.Json;
 [PublicAPI]
 public static class JsonElements
 {
-    private static readonly JsonElement EmptyObjectValue = JsonElement.Parse("{}");
+    private static JsonElement EmptyObjectValue { get; } = JsonElement.Parse("{}");
 
     /// <summary>
     /// Gets a cached, immutable, detached <see cref="JsonElement"/> representing an empty JSON object (<c>{}</c>). The

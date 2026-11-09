@@ -15,8 +15,8 @@ namespace NCode.Identity.Server.Tests;
 
 public class PlatformSecretProtectorRefreshServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2027, 6, 1, 0, 0, 0, TimeSpan.Zero);
-    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(10);
+    private static DateTimeOffset Now { get; } = new(2027, 6, 1, 0, 0, 0, TimeSpan.Zero);
+    private static TimeSpan Wait { get; } = TimeSpan.FromSeconds(10);
 
     private sealed class CapturingLogger<T> : ILogger<T>
     {

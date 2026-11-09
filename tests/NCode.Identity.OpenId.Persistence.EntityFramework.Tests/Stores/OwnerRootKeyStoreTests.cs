@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 // replicas from storing two root keys for one owner (ADR-1414).
 public sealed class OwnerRootKeyStoreTests : IDisposable
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
 
     private readonly SqliteConnection _connection;
     private readonly ServiceProvider _provider;

@@ -30,7 +30,7 @@ public class AzureKeyVaultKeyWrapperTests : BaseTests
 
     private const string DirectoryId = "11111111-2222-3333-4444-555555555555";
 
-    private static readonly KeyAccess Access = new(DirectoryId, "tenant:acme");
+    private static KeyAccess Access { get; } = new(DirectoryId, "tenant:acme");
 
     private Mock<IAzureKeyVaultClientFactory> ClientFactory { get; }
 

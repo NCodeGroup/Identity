@@ -74,9 +74,9 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
             EncryptionAlgorithm = "RSA_DECRYPT_OAEP_3072_SHA256",
         };
 
-    private static readonly string PublicKeyPem;
+    private static string PublicKeyPem { get; }
 
-    private static readonly byte[] PublicKeySpki;
+    private static byte[] PublicKeySpki { get; }
 
     static GoogleCloudKmsRemoteKeyProviderTests()
     {

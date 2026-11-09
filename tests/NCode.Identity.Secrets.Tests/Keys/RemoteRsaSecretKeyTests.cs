@@ -11,28 +11,30 @@ public class RemoteRsaSecretKeyTests : BaseTests
 {
     private const string KeyId = "key-1";
 
-    private static readonly byte[] SigningInput = "signing input"u8.ToArray();
+    private static byte[] SigningInput { get; } = "signing input"u8.ToArray();
 
-    private static readonly RemoteSigningAlgorithm Row = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "PS256",
-        SecretType = "rsa",
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        SigningAlgorithm = "RSASSA_PSS_SHA_256",
-        DigestAlgorithm = HashAlgorithmName.SHA256,
-    };
+    private static RemoteSigningAlgorithm Row { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "PS256",
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            SigningAlgorithm = "RSASSA_PSS_SHA_256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+        };
 
-    private static readonly RemoteDecryptionAlgorithm DecryptionRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "RSA-OAEP-256",
-        SecretType = "rsa",
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
-    };
+    private static RemoteDecryptionAlgorithm DecryptionRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
 
     private Mock<IRemoteKeyProvider> Provider { get; }
 

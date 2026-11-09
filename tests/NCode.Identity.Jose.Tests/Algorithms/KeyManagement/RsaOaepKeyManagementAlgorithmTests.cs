@@ -14,15 +14,16 @@ namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
 public class RsaOaepKeyManagementAlgorithmTests : BaseTests
 {
-    private static readonly RemoteDecryptionAlgorithm RsaOaep256Row = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "RSA-OAEP-256",
-        SecretType = "rsa",
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
-    };
+    private static RemoteDecryptionAlgorithm RsaOaep256Row { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
 
     [Fact]
     public void Code_ReturnsCode()

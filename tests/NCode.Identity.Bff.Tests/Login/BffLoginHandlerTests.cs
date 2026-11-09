@@ -21,7 +21,7 @@ namespace NCode.Identity.Bff.Tests.Login;
 
 public class BffLoginHandlerTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
 
     private readonly Mock<IAuthorizationRequestClient> _client;
     private readonly Mock<IBffAuditRecorder> _auditRecorder;

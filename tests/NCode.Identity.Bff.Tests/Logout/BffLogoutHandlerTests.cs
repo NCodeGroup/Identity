@@ -22,7 +22,7 @@ public class BffLogoutHandlerTests : BaseTests
 {
     private const string Guard = "guard-value";
 
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
     private readonly Mock<BffSessionResolver> _resolver;
     private readonly Mock<BffLogoutService> _logoutService;

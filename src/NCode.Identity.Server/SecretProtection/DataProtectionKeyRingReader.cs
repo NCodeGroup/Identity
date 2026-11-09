@@ -21,9 +21,9 @@ namespace NCode.Identity.Server.SecretProtection;
 // See ADR-1407.
 internal class DataProtectionKeyRingReader(IOptions<KeyManagementOptions> keyManagementOptions)
 {
-    private static readonly XName KeyName = XName.Get("key");
+    private static XName KeyName { get; } = XName.Get("key");
 
-    private static readonly XName ExpirationDateName = XName.Get("expirationDate");
+    private static XName ExpirationDateName { get; } = XName.Get("expirationDate");
 
     private IOptions<KeyManagementOptions> KeyManagementOptions { get; } = keyManagementOptions;
 

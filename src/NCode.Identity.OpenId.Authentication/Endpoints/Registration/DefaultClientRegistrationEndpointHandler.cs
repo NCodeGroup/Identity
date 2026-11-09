@@ -63,17 +63,12 @@ internal class DefaultClientRegistrationEndpointHandler(
     private const string RequestObjectEncryptionAlgMetadata = "request_object_encryption_alg";
     private const string RequestObjectEncryptionEncMetadata = "request_object_encryption_enc";
 
-    private static readonly string[] DefaultGrantTypes =
-    [
-        OpenIdProtocol.GrantTypes.AuthorizationCode,
-    ];
-    private static readonly string[] DefaultResponseTypes = [OpenIdProtocol.ResponseTypes.Code];
+    private static string[] DefaultGrantTypes { get; } =
+    [OpenIdProtocol.GrantTypes.AuthorizationCode];
+    private static string[] DefaultResponseTypes { get; } = [OpenIdProtocol.ResponseTypes.Code];
 
-    private static readonly string[] SupportedSubjectTypes =
-    [
-        OpenIdProtocol.SubjectTypes.Public,
-        OpenIdProtocol.SubjectTypes.Pairwise,
-    ];
+    private static string[] SupportedSubjectTypes { get; } =
+    [OpenIdProtocol.SubjectTypes.Public, OpenIdProtocol.SubjectTypes.Pairwise];
 
     private TimeProvider TimeProvider { get; } = timeProvider;
     private LinkGenerator LinkGenerator { get; } = linkGenerator;

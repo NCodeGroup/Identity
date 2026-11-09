@@ -32,7 +32,7 @@ public class ProductionSafetyRegistrationTests
     /// The secret protection settings an operator would deploy: a root key provider whose key outlives the process,
     /// mounted from a file, with recovery explicitly declined.
     /// </summary>
-    private static readonly (string Key, string Value)[] SafeSecretProtectionSettings =
+    private static (string Key, string Value)[] SafeSecretProtectionSettings { get; } =
     [
         ("SecretProtection:RootKeyProvider", "local"),
         ("SecretProtection:RootKeyProviders:Local:KeyPath", "/run/secrets/root-key"),

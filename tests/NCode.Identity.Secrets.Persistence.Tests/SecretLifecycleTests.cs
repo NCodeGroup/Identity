@@ -7,8 +7,8 @@ namespace NCode.Identity.Secrets.Persistence;
 
 public class SecretLifecycleTests
 {
-    private static readonly DateTimeOffset Created = DateTimeOffset.UnixEpoch;
-    private static readonly DateTimeOffset Expires = DateTimeOffset.UnixEpoch.AddDays(100);
+    private static DateTimeOffset Created { get; } = DateTimeOffset.UnixEpoch;
+    private static DateTimeOffset Expires { get; } = DateTimeOffset.UnixEpoch.AddDays(100);
 
     #region Resolve Tests
 

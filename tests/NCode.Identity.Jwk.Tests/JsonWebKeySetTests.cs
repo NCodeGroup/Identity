@@ -8,7 +8,7 @@ namespace NCode.Identity.Jwk.Tests;
 
 public class JsonWebKeySetTests
 {
-    private static readonly JsonWebKeyTypeDescriptor XkpType = new("XKP", ["pub"], ["sk"]);
+    private static JsonWebKeyTypeDescriptor XkpType { get; } = new("XKP", ["pub"], ["sk"]);
 
     private const string KeySetJson =
         """{"keys":[{"kty":"XKP","pub":"AQID","sk":"BAUG","kid":"x"},{"kty":"RSA","n":"AQ","e":"AQAB","kid":"r"}]}""";

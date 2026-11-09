@@ -35,11 +35,11 @@ internal sealed class DefaultMasterKeyManager(
 ) : IMasterKeyManager
 {
     // An observer runs on its own token so that the caller's cancellation cannot leave a committed change unannounced.
-    private static readonly TimeSpan ObserverTimeout = TimeSpan.FromSeconds(30);
+    private static TimeSpan ObserverTimeout { get; } = TimeSpan.FromSeconds(30);
 
     // The insert of a successor, and its repair on a token of its own, cannot be cut short by the caller or by a
     // timed-out insert, so neither leaves the owner without an active key. See ADR-1351.
-    private static readonly TimeSpan CommitTimeout = TimeSpan.FromSeconds(30);
+    private static TimeSpan CommitTimeout { get; } = TimeSpan.FromSeconds(30);
 
     private ISecretProtectorProvider ProtectorProvider { get; } = protectorProvider;
 

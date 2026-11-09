@@ -9,11 +9,8 @@ namespace NCode.Identity.Bff.Tests.RemoteApis;
 
 public sealed class BffReverseProxyRoutesTests
 {
-    private static readonly HashSet<string> Requirements =
-    [
-        BffTokenRequirementNames.User,
-        BffTokenRequirementNames.None,
-    ];
+    private static HashSet<string> Requirements { get; } =
+    [BffTokenRequirementNames.User, BffTokenRequirementNames.None];
 
     private static RouteConfig CreateRoute(Dictionary<string, string>? metadata) =>
         new()

@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 public sealed class TenantKeySeedHandlerTests : BaseTests
 {
     private const string TenantId = "acme";
-    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
 
     private static TenantKeySpecification Rs256 { get; } =
         new()

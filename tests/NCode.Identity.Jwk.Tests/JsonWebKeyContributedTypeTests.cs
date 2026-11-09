@@ -11,7 +11,7 @@ namespace NCode.Identity.Jwk.Tests;
 
 public class JsonWebKeyContributedTypeTests
 {
-    private static readonly JsonWebKeyTypeDescriptor XkpType = new("XKP", ["pub"], ["sk"]);
+    private static JsonWebKeyTypeDescriptor XkpType { get; } = new("XKP", ["pub"], ["sk"]);
 
     private static JsonWebKey CreateXkp(string json) => new(JsonElement.Parse(json), XkpType);
 

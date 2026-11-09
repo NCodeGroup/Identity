@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class DefaultMaterializedPlatformRegistryTests : BaseTests
 {
-    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(5.0);
+    private static TimeSpan Deadline { get; } = TimeSpan.FromSeconds(5.0);
 
     private DefaultMaterializedPlatformRegistry Registry { get; } = new();
 

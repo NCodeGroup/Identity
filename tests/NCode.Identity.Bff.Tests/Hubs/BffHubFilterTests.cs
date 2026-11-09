@@ -20,10 +20,10 @@ namespace NCode.Identity.Bff.Tests.Hubs;
 
 public class BffHubFilterTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
-    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(1);
-    private static readonly TimeSpan SignalTimeout = TimeSpan.FromSeconds(5);
-    private static readonly MethodInfo Method =
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static TimeSpan Interval { get; } = TimeSpan.FromMinutes(1);
+    private static TimeSpan SignalTimeout { get; } = TimeSpan.FromSeconds(5);
+    private static MethodInfo Method { get; } =
         typeof(TestHub).GetMethod(nameof(TestHub.Ping))
         ?? throw new InvalidOperationException("TestHub.Ping is missing.");
 

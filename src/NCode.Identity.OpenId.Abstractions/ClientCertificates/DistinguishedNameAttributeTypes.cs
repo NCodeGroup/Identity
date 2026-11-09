@@ -14,41 +14,39 @@ internal static class DistinguishedNameAttributeTypes
     private const string OidPrefix = "OID.";
 
     // The table is closed because a dotted OID names any other attribute type (ADR-1150).
-    private static readonly FrozenDictionary<string, string> Keywords = new Dictionary<
-        string,
-        string
-    >(StringComparer.Ordinal)
-    {
-        ["CN"] = "2.5.4.3",
-        ["SN"] = "2.5.4.4",
-        ["SURNAME"] = "2.5.4.4",
-        ["SERIALNUMBER"] = "2.5.4.5",
-        ["C"] = "2.5.4.6",
-        ["L"] = "2.5.4.7",
-        ["ST"] = "2.5.4.8",
-        ["S"] = "2.5.4.8",
-        ["STREET"] = "2.5.4.9",
-        ["O"] = "2.5.4.10",
-        ["OU"] = "2.5.4.11",
-        ["T"] = "2.5.4.12",
-        ["TITLE"] = "2.5.4.12",
-        ["DESCRIPTION"] = "2.5.4.13",
-        ["BUSINESSCATEGORY"] = "2.5.4.15",
-        ["POSTALCODE"] = "2.5.4.17",
-        ["G"] = "2.5.4.42",
-        ["GN"] = "2.5.4.42",
-        ["GIVENNAME"] = "2.5.4.42",
-        ["I"] = "2.5.4.43",
-        ["INITIALS"] = "2.5.4.43",
-        ["DNQUALIFIER"] = "2.5.4.46",
-        ["PSEUDONYM"] = "2.5.4.65",
-        ["ORGANIZATIONIDENTIFIER"] = "2.5.4.97",
-        ["DC"] = "0.9.2342.19200300.100.1.25",
-        ["UID"] = "0.9.2342.19200300.100.1.1",
-        ["E"] = "1.2.840.113549.1.9.1",
-        ["EMAIL"] = "1.2.840.113549.1.9.1",
-        ["EMAILADDRESS"] = "1.2.840.113549.1.9.1",
-    }.ToFrozenDictionary(StringComparer.Ordinal);
+    private static FrozenDictionary<string, string> Keywords { get; } =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["CN"] = "2.5.4.3",
+            ["SN"] = "2.5.4.4",
+            ["SURNAME"] = "2.5.4.4",
+            ["SERIALNUMBER"] = "2.5.4.5",
+            ["C"] = "2.5.4.6",
+            ["L"] = "2.5.4.7",
+            ["ST"] = "2.5.4.8",
+            ["S"] = "2.5.4.8",
+            ["STREET"] = "2.5.4.9",
+            ["O"] = "2.5.4.10",
+            ["OU"] = "2.5.4.11",
+            ["T"] = "2.5.4.12",
+            ["TITLE"] = "2.5.4.12",
+            ["DESCRIPTION"] = "2.5.4.13",
+            ["BUSINESSCATEGORY"] = "2.5.4.15",
+            ["POSTALCODE"] = "2.5.4.17",
+            ["G"] = "2.5.4.42",
+            ["GN"] = "2.5.4.42",
+            ["GIVENNAME"] = "2.5.4.42",
+            ["I"] = "2.5.4.43",
+            ["INITIALS"] = "2.5.4.43",
+            ["DNQUALIFIER"] = "2.5.4.46",
+            ["PSEUDONYM"] = "2.5.4.65",
+            ["ORGANIZATIONIDENTIFIER"] = "2.5.4.97",
+            ["DC"] = "0.9.2342.19200300.100.1.25",
+            ["UID"] = "0.9.2342.19200300.100.1.1",
+            ["E"] = "1.2.840.113549.1.9.1",
+            ["EMAIL"] = "1.2.840.113549.1.9.1",
+            ["EMAILADDRESS"] = "1.2.840.113549.1.9.1",
+        }.ToFrozenDictionary(StringComparer.Ordinal);
 
     /// <summary>
     /// Attempts to resolve an attribute type, written either as a keyword (such as <c>CN</c>), as a dotted object

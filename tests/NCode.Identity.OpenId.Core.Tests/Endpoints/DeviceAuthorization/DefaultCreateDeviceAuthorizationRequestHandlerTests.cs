@@ -28,17 +28,16 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
     private const string TenantId = "tenant-1";
 
     // The handler anchors the published verification_uri to the tenant's base address rather than the request.
-    private static readonly UriDescriptor BaseAddress = new()
-    {
-        Scheme = "https",
-        Host = new HostString("server"),
-        Path = PathString.Empty,
-    };
+    private static UriDescriptor BaseAddress { get; } =
+        new()
+        {
+            Scheme = "https",
+            Host = new HostString("server"),
+            Path = PathString.Empty,
+        };
 
-    private static readonly DateTimeOffset UtcNow = DateTimeOffset.Parse(
-        "2026-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset UtcNow { get; } =
+        DateTimeOffset.Parse("2026-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<LinkGenerator> MockLinkGenerator { get; }

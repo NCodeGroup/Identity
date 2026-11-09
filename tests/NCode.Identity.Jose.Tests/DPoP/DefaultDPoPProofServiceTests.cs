@@ -20,7 +20,7 @@ public class DefaultDPoPProofServiceTests : BaseTests
     private const string HttpMethod = "POST";
     private const string HttpUri = "https://op.test/token";
 
-    private static readonly DateTimeOffset StartTime = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset StartTime { get; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     private FakeTimeProvider TimeProvider { get; } = new(StartTime);
     private ServiceProvider ServiceProvider { get; }

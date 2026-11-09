@@ -13,14 +13,11 @@ namespace NCode.Identity.OpenId.Settings;
 internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
 {
     // FAPI 1.0 Advanced §8.6 restricts signing to PS256 / ES256 (no EdDSA, unlike FAPI 2.0).
-    private static readonly string[] SigningAlgorithms =
-    [
-        AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
-        AlgorithmCodes.DigitalSignature.EcdsaSha256,
-    ];
+    private static string[] SigningAlgorithms { get; } =
+    [AlgorithmCodes.DigitalSignature.RsaSsaPssSha256, AlgorithmCodes.DigitalSignature.EcdsaSha256];
 
     // FAPI 1.0 Advanced §5.2.2-14 permits only mutual-TLS or private_key_jwt client authentication.
-    private static readonly string[] TokenEndpointAuthMethods =
+    private static string[] TokenEndpointAuthMethods { get; } =
     [
         OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
         OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
@@ -28,11 +25,8 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
     ];
 
     // FAPI 1.0 Advanced §5.2.2-1/2: 'code id_token', or 'code' with a JWT-secured response mode (the requirement below).
-    private static readonly string[] ResponseTypes =
-    [
-        OpenIdProtocol.ResponseTypes.Code,
-        OpenIdProtocol.ResponseTypes.CodeIdToken,
-    ];
+    private static string[] ResponseTypes { get; } =
+    [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeIdToken];
 
     /// <inheritdoc />
     public string ProfileName => OpenIdConstants.SecurityProfiles.Fapi1Advanced;

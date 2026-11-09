@@ -10,40 +10,43 @@ public class RemoteKeyDecryptionTests : BaseTests
 {
     private const string KeyId = "key-1";
 
-    private static readonly byte[] Ciphertext = [1, 2, 3, 4];
+    private static byte[] Ciphertext { get; } = [1, 2, 3, 4];
 
-    private static readonly byte[] PeerPublicKey = [5, 6, 7, 8];
+    private static byte[] PeerPublicKey { get; } = [5, 6, 7, 8];
 
-    private static readonly RemoteDecryptionAlgorithm DecryptionRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "RSA-OAEP-256",
-        SecretType = "rsa",
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
-    };
+    private static RemoteDecryptionAlgorithm DecryptionRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
 
-    private static readonly RemoteKeyAgreementAlgorithm AgreementRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "ECDH-ES",
-        SecretType = "ecc",
-        KeySizeBits = 256,
-        Curve = "P-256",
-        KeySpec = "ECC_NIST_P256",
-        KeyAgreementAlgorithm = "ECDH",
-    };
+    private static RemoteKeyAgreementAlgorithm AgreementRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ECDH-ES",
+            SecretType = "ecc",
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            KeyAgreementAlgorithm = "ECDH",
+        };
 
-    private static readonly RemoteSigningAlgorithm SigningRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "PS256",
-        SecretType = "rsa",
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        SigningAlgorithm = "RSASSA_PSS_SHA_256",
-    };
+    private static RemoteSigningAlgorithm SigningRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "PS256",
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            SigningAlgorithm = "RSASSA_PSS_SHA_256",
+        };
 
     private Mock<IRemoteKeyProvider> Provider { get; }
 

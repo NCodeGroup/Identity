@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Settings;
 // See ADR-1140.
 internal static class OpenIdSettingRules
 {
-    private static readonly string[] GrantTypeNames =
+    private static string[] GrantTypeNames { get; } =
     [
         OpenIdProtocol.GrantTypes.AuthorizationCode,
         OpenIdProtocol.GrantTypes.Implicit,

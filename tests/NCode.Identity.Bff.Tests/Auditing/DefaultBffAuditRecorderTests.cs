@@ -15,7 +15,7 @@ namespace NCode.Identity.Bff.Tests.Auditing;
 
 public class DefaultBffAuditRecorderTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 3, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 3, 0, 0, TimeSpan.Zero);
 
     private Mock<IEventPublisher> MockPublisher { get; }
     private DefaultBffAuditRecorder Recorder { get; }

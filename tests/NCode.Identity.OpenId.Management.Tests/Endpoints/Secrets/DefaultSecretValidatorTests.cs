@@ -83,7 +83,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         await ServiceProvider.DisposeAsync();
     }
 
-    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.UnixEpoch;
+    private static DateTimeOffset CreatedWhen { get; } = DateTimeOffset.UnixEpoch;
 
     private static CreateSecretRequest CreateRequest(
         string secretType,

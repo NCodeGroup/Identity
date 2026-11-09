@@ -23,17 +23,8 @@ public sealed class BffJwksHandlerTests : BaseTests
 {
     private const string KeyRingName = "client-keys";
 
-    private static readonly string[] PrivateParameters =
-    [
-        "d",
-        "p",
-        "q",
-        "dp",
-        "dq",
-        "qi",
-        "oth",
-        "k",
-    ];
+    private static string[] PrivateParameters { get; } =
+    ["d", "p", "q", "dp", "dq", "qi", "oth", "k"];
 
     private ServiceProvider ServiceProvider { get; }
     private ECDsa Ec { get; } = ECDsa.Create(ECCurve.NamedCurves.nistP256);

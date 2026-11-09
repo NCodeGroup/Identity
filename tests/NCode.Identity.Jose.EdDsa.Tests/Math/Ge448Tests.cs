@@ -10,7 +10,7 @@ namespace NCode.Identity.Jose.EdDsa.Tests.Math;
 public class Ge448Tests
 {
     // The group order L, 57-byte little-endian.
-    private static readonly byte[] OrderL =
+    private static byte[] OrderL { get; } =
     [
         0xF3,
         0x44,

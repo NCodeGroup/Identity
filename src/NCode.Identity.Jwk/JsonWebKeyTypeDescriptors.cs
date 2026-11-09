@@ -76,7 +76,7 @@ public static class JsonWebKeyTypeDescriptors
             [JsonWebKeyParameterNames.PrivateKey]
         );
 
-    private static readonly FrozenDictionary<string, JsonWebKeyTypeDescriptor> StandardByName =
+    private static FrozenDictionary<string, JsonWebKeyTypeDescriptor> StandardByName { get; } =
         new[] { Rsa, Ec, Okp, Oct, Akp }.ToFrozenDictionary(
             descriptor => descriptor.Name,
             StringComparer.Ordinal

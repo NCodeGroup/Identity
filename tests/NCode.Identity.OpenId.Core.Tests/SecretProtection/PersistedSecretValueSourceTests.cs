@@ -15,11 +15,11 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class PersistedSecretValueSourceTests : BaseTests
 {
-    private static readonly SecretOwner Tenant = SecretOwner.ForTenant("tenant-1");
-    private static readonly Guid OldKey = Guid.NewGuid();
-    private static readonly Guid OlderKey = Guid.NewGuid();
-    private static readonly Guid ActiveKey = Guid.NewGuid();
-    private static readonly IReadOnlySet<Guid> OldKeys = new HashSet<Guid> { OldKey };
+    private static SecretOwner Tenant { get; } = SecretOwner.ForTenant("tenant-1");
+    private static Guid OldKey { get; } = Guid.NewGuid();
+    private static Guid OlderKey { get; } = Guid.NewGuid();
+    private static Guid ActiveKey { get; } = Guid.NewGuid();
+    private static IReadOnlySet<Guid> OldKeys { get; } = new HashSet<Guid> { OldKey };
 
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
     private readonly Queue<IStoreManager> _storeManagers = new();

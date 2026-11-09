@@ -20,9 +20,9 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class OwnerRootKeyValidationServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
-    private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("acme");
-    private static readonly SecretOwner OtherOwner = SecretOwner.ForTenant("globex");
+    private static DateTimeOffset Now { get; } = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
+    private static SecretOwner TenantOwner { get; } = SecretOwner.ForTenant("acme");
+    private static SecretOwner OtherOwner { get; } = SecretOwner.ForTenant("globex");
 
     private readonly OwnerRootKeyOptions _rootKeyOptions = new();
     private readonly FakeTimeProvider _time = new(Now);
@@ -146,7 +146,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             .Returns(new ValueTask<OwnerRootKeyValidation>(validation))
             .Verifiable();
 
-    private static readonly MasterKeyRewrapResult NoRewrap = new(0, 0, 0, 0);
+    private static MasterKeyRewrapResult NoRewrap { get; } = new(0, 0, 0, 0);
 
     [Fact]
     public async Task Run_WhenTheLeaseIsLost_RunsNothing()

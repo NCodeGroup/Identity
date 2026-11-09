@@ -30,7 +30,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     private const string PrincipalId = "principal-1";
     private const string ResourceServerId = "rs-1";
 
-    private static readonly DateTimeOffset Now = DateTimeOffset.UnixEpoch.AddYears(50);
+    private static DateTimeOffset Now { get; } = DateTimeOffset.UnixEpoch.AddYears(50);
 
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }

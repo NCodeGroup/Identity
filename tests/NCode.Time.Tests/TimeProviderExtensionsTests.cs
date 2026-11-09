@@ -7,25 +7,11 @@ namespace NCode.Time.Tests;
 
 public sealed class TimeProviderExtensionsTests
 {
-    private static readonly DateTimeOffset UtcNow = new DateTimeOffset(
-        2026,
-        10,
-        20,
-        13,
-        45,
-        30,
-        TimeSpan.Zero
-    ).AddTicks(1_234_567);
+    private static DateTimeOffset UtcNow { get; } =
+        new DateTimeOffset(2026, 10, 20, 13, 45, 30, TimeSpan.Zero).AddTicks(1_234_567);
 
-    private static readonly DateTimeOffset UtcNowInSeconds = new(
-        2026,
-        10,
-        20,
-        13,
-        45,
-        30,
-        TimeSpan.Zero
-    );
+    private static DateTimeOffset UtcNowInSeconds { get; } =
+        new(2026, 10, 20, 13, 45, 30, TimeSpan.Zero);
 
     private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
 

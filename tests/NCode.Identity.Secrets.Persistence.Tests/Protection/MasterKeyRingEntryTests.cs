@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 public class MasterKeyRingEntryTests
 {
-    private static readonly SecretOwner Owner = SecretOwner.ForTenant("tenant-one");
+    private static SecretOwner Owner { get; } = SecretOwner.ForTenant("tenant-one");
 
     private static MasterKey CreateMasterKey(Guid keyId) =>
         MasterKey.Create(

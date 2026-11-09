@@ -31,7 +31,7 @@ public class GoogleCloudKmsKeyWrapperTests : BaseTests
     private const string ServiceAccountEmail =
         "ncode-identity@tenant-project.iam.gserviceaccount.com";
 
-    private static readonly KeyAccess Access = new(ServiceAccountEmail, "tenant:acme");
+    private static KeyAccess Access { get; } = new(ServiceAccountEmail, "tenant:acme");
 
     private Mock<IGoogleCloudKmsClientFactory> ClientFactory { get; }
 

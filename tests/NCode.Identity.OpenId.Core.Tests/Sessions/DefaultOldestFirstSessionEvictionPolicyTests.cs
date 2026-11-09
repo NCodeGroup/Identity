@@ -9,10 +9,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Sessions;
 
 public class DefaultOldestFirstSessionEvictionPolicyTests
 {
-    private static readonly DateTimeOffset Epoch = DateTimeOffset.Parse(
-        "2026-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset Epoch { get; } =
+        DateTimeOffset.Parse("2026-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private readonly DefaultOldestFirstSessionEvictionPolicy _policy = new();
 

@@ -14,9 +14,9 @@ namespace NCode.Identity.OpenId.Core.Tests.Persistence;
 
 public sealed class GrantPruneServiceTests : IDisposable
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 21, 12, 0, 0, TimeSpan.Zero);
-    private static readonly TimeSpan PruneInterval = TimeSpan.FromHours(1);
-    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 21, 12, 0, 0, TimeSpan.Zero);
+    private static TimeSpan PruneInterval { get; } = TimeSpan.FromHours(1);
+    private static TimeSpan WaitTimeout { get; } = TimeSpan.FromSeconds(5);
 
     private MockRepository MockRepository { get; }
     private FakeTimeProvider TimeProvider { get; } = new(Now);

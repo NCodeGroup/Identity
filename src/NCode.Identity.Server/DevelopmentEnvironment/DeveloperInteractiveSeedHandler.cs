@@ -49,11 +49,8 @@ internal sealed class DeveloperInteractiveSeedHandler(
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
     // The grant types of a BFF client: the code flow and the refresh of its session's tokens.
-    private static readonly string[] BffGrantTypes =
-    [
-        OpenIdProtocol.GrantTypes.AuthorizationCode,
-        OpenIdProtocol.GrantTypes.RefreshToken,
-    ];
+    private static string[] BffGrantTypes { get; } =
+    [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.RefreshToken];
 
     private DeveloperInteractiveSeedOptions Options { get; } = options;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;

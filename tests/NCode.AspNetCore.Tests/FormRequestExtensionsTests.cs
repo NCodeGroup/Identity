@@ -9,10 +9,8 @@ namespace NCode.AspNetCore.Tests;
 
 public class FormRequestExtensionsTests : BaseTests
 {
-    private static readonly UTF8Encoding StrictUtf8 = new(
-        encoderShouldEmitUTF8Identifier: false,
-        throwOnInvalidBytes: true
-    );
+    private static UTF8Encoding StrictUtf8 { get; } =
+        new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     private static HttpRequest CreateRequest(string? contentType, string body)
     {

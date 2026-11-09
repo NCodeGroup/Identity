@@ -25,17 +25,17 @@ namespace NCode.Identity.Bff.Tests.Tokens;
 
 public class DefaultBffUserTokenServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private static readonly string Handle = new('a', 43);
+    private static string Handle { get; } = new('a', 43);
 
-    private static readonly string LeaseKey =
+    private static string LeaseKey { get; } =
         "store-key:" + BffKeyDerivation.Fingerprint("refresh-token");
 
-    private static readonly BffRefreshLease Lease = new(LeaseKey, "owner-1");
+    private static BffRefreshLease Lease { get; } = new(LeaseKey, "owner-1");
 
     // the wall-clock time a fake-clock call may take before the test gives up
-    private static readonly TimeSpan AdvanceDeadline = TimeSpan.FromSeconds(30);
+    private static TimeSpan AdvanceDeadline { get; } = TimeSpan.FromSeconds(30);
 
     private static BffTokenRequest UserRequest { get; } = new(BffTokenRequirementNames.User);
 

@@ -34,9 +34,8 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
     private const string StaleSecretId = "stale-secret-id";
 
     // The option holds the Base64Url of the secret's UTF-8 bytes.
-    private static readonly string EncodedSecret = Base64Url.EncodeToString(
-        SecureEncoding.UTF8.GetBytes(SecretText)
-    );
+    private static string EncodedSecret { get; } =
+        Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(SecretText));
 
     private BootstrapAdminSeedHandler CreateHandler(
         BootstrapAdminOptions bootstrapOptions,

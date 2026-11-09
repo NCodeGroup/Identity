@@ -17,7 +17,7 @@ internal class BffCookies(TimeProvider timeProvider)
 
     private const string PageReloadValue = "1";
 
-    private static readonly TimeSpan PageReloadLifetime = TimeSpan.FromSeconds(60);
+    private static TimeSpan PageReloadLifetime { get; } = TimeSpan.FromSeconds(60);
 
     /// <summary>
     /// Reads the session handle of a frontend from the request, or returns <see langword="null"/> when the cookie is

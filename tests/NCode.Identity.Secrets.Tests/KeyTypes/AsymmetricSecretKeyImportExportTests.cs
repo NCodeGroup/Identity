@@ -15,12 +15,13 @@ namespace NCode.Identity.Secrets.KeyTypes;
 // See ADR-1104 (public-key import) and ADR-1105 (descriptor first-class seam).
 public class AsymmetricSecretKeyImportExportTests : BaseTests
 {
-    private static readonly KeyMetadata Metadata = new()
-    {
-        KeyId = "kid-1",
-        Use = "sig",
-        Algorithm = "RS256",
-    };
+    private static KeyMetadata Metadata { get; } =
+        new()
+        {
+            KeyId = "kid-1",
+            Use = "sig",
+            Algorithm = "RS256",
+        };
 
     private readonly ISecretKeyFactory _factory;
 

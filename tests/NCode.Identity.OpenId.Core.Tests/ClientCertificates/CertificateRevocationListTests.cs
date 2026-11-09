@@ -13,7 +13,7 @@ public sealed class CertificateRevocationListTests
 {
     private const string UnknownExtensionOid = "1.2.3.4";
 
-    private static readonly byte[] NullValue = [0x05, 0x00];
+    private static byte[] NullValue { get; } = [0x05, 0x00];
 
     private static byte[] BuildCrl(
         X509Certificate2 root,
@@ -323,7 +323,7 @@ public sealed class CertificateRevocationListTests
 
     #region FindEntry Tests
 
-    private static readonly X500DistinguishedName OtherIssuer = new("CN=Other Issuer");
+    private static X500DistinguishedName OtherIssuer { get; } = new("CN=Other Issuer");
 
     private static byte[] BuildIndirectCrl(X509Certificate2 root, params TestCrlEntry[] entries) =>
         TestCrls.Build(
@@ -463,7 +463,7 @@ public sealed class CertificateRevocationListTests
 
     #region CanApplyDelta Tests
 
-    private static readonly byte[] AuthorityKey = [0x30, 0x04, 0x80, 0x02, 0x01, 0x02];
+    private static byte[] AuthorityKey { get; } = [0x30, 0x04, 0x80, 0x02, 0x01, 0x02];
 
     private static CertificateRevocationList ParseNumbered(
         X509Certificate2 issuer,

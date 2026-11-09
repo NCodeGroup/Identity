@@ -20,9 +20,8 @@ public class TokenEndpointBootstrapAdminTests
     private const string BootstrapClientSecret = "bootstrap-secret-value";
 
     // The server reads the configured secret Base64Url-encoded (the client still presents the plaintext).
-    private static readonly string BootstrapClientSecretConfig = Base64Url.EncodeToString(
-        SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-    );
+    private static string BootstrapClientSecretConfig { get; } =
+        Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(BootstrapClientSecret));
     private const string ManagementAudience = "urn:ncode:management";
     private const string ManagementScope = "read:clients";
 

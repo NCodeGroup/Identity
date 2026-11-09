@@ -7,7 +7,7 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 
 public class KeyAccessClientCacheTests
 {
-    private static readonly TimeSpan IdleTimeout = TimeSpan.FromMinutes(10);
+    private static TimeSpan IdleTimeout { get; } = TimeSpan.FromMinutes(10);
 
     private FakeTimeProvider TimeProvider { get; } = new();
 

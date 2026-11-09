@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class RemoteKeySweepServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
 
     private readonly RemoteKeyOptions _keyOptions = new() { Deployment = "acme" };
     private readonly FakeTimeProvider _time = new(Now);

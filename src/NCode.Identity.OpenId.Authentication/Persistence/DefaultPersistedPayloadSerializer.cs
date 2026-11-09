@@ -23,7 +23,7 @@ internal sealed class DefaultPersistedPayloadSerializer : IPersistedPayloadSeria
 
     private const int DefaultVersion = 1;
 
-    private static readonly ConcurrentDictionary<Type, int> CurrentVersionCache = new();
+    private static ConcurrentDictionary<Type, int> CurrentVersionCache { get; } = new();
 
     // Keyed by (payload type, from-version); each entry migrates that one version step.
     private FrozenDictionary<

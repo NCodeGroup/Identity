@@ -21,15 +21,16 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
 {
     private const string Payload = "the payload";
 
-    private static readonly RemoteDecryptionAlgorithm RsaOaep256Row = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = AlgorithmCodes.KeyManagement.RsaOaep256,
-        SecretType = "rsa",
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
-    };
+    private static RemoteDecryptionAlgorithm RsaOaep256Row { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = AlgorithmCodes.KeyManagement.RsaOaep256,
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
 
     private readonly MockRepository _mockRepository = new(MockBehavior.Strict);
     private readonly RSA _rsa = RSA.Create(2048);

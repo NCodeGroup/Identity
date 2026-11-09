@@ -11,9 +11,9 @@ public class OwnerRootKeyProbeTests : BaseTests
 {
     private const string Reference = "kms://tenant-a/root";
 
-    private static readonly ReferencedKey Key = new(Reference, null);
+    private static ReferencedKey Key { get; } = new(Reference, null);
 
-    private static readonly SecretOwner Owner = SecretOwner.ForTenant("tenant-a");
+    private static SecretOwner Owner { get; } = SecretOwner.ForTenant("tenant-a");
 
     [Fact]
     public async Task Probe_WorkingKey_ReturnsNullAndWrapsAndUnwrapsOnce()

@@ -12,14 +12,11 @@ namespace NCode.Identity.Secrets.Persistence.Verifiers;
 
 public class SecretVerifierFormatTests
 {
-    private static readonly KeyMetadata Metadata = new()
-    {
-        KeyId = "secret-1",
-        ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-    };
+    private static KeyMetadata Metadata { get; } =
+        new() { KeyId = "secret-1", ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1) };
 
-    private static readonly byte[] Secret = "the-client-secret"u8.ToArray();
-    private static readonly byte[] OtherSecret = "the-client-secreT"u8.ToArray();
+    private static byte[] Secret { get; } = "the-client-secret"u8.ToArray();
+    private static byte[] OtherSecret { get; } = "the-client-secreT"u8.ToArray();
 
     private static string Sha256Text(byte[] secret) =>
         "$ncode-sha256$" + Base64Url.EncodeToString(SHA256.HashData(secret));
@@ -37,7 +34,7 @@ public class SecretVerifierFormatTests
         return $"$ncode-pbkdf2-sha256${iterations}${Base64Url.EncodeToString(salt)}${Base64Url.EncodeToString(key)}";
     }
 
-    private static readonly DefaultSecretVerifierSchemeCatalog Catalog =
+    private static DefaultSecretVerifierSchemeCatalog Catalog { get; } =
         TestSecretVerifierSchemes.CreateCatalog();
 
     private static ISecretVerifierScheme GetScheme(string name)

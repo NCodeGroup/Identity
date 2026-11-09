@@ -52,11 +52,8 @@ internal sealed class ConformanceSeedHandler(
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
     // The Basic OP set a client uses when its seed configures no grant types.
-    private static readonly string[] DefaultGrantTypes =
-    [
-        OpenIdProtocol.GrantTypes.AuthorizationCode,
-        OpenIdProtocol.GrantTypes.RefreshToken,
-    ];
+    private static string[] DefaultGrantTypes { get; } =
+    [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.RefreshToken];
     private ConformanceSeedOptions Options { get; } = options;
     private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;

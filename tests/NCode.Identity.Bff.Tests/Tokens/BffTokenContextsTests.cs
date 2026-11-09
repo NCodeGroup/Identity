@@ -16,7 +16,7 @@ namespace NCode.Identity.Bff.Tests.Tokens;
 
 public class BffTokenContextsTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
     private readonly FakeTimeProvider _timeProvider = new(Now);
 

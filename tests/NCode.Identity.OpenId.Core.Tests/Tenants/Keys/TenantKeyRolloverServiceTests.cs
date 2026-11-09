@@ -36,10 +36,10 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     private const string OtherTeamId = "team-b";
     private const string DisabledTeamId = "team-off";
     private const string ChildTeamId = "acme-web";
-    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
-    private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
-    private static readonly TimeSpan Lease = Interval / 2;
-    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    private static TimeSpan Interval { get; } = TimeSpan.FromHours(1);
+    private static TimeSpan Lease { get; } = Interval / 2;
+    private static TimeSpan WaitTimeout { get; } = TimeSpan.FromSeconds(5);
 
     private OpenIdOptions OpenIdOptions { get; } = new();
     private Mock<IMaterializedPlatformAccessor> MockPlatformAccessor { get; }

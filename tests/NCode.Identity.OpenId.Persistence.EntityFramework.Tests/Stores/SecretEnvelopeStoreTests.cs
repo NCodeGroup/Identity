@@ -110,7 +110,7 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
     }
 
     // Every seeded value starts with this letter.
-    private static readonly string[] AnyValue = ["v"];
+    private static string[] AnyValue { get; } = ["v"];
 
     private async Task<IReadOnlyList<PersistedProtectedValue>> ReadAllAsync(SecretOwner owner)
     {

@@ -16,7 +16,7 @@ public sealed partial class BlazorWebAssemblyTests(EndToEndEnvironment environme
 
     private const string ApiRenderedScript = "() => document.getElementById('wasm-api') !== null";
 
-    private static readonly string[] BodyResourceTypes = ["document", "fetch", "xhr"];
+    private static string[] BodyResourceTypes { get; } = ["document", "fetch", "xhr"];
 
     [GeneratedRegex(@"eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.")]
     private static partial Regex Jwt();

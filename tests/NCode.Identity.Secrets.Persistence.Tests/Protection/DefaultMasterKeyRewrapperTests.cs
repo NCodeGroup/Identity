@@ -14,9 +14,9 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 public class DefaultMasterKeyRewrapperTests : BaseTests
 {
-    private static readonly SecretOwner Owner = SecretOwner.ForTenant("tenant-a").Normalize();
+    private static SecretOwner Owner { get; } = SecretOwner.ForTenant("tenant-a").Normalize();
 
-    private static readonly RSA RecoveryPair = RSA.Create(3072);
+    private static RSA RecoveryPair { get; } = RSA.Create(3072);
 
     private readonly Mock<IKeyWrapperCatalog> _catalog;
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;

@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 // compare a DateTimeOffset in a query; the host's Npgsql provider does both (ADR-1303).
 public sealed class AuditRecordStoreTests : IDisposable
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
 
     private readonly SqliteConnection _connection;
     private readonly ServiceProvider _provider;

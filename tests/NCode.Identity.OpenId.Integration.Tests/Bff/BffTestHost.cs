@@ -33,7 +33,7 @@ internal sealed class BffTestHost : IAsyncDisposable
     public const string KeyRing = "bff-e2e";
     public const string ApiTokenPath = "/api/token";
 
-    private static readonly Uri BaseAddress = new("https://bff.example/");
+    private static Uri BaseAddress { get; } = new("https://bff.example/");
 
     private readonly WebApplication _app;
     private readonly HttpClient _client;

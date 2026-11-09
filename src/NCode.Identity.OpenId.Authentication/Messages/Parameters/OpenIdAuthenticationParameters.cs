@@ -19,23 +19,22 @@ public static class OpenIdAuthenticationParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>claims</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="IRequestClaims"/> result.
     /// </summary>
-    public static readonly KnownParameter<IRequestClaims> Claims = new(
-        OpenIdProtocol.Parameters.Claims,
-        AuthenticationParameterParsers.RequestClaims
-    )
-    {
-        AllowMissingStringValues = true,
-    };
+    public static KnownParameter<IRequestClaims> Claims { get; } =
+        new(OpenIdProtocol.Parameters.Claims, AuthenticationParameterParsers.RequestClaims)
+        {
+            AllowMissingStringValues = true,
+        };
 
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>$request_object_source</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="RequestObjectSource"/> result.
     /// </summary>
-    public static readonly KnownParameter<RequestObjectSource> RequestObjectSource = new(
-        OpenIdConstants.InternalParameters.RequestObjectSource,
-        EnumParser<RequestObjectSource>.Singleton
-    )
-    {
-        AllowMissingStringValues = true,
-        ShouldSerialize = OpenIdCommonParameters.ShouldSerializeAsJsonOnly,
-    };
+    public static KnownParameter<RequestObjectSource> RequestObjectSource { get; } =
+        new(
+            OpenIdConstants.InternalParameters.RequestObjectSource,
+            EnumParser<RequestObjectSource>.Singleton
+        )
+        {
+            AllowMissingStringValues = true,
+            ShouldSerialize = OpenIdCommonParameters.ShouldSerializeAsJsonOnly,
+        };
 }

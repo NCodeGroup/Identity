@@ -34,12 +34,13 @@ internal sealed class DefaultPushedAuthorizationRequestService(
 
     // Client-authentication secrets are never persisted as part of the pushed request; they authenticate the push
     // itself and are not replayed at the authorization endpoint.
-    private static readonly HashSet<string> ExcludedParameters = new(StringComparer.Ordinal)
-    {
-        OpenIdProtocol.Parameters.ClientSecret,
-        OpenIdProtocol.Parameters.ClientAssertion,
-        OpenIdProtocol.Parameters.ClientAssertionType,
-    };
+    private static HashSet<string> ExcludedParameters { get; } =
+        new(StringComparer.Ordinal)
+        {
+            OpenIdProtocol.Parameters.ClientSecret,
+            OpenIdProtocol.Parameters.ClientAssertion,
+            OpenIdProtocol.Parameters.ClientAssertionType,
+        };
 
     /// <inheritdoc />
     public async ValueTask<PushedAuthorizationResult> StoreAsync(

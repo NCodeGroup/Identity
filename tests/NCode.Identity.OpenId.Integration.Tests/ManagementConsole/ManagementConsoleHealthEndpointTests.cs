@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.ManagementConsole;
 /// </summary>
 public sealed class ManagementConsoleHealthEndpointTests
 {
-    private static readonly Uri BrowserBaseAddress = new("https://localhost:5005/");
+    private static Uri BrowserBaseAddress { get; } = new("https://localhost:5005/");
 
     private static HttpClient CreateClient(
         WebApplicationFactory<ManagementConsoleHostMarker> factory

@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Secrets;
@@ -25,13 +26,17 @@ public static class BffLibraryRegistration
         /// <summary>
         /// Binds <see cref="BffOptions"/> strictly from the <c>Bff</c> section of <paramref name="configuration"/>, so a
         /// key that maps to no option fails when the options are first read, and follows the section's reloads, so
-        /// the BFF's frontends take a valid change without a restart. It also registers a keyed
-        /// <see cref="ISecretKeyCollectionProvider"/> for every key ring configured under <c>Bff:KeyRings</c> when it
-        /// is called, named after the key ring.
+        /// the BFF's frontends take a valid change without a restart. Every key ring configured under
+        /// <c>Bff:KeyRings</c> is loaded when the host starts, from PEM files and keys that a key management service
+        /// holds, and a keyed <see cref="ISecretKeyCollectionProvider"/>, named after the key ring, returns the loaded
+        /// key ring for every key ring configured when this method is called. A keyed provider resolves once the host
+        /// starts: resolving it earlier, such as from an eager singleton or an options validator, throws an
+        /// <see cref="InvalidOperationException"/> that names the key ring.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the BFF settings.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
         // See ADR-1442.
+        // See ADR-1479.
         public IServiceBuilder<BffLibrary> AddBffConfiguration(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(builder);
@@ -52,12 +57,19 @@ public static class BffLibraryRegistration
                 )
             );
 
+            builder.ServiceCollection.TryAddSingleton<BffKeyRings>();
+            builder.ServiceCollection.TryAddSingleton<BffRemoteKeyReader>();
+            builder.ServiceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IHostedService, BffKeyRingLoader>()
+            );
+
             foreach (var child in section.GetSection("KeyRings").GetChildren())
             {
                 var name = child.Key;
                 builder.ServiceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
                     name,
-                    (serviceProvider, _) => BffPemKeyRing.Load(serviceProvider, name)
+                    (serviceProvider, _) =>
+                        serviceProvider.GetRequiredService<BffKeyRings>().Get(name)
                 );
             }
 

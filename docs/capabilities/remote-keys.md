@@ -200,7 +200,9 @@ when the host starts and reuse the key wrapper's client with the deployment's ow
 selects it: the host does not start unless it holds every provisioned signature and encryption key. Each package's
 `AddAwsKmsRemoteKeyProviderIfConfigured`, `AddAzureKeyVaultRemoteKeyProviderIfConfigured` and
 `AddGoogleCloudKmsRemoteKeyProviderIfConfigured` method registers its provider only when its section exists, and the
-reference host calls them.
+reference host calls them. The providers register on the secrets library's builder (`IServiceBuilder<SecretsLibrary>`),
+so a BFF host registers them too. A host without secret persistence, such as a BFF, needs no
+`SecretProtection:RemoteKeys`.
 
 | Provider                    | Section                                                  | Settings                                                                          |
 | --------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -327,6 +329,37 @@ destroys them.
 > `RemoteKeySweepService`, `RemoteKeySweepJobHandler`, `IRemoteKeyProvider.ListKeysAsync`,
 > `IRemoteKeyReferenceStore`, `RemoteKeyAuditEvent`.
 
+## Client keys
+
+A protocol client's key ring and a BFF's key rings can hold keys that a KMS holds, with the same providers and the same
+rows as a tenant's keys.
+
+- **A key ring entry holds an `IRemoteSecretKey`.** `IRemoteKeyResolver` finds the provider and the row of the entry's
+  algorithm without a KMS call and reads the key's public half from the KMS, and `IRemoteKeyProver` proves that the KMS
+  holds the private half. A host that composes a protocol client's key ring in code reads each key with the resolver
+  and proves it with the prover before the ring is first resolved.
+- **A BFF names its remote keys in its configuration.** `Bff:KeyRings:{name}:RemoteKeys:{kid}` holds `Provider`,
+  `KeyId`, `Algorithm`, `SecretType`, `KeySizeBits` and `Curve`, next to or instead of the ring's `PemFiles`; a ring
+  lists at least one key and no id twice.
+- **The row decides whether the key signs or decrypts.** A signing row gives a `private_key_jwt` assertion key or a DPoP
+  proof key, a decryption row gives the key that decrypts an encrypted ID token, UserInfo response or logout token, so
+  one ring can hold both, and `/bff/jwks` publishes each half with its `use`.
+- **A key is read and proved when the host starts.** Every ring loads before the server serves. The public half comes
+  from the KMS, and the key signs or decrypts a challenge that the half verifies, so a key that the deployment's
+  identity cannot read or use stops the host, and `/bff/jwks` makes no KMS call.
+- **A DPoP key costs a KMS signature per proof.** Every token request and every forwarded call with a DPoP-bound token
+  is a round trip, a fee where the service bills by request, and a share of the service's quota. Hold the
+  client-authentication key and the decryption key in the KMS, and keep the DPoP key local unless the threat model
+  needs it and the request rate fits the quota. A per-session ephemeral DPoP key never goes to a KMS.
+- **The key is the operator's.** Neither a protocol client nor a BFF creates, tags or destroys a KMS key, and no stored
+  secret names it, so the sweep ([Orphaned keys](#orphaned-keys)) never lists it unless it carries an `ncid-` group name
+  and the deployment's tag. Give it neither, and keep it in a scope of its own.
+
+> [!TIP]
+> [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
+> [Backend for Frontend](../backend-for-frontend.md), `IRemoteKeyResolver`, `IRemoteKeyProver`,
+> `RemoteKeyRefusedException`.
+
 ## Permissions
 
 The deployment's identity, resolved by each SDK's default credential chain, needs these permissions. No credential is
@@ -340,6 +373,11 @@ read from configuration.
 
 A key an operator binds needs only its own operation: AWS `kms:Sign`, `kms:Decrypt` or `kms:DeriveSharedSecret`, Azure
 `Key Vault Crypto User` on the key, Google `cloudkms.cryptoKeyVersions.useToSign` or `.useToDecrypt`.
+
+A key ring's remote key needs the permissions of a bound key, plus the read of its public half, because the host reads
+the half when it starts: AWS `kms:GetPublicKey` plus `kms:Sign`, `kms:Decrypt` or `kms:DeriveSharedSecret` as the key's
+row says, Azure `Key Vault Crypto User` on the key, Google `cloudkms.cryptoKeyVersions.viewPublicKey` plus
+`.useToSign` or `.useToDecrypt`.
 
 **Scoping the identity to the deployment's keys.**
 
@@ -374,8 +412,8 @@ the ECDH shared secret of one message passes through the replica, never the key.
 - **Azure Key Vault and Google Cloud KMS hold no `ECDH-ES` key.** A tenant in either holds `RSA-OAEP*` encryption keys.
 - **COSE decryption never uses a remote key.** COSE and CWT decryption is synchronous, so a COSE message encrypted to a
   remote key does not decrypt.
-- **Only a tenant's keys can be held in a service.** The platform's, clients', resource servers', the protocol client's,
-  DPoP and BFF keys stay local.
+- **The platform's, clients' and resource servers' keys stay local.** A tenant's keys, and a protocol client's or a
+  BFF's key ring keys, can be held in a service.
 
 ## Further reading
 
@@ -387,11 +425,14 @@ the ECDH shared secret of one message passes through the replica, never the key.
   [ADR-1476](../decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md),
   [ADR-1477](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
   [ADR-1478](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
+  [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1468](../decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)
 - Code: [`RemoteKeys`](../../src/NCode.Identity.Secrets.Abstractions/RemoteKeys),
   [`RemoteKeySigning`](../../src/NCode.Identity.Secrets/RemoteKeys/RemoteKeySigning.cs),
+  [`IRemoteKeyResolver`](../../src/NCode.Identity.Secrets.Abstractions/RemoteKeys/IRemoteKeyResolver.cs),
+  [`IRemoteKeyProver`](../../src/NCode.Identity.Jose.Abstractions/IRemoteKeyProver.cs),
   [`SignatureAlgorithm`](../../src/NCode.Identity.Jose.Abstractions/Algorithms/SignatureAlgorithm.cs),
   [`DefaultRemoteSecretDestroyer`](../../src/NCode.Identity.Secrets.Persistence/DefaultRemoteSecretDestroyer.cs),
   [`AwsKmsRemoteKeyProvider`](../../src/NCode.Identity.Secrets.AwsKms/AwsKmsRemoteKeyProvider.cs),

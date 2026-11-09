@@ -3,10 +3,13 @@
 
 using System.Collections.Concurrent;
 using System.Net;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Bff;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.RemoteKeys;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Bff;
@@ -117,6 +120,118 @@ public class BffEndToEndTests
         );
         Assert.Equal(HttpStatusCode.OK, userInfo.StatusCode);
         Assert.Equal(3, userInfo.ResponseBody?.Split('.').Length);
+    }
+
+    [Fact]
+    public async Task Login_WithKeysAKmsHolds_SignsDecryptsAndProvesInTheKms()
+    {
+        const string prefix = BffTestHost.ConfigurationPrefix;
+        const string clientRing = "bff-kms-client";
+        const string dpopRing = "bff-kms-dpop";
+
+        using var kms = new TestRemoteKeyProvider();
+        var clientSignKmsKeyId = kms.AddKey(ECDsa.Create(ECCurve.NamedCurves.nistP256));
+        var clientEncKmsKeyId = kms.AddKey(RSA.Create(3072));
+        var dpopKmsKeyId = kms.AddKey(ECDsa.Create(ECCurve.NamedCurves.nistP256));
+
+        string? jwks = null;
+        using var factory = new HostApplicationFactory
+        {
+            ClientJwksResponder = _ =>
+                jwks ?? throw new InvalidOperationException("The BFF's key set is not ready."),
+        };
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedPrivateKeyJwtClientWithSettingsAsync(
+            BffTestHost.ClientId,
+            "https://bff.example/bff/jwks",
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.IdTokenEncryptedResponseAlg] = "RSA-OAEP-256",
+            },
+            BffTestHost.CallbackUri
+        );
+
+        var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        await using var host = await BffTestHost.StartAsync(
+            factory,
+            keySet,
+            valueSet,
+            indexSet,
+            extraConfiguration: new Dictionary<string, string?>
+            {
+                [$"{prefix}:ClientAuthentication:Method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .PrivateKeyJwt,
+                [$"{prefix}:ClientAuthentication:KeyRing"] = clientRing,
+                [$"{prefix}:DPoP:KeyRing"] = dpopRing,
+                [$"{prefix}:Jwks:Enabled"] = "true",
+                [$"{prefix}:IdToken:KeyManagementAlgorithms:0"] = "RSA-OAEP-256",
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:Provider"] =
+                    TestRemoteKeyProvider.ProviderName,
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:KeyId"] = clientSignKmsKeyId,
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:Algorithm"] = "ES256",
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:SecretType"] = "ecc",
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:KeySizeBits"] = "256",
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:Curve"] = "P-256",
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:Provider"] =
+                    TestRemoteKeyProvider.ProviderName,
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:KeyId"] = clientEncKmsKeyId,
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:Algorithm"] = "RSA-OAEP-256",
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:SecretType"] = "rsa",
+                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:KeySizeBits"] = "3072",
+                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Provider"] =
+                    TestRemoteKeyProvider.ProviderName,
+                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:KeyId"] = dpopKmsKeyId,
+                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Algorithm"] = "ES256",
+                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:SecretType"] = "ecc",
+                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:KeySizeBits"] = "256",
+                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Curve"] = "P-256",
+            },
+            exchanges: exchanges,
+            configureServices: serviceCollection =>
+            {
+                serviceCollection.AddSingleton<IRemoteKeyProvider>(kms);
+                serviceCollection.AddSingleton<IRemoteKeyDescriptorSource>(kms);
+            }
+        );
+
+        // Each remote key is proved when the host starts: a signature for each signing key, a decryption for the other.
+        Assert.Equal(2, kms.SignatureCount);
+        Assert.Equal(1, kms.DecryptionCount);
+        var signaturesAfterStart = kms.SignatureCount;
+        var decryptionsAfterStart = kms.DecryptionCount;
+
+        using var jwksResponse = await host.SendAsync(
+            HttpMethod.Get,
+            $"{BffDefaults.EndpointPrefix}/jwks"
+        );
+        Assert.Equal(HttpStatusCode.OK, jwksResponse.StatusCode);
+        var jwksBody = await jwksResponse.Content.ReadAsStringAsync();
+        Assert.Contains("client-sig", jwksBody, StringComparison.Ordinal);
+        Assert.Contains("client-enc", jwksBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("dpop-sig", jwksBody, StringComparison.Ordinal);
+        jwks = jwksBody;
+
+        using var callback = await CompleteLoginAsync(factory, host);
+        Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
+        Assert.Equal("/", callback.Headers.Location?.OriginalString);
+
+        var token = exchanges.Last(exchange =>
+            exchange.Path.EndsWith("/token", StringComparison.Ordinal)
+        );
+        Assert.Equal(HttpStatusCode.OK, token.StatusCode);
+        Assert.Contains("client_assertion=", token.Body, StringComparison.Ordinal);
+        Assert.NotNull(token.DPoPProof);
+
+        // The KMS signs once for each client assertion and each DPoP proof the BFF sent,
+        // and decrypts the ID token.
+        var expectedSignatures =
+            exchanges.Count(exchange =>
+                exchange.Body?.Contains("client_assertion=", StringComparison.Ordinal) == true
+            ) + exchanges.Count(exchange => exchange.DPoPProof is not null);
+        Assert.Equal(expectedSignatures, kms.SignatureCount - signaturesAfterStart);
+        Assert.Equal(1, kms.DecryptionCount - decryptionsAfterStart);
     }
 
     private static async Task<HttpResponseMessage> CompleteLoginAsync(

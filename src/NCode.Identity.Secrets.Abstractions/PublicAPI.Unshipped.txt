@@ -444,3 +444,18 @@ NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.Data.get -> System.Read
 NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.Data.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.KeyId.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest.KeyId.init -> void
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyResolver
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyResolver.CreateKey(NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding! binding, NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> subjectPublicKeyInfo) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyResolver.ReadKeyAsync(NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding! binding, NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Keys.SecretKey!>
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyResolver.Resolve(NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithmSelector selector) -> NCode.Identity.Secrets.RemoteKeys.RemoteKeyResolution!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyRefusedException
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyRefusedException.RemoteKeyRefusedException() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyRefusedException.RemoteKeyRefusedException(string! message) -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyRefusedException.RemoteKeyRefusedException(string! message, System.Exception! innerException) -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyResolution
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyResolution.Algorithm.get -> NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyResolution.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyResolution.Bind(string! keyId) -> NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyResolution.Provider.get -> NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyResolution.Provider.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyResolution.RemoteKeyResolution() -> void

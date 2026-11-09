@@ -29,25 +29,21 @@ namespace NCode.Identity.Secrets.Persistence;
 /// half cannot be read or does not match its row, and a remote key whose creation is followed by any
 /// other failure, is handed to the <see cref="IRemoteSecretDestroyer"/>, which destroys it in its service. A request
 /// whose key type, provider or algorithm row cannot be resolved, and a key whose public half does not match its row,
-/// throw <see cref="RemoteSecretRefusedException"/>.
+/// throw <see cref="RemoteKeyRefusedException"/>.
 /// </summary>
-// See ADR-1067, ADR-1110, ADR-1391, ADR-1471 and ADR-1478.
+// See ADR-1067, ADR-1110, ADR-1391, ADR-1471, ADR-1478 and ADR-1479.
 internal class DefaultSecretGenerator(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
     IOptions<SharedSecretVerifierOptions> verifierOptionsAccessor,
-    IRemoteKeyProviderCatalog remoteKeyProviderCatalog,
-    IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog,
+    IRemoteKeyResolver remoteKeyResolver,
     IRemoteSecretDestroyer remoteSecretDestroyer,
     IOptions<SecretProtectionOptions> options
 ) : ISecretGenerator
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
-    private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
-
-    private IRemoteKeyDescriptorCatalog RemoteKeyDescriptorCatalog { get; } =
-        remoteKeyDescriptorCatalog;
+    private IRemoteKeyResolver RemoteKeyResolver { get; } = remoteKeyResolver;
 
     private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
 
@@ -143,7 +139,7 @@ internal class DefaultSecretGenerator(
             KeySizeBits = request.KeySizeBits,
             Curve = request.Curve,
         };
-        var resolution = ResolveRemoteKey(selector);
+        var resolution = RemoteKeyResolver.Resolve(selector);
 
         var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(
             request.CreatedWhen,
@@ -174,6 +170,8 @@ internal class DefaultSecretGenerator(
 
         var created = await resolution.Provider.CreateKeyAsync(creationRequest, cancellationToken);
 
+        var binding = resolution.Bind(created.KeyId);
+
         var metadata = new KeyMetadata
         {
             KeyId = request.SecretId,
@@ -197,22 +195,14 @@ internal class DefaultSecretGenerator(
             SecretType = request.SecretType,
             SecretEncoding = SecretEncodings.Remote,
             KeySizeBits = resolution.Algorithm.KeySizeBits,
-            EncodedValue = new RemoteKeyReference(
-                resolution.Provider.Name,
-                created.KeyId
-            ).ToString(),
+            EncodedValue = binding.Reference.ToString(),
             Origin = SecretOrigins.Generated,
             ManagedBy = request.ManagedBy,
         };
 
         try
         {
-            var publicKey = await ReadRemotePublicKeyAsync(
-                resolution,
-                created.KeyId,
-                metadata,
-                cancellationToken
-            );
+            var publicKey = await ReadPublicKeyAsync(binding, metadata, cancellationToken);
 
             return secret with
             {
@@ -246,7 +236,7 @@ internal class DefaultSecretGenerator(
             KeySizeBits = request.KeySizeBits,
             Curve = request.Curve,
         };
-        var resolution = ResolveRemoteKey(selector);
+        var resolution = RemoteKeyResolver.Resolve(selector);
 
         var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(
             request.CreatedWhen,
@@ -255,7 +245,7 @@ internal class DefaultSecretGenerator(
             request.ExpiresWhen
         );
 
-        var reference = new RemoteKeyReference(resolution.Provider.Name, request.KeyId);
+        var binding = resolution.Bind(request.KeyId);
 
         var metadata = new KeyMetadata
         {
@@ -267,12 +257,7 @@ internal class DefaultSecretGenerator(
             ExpiresWhen = request.ExpiresWhen,
         };
 
-        var publicKey = await ReadRemotePublicKeyAsync(
-            resolution,
-            request.KeyId,
-            metadata,
-            cancellationToken
-        );
+        var publicKey = await ReadPublicKeyAsync(binding, metadata, cancellationToken);
 
         // A bound key is never destroyed: the service held it before the server did.
         return new PersistedSecret
@@ -287,141 +272,43 @@ internal class DefaultSecretGenerator(
             SecretType = request.SecretType,
             SecretEncoding = SecretEncodings.Remote,
             KeySizeBits = resolution.Algorithm.KeySizeBits,
-            EncodedValue = reference.ToString(),
+            EncodedValue = binding.Reference.ToString(),
             PublicKey = publicKey,
             Origin = SecretOrigins.Supplied,
             ManagedBy = null,
         };
     }
 
-    // Resolves, without calling the key management service, the descriptor of a key type a service can hold, the
-    // registered provider and the provider's algorithm row that the selector names.
-    private RemoteKeyResolution ResolveRemoteKey(RemoteKeyAlgorithmSelector selector)
-    {
-        if (
-            !SecretKeyTypeCatalog.TryGet(selector.SecretType, out var descriptor)
-            || descriptor is not IRemoteSecretKeyTypeDescriptor
-        )
-        {
-            throw new RemoteSecretRefusedException(
-                $"The '{selector.SecretType}' secret type cannot be generated in a key management service."
-            );
-        }
-
-        if (!RemoteKeyProviderCatalog.TryGetProvider(selector.Provider, out var provider))
-        {
-            throw new RemoteSecretRefusedException(
-                $"The remote key provider '{selector.Provider}' is not registered."
-            );
-        }
-
-        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var algorithm))
-        {
-            throw new RemoteSecretRefusedException(
-                $"The remote key provider '{selector.Provider}' has no algorithm '{selector.Algorithm}' "
-                    + $"for the '{selector.SecretType}' secret type, key size {selector.KeySizeBits} and curve '{selector.Curve}'."
-            );
-        }
-
-        return new RemoteKeyResolution
-        {
-            Descriptor = descriptor,
-            Provider = provider,
-            Algorithm = algorithm,
-        };
-    }
-
-    // Reads the public half of the key from the service and checks that it is a key of the row's type,
-    // size and curve.
-    private static async ValueTask<string> ReadRemotePublicKeyAsync(
-        RemoteKeyResolution resolution,
-        string keyId,
+    // Reads the public half of the key from the service through the resolver, which checks that it is a key of the
+    // row's type, size and curve, and returns it as the Base64url SubjectPublicKeyInfo that is stored.
+    private async ValueTask<string> ReadPublicKeyAsync(
+        RemoteKeyBinding binding,
         KeyMetadata metadata,
         CancellationToken cancellationToken
     )
     {
-        using var publicKeyBuffer = BufferFactory.CreatePooledBufferWriter(
-            isSensitive: false,
-            resolution.Algorithm.KeySizeBits >> 3
-        );
+        var key = await RemoteKeyResolver.ReadKeyAsync(binding, metadata, cancellationToken);
+        using var keyDisposal = key as IDisposable;
 
-        await resolution.Provider.GetPublicKeyAsync(
-            new RemotePublicKeyRequest { KeyId = keyId, Algorithm = resolution.Algorithm },
-            publicKeyBuffer,
-            cancellationToken
-        );
-
-        using var publicKeyLease = publicKeyBuffer.GetSpanLease(isSensitive: false);
-
-        if (
-            !HoldsRequestedKey(
-                resolution.Descriptor,
-                metadata,
-                publicKeyLease.Span,
-                resolution.Algorithm,
-                out var readFailure
-            )
-        )
+        if (key is not AsymmetricSecretKey asymmetricKey)
         {
-            throw readFailure is not null
-                ? new RemoteSecretRefusedException(
-                    $"The remote key provider '{resolution.Provider.Name}' returned a public key for the key '{keyId}' that cannot be read as a "
-                        + $"'{resolution.Algorithm.SecretType}' key.",
-                    readFailure
-                )
-                : new RemoteSecretRefusedException(
-                    $"The key '{keyId}' of the remote key provider '{resolution.Provider.Name}' does not have the key size "
-                        + $"{resolution.Algorithm.KeySizeBits} and curve '{resolution.Algorithm.Curve}' of its row '{resolution.Algorithm.Algorithm}'."
-                );
-        }
-
-        return Base64Url.Encode(publicKeyLease.Span);
-    }
-
-    // Reads the public key the service returned, which decides whether the key it created has the size and curve of
-    // the row. A key that cannot be read is a key that is not held, and the failure is handed
-    // back.
-    private static bool HoldsRequestedKey(
-        ISecretKeyTypeDescriptor descriptor,
-        KeyMetadata metadata,
-        ReadOnlySpan<byte> subjectPublicKeyInfo,
-        RemoteKeyAlgorithm algorithm,
-        out Exception? readFailure
-    )
-    {
-        SecretKey createdKey;
-        try
-        {
-            createdKey = descriptor.DeserializeKeyMaterial(
-                metadata,
-                SecretEncodings.Spki,
-                subjectPublicKeyInfo
+            throw new RemoteKeyRefusedException(
+                $"The '{binding.Algorithm.SecretType}' key of the remote key provider '{binding.Provider.Name}' has no public half to store."
             );
         }
-        catch (Exception exception)
-            when (exception is CryptographicException or ArgumentException or FormatException)
-        {
-            readFailure = exception;
-            return false;
-        }
 
-        readFailure = null;
-        try
-        {
-            return createdKey.KeySizeBits == algorithm.KeySizeBits
-                && string.Equals(
-                    (createdKey as AsymmetricSecretKey)?.CurveName,
-                    algorithm.Curve,
-                    StringComparison.Ordinal
-                );
-        }
-        finally
-        {
-            if (createdKey is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-        }
+        return EncodeSubjectPublicKeyInfo(asymmetricKey);
+    }
+
+    // Encodes the SubjectPublicKeyInfo of the key. It is synchronous because a span lease cannot live across an await.
+    private static string EncodeSubjectPublicKeyInfo(AsymmetricSecretKey key)
+    {
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false, 512);
+        IBufferWriter<byte> writer = buffer;
+        key.ExportSubjectPublicKeyInfo(ref writer);
+
+        using var lease = buffer.GetSpanLease(isSensitive: false);
+        return Base64Url.Encode(lease.Span);
     }
 
     /// <inheritdoc />

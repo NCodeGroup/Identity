@@ -62,7 +62,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
         string
     > PublicKeys { get; } = new();
 
-    private readonly ServiceProvider _serviceProvider;
+    private ServiceProvider ServiceProvider { get; }
 
     public DefaultTenantKeyPolicyTests()
     {
@@ -90,11 +90,11 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<IEcdhKeyAgreement, RsaKeyTypeAgreementStub>()
         );
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
         Policy = CreatePolicy(
-            _serviceProvider,
-            _serviceProvider.GetRequiredService<IRemoteKeyDescriptorCatalog>()
+            ServiceProvider,
+            ServiceProvider.GetRequiredService<IRemoteKeyDescriptorCatalog>()
         );
     }
 
@@ -102,7 +102,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public async Task DisposeAsync() => await _serviceProvider.DisposeAsync();
+    public async Task DisposeAsync() => await ServiceProvider.DisposeAsync();
 
     // Gives the ECDH-ES algorithms a second key type, RSA keys of 2048 to 4096 bits, so they accept several key types as
     // they do with a package that contributes OKP keys (ADR-1389); provisioning never performs an agreement.
@@ -1025,7 +1025,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
                 AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
             ]
         );
-        var policy = CreatePolicy(_serviceProvider, catalog);
+        var policy = CreatePolicy(ServiceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(new OpenIdTenantKeyProvisioningOptions());
 
@@ -1041,7 +1041,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
     public void ResolveSpecifications_WhenAProviderHasNoRowForAKeyWithoutACurve_OmitsTheCurve()
     {
         var catalog = new StubRemoteKeyDescriptorCatalog(["aws-kms"], []);
-        var policy = CreatePolicy(_serviceProvider, catalog);
+        var policy = CreatePolicy(ServiceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(
             CreateOptions(new OpenIdTenantKeyOptions { Algorithm = "RS256", KeySizeBits = 3072 })
@@ -1065,7 +1065,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
                 AlgorithmCodes.DigitalSignature.EcdsaSha256,
             ]
         );
-        var policy = CreatePolicy(_serviceProvider, catalog);
+        var policy = CreatePolicy(ServiceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(new OpenIdTenantKeyProvisioningOptions());
 
@@ -1076,7 +1076,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
     public void ResolveSpecifications_WhenEachOfTwoProvidersLacksARow_ReportsEachInProviderOrder()
     {
         var catalog = new StubRemoteKeyDescriptorCatalog(["b-kms", "a-kms"], []);
-        var policy = CreatePolicy(_serviceProvider, catalog);
+        var policy = CreatePolicy(ServiceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(
             CreateOptions(new OpenIdTenantKeyOptions { Algorithm = "RS256", KeySizeBits = 3072 })
@@ -1096,7 +1096,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
             ["aws-kms"],
             [AlgorithmCodes.DigitalSignature.RsaSha256]
         );
-        var policy = CreatePolicy(_serviceProvider, catalog);
+        var policy = CreatePolicy(ServiceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(
             CreateOptions(
@@ -1124,7 +1124,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
             ["aws-kms"],
             [AlgorithmCodes.KeyManagement.EcdhEs]
         );
-        var policy = CreatePolicy(_serviceProvider, catalog);
+        var policy = CreatePolicy(ServiceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(
             CreateOptions(
@@ -1146,7 +1146,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
             ["aws-kms"],
             [AlgorithmCodes.DigitalSignature.RsaSha256, AlgorithmCodes.KeyManagement.RsaOaep256]
         );
-        var policy = CreatePolicy(_serviceProvider, catalog);
+        var policy = CreatePolicy(ServiceProvider, catalog);
 
         var resolution = policy.ResolveSpecifications(
             CreateOptions(

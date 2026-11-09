@@ -1,7 +1,6 @@
-# A production release with the management console on its own host, which routes /api to the server.
+# A production release with the management console on its own host.
 allowedHosts:
   - id.example.com
-  - manage.example.com
 tenantResolution:
   staticSingle:
     issuer: https://id.example.com

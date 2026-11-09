@@ -7,7 +7,10 @@
   [ADR-1485](1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md):
   the console's key rings are `managementConsole.keyRings.client` and `managementConsole.keyRings.dpop`, each a PEM
   Secret, keys a key management service holds, or both, reached through the console's own workload identity, and the
-  chart refuses a key ring without a key)
+  chart refuses a key ring without a key; amended by
+  [ADR-1488](1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md):
+  the console's Ingress routes every path to the console, and `ManagementConsole:ManagementApiUrl` is `/api` on the
+  authority's origin)
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 

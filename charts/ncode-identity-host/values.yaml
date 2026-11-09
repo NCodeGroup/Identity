@@ -238,7 +238,8 @@ affinity: {}
 priorityClassName: ""
 
 # The management console, a second Deployment from its own image that serves the console's bundle and its BFF on its own
-# host (ADR-1458). Its host's Ingress routes /api to the server and every other path to the console.
+# host (ADR-1458). Its host's Ingress routes every path to the console, and the console calls the server's management
+# API at /api on its authority's origin (ADR-1488).
 managementConsole:
   enabled: false
   # More than one replica requires valkey.existingSecret below.
@@ -251,12 +252,11 @@ managementConsole:
     digest: ""
     pullPolicy: IfNotPresent
   # The console's public host name, such as manage.example.com. It is the console's AllowedHosts, its origin
-  # https://<host>, and the host its Ingress routes. allowedHosts must list it, because /api on it reaches the server.
+  # https://<host>, and the host its Ingress routes.
   host: ""
-  # Bff:Frontends:mgmt:Authority. Defaults to tenantResolution.staticSingle.issuer under StaticSingle.
+  # Bff:Frontends:mgmt:Authority. Defaults to tenantResolution.staticSingle.issuer under StaticSingle. The console calls
+  # the management API at /api on its origin.
   authority: ""
-  # ManagementConsole:ManagementApiUrl. Defaults to https://<host>/api.
-  managementApiUrl: ""
   # The console's two key rings: client is Bff:KeyRings:mgmt-client, which signs the client's assertions, and dpop is
   # Bff:KeyRings:mgmt-dpop, which signs its DPoP proofs. Each holds a PEM key from a Secret, keys a key management
   # service holds, or both, and at least one key (ADR-1479, ADR-1485).
@@ -313,7 +313,7 @@ managementConsole:
   service:
     type: ClusterIP
     port: 80
-  # Routes /api to the server and / to the console.
+  # Routes every path to the console.
   ingress:
     enabled: false
     className: ""

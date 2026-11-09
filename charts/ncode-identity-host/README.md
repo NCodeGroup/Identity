@@ -71,8 +71,6 @@ Rendering fails, before anything is applied, when:
   `secretProtection.recovery.disabled` is not `true`, because losing the root key would then lose every stored secret;
 - `replicaCount` is above 1 without `valkey.existingSecret`, because replicas share single-use state through Valkey;
 - `managementConsole.enabled` is `true` and `managementConsole.host` is empty or contains `*`;
-- `managementConsole.enabled` is `true` and `allowedHosts` does not contain `managementConsole.host`, because the
-  management host routes `/api` to the server;
 - `managementConsole.enabled` is `true` and the console's authority is empty or does not start with `https://`;
 - `managementConsole.enabled` is `true` and a console key ring, `managementConsole.keyRings.client` or `.dpop`, names
   neither `pemSecret` nor a remote key;
@@ -528,8 +526,7 @@ entries may be removed afterwards.
 
 With `managementConsole.enabled=true` the chart also deploys the management console host: a Deployment, a Service, a
 ServiceAccount that mounts no token, a PodDisruptionBudget, and an Ingress on `managementConsole.host` that routes
-`/api` to the server and every other path to the console. The console runs its own image, which shares the chart's
-`appVersion`
+every path to the console. The console runs its own image, which shares the chart's `appVersion`
 ([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
 
 Create the two private keys the console's BFF signs with, and a Secret for each, in the release's namespace:
@@ -553,9 +550,13 @@ required, the grant types `authorization_code` and `refresh_token`, the redirect
 `https://<host>/bff/callback`, the post-logout redirect URI `https://<host>/`, the back-channel logout URI
 `https://<host>/bff/backchannel-logout`, and `jwks_uri` `https://<host>/bff/jwks`.
 
-List the console host in `allowedHosts`, because `/api` on it reaches the server. The console's authority defaults to
-`tenantResolution.staticSingle.issuer` under the `StaticSingle` strategy; set `managementConsole.authority` for any
-other strategy. `managementConsole.managementApiUrl` defaults to `https://<managementConsole.host>/api`.
+The console calls the server's management API at `/api` on the origin of the console's authority, the URL the server
+compares the console's DPoP proofs with, and the chart sets `ManagementConsole__ManagementApiUrl` to it:
+`https://id.example.com/api` for the authority `https://id.example.com`. The console's host serves only the console, so
+`allowedHosts` need not list it, and machine callers reach the management API at the server's own host
+([ADR-1488](../../docs/decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md)).
+The console's authority defaults to `tenantResolution.staticSingle.issuer` under the `StaticSingle` strategy; set
+`managementConsole.authority` for any other strategy.
 
 For more than one replica, set `managementConsole.valkey.existingSecret` to a Secret that holds the console's own
 Valkey connection string under the `connection-string` key. Never share the server's Valkey with the console.
@@ -564,7 +565,7 @@ Pass console settings such as `ManagementConsole__Branding__DisplayName` through
 
 ```bash
 helm install identity charts/ncode-identity-host \
-  --set 'allowedHosts={id.example.com,manage.example.com}' \
+  --set 'allowedHosts={id.example.com}' \
   --set tenantResolution.staticSingle.issuer=https://id.example.com \
   --set database.existingSecret=identity-database \
   --set secretProtection.rootKeyProvider=local --set secretProtection.local.keySecret=identity-root-key --set secretProtection.recovery.publicKeyConfigMap=identity-recovery-key \
@@ -616,11 +617,11 @@ managementConsole:
 ```
 
 The chart renders each remote key as `Bff__KeyRings__<ring>__RemoteKeys__<kid>__Provider`, `__KeyId`, `__Algorithm`,
-`__SecretType`, `__KeySizeBits` and `__Curve`, where `<ring>` is `mgmt-client` or `mgmt-dpop`. It registers a vendor
-exactly when a console remote key names it, as `SecretProtection__RemoteKeyProviders__AwsKms__Region`,
-`__AzureKeyVault__VaultUri` or `__GoogleCloudKms__KeyRing`, read from the first such key: the region of an AWS ARN,
-`https://<host>` of a Key Vault key identifier, or the key ring of a Cloud KMS crypto key version name. The console
-reads every key where the key's own identifier names, so the section only registers the provider.
+`__SecretType`, `__KeySizeBits` and `__Curve`, where `<ring>` is `mgmt-client` or `mgmt-dpop`. The console image
+registers the AWS KMS, Azure Key Vault and Google Cloud KMS providers without a key-creation location, and the console
+reads every key where the key's own identifier names, so the chart renders no
+`SecretProtection__RemoteKeyProviders__…` setting for it
+([ADR-1489](../../docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)).
 
 **Credentials.** The console has an identity of its own under `managementConsole.secretProtection`:
 `awsKms.webIdentity`, `azureKeyVault.workloadIdentity` and `googleCloudKms.workloadIdentityFederation`, with the same

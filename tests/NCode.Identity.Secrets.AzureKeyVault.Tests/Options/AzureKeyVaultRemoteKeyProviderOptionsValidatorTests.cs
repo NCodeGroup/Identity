@@ -32,6 +32,19 @@ public class AzureKeyVaultRemoteKeyProviderOptionsValidatorTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
+    public void Validate_NoVaultUri_Succeeds(string? vaultUri)
+    {
+        var validator = CreateValidator();
+
+        var result = validator.Validate(
+            null,
+            new AzureKeyVaultRemoteKeyProviderOptions { VaultUri = vaultUri }
+        );
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
     [InlineData("contoso.vault.azure.net")]
     [InlineData("http://contoso.vault.azure.net")]
     [InlineData("https://contoso")]
@@ -39,7 +52,7 @@ public class AzureKeyVaultRemoteKeyProviderOptionsValidatorTests
     [InlineData("https://contoso.vault.azure.net\n")]
     [InlineData("https://contoso.vault.azure.net:8443")]
     [InlineData("https://user@contoso.vault.azure.net")]
-    public void Validate_InvalidVaultUri_Fails(string? vaultUri)
+    public void Validate_InvalidVaultUri_Fails(string vaultUri)
     {
         var validator = CreateValidator();
 

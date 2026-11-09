@@ -7,9 +7,9 @@ using Microsoft.Extensions.Options;
 namespace NCode.Identity.Secrets.AzureKeyVault.Options;
 
 /// <summary>
-/// Validates the Azure Key Vault remote key provider options when the host starts, so a missing or malformed vault
-/// URI stops the host instead of failing the first time a key is created. The options are always validated, because
-/// registering the provider selects it.
+/// Validates the Azure Key Vault remote key provider options when the host starts, so a malformed vault URI stops the
+/// host instead of failing the first time a key is created. A provider without a vault URI registers, and creates and
+/// lists no keys.
 /// </summary>
 // See ADR-1471 and ADR-1137 (configuration is validated at startup).
 internal sealed partial class AzureKeyVaultRemoteKeyProviderOptionsValidator
@@ -28,7 +28,7 @@ internal sealed partial class AzureKeyVaultRemoteKeyProviderOptionsValidator
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (options.VaultUri is { } vaultUri && VaultUriPattern().IsMatch(vaultUri))
+        if (string.IsNullOrEmpty(options.VaultUri) || VaultUriPattern().IsMatch(options.VaultUri))
             return ValidateOptionsResult.Success;
 
         return ValidateOptionsResult.Fail(

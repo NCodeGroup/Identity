@@ -1055,6 +1055,17 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
+    public void ResolveSpecifications_WhenAProviderCreatesNoKeys_ReportsNothingForIt()
+    {
+        var catalog = new StubRemoteKeyDescriptorCatalog(["aws-kms"], [], ["aws-kms"]);
+        var policy = CreatePolicy(_serviceProvider, catalog);
+
+        var resolution = policy.ResolveSpecifications(new OpenIdTenantKeyProvisioningOptions());
+
+        Assert.Empty(resolution.Errors);
+    }
+
+    [Fact]
     public void ResolveSpecifications_WhenEveryProviderHasARowForEverySignatureKey_ReportsNothing()
     {
         var catalog = new StubRemoteKeyDescriptorCatalog(
@@ -1533,11 +1544,18 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
     // has an out parameter that a mock setup cannot compute from the selector.
     private sealed class StubRemoteKeyDescriptorCatalog(
         string[] providerNames,
-        string[] rowAlgorithms
+        string[] rowAlgorithms,
+        string[]? providersThatCreateNoKeys = null
     ) : IRemoteKeyDescriptorCatalog
     {
         public IReadOnlyCollection<RemoteKeyProviderDescriptor> Providers { get; } =
-            providerNames.Select(name => new RemoteKeyProviderDescriptor { Name = name }).ToList();
+            providerNames
+                .Select(name => new RemoteKeyProviderDescriptor
+                {
+                    Name = name,
+                    CreatesKeys = !(providersThatCreateNoKeys ?? []).Contains(name),
+                })
+                .ToList();
 
         public IReadOnlyCollection<RemoteKeyAlgorithm> Algorithms { get; } = [];
 

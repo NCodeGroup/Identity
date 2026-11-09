@@ -166,6 +166,8 @@ public class DefaultRegistrationTests : BaseTests
             )
         );
         Assert.Equal("RSA_SIGN_PSS_3072_SHA256", algorithm.KeySpec);
+        var descriptor = Assert.Single(descriptorCatalog.Providers);
+        Assert.True(descriptor.CreatesKeys);
     }
 
     [Fact]
@@ -205,7 +207,7 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     [Fact]
-    public async Task AddGoogleCloudKmsRemoteKeyProvider_NoKeyRing_FailsValidation()
+    public async Task AddGoogleCloudKmsRemoteKeyProvider_NoKeyRing_DescribesAProviderThatCreatesNoKeys()
     {
         var clientFactory = CreateStrictMock<IGoogleCloudKmsClientFactory>();
         var serviceCollection = AddGoogleCloudKmsRemote(
@@ -218,8 +220,11 @@ public class DefaultRegistrationTests : BaseTests
             IOptions<GoogleCloudKmsRemoteKeyProviderOptions>
         >();
 
-        var exception = Assert.Throws<OptionsValidationException>(() => options.Value);
-        Assert.Contains("KeyRing", exception.Message);
+        Assert.Null(options.Value.KeyRing);
+        var descriptor = Assert.Single(
+            provider.GetRequiredService<IRemoteKeyDescriptorCatalog>().Providers
+        );
+        Assert.False(descriptor.CreatesKeys);
     }
 
     [Fact]

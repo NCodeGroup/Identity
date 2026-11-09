@@ -45,6 +45,8 @@ public interface IRemoteKeyProvider
     /// The key management service's identifier for the key, as soon as the service names it and before any other
     /// operation can fail.
     /// </returns>
+    /// <exception cref="InvalidOperationException">The provider has no key-creation location, as its
+    /// descriptor's <see cref="RemoteKeyProviderDescriptor.CreatesKeys"/> says.</exception>
     ValueTask<RemoteKeyCreationResult> CreateKeyAsync(
         RemoteKeyCreationRequest request,
         CancellationToken cancellationToken
@@ -146,6 +148,8 @@ public interface IRemoteKeyProvider
     /// <param name="request">The deployment whose keys to list.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The keys, streamed as the service returns them.</returns>
+    /// <exception cref="InvalidOperationException">The provider has no key-creation location, as its
+    /// descriptor's <see cref="RemoteKeyProviderDescriptor.CreatesKeys"/> says.</exception>
     // See ADR-1478.
     IAsyncEnumerable<RemoteKeyListing> ListKeysAsync(
         RemoteKeyListRequest request,

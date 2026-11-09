@@ -2,7 +2,6 @@
 # console's own web identity, and its DPoP key in a Secret.
 allowedHosts:
   - id.example.com
-  - manage.example.com
 tenantResolution:
   staticSingle:
     issuer: https://id.example.com

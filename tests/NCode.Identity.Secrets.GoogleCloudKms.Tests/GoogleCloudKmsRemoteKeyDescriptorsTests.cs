@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using NCode.Identity.Secrets.GoogleCloudKms.Options;
 using NCode.Identity.Secrets.RemoteKeys;
 using Xunit;
 
@@ -50,16 +51,47 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
         ("RSA-OAEP-512", 4096, "RSA_DECRYPT_OAEP_4096_SHA512"),
     ];
 
+    private static GoogleCloudKmsRemoteKeyDescriptors CreateSource(
+        string? keyRing = "projects/p/locations/l/keyRings/r"
+    ) =>
+        new(
+            Microsoft.Extensions.Options.Options.Create(
+                new GoogleCloudKmsRemoteKeyProviderOptions { KeyRing = keyRing }
+            )
+        );
+
     #region Providers Tests
 
     [Fact]
     public void Providers_DescribesTheGoogleCloudKmsProvider()
     {
-        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var descriptor = Assert.Single(source.Providers);
 
         Assert.Equal(RemoteKeyProviderNames.GoogleCloudKms, descriptor.Name);
+    }
+
+    [Fact]
+    public void Providers_WithKeyRing_CreatesKeys()
+    {
+        var source = CreateSource("projects/p/locations/l/keyRings/r");
+
+        var descriptor = Assert.Single(source.Providers);
+
+        Assert.True(descriptor.CreatesKeys);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Providers_WithoutKeyRing_CreatesNoKeys(string? keyRing)
+    {
+        var source = CreateSource(keyRing);
+
+        var descriptor = Assert.Single(source.Providers);
+
+        Assert.False(descriptor.CreatesKeys);
     }
 
     #endregion
@@ -69,7 +101,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_Rows_MatchTheMapping()
     {
-        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.OfType<RemoteSigningAlgorithm>().ToList();
 
@@ -94,7 +126,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_DecryptionRows_MatchTheMapping()
     {
-        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.OfType<RemoteDecryptionAlgorithm>().ToList();
 
@@ -117,7 +149,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_KeyAgreementRows_AreAbsent()
     {
-        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         Assert.DoesNotContain(source.Algorithms, x => x is RemoteKeyAgreementAlgorithm);
     }
@@ -125,7 +157,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_Rows_HaveUniqueSelectors()
     {
-        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var selectors = source
             .Algorithms.Select(x => (x.Provider, x.Algorithm, x.SecretType, x.KeySizeBits, x.Curve))
@@ -137,7 +169,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_EveryRow_SignsADigest()
     {
-        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         Assert.All(
             source.Algorithms.OfType<RemoteSigningAlgorithm>(),
@@ -148,7 +180,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_EveryRow_KeySpecMapsToAnEnumMember()
     {
-        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         Assert.All(
             source.Algorithms,
@@ -175,7 +207,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
     [Fact]
     public void Algorithms_ProvisionedDefaults_ArePresent()
     {
-        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+        var source = CreateSource();
 
         var rows = source.Algorithms.ToList();
 

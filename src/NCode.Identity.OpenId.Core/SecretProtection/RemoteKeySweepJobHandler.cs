@@ -29,6 +29,7 @@ namespace NCode.Identity.OpenId.SecretProtection;
 // See ADR-1478.
 internal sealed class RemoteKeySweepJobHandler(
     IRemoteKeyProviderCatalog remoteKeyProviderCatalog,
+    IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog,
     IStoreManagerFactory storeManagerFactory,
     IRemoteSecretDestroyer remoteSecretDestroyer,
     IEventPublisher eventPublisher,
@@ -41,6 +42,8 @@ internal sealed class RemoteKeySweepJobHandler(
     private const int PageSize = 100;
 
     private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
+    private IRemoteKeyDescriptorCatalog RemoteKeyDescriptorCatalog { get; } =
+        remoteKeyDescriptorCatalog;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
     private IEventPublisher EventPublisher { get; } = eventPublisher;
@@ -65,6 +68,7 @@ internal sealed class RemoteKeySweepJobHandler(
         if (
             string.IsNullOrEmpty(deployment)
             || !RemoteKeyProviderCatalog.TryGetProvider(job.Provider, out var provider)
+            || !RemoteKeyDescriptorCatalog.CreatesKeys(job.Provider)
         )
         {
             Logger.RemoteKeySweepSkipped(job.Provider);

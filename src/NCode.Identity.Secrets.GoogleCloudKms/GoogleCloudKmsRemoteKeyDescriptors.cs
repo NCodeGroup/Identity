@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
+using NCode.Identity.Secrets.GoogleCloudKms.Options;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.RemoteKeys;
 
@@ -10,7 +12,7 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// <summary>
 /// Describes the Google Cloud Key Management Service remote key provider and its rows of the mapping from a JOSE
 /// algorithm to the Google Cloud Key Management Service crypto key version algorithm that creates a key and signs or
-/// decrypts for it.
+/// decrypts for it. The provider creates keys when a key ring is set.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -31,17 +33,25 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// </remarks>
 // See ADR-1471.
 // See ADR-1477.
-internal sealed class GoogleCloudKmsRemoteKeyDescriptors : IRemoteKeyDescriptorSource
+internal sealed class GoogleCloudKmsRemoteKeyDescriptors(
+    IOptions<GoogleCloudKmsRemoteKeyProviderOptions> options
+) : IRemoteKeyDescriptorSource
 {
-    private static IReadOnlyList<RemoteKeyProviderDescriptor> ProviderDescriptors { get; } =
-    [new() { Name = RemoteKeyProviderNames.GoogleCloudKms }];
+    private IOptions<GoogleCloudKmsRemoteKeyProviderOptions> Options { get; } = options;
 
     private static int[] RsaKeySizesBits { get; } = [2048, 3072, 4096];
 
     private static IReadOnlyList<RemoteKeyAlgorithm> Rows { get; } = CreateRows();
 
     /// <inheritdoc />
-    public IEnumerable<RemoteKeyProviderDescriptor> Providers => ProviderDescriptors;
+    public IEnumerable<RemoteKeyProviderDescriptor> Providers =>
+        [
+            new()
+            {
+                Name = RemoteKeyProviderNames.GoogleCloudKms,
+                CreatesKeys = !string.IsNullOrEmpty(Options.Value.KeyRing),
+            },
+        ];
 
     /// <inheritdoc />
     public IEnumerable<RemoteKeyAlgorithm> Algorithms => Rows;

@@ -368,6 +368,9 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
                 "region": {
                   "type": "string",
                   "pattern": "^([a-z0-9]+(-[a-z0-9]+)+)?$"
@@ -383,6 +386,9 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
                 "vaultUri": {
                   "type": "string",
                   "pattern": "^(https://[A-Za-z0-9-]+([.][A-Za-z0-9-]+)+/?)?$"
@@ -396,6 +402,9 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
                 "keyRing": {
                   "type": "string",
                   "pattern": "^(projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63})?$"

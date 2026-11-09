@@ -115,33 +115,42 @@ secretProtection:
     # azureKeyVault.workloadIdentity, googleCloudKms.workloadIdentityFederation) are mounted into the pods, so the host
     # can reach the tenant's key with the deployment's own identity.
     providers: []
-  # The key management services that hold tenants' keys (SecretProtection:RemoteKeyProviders), selected per
-  # tenant by the setting tenant_key_provider. A provider is registered when its first value (region, vaultUri,
-  # keyRing) is set, and the pods then carry its workload credentials (awsKms.webIdentity,
-  # azureKeyVault.workloadIdentity, googleCloudKms.workloadIdentityFederation).
+  # The key management services that hold tenants' keys (SecretProtection:RemoteKeyProviders). An enabled provider is
+  # registered, and the pods then carry its workload credentials (awsKms.webIdentity, azureKeyVault.workloadIdentity,
+  # googleCloudKms.workloadIdentityFederation). Its location (region, vaultUri, keyRing) is where it creates keys, which
+  # the tenant setting tenant_key_provider then selects; without one it binds keys a service already holds and creates
+  # none (ADR-1489, ADR-1490).
   remoteKeyProviders:
     awsKms:
-      # AWS region in which keys are created; empty registers no provider.
+      # true registers the provider; a location set while it is false is refused.
+      enabled: false
+      # AWS region in which keys are created; empty creates no keys.
       region: ""
       # Days a deleted key waits before AWS destroys it, 7 to 30.
       pendingWindowInDays: 30
     azureKeyVault:
-      # Vault in which keys are created, such as https://<vault>.vault.azure.net; empty registers no provider.
+      # true registers the provider; a location set while it is false is refused.
+      enabled: false
+      # Vault in which keys are created, such as https://<vault>.vault.azure.net; empty creates no keys.
       vaultUri: ""
+      # false creates software-protected keys.
       hardwareProtected: true
     googleCloudKms:
-      # Key ring in which keys are created, projects/<project>/locations/<location>/keyRings/<ring>; empty registers
-      # no provider.
+      # true registers the provider; a location set while it is false is refused.
+      enabled: false
+      # Key ring in which keys are created, projects/<project>/locations/<location>/keyRings/<ring>; empty creates no
+      # keys.
       keyRing: ""
+      # false creates software-protected keys.
       hardwareProtected: true
   # The keys the host creates in those services (SecretProtection:RemoteKeys) and the sweep that destroys the ones no
   # stored secret names.
   remoteKeys:
     # Names this release's keys in a shared KMS scope (an AWS account, a vault or a key ring): lowercase letters, digits
-    # and hyphens, at most 40 characters. Required when a remote key provider is set. The sweep destroys only keys
-    # tagged with it. A deployment is one database of stored secrets: every replica and release that shares the
-    # database uses its name, and no other deployment in the same AWS account, vault or key ring uses it, because each
-    # deployment destroys every key of its name that its own database does not name.
+    # and hyphens, at most 40 characters. Required when an enabled remote key provider has its location, because it then
+    # creates keys. The sweep destroys only keys tagged with it. A deployment is one database of stored secrets: every
+    # replica and release that shares the database uses its name, and no other deployment in the same AWS account, vault
+    # or key ring uses it, because each deployment destroys every key of its name that its own database does not name.
     deployment: ""
     # Whether the background sweep destroys orphaned keys. It runs only when deployment is set.
     sweepEnabled: true

@@ -409,4 +409,35 @@ internal static partial class Log
         SecretOwner owner,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeySweepSkipped,
+        Level = LogLevel.Warning,
+        Message = "The remote key sweep of provider '{Provider}' is skipped because the provider is not registered or the deployment name is not configured"
+    )]
+    internal static partial void RemoteKeySweepSkipped(this ILogger logger, string provider);
+
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeyAuditPublishFailed,
+        Level = LogLevel.Warning,
+        Message = "Publishing the audit event of the destroyed remote key '{KeyId}' of provider '{Provider}' failed; the destruction stands"
+    )]
+    internal static partial void RemoteKeyAuditPublishFailed(
+        this ILogger logger,
+        string provider,
+        string keyId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeyOrphanDestroyed,
+        Level = LogLevel.Information,
+        Message = "Destroyed the orphaned remote key '{KeyId}' of group '{GroupName}' in provider '{Provider}'"
+    )]
+    internal static partial void RemoteKeyOrphanDestroyed(
+        this ILogger logger,
+        string provider,
+        string keyId,
+        string groupName
+    );
 }

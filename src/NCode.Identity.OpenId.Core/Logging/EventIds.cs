@@ -91,4 +91,10 @@ internal static class EventIds
     public const int TenantCacheRevalidationFailed = Base + 40;
 
     public const int TenantCacheEvictionFailed = Base + 41;
+
+    public const int RemoteKeySweepSkipped = Base + 42;
+
+    public const int RemoteKeyAuditPublishFailed = Base + 43;
+
+    public const int RemoteKeyOrphanDestroyed = Base + 44;
 }

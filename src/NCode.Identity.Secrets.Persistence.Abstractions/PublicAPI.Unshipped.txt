@@ -360,6 +360,35 @@ override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.EventCa
 override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.EventName.get -> string!
 override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
 static NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEventNames.For(string! change) -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEventNames.Destroyed = "remote_key.destroyed" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEventNames.Prefix = "remote_key" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyChangeReasons.Orphaned = "orphaned" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyChanges.Destroyed = "destroyed" -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Change.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Change.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.GroupName.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.GroupName.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.KeyCreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.KeyCreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.KeyId.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.KeyId.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.OwnerId.get -> string?
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.OwnerId.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Provider.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Provider.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Reason.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Reason.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.SecretId.get -> string?
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.SecretId.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEventNames
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyChangeReasons
+NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyChanges
+override NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.EventCategory.get -> string!
+override NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.EventName.get -> string!
+override NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
+static NCode.Identity.Secrets.Persistence.Auditing.RemoteKeyAuditEventNames.For(string! change) -> string!
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver.DestroyedAsync(NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo! destroyed, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver.RotatedAsync(NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation! rotation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

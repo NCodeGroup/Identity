@@ -16,7 +16,7 @@ NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultRemoteKeyProviderOptio
 NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultRemoteKeyProviderOptions.HardwareProtected.set -> void
 NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultRemoteKeyProviderOptions.VaultUri.get -> string?
 NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultRemoteKeyProviderOptions.VaultUri.set -> void
-NCode.Identity.Secrets.AzureKeyVault.RemoteKeyProviderRegistration
-NCode.Identity.Secrets.AzureKeyVault.RemoteKeyProviderRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
-NCode.Identity.Secrets.AzureKeyVault.RemoteKeyProviderRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAzureKeyVaultRemoteKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
-NCode.Identity.Secrets.AzureKeyVault.RemoteKeyProviderRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAzureKeyVaultRemoteKeyProviderIfConfigured(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration
+NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
+NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAzureKeyVaultRemoteKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAzureKeyVaultRemoteKeyProviderIfConfigured(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!

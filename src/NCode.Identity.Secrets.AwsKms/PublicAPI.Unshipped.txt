@@ -14,7 +14,7 @@ NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.PendingWind
 NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.PendingWindowInDays.set -> void
 NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.Region.get -> string?
 NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.Region.set -> void
-NCode.Identity.Secrets.AwsKms.RemoteKeyProviderRegistration
-NCode.Identity.Secrets.AwsKms.RemoteKeyProviderRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
-NCode.Identity.Secrets.AwsKms.RemoteKeyProviderRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAwsKmsRemoteKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
-NCode.Identity.Secrets.AwsKms.RemoteKeyProviderRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAwsKmsRemoteKeyProviderIfConfigured(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Secrets.AwsKms.SecretsLibraryRegistration
+NCode.Identity.Secrets.AwsKms.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
+NCode.Identity.Secrets.AwsKms.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAwsKmsRemoteKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Secrets.AwsKms.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAwsKmsRemoteKeyProviderIfConfigured(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!

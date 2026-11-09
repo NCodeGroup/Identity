@@ -15,10 +15,11 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 
 /// <summary>
 /// Provides opt-in extension methods that register the Azure Key Vault remote key provider on the secrets-library
-/// builder.
+/// builder, beside the key wrapper <c>DefaultRegistration</c> registers on the secret-persistence-library builder
+/// (ADR-1069).
 /// </summary>
 [PublicAPI]
-public static class RemoteKeyProviderRegistration
+public static class SecretsLibraryRegistration
 {
     /// <param name="builder">The secrets-library builder returned by <c>AddSecretsLibrary</c>.</param>
     extension(IServiceBuilder<SecretsLibrary> builder)

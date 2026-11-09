@@ -2,9 +2,10 @@
 
 - **Status:** Accepted (amended by
   [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
-  provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`; amended by
+  provider contract is the shared `IKeyWrapper`; amended by
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): the chart mounts a provider's credentials when tenants may choose it; amended by
-  [ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md): the Azure and Google adapters wrap under a key the caller names)
+  [ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md): the Azure and Google adapters wrap under a key the caller names; amended by
+  [ADR-1473](1473-a-key-management-service-adapter-package-is-named-for-its-service.md): the adapters are `NCode.Identity.Secrets.<Vendor>`)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

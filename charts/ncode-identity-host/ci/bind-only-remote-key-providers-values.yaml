@@ -1,0 +1,33 @@
+# A production release whose root key is a local key, and whose server binds tenants' keys that AWS KMS,
+# Azure Key Vault and Google Cloud KMS already hold and creates none: each provider is enabled without its
+# key-creation location, so the release needs no remoteKeys.deployment (ADR-1489, ADR-1490).
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  awsKms:
+    webIdentity:
+      roleArn: arn:aws:iam::111122223333:role/ncode-identity-bound-keys
+  azureKeyVault:
+    workloadIdentity:
+      tenantId: 11111111-2222-3333-4444-555555555555
+      clientId: 66666666-7777-8888-9999-000000000000
+  googleCloudKms:
+    workloadIdentityFederation:
+      provider: projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster
+  remoteKeyProviders:
+    awsKms:
+      enabled: true
+    azureKeyVault:
+      enabled: true
+    googleCloudKms:
+      enabled: true
+  recovery:
+    publicKeyConfigMap: identity-recovery-key

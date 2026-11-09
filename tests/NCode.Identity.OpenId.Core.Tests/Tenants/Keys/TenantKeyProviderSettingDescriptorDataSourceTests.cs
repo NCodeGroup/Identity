@@ -154,5 +154,25 @@ public class TenantKeyProviderSettingDescriptorDataSourceTests : BaseTests
         Assert.False(descriptor.TryValidate("aws-kms", out _));
     }
 
+    [Fact]
+    public void Collection_WhenAProviderCreatesNoKeys_LeavesItOutOfTheDomain()
+    {
+        MockCatalog
+            .Setup(x => x.Providers)
+            .Returns([
+                new RemoteKeyProviderDescriptor { Name = "aws-kms", CreatesKeys = true },
+                new RemoteKeyProviderDescriptor { Name = "gcp-kms", CreatesKeys = false },
+            ])
+            .Verifiable();
+        var dataSource = new TenantKeyProviderSettingDescriptorDataSource(
+            MockNullChangeToken.Object,
+            MockCatalog.Object
+        );
+        var descriptor = GetDescriptor(dataSource);
+
+        Assert.True(descriptor.TryValidate("aws-kms", out var failure), failure);
+        Assert.False(descriptor.TryValidate("gcp-kms", out _));
+    }
+
     #endregion
 }

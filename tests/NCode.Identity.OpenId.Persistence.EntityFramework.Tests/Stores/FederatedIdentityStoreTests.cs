@@ -16,10 +16,10 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     private const string Issuer = "https://issuer.example";
     private const string Subject = "upstream-subject-1";
 
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly FederatedPrincipalStore _principalStore;
-    private readonly FederatedIdentityStore _store;
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private FederatedPrincipalStore PrincipalStore { get; }
+    private FederatedIdentityStore Store { get; }
 
     public FederatedIdentityStoreTests()
     {
@@ -28,22 +28,22 @@ public sealed class FederatedIdentityStoreTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _principalStore = new FederatedPrincipalStore(
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        PrincipalStore = new FederatedPrincipalStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext
+            DbContext
         );
-        _store = new FederatedIdentityStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _dbContext.SeedTenant(idGenerator, TenantId);
+        Store = new FederatedIdentityStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        DbContext.SeedTenant(idGenerator, TenantId);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedFederatedIdentity CreateIdentity(
@@ -66,7 +66,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
 
     private async Task SeedPrincipalAsync(string principalId = PrincipalId)
     {
-        await _principalStore.AddAsync(
+        await PrincipalStore.AddAsync(
             new PersistedFederatedPrincipal
             {
                 TenantId = TenantId,
@@ -78,7 +78,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
 
         // The principal must be persisted before its identities are added (an in-memory query does not observe
         // unsaved inserts).
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
     }
 
     [Fact]
@@ -86,13 +86,13 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     {
         await SeedPrincipalAsync();
 
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateIdentity("identity-1", PrincipalId, Issuer, Subject),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        var loaded = await _store.GetOrDefaultAsync("identity-1", CancellationToken.None);
+        var loaded = await Store.GetOrDefaultAsync("identity-1", CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal("identity-1", loaded.FederatedIdentityId);
@@ -106,7 +106,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     public async Task AddAsync_WhenPrincipalMissing_Throws()
     {
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.AddAsync(
+            await Store.AddAsync(
                 CreateIdentity("identity-1", "missing-principal", Issuer, Subject),
                 CancellationToken.None
             )
@@ -119,13 +119,13 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     public async Task GetByIssuerSubjectAsync_WhenMatch_ResolvesToOwningPrincipal()
     {
         await SeedPrincipalAsync();
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateIdentity("identity-1", PrincipalId, Issuer, Subject),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        var loaded = await _store.GetByIssuerSubjectAsync(Issuer, Subject, CancellationToken.None);
+        var loaded = await Store.GetByIssuerSubjectAsync(Issuer, Subject, CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal(PrincipalId, loaded.PrincipalId);
@@ -137,7 +137,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     {
         await SeedPrincipalAsync();
 
-        var loaded = await _store.GetByIssuerSubjectAsync(Issuer, Subject, CancellationToken.None);
+        var loaded = await Store.GetByIssuerSubjectAsync(Issuer, Subject, CancellationToken.None);
 
         Assert.Null(loaded);
     }
@@ -146,17 +146,17 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     public async Task GetByPrincipalAsync_ReturnsAllIdentitiesOfThePrincipal()
     {
         await SeedPrincipalAsync();
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateIdentity("identity-1", PrincipalId, Issuer, Subject),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateIdentity("identity-2", PrincipalId, "https://other.example", "subject-2"),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        var loaded = await _store.GetByPrincipalAsync(PrincipalId, CancellationToken.None);
+        var loaded = await Store.GetByPrincipalAsync(PrincipalId, CancellationToken.None);
 
         Assert.Equal(2, loaded.Count);
         Assert.Contains(loaded, identity => identity.FederatedIdentityId == "identity-1");
@@ -168,11 +168,11 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     public async Task GetByJoinKeyAsync_WhenMatch_ReturnsIdentitiesWithThatJoinKey()
     {
         await SeedPrincipalAsync();
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateIdentity("identity-1", PrincipalId, Issuer, Subject, "user@example.com"),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateIdentity(
                 "identity-2",
                 PrincipalId,
@@ -182,9 +182,9 @@ public sealed class FederatedIdentityStoreTests : IDisposable
             ),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        var loaded = await _store.GetByJoinKeyAsync("USER@example.com", CancellationToken.None);
+        var loaded = await Store.GetByJoinKeyAsync("USER@example.com", CancellationToken.None);
 
         Assert.Single(loaded);
         Assert.Equal("identity-1", loaded[0].FederatedIdentityId);

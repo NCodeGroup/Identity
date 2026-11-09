@@ -21,56 +21,52 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
     private const string ClientTwoId = "client-2";
     private const string SubjectId = "subject-1";
 
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _tenantStore;
-    private readonly ClientStore _clientStore;
-    private readonly ResourceServerStore _resourceServerStore;
-    private readonly ClientGrantStore _clientGrantStore;
-    private readonly ConsentStore _consentStore;
-    private readonly GrantStore _grantStore;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore TenantStore { get; }
+    private ClientStore ClientStore { get; }
+    private ResourceServerStore ResourceServerStore { get; }
+    private ClientGrantStore ClientGrantStore { get; }
+    private ConsentStore ConsentStore { get; }
+    private GrantStore GrantStore { get; }
 
     public ClientStoreRelationalRemovalTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
-        _provider = serviceCollection.BuildServiceProvider();
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
+        Provider = serviceCollection.BuildServiceProvider();
 
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        _dbContext.Database.EnsureCreated();
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        DbContext.Database.EnsureCreated();
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _clientStore = new ClientStore(
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        TenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        ClientStore = new ClientStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext,
+            DbContext,
             TestCryptoServices.CreateResourceIdGenerator()
         );
-        _resourceServerStore = new ResourceServerStore(
+        ResourceServerStore = new ResourceServerStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext
+            DbContext
         );
-        _clientGrantStore = new ClientGrantStore(
-            Mock.Of<IStoreProvider>(),
-            idGenerator,
-            _dbContext
-        );
-        _consentStore = new ConsentStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _grantStore = new GrantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        ClientGrantStore = new ClientGrantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        ConsentStore = new ConsentStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        GrantStore = new GrantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
-        _connection.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     #region Helpers
@@ -146,42 +142,39 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
 
     private async Task SeedAsync(bool withSecrets)
     {
-        await _tenantStore.AddAsync(CreateTenant(), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(CreateTenant(), CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
-        await _resourceServerStore.AddAsync(CreateResourceServer(), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await ResourceServerStore.AddAsync(CreateResourceServer(), CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
         foreach (var clientId in new[] { ClientOneId, ClientTwoId })
         {
-            await _clientStore.AddAsync(
-                CreateClient(clientId, withSecrets),
-                CancellationToken.None
-            );
-            await _dbContext.SaveChangesAsync();
+            await ClientStore.AddAsync(CreateClient(clientId, withSecrets), CancellationToken.None);
+            await DbContext.SaveChangesAsync();
 
-            await _clientGrantStore.AddAsync(CreateClientGrant(clientId), CancellationToken.None);
-            await _dbContext.SaveChangesAsync();
+            await ClientGrantStore.AddAsync(CreateClientGrant(clientId), CancellationToken.None);
+            await DbContext.SaveChangesAsync();
 
-            await _consentStore.SaveAsync(CreateConsent(clientId), CancellationToken.None);
-            await _dbContext.SaveChangesAsync();
+            await ConsentStore.SaveAsync(CreateConsent(clientId), CancellationToken.None);
+            await DbContext.SaveChangesAsync();
 
-            await _grantStore.AddAsync(CreateGrant(clientId), CancellationToken.None);
-            await _dbContext.SaveChangesAsync();
+            await GrantStore.AddAsync(CreateGrant(clientId), CancellationToken.None);
+            await DbContext.SaveChangesAsync();
         }
 
-        _dbContext.ChangeTracker.Clear();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task AssertOnlyClientTwoRemainsAsync(bool withSecrets)
     {
-        _dbContext.ChangeTracker.Clear();
+        DbContext.ChangeTracker.Clear();
 
-        var client = Assert.Single(await _dbContext.Clients.IgnoreQueryFilters().ToListAsync());
+        var client = Assert.Single(await DbContext.Clients.IgnoreQueryFilters().ToListAsync());
         Assert.Equal(ClientTwoId, client.ClientId);
 
-        var clientSecrets = await _dbContext.ClientSecrets.IgnoreQueryFilters().ToListAsync();
-        var secrets = await _dbContext.Secrets.IgnoreQueryFilters().ToListAsync();
+        var clientSecrets = await DbContext.ClientSecrets.IgnoreQueryFilters().ToListAsync();
+        var secrets = await DbContext.Secrets.IgnoreQueryFilters().ToListAsync();
         if (withSecrets)
         {
             var clientSecret = Assert.Single(clientSecrets);
@@ -197,14 +190,14 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
         }
 
         var clientGrant = Assert.Single(
-            await _dbContext.ClientGrants.IgnoreQueryFilters().ToListAsync()
+            await DbContext.ClientGrants.IgnoreQueryFilters().ToListAsync()
         );
         Assert.Equal(client.Id, clientGrant.ClientId);
 
-        var consent = Assert.Single(await _dbContext.Consents.IgnoreQueryFilters().ToListAsync());
+        var consent = Assert.Single(await DbContext.Consents.IgnoreQueryFilters().ToListAsync());
         Assert.Equal(client.Id, consent.ClientId);
 
-        var grant = Assert.Single(await _dbContext.Grants.IgnoreQueryFilters().ToListAsync());
+        var grant = Assert.Single(await DbContext.Grants.IgnoreQueryFilters().ToListAsync());
         Assert.Equal(client.Id, grant.ClientId);
         Assert.Equal($"{ClientTwoId}-grant", grant.GrantId);
     }
@@ -218,8 +211,8 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
     {
         await SeedAsync(withSecrets: true);
 
-        var removed = await _clientStore.RemoveAsync(ClientOneId, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        var removed = await ClientStore.RemoveAsync(ClientOneId, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
         Assert.True(removed);
         await AssertOnlyClientTwoRemainsAsync(withSecrets: true);
@@ -230,8 +223,8 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
     {
         await SeedAsync(withSecrets: false);
 
-        var removed = await _clientStore.RemoveAsync(ClientOneId, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        var removed = await ClientStore.RemoveAsync(ClientOneId, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
         Assert.True(removed);
         await AssertOnlyClientTwoRemainsAsync(withSecrets: false);

@@ -20,11 +20,11 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     private const string ClientB = "client-b";
     private const string SecretB = "secret-b";
 
-    private readonly ServiceProvider _provider;
-    private readonly TestAmbientTenantAccessor _ambientTenantAccessor = new();
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _tenantStore;
-    private readonly ClientStore _store;
+    private ServiceProvider Provider { get; }
+    private TestAmbientTenantAccessor AmbientTenantAccessor { get; } = new();
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore TenantStore { get; }
+    private ClientStore Store { get; }
 
     public ClientStoreTenantScopingTests()
     {
@@ -33,32 +33,32 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
         serviceCollection.AddSingleton<IdValueGenerator>();
         serviceCollection.AddSingleton<UseIdGeneratorConvention>();
 
-        _provider = serviceCollection.BuildServiceProvider();
+        Provider = serviceCollection.BuildServiceProvider();
 
         var options = new DbContextOptionsBuilder<OpenIdDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
-            .UseApplicationServiceProvider(_provider)
+            .UseApplicationServiceProvider(Provider)
             .Options;
 
-        _dbContext = new OpenIdDbContext(
+        DbContext = new OpenIdDbContext(
             options,
-            _ambientTenantAccessor,
+            AmbientTenantAccessor,
             [new CoreModelContributor()]
         );
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _store = new ClientStore(
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        TenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        Store = new ClientStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext,
+            DbContext,
             TestCryptoServices.CreateResourceIdGenerator()
         );
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     #region Helpers
@@ -86,11 +86,11 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
 
     private async Task SeedTenantAsync(string tenantId)
     {
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
         var tenant = new PersistedTenantBuilder { TenantId = tenantId }.Build();
 
-        await _tenantStore.AddAsync(tenant, CancellationToken.None);
+        await TenantStore.AddAsync(tenant, CancellationToken.None);
     }
 
     // Seeds two tenants, each owning one client (tenant-b's client also has a secret), then detaches everything so
@@ -99,15 +99,15 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     {
         await SeedTenantAsync(TenantA);
         await SeedTenantAsync(TenantB);
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        await _store.AddAsync(CreateClient(TenantA, ClientA), CancellationToken.None);
-        await _store.AddAsync(
+        await Store.AddAsync(CreateClient(TenantA, ClientA), CancellationToken.None);
+        await Store.AddAsync(
             CreateClient(TenantB, ClientB, CreateSecret(SecretB)),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     #endregion
@@ -117,10 +117,10 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        _ambientTenantAccessor.TenantId = TenantA;
+        AmbientTenantAccessor.TenantId = TenantA;
 
-        var crossTenant = await _store.GetOrDefaultAsync(ClientB, CancellationToken.None);
-        var sameTenant = await _store.GetOrDefaultAsync(ClientA, CancellationToken.None);
+        var crossTenant = await Store.GetOrDefaultAsync(ClientB, CancellationToken.None);
+        var sameTenant = await Store.GetOrDefaultAsync(ClientA, CancellationToken.None);
 
         Assert.Null(crossTenant);
         Assert.NotNull(sameTenant);
@@ -131,12 +131,12 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        _ambientTenantAccessor.TenantId = TenantA;
-        var tracked = await _store.GetOrDefaultAsync(ClientA, CancellationToken.None);
+        AmbientTenantAccessor.TenantId = TenantA;
+        var tracked = await Store.GetOrDefaultAsync(ClientA, CancellationToken.None);
         Assert.NotNull(tracked);
 
-        _ambientTenantAccessor.TenantId = TenantB;
-        var crossTenant = await _store.GetOrDefaultAsync(ClientA, CancellationToken.None);
+        AmbientTenantAccessor.TenantId = TenantB;
+        var crossTenant = await Store.GetOrDefaultAsync(ClientA, CancellationToken.None);
 
         Assert.Null(crossTenant);
     }
@@ -146,9 +146,9 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        _ambientTenantAccessor.TenantId = TenantA;
+        AmbientTenantAccessor.TenantId = TenantA;
 
-        var crossTenant = await _store.GetSecretOrDefaultAsync(
+        var crossTenant = await Store.GetSecretOrDefaultAsync(
             ClientB,
             SecretB,
             CancellationToken.None
@@ -162,8 +162,8 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        var tenantA = await _store.GetOrDefaultAsync(ClientA, CancellationToken.None);
-        var tenantB = await _store.GetOrDefaultAsync(ClientB, CancellationToken.None);
+        var tenantA = await Store.GetOrDefaultAsync(ClientA, CancellationToken.None);
+        var tenantB = await Store.GetOrDefaultAsync(ClientB, CancellationToken.None);
 
         Assert.NotNull(tenantA);
         Assert.NotNull(tenantB);
@@ -174,12 +174,9 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        _ambientTenantAccessor.TenantId = TenantA;
+        AmbientTenantAccessor.TenantId = TenantA;
 
-        var page = await _store.GetPageAsync(
-            new PageRequest { Limit = 10 },
-            CancellationToken.None
-        );
+        var page = await Store.GetPageAsync(new PageRequest { Limit = 10 }, CancellationToken.None);
 
         Assert.All(page.Items, client => Assert.Equal(TenantA, client.TenantId));
         Assert.Contains(page.Items, client => client.ClientId == ClientA);

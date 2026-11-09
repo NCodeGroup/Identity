@@ -13,9 +13,9 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
 {
     private const string TenantId = "tenant-1";
 
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly FederatedPrincipalStore _store;
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private FederatedPrincipalStore Store { get; }
 
     public FederatedPrincipalStoreTests()
     {
@@ -24,17 +24,17 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new FederatedPrincipalStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _dbContext.SeedTenant(idGenerator, TenantId);
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        Store = new FederatedPrincipalStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        DbContext.SeedTenant(idGenerator, TenantId);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedFederatedPrincipal CreatePrincipal(string principalId) =>
@@ -99,10 +99,10 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenPersisted_RoundTripsByPrincipalId()
     {
-        await _store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await Store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
-        var loaded = await _store.GetOrDefaultAsync("principal-1", CancellationToken.None);
+        var loaded = await Store.GetOrDefaultAsync("principal-1", CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal("principal-1", loaded.PrincipalId);
@@ -112,10 +112,10 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
     [Fact]
     public async Task GetOrDefaultAsync_WhenCaseDiffers_IsCaseInsensitive()
     {
-        await _store.AddAsync(CreatePrincipal("Principal-1"), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await Store.AddAsync(CreatePrincipal("Principal-1"), CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
-        var loaded = await _store.GetOrDefaultAsync("principal-1", CancellationToken.None);
+        var loaded = await Store.GetOrDefaultAsync("principal-1", CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal("Principal-1", loaded.PrincipalId);
@@ -124,7 +124,7 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
     [Fact]
     public async Task GetOrDefaultAsync_WhenMissing_ReturnsNull()
     {
-        var loaded = await _store.GetOrDefaultAsync("nope", CancellationToken.None);
+        var loaded = await Store.GetOrDefaultAsync("nope", CancellationToken.None);
 
         Assert.Null(loaded);
     }
@@ -134,11 +134,11 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
     {
         var principal = CreatePrincipal("principal-1");
         principal.IsBlocked = true;
-        await _store.AddAsync(principal, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddAsync(principal, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var loaded = await _store.GetOrDefaultAsync("principal-1", CancellationToken.None);
+        var loaded = await Store.GetOrDefaultAsync("principal-1", CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.True(loaded.IsBlocked);
@@ -147,19 +147,19 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
     [Fact]
     public async Task UpdateAsync_WhenBlocked_PersistsTheBlockState()
     {
-        await _store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var loaded = await _store.GetOrDefaultAsync("principal-1", CancellationToken.None);
+        var loaded = await Store.GetOrDefaultAsync("principal-1", CancellationToken.None);
         Assert.NotNull(loaded);
         Assert.False(loaded.IsBlocked);
         loaded.IsBlocked = true;
-        await _store.UpdateAsync(loaded, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.UpdateAsync(loaded, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var reloaded = await _store.GetOrDefaultAsync("principal-1", CancellationToken.None);
+        var reloaded = await Store.GetOrDefaultAsync("principal-1", CancellationToken.None);
 
         Assert.NotNull(reloaded);
         Assert.True(reloaded.IsBlocked);
@@ -170,14 +170,14 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
     [Fact]
     public async Task RemoveAsync_RemovesTheRoleAssignmentsOfThePrincipalInEveryTenant()
     {
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _dbContext.SeedTenant(idGenerator, "tenant-2");
-        await _store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
-        await _store.AddAsync(CreatePrincipal("principal-2"), CancellationToken.None);
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        DbContext.SeedTenant(idGenerator, "tenant-2");
+        await Store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
+        await Store.AddAsync(CreatePrincipal("principal-2"), CancellationToken.None);
         var roleAssignmentStore = new RoleAssignmentStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext
+            DbContext
         );
         await roleAssignmentStore.AddAsync(
             CreateAssignment("assign-1", TenantId, "principal-1"),
@@ -191,38 +191,38 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
             CreateAssignment("assign-3", TenantId, "principal-2"),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        await _store.RemoveAsync("principal-1", CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.RemoveAsync("principal-1", CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var remaining = await _dbContext
+        var remaining = await DbContext
             .RoleAssignments.IgnoreQueryFilters()
             .Select(entity => entity.AssignmentId)
             .OrderBy(assignmentId => assignmentId)
             .ToListAsync();
         Assert.Equal(["assign-3"], remaining);
-        Assert.Null(await _store.GetOrDefaultAsync("principal-1", CancellationToken.None));
+        Assert.Null(await Store.GetOrDefaultAsync("principal-1", CancellationToken.None));
     }
 
     [Fact]
     public async Task RemoveAsync_RemovesTheConsentsAndGrantsOfThePrincipal()
     {
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
         const string clientId = "client-1";
-        await _store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
-        await _store.AddAsync(CreatePrincipal("principal-2"), CancellationToken.None);
+        await Store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
+        await Store.AddAsync(CreatePrincipal("principal-2"), CancellationToken.None);
         var clientStore = new ClientStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext,
+            DbContext,
             TestCryptoServices.CreateResourceIdGenerator()
         );
         await clientStore.AddAsync(CreateClient(clientId), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        var consentStore = new ConsentStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        await DbContext.SaveChangesAsync();
+        var consentStore = new ConsentStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
         await consentStore.SaveAsync(
             CreateConsent(clientId, "principal-1"),
             CancellationToken.None
@@ -231,21 +231,21 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
             CreateConsent(clientId, "principal-2"),
             CancellationToken.None
         );
-        var grantStore = new GrantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        var grantStore = new GrantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
         await grantStore.AddAsync(CreateGrant(clientId, "principal-1"), CancellationToken.None);
         await grantStore.AddAsync(CreateGrant(clientId, "principal-2"), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        await _store.RemoveAsync("principal-1", CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.RemoveAsync("principal-1", CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var remainingConsents = await _dbContext
+        var remainingConsents = await DbContext
             .Consents.IgnoreQueryFilters()
             .Select(entity => entity.SubjectId)
             .ToListAsync();
-        var remainingGrants = await _dbContext
+        var remainingGrants = await DbContext
             .Grants.IgnoreQueryFilters()
             .Select(entity => entity.SubjectId)
             .ToListAsync();

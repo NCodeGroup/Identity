@@ -16,10 +16,10 @@ public sealed class ClientStoreSecretsTests : IDisposable
     private const string TenantId = "tenant-1";
     private const string ClientId = "client-1";
 
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _tenantStore;
-    private readonly ClientStore _store;
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore TenantStore { get; }
+    private ClientStore Store { get; }
 
     public ClientStoreSecretsTests()
     {
@@ -28,22 +28,22 @@ public sealed class ClientStoreSecretsTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _store = new ClientStore(
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        TenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        Store = new ClientStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext,
+            DbContext,
             TestCryptoServices.CreateResourceIdGenerator()
         );
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedSecret CreateSecret(string secretId) =>
@@ -57,15 +57,15 @@ public sealed class ClientStoreSecretsTests : IDisposable
 
     private async Task SeedClientAsync(params PersistedSecret[] secrets)
     {
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder
         {
             TenantId = TenantId,
             DisplayName = "Tenant One",
         }.Build();
 
-        await _tenantStore.AddAsync(tenant, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
         var client = new PersistedClientBuilder
         {
@@ -74,14 +74,14 @@ public sealed class ClientStoreSecretsTests : IDisposable
             Secrets = secrets,
         }.Build();
 
-        await _store.AddAsync(client, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddAsync(client, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task<PersistedSecret?> GetSecretOrDefaultAsync(string secretId)
     {
-        var secrets = await _store.GetSecretsOrDefaultAsync(ClientId, CancellationToken.None);
+        var secrets = await Store.GetSecretsOrDefaultAsync(ClientId, CancellationToken.None);
         return secrets?.Value.SingleOrDefault(x =>
             string.Equals(x.SecretId, secretId, StringComparison.Ordinal)
         );
@@ -89,7 +89,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
 
     private async Task<string> GetClientSecretsTokenAsync()
     {
-        var client = await _dbContext
+        var client = await DbContext
             .Clients.AsNoTracking()
             .SingleAsync(x => x.ClientId == ClientId);
         return client.SecretsConcurrencyToken;
@@ -102,7 +102,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     {
         await SeedClientAsync(CreateSecret("secret-1"));
 
-        var result = await _store.GetSecretsOrDefaultAsync(ClientId, CancellationToken.None);
+        var result = await Store.GetSecretsOrDefaultAsync(ClientId, CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal(ClientId, result.ClientId);
@@ -116,7 +116,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     {
         await SeedClientAsync(CreateSecret("secret-1"));
 
-        var result = await _store.GetSecretsOrDefaultAsync("missing", CancellationToken.None);
+        var result = await Store.GetSecretsOrDefaultAsync("missing", CancellationToken.None);
 
         Assert.Null(result);
     }
@@ -130,7 +130,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     {
         await SeedClientAsync(CreateSecret("secret-1"), CreateSecret("secret-2"));
 
-        var result = await _store.GetSecretOrDefaultAsync(
+        var result = await Store.GetSecretOrDefaultAsync(
             ClientId,
             "secret-2",
             CancellationToken.None
@@ -147,7 +147,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     {
         await SeedClientAsync(CreateSecret("secret-1"));
 
-        var result = await _store.GetSecretOrDefaultAsync(
+        var result = await Store.GetSecretOrDefaultAsync(
             ClientId,
             "missing",
             CancellationToken.None
@@ -161,7 +161,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     {
         await SeedClientAsync(CreateSecret("secret-1"));
 
-        var result = await _store.GetSecretOrDefaultAsync(
+        var result = await Store.GetSecretOrDefaultAsync(
             "missing",
             "secret-1",
             CancellationToken.None
@@ -181,8 +181,8 @@ public sealed class ClientStoreSecretsTests : IDisposable
         var tokenBefore = await GetClientSecretsTokenAsync();
 
         var added = CreateSecret("secret-2");
-        await _store.AddSecretAsync(ClientId, added, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await Store.AddSecretAsync(ClientId, added, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
         Assert.False(string.IsNullOrEmpty(added.ConcurrencyToken));
 
@@ -199,7 +199,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
         await SeedClientAsync(CreateSecret("secret-1"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.AddSecretAsync(ClientId, CreateSecret("secret-1"), CancellationToken.None)
+            await Store.AddSecretAsync(ClientId, CreateSecret("secret-1"), CancellationToken.None)
         );
     }
 
@@ -219,9 +219,9 @@ public sealed class ClientStoreSecretsTests : IDisposable
             KeySizeBits = 2048,
             EncodedValue = "encoded-value",
         }.Build();
-        await _store.AddSecretAsync(ClientId, added, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddSecretAsync(ClientId, added, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
         var reloaded = await GetSecretOrDefaultAsync("secret-2");
 
@@ -258,8 +258,8 @@ public sealed class ClientStoreSecretsTests : IDisposable
             EncodedValue = current.EncodedValue,
         }.Build();
 
-        await _store.UpdateSecretAsync(ClientId, updated, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await Store.UpdateSecretAsync(ClientId, updated, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
         var reloaded = await GetSecretOrDefaultAsync("secret-1");
         Assert.NotNull(reloaded);
@@ -278,7 +278,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
         stale.ConcurrencyToken = "stale-token";
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
-            await _store.UpdateSecretAsync(ClientId, stale, CancellationToken.None)
+            await Store.UpdateSecretAsync(ClientId, stale, CancellationToken.None)
         );
     }
 
@@ -288,11 +288,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
         await SeedClientAsync(CreateSecret("secret-1"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.UpdateSecretAsync(
-                ClientId,
-                CreateSecret("missing"),
-                CancellationToken.None
-            )
+            await Store.UpdateSecretAsync(ClientId, CreateSecret("missing"), CancellationToken.None)
         );
     }
 
@@ -306,8 +302,8 @@ public sealed class ClientStoreSecretsTests : IDisposable
         await SeedClientAsync(CreateSecret("secret-1"), CreateSecret("secret-2"));
         var tokenBefore = await GetClientSecretsTokenAsync();
 
-        var removed = await _store.RemoveSecretAsync(ClientId, "secret-1", CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        var removed = await Store.RemoveSecretAsync(ClientId, "secret-1", CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
         Assert.True(removed);
 
@@ -323,7 +319,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     {
         await SeedClientAsync(CreateSecret("secret-1"));
 
-        var removed = await _store.RemoveSecretAsync(ClientId, "missing", CancellationToken.None);
+        var removed = await Store.RemoveSecretAsync(ClientId, "missing", CancellationToken.None);
 
         Assert.False(removed);
     }

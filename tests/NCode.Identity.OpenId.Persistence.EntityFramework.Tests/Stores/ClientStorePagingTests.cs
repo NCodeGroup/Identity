@@ -14,36 +14,36 @@ public sealed class ClientStorePagingTests : IDisposable
 {
     private const string TenantId = "tenant-1";
 
-    private readonly SwitchableAmbientTenantAccessor _ambient = new();
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _tenantStore;
-    private readonly ClientStore _store;
+    private SwitchableAmbientTenantAccessor Ambient { get; } = new();
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore TenantStore { get; }
+    private ClientStore Store { get; }
 
     public ClientStorePagingTests()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSingleton<IAmbientTenantAccessor>(_ambient);
+        serviceCollection.AddSingleton<IAmbientTenantAccessor>(Ambient);
         serviceCollection.AddTestOpenIdDbContext(options =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _store = new ClientStore(
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        TenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        Store = new ClientStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext,
+            DbContext,
             TestCryptoServices.CreateResourceIdGenerator()
         );
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedClient CreateClient(
@@ -62,17 +62,17 @@ public sealed class ClientStorePagingTests : IDisposable
 
     private async Task SeedAsync(int count)
     {
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder { TenantId = TenantId }.Build();
-        await _tenantStore.AddAsync(tenant, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
         for (var index = 1; index <= count; index++)
         {
-            await _store.AddAsync(CreateClient($"client-{index}"), CancellationToken.None);
+            await Store.AddAsync(CreateClient($"client-{index}"), CancellationToken.None);
         }
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class ClientStorePagingTests : IDisposable
 
         do
         {
-            var page = await _store.GetPageAsync(
+            var page = await Store.GetPageAsync(
                 new PageRequest { Cursor = cursor, Limit = 2 },
                 CancellationToken.None
             );
@@ -106,10 +106,7 @@ public sealed class ClientStorePagingTests : IDisposable
     {
         await SeedAsync(3);
 
-        var page = await _store.GetPageAsync(
-            new PageRequest { Limit = 10 },
-            CancellationToken.None
-        );
+        var page = await Store.GetPageAsync(new PageRequest { Limit = 10 }, CancellationToken.None);
 
         Assert.Equal(3, page.Items.Count);
         Assert.Null(page.NextCursor);
@@ -120,7 +117,7 @@ public sealed class ClientStorePagingTests : IDisposable
     {
         await SeedAsync(3);
 
-        var page = await _store.GetPageAsync(
+        var page = await Store.GetPageAsync(
             new PageRequest { Cursor = "not-a-valid-cursor", Limit = 10 },
             CancellationToken.None
         );
@@ -131,10 +128,7 @@ public sealed class ClientStorePagingTests : IDisposable
     [Fact]
     public async Task GetPageAsync_WhenEmpty_ReturnsEmptyPageAndNullCursor()
     {
-        var page = await _store.GetPageAsync(
-            new PageRequest { Limit = 10 },
-            CancellationToken.None
-        );
+        var page = await Store.GetPageAsync(new PageRequest { Limit = 10 }, CancellationToken.None);
 
         Assert.Empty(page.Items);
         Assert.Null(page.NextCursor);
@@ -153,7 +147,7 @@ public sealed class ClientStorePagingTests : IDisposable
 
         do
         {
-            var page = await _store.GetSettingsPageAsync(
+            var page = await Store.GetSettingsPageAsync(
                 new PageRequest { Cursor = cursor, Limit = 2 },
                 CancellationToken.None
             );
@@ -182,13 +176,13 @@ public sealed class ClientStorePagingTests : IDisposable
     {
         await SeedAsync(3);
 
-        var page = await _store.GetSettingsPageAsync(
+        var page = await Store.GetSettingsPageAsync(
             new PageRequest { Limit = 10 },
             CancellationToken.None
         );
 
         Assert.Equal(3, page.Items.Count);
-        Assert.Empty(_dbContext.ChangeTracker.Entries());
+        Assert.Empty(DbContext.ChangeTracker.Entries());
     }
 
     #endregion
@@ -199,32 +193,32 @@ public sealed class ClientStorePagingTests : IDisposable
     public async Task GetPageByOwningNodeAsync_ListsOnlyTheClientsTheNodeOwns()
     {
         await SeedAsync(1);
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateClient("team-client-1", owningNodeType: "team", owningNodeId: "team-1"),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateClient("team-client-2", owningNodeType: "team", owningNodeId: "TEAM-1"),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateClient("other-team-client", owningNodeType: "team", owningNodeId: "team-2"),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateClient("platform-client", owningNodeType: "platform", owningNodeId: "platform"),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var teamPage = await _store.GetPageByOwningNodeAsync(
+        var teamPage = await Store.GetPageByOwningNodeAsync(
             "team",
             "team-1",
             new PageRequest { Limit = 10 },
             CancellationToken.None
         );
-        var platformPage = await _store.GetPageByOwningNodeAsync(
+        var platformPage = await Store.GetPageByOwningNodeAsync(
             "platform",
             "platform",
             new PageRequest { Limit = 10 },
@@ -246,16 +240,16 @@ public sealed class ClientStorePagingTests : IDisposable
     public async Task GetByPrincipalOrDefaultAsync_FindsTheClientInAnotherTenant()
     {
         await SeedAsync(1);
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _dbContext.SeedTenant(idGenerator, "tenant-2");
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        DbContext.SeedTenant(idGenerator, "tenant-2");
         var otherClient = CreateClient("other-client", tenantId: "tenant-2");
-        await _store.AddAsync(otherClient, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddAsync(otherClient, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
         var principalId = Assert.IsType<string>(otherClient.PrincipalId);
 
-        using var scope = _ambient.BeginScope(TenantId);
-        var loaded = await _store.GetByPrincipalOrDefaultAsync(principalId, CancellationToken.None);
+        using var scope = Ambient.BeginScope(TenantId);
+        var loaded = await Store.GetByPrincipalOrDefaultAsync(principalId, CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal("tenant-2", loaded.TenantId);
@@ -268,7 +262,7 @@ public sealed class ClientStorePagingTests : IDisposable
     {
         await SeedAsync(2);
 
-        var loaded = await _store.GetByPrincipalOrDefaultAsync(
+        var loaded = await Store.GetByPrincipalOrDefaultAsync(
             "unknown-principal",
             CancellationToken.None
         );

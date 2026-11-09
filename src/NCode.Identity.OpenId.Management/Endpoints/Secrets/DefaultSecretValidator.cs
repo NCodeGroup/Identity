@@ -80,17 +80,6 @@ internal sealed class DefaultSecretValidator(
     private IRemoteKeyDescriptorCatalog RemoteKeyDescriptorCatalog { get; } =
         remoteKeyDescriptorCatalog;
 
-    private bool IsDescribed(string providerName) =>
-        RemoteKeyDescriptorCatalog.Providers.Any(provider =>
-            string.Equals(provider.Name, providerName, StringComparison.Ordinal)
-        );
-
-    private bool CreatesKeys(string providerName) =>
-        RemoteKeyDescriptorCatalog.Providers.Any(provider =>
-            string.Equals(provider.Name, providerName, StringComparison.Ordinal)
-            && provider.CreatesKeys
-        );
-
     /// <inheritdoc />
     // See ADR-1389 and ADR-1392.
     public SecretCreateValidation ValidateCreate(
@@ -168,11 +157,9 @@ internal sealed class DefaultSecretValidator(
             Curve = request.Curve,
         };
         var validation = ValidateRemoteKey(selector);
-        if (validation.IsValid && !CreatesKeys(selector.Provider))
+        if (validation.IsValid && !RemoteKeyDescriptorCatalog.CreatesKeys(selector.Provider))
         {
-            return Invalid(
-                $"The remote key provider '{selector.Provider}' creates no keys: it has no key-creation location."
-            );
+            return Invalid(RemoteKeyRefusals.CreatesNoKeys(selector.Provider));
         }
 
         return validation;
@@ -194,7 +181,7 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        if (!IsDescribed(selector.Provider))
+        if (!RemoteKeyDescriptorCatalog.TryGetProvider(selector.Provider, out _))
         {
             return Invalid(DescribeUnregisteredProvider(selector.Provider));
         }

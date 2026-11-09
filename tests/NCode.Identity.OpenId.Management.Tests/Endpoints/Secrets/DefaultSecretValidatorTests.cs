@@ -1108,10 +1108,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
-        Assert.Equal(
-            "The remote key provider 'aws-kms' creates no keys: it has no key-creation location.",
-            error.Detail
-        );
+        Assert.Equal(RemoteKeyRefusals.CreatesNoKeys(ProviderName), error.Detail);
     }
 
     [Fact]

@@ -57,16 +57,19 @@ internal class ClientGrantApiEndpointHandler(
         grants
             .MapGet("", ListAsync)
             .Produces<CollectionResource<ClientGrantResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
         grants
             .MapPost("", CreateAsync)
             .Produces<ClientGrantResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         grants
             .MapGet("/{resourceServerId}", GetAsync)
@@ -77,10 +80,12 @@ internal class ClientGrantApiEndpointHandler(
         grants
             .MapPut("/{resourceServerId}", UpdateAsync)
             .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         grants
             .MapDelete("/{resourceServerId}", DeleteAsync)
@@ -140,6 +145,7 @@ internal class ClientGrantApiEndpointHandler(
     /// Gets a client's grant for a resource server.
     /// </summary>
     /// <response code="200">The requested grant.</response>
+    /// <response code="404">The client has no grant for the resource server.</response>
     [EndpointName("api/clients/grants/get")]
     internal virtual async ValueTask<IResult> GetAsync(
         HttpContext httpContext,
@@ -168,7 +174,9 @@ internal class ClientGrantApiEndpointHandler(
     /// Grants a client access to a resource server with a set of scopes.
     /// </summary>
     /// <response code="201">The created grant.</response>
-    /// <response code="422">The request references an unknown resource server or scopes it does not define.</response>
+    /// <response code="404">The resource server does not exist.</response>
+    /// <response code="409">The client already has a grant for the resource server.</response>
+    /// <response code="422">The request names scopes the resource server does not define.</response>
     [EndpointName("api/clients/grants/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
         HttpContext httpContext,
@@ -226,6 +234,7 @@ internal class ClientGrantApiEndpointHandler(
     /// Replaces the scopes of a client's grant for a resource server.
     /// </summary>
     /// <response code="204">The grant was updated.</response>
+    /// <response code="404">The client has no grant for the resource server, or the resource server does not exist.</response>
     /// <response code="422">The request references scopes the resource server does not define.</response>
     [EndpointName("api/clients/grants/update")]
     internal virtual async ValueTask<IResult> UpdateAsync(
@@ -284,6 +293,7 @@ internal class ClientGrantApiEndpointHandler(
     /// Revokes a client's grant for a resource server.
     /// </summary>
     /// <response code="204">The grant was deleted.</response>
+    /// <response code="404">The client has no grant for the resource server.</response>
     [EndpointName("api/clients/grants/delete")]
     internal virtual async ValueTask<IResult> DeleteAsync(
         HttpContext httpContext,

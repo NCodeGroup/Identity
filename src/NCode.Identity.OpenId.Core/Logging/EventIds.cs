@@ -97,4 +97,6 @@ internal static class EventIds
     public const int RemoteKeyAuditPublishFailed = Base + 43;
 
     public const int RemoteKeyOrphanDestroyed = Base + 44;
+
+    public const int RemoteKeySweepPassFailed = Base + 45;
 }

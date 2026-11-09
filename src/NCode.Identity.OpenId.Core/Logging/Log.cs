@@ -440,4 +440,11 @@ internal static partial class Log
         string keyId,
         string groupName
     );
+
+    [LoggerMessage(
+        EventId = EventIds.RemoteKeySweepPassFailed,
+        Level = LogLevel.Warning,
+        Message = "The remote key sweep pass failed; it runs again at the next interval"
+    )]
+    internal static partial void RemoteKeySweepPassFailed(this ILogger logger, Exception exception);
 }

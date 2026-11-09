@@ -13,7 +13,7 @@ namespace NCode.Identity.Bff.Tokens;
 // frontend. See ADR-1381.
 internal class BffClientTokenRequirement(IBffClientTokenService service) : IBffTokenRequirement
 {
-    private readonly IBffClientTokenService _service = service;
+    private IBffClientTokenService Service { get; } = service;
 
     /// <inheritdoc />
     public string Name => BffTokenRequirementNames.Client;
@@ -36,6 +36,6 @@ internal class BffClientTokenRequirement(IBffClientTokenService service) : IBffT
                 BffTokenFailureReasons.SessionRequired
             );
 
-        return await _service.GetAccessTokenAsync(scope, request, cancellationToken);
+        return await Service.GetAccessTokenAsync(scope, request, cancellationToken);
     }
 }

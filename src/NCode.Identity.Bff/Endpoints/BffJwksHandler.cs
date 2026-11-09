@@ -24,9 +24,9 @@ internal class BffJwksHandler(
 {
     private const string JsonContentType = "application/json; charset=utf-8";
 
-    private readonly IClientKeyRingProvider _keyRingProvider = keyRingProvider;
-    private readonly ISecretKeyTypeCatalog _secretKeyTypeCatalog = secretKeyTypeCatalog;
-    private readonly BffFrontendCatalog _frontends = frontends;
+    private IClientKeyRingProvider KeyRingProvider { get; } = keyRingProvider;
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+    private BffFrontendCatalog Frontends { get; } = frontends;
 
     /// <summary>
     /// Writes the public keys of the client-authentication key ring.
@@ -37,7 +37,7 @@ internal class BffJwksHandler(
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        var frontend = _frontends.GetRequired(httpContext);
+        var frontend = Frontends.GetRequired(httpContext);
         var keyRing = frontend.Options.ClientAuthentication.KeyRing;
         if (string.IsNullOrWhiteSpace(keyRing))
             throw new InvalidOperationException(
@@ -46,10 +46,10 @@ internal class BffJwksHandler(
 
         // Each key's descriptor exports its public JWK; a key with no public part, such as a shared secret, is omitted.
         var keys = new List<JsonWebKey>();
-        foreach (var secretKey in _keyRingProvider.GetKeyRing(keyRing))
+        foreach (var secretKey in KeyRingProvider.GetKeyRing(keyRing))
         {
             if (
-                _secretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor)
+                SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor)
                 && descriptor.ExportPublicKey(secretKey) is { } exported
             )
                 keys.Add(exported.Jwk);

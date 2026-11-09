@@ -26,12 +26,12 @@ internal class BffLoginHandler
     private const string ReturnUrlParameterName = "returnUrl";
     private const string DefaultReturnUrl = "/";
 
-    private readonly BffFrontendCatalog _frontends;
-    private readonly IAuthorizationRequestClient _authorizationRequestClient;
-    private readonly BffLoginTransactionService _transactionService;
-    private readonly BffCookies _cookies;
-    private readonly IBffAuditRecorder _auditRecorder;
-    private readonly TimeProvider _timeProvider;
+    private BffFrontendCatalog Frontends { get; }
+    private IAuthorizationRequestClient AuthorizationRequestClient { get; }
+    private BffLoginTransactionService TransactionService { get; }
+    private BffCookies Cookies { get; }
+    private IBffAuditRecorder AuditRecorder { get; }
+    private TimeProvider TimeProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BffLoginHandler"/> class.
@@ -45,12 +45,12 @@ internal class BffLoginHandler
         TimeProvider timeProvider
     )
     {
-        _frontends = frontends;
-        _authorizationRequestClient = authorizationRequestClient;
-        _transactionService = transactionService;
-        _cookies = cookies;
-        _auditRecorder = auditRecorder;
-        _timeProvider = timeProvider;
+        Frontends = frontends;
+        AuthorizationRequestClient = authorizationRequestClient;
+        TransactionService = transactionService;
+        Cookies = cookies;
+        AuditRecorder = auditRecorder;
+        TimeProvider = timeProvider;
     }
 
     /// <summary>
@@ -61,7 +61,7 @@ internal class BffLoginHandler
     {
         var request = httpContext.Request;
         var cancellationToken = httpContext.RequestAborted;
-        var frontend = _frontends.GetRequired(httpContext);
+        var frontend = Frontends.GetRequired(httpContext);
         var options = frontend.Options;
 
         httpContext.Response.SetNoStore();
@@ -150,7 +150,7 @@ internal class BffLoginHandler
         AuthorizationRequestResult result;
         try
         {
-            result = await _authorizationRequestClient.CreateAuthorizationUriAsync(
+            result = await AuthorizationRequestClient.CreateAuthorizationUriAsync(
                 registration,
                 authorizationRequest,
                 cancellationToken
@@ -185,8 +185,8 @@ internal class BffLoginHandler
             MaxAge = parsedMaxAge,
         };
         var expiresWhen =
-            _timeProvider.GetUtcNowWithPrecisionInSeconds() + options.Session.LoginLifetime;
-        await _transactionService.StoreAsync(
+            TimeProvider.GetUtcNowWithPrecisionInSeconds() + options.Session.LoginLifetime;
+        await TransactionService.StoreAsync(
             state,
             initiator,
             transaction,
@@ -194,7 +194,7 @@ internal class BffLoginHandler
             cancellationToken
         );
 
-        _cookies.SetLogin(httpContext.Response, frontend, initiator);
+        Cookies.SetLogin(httpContext.Response, frontend, initiator);
         httpContext.Response.Redirect(result.AuthorizationUri.AbsoluteUri);
     }
 
@@ -204,7 +204,7 @@ internal class BffLoginHandler
         string reason
     )
     {
-        await _auditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
+        await AuditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
         var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, options, reason);
         httpContext.Response.Redirect(errorUrl);
     }

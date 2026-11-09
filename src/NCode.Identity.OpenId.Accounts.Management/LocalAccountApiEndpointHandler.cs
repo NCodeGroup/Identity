@@ -107,10 +107,12 @@ internal class LocalAccountApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         accounts
             .MapGet("", ListLocalAccountsAsync)
             .Produces<CollectionResource<LocalAccountResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
         accounts
@@ -122,11 +124,13 @@ internal class LocalAccountApiEndpointHandler(
         accounts
             .MapPatch("/{localAccountId}", UpdateLocalAccountAsync)
             .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         accounts
             .MapDelete("/{localAccountId}", DeleteLocalAccountAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -156,7 +160,8 @@ internal class LocalAccountApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
 
         accounts
             .MapGet("/{localAccountId}/claims", GetClaimsAsync)
@@ -167,10 +172,12 @@ internal class LocalAccountApiEndpointHandler(
         accounts
             .MapPut("/{localAccountId}/claims", SetClaimsAsync)
             .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
 
         accounts
             .MapGet("/{localAccountId}/metadata", GetMetadataAsync)
@@ -181,10 +188,12 @@ internal class LocalAccountApiEndpointHandler(
         accounts
             .MapPatch("/{localAccountId}/metadata", SetMetadataAsync)
             .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
     }
 
     internal virtual LocalAccountResource ToLocalAccountResource(PersistedLocalAccount account) =>
@@ -199,6 +208,13 @@ internal class LocalAccountApiEndpointHandler(
             ConcurrencyToken = account.ConcurrencyToken,
         };
 
+    /// <summary>
+    /// Creates a local account in a tenant, together with the principal and the self-issued identity that it resolves to.
+    /// </summary>
+    /// <response code="201">The created local account.</response>
+    /// <response code="400">The password does not meet the tenant's password policy.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">A local account with the username already exists in the tenant.</response>
     internal virtual async ValueTask<IResult> CreateLocalAccountAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -331,6 +347,10 @@ internal class LocalAccountApiEndpointHandler(
         );
     }
 
+    /// <summary>
+    /// Lists the local accounts of a tenant, one page at a time.
+    /// </summary>
+    /// <response code="200">A page of local accounts.</response>
     internal virtual async ValueTask<IResult> ListLocalAccountsAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -359,6 +379,11 @@ internal class LocalAccountApiEndpointHandler(
         );
     }
 
+    /// <summary>
+    /// Gets a local account of a tenant.
+    /// </summary>
+    /// <response code="200">The local account.</response>
+    /// <response code="404">The local account does not exist.</response>
     internal virtual async ValueTask<IResult> GetLocalAccountAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -382,6 +407,12 @@ internal class LocalAccountApiEndpointHandler(
         );
     }
 
+    /// <summary>
+    /// Updates the username and the email of a local account.
+    /// </summary>
+    /// <response code="204">The local account was updated.</response>
+    /// <response code="404">The local account does not exist.</response>
+    /// <response code="409">Another local account in the tenant already has the username.</response>
     internal virtual async ValueTask<IResult> UpdateLocalAccountAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -441,6 +472,11 @@ internal class LocalAccountApiEndpointHandler(
         return TypedResults.NoContent();
     }
 
+    /// <summary>
+    /// Deletes a local account and ends the sessions of its principal.
+    /// </summary>
+    /// <response code="204">The local account was deleted.</response>
+    /// <response code="404">The local account does not exist.</response>
     internal virtual async ValueTask<IResult> DeleteLocalAccountAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -537,6 +573,11 @@ internal class LocalAccountApiEndpointHandler(
         return TypedResults.NoContent();
     }
 
+    /// <summary>
+    /// Enables a local account.
+    /// </summary>
+    /// <response code="204">The local account was enabled.</response>
+    /// <response code="404">The local account does not exist.</response>
     internal virtual ValueTask<IResult> EnableLocalAccountAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -544,6 +585,11 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     ) => SetEnabledAsync(httpContext, tenantId, localAccountId, isEnabled: true, cancellationToken);
 
+    /// <summary>
+    /// Disables a local account and ends the sessions of its principal.
+    /// </summary>
+    /// <response code="204">The local account was disabled.</response>
+    /// <response code="404">The local account does not exist.</response>
     internal virtual ValueTask<IResult> DisableLocalAccountAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -619,6 +665,12 @@ internal class LocalAccountApiEndpointHandler(
         return TypedResults.NoContent();
     }
 
+    /// <summary>
+    /// Sets the password of a local account and ends the sessions of its principal.
+    /// </summary>
+    /// <response code="204">The password was set.</response>
+    /// <response code="400">The password does not meet the tenant's password policy.</response>
+    /// <response code="404">The local account or the tenant does not exist.</response>
     internal virtual async ValueTask<IResult> ResetPasswordAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -706,6 +758,11 @@ internal class LocalAccountApiEndpointHandler(
         return TypedResults.NoContent();
     }
 
+    /// <summary>
+    /// Gets the claims of a local account.
+    /// </summary>
+    /// <response code="200">The claims of the local account.</response>
+    /// <response code="404">The local account does not exist.</response>
     internal virtual async ValueTask<IResult> GetClaimsAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -729,6 +786,11 @@ internal class LocalAccountApiEndpointHandler(
         );
     }
 
+    /// <summary>
+    /// Replaces the claims of a local account.
+    /// </summary>
+    /// <response code="204">The claims were replaced.</response>
+    /// <response code="404">The local account does not exist.</response>
     internal virtual async ValueTask<IResult> SetClaimsAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -777,6 +839,11 @@ internal class LocalAccountApiEndpointHandler(
         return TypedResults.NoContent();
     }
 
+    /// <summary>
+    /// Gets the profile and system metadata of the principal of a local account.
+    /// </summary>
+    /// <response code="200">The metadata of the principal.</response>
+    /// <response code="404">The local account does not exist, or it has no principal.</response>
     internal virtual async ValueTask<IResult> GetMetadataAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -798,6 +865,11 @@ internal class LocalAccountApiEndpointHandler(
         );
     }
 
+    /// <summary>
+    /// Sets the profile and system metadata that the request supplies on the principal of a local account.
+    /// </summary>
+    /// <response code="204">The metadata was set.</response>
+    /// <response code="404">The local account does not exist, or it has no principal.</response>
     internal virtual async ValueTask<IResult> SetMetadataAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,

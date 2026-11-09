@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
@@ -111,7 +112,108 @@ public class ManagementProblemResponseMiddlewareTests
         Assert.Equal(0, httpContext.Response.Body.Length);
     }
 
+    [Fact]
+    public async Task InvokeAsync_WhenAManagementErrorHasAContentLength_LeavesTheResponseUntouched()
+    {
+        var httpContext = CreateHttpContext("/api/x");
+        var middleware = new ManagementProblemResponseMiddleware(context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            context.Response.ContentLength = 0;
+            return Task.CompletedTask;
+        });
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status404NotFound, httpContext.Response.StatusCode);
+        Assert.Null(httpContext.Response.ContentType);
+        Assert.Equal(0, httpContext.Response.Body.Length);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WhenTheResponseHasStarted_LeavesTheResponseUntouched()
+    {
+        var httpContext = CreateHttpContext("/api/x");
+        httpContext.Features.Set<IHttpResponseFeature>(
+            new StartedResponseFeature { Body = httpContext.Response.Body }
+        );
+        var middleware = new ManagementProblemResponseMiddleware(context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        });
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status404NotFound, httpContext.Response.StatusCode);
+        Assert.Null(httpContext.Response.ContentType);
+        Assert.Equal(0, httpContext.Response.Body.Length);
+    }
+
+    [Theory]
+    [InlineData(StatusCodes.Status200OK)]
+    [InlineData(StatusCodes.Status304NotModified)]
+    [InlineData(StatusCodes.Status308PermanentRedirect)]
+    public async Task InvokeAsync_WhenAManagementResponseIsBelowBadRequest_LeavesTheResponseUntouched(
+        int statusCode
+    )
+    {
+        var httpContext = CreateHttpContext("/api/x");
+        var middleware = new ManagementProblemResponseMiddleware(context =>
+        {
+            context.Response.StatusCode = statusCode;
+            return Task.CompletedTask;
+        });
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.Equal(statusCode, httpContext.Response.StatusCode);
+        Assert.Null(httpContext.Response.ContentType);
+        Assert.Equal(0, httpContext.Response.Body.Length);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WhenTheRequestIsTheManagementPrefixItself_AnswersAProblem()
+    {
+        var httpContext = CreateHttpContext("/api");
+        var middleware = new ManagementProblemResponseMiddleware(context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        });
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status404NotFound, httpContext.Response.StatusCode);
+        Assert.StartsWith("application/problem+json", httpContext.Response.ContentType);
+        Assert.Equal(StatusCodes.Status404NotFound, await ReadStatusAsync(httpContext));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WhenAHeadRequestEndsWithABodilessError_AnswersAProblem()
+    {
+        // The server drops the body of a HEAD response, so the middleware still describes the error.
+        var httpContext = CreateHttpContext("/api/x");
+        httpContext.Request.Method = HttpMethods.Head;
+        var middleware = new ManagementProblemResponseMiddleware(context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        });
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status404NotFound, httpContext.Response.StatusCode);
+        Assert.StartsWith("application/problem+json", httpContext.Response.ContentType);
+        Assert.Equal(StatusCodes.Status404NotFound, await ReadStatusAsync(httpContext));
+    }
+
     #endregion
+
+    private sealed class StartedResponseFeature : HttpResponseFeature
+    {
+        public override bool HasStarted => true;
+    }
 
     private static async Task<int> ReadStatusAsync(HttpContext httpContext)
     {

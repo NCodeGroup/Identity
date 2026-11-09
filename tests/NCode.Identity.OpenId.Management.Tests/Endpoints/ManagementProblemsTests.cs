@@ -7,6 +7,20 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 public class ManagementProblemsTests
 {
+    #region AuthenticationRequired Tests
+
+    [Fact]
+    public void AuthenticationRequired_Always_ReturnsAnUnauthorizedProblem()
+    {
+        var result = ManagementProblems.AuthenticationRequired();
+
+        Assert.Equal(StatusCodes.Status401Unauthorized, result.StatusCode);
+        Assert.Equal(StatusCodes.Status401Unauthorized, result.ProblemDetails.Status);
+        Assert.Equal("Authentication is required.", result.ProblemDetails.Detail);
+    }
+
+    #endregion
+
     #region ResourceNotFound Tests
 
     [Fact]

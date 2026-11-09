@@ -77,6 +77,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .ProducesProblem(StatusCodes.Status502BadGateway);
 
         tenants
@@ -88,6 +89,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .ProducesProblem(StatusCodes.Status502BadGateway);
     }
 
@@ -100,8 +102,6 @@ internal class TenantRemoteSecretApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created secret.</response>
     /// <response code="400">The request is not coherent or the key could not be created from its parameters.</response>
-    /// <response code="401">The caller is anonymous.</response>
-    /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The tenant does not exist.</response>
     /// <response code="409">The tenant already holds a secret with the generated identifier.</response>
     /// <response code="412">Another request changed the tenant's secrets after this request read them; the created key is destroyed.</response>
@@ -221,8 +221,6 @@ internal class TenantRemoteSecretApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The bound secret.</response>
     /// <response code="400">The request is not coherent, the provider refuses the key, its public half is not a key of the request's type, size and curve, or the key does not prove it holds the private half.</response>
-    /// <response code="401">The caller is anonymous.</response>
-    /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The tenant does not exist.</response>
     /// <response code="409">The tenant already holds a secret with the generated identifier or the same <c>kid</c>.</response>
     /// <response code="412">Another request changed the tenant's secrets after this request read them.</response>

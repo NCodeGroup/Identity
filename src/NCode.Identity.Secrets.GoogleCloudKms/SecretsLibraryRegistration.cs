@@ -16,8 +16,9 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// <summary>
 /// Provides opt-in extension methods that register the Google Cloud Key Management Service remote key provider on the
 /// secrets-library builder, beside the key wrapper <c>DefaultRegistration</c> registers on the
-/// secret-persistence-library builder (ADR-1069).
+/// secret-persistence-library builder.
 /// </summary>
+// See ADR-1069.
 [PublicAPI]
 public static class SecretsLibraryRegistration
 {

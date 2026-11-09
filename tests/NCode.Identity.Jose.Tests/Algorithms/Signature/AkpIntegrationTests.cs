@@ -22,8 +22,8 @@ public class AkpIntegrationTests
 {
     #region Helpers
 
-    private static readonly SecretKeyMaterialProtector Protect = bytes =>
-        Convert.ToBase64String(bytes);
+    private static SecretKeyMaterialProtector Protect { get; } =
+        bytes => Convert.ToBase64String(bytes);
 
     private static AkpSecretKeyTypeDescriptor CreateDescriptor() =>
         new(new IdentityDataProtectorFactory());

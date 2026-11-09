@@ -14,7 +14,7 @@ namespace NCode.Identity.Jose.Tests.Credentials;
 
 public class DefaultCredentialSelectorTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
 
     private static EccSecretKey CreateKey(ECCurve curve, string keyId) =>
         CreateKey(curve, new KeyMetadata { KeyId = keyId });

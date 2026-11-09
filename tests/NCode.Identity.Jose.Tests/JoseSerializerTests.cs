@@ -222,7 +222,7 @@ public class JoseSerializerTests : BaseTests
         }
     }
 
-    private static readonly string[] expected = new[] { "b64" };
+    private static string[] expected { get; } = new[] { "b64" };
 
     [Theory]
     [MemberData(nameof(EncodeDecodeJweTestData))]

@@ -19,26 +19,28 @@ public class RemoteKeyJweTests : BaseTests
     private const string RemoteKeyId = "remote-key-1";
     private const string RemoteKid = "remote-kid";
 
-    private static readonly RemoteDecryptionAlgorithm RsaOaep256Row = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "RSA-OAEP-256",
-        SecretType = "rsa",
-        KeySizeBits = 2048,
-        KeySpec = "RSA_2048",
-        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
-    };
+    private static RemoteDecryptionAlgorithm RsaOaep256Row { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
 
-    private static readonly RemoteKeyAgreementAlgorithm EcdhEsA256KwRow = new()
-    {
-        Provider = RemoteKeyProviderNames.AwsKms,
-        Algorithm = "ECDH-ES+A256KW",
-        SecretType = "ecc",
-        KeySizeBits = 256,
-        Curve = "P-256",
-        KeySpec = "ECC_NIST_P256",
-        KeyAgreementAlgorithm = "ECDH",
-    };
+    private static RemoteKeyAgreementAlgorithm EcdhEsA256KwRow { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ECDH-ES+A256KW",
+            SecretType = "ecc",
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            KeyAgreementAlgorithm = "ECDH",
+        };
 
     private ServiceProvider ServiceProvider { get; }
 

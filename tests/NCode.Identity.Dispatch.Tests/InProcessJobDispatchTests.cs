@@ -14,13 +14,14 @@ namespace NCode.Identity.Dispatch;
 
 public class InProcessJobDispatchTests
 {
-    private static readonly DispatchOptions FastOptions = new()
-    {
-        MaxAttempts = 3,
-        InitialBackoff = TimeSpan.FromMilliseconds(1),
-        BackoffFactor = 1.0,
-        MaxBackoff = TimeSpan.FromMilliseconds(5),
-    };
+    private static DispatchOptions FastOptions { get; } =
+        new()
+        {
+            MaxAttempts = 3,
+            InitialBackoff = TimeSpan.FromMilliseconds(1),
+            BackoffFactor = 1.0,
+            MaxBackoff = TimeSpan.FromMilliseconds(5),
+        };
 
     private sealed record RecordingJob : IDispatchJob
     {

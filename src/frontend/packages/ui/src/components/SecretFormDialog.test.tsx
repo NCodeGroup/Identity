@@ -972,16 +972,15 @@ describe('SecretFormDialog', () => {
     });
     fireEvent.click(screen.getByTestId('secret-form-submit'));
 
-    expect(onSubmit).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({
-        secretType: 'rsa',
-        keySizeBits: 3072,
-        curve: '',
-        algorithm: 'RSA-OAEP-256',
-        custody: 'aws-kms',
-        expiresWhen: '2027-01-01T00:00',
-      }),
-    );
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      secretType: 'rsa',
+      keySizeBits: 3072,
+      curve: '',
+      use: 'enc',
+      algorithm: 'RSA-OAEP-256',
+      custody: 'aws-kms',
+      expiresWhen: '2027-01-01T00:00',
+    });
   });
 
   it('blocks a remote create until an algorithm is chosen and the expiry is given', () => {

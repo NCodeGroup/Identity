@@ -107,6 +107,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
             SecretId = "secret-1",
             Algorithm = row,
             GroupName = "ncid-group-1",
+            Deployment = "deployment-1",
         };
 
     private static RemotePublicKeyRequest CreatePublicKeyRequest(
@@ -273,11 +274,12 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     )
     {
         Assert.Equal(expectedOperations, options.KeyOperations);
-        Assert.Equal(4, options.Tags.Count);
+        Assert.Equal(5, options.Tags.Count);
         Assert.Equal("tenant-1", options.Tags["ncode-identity-owner"]);
         Assert.Equal("secret-1", options.Tags["ncode-identity-secret"]);
         Assert.Equal(request.Algorithm.Algorithm, options.Tags["ncode-identity-algorithm"]);
         Assert.Equal(request.GroupName, options.Tags["ncode-identity-group"]);
+        Assert.Equal("deployment-1", options.Tags[AzureKeyVaultRemoteKeyProvider.DeploymentTagKey]);
     }
 
     #region CreateKeyAsync Tests
@@ -1130,6 +1132,165 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         );
 
         Assert.Equal("keyId", exception.ParamName);
+    }
+
+    #endregion
+
+    #region ListKeysAsync Tests
+
+    private static DateTimeOffset CreatedOn { get; } = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
+
+    private static async Task<List<RemoteKeyListing>> ListAsync(
+        AzureKeyVaultRemoteKeyProvider provider,
+        string deployment = "deployment-1"
+    )
+    {
+        var listings = new List<RemoteKeyListing>();
+        await foreach (
+            var listing in provider.ListKeysAsync(
+                new RemoteKeyListRequest { Deployment = deployment },
+                CancellationToken.None
+            )
+        )
+        {
+            listings.Add(listing);
+        }
+
+        return listings;
+    }
+
+    private static KeyProperties CreateProperties(
+        string name,
+        bool enabled = true,
+        string deployment = "deployment-1",
+        string group = "ncid-group-1"
+    )
+    {
+        var id = new Uri($"{VaultUri}/keys/{name}/{Version}");
+        var properties = KeyModelFactory.KeyProperties(
+            id,
+            new Uri(VaultUri),
+            name,
+            Version,
+            false,
+            CreatedOn,
+            null,
+            null
+        );
+
+        properties.Enabled = enabled;
+        properties.Tags[AzureKeyVaultRemoteKeyProvider.GroupTagKey] = group;
+        properties.Tags[AzureKeyVaultRemoteKeyProvider.DeploymentTagKey] = deployment;
+        properties.Tags[AzureKeyVaultRemoteKeyProvider.OwnerTagKey] = "tenant-1";
+        properties.Tags[AzureKeyVaultRemoteKeyProvider.SecretTagKey] = "secret-1";
+        return properties;
+    }
+
+    private AsyncPageable<KeyProperties> CreatePageable(params KeyProperties[] values) =>
+        AsyncPageable<KeyProperties>.FromPages([
+            Page<KeyProperties>.FromValues(values, null, CreateLooseMock<Response>().Object),
+        ]);
+
+    private void SetupGetPropertiesOfKeys(params string[] names) =>
+        KeyClient
+            .Setup(x => x.GetPropertiesOfKeysAsync(It.IsAny<CancellationToken>()))
+            .Returns(
+                CreatePageable(
+                    names
+                        .Select(x =>
+                            KeyModelFactory.KeyProperties(
+                                new Uri($"{VaultUri}/keys/{x}"),
+                                new Uri(VaultUri),
+                                x,
+                                null,
+                                false,
+                                null,
+                                null,
+                                null
+                            )
+                        )
+                        .ToArray()
+                )
+            )
+            .Verifiable();
+
+    private void SetupGetPropertiesOfKeyVersions(string name, params KeyProperties[] versions) =>
+        KeyClient
+            .Setup(x => x.GetPropertiesOfKeyVersionsAsync(name, It.IsAny<CancellationToken>()))
+            .Returns(CreatePageable(versions))
+            .Verifiable();
+
+    [Fact]
+    public async Task ListKeysAsync_EnabledVersion_ListsItWithItsTags()
+    {
+        SetupKeyClient<List<string>>(VaultUri);
+        SetupKeyClient<List<KeyProperties>>(VaultUri);
+        SetupGetPropertiesOfKeys("ncid-group-1-h");
+        SetupGetPropertiesOfKeyVersions("ncid-group-1-h", CreateProperties("ncid-group-1-h"));
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        var listing = Assert.Single(listings);
+        Assert.Equal($"{VaultUri}/keys/ncid-group-1-h/{Version}", listing.KeyId);
+        Assert.Equal("ncid-group-1", listing.GroupName);
+        Assert.Equal(CreatedOn, listing.CreatedWhen);
+        Assert.Equal("tenant-1", listing.OwnerId);
+        Assert.Equal("secret-1", listing.SecretId);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_DisabledVersion_SkipsIt()
+    {
+        SetupKeyClient<List<string>>(VaultUri);
+        SetupKeyClient<List<KeyProperties>>(VaultUri);
+        SetupGetPropertiesOfKeys("ncid-group-1-h");
+        SetupGetPropertiesOfKeyVersions(
+            "ncid-group-1-h",
+            CreateProperties("ncid-group-1-h", enabled: false)
+        );
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_VersionOfAnotherDeployment_SkipsIt()
+    {
+        SetupKeyClient<List<string>>(VaultUri);
+        SetupKeyClient<List<KeyProperties>>(VaultUri);
+        SetupGetPropertiesOfKeys("ncid-group-1-h");
+        SetupGetPropertiesOfKeyVersions(
+            "ncid-group-1-h",
+            CreateProperties("ncid-group-1-h", deployment: "deployment-2")
+        );
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_KeyNameWithoutTheGroupPrefix_SkipsIt()
+    {
+        SetupKeyClient<List<string>>(VaultUri);
+        SetupGetPropertiesOfKeys("other-key");
+        var provider = CreateProvider();
+
+        var listings = await ListAsync(provider);
+
+        Assert.Empty(listings);
+    }
+
+    [Fact]
+    public async Task ListKeysAsync_VaultUriUnset_Throws()
+    {
+        var provider = CreateProvider(vaultUri: null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ListAsync(provider));
     }
 
     #endregion

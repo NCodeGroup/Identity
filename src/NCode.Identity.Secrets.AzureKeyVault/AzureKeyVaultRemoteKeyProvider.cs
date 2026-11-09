@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using Azure;
 using Azure.Security.KeyVault.Keys;
@@ -28,7 +29,8 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 /// </para>
 /// <para>
 /// A signing key is created for signing and verifying only and a decryption key for unwrapping a content key only,
-/// tagged with its owner, secret, algorithm and group. Key Vault signs
+/// tagged with its owner, secret, algorithm, group and deployment, and lists the enabled key versions of its
+/// deployment. Key Vault signs
 /// a digest, so the provider refuses a row that names no digest algorithm. Key Vault agrees no keys, so the provider
 /// holds no key agreement key. The provider refuses a public key that is
 /// missing or is not an RSA or an ECC key with a <see cref="CryptographicException"/>, and a response that names
@@ -73,6 +75,13 @@ internal class AzureKeyVaultRemoteKeyProvider(
     /// successive keys.
     /// </summary>
     internal const string GroupTagKey = "ncode-identity-group";
+
+    /// <summary>
+    /// The name of the tag that carries the deployment that created a key.
+    /// </summary>
+    internal const string DeploymentTagKey = "ncode-identity-deployment";
+
+    private const string GroupNamePrefix = "ncid-";
 
     private IAzureKeyVaultClientFactory ClientFactory { get; } = clientFactory;
 
@@ -425,6 +434,114 @@ internal class AzureKeyVaultRemoteKeyProvider(
         }
     }
 
+    /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the configured vault URI is not set.
+    /// </exception>
+    public async IAsyncEnumerable<RemoteKeyListing> ListKeysAsync(
+        RemoteKeyListRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var providerOptions = ProviderOptions.Value;
+        if (string.IsNullOrEmpty(providerOptions.VaultUri))
+        {
+            throw new InvalidOperationException(
+                "SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri is not set."
+            );
+        }
+
+        var vaultUri = new Uri(providerOptions.VaultUri);
+
+        var names = await ClientFactory.ExecuteKeyClientAsync(
+            vaultUri,
+            async (client, token) =>
+            {
+                var result = new List<string>();
+                await foreach (var properties in client.GetPropertiesOfKeysAsync(token))
+                {
+                    if (properties.Name.StartsWith(GroupNamePrefix, StringComparison.Ordinal))
+                    {
+                        result.Add(properties.Name);
+                    }
+                }
+
+                return result;
+            },
+            cancellationToken
+        );
+
+        foreach (var name in names)
+        {
+            var versions = await ClientFactory.ExecuteKeyClientAsync(
+                vaultUri,
+                async (client, token) =>
+                {
+                    var result = new List<KeyProperties>();
+                    await foreach (
+                        var properties in client.GetPropertiesOfKeyVersionsAsync(name, token)
+                    )
+                    {
+                        result.Add(properties);
+                    }
+
+                    return result;
+                },
+                cancellationToken
+            );
+
+            foreach (var properties in versions)
+            {
+                var listing = CreateListing(properties, request.Deployment);
+                if (listing is not null)
+                {
+                    yield return listing;
+                }
+            }
+        }
+    }
+
+    private static RemoteKeyListing? CreateListing(KeyProperties properties, string deployment)
+    {
+        if (properties.Enabled != true)
+        {
+            return null;
+        }
+
+        var tags = properties.Tags;
+        if (
+            !tags.TryGetValue(DeploymentTagKey, out var tagDeployment)
+            || !string.Equals(tagDeployment, deployment, StringComparison.Ordinal)
+        )
+        {
+            return null;
+        }
+
+        if (
+            !tags.TryGetValue(GroupTagKey, out var groupName)
+            || !groupName.StartsWith(GroupNamePrefix, StringComparison.Ordinal)
+        )
+        {
+            return null;
+        }
+
+        if (properties.Id is not { } id || properties.CreatedOn is not { } createdOn)
+        {
+            return null;
+        }
+
+        return new RemoteKeyListing
+        {
+            KeyId = id.AbsoluteUri,
+            GroupName = groupName,
+            CreatedWhen = createdOn,
+            OwnerId = tags.TryGetValue(OwnerTagKey, out var ownerId) ? ownerId : null,
+            SecretId = tags.TryGetValue(SecretTagKey, out var secretId) ? secretId : null,
+        };
+    }
+
     private static CreateRsaKeyOptions CreateRsaOptions(
         RemoteKeyCreationRequest request,
         string name,
@@ -500,6 +617,7 @@ internal class AzureKeyVaultRemoteKeyProvider(
         options.Tags[SecretTagKey] = request.SecretId;
         options.Tags[AlgorithmTagKey] = request.Algorithm.Algorithm;
         options.Tags[GroupTagKey] = request.GroupName;
+        options.Tags[DeploymentTagKey] = request.Deployment;
     }
 
     private async ValueTask<KeyVaultKey> CreateRsaKeyAsync(

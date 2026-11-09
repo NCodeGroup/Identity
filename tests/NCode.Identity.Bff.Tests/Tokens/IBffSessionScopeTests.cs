@@ -17,15 +17,15 @@ public class IBffSessionScopeTests : BaseTests
 {
     private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private readonly FakeTimeProvider _timeProvider = new(Now);
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
 
     private Mock<BffSessionResolver> CreateResolver(BffFrontendCatalog catalog) =>
         CreateStrictMock<BffSessionResolver>(
             CreateStrictMock<IBffSessionManager>().Object,
-            new BffCookies(_timeProvider),
+            new BffCookies(TimeProvider),
             Array.Empty<IBffSessionValidator>(),
             catalog,
-            _timeProvider
+            TimeProvider
         );
 
     #region From Tests
@@ -47,7 +47,7 @@ public class IBffSessionScopeTests : BaseTests
             new DefaultHttpContext(),
             catalog,
             resolver.Object,
-            new BffCookies(_timeProvider)
+            new BffCookies(TimeProvider)
         );
 
         Assert.Same(context, IBffSessionScope.From(context));

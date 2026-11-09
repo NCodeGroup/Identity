@@ -25,20 +25,20 @@ public class BffAccessTokenHandlerTests : BaseTests
     private const string Nonce = "server-nonce";
     private static Uri RequestUri { get; } = new("https://api.example.com/items");
 
-    private readonly Mock<IHttpContextAccessor> _accessor;
-    private readonly Mock<IBffTokenAccessor> _tokens;
-    private readonly Mock<IDPoPProofFactory> _proofs;
-    private readonly BffFrontendCatalog _frontends;
-    private readonly DefaultBffConnectionSessionAccessor _connections = new();
-    private readonly BffTokenContexts _contexts;
-    private readonly BffTokenRequest _tokenRequest = new(BffTokenRequirementNames.User);
+    private Mock<IHttpContextAccessor> Accessor { get; }
+    private Mock<IBffTokenAccessor> Tokens { get; }
+    private Mock<IDPoPProofFactory> Proofs { get; }
+    private BffFrontendCatalog Frontends { get; }
+    private DefaultBffConnectionSessionAccessor Connections { get; } = new();
+    private BffTokenContexts Contexts { get; }
+    private BffTokenRequest TokenRequest { get; } = new(BffTokenRequirementNames.User);
 
     public BffAccessTokenHandlerTests()
     {
-        _accessor = CreateStrictMock<IHttpContextAccessor>();
-        _tokens = CreateStrictMock<IBffTokenAccessor>();
-        _proofs = CreateStrictMock<IDPoPProofFactory>();
-        _frontends = BffTestFrontends.CreateCatalog(x =>
+        Accessor = CreateStrictMock<IHttpContextAccessor>();
+        Tokens = CreateStrictMock<IBffTokenAccessor>();
+        Proofs = CreateStrictMock<IDPoPProofFactory>();
+        Frontends = BffTestFrontends.CreateCatalog(x =>
             x.DPoP = new BffDPoPOptions { Mode = BffDPoPModes.Required, KeyRing = "dpop-keys" }
         );
 
@@ -50,23 +50,16 @@ public class BffAccessTokenHandlerTests : BaseTests
             CreateStrictMock<IBffSessionManager>().Object,
             cookies,
             [],
-            _frontends,
+            Frontends,
             timeProvider
         );
-        _contexts = new BffTokenContexts(_frontends, resolver, cookies);
+        Contexts = new BffTokenContexts(Frontends, resolver, cookies);
     }
 
-    private ClientRegistration Registration => BffTestFrontends.Get(_frontends).Registration;
+    private ClientRegistration Registration => BffTestFrontends.Get(Frontends).Registration;
 
     private BffAccessTokenHandler CreateHandler(StubHttpMessageHandler inner) =>
-        new(
-            _accessor.Object,
-            _connections,
-            _contexts,
-            _tokens.Object,
-            _proofs.Object,
-            _tokenRequest
-        )
+        new(Accessor.Object, Connections, Contexts, Tokens.Object, Proofs.Object, TokenRequest)
         {
             InnerHandler = inner,
         };
@@ -75,12 +68,12 @@ public class BffAccessTokenHandlerTests : BaseTests
 
     private void SetupResult(DefaultHttpContext httpContext, BffTokenResult result)
     {
-        _accessor.SetupGet(x => x.HttpContext).Returns(httpContext).Verifiable();
-        _tokens
+        Accessor.SetupGet(x => x.HttpContext).Returns(httpContext).Verifiable();
+        Tokens
             .Setup(x =>
                 x.GetAccessTokenAsync(
                     It.Is<IBffTokenContext>(c => c.HttpContext == httpContext),
-                    _tokenRequest,
+                    TokenRequest,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -93,7 +86,7 @@ public class BffAccessTokenHandlerTests : BaseTests
     [Fact]
     public async Task SendAsync_NoContextAtAll_Throws()
     {
-        _accessor.SetupGet(x => x.HttpContext).Returns((HttpContext?)null).Verifiable();
+        Accessor.SetupGet(x => x.HttpContext).Returns((HttpContext?)null).Verifiable();
         var inner = StubHttpMessageHandler.Respond(HttpStatusCode.OK);
         using var client = CreateClient(inner);
 
@@ -109,11 +102,11 @@ public class BffAccessTokenHandlerTests : BaseTests
     public async Task SendAsync_CurrentConnection_UsesConnectionContext()
     {
         var connection = CreateStrictMock<IBffConnectionSession>();
-        _tokens
+        Tokens
             .Setup(x =>
                 x.GetAccessTokenAsync(
                     It.Is<IBffTokenContext>(c => ReferenceEquals(c, connection.Object)),
-                    _tokenRequest,
+                    TokenRequest,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -131,7 +124,7 @@ public class BffAccessTokenHandlerTests : BaseTests
             .Verifiable();
         var inner = StubHttpMessageHandler.Respond(HttpStatusCode.OK);
         using var client = CreateClient(inner);
-        using var scope = _connections.Use(connection.Object);
+        using var scope = Connections.Use(connection.Object);
 
         using var response = await client.GetAsync(RequestUri);
 
@@ -186,11 +179,11 @@ public class BffAccessTokenHandlerTests : BaseTests
     {
         var inner = StubHttpMessageHandler.Respond(HttpStatusCode.OK);
         var handler = new BffAccessTokenHandler(
-            _accessor.Object,
-            _connections,
-            _contexts,
-            _tokens.Object,
-            _proofs.Object,
+            Accessor.Object,
+            Connections,
+            Contexts,
+            Tokens.Object,
+            Proofs.Object,
             tokenRequest: null
         )
         {
@@ -267,7 +260,7 @@ public class BffAccessTokenHandlerTests : BaseTests
                 }
             )
         );
-        _proofs
+        Proofs
             .Setup(x =>
                 x.CreateResourceProofAsync(
                     Registration,
@@ -349,7 +342,7 @@ public class BffAccessTokenHandlerTests : BaseTests
                 new BffAccessToken("at", OpenIdProtocol.TokenTypes.Bearer, DateTimeOffset.MaxValue)
             )
         );
-        _proofs.Setup(x => x.RecordNonce(RequestUri, Nonce)).Verifiable();
+        Proofs.Setup(x => x.RecordNonce(RequestUri, Nonce)).Verifiable();
         var challenge = new HttpResponseMessage(HttpStatusCode.OK);
         challenge.Headers.Add(OpenIdProtocol.DPoP.NonceHeaderName, Nonce);
         var inner = StubHttpMessageHandler.Sequence(challenge);
@@ -387,7 +380,7 @@ public class BffAccessTokenHandlerTests : BaseTests
     private void SetupProofs(params string[] proofValues)
     {
         var queue = new Queue<string>(proofValues);
-        _proofs
+        Proofs
             .Setup(x =>
                 x.CreateResourceProofAsync(
                     Registration,
@@ -400,7 +393,7 @@ public class BffAccessTokenHandlerTests : BaseTests
             )
             .Returns(() => new ValueTask<string>(queue.Dequeue()))
             .Verifiable();
-        _proofs.Setup(x => x.RecordNonce(RequestUri, Nonce)).Verifiable();
+        Proofs.Setup(x => x.RecordNonce(RequestUri, Nonce)).Verifiable();
     }
 
     [Fact]
@@ -456,7 +449,7 @@ public class BffAccessTokenHandlerTests : BaseTests
                 new BffAccessToken("at", OpenIdProtocol.TokenTypes.Bearer, DateTimeOffset.MaxValue)
             )
         );
-        _proofs.Setup(x => x.RecordNonce(RequestUri, Nonce)).Verifiable();
+        Proofs.Setup(x => x.RecordNonce(RequestUri, Nonce)).Verifiable();
         var inner = StubHttpMessageHandler.Sequence(CreateChallenge("Bearer"));
         using var client = CreateClient(inner);
 

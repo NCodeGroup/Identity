@@ -25,21 +25,21 @@ public class BffSessionRetirementTests : BaseTests
     private static BffSessionClient CurrentClient { get; } =
         new(BffTestFrontends.Name, BffTestFrontends.Authority, BffTestFrontends.ClientId);
 
-    private readonly Mock<IBffSessionStore> _store;
-    private readonly Mock<IBffSessionManager> _manager;
-    private readonly FakeTimeProvider _timeProvider = new(Now);
+    private Mock<IBffSessionStore> Store { get; }
+    private Mock<IBffSessionManager> Manager { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
 
     public BffSessionRetirementTests()
     {
-        _store = CreateStrictMock<IBffSessionStore>();
-        _manager = CreateStrictMock<IBffSessionManager>();
+        Store = CreateStrictMock<IBffSessionStore>();
+        Manager = CreateStrictMock<IBffSessionManager>();
     }
 
     private BffSessionRetirement CreateRetirement(ILogger<BffSessionRetirement>? logger = null) =>
         new(
-            BffTestTelemetry.Instrument(_store.Object),
-            _manager.Object,
-            _timeProvider,
+            BffTestTelemetry.Instrument(Store.Object),
+            Manager.Object,
+            TimeProvider,
             logger ?? NullLogger<BffSessionRetirement>.Instance
         );
 
@@ -73,25 +73,25 @@ public class BffSessionRetirementTests : BaseTests
         new(key, 1, metadata, new byte[] { 1 });
 
     private void SetupFindClients(params BffSessionClient[] clients) =>
-        _store
+        Store
             .Setup(x => x.FindClientsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(clients)
             .Verifiable();
 
     private void SetupFindByClient(BffSessionClient client, params string[] keys) =>
-        _store
+        Store
             .Setup(x => x.FindByClientAsync(client, It.IsAny<CancellationToken>()))
             .ReturnsAsync(keys)
             .Verifiable();
 
     private void SetupGet(string key, BffSessionRecord? record) =>
-        _store
+        Store
             .Setup(x => x.GetAsync(key, It.IsAny<CancellationToken>()))
             .ReturnsAsync(record)
             .Verifiable();
 
     private void SetupAcquire(string frontend, BffRefreshLease? lease) =>
-        _store
+        Store
             .Setup(x =>
                 x.TryAcquireRefreshLeaseAsync(
                     "retire:" + frontend,
@@ -103,7 +103,7 @@ public class BffSessionRetirementTests : BaseTests
             .Verifiable();
 
     private void SetupRelease(BffRefreshLease lease) =>
-        _store
+        Store
             .Setup(x => x.ReleaseRefreshLeaseAsync(lease, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -114,7 +114,7 @@ public class BffSessionRetirementTests : BaseTests
         string reason,
         bool ended = true
     ) =>
-        _manager
+        Manager
             .Setup(x => x.EndAsync(null, key, metadata, reason, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ended)
             .Verifiable();
@@ -254,7 +254,7 @@ public class BffSessionRetirementTests : BaseTests
         SetupFindByClient(client, "key-1", "key-2");
         SetupGet("key-1", CreateRecord("key-1", first));
         SetupGet("key-2", CreateRecord("key-2", second));
-        _manager
+        Manager
             .Setup(x =>
                 x.EndAsync(
                     null,
@@ -290,7 +290,7 @@ public class BffSessionRetirementTests : BaseTests
         var lease = new BffRefreshLease("retire:" + RemovedFrontend, "owner");
         SetupFindClients(client);
         SetupAcquire(RemovedFrontend, lease);
-        _store
+        Store
             .Setup(x => x.FindByClientAsync(client, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new BffStoreUnavailableException("The store is unavailable."))
             .Verifiable();

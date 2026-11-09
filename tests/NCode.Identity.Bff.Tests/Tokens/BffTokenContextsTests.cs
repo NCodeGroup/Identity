@@ -18,15 +18,15 @@ public class BffTokenContextsTests : BaseTests
 {
     private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private readonly FakeTimeProvider _timeProvider = new(Now);
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
 
     private Mock<BffSessionResolver> CreateResolver(BffFrontendCatalog catalog) =>
         CreateStrictMock<BffSessionResolver>(
             CreateStrictMock<IBffSessionManager>().Object,
-            new BffCookies(_timeProvider),
+            new BffCookies(TimeProvider),
             Array.Empty<IBffSessionValidator>(),
             catalog,
-            _timeProvider
+            TimeProvider
         );
 
     #region ForRequest Tests
@@ -36,11 +36,7 @@ public class BffTokenContextsTests : BaseTests
     {
         var catalog = BffTestFrontends.CreateCatalog();
         var resolver = CreateResolver(catalog);
-        var contexts = new BffTokenContexts(
-            catalog,
-            resolver.Object,
-            new BffCookies(_timeProvider)
-        );
+        var contexts = new BffTokenContexts(catalog, resolver.Object, new BffCookies(TimeProvider));
         var httpContext = new DefaultHttpContext();
 
         var scope = contexts.ForRequest(httpContext);
@@ -54,11 +50,7 @@ public class BffTokenContextsTests : BaseTests
     {
         var catalog = BffTestFrontends.CreateCatalog();
         var resolver = CreateResolver(catalog);
-        var contexts = new BffTokenContexts(
-            catalog,
-            resolver.Object,
-            new BffCookies(_timeProvider)
-        );
+        var contexts = new BffTokenContexts(catalog, resolver.Object, new BffCookies(TimeProvider));
         var connection = new DefaultBffConnectionSession(
             BffTestFrontends.Name,
             new string('a', 43),
@@ -84,11 +76,7 @@ public class BffTokenContextsTests : BaseTests
     {
         var catalog = BffTestFrontends.CreateCatalog();
         var resolver = CreateResolver(catalog);
-        var contexts = new BffTokenContexts(
-            catalog,
-            resolver.Object,
-            new BffCookies(_timeProvider)
-        );
+        var contexts = new BffTokenContexts(catalog, resolver.Object, new BffCookies(TimeProvider));
         var httpContext = new DefaultHttpContext();
         httpContext.SetEndpoint(
             new Endpoint(null, new EndpointMetadataCollection(new BffHubAttribute()), "hub")

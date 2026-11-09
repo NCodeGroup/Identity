@@ -21,22 +21,22 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     private static TimeSpan WaitLimit { get; } = TimeSpan.FromSeconds(10);
     private static TimeSpan RetryDelay { get; } = TimeSpan.FromMinutes(2);
 
-    private readonly BffTestOptionsSource _source;
-    private readonly BffFrontendCatalog _frontends;
-    private readonly Mock<BffSessionRetirement> _retirement;
-    private readonly Channel<BffFrontendSet> _passes = Channel.CreateUnbounded<BffFrontendSet>();
-    private readonly FakeTimeProvider _timeProvider = new();
-    private readonly FakeLogger<BffSessionRetirementService> _logger = new();
+    private BffTestOptionsSource Source { get; }
+    private BffFrontendCatalog Frontends { get; }
+    private Mock<BffSessionRetirement> Retirement { get; }
+    private Channel<BffFrontendSet> Passes { get; } = Channel.CreateUnbounded<BffFrontendSet>();
+    private FakeTimeProvider Clock { get; } = new();
+    private FakeLogger<BffSessionRetirementService> Logger { get; } = new();
 
     public BffSessionRetirementServiceTests()
     {
-        _source = new BffTestOptionsSource(
+        Source = new BffTestOptionsSource(
             BffTestFrontends.CreateBffOptions(options =>
                 options.SessionRetirement.RetryDelay = RetryDelay
             )
         );
-        _frontends = BffTestFrontends.CreateCatalog(_source);
-        _retirement = CreateStrictMock<BffSessionRetirement>(
+        Frontends = BffTestFrontends.CreateCatalog(Source);
+        Retirement = CreateStrictMock<BffSessionRetirement>(
             BffTestTelemetry.Instrument(CreateStrictMock<IBffSessionStore>().Object),
             CreateStrictMock<IBffSessionManager>().Object,
             TimeProvider.System,
@@ -45,7 +45,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     }
 
     private BffSessionRetirementService CreateService(TimeProvider? timeProvider = null) =>
-        new(_frontends, _retirement.Object, timeProvider ?? _timeProvider, _logger);
+        new(Frontends, Retirement.Object, timeProvider ?? Clock, Logger);
 
     private void SetupRetire(
         int calls,
@@ -55,13 +55,13 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     {
         complete ??= _ => true;
         var made = 0;
-        _retirement
+        Retirement
             .Setup(x => x.RetireAsync(It.IsAny<BffFrontendSet>(), It.IsAny<CancellationToken>()))
             .Returns(
                 (BffFrontendSet set, CancellationToken _) =>
                 {
                     var call = Interlocked.Increment(ref made);
-                    _passes.Writer.TryWrite(set);
+                    Passes.Writer.TryWrite(set);
                     return failure(call) is { } exception
                         ? throw exception
                         : ValueTask.FromResult(complete(call));
@@ -74,7 +74,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         new("The store is unavailable.");
 
     private async Task<BffFrontendSet> ReadPassAsync() =>
-        await _passes.Reader.ReadAsync().AsTask().WaitAsync(WaitLimit);
+        await Passes.Reader.ReadAsync().AsTask().WaitAsync(WaitLimit);
 
     private Mock<TimeProvider> CreateTimerProvider(
         Channel<(TimerCallback Callback, object? State, TimeSpan DueTime)> timers
@@ -133,7 +133,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         var set = await ReadPassAsync();
         await service.StopAsync(CancellationToken.None);
 
-        Assert.Same(_frontends.Current, set);
+        Assert.Same(Frontends.Current, set);
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
 
         await service.StartAsync(CancellationToken.None);
         var first = await ReadPassAsync();
-        _source.Change(
+        Source.Change(
             BffTestFrontends.CreateBffOptions(options =>
                 options.Frontends["other"] = BffTestFrontends.CreateOptions(frontend =>
                 {
@@ -157,7 +157,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         await service.StopAsync(CancellationToken.None);
 
         Assert.NotSame(first, second);
-        Assert.Same(_frontends.Current, second);
+        Assert.Same(Frontends.Current, second);
         Assert.Contains(second.Frontends, frontend => frontend.Name == "other");
     }
 
@@ -180,7 +180,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         await service.StopAsync(CancellationToken.None);
 
         Assert.Contains(
-            _logger.Collector.GetSnapshot(),
+            Logger.Collector.GetSnapshot(),
             record =>
                 record.Id.Id == EventIds.FrontendRetirementFailed
                 && record.Exception is BffStoreUnavailableException
@@ -209,7 +209,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         await service.StopAsync(CancellationToken.None);
 
         Assert.Contains(
-            _logger.Collector.GetSnapshot(),
+            Logger.Collector.GetSnapshot(),
             record =>
                 record.Id.Id == EventIds.FrontendRetirementFailed
                 && record.Exception is InvalidOperationException

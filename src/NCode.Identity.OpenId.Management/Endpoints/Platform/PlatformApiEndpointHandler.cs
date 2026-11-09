@@ -115,7 +115,8 @@ internal class PlatformApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
         platform
             .MapGet("/effective-settings", GetEffectiveSettingsAsync)
             .Produces<PlatformEffectiveSettingsResource>()
@@ -160,6 +161,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The platform's settings.</response>
+    /// <response code="404">The platform does not exist.</response>
     [EndpointName("api/platform/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
@@ -212,6 +214,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The platform's effective settings.</response>
+    /// <response code="404">The platform does not exist.</response>
     [EndpointName("api/platform/effective-settings/get")]
     internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
         HttpContext httpContext,
@@ -397,6 +400,8 @@ internal class PlatformApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The platform's settings were updated.</response>
+    /// <response code="400">The JSON Patch document cannot be applied to the settings, the patched settings are not valid, or the patched settings leave a client with a value they no longer permit.</response>
+    /// <response code="404">The platform does not exist.</response>
     [EndpointName("api/platform/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,

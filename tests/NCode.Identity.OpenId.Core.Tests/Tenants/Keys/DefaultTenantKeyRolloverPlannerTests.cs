@@ -14,11 +14,11 @@ namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 
 public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
-    private static readonly TimeSpan Lifetime = TimeSpan.FromDays(90);
-    private static readonly TimeSpan ActivationDelay = TimeSpan.FromDays(2);
-    private static readonly TimeSpan RetirementGrace = TimeSpan.FromDays(7);
-    private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
+    private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    private static TimeSpan Lifetime { get; } = TimeSpan.FromDays(90);
+    private static TimeSpan ActivationDelay { get; } = TimeSpan.FromDays(2);
+    private static TimeSpan RetirementGrace { get; } = TimeSpan.FromDays(7);
+    private static TimeSpan Interval { get; } = TimeSpan.FromHours(1);
 
     private OpenIdOptions OpenIdOptions { get; } = new();
     private Mock<ITenantKeyPolicy> MockPolicy { get; }
@@ -26,11 +26,8 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     private DefaultTenantKeyRolloverPlanner Planner { get; }
 
     // The settings whose token lifetimes the grace covers, declared by the tests rather than taken from the defaults.
-    private static readonly string[] TokenLifetimeSettings =
-    [
-        "first_token_lifetime",
-        "second_token_lifetime",
-    ];
+    private static string[] TokenLifetimeSettings { get; } =
+    ["first_token_lifetime", "second_token_lifetime"];
 
     public DefaultTenantKeyRolloverPlannerTests()
     {

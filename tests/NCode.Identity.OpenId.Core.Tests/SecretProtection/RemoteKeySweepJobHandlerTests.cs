@@ -22,13 +22,14 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class RemoteKeySweepJobHandlerTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
-    private static readonly DispatchContext Context = new()
-    {
-        DispatchId = Guid.NewGuid(),
-        Attempt = 1,
-        MaxAttempts = 5,
-    };
+    private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    private static DispatchContext Context { get; } =
+        new()
+        {
+            DispatchId = Guid.NewGuid(),
+            Attempt = 1,
+            MaxAttempts = 5,
+        };
 
     private const string ProviderName = "aws";
     private const string Deployment = "prod";

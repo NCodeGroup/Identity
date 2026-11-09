@@ -11,14 +11,11 @@ namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
 public class RefreshableSettingsCollectionDataSourceTests : BaseTests
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(5.0);
-    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(5.0);
+    private static TimeSpan Interval { get; } = TimeSpan.FromMinutes(5.0);
+    private static TimeSpan Deadline { get; } = TimeSpan.FromSeconds(5.0);
 
-    private static readonly SettingDescriptor<bool> FlagDescriptor = new()
-    {
-        Name = "flag",
-        AppliesTo = [OpenIdSettingScopes.Platform],
-    };
+    private static SettingDescriptor<bool> FlagDescriptor { get; } =
+        new() { Name = "flag", AppliesTo = [OpenIdSettingScopes.Platform] };
 
     private TimerCallback? TimerCallback { get; set; }
     private object? TimerState { get; set; }

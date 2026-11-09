@@ -12,12 +12,13 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class MasterKeyRewrapJobHandlerTests : BaseTests
 {
-    private static readonly DispatchContext Context = new()
-    {
-        DispatchId = Guid.NewGuid(),
-        Attempt = 1,
-        MaxAttempts = 5,
-    };
+    private static DispatchContext Context { get; } =
+        new()
+        {
+            DispatchId = Guid.NewGuid(),
+            Attempt = 1,
+            MaxAttempts = 5,
+        };
 
     private readonly Mock<IMasterKeyManager> _manager;
 

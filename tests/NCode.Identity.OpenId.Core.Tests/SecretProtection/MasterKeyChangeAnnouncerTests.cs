@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class MasterKeyChangeAnnouncerTests : BaseTests
 {
-    private static readonly SecretOwner Owner = SecretOwner.ForTenant("acme");
+    private static SecretOwner Owner { get; } = SecretOwner.ForTenant("acme");
 
     private readonly Mock<IReplicaBroadcaster> _broadcaster;
     private readonly Mock<IJobDispatcher> _dispatcher;

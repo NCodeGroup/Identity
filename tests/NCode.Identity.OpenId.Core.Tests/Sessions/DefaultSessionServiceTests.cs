@@ -29,10 +29,8 @@ public class DefaultSessionServiceTests : BaseTests
     private const string SessionId = "session-id";
     private const string ClientId = "client-1";
 
-    private static readonly DateTimeOffset UtcNow = DateTimeOffset.Parse(
-        "2026-01-01T00:00:00Z",
-        CultureInfo.InvariantCulture
-    );
+    private static DateTimeOffset UtcNow { get; } =
+        DateTimeOffset.Parse("2026-01-01T00:00:00Z", CultureInfo.InvariantCulture);
 
     private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ICryptoService> MockCryptoService { get; }
@@ -1205,7 +1203,7 @@ public class DefaultSessionServiceTests : BaseTests
 
     #region GetSessionsAsync / RevokeAllAsync Tests
 
-    private static readonly JsonSerializerOptions JsonOptions = new();
+    private static JsonSerializerOptions JsonOptions { get; } = new();
 
     private Mock<IGrantStore> SetupSessionEnumeration(
         Mock<OpenIdContext> mockContext,

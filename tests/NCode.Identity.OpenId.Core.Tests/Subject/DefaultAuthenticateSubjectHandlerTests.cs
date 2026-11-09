@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Subject;
 
 public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 {
-    private static readonly string[] RequiredAudiences = ["urn:test:resource"];
+    private static string[] RequiredAudiences { get; } = ["urn:test:resource"];
 
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; set; } = null!;
     private Mock<ISessionService> MockSessionService { get; set; } = null!;

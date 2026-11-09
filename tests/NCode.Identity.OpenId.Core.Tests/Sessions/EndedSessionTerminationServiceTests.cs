@@ -23,20 +23,13 @@ namespace NCode.Identity.OpenId.Core.Tests.Sessions;
 
 public sealed class EndedSessionTerminationServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 23, 12, 0, 30, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 23, 12, 0, 30, TimeSpan.Zero);
 
-    private static readonly string LeaseKey =
+    private static string LeaseKey { get; } =
         $"{EndedSessionTerminationService.LeasePurpose}:{Now.UtcTicks / TimeSpan.FromMinutes(1).Ticks}";
 
-    private static readonly DateTimeOffset LeaseExpiresWhen = new(
-        2026,
-        10,
-        23,
-        12,
-        1,
-        0,
-        TimeSpan.Zero
-    );
+    private static DateTimeOffset LeaseExpiresWhen { get; } =
+        new(2026, 10, 23, 12, 1, 0, TimeSpan.Zero);
 
     private Mock<IMaterializedPlatformAccessor> MockMaterializedPlatformAccessor { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }

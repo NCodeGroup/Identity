@@ -23,10 +23,10 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class MasterKeyMaintenanceServiceTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
-    private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("acme");
-    private static readonly SecretOwner OtherOwner = SecretOwner.ForTenant("globex");
-    private static readonly SecretOwner PlatformOwner = SecretOwner.Platform;
+    private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    private static SecretOwner TenantOwner { get; } = SecretOwner.ForTenant("acme");
+    private static SecretOwner OtherOwner { get; } = SecretOwner.ForTenant("globex");
+    private static SecretOwner PlatformOwner { get; } = SecretOwner.Platform;
     private const string ControlPlaneTenantId = "control-plane";
 
     private readonly MasterKeyOptions _keyOptions = new();

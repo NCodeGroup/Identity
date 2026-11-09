@@ -318,6 +318,8 @@ NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(NCode.Identity.Jose.JoseToken! 
 NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload, System.Text.Json.JsonSerializerOptions? jsonOptions) -> void
 NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload) -> void
 NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload, System.Text.Json.JsonSerializerOptions? jsonOptions) -> void
+NCode.Identity.Jose.IRemoteKeyProver
+NCode.Identity.Jose.IRemoteKeyProver.ProveAsync(NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Jose.JoseClaimNames
 NCode.Identity.Jose.JoseClaimNames.Header
 NCode.Identity.Jose.JoseClaimNames.Json

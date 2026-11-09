@@ -454,11 +454,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`zip`) algorithms live on the operation, per-recipient key management is carried by `JoseKeyManagementCredentials`,
   and `KeyManagementAlgorithm.SupportsKeyWrapping` gates multi-recipient encodes (direct `dir` / `ECDH-ES` agreement is
   single-recipient). `IJoseSerializer.DecodeAsync` / `DeserializeAsync` auto-detect the JSON serialization and verify
-  or decrypt against each signature or recipient until one matches the supplied key. Decoding is asynchronous: a JWE's
-  content key is unwrapped through `KeyManagementAlgorithm.UnwrapKeyAsync`, which a key held in a KMS unwraps through
-  its service, and a JWS decodes synchronously behind its `ValueTask`. Encoding is asynchronous
-  (`JoseEncoder.EncodeAsync`), and every signature goes through `SignatureAlgorithm.SignAsync`, which signs with a local
-  key synchronously behind its `ValueTask` and verifies a remote key's signature before a token carries it
+  or decrypt against each signature or recipient until one matches the supplied key; a recipient the key does not
+  decrypt is skipped, and any other failure, such as a key management service that cannot be reached, ends the
+  decode. Decoding is asynchronous: a JWE's content key is unwrapped through `KeyManagementAlgorithm.UnwrapKeyAsync`,
+  which a key held in a KMS unwraps through its service, and a JWS decodes synchronously behind its `ValueTask`.
+  Encoding is asynchronous (`JoseEncoder.EncodeAsync`), and every signature goes through
+  `SignatureAlgorithm.SignAsync`, which signs with a local key synchronously behind its `ValueTask` and verifies a
+  remote key's signature before a token carries it
   ([#75](https://github.com/NCodeGroup/Identity/issues/75),
   [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md),
   [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md)).
@@ -913,8 +915,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   turning an ECDSA DER signature into the `r‖s` form JWS uses, and unwraps a JWE's content key through it: `RSA-OAEP`
   and `RSA-OAEP-256` on all three services and `RSA-OAEP-512` on Google Cloud KMS through the service's decryption, and
   `ECDH-ES` and `ECDH-ES+A128KW`, `+A192KW` and `+A256KW` on AWS KMS through `DeriveSharedSecret`, with the Concat KDF
-  and the AES key unwrap run locally. Registered `IRemoteKeyDescriptorSource` instances describe each provider
-  (`RemoteKeyProviderDescriptor`) and contribute the rows of the `RemoteKeyAlgorithm` vocabulary —
+  and the AES key unwrap run locally. An RSA-OAEP encrypted key that is not the size of the key's modulus fails at the
+  tag without a service call, and the JWT validator tries only the decryption keys whose id a JWE header's `kid` names,
+  or every eligible key when no key has that id. Registered `IRemoteKeyDescriptorSource` instances describe each
+  provider (`RemoteKeyProviderDescriptor`) and contribute the rows of the `RemoteKeyAlgorithm` vocabulary —
   `RemoteSigningAlgorithm` (`RS*`, `PS*` and `ES*`), `RemoteDecryptionAlgorithm` and `RemoteKeyAgreementAlgorithm` —
   that map each JOSE algorithm onto a provider's key spec and operation and give the key its use, so a provider holds
   only the keys its service can use, and a host whose provider cannot hold a provisioned key, or holds it for another
@@ -952,14 +956,16 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **A background job destroys the KMS keys that no stored secret names.** Every key the server creates in a KMS carries
   the deployment that `SecretProtection:RemoteKeys:Deployment` names (required when a remote key provider is
-  registered), and its group name hashes the deployment, so deployments that share an AWS account, a vault or a key ring
-  never share or sweep each other's keys. At start and every `SecretProtection:RemoteKeys:SweepInterval` (one day), one
-  replica dispatches a `RemoteKeySweepJob` per provider through the dispatch port; the job lists the deployment's keys
-  older than `SweepGracePeriod` (one day) through `IRemoteKeyProvider.ListKeysAsync`, then reads the references every
-  stored secret holds (`IRemoteKeyReferenceStore`), and destroys each key none names through
-  `IRemoteSecretDestroyer.DestroyKeyAsync`, recording `remote_key.destroyed` with the reason `orphaned` in the
-  control-plane tenant; `SweepEnabled` turns it off. The Helm chart's `secretProtection.remoteKeys` sets the deployment
-  and the sweep ([#654](https://github.com/NCodeGroup/Identity/issues/654),
+  registered), and its group name hashes the deployment, so deployments that share an AWS account, a vault or a key
+  ring, each under a name of its own, never share or sweep each other's keys. At start and every
+  `SecretProtection:RemoteKeys:SweepInterval` (one day), one replica dispatches a `RemoteKeySweepJob` per provider
+  through the dispatch port, logging a provider whose dispatch fails and dispatching the others; the job lists the
+  deployment's keys older than `SweepGracePeriod` (one day, between one hour and 365 days) through
+  `IRemoteKeyProvider.ListKeysAsync`, then reads the references every stored secret holds (`IRemoteKeyReferenceStore`),
+  and destroys each key none names through `IRemoteSecretDestroyer.DestroyKeyAsync`, recording `remote_key.destroyed`
+  with the reason `orphaned` in the control-plane tenant; `SweepEnabled` turns it off. The Helm chart's
+  `secretProtection.remoteKeys` sets the deployment and the sweep
+  ([#654](https://github.com/NCodeGroup/Identity/issues/654),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
 
 - **A management secret route answers `409` from the secrets it read and declares every problem it answers.** The

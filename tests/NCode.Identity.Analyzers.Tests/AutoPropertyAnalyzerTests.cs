@@ -19,6 +19,13 @@ public class AutoPropertyAnalyzerTests
         Assert.Contains($"'{fieldName}'", diagnostic.GetMessage(CultureInfo.InvariantCulture));
     }
 
+    private static async Task AssertReportsNothingAsync(string source)
+    {
+        var diagnostics = await AnalyzerHarness.AnalyzeAsync(source, CancellationToken.None);
+
+        Assert.Empty(diagnostics);
+    }
+
     #region Initialize
 
     [Fact]
@@ -81,6 +88,132 @@ public class AutoPropertyAnalyzerTests
             .ToList();
         Assert.Contains("'_a'", ordered[0].GetMessage(CultureInfo.InvariantCulture));
         Assert.Contains("'_b'", ordered[1].GetMessage(CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public async Task Initialize_ConstAndEnumMember_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "enum E { A } class C { private const int Max = 1; public int Get() => Max; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_InterlockedTarget_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "using System.Threading; class C { private int _count; public int Next() => Interlocked.Increment(ref _count); }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_VolatileReadTarget_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "using System.Threading; class C { private object _value = new(); public object Get() => Volatile.Read(ref _value); }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_OutArgument_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "class C { private int _value; public bool Parse(string s) => int.TryParse(s, out _value); }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_ImplicitInArgument_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "struct P { public long A { get; set; } } static class M { public static long Read(in P p) => p.A; } class C { private P _p; public long Get() => M.Read(_p); }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_RefLocal_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "class C { private int _value; public void Set() { ref var r = ref _value; r = 1; } }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_AddressOf_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "unsafe class C { private int _value; public void Set() { fixed (int* p = &_value) { *p = 1; } } }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_RefField_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "ref struct R { private ref int _value; public R(ref int value) { _value = ref value; } public int Get() => _value; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_FixedSizeBuffer_ReportsNothing()
+    {
+        await AssertReportsNothingAsync("unsafe struct S { public fixed byte Bytes[4]; }");
+    }
+
+    [Fact]
+    public async Task Initialize_VolatileField_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "class C { private volatile bool _stopped; public void Stop() => _stopped = true; public bool IsStopped => _stopped; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_StructLayoutStruct_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "using System.Runtime.InteropServices; [StructLayout(LayoutKind.Sequential)] struct S { private ulong _l0; public ulong Get() => _l0; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_InlineArrayStruct_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "using System.Runtime.CompilerServices; [InlineArray(4)] struct Buffer4 { private int _element; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_MutableStructMutatedInPlace_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "struct Counter { public int Value { get; private set; } public void Increment() => Value++; } class C { private Counter _counter; public void Tick() => _counter.Increment(); public int Count => _counter.Value; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_FieldPassedByRefFromNestedType_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "using System.Threading; class Outer { private int _count; public int Count => _count; private static class Inner { public static int Next(Outer o) => Interlocked.Increment(ref o._count); } }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_PrimaryConstructorAutoPropertyAndEvent_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "class C(int seed) { public int Seed { get; } = seed; public event System.EventHandler Changed; public int Twice() => seed * 2; }"
+        );
+    }
+
+    [Fact]
+    public async Task Initialize_GeneratedCode_ReportsNothing()
+    {
+        await AssertReportsNothingAsync(
+            "// <auto-generated/>\nclass C { private int _count; public int Next() => ++_count; }"
+        );
     }
 
     #endregion

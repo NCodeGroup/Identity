@@ -103,8 +103,8 @@ to every caller, and one tenant setting chooses the custody of every provisioned
    provider of every provisioned key, signature and encryption alike. The host refuses to start when a described
    provider cannot hold a provisioned key of either use: the check of
    [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) rule 11
-   covers keys of both uses. A deployment that registers Azure Key Vault or Google Cloud KMS provisions `RSA-OAEP*` encryption keys
-   rather than `ECDH-ES` ones.
+   covers keys of both uses. A deployment that registers Azure Key Vault or Google Cloud KMS provisions `RSA-OAEP*`
+   encryption keys rather than `ECDH-ES` ones.
 10. **The management API and the console create and bind encryption keys.**
     `ISecretValidator.ValidateRemoteKey(RemoteKeyAlgorithmSelector)` resolves a key for a signature or key-management
     algorithm and refuses a row whose use is not the one the algorithm implies; create and bind name no use. The

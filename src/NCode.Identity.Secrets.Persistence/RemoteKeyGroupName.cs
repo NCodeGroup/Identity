@@ -17,10 +17,10 @@ internal static class RemoteKeyGroupName
     private const int HashBytes = 16;
 
     /// <summary>
-    /// Creates the group name for a deployment, an owner and a row of the mapping vocabulary. It is <c>ncid-</c>
-    /// followed by the lowercase hexadecimal of the first 16 bytes of the SHA-256 hash of the deployment, owner,
-    /// provider, algorithm, key specification, key size and curve, which makes it 37 characters and a valid key name
-    /// for every provider.
+    /// Creates the group name for a deployment, an owner and a row of the mapping vocabulary. It is
+    /// <see cref="RemoteKeyGroupNames.Prefix"/> followed by the lowercase hexadecimal of the first 16 bytes of the
+    /// SHA-256 hash of the deployment, owner, provider, algorithm, key specification, key size and curve, which makes
+    /// it 37 characters and a valid key name for every provider.
     /// </summary>
     /// <param name="deployment">The name of the deployment that creates the key.</param>
     /// <param name="ownerId">The identifier of the owner, such as a tenant, whose key to create.</param>

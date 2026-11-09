@@ -140,8 +140,8 @@ public interface IRemoteKeyProvider
 
     /// <summary>
     /// Lists the enabled keys in the provider's configured location that the server created for the deployment: each
-    /// carries a group that begins with <see cref="RemoteKeyGroupNames.Prefix"/> and the request's deployment. A key that is disabled, scheduled for deletion or
-    /// destroyed, or whose tags cannot be read, is not listed.
+    /// carries a group that begins with <see cref="RemoteKeyGroupNames.Prefix"/> and the request's deployment. A key
+    /// that is disabled, scheduled for deletion or destroyed, or whose tags cannot be read, is not listed.
     /// </summary>
     /// <param name="request">The deployment whose keys to list.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>

@@ -447,8 +447,7 @@ workload identity. The values are:
   destroys every key of its name that its own database does not name;
 - `secretProtection.remoteKeys.sweepEnabled` (default `true`), `sweepInterval` (default `1.00:00:00`) and
   `sweepGracePeriod` (default `1.00:00:00`, between one hour and 365 days), which control the background sweep that
-  destroys the
-  keys no stored secret names
+  destroys the keys no stored secret names
   ([ADR-1478](../../docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
 
 The chart renders them as `SecretProtection__RemoteKeyProviders__AwsKms__*`, `__AzureKeyVault__*` and

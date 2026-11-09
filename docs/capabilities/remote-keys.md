@@ -310,11 +310,11 @@ destroys them.
   `RemoteKeySweepJob` per described provider through `IJobDispatcher`, so each provider has its own retries and a
   durable dispatcher can run it. `SweepEnabled` set to `false` turns it off. A provider whose dispatch fails is logged,
   and the others are dispatched.
-- **A job sweeps one provider.** `RemoteKeySweepJobHandler` lists the provider's keys created at or before the time of the pass minus
-  `SweepGracePeriod`, only then reads every stored reference of that provider for every owner, and destroys each listed
-  key that no reference names through the destroyer's bounded, logged path. Listing before reading means a key recorded
-  during the pass is never swept, and the grace period means a key whose creation is in flight is never swept. A failed
-  list or read throws so the dispatcher retries, and a repeated sweep is harmless.
+- **A job sweeps one provider.** `RemoteKeySweepJobHandler` lists the provider's keys created at or before the time of
+  the pass minus `SweepGracePeriod`, only then reads every stored reference of that provider for every owner, and
+  destroys each listed key that no reference names through the destroyer's bounded, logged path. Listing before reading
+  means a key recorded during the pass is never swept, and the grace period means a key whose creation is in flight is
+  never swept. A failed list or read throws so the dispatcher retries, and a repeated sweep is harmless.
 - **A destruction is audited.** A destroyed key emits the event `remote_key.destroyed` (category `key`, actor
   `system`, resource `remote_key` identified by the reference `provider:keyId`, reason `orphaned`) in the control-plane
   tenant, because the KMS key identifier never reaches a tenant's audit trail. The details carry the provider, the key

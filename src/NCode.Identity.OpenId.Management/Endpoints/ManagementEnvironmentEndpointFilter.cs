@@ -17,8 +17,8 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// every tenant strategy. It does <b>not</b> open a tenant scope: control-plane endpoints act on unscoped
 /// platform/team/tenant rows, and tenant-bound endpoints open their scope from the route's <c>tenantId</c> via the <see
 /// cref="TenantScopeEndpointFilter"/> on the tenant-plane group, so the route's tenant only scopes the data. An
-/// <see cref="HttpResultException"/> raised anywhere beneath it is answered with that exception's result, as a problem
-/// when the result carries no body.
+/// <see cref="HttpResultException"/> raised beneath it is answered with its result, and a request whose binding failed
+/// is answered without materializing the environment.
 /// </summary>
 // See ADR-1191 (the management API authenticates against the control-plane tenant).
 internal sealed class ManagementEnvironmentEndpointFilter(
@@ -34,6 +34,13 @@ internal sealed class ManagementEnvironmentEndpointFilter(
     )
     {
         var httpContext = context.HttpContext;
+
+        // Request binding failed before the filters ran; the route never runs.
+        if (httpContext.Response.StatusCode >= StatusCodes.Status400BadRequest)
+        {
+            return TypedResults.Empty;
+        }
+
         var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
 
         try
@@ -49,15 +56,7 @@ internal sealed class ManagementEnvironmentEndpointFilter(
         }
         catch (HttpResultException exception)
         {
-            return
-                exception.HttpResult
-                    is IStatusCodeHttpResult
-                        {
-                            StatusCode: >= StatusCodes.Status400BadRequest
-                        } statusResult
-                        and not IValueHttpResult
-                ? TypedResults.Problem(statusCode: statusResult.StatusCode)
-                : exception.HttpResult;
+            return exception.HttpResult;
         }
     }
 }

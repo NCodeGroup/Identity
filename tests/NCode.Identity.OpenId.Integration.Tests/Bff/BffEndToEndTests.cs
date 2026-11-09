@@ -224,7 +224,8 @@ public class BffEndToEndTests
         Assert.Contains("client_assertion=", token.Body, StringComparison.Ordinal);
         Assert.NotNull(token.DPoPProof);
 
-        // The KMS signs one signature for each client assertion and each DPoP proof the BFF sent, and decrypts the ID token.
+        // The KMS signs once for each client assertion and each DPoP proof the BFF sent,
+        // and decrypts the ID token.
         var expectedSignatures =
             exchanges.Count(exchange =>
                 exchange.Body?.Contains("client_assertion=", StringComparison.Ordinal) == true

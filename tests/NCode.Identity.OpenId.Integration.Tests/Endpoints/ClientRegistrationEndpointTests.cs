@@ -22,8 +22,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 public class ClientRegistrationEndpointTests
 {
     private const string RedirectUri = "https://client.example/callback";
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
 
     [Fact]
     public async Task PostRegister_WithInformationalMetadata_RegistersAClientTheServerCanLoad()
@@ -859,10 +857,17 @@ public class ClientRegistrationEndpointTests
     {
         // The metadata of a registration update names no limit, and a limit changes only at the authority above the
         // client's tenant, so the update keeps the limit its replaced document carries. See ADR-1418.
-        using var factory = new LimitAdministeredRegistrationApplicationFactory();
+        // The factory allows anonymous registration and configures the bootstrap administrator, which holds authority
+        // over a client's limits through the management API.
+        using var factory = new BootstrapAdminApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
+            }
+        );
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -1830,29 +1835,5 @@ public class ClientRegistrationEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body);
-    }
-
-    // Allows anonymous registration and configures the bootstrap administrator, which holds authority over a client's
-    // limits through the management API.
-    private sealed class LimitAdministeredRegistrationApplicationFactory : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                    }
-                )
-            );
-        }
     }
 }

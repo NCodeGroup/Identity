@@ -6,10 +6,9 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Bff;
 using NCode.Identity.ManagementConsole;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -35,51 +34,6 @@ public class ManagementConsoleEndToEndTests
         var x = Base64Url.EncodeToString(parameters.Q.X!);
         var y = Base64Url.EncodeToString(parameters.Q.Y!);
         return $$"""{"keys":[{"kty":"EC","crv":"P-256","x":"{{x}}","y":"{{y}}","kid":"mgmt-client","use":"sig","alg":"ES256"}]}""";
-    }
-
-    // The console forwards the management API through its own socket handler, which a TestServer cannot receive, so the
-    // console's management API URL names a loopback listener that relays each call to the provider's TestServer and
-    // records the credentials the console presented.
-    private static async Task<WebApplication> StartRelayAsync(
-        HttpClient providerClient,
-        ConcurrentQueue<(string Authorization, string Proof)> requests
-    )
-    {
-        var builder = WebApplication.CreateSlimBuilder();
-        builder.WebHost.UseUrls("http://127.0.0.1:0");
-        var app = builder.Build();
-        app.Run(async context =>
-        {
-            var target =
-                $"http://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}";
-            using var forward = new HttpRequestMessage(
-                new HttpMethod(context.Request.Method),
-                target
-            );
-            foreach (var header in context.Request.Headers)
-            {
-                if (!string.Equals(header.Key, "Host", StringComparison.OrdinalIgnoreCase))
-                {
-                    forward.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-                }
-            }
-
-            requests.Enqueue(
-                (
-                    context.Request.Headers.Authorization.ToString(),
-                    context.Request.Headers["DPoP"].ToString()
-                )
-            );
-
-            using var response = await providerClient.SendAsync(forward);
-            context.Response.StatusCode = (int)response.StatusCode;
-            var body = await response.Content.ReadAsByteArrayAsync(context.RequestAborted);
-            context.Response.ContentType = response.Content.Headers.ContentType?.ToString();
-            await context.Response.Body.WriteAsync(body, context.RequestAborted);
-        });
-
-        await app.StartAsync();
-        return app;
     }
 
     private static async Task<HttpResponseMessage> SendAsync(
@@ -154,17 +108,13 @@ public class ManagementConsoleEndToEndTests
                 HandleCookies = false,
             }
         );
-        var managementRequests = new ConcurrentQueue<(string Authorization, string Proof)>();
-        await using var relay = await StartRelayAsync(providerBrowser, managementRequests);
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var baseConsole = new ManagementConsoleApplicationFactory(provider, clientKey);
         await using var console = baseConsole.WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["ManagementConsole:ManagementApiUrl"] = $"{relay.Urls.First()}/api",
-                    }
-                )
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection
+                    .AddHttpClient(BffDefaults.RemoteApiHttpClientName)
+                    .AddHttpMessageHandler(() => new RecordingHttpMessageHandler(exchanges))
             )
         );
         using var consoleBrowser = console.CreateClient(
@@ -236,9 +186,19 @@ public class ManagementConsoleEndToEndTests
         Assert.Equal(HttpStatusCode.OK, management.StatusCode);
         var caller = JsonElement.Parse(await management.Content.ReadAsStringAsync());
         Assert.Equal(JsonValueKind.Object, caller.ValueKind);
-        var request = Assert.Single(managementRequests);
-        Assert.StartsWith("DPoP ", request.Authorization, StringComparison.Ordinal);
-        Assert.NotEmpty(request.Proof);
+
+        // The provider requires no DPoP nonce, so the console's one management request reaches it once.
+        var call = Assert.Single(exchanges);
+        Assert.Equal("/api/me", call.Path);
+        Assert.Equal("DPoP", call.AuthorizationScheme);
+        Assert.Equal(HttpStatusCode.OK, call.StatusCode);
+        var proof = Assert.IsType<string>(call.DPoPProof);
+        var proofSegments = proof.Split('.');
+        Assert.Equal(3, proofSegments.Length);
+        var payloadBytes = Base64Url.DecodeFromChars(proofSegments[1]);
+        var payload = JsonElement.Parse(payloadBytes);
+        var htu = payload.GetProperty("htu").GetString();
+        Assert.Equal("http://localhost/api/me", htu);
     }
 
     #endregion

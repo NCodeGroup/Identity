@@ -1,10 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Text.Json;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
 using Xunit;
@@ -15,8 +13,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // the reporter that the platform settings reconciliation also uses. See ADR-1233.
 public class IncoherentClientReportTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
     private const string IncoherentClientId = "it-incoherent-client";
     private const string RedirectUri = "http://client.example/callback";
@@ -41,8 +37,8 @@ public class IncoherentClientReportTests
             RedirectUri
         );
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");
@@ -65,7 +61,9 @@ public class IncoherentClientReportTests
         );
         Assert.DoesNotContain(
             items,
-            element => element.GetProperty("clientId").GetString() == BootstrapClientId
+            element =>
+                element.GetProperty("clientId").GetString()
+                == BootstrapAdminApplicationFactory.ClientId
         );
     }
 
@@ -84,8 +82,8 @@ public class IncoherentClientReportTests
             RedirectUri
         );
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");
@@ -115,8 +113,8 @@ public class IncoherentClientReportTests
     {
         using var factory = CreateFactory();
         using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
         );
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");
@@ -131,17 +129,7 @@ public class IncoherentClientReportTests
 
     #region Scaffolding
 
-    private static ConfiguredHostApplicationFactory CreateFactory() =>
-        new(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            }
-        );
+    private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
     #endregion
 }

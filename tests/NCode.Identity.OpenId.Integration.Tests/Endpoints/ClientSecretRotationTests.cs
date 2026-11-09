@@ -1,14 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
@@ -19,15 +16,13 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // authenticating until it expires or is deleted (ADR-1320).
 public class ClientSecretRotationTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string ManagementScope = "read:clients";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     [Fact]
     public async Task PostRotate_WhenSecretIsShared_KeepsTheRotatedSecretUntilItIsDeleted()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
 
@@ -72,7 +67,7 @@ public class ClientSecretRotationTests
     [Fact]
     public async Task PostRotate_WhenTheRotatedSecretExpiresAtOnce_OnlyTheReplacementAuthenticates()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
 
@@ -93,7 +88,7 @@ public class ClientSecretRotationTests
     [Fact]
     public async Task PostRotate_WhenSecretIsUnknown_ReturnsNotFound()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var clientId = await CreateClientAsync(administrator);
 
@@ -116,7 +111,7 @@ public class ClientSecretRotationTests
     {
         var client = CreateHttpClient(factory);
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
@@ -243,27 +238,6 @@ public class ClientSecretRotationTests
 
         var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         return jsonElement.GetProperty("error").GetString();
-    }
-
-    private sealed class BootstrapAdminHostApplicationFactory : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                    }
-                )
-            );
-        }
     }
 
     #endregion

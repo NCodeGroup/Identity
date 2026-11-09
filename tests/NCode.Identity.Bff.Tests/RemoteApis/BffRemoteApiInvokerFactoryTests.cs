@@ -32,7 +32,8 @@ public class BffRemoteApiInvokerFactoryTests : BaseTests
             new DefaultBffConnectionSessionAccessor(),
             new BffTokenContexts(frontends, resolver, cookies),
             new Moq.Mock<IBffTokenAccessor>().Object,
-            new Moq.Mock<IDPoPProofFactory>().Object
+            new Moq.Mock<IDPoPProofFactory>().Object,
+            CreateStrictMock<IHttpMessageHandlerFactory>().Object
         );
     }
 

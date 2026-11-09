@@ -1,15 +1,12 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Accounts;
@@ -29,8 +26,6 @@ public class LocalAccountLifecycleTests
     private const string Password = "lifecycle-password";
     private const string NewPassword = "lifecycle-password-changed";
     private const string RedirectUri = "https://client.example/callback";
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string ManagementScope = "read:clients";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
@@ -54,7 +49,7 @@ public class LocalAccountLifecycleTests
     {
         var client = CreateHttpClient(factory);
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
@@ -299,27 +294,6 @@ public class LocalAccountLifecycleTests
         return response.StatusCode;
     }
 
-    private sealed class BootstrapAdminHostApplicationFactory : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                    }
-                )
-            );
-        }
-    }
-
     #endregion
 
     #region Lifecycle Tests
@@ -328,7 +302,7 @@ public class LocalAccountLifecycleTests
     public async Task Disable_EndsTheAccountsSessionsAndRevokesItsRefreshToken()
     {
         const string clientId = "it-lifecycle-disable";
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedPublicClientAsync(clientId, RedirectUri);
         var client = CreateClient(factory);
@@ -350,7 +324,7 @@ public class LocalAccountLifecycleTests
     public async Task ResetPassword_EndsTheAccountsSessionsAndRevokesItsRefreshToken()
     {
         const string clientId = "it-lifecycle-reset";
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedPublicClientAsync(clientId, RedirectUri);
         var client = CreateClient(factory);
@@ -372,7 +346,7 @@ public class LocalAccountLifecycleTests
     public async Task Delete_EndsTheAccountsSessionsAndErasesItsRefreshToken()
     {
         const string clientId = "it-lifecycle-delete";
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedPublicClientAsync(clientId, RedirectUri);
         var client = CreateClient(factory);
@@ -494,7 +468,7 @@ public class LocalAccountLifecycleTests
     public async Task DeviceVerification_WhenTheSessionHasEnded_ChallengesForANewLogin()
     {
         const string clientId = "it-lifecycle-device-session";
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedPublicClientAsync(clientId, RedirectUri);
         var client = CreateClient(factory);
@@ -517,7 +491,7 @@ public class LocalAccountLifecycleTests
     public async Task Block_EndsThePrincipalsSessionsAndRevokesItsRefreshToken()
     {
         const string clientId = "it-lifecycle-block";
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedPublicClientAsync(clientId, RedirectUri);
         var client = CreateClient(factory);
@@ -567,7 +541,7 @@ public class LocalAccountLifecycleTests
     {
         const string userName = "policy-user";
         const string password = "policy-user-password";
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
 
         using var response = await administrator.PostAsync(
@@ -584,7 +558,7 @@ public class LocalAccountLifecycleTests
     [Fact]
     public async Task Create_WhenThePolicyRefusesThePassword_AnswersBadRequest()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
 
         using var response = await administrator.PostAsync(
@@ -600,7 +574,7 @@ public class LocalAccountLifecycleTests
     [Fact]
     public async Task ResetPassword_WhenThePolicyRefusesThePassword_KeepsThePassword()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
         using var administrator = await CreateAdministratorClientAsync(factory);
 
@@ -651,7 +625,7 @@ public class LocalAccountLifecycleTests
     {
         const string wrongPassword = "lifecycle-wrong-password";
         const string resetPassword = "lifecycle-password-reset";
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
 
         // The tenant reads its settings at its first request, so they are seeded before anything is sent.
         await factory.SeedTenantSettingsAsync(
@@ -703,7 +677,7 @@ public class LocalAccountLifecycleTests
     [Fact]
     public async Task AccountMe_WhenThePrincipalWasBlocked_ReturnsUnauthorized()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = new BootstrapAdminApplicationFactory();
         var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
         var client = CreateClient(factory);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);

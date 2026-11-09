@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Contexts;
@@ -11,14 +12,15 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// <summary>
 /// The management authentication endpoint filter. It runs after <see cref="ManagementEnvironmentEndpointFilter"/> has
 /// materialized the OpenID request environment, validates a self-issued bearer access token for the management audience
-/// against the control-plane tenant, and publishes the authenticated principal on <see cref="HttpContext.User"/> for the
-/// endpoints' resource-based authorization to read. A missing or invalid token leaves the caller anonymous, and the
-/// imperative authorization returns <c>401</c>/<c>403</c>. Once the token authenticates, the filter resolves the
-/// client the caller acts as before the endpoint changes anything, and the resolver gives that answer for the rest of
-/// the request, so a change the request commits, such as a machine client deleting itself, does not alter the actor
-/// its audit records.
+/// against the control-plane tenant, and publishes, on every management request, the principal a valid management access
+/// token authenticates on <see cref="HttpContext.User"/> and as <see cref="IManagementCallerFeature"/>, for the
+/// endpoints' resource-based authorization to read. Any other request is anonymous whatever principal an authentication
+/// scheme set, and carries no feature; the imperative authorization returns <c>401</c>/<c>403</c>. Once the token
+/// authenticates, the filter resolves the client the caller acts as before the endpoint changes anything, and the
+/// resolver gives that answer for the rest of the request, so a change the request commits, such as a machine client
+/// deleting itself, does not alter the actor its audit records.
 /// </summary>
-// See ADR-1470.
+// See ADR-1470 and ADR-1484.
 internal sealed class ManagementAuthenticationEndpointFilter(
     IClientPrincipalResolver clientPrincipalResolver
 ) : IEndpointFilter
@@ -38,35 +40,57 @@ internal sealed class ManagementAuthenticationEndpointFilter(
     )
     {
         var httpContext = context.HttpContext;
-        var openIdContext = httpContext.GetOpenIdContextOrDefault();
 
-        if (openIdContext is not null && TryGetBearerToken(httpContext, out var accessToken))
+        var caller = await AuthenticateOrDefaultAsync(httpContext, httpContext.RequestAborted);
+        if (caller is null)
         {
-            var disposition = await openIdContext.Mediator.SendAsync<
-                AuthenticateAccessTokenCommand,
-                AuthenticateAccessTokenDisposition
-            >(
-                new AuthenticateAccessTokenCommand(openIdContext, accessToken, ManagementAudiences),
-                httpContext.RequestAborted
-            );
-
-            if (disposition.IsAuthenticated)
-            {
-                httpContext.User = disposition.Principal;
-
-                // The call is kept for the answer the request remembers, which the audit recorder reads after the
-                // commit, so a change the request commits, such as a machine client deleting itself, does not alter
-                // the actor its audit records.
-                // See ADR-1470.
-                _ = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
-                    openIdContext,
-                    disposition.Principal,
-                    httpContext.RequestAborted
-                );
-            }
+            var anonymousIdentity = new ClaimsIdentity();
+            httpContext.User = new ClaimsPrincipal(anonymousIdentity);
+            httpContext.Features.Set<IManagementCallerFeature>(null);
+        }
+        else
+        {
+            httpContext.User = caller;
+            var callerFeature = new DefaultManagementCallerFeature(caller);
+            httpContext.Features.Set<IManagementCallerFeature>(callerFeature);
         }
 
         return await next(context);
+    }
+
+    private async ValueTask<ClaimsPrincipal?> AuthenticateOrDefaultAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        var openIdContext = httpContext.GetOpenIdContextOrDefault();
+        if (openIdContext is null || !TryGetBearerToken(httpContext, out var accessToken))
+            return null;
+
+        var command = new AuthenticateAccessTokenCommand(
+            openIdContext,
+            accessToken,
+            ManagementAudiences
+        );
+        var disposition = await openIdContext.Mediator.SendAsync<
+            AuthenticateAccessTokenCommand,
+            AuthenticateAccessTokenDisposition
+        >(command, cancellationToken);
+
+        if (!disposition.IsAuthenticated)
+            return null;
+
+        // The call is kept for the answer the request remembers, which the audit recorder reads after the
+        // commit, so a change the request commits, such as a machine client deleting itself, does not alter
+        // the actor its audit records.
+        // See ADR-1470.
+        _ = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
+            openIdContext,
+            disposition.Principal,
+            cancellationToken
+        );
+
+        return disposition.Principal;
     }
 
     private static bool TryGetBearerToken(HttpContext httpContext, out string token)

@@ -1,6 +1,6 @@
 # 1420. A caller's teams and tenants are discovered from its role assignments
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1484](1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) (decision

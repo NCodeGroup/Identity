@@ -19,6 +19,9 @@ public class ManagementRouteProblemDeclarationTests
 {
     #region Helpers
 
+    private static string[] AuthenticatedCallerNames { get; } =
+    ["api/capabilities/get", "api/me/get", "api/me/teams/list", "api/me/tenants/list"];
+
     private static List<RouteEndpoint> GetManagementEndpoints(HostApplicationFactory factory) =>
         factory
             .Services.GetRequiredService<EndpointDataSource>()
@@ -85,9 +88,6 @@ public class ManagementRouteProblemDeclarationTests
     [Fact]
     public void ManagementRoutes_WhenTheyAuthorizeTheCaller_DeclareUnauthorizedAndForbidden()
     {
-        string[] anyCallerNames = ["api/me/get", "api/me/teams/list", "api/me/tenants/list"];
-        string[] authenticatedCallerNames = ["api/capabilities/get"];
-
         using var factory = new HostApplicationFactory();
 
         var endpoints = GetManagementEndpoints(factory);
@@ -95,7 +95,7 @@ public class ManagementRouteProblemDeclarationTests
         var endpointNames = endpoints
             .Select(e => e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName)
             .ToHashSet();
-        foreach (var name in anyCallerNames.Concat(authenticatedCallerNames))
+        foreach (var name in AuthenticatedCallerNames)
         {
             Assert.Contains(name, endpointNames);
         }
@@ -103,10 +103,7 @@ public class ManagementRouteProblemDeclarationTests
         foreach (var endpoint in endpoints)
         {
             var name = endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName;
-            if (
-                name is not null
-                && (anyCallerNames.Contains(name) || authenticatedCallerNames.Contains(name))
-            )
+            if (name is not null && AuthenticatedCallerNames.Contains(name))
             {
                 continue;
             }
@@ -123,13 +120,11 @@ public class ManagementRouteProblemDeclarationTests
     [Fact]
     public void ManagementRoutes_WhenTheyOnlyAuthenticateTheCaller_DeclareUnauthorizedButNotForbidden()
     {
-        string[] authenticatedCallerNames = ["api/capabilities/get"];
-
         using var factory = new HostApplicationFactory();
 
         var endpoints = GetManagementEndpoints(factory);
 
-        foreach (var name in authenticatedCallerNames)
+        foreach (var name in AuthenticatedCallerNames)
         {
             var endpoint = Assert.Single(
                 endpoints,

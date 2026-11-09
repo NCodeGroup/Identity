@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// </summary>
 public class ManagementOpenApiDocumentTests
 {
-    private static readonly string[] HttpMethods = ["get", "put", "post", "patch", "delete"];
+    private static string[] HttpMethods { get; } = ["get", "put", "post", "patch", "delete"];
 
     private const string UnauthorizedDescription =
         "The request carries no valid management access token.";

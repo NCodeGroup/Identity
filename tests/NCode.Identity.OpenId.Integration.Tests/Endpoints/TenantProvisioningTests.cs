@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -27,11 +26,9 @@ public class TenantProvisioningTests
 {
     private const string RootIssuer = "http://localhost";
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string DiscoveryPath = "/.well-known/openid-configuration";
 
-    private static ConfiguredHostApplicationFactory CreateFactory(
+    private static BootstrapAdminApplicationFactory CreateFactory(
         string? mtlsEndpointAliasTemplate = null
     ) =>
         new(
@@ -44,12 +41,8 @@ public class TenantProvisioningTests
                     .DynamicByHost,
                 ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
                 ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = "root",
-            }
+            },
+            "root"
         );
 
     private static async Task<HttpClient> CreateAdministratorClientAsync(
@@ -61,7 +54,7 @@ public class TenantProvisioningTests
         // The TestServer's own host is the root tenant's: nothing is seeded, so this request bootstraps the control
         // plane, and with it the bootstrap administrator.
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {

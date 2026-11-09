@@ -30,8 +30,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// </summary>
 public class RemoteSigningKeyTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string RootIssuer = "http://localhost";
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
     private const string JwksPath = "/oauth2/jwks";
@@ -39,17 +37,8 @@ public class RemoteSigningKeyTests
     private const string ProviderSettingConfigKey =
         $"OpenId:Platform:Settings:{ProviderSettingName}";
 
-    private static string BootstrapClientSecretConfig { get; } =
-        Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(BootstrapClientSecret));
-
     private static Dictionary<string, string?> CreateStaticConfiguration() =>
-        new()
-        {
-            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            [ProviderSettingConfigKey] = TestRemoteKeyProvider.ProviderName,
-        };
+        new() { [ProviderSettingConfigKey] = TestRemoteKeyProvider.ProviderName };
 
     private static Dictionary<string, string?> CreateDynamicConfiguration() =>
         new()
@@ -59,9 +48,6 @@ public class RemoteSigningKeyTests
                 .DynamicByHost,
             ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
             ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
-            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-            ["BootstrapAdmin:TenantId"] = "root",
         };
 
     #region Provisioning Tests
@@ -177,7 +163,11 @@ public class RemoteSigningKeyTests
     public async Task PatchPlatformSettings_WhenATenantStartsLocal_PublishesRemoteKeysThatActivateAfterTheDelayWhileLocalKeysSign()
     {
         using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteKeyApplicationFactory(provider, CreateDynamicConfiguration());
+        using var factory = new RemoteKeyApplicationFactory(
+            provider,
+            CreateDynamicConfiguration(),
+            "root"
+        );
         using var client = factory.CreateClient();
 
         var accessToken = await GetBootstrapTokenAsync(client);
@@ -490,7 +480,7 @@ public class RemoteSigningKeyTests
     private static async Task<string> GetBootstrapTokenAsync(HttpClient client)
     {
         var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
+            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
         );
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {

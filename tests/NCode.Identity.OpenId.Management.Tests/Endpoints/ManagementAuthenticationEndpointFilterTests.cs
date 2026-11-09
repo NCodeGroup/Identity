@@ -94,6 +94,38 @@ public sealed class ManagementAuthenticationEndpointFilterTests : IDisposable
         Assert.Same(expected, result);
         Assert.True(resolvedBeforeTheRoute);
         Assert.Same(principal, HttpContext.User);
+        Assert.Same(principal, HttpContext.Features.Get<IManagementCallerFeature>()?.Caller);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WhenTheTokenAuthenticates_ReplacesThePrincipalAnotherSchemeSet()
+    {
+        HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity("Cookies"));
+        HttpContext.Request.Headers.Authorization = "Bearer access-token";
+        var principal = new ClaimsPrincipal(new ClaimsIdentity("Bearer"));
+        var disposition = new AuthenticateAccessTokenDisposition(principal);
+        SetupAuthentication(disposition);
+
+        var noClient = new ValueTask<PersistedClient?>((PersistedClient?)null);
+        MockClientPrincipalResolver
+            .Setup(x =>
+                x.GetActingClientOrDefaultAsync(
+                    It.IsAny<OpenIdContext>(),
+                    principal,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(noClient)
+            .Verifiable();
+
+        var expected = TypedResults.NoContent();
+        EndpointFilterDelegate next = _ => ValueTask.FromResult<object?>(expected);
+        var context = EndpointFilterInvocationContext.Create(HttpContext);
+
+        var result = await Filter.InvokeAsync(context, next);
+
+        Assert.Same(expected, result);
+        Assert.Same(principal, HttpContext.User);
     }
 
     [Fact]
@@ -110,6 +142,8 @@ public sealed class ManagementAuthenticationEndpointFilterTests : IDisposable
         var result = await Filter.InvokeAsync(context, next);
 
         Assert.Same(expected, result);
+        Assert.False(HttpContext.User.Identity?.IsAuthenticated);
+        Assert.Null(HttpContext.Features.Get<IManagementCallerFeature>());
     }
 
     [Fact]
@@ -122,6 +156,25 @@ public sealed class ManagementAuthenticationEndpointFilterTests : IDisposable
         var result = await Filter.InvokeAsync(context, next);
 
         Assert.Same(expected, result);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WithoutABearerToken_DiscardsThePrincipalAnotherSchemeSet()
+    {
+        HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity("Cookies"));
+        HttpContext.Features.Set<IManagementCallerFeature>(
+            new DefaultManagementCallerFeature(HttpContext.User)
+        );
+
+        var expected = TypedResults.NoContent();
+        EndpointFilterDelegate next = _ => ValueTask.FromResult<object?>(expected);
+        var context = EndpointFilterInvocationContext.Create(HttpContext);
+
+        var result = await Filter.InvokeAsync(context, next);
+
+        Assert.Same(expected, result);
+        Assert.False(HttpContext.User.Identity?.IsAuthenticated);
+        Assert.Null(HttpContext.Features.Get<IManagementCallerFeature>());
     }
 
     #endregion

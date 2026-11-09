@@ -83,7 +83,7 @@ public static class EndpointProblemMetadata
             .ToList();
     }
 
-    private static readonly HashSet<int> DescribedByRouteGroup =
+    private static HashSet<int> DescribedByRouteGroup { get; } =
     [
         StatusCodes.Status401Unauthorized,
         StatusCodes.Status403Forbidden,

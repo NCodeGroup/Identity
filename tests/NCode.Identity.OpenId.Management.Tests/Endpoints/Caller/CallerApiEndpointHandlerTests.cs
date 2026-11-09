@@ -59,10 +59,11 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
 
     private static HttpContext CreateHttpContext()
     {
-        var httpContext = new DefaultHttpContext
-        {
-            User = new ClaimsPrincipal(new ClaimsIdentity(authenticationType: "test")),
-        };
+        var user = new ClaimsPrincipal(new ClaimsIdentity(authenticationType: "test"));
+        var httpContext = new DefaultHttpContext { User = user };
+        httpContext.Features.Set<IManagementCallerFeature>(
+            new DefaultManagementCallerFeature(user)
+        );
         // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
         httpContext.Features.Set<IOpenIdContextFeature>(
             Mock.Of<IOpenIdContextFeature>(feature =>
@@ -161,6 +162,31 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
     #region GetCallerAsync Tests
 
     [Fact]
+    public async Task GetCallerAsync_WhenTheCallerIsAnonymous_ReturnsAuthenticationRequired()
+    {
+        var httpContext = new DefaultHttpContext();
+
+        var result = await Handler.GetCallerAsync(httpContext, CancellationToken.None);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status401Unauthorized, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetCallerAsync_WhenAnotherSchemeAuthenticatedTheCaller_ReturnsAuthenticationRequired()
+    {
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity("Cookies")),
+        };
+
+        var result = await Handler.GetCallerAsync(httpContext, CancellationToken.None);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status401Unauthorized, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task GetCallerAsync_WhenTheCallerHasAPrincipal_ReturnsItsPrincipalAuthorityAndAssignments()
     {
         SetupScopeAndStoreManager();
@@ -233,6 +259,17 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
     #endregion
 
     #region ListTeamsAsync Tests
+
+    [Fact]
+    public async Task ListTeamsAsync_WhenTheCallerIsAnonymous_ReturnsAuthenticationRequired()
+    {
+        var httpContext = new DefaultHttpContext();
+
+        var result = await Handler.ListTeamsAsync(httpContext, CancellationToken.None);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status401Unauthorized, problem.StatusCode);
+    }
 
     [Fact]
     public async Task ListTeamsAsync_ListsEachTeamTheCallerHoldsARoleAtOnce()
@@ -312,6 +349,17 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
     #region ListTenantsAsync Tests
 
     [Fact]
+    public async Task ListTenantsAsync_WhenTheCallerIsAnonymous_ReturnsAuthenticationRequired()
+    {
+        var httpContext = new DefaultHttpContext();
+
+        var result = await Handler.ListTenantsAsync(httpContext, CancellationToken.None);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status401Unauthorized, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task ListTenantsAsync_ListsEachTenantTheCallerHoldsARoleAt()
     {
         SetupScopeAndStoreManager();
@@ -347,6 +395,33 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
         Assert.All(collection.Items, tenant => Assert.Equal("team-1", tenant.TeamId));
         Assert.All(collection.Items, tenant => Assert.Null(tenant.Environment));
         Assert.Null(collection.ContinuationToken);
+    }
+
+    #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("GET", "/me", new[] { 401 })]
+    [InlineData("GET", "/me/teams", new[] { 401 })]
+    [InlineData("GET", "/me/tenants", new[] { 401 })]
+    public async Task Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+        Assert.Empty(
+            await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern
+            )
+        );
     }
 
     #endregion

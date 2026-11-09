@@ -1,41 +1,28 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Diagnostics;
-using System.Net;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId.Client;
-using Yarp.ReverseProxy.Forwarder;
 
 namespace NCode.Identity.Bff.RemoteApis;
 
 /// <summary>
-/// Creates the invokers that send forwarded requests to remote APIs. Every invoker shares one connection pool that
-/// never follows a redirect, never sends or stores a cookie, never uses a proxy and never decompresses a response.
+/// Creates the invokers that send forwarded requests to remote APIs. Every invoker attaches its remote API's token and
+/// sends through the <see cref="BffDefaults.RemoteApiHttpClientName"/> client, whose primary handler the BFF registers
+/// to follow no redirect, send or store no cookie, use no proxy and decompress no response.
 /// </summary>
+// See ADR-1381 and ADR-1487.
 internal sealed class BffRemoteApiInvokerFactory(
     IHttpContextAccessor accessor,
     IBffConnectionSessionAccessor connections,
     BffTokenContexts contexts,
     IBffTokenAccessor tokens,
-    IDPoPProofFactory proofs
+    IDPoPProofFactory proofs,
+    IHttpMessageHandlerFactory handlerFactory
 ) : IDisposable
 {
-    private SocketsHttpHandler Handler { get; } =
-        new()
-        {
-            AllowAutoRedirect = false,
-            UseCookies = false,
-            UseProxy = false,
-            AutomaticDecompression = DecompressionMethods.None,
-            ConnectTimeout = TimeSpan.FromSeconds(15),
-            EnableMultipleHttp2Connections = true,
-            // Replaces the trace headers that the browser sent with the BFF's own, rather than adding a second set.
-            ActivityHeadersPropagator = new ReverseProxyPropagator(
-                DistributedContextPropagator.Current
-            ),
-        };
+    private BffRemoteApiTransportHandler Transport { get; } = new(handlerFactory);
 
     /// <summary>
     /// Creates an invoker that attaches the token of the specified request to each request it sends.
@@ -55,12 +42,12 @@ internal sealed class BffRemoteApiInvokerFactory(
             tokenRequest
         )
         {
-            InnerHandler = Handler,
+            InnerHandler = Transport,
         };
 
         return new HttpMessageInvoker(handler, disposeHandler: false);
     }
 
     /// <inheritdoc />
-    public void Dispose() => Handler.Dispose();
+    public void Dispose() => Transport.Dispose();
 }

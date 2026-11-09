@@ -41,28 +41,41 @@ internal sealed class ManagementAuthenticationEndpointFilter(
     {
         var httpContext = context.HttpContext;
 
-        var caller = await AuthenticateOrDefaultAsync(httpContext);
-        httpContext.User = caller ?? new ClaimsPrincipal(new ClaimsIdentity());
-        httpContext.Features.Set<IManagementCallerFeature>(
-            caller is null ? null : new DefaultManagementCallerFeature(caller)
-        );
+        var caller = await AuthenticateOrDefaultAsync(httpContext, httpContext.RequestAborted);
+        if (caller is null)
+        {
+            var anonymousIdentity = new ClaimsIdentity();
+            httpContext.User = new ClaimsPrincipal(anonymousIdentity);
+            httpContext.Features.Set<IManagementCallerFeature>(null);
+        }
+        else
+        {
+            httpContext.User = caller;
+            var callerFeature = new DefaultManagementCallerFeature(caller);
+            httpContext.Features.Set<IManagementCallerFeature>(callerFeature);
+        }
 
         return await next(context);
     }
 
-    private async ValueTask<ClaimsPrincipal?> AuthenticateOrDefaultAsync(HttpContext httpContext)
+    private async ValueTask<ClaimsPrincipal?> AuthenticateOrDefaultAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         var openIdContext = httpContext.GetOpenIdContextOrDefault();
         if (openIdContext is null || !TryGetBearerToken(httpContext, out var accessToken))
             return null;
 
+        var command = new AuthenticateAccessTokenCommand(
+            openIdContext,
+            accessToken,
+            ManagementAudiences
+        );
         var disposition = await openIdContext.Mediator.SendAsync<
             AuthenticateAccessTokenCommand,
             AuthenticateAccessTokenDisposition
-        >(
-            new AuthenticateAccessTokenCommand(openIdContext, accessToken, ManagementAudiences),
-            httpContext.RequestAborted
-        );
+        >(command, cancellationToken);
 
         if (!disposition.IsAuthenticated)
             return null;
@@ -74,7 +87,7 @@ internal sealed class ManagementAuthenticationEndpointFilter(
         _ = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
             openIdContext,
             disposition.Principal,
-            httpContext.RequestAborted
+            cancellationToken
         );
 
         return disposition.Principal;

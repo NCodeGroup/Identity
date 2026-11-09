@@ -1,6 +1,8 @@
 # 1485. The host chart holds the console's key rings in a key management service under the console's own identity
 
-- **Status:** Accepted (amends [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md))
+- **Status:** Accepted (amends [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md); amended by
+  [ADR-1489](1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md):
+  the console registers every vendor without a location, and the chart renders no provider section for it)
 - **Date:** 2026-11-09
 - **Deciders:** NCode Group
 

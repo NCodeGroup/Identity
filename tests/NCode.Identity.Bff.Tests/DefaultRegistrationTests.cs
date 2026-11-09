@@ -16,6 +16,7 @@ using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Secrets;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Events;
 using NCode.Identity.Jose;
@@ -203,6 +204,21 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
             descriptor =>
                 descriptor.ServiceType == typeof(IHostedService)
                 && descriptor.ImplementationType == typeof(BffEndpointStartupCheck)
+        );
+    }
+
+    [Fact]
+    public void AddBffConfiguration_RegistersTheKeyRingLoader()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+
+        ClientBuilder.AddBffLibrary(EventsBuilder).AddBffConfiguration(configuration);
+
+        Assert.Contains(
+            Services,
+            descriptor =>
+                descriptor.ServiceType == typeof(IHostedService)
+                && descriptor.ImplementationType == typeof(BffKeyRingLoader)
         );
     }
 

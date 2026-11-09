@@ -2040,8 +2040,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var statusCode = Assert.IsType<StatusCodeHttpResult>(result);
-        Assert.Equal(StatusCodes.Status412PreconditionFailed, statusCode.StatusCode);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]
@@ -2089,7 +2089,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<StatusCodeHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
         var node = Assert.IsType<ResourceNode>(authorizedResource);
         Assert.Equal(ResourceNodeTypes.Tenant, node.ResourceType);
         Assert.Equal(TenantId, node.ResourceId);
@@ -2810,6 +2811,33 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         Assert.IsType<NoContent>(result);
         VerifyTenantChanged(settingsChanged: false);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenIfMatchMismatch_ReturnsPreconditionFailed()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(TenantId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            TenantId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: "stale",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]

@@ -1819,7 +1819,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<StatusCodeHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
         var node = Assert.IsType<ResourceNode>(authorizedResource);
         Assert.Equal(ResourceNodeTypes.ResourceServer, node.ResourceType);
         Assert.Equal(ResourceServerId, node.ResourceId);
@@ -2082,6 +2083,47 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<Created<SecretResource>>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenIfMatchMismatch_ReturnsPreconditionFailed()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(
+                    ResourceServerId,
+                    "secret-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PersistedResourceServerSecret
+                {
+                    TenantId = TenantId,
+                    ResourceServerId = ResourceServerId,
+                    Value = CreatePersistedSecret(),
+                }
+            )
+            .Verifiable();
+
+        var result = await Handler.UpdateSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "secret-1",
+            new UpdateSecretRequest
+            {
+                Use = "sig",
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(50),
+            },
+            ifMatch: "stale",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]

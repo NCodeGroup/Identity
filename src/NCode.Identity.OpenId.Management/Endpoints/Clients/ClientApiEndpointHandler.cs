@@ -1607,7 +1607,10 @@ internal class ClientApiEndpointHandler(
             && !string.Equals(ifMatch, clientSettings.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return TypedResults.Problem(
+                detail: "The supplied If-Match token does not match the current settings.",
+                statusCode: StatusCodes.Status412PreconditionFailed
+            );
         }
 
         var jsonObject = ToJsonObject(clientSettings.Value);
@@ -2285,7 +2288,10 @@ internal class ClientApiEndpointHandler(
             && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return TypedResults.Problem(
+                detail: "The supplied If-Match token does not match the current secret.",
+                statusCode: StatusCodes.Status412PreconditionFailed
+            );
         }
 
         var metadataError = SecretValidator.ValidateUpdate(secret, request);
@@ -2476,7 +2482,10 @@ internal class ClientApiEndpointHandler(
             && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return TypedResults.Problem(
+                detail: "The supplied If-Match token does not match the current secret.",
+                statusCode: StatusCodes.Status412PreconditionFailed
+            );
         }
 
         if (secret.SecretType != SecretTypes.Symmetric)

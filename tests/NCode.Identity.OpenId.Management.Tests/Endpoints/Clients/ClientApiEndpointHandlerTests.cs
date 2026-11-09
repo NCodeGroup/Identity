@@ -2879,7 +2879,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<StatusCodeHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
         var node = Assert.IsType<ResourceNode>(authorizedResource);
         Assert.Equal(ResourceNodeTypes.Client, node.ResourceType);
         Assert.Equal(ClientId, node.ResourceId);
@@ -4333,6 +4334,35 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.IsType<NoContent>(result);
     }
 
+    [Fact]
+    public async Task UpdateSecretAsync_WhenIfMatchMismatch_ReturnsPreconditionFailed()
+    {
+        SetupClientLookup();
+        SetupStore();
+        MockClientStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateClientSecret())
+            .Verifiable();
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: "stale",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
+    }
+
     [Theory]
     [InlineData("sig", "RS256")]
     [InlineData("enc", "HS256")]
@@ -5073,8 +5103,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        var status = Assert.IsType<StatusCodeHttpResult>(result);
-        Assert.Equal(StatusCodes.Status412PreconditionFailed, status.StatusCode);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]

@@ -2377,8 +2377,8 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var status = Assert.IsType<StatusCodeHttpResult>(result);
-        Assert.Equal(StatusCodes.Status412PreconditionFailed, status.StatusCode);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]

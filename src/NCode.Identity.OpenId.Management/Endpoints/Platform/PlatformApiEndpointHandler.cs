@@ -435,7 +435,10 @@ internal class PlatformApiEndpointHandler(
             && !string.Equals(ifMatch, platformSettings.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return TypedResults.Problem(
+                detail: "The supplied If-Match token does not match the current settings.",
+                statusCode: StatusCodes.Status412PreconditionFailed
+            );
         }
 
         var jsonObject = ToJsonObject(platformSettings.Value);

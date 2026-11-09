@@ -1343,8 +1343,8 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var statusCode = Assert.IsType<StatusCodeHttpResult>(result);
-        Assert.Equal(StatusCodes.Status412PreconditionFailed, statusCode.StatusCode);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
     }
 
     [Fact]

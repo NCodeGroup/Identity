@@ -672,7 +672,10 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             );
         }
 
-        var peerSubjectPublicKeyInfo = ExportSubjectPublicKeyInfo(ephemeralKey);
+        using var peerSubjectPublicKeyInfoLease = RentSubjectPublicKeyInfo(
+            ephemeralKey,
+            out var peerSubjectPublicKeyInfo
+        );
 
         using var sharedSecretLease = BufferFactory.Rent(
             keyAgreement.GetSharedSecretSizeBytes(secretKey),
@@ -697,13 +700,22 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         DeriveKey(algorithm, apu, apv, sharedSecret.Span, destination.Span);
     }
 
-    private static byte[] ExportSubjectPublicKeyInfo(AsymmetricSecretKey publicKey)
+    // The rental lives across the key agreement's await, so the caller disposes it once the service has answered.
+    private static IDisposable RentSubjectPublicKeyInfo(
+        AsymmetricSecretKey publicKey,
+        out Memory<byte> subjectPublicKeyInfo
+    )
     {
         using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
         IBufferWriter<byte> writer = buffer;
         publicKey.ExportSubjectPublicKeyInfo(ref writer);
-        using var lease = buffer.GetSpanLease(isSensitive: false);
-        return lease.Span.ToArray();
+        var lease = BufferFactory.Rent(
+            checked((int)buffer.Length),
+            isSensitive: false,
+            out subjectPublicKeyInfo
+        );
+        buffer.AsReadOnlySequence.CopyTo(subjectPublicKeyInfo.Span);
+        return lease;
     }
 
     /// <summary>

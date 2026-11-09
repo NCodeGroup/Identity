@@ -374,7 +374,8 @@ internal class DefaultTenantKeyPolicy(
     }
 
     // A tenant that opts into a provider has every provisioned key held there, so a provider without a row for one of
-    // them stops the host instead of leaving the tenant's seed or rollover without that key (ADR-1471, ADR-1477).
+    // them, or whose row holds the key for another use, stops the host instead of leaving the tenant's seed or
+    // rollover without that key (ADR-1471, ADR-1477).
     private void AddUnsupportedProviderErrors(
         List<TenantKeySpecification> specifications,
         List<string> errors
@@ -397,13 +398,22 @@ internal class DefaultTenantKeyPolicy(
                     Curve = specification.Curve,
                 };
 
-                if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out _))
+                var curve = specification.Curve is null
+                    ? string.Empty
+                    : $", curve '{specification.Curve}'";
+
+                if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var row))
                 {
-                    var curve = specification.Curve is null
-                        ? string.Empty
-                        : $", curve '{specification.Curve}'";
                     errors.Add(
                         $"The remote key provider '{name}' cannot hold the provisioned '{specification.Algorithm}' key "
+                            + $"({specification.SecretType}, {specification.KeySizeBits} bits{curve})."
+                    );
+                }
+                else if (!string.Equals(row.Use, specification.Use, StringComparison.Ordinal))
+                {
+                    errors.Add(
+                        $"The remote key provider '{name}' holds '{specification.Algorithm}' keys for the use '{row.Use}', "
+                            + $"not for the provisioned key's use '{specification.Use}' "
                             + $"({specification.SecretType}, {specification.KeySizeBits} bits{curve})."
                     );
                 }

@@ -1118,6 +1118,28 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
+    public void ResolveSpecifications_ProviderRowHoldsAnotherUse_ReportsIt()
+    {
+        var catalog = new StubRemoteKeyDescriptorCatalog(
+            ["aws-kms"],
+            [AlgorithmCodes.KeyManagement.EcdhEs]
+        );
+        var policy = CreatePolicy(_serviceProvider, catalog);
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions { Algorithm = AlgorithmCodes.KeyManagement.EcdhEs }
+            )
+        );
+
+        var error = Assert.Single(resolution.Errors);
+        Assert.Equal(
+            "The remote key provider 'aws-kms' holds 'ECDH-ES' keys for the use 'sig', not for the provisioned key's use 'enc' (ecc, 256 bits, curve 'P-256').",
+            error
+        );
+    }
+
+    [Fact]
     public void ResolveSpecifications_ProviderHoldsEveryProvisionedKey_ReportsNothing()
     {
         var catalog = new StubRemoteKeyDescriptorCatalog(

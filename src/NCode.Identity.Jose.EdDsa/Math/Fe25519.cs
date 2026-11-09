@@ -20,19 +20,19 @@ internal struct Fe25519
     private const MethodImplOptions Opt =
         MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization;
 
-    private ulong _l0;
-    private ulong _l1;
-    private ulong _l2;
-    private ulong _l3;
-    private ulong _l4;
+    private ulong L0 { get; set; }
+    private ulong L1 { get; set; }
+    private ulong L2 { get; set; }
+    private ulong L3 { get; set; }
+    private ulong L4 { get; set; }
 
     public static Fe25519 Zero => default;
 
-    public static Fe25519 One => new() { _l0 = 1 };
+    public static Fe25519 One => new() { L0 = 1 };
 
     /// <summary>Creates a field element from a small unsigned integer (the value must be below 2^51).</summary>
     [MethodImpl(Opt)]
-    public static Fe25519 FromUInt64(ulong value) => new() { _l0 = value };
+    public static Fe25519 FromUInt64(ulong value) => new() { L0 = value };
 
     /// <summary>A fixed square root of <c>-1</c> modulo <c>p</c>, used to correct the sign during point decompression.</summary>
     public static Fe25519 SqrtMinusOne { get; } = Pow(FromUInt64(2), PMinus1Div4BitsBE);
@@ -42,11 +42,11 @@ internal struct Fe25519
     {
         var r = new Fe25519
         {
-            _l0 = a._l0 + b._l0,
-            _l1 = a._l1 + b._l1,
-            _l2 = a._l2 + b._l2,
-            _l3 = a._l3 + b._l3,
-            _l4 = a._l4 + b._l4,
+            L0 = a.L0 + b.L0,
+            L1 = a.L1 + b.L1,
+            L2 = a.L2 + b.L2,
+            L3 = a.L3 + b.L3,
+            L4 = a.L4 + b.L4,
         };
         r.WeakReduce();
         return r;
@@ -59,11 +59,11 @@ internal struct Fe25519
         // 2*(2^51 - 19) for limb 0 and 2*(2^51 - 1) for limbs 1..4.
         var r = new Fe25519
         {
-            _l0 = a._l0 + 0x0F_FFFF_FFFF_FFDAUL - b._l0,
-            _l1 = a._l1 + 0x0F_FFFF_FFFF_FFFEUL - b._l1,
-            _l2 = a._l2 + 0x0F_FFFF_FFFF_FFFEUL - b._l2,
-            _l3 = a._l3 + 0x0F_FFFF_FFFF_FFFEUL - b._l3,
-            _l4 = a._l4 + 0x0F_FFFF_FFFF_FFFEUL - b._l4,
+            L0 = a.L0 + 0x0F_FFFF_FFFF_FFDAUL - b.L0,
+            L1 = a.L1 + 0x0F_FFFF_FFFF_FFFEUL - b.L1,
+            L2 = a.L2 + 0x0F_FFFF_FFFF_FFFEUL - b.L2,
+            L3 = a.L3 + 0x0F_FFFF_FFFF_FFFEUL - b.L3,
+            L4 = a.L4 + 0x0F_FFFF_FFFF_FFFEUL - b.L4,
         };
         r.WeakReduce();
         return r;
@@ -76,41 +76,41 @@ internal struct Fe25519
     public static Fe25519 Mul(in Fe25519 a, in Fe25519 b)
     {
         // 19*b_i stays below 2^56; a_i below 2^52; each UInt128 accumulator sums five products below 2^108.
-        ulong b1_19 = 19 * b._l1;
-        ulong b2_19 = 19 * b._l2;
-        ulong b3_19 = 19 * b._l3;
-        ulong b4_19 = 19 * b._l4;
+        ulong b1_19 = 19 * b.L1;
+        ulong b2_19 = 19 * b.L2;
+        ulong b3_19 = 19 * b.L3;
+        ulong b4_19 = 19 * b.L4;
 
         UInt128 t0 =
-            (UInt128)a._l0 * b._l0
-            + (UInt128)a._l1 * b4_19
-            + (UInt128)a._l2 * b3_19
-            + (UInt128)a._l3 * b2_19
-            + (UInt128)a._l4 * b1_19;
+            (UInt128)a.L0 * b.L0
+            + (UInt128)a.L1 * b4_19
+            + (UInt128)a.L2 * b3_19
+            + (UInt128)a.L3 * b2_19
+            + (UInt128)a.L4 * b1_19;
         UInt128 t1 =
-            (UInt128)a._l0 * b._l1
-            + (UInt128)a._l1 * b._l0
-            + (UInt128)a._l2 * b4_19
-            + (UInt128)a._l3 * b3_19
-            + (UInt128)a._l4 * b2_19;
+            (UInt128)a.L0 * b.L1
+            + (UInt128)a.L1 * b.L0
+            + (UInt128)a.L2 * b4_19
+            + (UInt128)a.L3 * b3_19
+            + (UInt128)a.L4 * b2_19;
         UInt128 t2 =
-            (UInt128)a._l0 * b._l2
-            + (UInt128)a._l1 * b._l1
-            + (UInt128)a._l2 * b._l0
-            + (UInt128)a._l3 * b4_19
-            + (UInt128)a._l4 * b3_19;
+            (UInt128)a.L0 * b.L2
+            + (UInt128)a.L1 * b.L1
+            + (UInt128)a.L2 * b.L0
+            + (UInt128)a.L3 * b4_19
+            + (UInt128)a.L4 * b3_19;
         UInt128 t3 =
-            (UInt128)a._l0 * b._l3
-            + (UInt128)a._l1 * b._l2
-            + (UInt128)a._l2 * b._l1
-            + (UInt128)a._l3 * b._l0
-            + (UInt128)a._l4 * b4_19;
+            (UInt128)a.L0 * b.L3
+            + (UInt128)a.L1 * b.L2
+            + (UInt128)a.L2 * b.L1
+            + (UInt128)a.L3 * b.L0
+            + (UInt128)a.L4 * b4_19;
         UInt128 t4 =
-            (UInt128)a._l0 * b._l4
-            + (UInt128)a._l1 * b._l3
-            + (UInt128)a._l2 * b._l2
-            + (UInt128)a._l3 * b._l1
-            + (UInt128)a._l4 * b._l0;
+            (UInt128)a.L0 * b.L4
+            + (UInt128)a.L1 * b.L3
+            + (UInt128)a.L2 * b.L2
+            + (UInt128)a.L3 * b.L1
+            + (UInt128)a.L4 * b.L0;
 
         return CarryReduce(t0, t1, t2, t3, t4);
     }
@@ -119,11 +119,11 @@ internal struct Fe25519
     [MethodImpl(Opt)]
     public static Fe25519 Sqr(in Fe25519 a)
     {
-        ulong a0 = a._l0,
-            a1 = a._l1,
-            a2 = a._l2,
-            a3 = a._l3,
-            a4 = a._l4;
+        ulong a0 = a.L0,
+            a1 = a.L1,
+            a2 = a.L2,
+            a3 = a.L3,
+            a4 = a.L4;
         var a0_2 = a0 * 2;
         var a1_2 = a1 * 2;
         var a2_38 = a2 * 2 * 19;
@@ -142,11 +142,11 @@ internal struct Fe25519
     /// <summary>Multiplies by the small constant 121666 (used by the Montgomery ladder / curve constant).</summary>
     public static Fe25519 Mul121666(in Fe25519 a)
     {
-        UInt128 t0 = (UInt128)a._l0 * 121666;
-        UInt128 t1 = (UInt128)a._l1 * 121666;
-        UInt128 t2 = (UInt128)a._l2 * 121666;
-        UInt128 t3 = (UInt128)a._l3 * 121666;
-        UInt128 t4 = (UInt128)a._l4 * 121666;
+        UInt128 t0 = (UInt128)a.L0 * 121666;
+        UInt128 t1 = (UInt128)a.L1 * 121666;
+        UInt128 t2 = (UInt128)a.L2 * 121666;
+        UInt128 t3 = (UInt128)a.L3 * 121666;
+        UInt128 t4 = (UInt128)a.L4 * 121666;
         return CarryReduce(t0, t1, t2, t3, t4);
     }
 
@@ -167,11 +167,11 @@ internal struct Fe25519
         r0 &= Mask;
         return new Fe25519
         {
-            _l0 = r0,
-            _l1 = r1,
-            _l2 = r2,
-            _l3 = r3,
-            _l4 = r4,
+            L0 = r0,
+            L1 = r1,
+            L2 = r2,
+            L3 = r3,
+            L4 = r4,
         };
     }
 
@@ -179,18 +179,18 @@ internal struct Fe25519
     [MethodImpl(Opt)]
     private void WeakReduce()
     {
-        _l1 += _l0 >> 51;
-        _l0 &= Mask;
-        _l2 += _l1 >> 51;
-        _l1 &= Mask;
-        _l3 += _l2 >> 51;
-        _l2 &= Mask;
-        _l4 += _l3 >> 51;
-        _l3 &= Mask;
-        _l0 += 19 * (_l4 >> 51);
-        _l4 &= Mask;
-        _l1 += _l0 >> 51;
-        _l0 &= Mask;
+        L1 += L0 >> 51;
+        L0 &= Mask;
+        L2 += L1 >> 51;
+        L1 &= Mask;
+        L3 += L2 >> 51;
+        L2 &= Mask;
+        L4 += L3 >> 51;
+        L3 &= Mask;
+        L0 += 19 * (L4 >> 51);
+        L4 &= Mask;
+        L1 += L0 >> 51;
+        L0 &= Mask;
     }
 
     /// <summary>Computes the multiplicative inverse <c>a^(p-2)</c> (and <c>0</c> for <c>0</c>).</summary>
@@ -342,11 +342,11 @@ internal struct Fe25519
     public static void CMov(ref Fe25519 r, in Fe25519 a, ulong move)
     {
         var mask = 0UL - move;
-        r._l0 ^= mask & (r._l0 ^ a._l0);
-        r._l1 ^= mask & (r._l1 ^ a._l1);
-        r._l2 ^= mask & (r._l2 ^ a._l2);
-        r._l3 ^= mask & (r._l3 ^ a._l3);
-        r._l4 ^= mask & (r._l4 ^ a._l4);
+        r.L0 ^= mask & (r.L0 ^ a.L0);
+        r.L1 ^= mask & (r.L1 ^ a.L1);
+        r.L2 ^= mask & (r.L2 ^ a.L2);
+        r.L3 ^= mask & (r.L3 ^ a.L3);
+        r.L4 ^= mask & (r.L4 ^ a.L4);
     }
 
     /// <summary>Constant-time conditional swap of <paramref name="a"/> and <paramref name="b"/> when
@@ -355,21 +355,21 @@ internal struct Fe25519
     public static void CSwap(ref Fe25519 a, ref Fe25519 b, ulong swap)
     {
         var mask = 0UL - swap;
-        var t0 = mask & (a._l0 ^ b._l0);
-        a._l0 ^= t0;
-        b._l0 ^= t0;
-        var t1 = mask & (a._l1 ^ b._l1);
-        a._l1 ^= t1;
-        b._l1 ^= t1;
-        var t2 = mask & (a._l2 ^ b._l2);
-        a._l2 ^= t2;
-        b._l2 ^= t2;
-        var t3 = mask & (a._l3 ^ b._l3);
-        a._l3 ^= t3;
-        b._l3 ^= t3;
-        var t4 = mask & (a._l4 ^ b._l4);
-        a._l4 ^= t4;
-        b._l4 ^= t4;
+        var t0 = mask & (a.L0 ^ b.L0);
+        a.L0 ^= t0;
+        b.L0 ^= t0;
+        var t1 = mask & (a.L1 ^ b.L1);
+        a.L1 ^= t1;
+        b.L1 ^= t1;
+        var t2 = mask & (a.L2 ^ b.L2);
+        a.L2 ^= t2;
+        b.L2 ^= t2;
+        var t3 = mask & (a.L3 ^ b.L3);
+        a.L3 ^= t3;
+        b.L3 ^= t3;
+        var t4 = mask & (a.L4 ^ b.L4);
+        a.L4 ^= t4;
+        b.L4 ^= t4;
     }
 
     /// <summary>Loads a field element from 32 little-endian bytes, ignoring the most-significant bit (bit 255).</summary>
@@ -377,22 +377,22 @@ internal struct Fe25519
     {
         return new Fe25519
         {
-            _l0 = ReadBits(source, 0, 51),
-            _l1 = ReadBits(source, 51, 51),
-            _l2 = ReadBits(source, 102, 51),
-            _l3 = ReadBits(source, 153, 51),
-            _l4 = ReadBits(source, 204, 51),
+            L0 = ReadBits(source, 0, 51),
+            L1 = ReadBits(source, 51, 51),
+            L2 = ReadBits(source, 102, 51),
+            L3 = ReadBits(source, 153, 51),
+            L4 = ReadBits(source, 204, 51),
         };
     }
 
     /// <summary>Writes the canonical (fully reduced, in <c>[0, p)</c>) little-endian 32-byte encoding.</summary>
     public readonly void ToBytes(Span<byte> destination)
     {
-        ulong t0 = _l0,
-            t1 = _l1,
-            t2 = _l2,
-            t3 = _l3,
-            t4 = _l4;
+        ulong t0 = L0,
+            t1 = L1,
+            t2 = L2,
+            t3 = L3,
+            t4 = L4;
 
         // Fully carry-propagate.
         t1 += t0 >> 51;

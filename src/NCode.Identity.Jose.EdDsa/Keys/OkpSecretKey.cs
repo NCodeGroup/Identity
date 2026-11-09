@@ -35,7 +35,7 @@ public abstract class OkpSecretKey(
     /// <summary>The <see cref="SecretKey.KeyType"/> value for an OKP key.</summary>
     public const string TypeName = "okp";
 
-    private readonly ReadOnlyMemory<byte> _publicKey = publicKey;
+    private ReadOnlyMemory<byte> PublicKey { get; } = publicKey;
 
     /// <inheritdoc />
     public override string KeyType => TypeName;
@@ -57,7 +57,7 @@ public abstract class OkpSecretKey(
     public void ExportPublicKey<TWriter>(ref TWriter destination)
         where TWriter : IBufferWriter<byte>, allows ref struct
     {
-        var source = _publicKey.Span;
+        var source = PublicKey.Span;
         var span = destination.GetSpan(source.Length);
         source.CopyTo(span);
         destination.Advance(source.Length);
@@ -78,6 +78,6 @@ public abstract class OkpSecretKey(
             throw new InvalidOperationException($"The OKP curve '{CurveName}' is not supported.");
         }
 
-        OkpKeyEncoder.WriteSubjectPublicKeyInfo(curve, _publicKey.Span, ref destination);
+        OkpKeyEncoder.WriteSubjectPublicKeyInfo(curve, PublicKey.Span, ref destination);
     }
 }

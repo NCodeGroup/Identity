@@ -38,7 +38,7 @@ export function OwnerSecretsTab({ owner, ownerLabel }: OwnerSecretsTabProps) {
   const [getPublicKey] = useLazyGetSecretPublicKeyQuery();
   // Only a client's shared secrets rotate in one call.
   const clientOwner = owner.kind === 'client' ? owner : undefined;
-  // Only a tenant's signing keys are held in a key management service.
+  // Only a tenant's keys are held in a key management service.
   const tenantOwner = owner.kind === 'tenant' ? owner : undefined;
 
   return (

@@ -11,6 +11,7 @@ describe('remoteKeyAlgorithmValue', () => {
     expect(
       remoteKeyAlgorithmValue({
         algorithm: 'ES256',
+        use: 'sig',
         secretType: 'ecc',
         keySizeBits: 256,
         curve: 'P-256',
@@ -22,6 +23,7 @@ describe('remoteKeyAlgorithmValue', () => {
     expect(
       remoteKeyAlgorithmValue({
         algorithm: 'RS256',
+        use: 'sig',
         secretType: 'rsa',
         keySizeBits: 2048,
         curve: null,
@@ -31,7 +33,12 @@ describe('remoteKeyAlgorithmValue', () => {
 
   it('leaves the curve empty for a size-only row without a curve', () => {
     expect(
-      remoteKeyAlgorithmValue({ algorithm: 'RS256', secretType: 'rsa', keySizeBits: 2048 }),
+      remoteKeyAlgorithmValue({
+        algorithm: 'RS256',
+        use: 'sig',
+        secretType: 'rsa',
+        keySizeBits: 2048,
+      }),
     ).toBe('RS256|rsa|2048|');
   });
 });
@@ -41,22 +48,46 @@ describe('remoteKeyAlgorithmLabel', () => {
     expect(
       remoteKeyAlgorithmLabel({
         algorithm: 'ES256',
+        use: 'sig',
         secretType: 'ecc',
         keySizeBits: 256,
         curve: 'P-256',
       }),
-    ).toBe('ES256 · ECC P-256');
+    ).toBe('ES256 · ECC P-256 · signing');
   });
 
   it('names the size of a size-only row', () => {
     expect(
       remoteKeyAlgorithmLabel({
         algorithm: 'RS256',
+        use: 'sig',
         secretType: 'rsa',
         keySizeBits: 2048,
         curve: null,
       }),
-    ).toBe('RS256 · RSA 2048 bits');
+    ).toBe('RS256 · RSA 2048 bits · signing');
+  });
+
+  it('names an encryption row by its use', () => {
+    expect(
+      remoteKeyAlgorithmLabel({
+        algorithm: 'RSA-OAEP-256',
+        use: 'enc',
+        secretType: 'rsa',
+        keySizeBits: 3072,
+      }),
+    ).toBe('RSA-OAEP-256 · RSA 3072 bits · encryption');
+  });
+
+  it('names an unknown use by the use itself', () => {
+    expect(
+      remoteKeyAlgorithmLabel({
+        algorithm: 'RS256',
+        use: 'custom',
+        secretType: 'rsa',
+        keySizeBits: 2048,
+      }),
+    ).toBe('RS256 · RSA 2048 bits · custom');
   });
 });
 
@@ -64,12 +95,14 @@ describe('offeredRemoteKeyProviders', () => {
   it('keeps the providers that list an algorithm, in order', () => {
     const awsKms: RemoteKeyProviderOption = {
       name: 'aws-kms',
-      algorithms: [{ algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' }],
+      algorithms: [
+        { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+      ],
     };
     const empty: RemoteKeyProviderOption = { name: 'empty', algorithms: [] };
     const gcpKms: RemoteKeyProviderOption = {
       name: 'gcp-kms',
-      algorithms: [{ algorithm: 'PS256', secretType: 'rsa', keySizeBits: 3072 }],
+      algorithms: [{ algorithm: 'PS256', use: 'sig', secretType: 'rsa', keySizeBits: 3072 }],
     };
 
     expect(offeredRemoteKeyProviders([awsKms, empty, gcpKms])).toEqual([awsKms, gcpKms]);

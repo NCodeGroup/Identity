@@ -56,11 +56,15 @@ const remoteKeyProviders: readonly RemoteKeyProviderOption[] = [
   {
     name: 'aws-kms',
     algorithms: [
-      { algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
-      { algorithm: 'RS256', secretType: 'rsa', keySizeBits: 2048, curve: null },
+      { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+      { algorithm: 'RS256', use: 'sig', secretType: 'rsa', keySizeBits: 2048, curve: null },
+      { algorithm: 'RSA-OAEP-256', use: 'enc', secretType: 'rsa', keySizeBits: 3072 },
     ],
   },
-  { name: 'gcp-kms', algorithms: [{ algorithm: 'PS256', secretType: 'rsa', keySizeBits: 3072 }] },
+  {
+    name: 'gcp-kms',
+    algorithms: [{ algorithm: 'PS256', use: 'sig', secretType: 'rsa', keySizeBits: 3072 }],
+  },
 ];
 
 /** Opens the discovered-algorithm picker and returns the labels of the options it offers. */
@@ -924,7 +928,11 @@ describe('SecretFormDialog', () => {
     expect(
       screen.getByText(/The key management service of aws-kms creates the key/),
     ).toBeInTheDocument();
-    expect(offeredAlgorithms()).toEqual(['ES256 · ECC P-256', 'RS256 · RSA 2048 bits']);
+    expect(offeredAlgorithms()).toEqual([
+      'ES256 · ECC P-256 · signing',
+      'RS256 · RSA 2048 bits · signing',
+      'RSA-OAEP-256 · RSA 3072 bits · encryption',
+    ]);
     fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
     expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
 
@@ -943,6 +951,37 @@ describe('SecretFormDialog', () => {
       custody: 'aws-kms',
       expiresWhen: '2027-01-01T00:00',
     });
+  });
+
+  it('creates an encryption key in a provider from one of its encryption rows', () => {
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-custody'), { target: { value: 'aws-kms' } });
+    fireEvent.change(screen.getByTestId('secret-remote-algorithm'), {
+      target: { value: 'RSA-OAEP-256|rsa|3072|' },
+    });
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        secretType: 'rsa',
+        keySizeBits: 3072,
+        curve: '',
+        algorithm: 'RSA-OAEP-256',
+        custody: 'aws-kms',
+        expiresWhen: '2027-01-01T00:00',
+      }),
+    );
   });
 
   it('blocks a remote create until an algorithm is chosen and the expiry is given', () => {

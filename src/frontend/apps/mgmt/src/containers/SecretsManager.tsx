@@ -55,9 +55,9 @@ export type SecretsManagerProps = {
   ) => Promise<CreatedSecretResource>;
   readonly isRotating?: boolean;
   /**
-   * Creates a tenant's signing key in a remote key provider's key management service, which keeps the private half;
-   * must reject with an {@link ApiError}-shaped error on failure. The custody choice is offered only when this is
-   * supplied (ADR-1475, ADR-1476).
+   * Creates a tenant's signing or encryption key in a remote key provider's key management service, which keeps the
+   * private half; must reject with an {@link ApiError}-shaped error on failure. The custody choice is offered only
+   * when this is supplied (ADR-1475, ADR-1476, ADR-1477).
    */
   readonly onCreateRemote?: (body: CreateRemoteSecretRequest) => Promise<SecretResource>;
   /**

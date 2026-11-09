@@ -71,7 +71,10 @@ const withRemoteKeys: ManagementCapabilitiesResource = {
   remoteKeyProviders: [
     {
       name: 'aws-kms',
-      algorithms: [{ algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' }],
+      algorithms: [
+        { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+        { algorithm: 'RSA-OAEP-256', use: 'enc', secretType: 'rsa', keySizeBits: 3072 },
+      ],
     },
   ],
 };

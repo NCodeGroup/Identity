@@ -28,13 +28,14 @@ export const RemoteCustody: Story = {
       {
         name: 'aws-kms',
         algorithms: [
-          { algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
-          { algorithm: 'RS256', secretType: 'rsa', keySizeBits: 2048, curve: null },
+          { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+          { algorithm: 'RS256', use: 'sig', secretType: 'rsa', keySizeBits: 2048, curve: null },
+          { algorithm: 'RSA-OAEP-256', use: 'enc', secretType: 'rsa', keySizeBits: 3072 },
         ],
       },
       {
         name: 'gcp-kms',
-        algorithms: [{ algorithm: 'PS256', secretType: 'rsa', keySizeBits: 3072 }],
+        algorithms: [{ algorithm: 'PS256', use: 'sig', secretType: 'rsa', keySizeBits: 3072 }],
       },
     ],
     onSubmit: () => undefined,

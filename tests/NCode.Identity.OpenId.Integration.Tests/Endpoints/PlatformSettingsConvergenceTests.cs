@@ -20,7 +20,9 @@ public class PlatformSettingsConvergenceTests
     public async Task PatchPlatformSettings_WhenItNarrowsADiscoverableList_ServesTheChangeAtOnce()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var before = await GetIdTokenSigningAlgorithmsAsync(administrator);
         Assert.Contains("PS256", before);
 
@@ -40,14 +42,6 @@ public class PlatformSettingsConvergenceTests
     #region Scaffolding
 
     private static BootstrapAdminApplicationFactory CreateFactory() => new();
-
-    private static Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    ) =>
-        factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
-        );
 
     private static async Task<List<string>> GetIdTokenSigningAlgorithmsAsync(HttpClient client)
     {

@@ -25,7 +25,9 @@ public class ClientCoherenceTests
     public async Task PatchTenantSettings_WhenTheKindsNoLongerPermitAClientsRedirectUri_ReturnsValidationProblem()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var clientId = await CreateClientAsync(administrator);
 
         var (statusCode, body) = await PatchTenantSettingAsync(
@@ -43,7 +45,9 @@ public class ClientCoherenceTests
     public async Task PatchTenantSettings_WhenTheKindsStillPermitEveryRedirectUri_ReturnsNoContent()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateClientAsync(administrator);
 
         var (statusCode, body) = await PatchTenantSettingAsync(
@@ -64,7 +68,9 @@ public class ClientCoherenceTests
     public async Task PatchTenantSettings_WhenTheTenantSelectsFapi1Advanced_ReportsTheClientsRedirectUri()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var clientId = await CreateClientAsync(administrator);
 
         var (statusCode, body) = await PatchTenantSettingAsync(
@@ -82,7 +88,9 @@ public class ClientCoherenceTests
     public async Task PatchTenantSettings_WhenItLowersAClientsAccessTokenLifetime_ReturnsValidationProblem()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (createStatusCode, createBody) = await PostClientWithSettingsAsync(
             administrator,
             new Dictionary<string, object> { [OpenIdSettingNames.AccessTokenLifetime] = "00:04:00" }
@@ -105,7 +113,9 @@ public class ClientCoherenceTests
     {
         const string LoweredClientId = "it-lowered-client";
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (lowerStatusCode, lowerBody) = await PatchTenantSettingValueAsync(
             administrator,
             OpenIdSettingNames.AccessTokenLifetime,
@@ -141,7 +151,9 @@ public class ClientCoherenceTests
     public async Task PostClient_WhenItListsAGrantTypeItsTenantExcludes_ReturnsValidationProblem()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         var (statusCode, body) = await PostClientAsync(
             administrator,
@@ -157,7 +169,9 @@ public class ClientCoherenceTests
     public async Task PostClient_WhenItsAccessTokenLifetimeExceedsItsTenants_ReturnsValidationProblem()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         var (statusCode, body) = await PostClientWithSettingsAsync(
             administrator,
@@ -173,7 +187,9 @@ public class ClientCoherenceTests
     public async Task PostClient_WhenItListsOnlyPermittedGrantTypes_ReturnsCreated()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         var (statusCode, body) = await PostClientAsync(
             administrator,
@@ -188,14 +204,6 @@ public class ClientCoherenceTests
     #region Scaffolding
 
     private static BootstrapAdminApplicationFactory CreateFactory() => new();
-
-    private static Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    ) =>
-        factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
-        );
 
     private static async Task<string> CreateClientAsync(HttpClient administrator)
     {

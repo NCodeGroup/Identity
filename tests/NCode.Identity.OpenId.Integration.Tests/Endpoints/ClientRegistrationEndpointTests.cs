@@ -865,9 +865,8 @@ public class ClientRegistrationEndpointTests
                 ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
             }
         );
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

@@ -3,6 +3,61 @@
   "title": "ncode-identity-host values",
   "type": "object",
   "additionalProperties": false,
+  "definitions": {
+    "awsWebIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "roleArn": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tokenExpirationSeconds": {
+          "type": "integer",
+          "minimum": 600
+        }
+      }
+    },
+    "azureWorkloadIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenantId": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tokenExpirationSeconds": {
+          "type": "integer",
+          "minimum": 600
+        }
+      }
+    },
+    "googleWorkloadIdentityFederation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "serviceAccountEmail": {
+          "type": "string"
+        },
+        "tokenExpirationSeconds": {
+          "type": "integer",
+          "minimum": 600
+        }
+      }
+    }
+  },
   "properties": {
     "global": {
       "type": "object"
@@ -188,21 +243,7 @@
               "type": "string"
             },
             "webIdentity": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "roleArn": {
-                  "type": "string"
-                },
-                "audience": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "tokenExpirationSeconds": {
-                  "type": "integer",
-                  "minimum": 600
-                }
-              }
+              "$ref": "#/definitions/awsWebIdentity"
             }
           }
         },
@@ -214,24 +255,7 @@
               "type": "string"
             },
             "workloadIdentity": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "tenantId": {
-                  "type": "string"
-                },
-                "clientId": {
-                  "type": "string"
-                },
-                "audience": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "tokenExpirationSeconds": {
-                  "type": "integer",
-                  "minimum": 600
-                }
-              }
+              "$ref": "#/definitions/azureWorkloadIdentity"
             }
           }
         },
@@ -243,20 +267,7 @@
               "type": "string"
             },
             "workloadIdentityFederation": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "provider": {
-                  "type": "string"
-                },
-                "serviceAccountEmail": {
-                  "type": "string"
-                },
-                "tokenExpirationSeconds": {
-                  "type": "integer",
-                  "minimum": 600
-                }
-              }
+              "$ref": "#/definitions/googleWorkloadIdentityFederation"
             }
           }
         },

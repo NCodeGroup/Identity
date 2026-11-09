@@ -1014,7 +1014,7 @@ The sketch below shows the composition. `AddIdentityBff` composes the shared-sta
 ```csharp
 var bff = builder.Services.AddIdentityBff(builder.Configuration); // NCode.Identity.Bff.Server; binds "Bff" strictly
 bff.SharedStateLibraryBuilder.AddValkey(builder.Configuration);    // only when running several replicas
-bff.SecretsLibraryBuilder.AddAwsKmsRemoteKeyProviderIfConfigured(builder.Configuration); // a KMS that holds key ring keys; "SecretProtection:RemoteKeyProviders:AwsKms"
+bff.SecretsLibraryBuilder.AddAwsKmsRemoteKeyProvider(builder.Configuration); // a KMS that holds key ring keys; no key-creation location
 // builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the seam for a key ring from another source
 //     "orders-web-client-key", (serviceProvider, _) => LoadClientKeys(serviceProvider));
 builder.Services.AddTrustedForwardedHeaders(builder.Configuration); // NCode.AspNetCore; "ForwardedHeaders"

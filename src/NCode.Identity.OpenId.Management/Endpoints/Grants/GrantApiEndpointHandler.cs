@@ -69,6 +69,7 @@ internal class GrantApiEndpointHandler(
         grants
             .MapGet("", ListGrantsAsync)
             .Produces<CollectionResource<GrantResource>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
         grants
@@ -84,6 +85,7 @@ internal class GrantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .WithNoStore();
         grants
             .MapGet("/{grantId}", GetGrantAsync)
@@ -413,6 +415,7 @@ internal class GrantApiEndpointHandler(
     /// <param name="grantId">The opaque identifier of the grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The requested grant.</response>
+    /// <response code="404">The grant does not exist.</response>
     [EndpointName("api/grants/get")]
     internal virtual async ValueTask<IResult> GetGrantAsync(
         HttpContext httpContext,
@@ -454,6 +457,7 @@ internal class GrantApiEndpointHandler(
     /// <param name="grantId">The opaque identifier of the grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The grant was revoked.</response>
+    /// <response code="404">The grant does not exist.</response>
     [EndpointName("api/grants/revoke")]
     internal virtual async ValueTask<IResult> RevokeGrantAsync(
         HttpContext httpContext,

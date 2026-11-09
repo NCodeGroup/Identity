@@ -858,12 +858,12 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     #region Map Tests
 
     [Theory]
-    [InlineData("GET", "/grants", new[] { 401, 403 })]
+    [InlineData("GET", "/grants", new[] { 400, 401, 403 })]
     [InlineData("DELETE", "/grants", new[] { 400, 401, 403 })]
-    [InlineData("POST", "/grants/initial-access-tokens", new[] { 400, 401, 403 })]
+    [InlineData("POST", "/grants/initial-access-tokens", new[] { 400, 401, 403, 415 })]
     [InlineData("GET", "/grants/{grantId}", new[] { 401, 403, 404 })]
     [InlineData("DELETE", "/grants/{grantId}", new[] { 401, 403, 404 })]
-    public async Task Map_Always_DeclaresEveryProblemARouteAnswers(
+    public async Task Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers(
         string httpMethod,
         string routePattern,
         int[] statusCodes
@@ -872,6 +872,13 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         Assert.Equal(
             statusCodes,
             await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+        Assert.Empty(
+            await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern
+            )
         );
     }
 

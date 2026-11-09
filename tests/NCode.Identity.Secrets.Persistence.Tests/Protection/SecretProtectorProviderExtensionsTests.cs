@@ -13,7 +13,7 @@ public class SecretProtectorProviderExtensionsTests : BaseTests
     private const string FirstPrivateValue = "private-value-one";
     private const string SecondPrivateValue = "private-value-two";
 
-    private static readonly SecretOwner Owner = SecretOwner.ForTenant("tenant-one");
+    private static SecretOwner Owner { get; } = SecretOwner.ForTenant("tenant-one");
 
     private readonly Mock<ISecretProtectorProvider> _provider;
     private readonly Mock<ISecretProtector> _protector;

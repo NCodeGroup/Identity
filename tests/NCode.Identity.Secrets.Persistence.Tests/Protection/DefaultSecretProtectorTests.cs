@@ -14,13 +14,11 @@ public class DefaultSecretProtectorTests
     private const string ItemId = "Item-One";
     private const string OtherItemId = "Item-Two";
 
-    private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
-    private static readonly SecretOwner OtherOwner = SecretOwner.ForTenant("tenant-two");
+    private static SecretOwner TenantOwner { get; } = SecretOwner.ForTenant("tenant-one");
+    private static SecretOwner OtherOwner { get; } = SecretOwner.ForTenant("tenant-two");
 
-    private static readonly SecretProtectionContext Context = new(
-        SecretProtectionPurposes.PersistedSecret,
-        ItemId
-    );
+    private static SecretProtectionContext Context { get; } =
+        new(SecretProtectionPurposes.PersistedSecret, ItemId);
 
     private static byte[] CreateMaterial() =>
         RandomNumberGenerator.GetBytes(SecretProtectionFormat.MasterKeySizeBytes);

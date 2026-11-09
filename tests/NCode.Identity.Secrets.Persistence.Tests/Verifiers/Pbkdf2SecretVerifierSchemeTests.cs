@@ -12,11 +12,11 @@ namespace NCode.Identity.Secrets.Persistence.Verifiers;
 
 public sealed class Pbkdf2SecretVerifierSchemeTests : BaseTests
 {
-    private static readonly KeyMetadata Metadata = new() { KeyId = "secret-1" };
+    private static KeyMetadata Metadata { get; } = new() { KeyId = "secret-1" };
 
-    private static readonly byte[] Secret = "the-client-secret"u8.ToArray();
+    private static byte[] Secret { get; } = "the-client-secret"u8.ToArray();
 
-    private static readonly TimeSpan QueueTimeout = TimeSpan.FromSeconds(2);
+    private static TimeSpan QueueTimeout { get; } = TimeSpan.FromSeconds(2);
 
     private readonly FakeTimeProvider _timeProvider = new(
         new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)

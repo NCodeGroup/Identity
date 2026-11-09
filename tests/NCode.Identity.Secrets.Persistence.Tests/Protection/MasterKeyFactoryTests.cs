@@ -14,10 +14,10 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 public class MasterKeyFactoryTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
 
     // The mixed case proves that the row keeps the owner as given while the key and the key check normalize it.
-    private static readonly SecretOwner Owner = SecretOwner.ForTenant("Tenant-A");
+    private static SecretOwner Owner { get; } = SecretOwner.ForTenant("Tenant-A");
 
     private readonly Mock<IKeyWrapperCatalog> _catalog;
     private readonly FakeTimeProvider _timeProvider = new(Now);

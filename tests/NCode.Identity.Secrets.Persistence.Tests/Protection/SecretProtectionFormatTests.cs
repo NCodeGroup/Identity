@@ -14,7 +14,7 @@ public class SecretProtectionFormatTests
     private const string KnownKeyId = "00112233-4455-6677-8899-aabbccddeeff";
 
     // The big-endian bytes of KnownKeyId, written out by hand.
-    private static readonly byte[] KnownKeyIdBytes =
+    private static byte[] KnownKeyIdBytes { get; } =
     [
         0x00,
         0x11,

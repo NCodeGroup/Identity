@@ -7,7 +7,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 public class SecretProtectorExtensionsTests
 {
-    private static readonly SecretProtectionContext Context = new("test/purpose", "item-1");
+    private static SecretProtectionContext Context { get; } = new("test/purpose", "item-1");
 
     // Moq cannot set up a method whose writer is a ref struct, so the protector is a stub that writes a fixed output.
     private sealed class FixedOutputProtector(int protectedLength, string output) : ISecretProtector

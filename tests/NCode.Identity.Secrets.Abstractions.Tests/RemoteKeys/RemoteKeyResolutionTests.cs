@@ -5,7 +5,7 @@ using Moq;
 
 namespace NCode.Identity.Secrets.RemoteKeys;
 
-public class RemoteKeyResolutionTests
+public class RemoteKeyResolutionTests : BaseTests
 {
     private static RemoteSigningAlgorithm CreateSigningRow() =>
         new()
@@ -18,9 +18,9 @@ public class RemoteKeyResolutionTests
             SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
         };
 
-    private static Mock<IRemoteKeyProvider> CreateProvider()
+    private Mock<IRemoteKeyProvider> CreateProvider()
     {
-        var provider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
         provider.Setup(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
         return provider;
     }
@@ -42,7 +42,6 @@ public class RemoteKeyResolutionTests
             binding.Reference
         );
         Assert.Same(row, binding.Algorithm);
-        provider.Verify();
     }
 
     [Fact]
@@ -56,7 +55,6 @@ public class RemoteKeyResolutionTests
         };
 
         Assert.Throws<ArgumentException>(() => resolution.Bind(string.Empty));
-        provider.Verify();
     }
 
     #endregion

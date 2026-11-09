@@ -48,10 +48,10 @@ filters on every route.**
    `ResourceNotFound()`, with the detail "The resource does not exist.", answers every missing resource, and
    `PreconditionFailed(resource)`, with the detail "The supplied If-Match token does not match the current
    <resource>.", answers an `If-Match` token that does not match the stored settings or secret.
-   `ManagementEnvironmentEndpointFilter` answers an
-   `HttpResultException` whose result has a status of `400` or more and no body (an `IStatusCodeHttpResult` that is not
-   an `IValueHttpResult`) with `TypedResults.Problem(statusCode: …)`, because a tenant `OpenIdContextFactory` reports a
-   missing tenant as a bare `404`. A declared `ProducesProblem(404)` is therefore truthful.
+   `ManagementEnvironmentEndpointFilter` answers an `HttpResultException` whose result has a status of `400` or more and
+   no body (an `IStatusCodeHttpResult` that is not an `IValueHttpResult`) with `TypedResults.Problem(statusCode: …)`,
+   because a tenant `OpenIdContextFactory` reports a missing tenant as a bare `404`. A declared
+   `ProducesProblem(404)` is therefore truthful.
 4. **A route declares what its handler answers, and `412` when it writes.** A route declares the problems its handler
    answers with `ProducesProblem`, and `412` when it saves a unit of work it does not retry or checks `If-Match`. An
    insert counts, because whether a save can lose a race depends on which rows the store touches. A revocation (a grant

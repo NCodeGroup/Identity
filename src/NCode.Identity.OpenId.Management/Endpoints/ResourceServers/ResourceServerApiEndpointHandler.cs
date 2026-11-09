@@ -317,7 +317,10 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <param name="resourceServer">The resource server whose scopes are searched.</param>
     /// <param name="scopeValue">The scope value to find, in any casing.</param>
-    /// <returns>The stored scope, with its own casing, or <see langword="null"/> when the resource server holds no scope with that value.</returns>
+    /// <returns>
+    /// The stored scope, with its own casing, or <see langword="null"/> when the resource server holds no scope with
+    /// that value.
+    /// </returns>
     private static PersistedScope? FindScopeOrDefault(
         PersistedResourceServer resourceServer,
         string scopeValue

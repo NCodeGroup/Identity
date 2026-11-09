@@ -617,11 +617,11 @@ managementConsole:
 ```
 
 The chart renders each remote key as `Bff__KeyRings__<ring>__RemoteKeys__<kid>__Provider`, `__KeyId`, `__Algorithm`,
-`__SecretType`, `__KeySizeBits` and `__Curve`, where `<ring>` is `mgmt-client` or `mgmt-dpop`. It registers a vendor
-exactly when a console remote key names it, as `SecretProtection__RemoteKeyProviders__AwsKms__Region`,
-`__AzureKeyVault__VaultUri` or `__GoogleCloudKms__KeyRing`, read from the first such key: the region of an AWS ARN,
-`https://<host>` of a Key Vault key identifier, or the key ring of a Cloud KMS crypto key version name. The console
-reads every key where the key's own identifier names, so the section only registers the provider.
+`__SecretType`, `__KeySizeBits` and `__Curve`, where `<ring>` is `mgmt-client` or `mgmt-dpop`. The console image
+registers the AWS KMS, Azure Key Vault and Google Cloud KMS providers without a key-creation location, and the console
+reads every key where the key's own identifier names, so the chart renders no
+`SecretProtection__RemoteKeyProviders__…` setting for it
+([ADR-1489](../../docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)).
 
 **Credentials.** The console has an identity of its own under `managementConsole.secretProtection`:
 `awsKms.webIdentity`, `azureKeyVault.workloadIdentity` and `googleCloudKms.workloadIdentityFederation`, with the same

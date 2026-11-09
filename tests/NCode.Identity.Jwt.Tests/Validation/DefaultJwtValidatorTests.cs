@@ -770,6 +770,16 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     public async Task ValidateAsync_JweHeaderNamesAHeldKid_TriesOnlyThatKey()
     {
         var provider = MockRepository.Create<IRemoteKeyProvider>();
+        provider
+            .Setup(x =>
+                x.DecryptAsync(
+                    It.IsAny<RemoteDecryptionRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() => ValueTask.FromException<int>(new CryptographicException("refused")))
+            .Verifiable(Times.Never());
         var remoteKey = CreateRemoteDecryptionKey(provider.Object, "remote-enc");
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
@@ -784,6 +794,26 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         Assert.True(result.IsValid);
         var decodedJwt = Assert.IsType<DecodedJwt>(result.DecodedJwt);
         Assert.Same(EncryptionKey, decodedJwt.DecryptionKey);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_JweHeaderNamesAHeldKidThatDoesNotDecrypt_DoesNotTryTheOtherKeys()
+    {
+        using var otherRsa = RSA.Create(2048);
+        var namedKey = CreateRsaKey("server-enc", otherRsa, use: null, algorithm: null);
+        var holderKey = CreateRsaKey("server-other", _serverRsa, use: null, algorithm: null);
+        var token = await EncodeTokenAsync(
+            CreateSigningCredentials(SigningKey),
+            CreateEncryptionCredentials()
+        );
+
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([namedKey, holderKey])
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(JwtValidationFailureCodes.DecryptionFailed, result.FailureCode);
     }
 
     [Fact]

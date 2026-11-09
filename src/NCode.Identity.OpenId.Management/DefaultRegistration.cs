@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -45,6 +46,14 @@ public static class DefaultRegistration
             // Enrich the OpenAPI document with descriptions for the management API's shared parameters.
             serviceCollection.AddOpenApi(openApiOptions =>
                 openApiOptions.AddDocumentTransformer<ManagementParameterDocumentTransformer>()
+            );
+
+            // Answers every bodyless error under the management prefix as a problem, in every host (ADR-1483).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IStartupFilter,
+                    ManagementProblemResponseStartupFilter
+                >()
             );
 
             serviceCollection.TryAddSingleton<

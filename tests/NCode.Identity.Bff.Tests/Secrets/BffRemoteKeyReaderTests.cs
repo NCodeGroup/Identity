@@ -3,6 +3,7 @@
 
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Secrets;
 using NCode.Identity.Jose;
@@ -170,6 +171,54 @@ public sealed class BffRemoteKeyReaderTests : BaseTests, IAsyncLifetime
 
         Assert.Contains("'client-enc'", exception.Message);
         Assert.Contains($"'{RingName}'", exception.Message);
+    }
+
+    [Fact]
+    public async Task ReadAsync_WhenCancelledDuringTheProof_DisposesTheKeyAndRethrows()
+    {
+        var mockResolver = CreateStrictMock<IRemoteKeyResolver>();
+        var mockProver = CreateStrictMock<IRemoteKeyProver>();
+        var reader = new BffRemoteKeyReader(mockResolver.Object, mockProver.Object);
+        var resolution = new RemoteKeyResolution
+        {
+            Provider = RemoteKeyProvider,
+            Algorithm = RemoteKeyProvider.Algorithms.Single(row => row.Algorithm == "ES256"),
+        };
+        var key = new DisposableSecretKey(new KeyMetadata { KeyId = "client-sig" });
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        mockResolver
+            .Setup(x => x.Resolve(It.IsAny<RemoteKeyAlgorithmSelector>()))
+            .Returns(resolution)
+            .Verifiable();
+        mockResolver
+            .Setup(x =>
+                x.ReadKeyAsync(
+                    It.IsAny<RemoteKeyBinding>(),
+                    It.IsAny<KeyMetadata>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<SecretKey>(key))
+            .Verifiable();
+        mockProver
+            .Setup(x => x.ProveAsync(key, It.IsAny<CancellationToken>()))
+            .Returns(() =>
+                ValueTask.FromException(new OperationCanceledException(cancellation.Token))
+            )
+            .Verifiable();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await reader.ReadAsync(
+                RingName,
+                "client-sig",
+                CreateSigningOptions(),
+                cancellation.Token
+            )
+        );
+
+        Assert.True(key.IsDisposed);
     }
 
     #endregion

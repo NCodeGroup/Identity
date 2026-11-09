@@ -48,23 +48,21 @@ internal sealed class BffKeyRingLoader(
         {
             var keyRing = configured[name];
             var keys = new List<SecretKey>();
+            // The options validator reads a null list as an empty one.
+            var pemFiles = keyRing.PemFiles ?? [];
+            var remoteKeys = keyRing.RemoteKeys ?? [];
             try
             {
-                foreach (var configuredPath in keyRing.PemFiles)
+                foreach (var configuredPath in pemFiles)
                 {
                     var path = Path.GetFullPath(configuredPath, Environment.ContentRootPath);
                     keys.Add(BffPemKeyReader.Read(KeyFactory, name, path));
                 }
 
-                foreach (var id in keyRing.RemoteKeys.Keys.Order(StringComparer.Ordinal))
+                foreach (var id in remoteKeys.Keys.Order(StringComparer.Ordinal))
                 {
                     keys.Add(
-                        await RemoteKeyReader.ReadAsync(
-                            name,
-                            id,
-                            keyRing.RemoteKeys[id],
-                            cancellationToken
-                        )
+                        await RemoteKeyReader.ReadAsync(name, id, remoteKeys[id], cancellationToken)
                     );
                 }
             }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Moq;
 using NCode.Buffers;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Secrets;
@@ -114,7 +115,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
 
     private ServiceProvider BuildProvider(BffKeyRingOptions keyRing)
     {
-        AddEnvironment(keyRing.PemFiles.Count > 0);
+        AddEnvironment(keyRing.PemFiles is { Count: > 0 });
 
         var options = new BffOptions();
         options.KeyRings[RingName] = keyRing;
@@ -292,22 +293,101 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
         Assert.IsType<CryptographicException>(exception.InnerException);
     }
 
-    #endregion
-
-    #region Get Tests
-
     [Fact]
-    public void Get_WithAKeyRingThatIsNotLoaded_Throws()
+    public async Task StartingAsync_WithNullPemFilesAndARemoteKey_HoldsTheRemoteKey()
     {
-        var provider = BuildProvider(new BffKeyRingOptions());
-
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            provider.GetRequiredService<BffKeyRings>().Get("missing")
+        var provider = BuildProvider(
+            new BffKeyRingOptions
+            {
+                PemFiles = null!,
+                RemoteKeys = { ["client-sig"] = CreateSigningOptions() },
+            }
         );
 
-        Assert.Equal(
-            $"The key ring 'missing' is not loaded: the BFF loads the key rings of '{BffDefaults.ConfigurationSectionName}:KeyRings' when the host starts.",
-            exception.Message
+        var keyRing = await LoadAsync(provider);
+
+        var key = Assert.Single(keyRing.Collection);
+        Assert.Equal("client-sig", key.KeyId);
+        Assert.IsAssignableFrom<IRemoteSecretKey>(key);
+    }
+
+    [Fact]
+    public async Task StartingAsync_WithAPemFileAndNullRemoteKeys_HoldsThePemKey()
+    {
+        var provider = BuildProvider(
+            new BffKeyRingOptions { PemFiles = [WriteEcPem("local.pem")], RemoteKeys = null! }
+        );
+
+        var keyRing = await LoadAsync(provider);
+
+        var key = Assert.Single(keyRing.Collection);
+        Assert.Equal("local", key.KeyId);
+    }
+
+    [Fact]
+    public async Task StartingAsync_WhenALaterRemoteKeyFails_DisposesTheKeysReadBefore()
+    {
+        var mockResolver = CreateStrictMock<IRemoteKeyResolver>();
+        var mockProver = CreateStrictMock<IRemoteKeyProver>();
+        ServiceCollection.AddSingleton(mockResolver.Object);
+        ServiceCollection.AddSingleton(mockProver.Object);
+
+        var resolution = new RemoteKeyResolution
+        {
+            Provider = RemoteKeyProvider,
+            Algorithm = RemoteKeyProvider.Algorithms.Single(row => row.Algorithm == "ES256"),
+        };
+        var readKey = new DisposableSecretKey(new KeyMetadata { KeyId = "a-read" });
+
+        mockResolver
+            .Setup(x => x.Resolve(It.IsAny<RemoteKeyAlgorithmSelector>()))
+            .Returns(resolution)
+            .Verifiable();
+        mockResolver
+            .Setup(x =>
+                x.ReadKeyAsync(
+                    It.IsAny<RemoteKeyBinding>(),
+                    It.Is<KeyMetadata>(m => m.KeyId == "a-read"),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<SecretKey>(readKey))
+            .Verifiable();
+        mockResolver
+            .Setup(x =>
+                x.ReadKeyAsync(
+                    It.IsAny<RemoteKeyBinding>(),
+                    It.Is<KeyMetadata>(m => m.KeyId == "b-failing"),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() =>
+                ValueTask.FromException<SecretKey>(
+                    new CryptographicException("The key is not held.")
+                )
+            )
+            .Verifiable();
+        mockProver
+            .Setup(x => x.ProveAsync(readKey, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var provider = BuildProvider(
+            new BffKeyRingOptions
+            {
+                RemoteKeys =
+                {
+                    ["a-read"] = CreateSigningOptions(),
+                    ["b-failing"] = CreateSigningOptions(),
+                },
+            }
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await LoadAsync(provider));
+
+        Assert.True(readKey.IsDisposed);
+        Assert.Throws<InvalidOperationException>(() =>
+            provider.GetRequiredService<BffKeyRings>().Get(RingName)
         );
     }
 

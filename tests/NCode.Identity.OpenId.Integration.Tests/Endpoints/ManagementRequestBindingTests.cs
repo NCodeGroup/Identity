@@ -1,9 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
@@ -14,22 +15,8 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // reads one error shape across the management API. See ADR-1483.
 public class ManagementRequestBindingTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
     private const string ProblemMediaType = "application/problem+json";
-
-    private static ConfiguredHostApplicationFactory CreateFactory() =>
-        new(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            }
-        );
 
     private static async Task AssertProblemAsync(
         HttpResponseMessage response,
@@ -50,11 +37,8 @@ public class ManagementRequestBindingTests
     [Fact]
     public async Task CreateScope_WithABodyThatIsNotJson_IsABadRequestProblem()
     {
-        using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
-        );
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync();
         using var content = new StringContent("{", SecureEncoding.UTF8, "application/json");
 
         using var response = await administrator.PostAsync(
@@ -68,11 +52,8 @@ public class ManagementRequestBindingTests
     [Fact]
     public async Task CreateScope_WithAnEmptyBody_IsABadRequestProblem()
     {
-        using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
-        );
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync();
         using var content = new StringContent(
             string.Empty,
             SecureEncoding.UTF8,
@@ -90,11 +71,8 @@ public class ManagementRequestBindingTests
     [Fact]
     public async Task CreateScope_WithAContentTypeThatIsNotJson_IsAnUnsupportedMediaTypeProblem()
     {
-        using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
-        );
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync();
         using var content = new StringContent("{}", SecureEncoding.UTF8, "text/plain");
 
         using var response = await administrator.PostAsync(
@@ -108,13 +86,39 @@ public class ManagementRequestBindingTests
     [Fact]
     public async Task ListGrants_WithALimitThatIsNotANumber_IsABadRequestProblem()
     {
-        using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
-        );
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync();
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/grants?limit=abc");
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ListGrants_WithALimitThatIsNotANumberAndNoToken_IsABadRequestProblem()
+    {
+        using var factory = new HostApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync($"{TenantApiPath}/grants?limit=abc");
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ListGrants_WithALimitThatIsNotANumberWhenBindingDoesNotThrow_IsABadRequestProblem()
+    {
+        using var factory = new HostApplicationFactory();
+        using var host = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureServices(services =>
+                services.PostConfigure<RouteHandlerOptions>(options =>
+                    options.ThrowOnBadRequest = false
+                )
+            )
+        );
+        using var client = host.CreateClient();
+
+        using var response = await client.GetAsync($"{TenantApiPath}/grants?limit=abc");
 
         await AssertProblemAsync(response, HttpStatusCode.BadRequest);
     }
@@ -126,11 +130,8 @@ public class ManagementRequestBindingTests
     [Fact]
     public async Task ReplaceGrants_WithAMethodNoRouteAllows_IsAMethodNotAllowedProblem()
     {
-        using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
-        );
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync();
         using var content = new StringContent("{}", SecureEncoding.UTF8, "application/json");
 
         using var response = await administrator.PutAsync($"{TenantApiPath}/grants", content);
@@ -142,11 +143,8 @@ public class ManagementRequestBindingTests
     [Fact]
     public async Task GetUnknownRoute_UnderTheManagementPrefix_IsANotFoundProblem()
     {
-        using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
-        );
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync();
 
         using var response = await administrator.GetAsync("/api/no-such-route");
 
@@ -156,11 +154,8 @@ public class ManagementRequestBindingTests
     [Fact]
     public async Task GetUnknownRoute_OutsideTheManagementPrefix_IsNotAProblem()
     {
-        using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapClientId,
-            BootstrapClientSecret
-        );
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync();
 
         using var response = await administrator.GetAsync("/no-such-route");
 

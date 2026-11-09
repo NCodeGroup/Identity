@@ -35,7 +35,8 @@ internal sealed class ManagementEnvironmentEndpointFilter(
     {
         var httpContext = context.HttpContext;
 
-        // Request binding failed before the filters ran; the route never runs.
+        // With RouteHandlerOptions.ThrowOnBadRequest off, minimal APIs set 400 for a route, query or header value that
+        // fails to bind and still run the filters, never the route.
         if (httpContext.Response.StatusCode >= StatusCodes.Status400BadRequest)
         {
             return TypedResults.Empty;

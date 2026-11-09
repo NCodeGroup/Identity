@@ -290,7 +290,10 @@ How `/ship-plan` lands a reviewed plan; `/continue-plan`, `/run-issues`, `/addre
 `.githooks/pre-push` read it too.
 `integrate`: `pull-request` pushes the plan's branch and opens a pull request; `direct` pushes to the default branch.
 `release`: `none`; `tag` tags the plan's `Release:` version, or the next free one when another plan landed it first;
-`tag+release` also publishes a release from that version's section of `changelog`. `pre-release`: `tracked`, the
+`tag+release` also publishes a release from that version's section of `changelog`. On GitHub,
+`.github/workflows/tag-release.yml` tags and publishes it as the pull request merges, from the `Release:` line
+`/ship-plan` writes in its description or the changelog's newest section; `/ship-plan` run after the merge does only
+what that workflow didn't. `pre-release`: `tracked`, the
 default, tracks every change from the first release; `untracked` keeps the project pre-release until a version tag of
 1.0.0 or later, so every text describes the product as it is, the changelog's `## [Unreleased]` is a catalog that
 each plan edits in place, and a breaking change needs no deprecation or migration path, as project-template ADR-0015
@@ -309,7 +312,8 @@ PowerShell command that sets up the shell the workflow's commands run in, which 
 ruleset already requires pull requests through the merge queue
 ([ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so `protect`
 is `none`; releases are tagged on `release/vX.Y` lines, never one per plan
-([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`; the family has released nothing and
+([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none` and `tag-release.yml` publishes
+nothing; the family has released nothing and
 stores nothing a reader must keep ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)), so
 `pre-release` is `untracked`; a pull request stays a draft until
 its author reviews it ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),

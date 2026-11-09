@@ -6,8 +6,9 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Bff.Options;
 
 /// <summary>
-/// Configures one key ring that the BFF reads from PEM files. Bound from the <c>Bff:KeyRings:{name}</c> configuration
-/// section, where <c>{name}</c> is the key ring's name.
+/// Configures one key ring that the BFF loads when the host starts, from PEM files, keys that a key management service
+/// holds, or both. Bound from the <c>Bff:KeyRings:{name}</c> configuration section, where <c>{name}</c> is the key
+/// ring's name.
 /// </summary>
 [PublicAPI]
 public sealed class BffKeyRingOptions
@@ -18,4 +19,11 @@ public sealed class BffKeyRingOptions
     /// The configuration section is <c>Bff:KeyRings:{name}:PemFiles</c>.
     /// </summary>
     public List<string> PemFiles { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the keys that a key management service holds, by key id. The configuration section is
+    /// <c>Bff:KeyRings:{name}:RemoteKeys</c>.
+    /// </summary>
+    public Dictionary<string, BffRemoteKeyOptions> RemoteKeys { get; set; } =
+        new(StringComparer.Ordinal);
 }

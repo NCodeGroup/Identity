@@ -194,6 +194,22 @@ NCode.Identity.Bff.Options.BffKeyRingOptions
 NCode.Identity.Bff.Options.BffKeyRingOptions.BffKeyRingOptions() -> void
 NCode.Identity.Bff.Options.BffKeyRingOptions.PemFiles.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.Bff.Options.BffKeyRingOptions.PemFiles.set -> void
+NCode.Identity.Bff.Options.BffKeyRingOptions.RemoteKeys.get -> System.Collections.Generic.Dictionary<string!, NCode.Identity.Bff.Options.BffRemoteKeyOptions!>!
+NCode.Identity.Bff.Options.BffKeyRingOptions.RemoteKeys.set -> void
+NCode.Identity.Bff.Options.BffRemoteKeyOptions
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.Algorithm.get -> string?
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.Algorithm.set -> void
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.BffRemoteKeyOptions() -> void
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.Curve.get -> string?
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.Curve.set -> void
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.KeyId.get -> string?
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.KeyId.set -> void
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.KeySizeBits.get -> int
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.KeySizeBits.set -> void
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.Provider.get -> string?
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.Provider.set -> void
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.SecretType.get -> string?
+NCode.Identity.Bff.Options.BffRemoteKeyOptions.SecretType.set -> void
 NCode.Identity.Bff.Options.BffOptions.Frontends.get -> System.Collections.Generic.Dictionary<string!, NCode.Identity.Bff.Options.BffFrontendOptions!>!
 NCode.Identity.Bff.Options.BffOptions.Frontends.set -> void
 NCode.Identity.Bff.Options.BffOptions.KeyRings.get -> System.Collections.Generic.Dictionary<string!, NCode.Identity.Bff.Options.BffKeyRingOptions!>!

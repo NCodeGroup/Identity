@@ -130,7 +130,7 @@ internal sealed class DefaultSecretValidator(
             Use = use,
             Algorithm = request.Algorithm,
         };
-        return ResolveGeneration(descriptor, requested);
+        return ResolveGeneration(descriptor, requested, out _);
     }
 
     /// <inheritdoc />
@@ -153,7 +153,7 @@ internal sealed class DefaultSecretValidator(
             return SecretCreateValidation.Invalid(lifecycleError);
         }
 
-        var selector = new RemoteSigningAlgorithmSelector
+        var selector = new RemoteKeyAlgorithmSelector
         {
             Provider = request.RemoteKeyProvider,
             Algorithm = request.Algorithm,
@@ -166,7 +166,8 @@ internal sealed class DefaultSecretValidator(
 
     /// <inheritdoc />
     // See ADR-1476.
-    public SecretCreateValidation ValidateRemoteKey(RemoteSigningAlgorithmSelector selector)
+    // See ADR-1477.
+    public SecretCreateValidation ValidateRemoteKey(RemoteKeyAlgorithmSelector selector)
     {
         var secretType = selector.SecretType;
         if (
@@ -188,16 +189,17 @@ internal sealed class DefaultSecretValidator(
         {
             KeySizeBits = selector.KeySizeBits,
             Curve = selector.Curve,
-            Use = SecretKeyUses.Signature,
+            Use = null,
             Algorithm = selector.Algorithm,
         };
-        var validation = ResolveGeneration(descriptor, requested);
-        return ValidateRemoteRow(selector, validation);
+        var validation = ResolveGeneration(descriptor, requested, out var impliedUse);
+        return ValidateRemoteRow(selector, validation, impliedUse);
     }
 
     private SecretCreateValidation ValidateRemoteRow(
-        RemoteSigningAlgorithmSelector selector,
-        SecretCreateValidation validation
+        RemoteKeyAlgorithmSelector selector,
+        SecretCreateValidation validation,
+        string? impliedUse
     )
     {
         if (!validation.IsValid)
@@ -211,7 +213,7 @@ internal sealed class DefaultSecretValidator(
             KeySizeBits = resolved.KeySizeBits,
             Curve = resolved.Curve,
         };
-        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(resolvedSelector, out _))
+        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(resolvedSelector, out var row))
         {
             var curveText = resolved.Curve is null
                 ? string.Empty
@@ -219,6 +221,15 @@ internal sealed class DefaultSecretValidator(
             return Invalid(
                 $"The remote key provider '{selector.Provider}' holds no '{selector.Algorithm}' key of the "
                     + $"'{selector.SecretType}' type with {resolved.KeySizeBits} bits{curveText}."
+            );
+        }
+
+        // See ADR-1477.
+        if (!string.Equals(row.Use, impliedUse, StringComparison.Ordinal))
+        {
+            return Invalid(
+                $"The remote key provider '{selector.Provider}' holds '{selector.Algorithm}' keys for the use "
+                    + $"'{row.Use}', but the algorithm implies the use '{impliedUse}'."
             );
         }
 
@@ -240,9 +251,11 @@ internal sealed class DefaultSecretValidator(
 
     private SecretCreateValidation ResolveGeneration(
         ISecretKeyTypeDescriptor descriptor,
-        RequestedKeyGeneration requested
+        RequestedKeyGeneration requested,
+        out string? impliedUse
     )
     {
+        impliedUse = null;
         var keySizeBits = requested.KeySizeBits;
         var curve = requested.Curve;
         var use = requested.Use;
@@ -277,6 +290,7 @@ internal sealed class DefaultSecretValidator(
                 return Invalid(algorithmError);
             }
 
+            impliedUse = resolved.Use;
             parameters = new SecretKeyGenerationParameters
             {
                 KeySizeBits = resolved.KeySizeBits,
@@ -368,7 +382,7 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        var selector = new RemoteSigningAlgorithmSelector
+        var selector = new RemoteKeyAlgorithmSelector
         {
             Provider = request.RemoteKeyProvider,
             Algorithm = request.Algorithm,

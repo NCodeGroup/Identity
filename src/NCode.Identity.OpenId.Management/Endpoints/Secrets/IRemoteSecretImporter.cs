@@ -8,12 +8,14 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 /// <summary>
 /// Binds a key that a key management service already holds to a tenant. It reads the key's public half from the
-/// service and stores it as a <c>remote</c> secret, then proves the binding by signing a random challenge through the
-/// referenced key and verifying the signature with the stored public half, so a key that does not sign with the public
-/// half the service returned is never stored.
+/// service and stores it as a <c>remote</c> secret, then proves the binding by the algorithm's kind: a signing key
+/// signs 32 random bytes that the stored public half verifies, and an encryption key decrypts 32 random bytes the
+/// server encrypts to the stored public half as a compact JWE (<c>A256GCM</c>), so a key that does not hold the
+/// private half of the public half the service returned is never stored.
 /// </summary>
 // See ADR-1475.
 // See ADR-1476.
+// See ADR-1477.
 internal interface IRemoteSecretImporter
 {
     /// <summary>
@@ -35,16 +37,18 @@ internal interface IRemoteSecretImporter
     );
 
     /// <summary>
-    /// Proves that the key a <c>remote</c> secret references signs with the private half of the secret's public key:
-    /// it signs a random challenge through the referenced key, and the signature is verified with the stored public
-    /// half.
+    /// Proves that the key a <c>remote</c> secret references holds the private half of the secret's public key, by the
+    /// secret's algorithm: a signing key signs a random challenge through the referenced key and the stored public
+    /// half verifies the signature; an encryption key decrypts a random challenge that the server encrypts to the
+    /// stored public half as a compact JWE (<c>A256GCM</c>).
     /// </summary>
     /// <param name="secret">The <c>remote</c> secret to prove.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
-    /// <c>null</c> when the key signs with the private half of the public key; a <c>400</c> when the secret cannot be
-    /// read as a remote key or the signature does not verify; or a <c>502</c> when the key management service fails or
-    /// refuses the request.
+    /// <c>null</c> when the key holds the private half of the public key; a <c>400</c> when the secret cannot be read
+    /// as a remote key, its algorithm is not a registered signature or key-management algorithm, or the signature does
+    /// not verify or the decryption does not return the challenge; or a <c>502</c> when the key management service
+    /// fails or refuses the request.
     /// </returns>
     ValueTask<ManagementError?> VerifyBindingAsync(
         PersistedSecret secret,

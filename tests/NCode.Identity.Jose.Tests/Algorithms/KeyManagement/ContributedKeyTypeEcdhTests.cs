@@ -498,7 +498,11 @@ public class ContributedKeyTypeEcdhTests : BaseTests
         var token = await JoseSerializer
             .CreateEncoder(options)
             .EncodeAsync(payload, CancellationToken.None);
-        var decoded = JoseSerializer.Decode(JoseSerializer.Parse(token), recipientKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            JoseSerializer.Parse(token),
+            recipientKey,
+            CancellationToken.None
+        );
 
         Assert.Equal(JsonSerializer.Serialize(payload), decoded);
     }

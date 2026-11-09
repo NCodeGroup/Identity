@@ -9,8 +9,8 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 
 /// <summary>
 /// Describes the Google Cloud Key Management Service remote key provider and its rows of the mapping from a JOSE
-/// signature algorithm to the Google Cloud Key Management Service crypto key version algorithm that creates a key and
-/// signs for it.
+/// algorithm to the Google Cloud Key Management Service crypto key version algorithm that creates a key and signs or
+/// decrypts for it.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -23,8 +23,14 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// <para>
 /// Every row has the service sign the digest of the signing input.
 /// </para>
+/// <para>
+/// RSA keys also have Cloud KMS decrypt a content key with OAEP over the digest of the row: <c>RSA-OAEP</c> over SHA-1
+/// and <c>RSA-OAEP-256</c> over SHA-256 for keys of 2048, 3072 and 4096 bits, and <c>RSA-OAEP-512</c> over SHA-512 for
+/// keys of 4096 bits. Cloud KMS agrees no keys, so no row holds an <c>ECDH-ES</c> key.
+/// </para>
 /// </remarks>
 // See ADR-1471.
+// See ADR-1477.
 internal sealed class GoogleCloudKmsRemoteKeyDescriptors : IRemoteKeyDescriptorSource
 {
     private static IReadOnlyList<RemoteKeyProviderDescriptor> ProviderDescriptors { get; } =
@@ -32,17 +38,17 @@ internal sealed class GoogleCloudKmsRemoteKeyDescriptors : IRemoteKeyDescriptorS
 
     private static int[] RsaKeySizesBits { get; } = [2048, 3072, 4096];
 
-    private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } = CreateRows();
+    private static IReadOnlyList<RemoteKeyAlgorithm> Rows { get; } = CreateRows();
 
     /// <inheritdoc />
     public IEnumerable<RemoteKeyProviderDescriptor> Providers => ProviderDescriptors;
 
     /// <inheritdoc />
-    public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;
+    public IEnumerable<RemoteKeyAlgorithm> Algorithms => Rows;
 
-    private static List<RemoteSigningAlgorithm> CreateRows()
+    private static List<RemoteKeyAlgorithm> CreateRows()
     {
-        var rows = new List<RemoteSigningAlgorithm>();
+        var rows = new List<RemoteKeyAlgorithm>();
 
         foreach (var keySizeBits in RsaKeySizesBits)
         {
@@ -92,8 +98,43 @@ internal sealed class GoogleCloudKmsRemoteKeyDescriptors : IRemoteKeyDescriptorS
             )
         );
 
+        foreach (var keySizeBits in RsaKeySizesBits)
+        {
+            rows.Add(
+                CreateDecryptionRow("RSA-OAEP", keySizeBits, $"RSA_DECRYPT_OAEP_{keySizeBits}_SHA1")
+            );
+        }
+
+        foreach (var keySizeBits in RsaKeySizesBits)
+        {
+            rows.Add(
+                CreateDecryptionRow(
+                    "RSA-OAEP-256",
+                    keySizeBits,
+                    $"RSA_DECRYPT_OAEP_{keySizeBits}_SHA256"
+                )
+            );
+        }
+
+        rows.Add(CreateDecryptionRow("RSA-OAEP-512", 4096, "RSA_DECRYPT_OAEP_4096_SHA512"));
+
         return rows;
     }
+
+    private static RemoteDecryptionAlgorithm CreateDecryptionRow(
+        string algorithm,
+        int keySizeBits,
+        string keySpec
+    ) =>
+        new()
+        {
+            Provider = RemoteKeyProviderNames.GoogleCloudKms,
+            Algorithm = algorithm,
+            SecretType = SecretKeyTypes.Rsa,
+            KeySizeBits = keySizeBits,
+            KeySpec = keySpec,
+            EncryptionAlgorithm = keySpec,
+        };
 
     private static RemoteSigningAlgorithm CreateRsaRow(
         string algorithm,

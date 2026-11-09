@@ -140,7 +140,7 @@ public class SecretProtectionRegistrationTests : BaseTests
             StringComparison.Ordinal
         );
         Assert.EndsWith(
-            "Its recognized keys are MasterKeys, OwnerRootKeys, Recovery, RemoteKeyProviders, RootKeyProvider, RootKeyProviders.",
+            "Its recognized keys are MasterKeys, OwnerRootKeys, Recovery, RemoteKeyProviders, RemoteKeys, RootKeyProvider, RootKeyProviders.",
             exception.Message,
             StringComparison.Ordinal
         );
@@ -259,6 +259,44 @@ public class SecretProtectionRegistrationTests : BaseTests
             {
                 ["SecretProtection:RootKeyProvider"] = "ephemeral",
                 ["SecretProtection:MasterKeys:Rotation"] = "1.00:00:00",
+            }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        Assert.ThrowsAny<Exception>(() =>
+            serviceProvider.GetRequiredService<IOptions<SecretProtectionOptions>>().Value
+        );
+    }
+
+    [Fact]
+    public void AddSecretProtection_RemoteKeysSection_BindsIt()
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?>
+            {
+                ["SecretProtection:RootKeyProvider"] = "ephemeral",
+                ["SecretProtection:RemoteKeys:Deployment"] = "prod-eu",
+                ["SecretProtection:RemoteKeys:SweepInterval"] = "12:00:00",
+            }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var keys = serviceProvider
+            .GetRequiredService<IOptions<SecretProtectionOptions>>()
+            .Value.RemoteKeys;
+
+        Assert.Equal("prod-eu", keys.Deployment);
+        Assert.Equal(TimeSpan.FromHours(12), keys.SweepInterval);
+    }
+
+    [Fact]
+    public void AddSecretProtection_UnknownRemoteKeysMember_Throws()
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?>
+            {
+                ["SecretProtection:RootKeyProvider"] = "ephemeral",
+                ["SecretProtection:RemoteKeys:Deploy"] = "prod-eu",
             }
         );
         using var serviceProvider = serviceCollection.BuildServiceProvider();

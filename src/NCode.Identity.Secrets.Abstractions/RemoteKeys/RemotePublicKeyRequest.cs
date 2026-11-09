@@ -9,6 +9,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// Describes the public half of a key for a <see cref="IRemoteKeyProvider"/> to read.
 /// </summary>
 // See ADR-1474.
+// See ADR-1477.
 [PublicAPI]
 public sealed class RemotePublicKeyRequest
 {
@@ -21,5 +22,5 @@ public sealed class RemotePublicKeyRequest
     /// Gets the row of the mapping vocabulary that selects the key's type, size and curve, which the public half
     /// must match.
     /// </summary>
-    public required RemoteSigningAlgorithm Algorithm { get; init; }
+    public required RemoteKeyAlgorithm Algorithm { get; init; }
 }

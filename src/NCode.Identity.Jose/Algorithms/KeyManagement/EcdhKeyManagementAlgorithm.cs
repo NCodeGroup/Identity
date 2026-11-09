@@ -28,6 +28,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// the algorithm.
 /// </summary>
 // See ADR-1389.
+// See ADR-1477.
 internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
@@ -521,6 +522,11 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         out int bytesWritten
     )
     {
+        if (secretKey is IRemoteSecretKey)
+            throw new JoseInvalidAlgorithmException(
+                "A key that a key management service holds unwraps a content key only through UnwrapKeyAsync."
+            );
+
         if (encryptedContentKey.Length != 0)
         {
             throw new ArgumentException(
@@ -533,6 +539,61 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         bytesWritten = contentKey.Length;
         return true;
+    }
+
+    /// <inheritdoc />
+    // See ADR-1477.
+    public override ValueTask<int> UnwrapKeyAsync(
+        SecretKey secretKey,
+        JsonElement header,
+        ReadOnlyMemory<byte> encryptedContentKey,
+        Memory<byte> contentKey,
+        CancellationToken cancellationToken
+    )
+    {
+        if (secretKey is not IRemoteSecretKey remoteKey)
+            return base.UnwrapKeyAsync(
+                secretKey,
+                header,
+                encryptedContentKey,
+                contentKey,
+                cancellationToken
+            );
+
+        if (encryptedContentKey.Length != 0)
+        {
+            throw new ArgumentException(
+                "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
+                nameof(encryptedContentKey)
+            );
+        }
+
+        return UnwrapWithRemoteKeyAsync(
+            secretKey,
+            remoteKey,
+            header,
+            contentKey,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<int> UnwrapWithRemoteKeyAsync(
+        SecretKey secretKey,
+        IRemoteSecretKey remoteKey,
+        JsonElement header,
+        Memory<byte> contentKey,
+        CancellationToken cancellationToken
+    )
+    {
+        await ReceiveAndDeriveRemoteKeyAsync(
+            secretKey,
+            remoteKey,
+            header,
+            contentKey,
+            cancellationToken
+        );
+
+        return contentKey.Length;
     }
 
     /// <summary>
@@ -567,6 +628,94 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         keyAgreement.Agree(secretKey, ephemeralPublicKey, sharedSecret);
 
         DeriveKey(algorithm, apu, apv, sharedSecret, destination);
+    }
+
+    /// <summary>
+    /// The recipient's half of the agreement for a key that a key management service holds: the service agrees the
+    /// shared secret from its private key and the <c>epk</c> the header carries, and the Concat KDF
+    /// (RFC 7518 §4.6.2) derives the same key <see cref="AgreeAndDeriveKey"/> derived for the sender.
+    /// </summary>
+    /// <param name="secretKey">The recipient's key.</param>
+    /// <param name="remoteKey">The recipient's key as the key that the service holds.</param>
+    /// <param name="header">The JOSE header of the token, which carries the <c>epk</c>.</param>
+    /// <param name="destination">The destination for the derived key, whose length is the key's size.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    // See ADR-1477.
+    protected async ValueTask ReceiveAndDeriveRemoteKeyAsync(
+        SecretKey secretKey,
+        IRemoteSecretKey remoteKey,
+        JsonElement header,
+        Memory<byte> destination,
+        CancellationToken cancellationToken
+    )
+    {
+        var keyAgreement = ResolveKeyAgreement(secretKey);
+        var ephemeralPublicKey = ValidateHeaderForUnwrap(
+            secretKey,
+            header,
+            out var algorithm,
+            out var apu,
+            out var apv
+        );
+
+        using var ephemeralDisposal = ephemeralPublicKey as IDisposable;
+
+        if (
+            secretKey is not AsymmetricSecretKey { CurveName: { } recipientCurveName }
+            || ephemeralPublicKey
+                is not AsymmetricSecretKey { CurveName: { } ephemeralCurveName } ephemeralKey
+            || !string.Equals(recipientCurveName, ephemeralCurveName, StringComparison.Ordinal)
+        )
+        {
+            throw new JoseException(
+                "The ephemeral public key is not on the curve of the recipient's key."
+            );
+        }
+
+        using var peerSubjectPublicKeyInfoLease = RentSubjectPublicKeyInfo(
+            ephemeralKey,
+            out var peerSubjectPublicKeyInfo
+        );
+
+        using var sharedSecretLease = BufferFactory.Rent(
+            keyAgreement.GetSharedSecretSizeBytes(secretKey),
+            isSensitive: true,
+            out Memory<byte> sharedSecret
+        );
+
+        var written = await remoteKey.DeriveSharedSecretAsync(
+            Code,
+            peerSubjectPublicKeyInfo,
+            sharedSecret,
+            cancellationToken
+        );
+
+        if (written != sharedSecret.Length)
+        {
+            throw new CryptographicException(
+                "The key management service returned a shared secret that is not the size of the curve's field."
+            );
+        }
+
+        DeriveKey(algorithm, apu, apv, sharedSecret.Span, destination.Span);
+    }
+
+    // The rental lives across the key agreement's await, so the caller disposes it once the service has answered.
+    private static IDisposable RentSubjectPublicKeyInfo(
+        AsymmetricSecretKey publicKey,
+        out Memory<byte> subjectPublicKeyInfo
+    )
+    {
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+        IBufferWriter<byte> writer = buffer;
+        publicKey.ExportSubjectPublicKeyInfo(ref writer);
+        var lease = BufferFactory.Rent(
+            checked((int)buffer.Length),
+            isSensitive: false,
+            out subjectPublicKeyInfo
+        );
+        buffer.AsReadOnlySequence.CopyTo(subjectPublicKeyInfo.Span);
+        return lease;
     }
 
     /// <summary>

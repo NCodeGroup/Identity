@@ -173,12 +173,12 @@ The recorder states the actor explicitly for each event, so the actor does not d
 | `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`.                                |
 | `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`. Also every management event a client makes acting for itself (its token's subject is the client's own principal). |
 | `administrator` | The administrator's subject id, when known | Every management event an end user makes (a rekey through the management API (`master_key.rotated`) and a tenant's root key set, removed or validated through it (`root_key.*`) included). The subject id is read with the server-default claim types, not the request tenant's setting. |
-| `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*`, background `master_key.*` and background `root_key.*` events, whose `details.reason` says why. No caller acted.         |
+| `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*`, background `master_key.*`, background `root_key.*` and `remote_key.*` events, whose `details.reason` says why. No caller acted.         |
 | `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                                                     |
 
 ### Resource types
 
-`session`, `tenant`, `tenant.secret`, `master_key` and `root_key` are shared by the protocol and the management planes (`AuditResourceTypes`).
+`session`, `tenant`, `tenant.secret`, `master_key`, `root_key` and `remote_key` are shared by the protocol and the management planes (`AuditResourceTypes`).
 The management types are `ManagementResourceTypes`, and the local-account type is `AccountManagementResourceTypes`.
 
 | `resources[].type`       | Entity                                                                                                                                                                 |
@@ -186,6 +186,7 @@ The management types are `ManagementResourceTypes`, and the local-account type i
 | `session`                | A user session, identified by its `sid`.                                                                                                                               |
 | `master_key`             | A master key, identified by its key id, which protects the stored secrets of a tenant or the data a host protects under the platform (`AuditResourceTypes.MasterKey`). |
 | `root_key`               | The root key a tenant brings, identified by the reference the tenant gave, which wraps the tenant's master keys (`AuditResourceTypes.RootKey`).                        |
+| `remote_key`             | A key a key management service holds, identified by its reference `provider:keyId` (`AuditResourceTypes.RemoteKey`).                                                   |
 | `client`                 | An OpenID client.                                                                                                                                                      |
 | `client.secret`          | A secret belonging to a client.                                                                                                                                        |
 | `tenant`                 | An OpenID tenant.                                                                                                                                                      |
@@ -322,6 +323,21 @@ name, such as `aws-kms`), `key_reference`, `access_identity` (the role, service 
 reached through, when the tenant names one), `state` (`active`, `unavailable` or `removing`, after the change) and
 `failure` (the description of the failed probe, when there is one). A rotation onto the key is recorded separately as
 `master_key.rotated` with the reason `root_key_changed`.
+
+#### Remote keys
+
+Every remote key event is a `RemoteKeyAuditEvent` with `event_category` `key`, `event_source` `openid` and the `system`
+actor, recorded in the control-plane tenant
+([ADR-1478](decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
+It lists the `remote_key`, identified by its reference `provider:keyId`, carries no key material, and is published once
+the destruction has succeeded.
+
+| `event_name`           | Resources    | `details.reason`                                                                                                                                                  |
+| ---------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `remote_key.destroyed` | `remote_key` | `orphaned`: the sweep found no stored secret that names the key, older than `SecretProtection:RemoteKeys:SweepGracePeriod`                                        |
+
+The event writes `reason` (an open vocabulary, `RemoteKeyChangeReasons`), `provider`, `key_id`, `group`, `owner` and
+`secret_id` when the key's labels give them, and `key_created_when`.
 
 ### BFF plane
 

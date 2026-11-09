@@ -45,6 +45,33 @@ internal class DefaultRemoteSecretDestroyer(
         }
     }
 
+    /// <inheritdoc />
+    // See ADR-1478.
+    public async ValueTask<bool> DestroyKeyAsync(RemoteKeyReference reference)
+    {
+        if (!RemoteKeyProviderCatalog.TryGetProvider(reference.Provider, out var provider))
+        {
+            Logger.RemoteKeyOrphanDestroySkipped(reference.Provider, reference.KeyId);
+            return false;
+        }
+
+        try
+        {
+            await PostCommitWork.RunAsync(
+                TimeProvider,
+                static (state, cancellationToken) =>
+                    state.Provider.DestroyKeyAsync(state.KeyId, cancellationToken),
+                (Provider: provider, reference.KeyId)
+            );
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Logger.RemoteKeyOrphanDestroyFailed(exception, reference.Provider, reference.KeyId);
+            return false;
+        }
+    }
+
     // Destroys the key of one secret and swallows every failure, since the removal is committed.
     private async ValueTask DestroyOneAsync(PersistedSecret secret)
     {

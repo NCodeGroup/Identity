@@ -145,7 +145,6 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         Assert.Equal(RemoteRs256.SecretType, request.SecretType);
         Assert.Equal(RemoteRs256.KeySizeBits, request.KeySizeBits);
         Assert.Equal(RemoteRs256.Curve, request.Curve);
-        Assert.Equal(RemoteRs256.Use, request.Use);
         Assert.Equal(RemoteRs256.Algorithm, request.Algorithm);
         Assert.Equal(Now, request.CreatedWhen);
         Assert.Equal(Now, request.ActivatesWhen);

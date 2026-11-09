@@ -68,7 +68,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
     {
         var source = new AwsKmsRemoteKeyDescriptors();
 
-        var rows = source.Algorithms.ToList();
+        var rows = source.Algorithms.OfType<RemoteSigningAlgorithm>().ToList();
 
         Assert.Equal(Expected.Length, rows.Count);
         foreach (var expected in Expected)
@@ -78,6 +78,7 @@ public class AwsKmsRemoteKeyDescriptorsTests
                 x => x.Algorithm == expected.Algorithm && x.KeySizeBits == expected.KeySizeBits
             );
             Assert.Equal(RemoteKeyProviderNames.AwsKms, row.Provider);
+            Assert.Equal("sig", row.Use);
             Assert.Equal(expected.SecretType, row.SecretType);
             Assert.Equal(expected.Curve, row.Curve);
             Assert.Equal(expected.KeySpec, row.KeySpec);
@@ -85,6 +86,91 @@ public class AwsKmsRemoteKeyDescriptorsTests
             Assert.Equal(expected.Digest, row.DigestAlgorithm);
             Assert.Equal(expected.IsDer, row.IsDerEncodedSignature);
         }
+    }
+
+    [Fact]
+    public void Algorithms_DecryptionRows_MatchTheMapping()
+    {
+        var source = new AwsKmsRemoteKeyDescriptors();
+
+        var rows = source.Algorithms.OfType<RemoteDecryptionAlgorithm>().ToList();
+
+        Assert.Equal(6, rows.Count);
+        foreach (var keySizeBits in new[] { 2048, 3072, 4096 })
+        {
+            var oaep = Assert.Single(
+                rows,
+                x => x.Algorithm == "RSA-OAEP" && x.KeySizeBits == keySizeBits
+            );
+            Assert.Equal("RSAES_OAEP_SHA_1", oaep.EncryptionAlgorithm);
+
+            var oaep256 = Assert.Single(
+                rows,
+                x => x.Algorithm == "RSA-OAEP-256" && x.KeySizeBits == keySizeBits
+            );
+            Assert.Equal("RSAES_OAEP_SHA_256", oaep256.EncryptionAlgorithm);
+        }
+
+        Assert.All(
+            rows,
+            row =>
+            {
+                Assert.Equal(RemoteKeyProviderNames.AwsKms, row.Provider);
+                Assert.Equal("enc", row.Use);
+                Assert.Equal(SecretKeyTypes.Rsa, row.SecretType);
+                Assert.Null(row.Curve);
+                Assert.Equal($"RSA_{row.KeySizeBits}", row.KeySpec);
+            }
+        );
+    }
+
+    [Fact]
+    public void Algorithms_KeyAgreementRows_MatchTheMapping()
+    {
+        var source = new AwsKmsRemoteKeyDescriptors();
+
+        var rows = source.Algorithms.OfType<RemoteKeyAgreementAlgorithm>().ToList();
+
+        Assert.Equal(12, rows.Count);
+        foreach (
+            var algorithm in new[]
+            {
+                "ECDH-ES",
+                "ECDH-ES+A128KW",
+                "ECDH-ES+A192KW",
+                "ECDH-ES+A256KW",
+            }
+        )
+        {
+            Assert.Single(rows, x => x.Algorithm == algorithm && x.Curve == "P-256");
+            Assert.Single(rows, x => x.Algorithm == algorithm && x.Curve == "P-384");
+            Assert.Single(rows, x => x.Algorithm == algorithm && x.Curve == "P-521");
+        }
+
+        var p521 = Assert.Single(rows, x => x.Algorithm == "ECDH-ES" && x.Curve == "P-521");
+        Assert.Equal("ECC_NIST_P521", p521.KeySpec);
+        Assert.Equal(521, p521.KeySizeBits);
+
+        Assert.All(
+            rows,
+            row =>
+            {
+                Assert.Equal(RemoteKeyProviderNames.AwsKms, row.Provider);
+                Assert.Equal("enc", row.Use);
+                Assert.Equal(SecretKeyTypes.Ecc, row.SecretType);
+                Assert.Equal("ECDH", row.KeyAgreementAlgorithm);
+            }
+        );
+    }
+
+    [Fact]
+    public void Algorithms_Rows_CountsEveryKind()
+    {
+        var source = new AwsKmsRemoteKeyDescriptors();
+
+        var rows = source.Algorithms.ToList();
+
+        Assert.Equal(Expected.Length + 6 + 12, rows.Count);
     }
 
     [Fact]
@@ -104,7 +190,10 @@ public class AwsKmsRemoteKeyDescriptorsTests
     {
         var source = new AwsKmsRemoteKeyDescriptors();
 
-        Assert.All(source.Algorithms, row => Assert.NotNull(row.DigestAlgorithm));
+        Assert.All(
+            source.Algorithms.OfType<RemoteSigningAlgorithm>(),
+            row => Assert.NotNull(row.DigestAlgorithm)
+        );
     }
 
     [Fact]

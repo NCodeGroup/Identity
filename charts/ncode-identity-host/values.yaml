@@ -115,8 +115,8 @@ secretProtection:
     # azureKeyVault.workloadIdentity, googleCloudKms.workloadIdentityFederation) are mounted into the pods, so the host
     # can reach the tenant's key with the deployment's own identity.
     providers: []
-  # The key management services that hold tenants' signing keys (SecretProtection:RemoteKeyProviders), selected per
-  # tenant by the setting tenant_signing_key_provider. A provider is registered when its first value (region, vaultUri,
+  # The key management services that hold tenants' keys (SecretProtection:RemoteKeyProviders), selected per
+  # tenant by the setting tenant_key_provider. A provider is registered when its first value (region, vaultUri,
   # keyRing) is set, and the pods then carry its workload credentials (awsKms.webIdentity,
   # azureKeyVault.workloadIdentity, googleCloudKms.workloadIdentityFederation).
   remoteKeyProviders:
@@ -134,6 +134,21 @@ secretProtection:
       # no provider.
       keyRing: ""
       hardwareProtected: true
+  # The keys the host creates in those services (SecretProtection:RemoteKeys) and the sweep that destroys the ones no
+  # stored secret names.
+  remoteKeys:
+    # Names this release's keys in a shared KMS scope (an AWS account, a vault or a key ring): lowercase letters, digits
+    # and hyphens, at most 40 characters. Required when a remote key provider is set. The sweep destroys only keys
+    # tagged with it. A deployment is one database of stored secrets: every replica and release that shares the
+    # database uses its name, and no other deployment in the same AWS account, vault or key ring uses it, because each
+    # deployment destroys every key of its name that its own database does not name.
+    deployment: ""
+    # Whether the background sweep destroys orphaned keys. It runs only when deployment is set.
+    sweepEnabled: true
+    # How often the sweep runs, as a time span.
+    sweepInterval: "1.00:00:00"
+    # How old a key must be before the sweep may destroy it, as a time span between one hour and 365 days.
+    sweepGracePeriod: "1.00:00:00"
   # A one-off Job from the host image that rewraps every master key under the configured root key provider and
   # recovery public key (ADR-1408). Enable it for a release that changes the root key provider, the root key or the
   # recovery key pair, and disable it again once it has completed.

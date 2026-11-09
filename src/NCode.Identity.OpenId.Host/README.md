@@ -81,38 +81,50 @@ that protected them is missing or has changed
 ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)). Restore the root key, or
 reset the database with it.
 
-### Remote signing keys
+### Remote keys
 
-A tenant's signing keys can be held in a key management service that signs every token, so the private key never
-leaves it. Each of the three provider packages holds both roles: it wraps the root key and holds the tenant's remote
-signing keys. Each package's `Add<Vendor>RemoteKeyProviderIfConfigured` method registers its provider only when its
+A tenant's signing and encryption keys can be held in a key management service that signs every token and unwraps
+every content key sent to the tenant, so the private key never leaves it. Each of the three provider packages holds
+both roles: it wraps the root key and holds the tenant's remote keys. Each package's
+`Add<Vendor>RemoteKeyProviderIfConfigured` method registers its provider only when its
 configuration section exists, and the reference host calls it, because registering a
 provider selects it and validates its settings when the host starts. A tenant selects a registered provider through the
-tenant setting `OpenId:Platform:Settings:tenant_signing_key_provider` (`aws-kms`, `azure-key-vault` or
+tenant setting `OpenId:Platform:Settings:tenant_key_provider` (`aws-kms`, `azure-key-vault` or
 `google-cloud-kms`).
 
-| Setting                                                                | Meaning                                                                                  |
-|------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| `SecretProtection:RemoteKeyProviders:AwsKms:Region`                    | AWS region in which keys are created, such as `us-west-2`                                |
-| `SecretProtection:RemoteKeyProviders:AwsKms:PendingWindowInDays`       | Days, 7 to 30, that AWS KMS waits before it deletes a destroyed key (default `30`)       |
-| `SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri`           | URI of the Key Vault or Managed HSM, such as `https://contoso.vault.azure.net`           |
-| `SecretProtection:RemoteKeyProviders:AzureKeyVault:HardwareProtected`  | `false` creates software-protected keys (default `true`)                                 |
-| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing`           | Resource name of the key ring, `projects/<project>/locations/<location>/keyRings/<ring>` |
-| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:HardwareProtected` | `false` creates software-protected keys (default `true`)                                 |
+| Setting                                                                | Meaning                                                                                                                       |
+|------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `SecretProtection:RemoteKeyProviders:AwsKms:Region`                    | AWS region in which keys are created, such as `us-west-2`                                                                     |
+| `SecretProtection:RemoteKeyProviders:AwsKms:PendingWindowInDays`       | Days, 7 to 30, that AWS KMS waits before it deletes a destroyed key (default `30`)                                            |
+| `SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri`           | URI of the Key Vault or Managed HSM, such as `https://contoso.vault.azure.net`                                                |
+| `SecretProtection:RemoteKeyProviders:AzureKeyVault:HardwareProtected`  | `false` creates software-protected keys (default `true`)                                                                      |
+| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing`           | Resource name of the key ring, `projects/<project>/locations/<location>/keyRings/<ring>`                                      |
+| `SecretProtection:RemoteKeyProviders:GoogleCloudKms:HardwareProtected` | `false` creates software-protected keys (default `true`)                                                                      |
+| `SecretProtection:RemoteKeys:Deployment`                               | Required with a provider: lowercase letters, digits and hyphens, at most 40; unique to the database within a shared KMS scope |
+| `SecretProtection:RemoteKeys:SweepEnabled`                             | `false` turns the orphaned-key sweep off (default `true`)                                                                     |
+| `SecretProtection:RemoteKeys:SweepInterval`                            | Time between sweeps (default one day)                                                                                         |
+| `SecretProtection:RemoteKeys:SweepGracePeriod`                         | Age a key reaches before the sweep may destroy it (default one day, between one hour and 365 days)                            |
 
 Each provider uses its SDK's default credential chain, and no credential is read from configuration. The server creates
-sign-only keys and destroys only the keys it created. The deployment's identity needs these permissions:
+sign-only or decrypt-only keys and destroys only the keys it created. The deployment's identity needs these permissions:
 
-- AWS: `kms:CreateKey`, `kms:TagResource`, `kms:GetPublicKey`, `kms:Sign`, `kms:ScheduleKeyDeletion` and
-  `kms:DescribeKey`.
+- AWS: `kms:CreateKey`, `kms:TagResource`, `kms:GetPublicKey`, `kms:Sign`, `kms:Decrypt`, `kms:DeriveSharedSecret`,
+  `kms:ScheduleKeyDeletion`, `kms:DescribeKey`, `kms:ListKeys` and `kms:ListResourceTags`.
 - Azure: the `Key Vault Crypto Officer` role on the vault.
-- Google: `cloudkms.cryptoKeys.create` and `cloudkms.cryptoKeyVersions.create`, `.get`, `.viewPublicKey`, `.useToSign`
-  and `.destroy` on the key ring.
+- Google: `cloudkms.cryptoKeys.create` and `cloudkms.cryptoKeys.list`, and `cloudkms.cryptoKeyVersions.create`, `.list`,
+  `.get`, `.viewPublicKey`, `.useToSign`, `.useToDecrypt` and `.destroy` on the key ring.
+
+Scope the identity to the deployment's keys: on AWS, condition `kms:ScheduleKeyDeletion` on
+`aws:ResourceTag/ncode-identity:deployment` equal to the deployment name, and `kms:CreateKey` and `kms:TagResource` on
+`aws:RequestTag/ncode-identity:deployment`, so it creates and destroys only keys of its deployment (`kms:ListKeys`
+names no resource, and a bound key carries no such tag); on Azure, a role assignment cannot be conditioned on a key's
+tags, so give each deployment a vault of its own and a custom role without delete and purge; on Google, a grant on a key
+ring covers every crypto key in it, so give each deployment a key ring of its own.
 
 The management API creates a tenant's key in a registered provider with `POST /api/tenants/{tenantId}/secrets/remote`
-and binds a key that a provider already holds, once it proves it signs, with
+and binds a key that a provider already holds, once it proves it signs or decrypts, with
 `POST /api/tenants/{tenantId}/secrets/remote/import`. See
-[Remote signing keys](../../docs/capabilities/remote-signing-keys.md#management-api).
+[Remote keys](../../docs/capabilities/remote-keys.md#management-api).
 
 ### Master keys
 

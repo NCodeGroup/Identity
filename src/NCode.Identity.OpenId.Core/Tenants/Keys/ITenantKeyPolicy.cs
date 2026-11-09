@@ -25,8 +25,8 @@ internal interface ITenantKeyPolicy
 
     /// <summary>
     /// Applies a tenant's custody choice to the provisioned keys: when the tenant's
-    /// <c>tenant_signing_key_provider</c> setting names a remote key provider, every signature key is held by that
-    /// provider; encryption keys, and every key when the setting is empty, are held in the server's store.
+    /// <c>tenant_key_provider</c> setting names a remote key provider, every provisioned key, signature and
+    /// encryption alike, is held by that provider; every key is held in the server's store when the setting is empty.
     /// </summary>
     /// <param name="specifications">The provisioned keys resolved from the provisioning options.</param>
     /// <param name="settings">The tenant's effective settings.</param>

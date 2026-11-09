@@ -349,6 +349,11 @@ internal class DefaultSecretKeyFactory(
     )
     {
         ArgumentNullException.ThrowIfNull(binding);
+        if (binding.Algorithm is not (RemoteSigningAlgorithm or RemoteDecryptionAlgorithm))
+            throw new ArgumentException(
+                "The mapping row of an RSA key must sign or decrypt.",
+                nameof(binding)
+            );
         RequireSecretType(binding, SecretKeyTypes.Rsa);
 
         using var key = RSA.Create();
@@ -458,6 +463,11 @@ internal class DefaultSecretKeyFactory(
     )
     {
         ArgumentNullException.ThrowIfNull(binding);
+        if (binding.Algorithm is not (RemoteSigningAlgorithm or RemoteKeyAgreementAlgorithm))
+            throw new ArgumentException(
+                "The mapping row of an elliptic-curve key must sign or agree keys.",
+                nameof(binding)
+            );
         RequireSecretType(binding, SecretKeyTypes.Ecc);
 
         using var key = ECDsa.Create();

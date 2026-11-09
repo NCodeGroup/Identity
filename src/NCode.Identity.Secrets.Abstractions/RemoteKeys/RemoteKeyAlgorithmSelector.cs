@@ -6,11 +6,12 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Secrets.RemoteKeys;
 
 /// <summary>
-/// Identifies the <see cref="RemoteSigningAlgorithm"/> row that applies to a key.
+/// Identifies the <see cref="RemoteKeyAlgorithm"/> row that applies to a key.
 /// </summary>
 // See ADR-1471.
+// See ADR-1477.
 [PublicAPI]
-public readonly record struct RemoteSigningAlgorithmSelector
+public readonly record struct RemoteKeyAlgorithmSelector
 {
     /// <summary>
     /// Gets the name of the remote key provider.
@@ -18,7 +19,7 @@ public readonly record struct RemoteSigningAlgorithmSelector
     public required string Provider { get; init; }
 
     /// <summary>
-    /// Gets the JOSE <c>alg</c> value of the signature algorithm.
+    /// Gets the JOSE <c>alg</c> value of the algorithm.
     /// </summary>
     public required string Algorithm { get; init; }
 

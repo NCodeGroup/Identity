@@ -48,4 +48,11 @@ public sealed class SecretProtectionOptions
     /// </summary>
     // See ADR-1414.
     public OwnerRootKeyOptions OwnerRootKeys { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the options for the keys held in a key management service: the deployment name and the sweep
+    /// that destroys the keys that no stored secret names.
+    /// </summary>
+    // See ADR-1478.
+    public RemoteKeyOptions RemoteKeys { get; set; } = new();
 }

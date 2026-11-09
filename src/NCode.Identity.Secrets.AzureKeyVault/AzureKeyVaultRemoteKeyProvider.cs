@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using Azure;
 using Azure.Security.KeyVault.Keys;
@@ -15,9 +16,9 @@ using KvSignatureAlgorithm = Azure.Security.KeyVault.Keys.Cryptography.Signature
 namespace NCode.Identity.Secrets.AzureKeyVault;
 
 /// <summary>
-/// Provides an implementation of <see cref="IRemoteKeyProvider"/> that creates signing keys in Azure Key Vault or
-/// Managed HSM, signs with them, and disables them, so the private half of a key never leaves the service. The
-/// provider reaches the service with the credentials of the deployment.
+/// Provides an implementation of <see cref="IRemoteKeyProvider"/> that creates signing and decryption keys in Azure Key
+/// Vault or Managed HSM, signs and unwraps content keys with them, and disables them, so the private half of a key
+/// never leaves the service. The provider reaches the service with the credentials of the deployment.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,14 +28,18 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 /// without a version is refused. Key Vault deletes whole keys only, so destroying a key disables its version.
 /// </para>
 /// <para>
-/// A key is created for signing and verifying only, tagged with its owner, secret, algorithm and group. Key Vault signs
-/// a digest, so the provider refuses a row that names no digest algorithm. The provider refuses a public key that is
+/// A signing key is created for signing and verifying only and a decryption key for unwrapping a content key only,
+/// tagged with its owner, secret, algorithm, group and deployment, and lists the enabled key versions of its
+/// deployment. Key Vault signs
+/// a digest, so the provider refuses a row that names no digest algorithm. Key Vault agrees no keys, so the provider
+/// holds no key agreement key. The provider refuses a public key that is
 /// missing or is not an RSA or an ECC key with a <see cref="CryptographicException"/>, and a response that names
 /// another key version or another algorithm than requested with an <see cref="IOException"/>, because the call can be
-/// retried. Logs and messages carry identifiers only, never a digest or a signature.
+/// retried. Logs and messages carry identifiers only, never a digest, a signature or a content key.
 /// </para>
 /// </remarks>
 // See ADR-1471.
+// See ADR-1477.
 internal class AzureKeyVaultRemoteKeyProvider(
     IAzureKeyVaultClientFactory clientFactory,
     IOptions<AzureKeyVaultRemoteKeyProviderOptions> options
@@ -70,6 +75,11 @@ internal class AzureKeyVaultRemoteKeyProvider(
     /// successive keys.
     /// </summary>
     internal const string GroupTagKey = "ncode-identity-group";
+
+    /// <summary>
+    /// The name of the tag that carries the deployment that created a key.
+    /// </summary>
+    internal const string DeploymentTagKey = "ncode-identity-deployment";
 
     private IAzureKeyVaultClientFactory ClientFactory { get; } = clientFactory;
 
@@ -186,6 +196,19 @@ internal class AzureKeyVaultRemoteKeyProvider(
             );
         }
 
+        if (key.Key is null)
+        {
+            throw new CryptographicException($"Azure Key Vault key '{keyId}' holds no public key.");
+        }
+
+        var requiredOperation = GetRequiredOperation(request.Algorithm);
+        if (!key.KeyOperations.Contains(requiredOperation))
+        {
+            throw new CryptographicException(
+                $"Azure Key Vault key '{keyId}' does not allow the '{requiredOperation}' operation."
+            );
+        }
+
         subjectPublicKeyInfo.Write(ExportSubjectPublicKeyInfo(key, keyId));
     }
 
@@ -270,6 +293,109 @@ internal class AzureKeyVaultRemoteKeyProvider(
 
     /// <inheritdoc />
     /// <exception cref="ArgumentException">
+    /// Thrown when the key identifier of <paramref name="request"/> is not that of a Key Vault key version.
+    /// </exception>
+    /// <exception cref="IOException">
+    /// Thrown when the service reports that another key version or another algorithm unwrapped the content key.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the service refuses the ciphertext or the content key does not fit in the buffer.
+    /// </exception>
+    public async ValueTask<int> DecryptAsync(
+        RemoteDecryptionRequest request,
+        Memory<byte> plaintext,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var keyId = request.KeyId;
+        if (!AzureKeyVaultKeyId.IsKeyVersionId(keyId))
+        {
+            throw new ArgumentException(
+                "The key identifier is not that of a Key Vault key version.",
+                nameof(request)
+            );
+        }
+
+        var row = request.Algorithm;
+        var algorithm = new KeyWrapAlgorithm(row.EncryptionAlgorithm);
+
+        // The SDK takes an array, so the ciphertext is copied.
+        var encryptedKey = request.Ciphertext.ToArray();
+
+        UnwrapResult result;
+        try
+        {
+            result = await ClientFactory.ExecuteAsync(
+                keyId,
+                access: null,
+                (client, token) =>
+                    new ValueTask<UnwrapResult>(
+                        client.UnwrapKeyAsync(algorithm, encryptedKey, token)
+                    ),
+                cancellationToken
+            );
+        }
+        catch (RequestFailedException exception) when (exception.Status == 400)
+        {
+            throw new CryptographicException(
+                $"Azure Key Vault key '{keyId}' refused the ciphertext.",
+                exception
+            );
+        }
+
+        // The SDK hands over an array that nothing else references and leaves the unwrapped key in it, so it is
+        // zeroed once copied.
+        var key = result.Key;
+        try
+        {
+            if (
+                result.KeyId is not { } resultKeyId
+                || !AzureKeyVaultKeyId.IsVersionOf(resultKeyId, keyId)
+            )
+            {
+                throw new IOException(
+                    $"Azure Key Vault key '{keyId}' was asked to unwrap a key, but the service reports another key unwrapped it."
+                );
+            }
+
+            if (result.Algorithm != algorithm)
+            {
+                throw new IOException(
+                    $"Azure Key Vault key '{keyId}' was asked to unwrap with '{row.EncryptionAlgorithm}', but the service reports another algorithm unwrapped it."
+                );
+            }
+
+            var length = key.Length;
+            if (length > plaintext.Length)
+            {
+                throw new CryptographicException(
+                    $"The content key of Azure Key Vault key '{keyId}' does not fit in the buffer."
+                );
+            }
+
+            key.CopyTo(plaintext);
+            return length;
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(key);
+        }
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="NotSupportedException">
+    /// Always thrown, because Azure Key Vault agrees no keys.
+    /// </exception>
+    public ValueTask<int> DeriveSharedSecretAsync(
+        RemoteKeyAgreementRequest request,
+        Memory<byte> sharedSecret,
+        CancellationToken cancellationToken
+    ) => throw new NotSupportedException("Azure Key Vault agrees no keys.");
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="keyId"/> is not that of a Key Vault key version.
     /// </exception>
     public async ValueTask DestroyKeyAsync(string keyId, CancellationToken cancellationToken)
@@ -304,6 +430,119 @@ internal class AzureKeyVaultRemoteKeyProvider(
         {
             // The key version is already deleted.
         }
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the configured vault URI is not set.
+    /// </exception>
+    public async IAsyncEnumerable<RemoteKeyListing> ListKeysAsync(
+        RemoteKeyListRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var providerOptions = ProviderOptions.Value;
+        if (string.IsNullOrEmpty(providerOptions.VaultUri))
+        {
+            throw new InvalidOperationException(
+                "SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri is not set."
+            );
+        }
+
+        var vaultUri = new Uri(providerOptions.VaultUri);
+
+        var names = await ClientFactory.ExecuteKeyClientAsync(
+            vaultUri,
+            async (client, token) =>
+            {
+                var result = new List<string>();
+                await foreach (var properties in client.GetPropertiesOfKeysAsync(token))
+                {
+                    if (
+                        properties.Name.StartsWith(
+                            RemoteKeyGroupNames.Prefix,
+                            StringComparison.Ordinal
+                        )
+                    )
+                    {
+                        result.Add(properties.Name);
+                    }
+                }
+
+                return result;
+            },
+            cancellationToken
+        );
+
+        foreach (var name in names)
+        {
+            var versions = await ClientFactory.ExecuteKeyClientAsync(
+                vaultUri,
+                async (client, token) =>
+                {
+                    var result = new List<KeyProperties>();
+                    await foreach (
+                        var properties in client.GetPropertiesOfKeyVersionsAsync(name, token)
+                    )
+                    {
+                        result.Add(properties);
+                    }
+
+                    return result;
+                },
+                cancellationToken
+            );
+
+            foreach (var properties in versions)
+            {
+                var listing = CreateListing(properties, request.Deployment);
+                if (listing is not null)
+                {
+                    yield return listing;
+                }
+            }
+        }
+    }
+
+    private static RemoteKeyListing? CreateListing(KeyProperties properties, string deployment)
+    {
+        if (properties.Enabled != true)
+        {
+            return null;
+        }
+
+        var tags = properties.Tags;
+        if (
+            !tags.TryGetValue(DeploymentTagKey, out var tagDeployment)
+            || !string.Equals(tagDeployment, deployment, StringComparison.Ordinal)
+        )
+        {
+            return null;
+        }
+
+        if (
+            !tags.TryGetValue(GroupTagKey, out var groupName)
+            || !groupName.StartsWith(RemoteKeyGroupNames.Prefix, StringComparison.Ordinal)
+        )
+        {
+            return null;
+        }
+
+        if (properties.Id is not { } id || properties.CreatedOn is not { } createdOn)
+        {
+            return null;
+        }
+
+        return new RemoteKeyListing
+        {
+            KeyId = id.AbsoluteUri,
+            GroupName = groupName,
+            CreatedWhen = createdOn,
+            OwnerId = tags.TryGetValue(OwnerTagKey, out var ownerId) ? ownerId : null,
+            SecretId = tags.TryGetValue(SecretTagKey, out var secretId) ? secretId : null,
+        };
     }
 
     private static CreateRsaKeyOptions CreateRsaOptions(
@@ -345,18 +584,43 @@ internal class AzureKeyVaultRemoteKeyProvider(
         return options;
     }
 
+    private static KeyOperation GetRequiredOperation(RemoteKeyAlgorithm row) =>
+        row switch
+        {
+            RemoteSigningAlgorithm => KeyOperation.Sign,
+            RemoteDecryptionAlgorithm => KeyOperation.UnwrapKey,
+            _ => throw new ArgumentException(
+                $"The algorithm '{row.Algorithm}' is not a signing or decryption row.",
+                nameof(row)
+            ),
+        };
+
     private static void AddOperationsAndTags(
         CreateKeyOptions options,
         RemoteKeyCreationRequest request
     )
     {
-        options.KeyOperations.Add(KeyOperation.Sign);
-        options.KeyOperations.Add(KeyOperation.Verify);
+        switch (request.Algorithm)
+        {
+            case RemoteSigningAlgorithm:
+                options.KeyOperations.Add(KeyOperation.Sign);
+                options.KeyOperations.Add(KeyOperation.Verify);
+                break;
+            case RemoteDecryptionAlgorithm:
+                options.KeyOperations.Add(KeyOperation.UnwrapKey);
+                break;
+            default:
+                throw new ArgumentException(
+                    $"The algorithm '{request.Algorithm.Algorithm}' is not a signing or decryption row.",
+                    nameof(request)
+                );
+        }
 
         options.Tags[OwnerTagKey] = request.OwnerId;
         options.Tags[SecretTagKey] = request.SecretId;
         options.Tags[AlgorithmTagKey] = request.Algorithm.Algorithm;
         options.Tags[GroupTagKey] = request.GroupName;
+        options.Tags[DeploymentTagKey] = request.Deployment;
     }
 
     private async ValueTask<KeyVaultKey> CreateRsaKeyAsync(

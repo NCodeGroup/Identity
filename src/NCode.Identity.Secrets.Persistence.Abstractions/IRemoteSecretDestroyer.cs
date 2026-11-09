@@ -3,6 +3,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets.Persistence;
 
@@ -23,4 +24,17 @@ public interface IRemoteSecretDestroyer
     /// <param name="removedSecrets">The secrets whose records were removed.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask DestroyAsync(IReadOnlyCollection<PersistedSecret> removedSecrets);
+
+    /// <summary>
+    /// Destroys one key the server created, by its reference, on a bounded token of its own; returns
+    /// <see langword="true"/> when the provider destroyed it and <see langword="false"/> when the provider is not
+    /// registered or the call failed, which is logged. It never throws.
+    /// </summary>
+    /// <param name="reference">The reference to the key to destroy.</param>
+    /// <returns>
+    /// The <see cref="ValueTask{TResult}"/> that represents the asynchronous operation, whose result is
+    /// <see langword="true"/> when the provider destroyed the key.
+    /// </returns>
+    // See ADR-1478.
+    ValueTask<bool> DestroyKeyAsync(RemoteKeyReference reference);
 }

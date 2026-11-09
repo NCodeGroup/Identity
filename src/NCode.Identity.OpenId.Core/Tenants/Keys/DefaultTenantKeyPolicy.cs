@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// Provides the default implementation of <see cref="ITenantKeyPolicy"/>. A configured key names only its algorithm;
 /// the key's use and type follow from the registered algorithm and key types, so any registered asymmetric signature or
 /// key-management algorithm can be provisioned without this policy knowing it. Every described remote key provider
-/// must be able to hold every provisioned signature key, so a tenant that opts into one is never left without a key.
+/// must be able to hold every provisioned key, so a tenant that opts into one is never left without a key.
 /// </summary>
 // See ADR-1169 (every tenant is provisioned with persisted keys).
 internal class DefaultTenantKeyPolicy(
@@ -273,9 +273,10 @@ internal class DefaultTenantKeyPolicy(
         ArgumentNullException.ThrowIfNull(specifications);
         ArgumentNullException.ThrowIfNull(settings);
 
-        // See ADR-1471: an empty setting keeps every key in the server's store, and encryption keys are always local.
+        // See ADR-1471 and ADR-1477: an empty setting keeps every key in the server's store; otherwise the provider holds
+        // every provisioned key.
         if (
-            !settings.TryGetValue(OpenIdSettingKeys.TenantSigningKeyProvider, out var provider)
+            !settings.TryGetValue(OpenIdSettingKeys.TenantKeyProvider, out var provider)
             || string.IsNullOrEmpty(provider)
         )
         {
@@ -285,12 +286,10 @@ internal class DefaultTenantKeyPolicy(
         return
         [
             .. specifications.Select(specification =>
-                string.Equals(specification.Use, SecretKeyUses.Signature, StringComparison.Ordinal)
-                    ? specification with
-                    {
-                        RemoteKeyProvider = provider,
-                    }
-                    : specification
+                specification with
+                {
+                    RemoteKeyProvider = provider,
+                }
             ),
         ];
     }
@@ -374,8 +373,9 @@ internal class DefaultTenantKeyPolicy(
         return declarationError is null;
     }
 
-    // A tenant that opts into a provider has every provisioned signature key held there, so a provider without a row
-    // for one of them stops the host instead of leaving the tenant's seed or rollover without that key (ADR-1471).
+    // A tenant that opts into a provider has every provisioned key held there, so a provider without a row for one of
+    // them, or whose row holds the key for another use, stops the host instead of leaving the tenant's seed or
+    // rollover without that key (ADR-1471, ADR-1477).
     private void AddUnsupportedProviderErrors(
         List<TenantKeySpecification> specifications,
         List<string> errors
@@ -387,17 +387,9 @@ internal class DefaultTenantKeyPolicy(
 
         foreach (var name in providerNames)
         {
-            foreach (
-                var specification in specifications.Where(specification =>
-                    string.Equals(
-                        specification.Use,
-                        SecretKeyUses.Signature,
-                        StringComparison.Ordinal
-                    )
-                )
-            )
+            foreach (var specification in specifications)
             {
-                var selector = new RemoteSigningAlgorithmSelector
+                var selector = new RemoteKeyAlgorithmSelector
                 {
                     Provider = name,
                     Algorithm = specification.Algorithm,
@@ -406,13 +398,22 @@ internal class DefaultTenantKeyPolicy(
                     Curve = specification.Curve,
                 };
 
-                if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out _))
+                var curve = specification.Curve is null
+                    ? string.Empty
+                    : $", curve '{specification.Curve}'";
+
+                if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var row))
                 {
-                    var curve = specification.Curve is null
-                        ? string.Empty
-                        : $", curve '{specification.Curve}'";
                     errors.Add(
                         $"The remote key provider '{name}' cannot hold the provisioned '{specification.Algorithm}' key "
+                            + $"({specification.SecretType}, {specification.KeySizeBits} bits{curve})."
+                    );
+                }
+                else if (!string.Equals(row.Use, specification.Use, StringComparison.Ordinal))
+                {
+                    errors.Add(
+                        $"The remote key provider '{name}' holds '{specification.Algorithm}' keys for the use '{row.Use}', "
+                            + $"not for the provisioned key's use '{specification.Use}' "
                             + $"({specification.SecretType}, {specification.KeySizeBits} bits{curve})."
                     );
                 }

@@ -16,11 +16,15 @@ const remoteKeyProviders: readonly RemoteKeyProviderOption[] = [
   {
     name: 'aws-kms',
     algorithms: [
-      { algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
-      { algorithm: 'RS256', secretType: 'rsa', keySizeBits: 2048, curve: null },
+      { algorithm: 'ES256', use: 'sig', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+      { algorithm: 'RS256', use: 'sig', secretType: 'rsa', keySizeBits: 2048, curve: null },
+      { algorithm: 'RSA-OAEP-256', use: 'enc', secretType: 'rsa', keySizeBits: 3072 },
     ],
   },
-  { name: 'gcp-kms', algorithms: [{ algorithm: 'PS256', secretType: 'rsa', keySizeBits: 3072 }] },
+  {
+    name: 'gcp-kms',
+    algorithms: [{ algorithm: 'PS256', use: 'sig', secretType: 'rsa', keySizeBits: 3072 }],
+  },
   { name: 'empty-kms', algorithms: [] },
 ];
 
@@ -68,6 +72,35 @@ describe('RemoteSecretBindDialog', () => {
     });
   });
 
+  it('submits an encryption row with its type, size and algorithm and no use', () => {
+    const onSubmit = vi.fn();
+    render(
+      <RemoteSecretBindDialog
+        open
+        initialValues={initial}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('remote-bind-key-id'), { target: { value: 'key-1' } });
+    fireEvent.change(screen.getByTestId('remote-bind-algorithm'), {
+      target: { value: 'RSA-OAEP-256|rsa|3072|' },
+    });
+    fireEvent.click(screen.getByTestId('remote-bind-submit'));
+
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      remoteKeyProvider: 'aws-kms',
+      remoteKeyId: 'key-1',
+      secretType: 'rsa',
+      keySizeBits: 3072,
+      curve: '',
+      algorithm: 'RSA-OAEP-256',
+      expiresWhen: '2027-01-01T00:00',
+    });
+  });
+
   it("offers only the chosen provider's rows and clears the choice when the provider changes", () => {
     render(
       <RemoteSecretBindDialog
@@ -87,7 +120,11 @@ describe('RemoteSecretBindDialog', () => {
     ).toEqual(['aws-kms', 'gcp-kms']);
     fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
 
-    expect(offeredAlgorithms()).toEqual(['ES256 · ECC P-256', 'RS256 · RSA 2048 bits']);
+    expect(offeredAlgorithms()).toEqual([
+      'ES256 · ECC P-256 · signing',
+      'RS256 · RSA 2048 bits · signing',
+      'RSA-OAEP-256 · RSA 3072 bits · encryption',
+    ]);
     fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
 
     fireEvent.change(screen.getByTestId('remote-bind-key-id'), { target: { value: 'key-1' } });
@@ -99,7 +136,7 @@ describe('RemoteSecretBindDialog', () => {
     fireEvent.change(screen.getByTestId('remote-bind-provider'), { target: { value: 'gcp-kms' } });
     expect(screen.getByTestId('remote-bind-algorithm')).toHaveValue('');
     expect(screen.getByTestId('remote-bind-submit')).toBeDisabled();
-    expect(offeredAlgorithms()).toEqual(['PS256 · RSA 3072 bits']);
+    expect(offeredAlgorithms()).toEqual(['PS256 · RSA 3072 bits · signing']);
   });
 
   it('blocks submit until the key identifier and an algorithm are given', () => {
@@ -140,7 +177,11 @@ describe('RemoteSecretBindDialog', () => {
     );
 
     expect(screen.getByTestId('remote-bind-provider')).toHaveValue('aws-kms');
-    expect(offeredAlgorithms()).toEqual(['ES256 · ECC P-256', 'RS256 · RSA 2048 bits']);
+    expect(offeredAlgorithms()).toEqual([
+      'ES256 · ECC P-256 · signing',
+      'RS256 · RSA 2048 bits · signing',
+      'RSA-OAEP-256 · RSA 3072 bits · encryption',
+    ]);
   });
 
   it('offers no provider and blocks submit when no provider lists an algorithm', () => {

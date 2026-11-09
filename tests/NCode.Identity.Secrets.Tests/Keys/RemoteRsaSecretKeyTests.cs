@@ -24,6 +24,16 @@ public class RemoteRsaSecretKeyTests : BaseTests
         DigestAlgorithm = HashAlgorithmName.SHA256,
     };
 
+    private static readonly RemoteDecryptionAlgorithm DecryptionRow = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = "RSA-OAEP-256",
+        SecretType = "rsa",
+        KeySizeBits = 2048,
+        KeySpec = "RSA_2048",
+        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+    };
+
     private Mock<IRemoteKeyProvider> Provider { get; }
 
     private RSA LocalKey { get; } = RSA.Create(2048);
@@ -41,7 +51,9 @@ public class RemoteRsaSecretKeyTests : BaseTests
         base.Dispose(disposing);
     }
 
-    private RemoteRsaSecretKey CreateKey() =>
+    private RemoteRsaSecretKey CreateKey() => CreateKey(Row);
+
+    private RemoteRsaSecretKey CreateKey(RemoteKeyAlgorithm row) =>
         new(
             new KeyMetadata { KeyId = "kid" },
             2048,
@@ -50,7 +62,7 @@ public class RemoteRsaSecretKeyTests : BaseTests
             {
                 Provider = Provider.Object,
                 Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, KeyId),
-                Algorithm = Row,
+                Algorithm = row,
             }
         );
 
@@ -132,6 +144,78 @@ public class RemoteRsaSecretKeyTests : BaseTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await key.SignAsync("RS256", SigningInput, new byte[256], CancellationToken.None)
+        );
+    }
+
+    #endregion
+
+    #region DecryptAsync Tests
+
+    [Fact]
+    public async Task DecryptAsync_WhenAlgorithmIsTheRows_DecryptsThroughTheProvider()
+    {
+        byte[] ciphertext = [1, 2, 3, 4];
+        byte[] providerPlaintext = [9, 8, 7];
+        Provider
+            .Setup(x =>
+                x.DecryptAsync(
+                    It.Is<RemoteDecryptionRequest>(r =>
+                        r.KeyId == KeyId
+                        && ReferenceEquals(r.Algorithm, DecryptionRow)
+                        && r.Ciphertext.ToArray().SequenceEqual(ciphertext)
+                    ),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (RemoteDecryptionRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    providerPlaintext.CopyTo(destination);
+                    return ValueTask.FromResult(providerPlaintext.Length);
+                }
+            )
+            .Verifiable();
+        var key = CreateKey(DecryptionRow);
+        var plaintext = new byte[8];
+
+        var written = await key.DecryptAsync(
+            DecryptionRow.Algorithm,
+            ciphertext,
+            plaintext,
+            CancellationToken.None
+        );
+
+        Assert.Equal(3, written);
+        Assert.Equal([9, 8, 7, 0, 0, 0, 0, 0], plaintext);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_WhenAlgorithmDiffersFromTheRows_ThrowsWithoutCallingTheProvider()
+    {
+        var key = CreateKey(DecryptionRow);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await key.DecryptAsync("RSA-OAEP", new byte[4], new byte[8], CancellationToken.None)
+        );
+    }
+
+    #endregion
+
+    #region DeriveSharedSecretAsync Tests
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_Always_ThrowsWithoutCallingTheProvider()
+    {
+        var key = CreateKey(DecryptionRow);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await key.DeriveSharedSecretAsync(
+                "ECDH-ES",
+                new byte[4],
+                new byte[32],
+                CancellationToken.None
+            )
         );
     }
 

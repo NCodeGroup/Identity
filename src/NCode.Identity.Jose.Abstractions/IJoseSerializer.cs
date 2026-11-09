@@ -31,68 +31,127 @@ public interface IJoseSerializer
 
     /// <summary>
     /// Validates a JSON Web Token (JWT) and writes the decoded payload to the specified buffer.
+    /// A JWS decodes synchronously, so its task is already completed; a JWE unwraps its content key
+    /// asynchronously, through the key management service of a remote key.
     /// </summary>
     /// <param name="token">The parsed <see cref="JoseToken"/> to decode and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <param name="payload">The destination buffer that receives the decoded payload.</param>
-    void Decode(JoseToken token, SecretKey secretKey, IBufferWriter<byte> payload);
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    // See ADR-1477.
+    ValueTask DecodeAsync(
+        JoseToken token,
+        SecretKey secretKey,
+        IBufferWriter<byte> payload,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Validates a JSON Web Token (JWT) and returns the decoded payload as a <see cref="string"/>.
+    /// A JWS decodes synchronously, so its task is already completed; a JWE unwraps its content key
+    /// asynchronously, through the key management service of a remote key.
     /// </summary>
     /// <param name="token">The parsed <see cref="JoseToken"/> to decode and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The decoded payload from the JSON Web Token (JWT).</returns>
-    string Decode(JoseToken token, SecretKey secretKey);
+    // See ADR-1477.
+    ValueTask<string> DecodeAsync(
+        JoseToken token,
+        SecretKey secretKey,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Parses, validates, and returns the decoded payload of a JSON Web Token (JWT) as a <see cref="string"/>.
+    /// A JWS decodes synchronously, so its task is already completed; a JWE unwraps its content key
+    /// asynchronously, through the key management service of a remote key.
     /// </summary>
     /// <param name="token">The JSON Web Token (JWT) to decode and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The decoded payload from the JSON Web Token (JWT).</returns>
-    string Decode(string token, SecretKey secretKey);
+    // See ADR-1477.
+    ValueTask<string> DecodeAsync(
+        string token,
+        SecretKey secretKey,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Validates a JSON Web Token (JWT) and returns the deserialized payload using the serializer's configured options.
+    /// A JWS decodes synchronously, so its task is already completed; a JWE unwraps its content key
+    /// asynchronously, through the key management service of a remote key.
     /// </summary>
     /// <param name="token">The parsed <see cref="JoseToken"/> to deserialize and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from the JSON Web Token (JWT).</returns>
-    T? Deserialize<T>(JoseToken token, SecretKey secretKey);
+    // See ADR-1477.
+    ValueTask<T?> DeserializeAsync<T>(
+        JoseToken token,
+        SecretKey secretKey,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Validates a JSON Web Token (JWT) and returns the deserialized payload.
+    /// A JWS decodes synchronously, so its task is already completed; a JWE unwraps its content key
+    /// asynchronously, through the key management service of a remote key.
     /// </summary>
     /// <param name="token">The parsed <see cref="JoseToken"/> to deserialize and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <param name="jsonOptions">The options to control JSON deserialization behavior.
     /// When <c>null</c>, the serializer's configured options are used.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from the JSON Web Token (JWT).</returns>
-    T? Deserialize<T>(JoseToken token, SecretKey secretKey, JsonSerializerOptions? jsonOptions);
+    // See ADR-1477.
+    ValueTask<T?> DeserializeAsync<T>(
+        JoseToken token,
+        SecretKey secretKey,
+        JsonSerializerOptions? jsonOptions,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Parses, validates, and returns the deserialized payload of a JSON Web Token (JWT) using the serializer's
     /// configured options.
+    /// A JWS decodes synchronously, so its task is already completed; a JWE unwraps its content key
+    /// asynchronously, through the key management service of a remote key.
     /// </summary>
     /// <param name="token">The JSON Web Token (JWT) to deserialize and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from the JSON Web Token (JWT).</returns>
-    T? Deserialize<T>(string token, SecretKey secretKey);
+    // See ADR-1477.
+    ValueTask<T?> DeserializeAsync<T>(
+        string token,
+        SecretKey secretKey,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Parses, validates, and returns the deserialized payload of a JSON Web Token (JWT).
+    /// A JWS decodes synchronously, so its task is already completed; a JWE unwraps its content key
+    /// asynchronously, through the key management service of a remote key.
     /// </summary>
     /// <param name="token">The JSON Web Token (JWT) to deserialize and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <param name="jsonOptions">The options to control JSON deserialization behavior.
     /// When <c>null</c>, the serializer's configured options are used.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from the JSON Web Token (JWT).</returns>
-    T? Deserialize<T>(string token, SecretKey secretKey, JsonSerializerOptions? jsonOptions);
+    // See ADR-1477.
+    ValueTask<T?> DeserializeAsync<T>(
+        string token,
+        SecretKey secretKey,
+        JsonSerializerOptions? jsonOptions,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Validates a JWS-protected JSON Web Token (JWT) with a detached payload.

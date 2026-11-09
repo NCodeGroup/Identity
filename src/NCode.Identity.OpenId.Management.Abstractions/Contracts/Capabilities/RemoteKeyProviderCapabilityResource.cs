@@ -20,8 +20,8 @@ public sealed class RemoteKeyProviderCapabilityResource
     public required string Name { get; init; }
 
     /// <summary>
-    /// Gets the signing algorithms the provider holds keys for that the deployment accepts, each with its key's type,
-    /// size and curve.
+    /// Gets the signature and key-management algorithms the provider holds keys for that the deployment accepts, each
+    /// with its use and its key's type, size and curve.
     /// </summary>
     public required IReadOnlyList<RemoteKeyAlgorithmCapabilityResource> Algorithms { get; init; }
 }

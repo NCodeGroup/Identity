@@ -35,6 +35,21 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
         ("ES384", "ecc", 384, "P-384", "EC_SIGN_P384_SHA384", Sha384, true),
     ];
 
+    private static readonly (
+        string Algorithm,
+        int KeySizeBits,
+        string KeySpec
+    )[] ExpectedDecryption =
+    [
+        ("RSA-OAEP", 2048, "RSA_DECRYPT_OAEP_2048_SHA1"),
+        ("RSA-OAEP", 3072, "RSA_DECRYPT_OAEP_3072_SHA1"),
+        ("RSA-OAEP", 4096, "RSA_DECRYPT_OAEP_4096_SHA1"),
+        ("RSA-OAEP-256", 2048, "RSA_DECRYPT_OAEP_2048_SHA256"),
+        ("RSA-OAEP-256", 3072, "RSA_DECRYPT_OAEP_3072_SHA256"),
+        ("RSA-OAEP-256", 4096, "RSA_DECRYPT_OAEP_4096_SHA256"),
+        ("RSA-OAEP-512", 4096, "RSA_DECRYPT_OAEP_4096_SHA512"),
+    ];
+
     #region Providers Tests
 
     [Fact]
@@ -56,7 +71,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
     {
         var source = new GoogleCloudKmsRemoteKeyDescriptors();
 
-        var rows = source.Algorithms.ToList();
+        var rows = source.Algorithms.OfType<RemoteSigningAlgorithm>().ToList();
 
         Assert.Equal(Expected.Length, rows.Count);
         foreach (var expected in Expected)
@@ -66,6 +81,7 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
                 x => x.Algorithm == expected.Algorithm && x.KeySizeBits == expected.KeySizeBits
             );
             Assert.Equal(RemoteKeyProviderNames.GoogleCloudKms, row.Provider);
+            Assert.Equal("sig", row.Use);
             Assert.Equal(expected.SecretType, row.SecretType);
             Assert.Equal(expected.Curve, row.Curve);
             Assert.Equal(expected.KeySpec, row.KeySpec);
@@ -73,6 +89,37 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
             Assert.Equal(expected.Digest, row.DigestAlgorithm);
             Assert.Equal(expected.IsDer, row.IsDerEncodedSignature);
         }
+    }
+
+    [Fact]
+    public void Algorithms_DecryptionRows_MatchTheMapping()
+    {
+        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+
+        var rows = source.Algorithms.OfType<RemoteDecryptionAlgorithm>().ToList();
+
+        Assert.Equal(ExpectedDecryption.Length, rows.Count);
+        foreach (var expected in ExpectedDecryption)
+        {
+            var row = Assert.Single(
+                rows,
+                x => x.Algorithm == expected.Algorithm && x.KeySizeBits == expected.KeySizeBits
+            );
+            Assert.Equal(RemoteKeyProviderNames.GoogleCloudKms, row.Provider);
+            Assert.Equal("enc", row.Use);
+            Assert.Equal(SecretKeyTypes.Rsa, row.SecretType);
+            Assert.Null(row.Curve);
+            Assert.Equal(expected.KeySpec, row.KeySpec);
+            Assert.Equal(expected.KeySpec, row.EncryptionAlgorithm);
+        }
+    }
+
+    [Fact]
+    public void Algorithms_KeyAgreementRows_AreAbsent()
+    {
+        var source = new GoogleCloudKmsRemoteKeyDescriptors();
+
+        Assert.DoesNotContain(source.Algorithms, x => x is RemoteKeyAgreementAlgorithm);
     }
 
     [Fact]
@@ -92,7 +139,10 @@ public class GoogleCloudKmsRemoteKeyDescriptorsTests
     {
         var source = new GoogleCloudKmsRemoteKeyDescriptors();
 
-        Assert.All(source.Algorithms, row => Assert.NotNull(row.DigestAlgorithm));
+        Assert.All(
+            source.Algorithms.OfType<RemoteSigningAlgorithm>(),
+            row => Assert.NotNull(row.DigestAlgorithm)
+        );
     }
 
     [Fact]

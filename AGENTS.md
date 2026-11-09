@@ -44,12 +44,14 @@ compiles it and no gate tests it
   [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md))
 - **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)` and its
   opt-in KMS adapters `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`, which wrap
-  root keys and hold remote signing keys
+  root keys and hold remote signing and encryption keys
   ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1260](docs/decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
   [ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-  [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md))
+  [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
+  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+  [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md))
 - **OpenID** — `NCode.Identity.OpenId.Abstractions` + `.Core` (environments, errors, messages, serialization),
   `.Authentication(.Abstractions)` (endpoints, grant handlers, token/claims services), `.Management(.Abstractions)`
   (the `.Abstractions` package holds the wire contracts under the `NCode.Identity.OpenId.Management.Contracts` namespace),
@@ -288,7 +290,10 @@ How `/ship-plan` lands a reviewed plan; `/continue-plan`, `/run-issues`, `/addre
 `.githooks/pre-push` read it too.
 `integrate`: `pull-request` pushes the plan's branch and opens a pull request; `direct` pushes to the default branch.
 `release`: `none`; `tag` tags the plan's `Release:` version, or the next free one when another plan landed it first;
-`tag+release` also publishes a release from that version's section of `changelog`. `pre-release`: `tracked`, the
+`tag+release` also publishes a release from that version's section of `changelog`. On GitHub,
+`.github/workflows/tag-release.yml` tags and publishes it as the pull request merges, from the `Release:` line
+`/ship-plan` writes in its description or the changelog's newest section; `/ship-plan` run after the merge does only
+what that workflow didn't. `pre-release`: `tracked`, the
 default, tracks every change from the first release; `untracked` keeps the project pre-release until a version tag of
 1.0.0 or later, so every text describes the product as it is, the changelog's `## [Unreleased]` is a catalog that
 each plan edits in place, and a breaking change needs no deprecation or migration path, as project-template ADR-0015
@@ -307,7 +312,8 @@ PowerShell command that sets up the shell the workflow's commands run in, which 
 ruleset already requires pull requests through the merge queue
 ([ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so `protect`
 is `none`; releases are tagged on `release/vX.Y` lines, never one per plan
-([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`; the family has released nothing and
+([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none` and `tag-release.yml` publishes
+nothing; the family has released nothing and
 stores nothing a reader must keep ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)), so
 `pre-release` is `untracked`; a pull request stays a draft until
 its author reviews it ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),

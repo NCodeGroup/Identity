@@ -8,11 +8,12 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IRemoteKeyDescriptorCatalog"/>. It holds the provider
-/// descriptors and the rows that every registered <see cref="IRemoteKeyDescriptorSource"/> contributes, including the
-/// rows of a provider that no source describes.
+/// descriptors and the rows of every kind that every registered <see cref="IRemoteKeyDescriptorSource"/> contributes,
+/// including the rows of a provider that no source describes.
 /// </summary>
 // See ADR-1474.
 // See ADR-1476.
+// See ADR-1477.
 internal sealed class DefaultRemoteKeyDescriptorCatalog : IRemoteKeyDescriptorCatalog
 {
     /// <summary>
@@ -30,20 +31,20 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog : IRemoteKeyDescriptorCa
     }
 
     private FrozenDictionary<
-        RemoteSigningAlgorithmSelector,
-        RemoteSigningAlgorithm
+        RemoteKeyAlgorithmSelector,
+        RemoteKeyAlgorithm
     > AlgorithmsBySelector { get; }
 
     /// <inheritdoc />
     public IReadOnlyCollection<RemoteKeyProviderDescriptor> Providers { get; }
 
     /// <inheritdoc />
-    public IReadOnlyCollection<RemoteSigningAlgorithm> Algorithms { get; }
+    public IReadOnlyCollection<RemoteKeyAlgorithm> Algorithms { get; }
 
     /// <inheritdoc />
     public bool TryGetAlgorithm(
-        RemoteSigningAlgorithmSelector selector,
-        [NotNullWhen(true)] out RemoteSigningAlgorithm? algorithm
+        RemoteKeyAlgorithmSelector selector,
+        [NotNullWhen(true)] out RemoteKeyAlgorithm? algorithm
     ) => AlgorithmsBySelector.TryGetValue(selector, out algorithm);
 
     private static RemoteKeyProviderDescriptor[] CollectProviders(
@@ -73,17 +74,17 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog : IRemoteKeyDescriptorCa
         return descriptors;
     }
 
-    private static RemoteSigningAlgorithm[] CollectAlgorithms(
+    private static RemoteKeyAlgorithm[] CollectAlgorithms(
         IEnumerable<IRemoteKeyDescriptorSource> sources
     )
     {
-        var bySelector = new Dictionary<RemoteSigningAlgorithmSelector, RemoteSigningAlgorithm>();
+        var bySelector = new Dictionary<RemoteKeyAlgorithmSelector, RemoteKeyAlgorithm>();
         foreach (var algorithm in sources.SelectMany(source => source.Algorithms))
         {
             if (!bySelector.TryAdd(algorithm.Selector, algorithm))
             {
                 throw new InvalidOperationException(
-                    $"The remote signing algorithm for provider '{algorithm.Provider}', algorithm '{algorithm.Algorithm}', "
+                    $"The remote key algorithm for provider '{algorithm.Provider}', algorithm '{algorithm.Algorithm}', "
                         + $"secret type '{algorithm.SecretType}', key size {algorithm.KeySizeBits} and curve '{algorithm.Curve}' "
                         + "is registered more than once."
                 );

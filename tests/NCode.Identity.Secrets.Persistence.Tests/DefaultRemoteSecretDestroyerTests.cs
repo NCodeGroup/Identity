@@ -90,6 +90,24 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
             .Verifiable(Times.Once());
     }
 
+    private void ExpectErrorLog(int eventId, Type exceptionType)
+    {
+        _logger.Setup(x => x.IsEnabled(LogLevel.Error)).Returns(true).Verifiable();
+        _logger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Error,
+                    It.Is<EventId>(id => id.Id == eventId),
+                    It.IsAny<It.IsAnyType>(),
+                    It.Is<Exception?>(exception =>
+                        exception != null && exception.GetType() == exceptionType
+                    ),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()
+                )
+            )
+            .Verifiable(Times.Once());
+    }
+
     #region DestroyAsync
 
     [Fact]
@@ -190,6 +208,57 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
             CreateSecret("secret-a", Reference(RemoteKeyProviderNames.AzureKeyVault, "key-a")),
             CreateSecret("secret-b", Reference(RemoteKeyProviderNames.AwsKms, "key-b")),
         ]);
+    }
+
+    #endregion
+
+    #region DestroyKeyAsync
+
+    [Fact]
+    public async Task DestroyKeyAsync_RegisteredProvider_DestroysAndReturnsTrue()
+    {
+        _provider
+            .Setup(x => x.DestroyKeyAsync("key-a", It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once());
+
+        var destroyed = await _destroyer.DestroyKeyAsync(
+            new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "key-a")
+        );
+
+        Assert.True(destroyed);
+    }
+
+    [Fact]
+    public async Task DestroyKeyAsync_UnregisteredProvider_ReturnsFalse()
+    {
+        _provider
+            .Setup(x => x.DestroyKeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Never());
+        ExpectLog(EventIds.RemoteKeyOrphanDestroySkipped, null);
+
+        var destroyed = await _destroyer.DestroyKeyAsync(
+            new RemoteKeyReference(RemoteKeyProviderNames.AzureKeyVault, "key-a")
+        );
+
+        Assert.False(destroyed);
+    }
+
+    [Fact]
+    public async Task DestroyKeyAsync_ProviderFails_ReturnsFalse()
+    {
+        _provider
+            .Setup(x => x.DestroyKeyAsync("key-a", It.IsAny<CancellationToken>()))
+            .Returns(() => FailAsync())
+            .Verifiable(Times.Once());
+        ExpectErrorLog(EventIds.RemoteKeyOrphanDestroyFailed, typeof(InvalidOperationException));
+
+        var destroyed = await _destroyer.DestroyKeyAsync(
+            new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "key-a")
+        );
+
+        Assert.False(destroyed);
     }
 
     #endregion

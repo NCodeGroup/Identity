@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.Algorithms;
@@ -88,7 +89,9 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm
     );
 
     /// <summary>
-    /// Performs the cryptographic operation of decrypting an encrypted content encryption key (CEK) with a key encryption key (KEK).
+    /// Performs the cryptographic operation of decrypting an encrypted content encryption key (CEK) with a key encryption key (KEK)
+    /// that is key material the process holds. A key whose private half a key management service holds unwraps through
+    /// <see cref="UnwrapKeyAsync"/>.
     /// </summary>
     /// <remarks>
     /// This method doesn't use <see cref="IBufferWriter{T}"/> because the size of the content key is determined by the calling code.
@@ -106,4 +109,45 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm
         Span<byte> contentKey,
         out int bytesWritten
     );
+
+    /// <summary>
+    /// Decrypts an encrypted content encryption key (CEK) with a key that the process holds or that a key management
+    /// service holds. A local key unwraps synchronously, so the returned task is already completed; an algorithm that
+    /// unwraps with a remote key overrides it.
+    /// </summary>
+    /// <param name="secretKey">The key encryption key (KEK), for the current cryptographic algorithm.</param>
+    /// <param name="header">The JOSE header for the current cryptographic operation.</param>
+    /// <param name="encryptedContentKey">The encrypted content encryption key (CEK) to decrypt.</param>
+    /// <param name="contentKey">The destination for the decrypted content encryption key (CEK).</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The number of bytes written to <paramref name="contentKey"/>.</returns>
+    /// <exception cref="JoseInvalidAlgorithmException">The algorithm cannot unwrap a content key with a remote key.</exception>
+    /// <exception cref="JoseException">The content key buffer is too small.</exception>
+    // See ADR-1477.
+    public virtual ValueTask<int> UnwrapKeyAsync(
+        SecretKey secretKey,
+        JsonElement header,
+        ReadOnlyMemory<byte> encryptedContentKey,
+        Memory<byte> contentKey,
+        CancellationToken cancellationToken
+    )
+    {
+        if (secretKey is IRemoteSecretKey)
+            throw new JoseInvalidAlgorithmException(
+                $"The algorithm '{Code}' cannot unwrap a content key with a key that a key management service holds."
+            );
+
+        if (
+            !TryUnwrapKey(
+                secretKey,
+                header,
+                encryptedContentKey.Span,
+                contentKey.Span,
+                out var bytesWritten
+            )
+        )
+            throw new JoseException("The content key buffer is too small.");
+
+        return ValueTask.FromResult(bytesWritten);
+    }
 }

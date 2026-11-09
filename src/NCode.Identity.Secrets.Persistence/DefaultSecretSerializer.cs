@@ -316,7 +316,7 @@ internal class DefaultSecretSerializer(
         using var publicKeySpanLease = publicKeyBuffer.GetSpanLease(isSensitive: false);
 
         // The stored public key decides the size and curve that the mapping row must match.
-        RemoteSigningAlgorithmSelector selector;
+        RemoteKeyAlgorithmSelector selector;
         var storedKey = descriptor.DeserializeKeyMaterial(
             metadata,
             SecretEncodings.Spki,
@@ -324,7 +324,7 @@ internal class DefaultSecretSerializer(
         );
         try
         {
-            selector = new RemoteSigningAlgorithmSelector
+            selector = new RemoteKeyAlgorithmSelector
             {
                 Provider = reference.Provider,
                 Algorithm = algorithmName,
@@ -344,8 +344,16 @@ internal class DefaultSecretSerializer(
         if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var algorithm))
         {
             throw new InvalidOperationException(
-                $"The secret '{secretId}' has no remote signing algorithm for provider '{selector.Provider}', "
+                $"The secret '{secretId}' has no remote algorithm for provider '{selector.Provider}', "
                     + $"algorithm '{selector.Algorithm}', secret type '{selector.SecretType}', key size {selector.KeySizeBits} and curve '{selector.Curve}'."
+            );
+        }
+
+        // See ADR-1477.
+        if (persistedSecret.Use is { } use && use != algorithm.Use)
+        {
+            throw new InvalidOperationException(
+                $"The secret '{secretId}' has the use '{use}', but its remote row '{algorithm.Algorithm}' has the use '{algorithm.Use}'."
             );
         }
 
@@ -363,7 +371,7 @@ internal class DefaultSecretSerializer(
         catch (ArgumentException exception)
         {
             throw new InvalidOperationException(
-                $"The secret '{secretId}' holds a remote key that does not match its remote signing algorithm.",
+                $"The secret '{secretId}' holds a remote key that does not match its remote row.",
                 exception
             );
         }

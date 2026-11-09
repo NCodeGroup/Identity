@@ -441,7 +441,7 @@ export type RotateSecretRequest = {
  * Mirror of `CreateRemoteSecretRequest`. `POST /api/tenants/{tenantId}/secrets/remote` creates the key in the
  * provider's key management service (KMS), which keeps its private half, and reveals nothing.
  */
-// See ADR-1475 and ADR-1476.
+// See ADR-1475, ADR-1476 and ADR-1477.
 export type CreateRemoteSecretRequest = {
   readonly remoteKeyProvider: string;
   readonly secretType: string;
@@ -456,9 +456,9 @@ export type CreateRemoteSecretRequest = {
 /**
  * Mirror of `ImportRemoteSecretRequest`. `POST /api/tenants/{tenantId}/secrets/remote/import` reads the key's public
  * half from the KMS, checks it is a key of the named type, size and curve, stores it once the key signs a challenge
- * that half verifies, and never destroys a bound key.
+ * that half verifies, or decrypts a challenge encrypted to that half, and never destroys a bound key.
  */
-// See ADR-1475 and ADR-1476.
+// See ADR-1475, ADR-1476 and ADR-1477.
 export type ImportRemoteSecretRequest = {
   readonly remoteKeyProvider: string;
   readonly remoteKeyId: string;
@@ -556,19 +556,21 @@ export type AlgorithmCapability = {
 };
 
 /**
- * Mirror of `RemoteKeyAlgorithmCapabilityResource` — one signing algorithm a remote key provider holds keys for, with
- * the type, size and curve of the key.
+ * Mirror of `RemoteKeyAlgorithmCapabilityResource` — one signature or key-management algorithm a remote key provider
+ * holds keys for, with the use and the type, size and curve of the key.
  */
 export type RemoteKeyAlgorithmCapability = {
   readonly algorithm: string;
+  /** The key use the algorithm implies: `sig` for signature, `enc` for key-management. */
+  readonly use: string;
   readonly secretType: string;
   readonly keySizeBits: number;
   readonly curve?: string | null;
 };
 
 /**
- * Mirror of `RemoteKeyProviderCapabilityResource` — a remote key provider the deployment describes, with the signing
- * algorithms it holds keys for.
+ * Mirror of `RemoteKeyProviderCapabilityResource` — a remote key provider the deployment describes, with the signature
+ * and key-management algorithms it holds keys for.
  */
 export type RemoteKeyProviderCapability = {
   readonly name: string;

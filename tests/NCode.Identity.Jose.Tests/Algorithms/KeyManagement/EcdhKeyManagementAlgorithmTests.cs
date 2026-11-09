@@ -15,8 +15,10 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.RemoteKeys;
 using Base64Url = NCode.Encoders.Base64Url;
 using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
+using JoseInvalidAlgorithmException = NCode.Identity.Jose.Exceptions.JoseInvalidAlgorithmException;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
@@ -929,6 +931,204 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
 
         Assert.Equal($"The '{name}' header is not valid base64url.", exception.Message);
         Assert.IsType<FormatException>(exception.InnerException);
+    }
+
+    [Fact]
+    public void TryUnwrapKey_WhenTheKeyIsHeldByAKeyManagementService_Throws()
+    {
+        using var heldKey = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+        var secretKey = CreateRemoteKey(heldKey, provider);
+
+        var header = new JsonObject { ["enc"] = Enc, ["epk"] = CreateEpk(256) };
+
+        Assert.Throws<JoseInvalidAlgorithmException>(() =>
+            Algorithm.TryUnwrapKey(
+                secretKey,
+                header.Deserialize<JsonElement>(),
+                [],
+                new byte[16],
+                out _
+            )
+        );
+    }
+
+    #endregion
+
+    #region UnwrapKeyAsync Tests
+
+    private static EccSecretKey CreateRemoteKey(
+        ECDiffieHellman heldKey,
+        Mock<IRemoteKeyProvider> provider,
+        string algorithm = "ECDH-ES"
+    ) =>
+        SecretKeyFactory.CreateEccRemote(
+            new KeyMetadata { KeyId = "remote" },
+            heldKey.ExportSubjectPublicKeyInfo(),
+            new RemoteKeyBinding
+            {
+                Provider = provider.Object,
+                Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "remote-key-1"),
+                Algorithm = new RemoteKeyAgreementAlgorithm
+                {
+                    Provider = RemoteKeyProviderNames.AwsKms,
+                    Algorithm = algorithm,
+                    SecretType = "ecc",
+                    KeySizeBits = 256,
+                    Curve = "P-256",
+                    KeySpec = "ECC_NIST_P256",
+                    KeyAgreementAlgorithm = "ECDH",
+                },
+            }
+        );
+
+    private static byte[] AgreeWithHeldKey(
+        ECDiffieHellman heldKey,
+        ReadOnlyMemory<byte> peerSubjectPublicKeyInfo
+    )
+    {
+        using var peer = ECDiffieHellman.Create();
+        peer.ImportSubjectPublicKeyInfo(peerSubjectPublicKeyInfo.Span, out _);
+        using var peerPublicKey = peer.PublicKey;
+        return heldKey.DeriveRawSecretAgreement(peerPublicKey);
+    }
+
+    [Fact]
+    public async Task UnwrapKeyAsync_RemoteKey_AgreesThroughTheService()
+    {
+        using var heldKey = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+        RemoteKeyAgreementRequest? capturedRequest = null;
+
+        provider
+            .Setup(x =>
+                x.DeriveSharedSecretAsync(
+                    It.IsAny<RemoteKeyAgreementRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (
+                    RemoteKeyAgreementRequest request,
+                    Memory<byte> sharedSecret,
+                    CancellationToken _
+                ) =>
+                {
+                    capturedRequest = request;
+                    var secret = AgreeWithHeldKey(heldKey, request.PeerSubjectPublicKeyInfo);
+                    secret.CopyTo(sharedSecret);
+                    return ValueTask.FromResult(secret.Length);
+                }
+            )
+            .Verifiable();
+
+        var secretKey = CreateRemoteKey(heldKey, provider);
+
+        var header = new Dictionary<string, object>
+        {
+            ["enc"] = "A256GCM",
+            ["apu"] = Base64Url.Encode(RandomNumberGenerator.GetBytes(16)),
+            ["apv"] = Base64Url.Encode(RandomNumberGenerator.GetBytes(16)),
+        };
+        var contentKey = new byte[32];
+        Algorithm.NewKey(secretKey, header, contentKey);
+
+        var decrypted = new byte[contentKey.Length];
+        var bytesWritten = await Algorithm.UnwrapKeyAsync(
+            secretKey,
+            JsonSerializer.SerializeToElement(header),
+            ReadOnlyMemory<byte>.Empty,
+            decrypted,
+            CancellationToken.None
+        );
+
+        Assert.Equal(contentKey.Length, bytesWritten);
+        Assert.Equal(contentKey, decrypted);
+        Assert.NotNull(capturedRequest);
+        Assert.Equal("ECDH-ES", capturedRequest.Algorithm.Algorithm);
+    }
+
+    [Fact]
+    public async Task UnwrapKeyAsync_RemoteKeyAndTheServiceReturnsAShortSharedSecret_Throws()
+    {
+        using var heldKey = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+
+        provider
+            .Setup(x =>
+                x.DeriveSharedSecretAsync(
+                    It.IsAny<RemoteKeyAgreementRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (
+                    RemoteKeyAgreementRequest request,
+                    Memory<byte> sharedSecret,
+                    CancellationToken _
+                ) => ValueTask.FromResult(sharedSecret.Length - 1)
+            )
+            .Verifiable();
+
+        var secretKey = CreateRemoteKey(heldKey, provider);
+
+        var header = new Dictionary<string, object> { ["enc"] = "A256GCM" };
+        Algorithm.NewKey(secretKey, header, new byte[32]);
+
+        await Assert.ThrowsAsync<CryptographicException>(async () =>
+            await Algorithm.UnwrapKeyAsync(
+                secretKey,
+                JsonSerializer.SerializeToElement(header),
+                ReadOnlyMemory<byte>.Empty,
+                new byte[32],
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task UnwrapKeyAsync_RemoteKeyAndTheEphemeralKeyIsOnAnotherCurve_Throws()
+    {
+        using var heldKey = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var provider = CreateStrictMock<IRemoteKeyProvider>();
+        var secretKey = CreateRemoteKey(heldKey, provider);
+
+        var header = new JsonObject { ["enc"] = Enc, ["epk"] = CreateEpk(384) };
+
+        await Assert.ThrowsAsync<JoseException>(async () =>
+            await Algorithm.UnwrapKeyAsync(
+                secretKey,
+                header.Deserialize<JsonElement>(),
+                ReadOnlyMemory<byte>.Empty,
+                new byte[16],
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task UnwrapKeyAsync_LocalKey_UnwrapsSynchronously()
+    {
+        var recipientSecretKey = CreateRecipientKey(256);
+
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+        var contentKey = new byte[16];
+        Algorithm.NewKey(recipientSecretKey, header, contentKey);
+
+        var decrypted = new byte[contentKey.Length];
+        var task = Algorithm.UnwrapKeyAsync(
+            recipientSecretKey,
+            JsonSerializer.SerializeToElement(header),
+            ReadOnlyMemory<byte>.Empty,
+            decrypted,
+            CancellationToken.None
+        );
+
+        Assert.True(task.IsCompletedSuccessfully);
+        Assert.Equal(contentKey.Length, await task);
+        Assert.Equal(contentKey, decrypted);
     }
 
     #endregion

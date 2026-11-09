@@ -24,6 +24,8 @@
       Project-owned   Written once, never touched again (copier.yml's _skip_if_exists). When the template changed
                       one since the project's version, the script shows the template's change, rendered with
                       the project's answers, leaving out what the project's file already has.
+                      The render takes pre_release from AGENTS.md's Landing section: untracked only
+                      with - pre-release: untracked, else tracked.
                       A merged or template-owned file that the project's project_owned_files answer names
                       is project-owned too; a project that replaced one sets it with -Data @{ project_owned_files
                       = '.github/workflows/ci.yml', 'build/dod.ps1' }. The answer can name any file the version
@@ -46,6 +48,11 @@
     says how to finish or abandon the update, and exits 1; each file without a conflict is then either unstaged or
     staged as it is in the working tree. On any other failure the project is reset to where it was.
 
+    It stages only what the update changed: the tracked files with git add -u and each file it added by name, never
+    with git add -A. From the reset to the end of the run, .git/info/exclude holds a copy of the project's whole
+    .gitignore, an adopted project's kept lines included, so a folder the project ignores, such as node_modules/, is
+    never staged, also when the updated .gitignore doesn't ignore it. The run then restores .git/info/exclude.
+
     On the default branch (the branch origin/HEAD names) it refuses to run unless -NoCommit is given, because it
     commits. It enables the template's hooks (core.hooksPath .githooks) unless the clone already has a hooks path,
     hooks in .git/hooks, or uses pre-commit; then it leaves them as they are and warns, naming the command that runs
@@ -59,7 +66,8 @@
     For a .NET library, it names the AssemblyVersion to set in Directory.Build.props when a release of the current
     major was built with a higher one than build/ProjectTemplate.props pins (ADR-0136). It leaves
     .github/workflows/publish.yml out of a library whose own workflow already runs nuget push, and warns when both
-    publish.
+    publish. When the project has .github/workflows/tag-release.yml and a publish.yml without a workflow_dispatch
+    trigger, it says what to add.
     A NuGet package needs a license: when the answers and -Data give a library none, it stops before it changes
     anything and prints the -Data @{ license = '<SPDX expression, such as MIT or Apache-2.0>' } to run.
 
@@ -101,11 +109,26 @@ function ConvertTo-CopierValue($Value) {
     if ($Value -is [Collections.IList]) { '[' + ($Value -join ', ') + ']' } else { "$Value" }
 }
 
+# The pre_release answer, which Copier never records (copier.yml says when: false): untracked when AGENTS.md's Landing
+# section has "- pre-release: untracked", else tracked, as .template/Get-PlanState.ps1 reads it.
+function Get-PreReleaseAnswer {
+    $agents = Join-Path $project 'AGENTS.md'
+    if (-not (Test-Path -LiteralPath $agents -PathType Leaf)) { return 'tracked' }
+    $inLanding = $false
+    foreach ($line in Get-Content -LiteralPath $agents) {
+        if ($line -match '^## Landing\s*$') { $inLanding = $true; continue }
+        if ($inLanding -and $line -match '^## ') { break }
+        if ($inLanding -and $line -match '^- pre-release:\s*(\S+)') { return $(if ($Matches[1] -eq 'untracked') { 'untracked' } else { 'tracked' }) }
+    }
+    'tracked'
+}
+
 # Render the template at a version into a folder with the project's answers;
 # false, with a warning that says why, when Copier can't.
 function Invoke-TemplateRender([string]$Version, [string]$Folder) {
     $renderArgs = @('copy', '--defaults', '--quiet', '--vcs-ref', $Version, '--data-file', (Join-Path $project '.copier-answers.yml'))
     foreach ($k in $Data.Keys) { $renderArgs += '--data', "$k=$(ConvertTo-CopierValue $Data[$k])" }
+    if (-not $Data.ContainsKey('pre_release')) { $renderArgs += '--data', "pre_release=$(Get-PreReleaseAnswer)" }
     $copierOutput = [Collections.Generic.List[string]]::new()
     try { Invoke-Copier @renderArgs $TemplateClone $Folder | ForEach-Object { $copierOutput.Add("$_") }; $true }
     catch { Write-Warning ((@("Copier couldn't render template $Version with this project's answers: $_") + $copierOutput) -join "`n"); $false }
@@ -180,6 +203,26 @@ function Get-Change {
         else { 'modified' }
         [pscustomobject]@{ Kind = $kind; File = $file }
     }
+}
+
+# Stage the files the update added, by name from a list file, so a long list can't overflow Windows' command line. Git leaves
+# out every ignored path, and with the copy of the project's .gitignore in info/exclude also one the project ignored when the
+# update started, so a folder only the project's own rules ignore, such as node_modules/, is never staged.
+function Add-NewFile([string]$Folder) {
+    $new = @((git -c core.quotePath=false ls-files -z --others --exclude-standard) -split "`0" | Where-Object { $_ })
+    if (-not $new) { return }
+    New-Item -ItemType Directory -Force $Folder | Out-Null
+    $list = Join-Path $Folder 'new-files.txt'
+    [IO.File]::WriteAllText($list, ($new -join "`0"), [Text.UTF8Encoding]::new($false))
+    git --literal-pathspecs add --pathspec-from-file=$list --pathspec-file-nul
+    if ($LASTEXITCODE) { throw 'Staging the files the update added failed.' }
+}
+
+# Stage the update's changes to tracked files, deletions included, and the files it added (Add-NewFile); never git add -A.
+function Add-UpdateChange([string]$Folder) {
+    git add -u
+    if ($LASTEXITCODE) { throw 'Staging the update failed.' }
+    Add-NewFile $Folder
 }
 
 # True when the project's file already has a hunk of the template's change: the hunk applies to it in reverse.
@@ -341,6 +384,7 @@ $project = (Resolve-Path -LiteralPath $Path).Path
 $ownClone = -not $TemplateClone
 $scratch = Join-Path ([IO.Path]::GetTempPath()) "project-template-update-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 $outputEncoding = [Console]::OutputEncoding
+$restoreExclude = $false
 Push-Location -LiteralPath $project
 try {
     # Read Git's output as UTF-8, so file contents and diffs keep their characters.
@@ -430,6 +474,24 @@ try {
             $rewritten = @()
         }
     }
+    # Copier writes the template's .gitignore over the project's before merging the project's edits back, then passes every path
+    # Git reports as ignored to one `git apply` command, and the update sets an adopted .gitignore's kept lines aside while
+    # Copier merges. Keep the project's whole .gitignore, kept lines included, in force through info/exclude from the reset
+    # to the end of the run, or a folder only it ignores, such as node_modules/, is staged with the reset, or is listed file
+    # by file and overflows Windows' command line. The copy sits between marker lines, so a run that was killed before
+    # restoring info/exclude is cleaned up here; the outer finally restores it.
+    $infoExclude = git rev-parse --path-format=absolute --git-path info/exclude
+    $beginCopy = '# Update-Project.ps1: the project''s .gitignore, in force while Copier updates'
+    $endCopy = '# Update-Project.ps1: end of the .gitignore copy'
+    $excludeBefore = if (Test-Path -LiteralPath $infoExclude) {
+        [regex]::Replace([IO.File]::ReadAllText($infoExclude), "(?s)\n$([regex]::Escape($beginCopy))\n.*?\n$([regex]::Escape($endCopy))\n", '')
+    }
+    $restoreExclude = $true
+    $projectIgnore = Join-Path $project '.gitignore'
+    if (Test-Path -LiteralPath $projectIgnore) {
+        New-Item -ItemType Directory -Force (Split-Path $infoExclude) | Out-Null
+        [IO.File]::WriteAllText($infoExclude, "$excludeBefore`n$beginCopy`n$([IO.File]::ReadAllText($projectIgnore))`n$endCopy`n")
+    }
     try {
         # Reset the template-owned files to the project's current version; what changes was edited or deleted here. A file the project owns is left out, so its copy is never overwritten.
         $exclude = foreach ($file in $projectOwned + $merged + $ownedFiles) { '--exclude', "/$file" }
@@ -464,8 +526,9 @@ try {
             [IO.File]::WriteAllText((Join-Path $project $file), "$templatePart`n")
         }
         $resetFiles = @()
-        $resetCommitted = [bool](git status --porcelain)
-        if ($resetCommitted) { git add -A; git commit -q --no-verify -m 'Reset template-owned files'; if ($LASTEXITCODE) { throw 'Committing the reset failed.' } }
+        Add-UpdateChange $scratch
+        $resetCommitted = [bool](git diff --cached --name-only)
+        if ($resetCommitted) { git commit -q --no-verify -m 'Reset template-owned files'; if ($LASTEXITCODE) { throw 'Committing the reset failed.' } }
 
         $copierArgs = @('update', '--defaults', '--quiet', '--vcs-ref', $to)
         foreach ($k in $Data.Keys) { $copierArgs += '--data', "$k=$(ConvertTo-CopierValue $Data[$k])" }
@@ -478,28 +541,7 @@ try {
         if ($publishLeftOut) { $copierArgs += '--exclude', '/.github/workflows/publish.yml' }
         # A file the project owns, merged or template-owned, stays as it is; its template change is shown below.
         foreach ($file in $ownedFiles) { $copierArgs += '--exclude', "/$file" }
-        # Copier writes the template's .gitignore over the project's before merging the project's edits back, then passes
-        # every path Git reports as ignored to one `git apply` command. Keep the project's rules in force meanwhile, or a
-        # folder only they ignore, such as node_modules/, is listed file by file and overflows Windows' command line.
-        # The copy sits between marker lines, so a run that was killed before restoring info/exclude is cleaned up here.
-        $infoExclude = git rev-parse --path-format=absolute --git-path info/exclude
-        $beginCopy = '# Update-Project.ps1: the project''s .gitignore, in force while Copier updates'
-        $endCopy = '# Update-Project.ps1: end of the .gitignore copy'
-        $excludeBefore = if (Test-Path -LiteralPath $infoExclude) {
-            [regex]::Replace([IO.File]::ReadAllText($infoExclude), "(?s)\n$([regex]::Escape($beginCopy))\n.*?\n$([regex]::Escape($endCopy))\n", '')
-        }
-        $projectIgnore = Join-Path $project '.gitignore'
-        try {
-            if (Test-Path -LiteralPath $projectIgnore) {
-                New-Item -ItemType Directory -Force (Split-Path $infoExclude) | Out-Null
-                [IO.File]::WriteAllText($infoExclude, "$excludeBefore`n$beginCopy`n$([IO.File]::ReadAllText($projectIgnore))$($keptLines['.gitignore'])`n$endCopy`n")
-            }
-            Invoke-Copier @copierArgs
-        }
-        finally {
-            if ($null -eq $excludeBefore) { Remove-Item -LiteralPath $infoExclude -Force -ErrorAction SilentlyContinue }
-            else { [IO.File]::WriteAllText($infoExclude, $excludeBefore) }
-        }
+        Invoke-Copier @copierArgs
 
         # Put the kept lines back at the end, after any conflict.
         foreach ($file in $keptLines.Keys) {
@@ -520,7 +562,7 @@ try {
 
     $conflicts = @(git diff --name-only --diff-filter=U)
     if (-not $conflicts) {
-        git add -A
+        Add-UpdateChange $scratch
         # Executable on Linux and macOS; Windows doesn't record the bit on its own.
         if (Test-Path -LiteralPath .githooks/commit-msg) { git update-index --chmod=+x .githooks/commit-msg }
         if (Test-Path -LiteralPath .githooks/pre-push) { git update-index --chmod=+x .githooks/pre-push }
@@ -529,7 +571,9 @@ try {
         # git add -A would mark the conflicted files resolved, conflict markers and all, so stage only each file the reset changed that doesn't conflict, as the update left it. Otherwise the index keeps the reset's version: a file the update left as it was is listed as modified, and a commit that doesn't stage it again takes that version.
         $unmerged = @(git -c core.quotePath=false diff --name-only --diff-filter=U)
         $restage = @($resetFiles | Where-Object { $_ -notin $unmerged })
-        if ($restage) { git --literal-pathspecs add -A -- $restage }
+        if ($restage) { git --literal-pathspecs add -u -- $restage }
+        # The files the update added are staged too, so git add -u after the conflicts are resolved stages the whole update.
+        Add-NewFile $scratch
     }
     # Enable the template's versioned hooks in this clone, unless it already has a hooks path or runs hooks another way
     # (Get-GitHooksSetup): then warn, because without them nothing strips AI agent attribution before a push.
@@ -632,6 +676,11 @@ try {
         ''
         "Both .github/workflows/publish.yml and $($publishers -join ', ') push NuGet packages, so a published release runs both. Keep one: delete publish.yml, or move the publishing into it and delete the others."
     }
+    # A library's publish.yml without the trigger tag-release.yml starts it with: a release that workflow publishes would ship no packages.
+    if ((Test-Path -LiteralPath .github/workflows/tag-release.yml) -and (Test-Path -LiteralPath .github/workflows/publish.yml) -and (Get-Content -LiteralPath .github/workflows/publish.yml -Raw) -notmatch '(?m)^\s+workflow_dispatch:') {
+        ''
+        '.github/workflows/publish.yml has no workflow_dispatch trigger. .github/workflows/tag-release.yml publishes each release with the workflow''s token, which starts no other workflow, so it starts publish.yml through workflow_dispatch, and until publish.yml has that trigger, a release ships no packages. Add the trigger with a required tag input to its on: section, read the tag from inputs.tag when the run has no release, and check out refs/tags/<tag>, as the publish.yml the project template gives a .NET library on GitHub does (ADR-0137).'
+    }
 
     # Version tags the changelog has no section for, such as releases from before it started (Get-ChangelogBackfill).
     $backfill = Get-ChangelogBackfill
@@ -644,7 +693,7 @@ try {
     if ($conflicts) {
         ''
         "$($conflicts.Count) file(s) conflict: the template and this project changed the same lines. In each, keep the right lines and delete the <<<<<<<, ======= and >>>>>>> marker lines. Then:"
-        '  git add -A'
+        '  git add -u'
         '  git diff --cached --check     # prints any marker you missed'
         "  git commit -m `"$message`""
         'To abandon the update instead: git reset --hard; git clean -fd'
@@ -658,6 +707,10 @@ try {
     exit 0
 }
 finally {
+    if ($restoreExclude) {
+        if ($null -eq $excludeBefore) { Remove-Item -LiteralPath $infoExclude -Force -ErrorAction SilentlyContinue }
+        else { [IO.File]::WriteAllText($infoExclude, $excludeBefore) }
+    }
     Pop-Location
     try { [Console]::OutputEncoding = $outputEncoding } catch { Write-Verbose "Couldn't restore the console's output encoding: $_" }
     if ($ownClone -and $TemplateClone -and (Test-Path -LiteralPath $TemplateClone)) { Remove-Item -LiteralPath $TemplateClone -Recurse -Force -ErrorAction SilentlyContinue }

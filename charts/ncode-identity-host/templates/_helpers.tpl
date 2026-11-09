@@ -148,6 +148,10 @@ applied. Rendered for its side effect only.
 {{- fail "secretProtection.googleCloudKms.workloadIdentityFederation.provider must be the resource name of a workload identity pool provider, such as projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster." }}
 {{- end }}
 {{- end }}
+{{- $remoteKeyProviders := .Values.secretProtection.remoteKeyProviders }}
+{{- if and (or $remoteKeyProviders.awsKms.region $remoteKeyProviders.azureKeyVault.vaultUri $remoteKeyProviders.googleCloudKms.keyRing) (not .Values.secretProtection.remoteKeys.deployment) }}
+{{- fail "secretProtection.remoteKeys.deployment must name this deployment when a remote key provider is set: lowercase letters, digits and hyphens." }}
+{{- end }}
 {{- if .Values.secretProtection.rewrapJob.enabled }}
 {{- if and (eq .Values.secretProtection.rewrapJob.command "rewrap-recovery") (not .Values.secretProtection.recovery.publicKeyConfigMap) }}
 {{- fail "secretProtection.rewrapJob.command rewrap-recovery replaces the recovery copies, so secretProtection.recovery.publicKeyConfigMap must name the recovery public key ConfigMap." }}
@@ -224,7 +228,7 @@ tolerations:
 
 {{/*
 Whether the release uses the named key management service, as the root key provider, as a provider a tenant may bring a
-root key from (secretProtection.ownerRootKeys.providers), or as a provider that holds tenants' signing keys
+root key from (secretProtection.ownerRootKeys.providers), or as a provider that holds tenants' keys
 (secretProtection.remoteKeyProviders), so that the pod carries that provider's workload credentials. Takes a dict with
 the chart context as root and the key management service name as name; renders "true" or nothing.
 */}}
@@ -237,7 +241,7 @@ the chart context as root and the key management service name as name; renders "
 {{/*
 The external_account credential configuration that Google Application Default Credentials read: it exchanges the
 projected service-account token with Google STS, and impersonates a service account when one is named. Empty unless the
-release uses Google Cloud KMS, for the root key, for a tenant's root key or for a tenant's signing key, through workload
+release uses Google Cloud KMS, for the root key, for a tenant's root key or for a tenant's keys, through workload
 identity federation. The
 token path must match the volume deployment.yaml mounts.
 */}}
@@ -261,10 +265,10 @@ same configuration the pods it rewraps keys for read.
 {{- $valkey := include "identity-host.valkeyEnabled" . }}
 {{- $secretProtectionRoot := "/etc/ncode-identity/secret-protection" }}
 {{- $awsWebIdentityRoot := "/var/run/secrets/tokens/aws" }}
-{{- /* A pod that uses AWS KMS neither for the root key, nor for a tenant's root key, nor for a tenant's signing key never carries AWS credentials, whatever the web identity values say. */}}
+{{- /* A pod that uses AWS KMS neither for the root key, nor for a tenant's root key, nor for a tenant's keys never carries AWS credentials, whatever the web identity values say. */}}
 {{- $awsWebIdentity := and (eq (include "identity-host.usesKeyManagementService" (dict "root" . "name" "aws-kms")) "true") .Values.secretProtection.awsKms.webIdentity.roleArn }}
 {{- $azureWorkloadIdentityRoot := "/var/run/secrets/tokens/azure" }}
-{{- /* A pod that uses Azure Key Vault neither for the root key, nor for a tenant's root key, nor for a tenant's signing key never carries Azure credentials, whatever the workload identity values say. */}}
+{{- /* A pod that uses Azure Key Vault neither for the root key, nor for a tenant's root key, nor for a tenant's keys never carries Azure credentials, whatever the workload identity values say. */}}
 {{- $azureWorkloadIdentity := and (eq (include "identity-host.usesKeyManagementService" (dict "root" . "name" "azure-key-vault")) "true") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
 {{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
 {{- $googleCloudTokenRoot := "/var/run/secrets/tokens/google" }}
@@ -377,6 +381,17 @@ same configuration the pods it rewraps keys for read.
 - name: SecretProtection__RemoteKeyProviders__GoogleCloudKms__HardwareProtected
   value: {{ $remoteKeyProviders.googleCloudKms.hardwareProtected | quote }}
 {{- end }}
+{{- $remoteKeys := .Values.secretProtection.remoteKeys }}
+{{- with $remoteKeys.deployment }}
+- name: SecretProtection__RemoteKeys__Deployment
+  value: {{ . | quote }}
+- name: SecretProtection__RemoteKeys__SweepEnabled
+  value: {{ $remoteKeys.sweepEnabled | quote }}
+- name: SecretProtection__RemoteKeys__SweepInterval
+  value: {{ $remoteKeys.sweepInterval | quote }}
+- name: SecretProtection__RemoteKeys__SweepGracePeriod
+  value: {{ $remoteKeys.sweepGracePeriod | quote }}
+{{- end }}
 {{- if .Values.secretProtection.recovery.publicKeyConfigMap }}
 - name: SecretProtection__Recovery__PublicKeyPath
   value: {{ printf "%s/recovery/recovery-public.pem" $secretProtectionRoot }}
@@ -396,10 +411,10 @@ The volume mounts of the host container, which the Deployment and the secret pro
 {{- define "identity-host.hostVolumeMounts" -}}
 {{- $secretProtectionRoot := "/etc/ncode-identity/secret-protection" }}
 {{- $awsWebIdentityRoot := "/var/run/secrets/tokens/aws" }}
-{{- /* A pod that uses AWS KMS neither for the root key, nor for a tenant's root key, nor for a tenant's signing key never carries AWS credentials, whatever the web identity values say. */}}
+{{- /* A pod that uses AWS KMS neither for the root key, nor for a tenant's root key, nor for a tenant's keys never carries AWS credentials, whatever the web identity values say. */}}
 {{- $awsWebIdentity := and (eq (include "identity-host.usesKeyManagementService" (dict "root" . "name" "aws-kms")) "true") .Values.secretProtection.awsKms.webIdentity.roleArn }}
 {{- $azureWorkloadIdentityRoot := "/var/run/secrets/tokens/azure" }}
-{{- /* A pod that uses Azure Key Vault neither for the root key, nor for a tenant's root key, nor for a tenant's signing key never carries Azure credentials, whatever the workload identity values say. */}}
+{{- /* A pod that uses Azure Key Vault neither for the root key, nor for a tenant's root key, nor for a tenant's keys never carries Azure credentials, whatever the workload identity values say. */}}
 {{- $azureWorkloadIdentity := and (eq (include "identity-host.usesKeyManagementService" (dict "root" . "name" "azure-key-vault")) "true") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
 {{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
 {{- $googleCloudTokenRoot := "/var/run/secrets/tokens/google" }}
@@ -445,9 +460,9 @@ The volume mounts of the host container, which the Deployment and the secret pro
 The volumes of the host pod, which the Deployment and the secret protection Job share.
 */}}
 {{- define "identity-host.hostVolumes" -}}
-{{- /* A pod that uses AWS KMS neither for the root key, nor for a tenant's root key, nor for a tenant's signing key never carries AWS credentials, whatever the web identity values say. */}}
+{{- /* A pod that uses AWS KMS neither for the root key, nor for a tenant's root key, nor for a tenant's keys never carries AWS credentials, whatever the web identity values say. */}}
 {{- $awsWebIdentity := and (eq (include "identity-host.usesKeyManagementService" (dict "root" . "name" "aws-kms")) "true") .Values.secretProtection.awsKms.webIdentity.roleArn }}
-{{- /* A pod that uses Azure Key Vault neither for the root key, nor for a tenant's root key, nor for a tenant's signing key never carries Azure credentials, whatever the workload identity values say. */}}
+{{- /* A pod that uses Azure Key Vault neither for the root key, nor for a tenant's root key, nor for a tenant's keys never carries Azure credentials, whatever the workload identity values say. */}}
 {{- $azureWorkloadIdentity := and (eq (include "identity-host.usesKeyManagementService" (dict "root" . "name" "azure-key-vault")) "true") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
 {{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
 - name: tmp

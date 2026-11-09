@@ -164,7 +164,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
   credential. Their KMS offerings can still be root key providers.
 - **Sign and decrypt everything inside the KMS.** This is the strongest option against a compromised replica, but it
   adds latency and a fee to every token. Signing inside the KMS is available as an opt-in for a tenant's signing keys
-  ([Remote Signing Keys](./remote-signing-keys.md)); decryption stays local.
+  ([Remote Keys](./remote-keys.md)), and a tenant's encryption keys can stay there too.
 - **A platform key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys
   anyway, and it would stop a tenant from bringing its own root key.
 
@@ -551,10 +551,10 @@ keeps retired keys for good.
 
 We'd rather say what this doesn't do yet:
 
-- **A compromised running replica** can use the keys it has loaded. Signing inside the KMS, which a tenant opts in to
-  ([Remote Signing Keys](./remote-signing-keys.md)), narrows that for the tenant's signing keys: the replica can ask the
-  KMS to sign while it runs but never holds the private key. Decryption keys stay local, and the rollover of a tenant's
-  keys ([Key Rollover](./key-rollover.md)) bounds how long a key it took stays in use.
+- **A compromised running replica** can use the keys it has loaded. Holding a tenant's keys in the KMS, which a tenant
+  opts in to ([Remote Keys](./remote-keys.md)), narrows that for the tenant's signing and encryption keys: the replica
+  can ask the KMS to sign or unwrap a content key while it runs but never holds the private key. The rollover of a
+  tenant's keys ([Key Rollover](./key-rollover.md)) bounds how long a key it took stays in use.
 - **Backups outlive crypto-shredding.** A backup that still holds a deleted tenant's wrapped master key stays readable
   with the root key until the backup expires.
 - **Azure Key Vault doesn't bind or log the owner context.** Only the key-check value catches a master key presented

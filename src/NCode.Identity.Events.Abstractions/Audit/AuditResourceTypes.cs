@@ -42,4 +42,9 @@ public static class AuditResourceTypes
     /// The resource type of the root key that a tenant brings, which wraps the tenant's master keys.
     /// </summary>
     public const string RootKey = "root_key";
+
+    /// <summary>
+    /// The resource type of a key that a key management service holds, identified by its reference <c>provider:keyId</c>.
+    /// </summary>
+    public const string RemoteKey = "remote_key";
 }

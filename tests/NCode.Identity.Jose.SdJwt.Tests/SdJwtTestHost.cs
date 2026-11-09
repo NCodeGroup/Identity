@@ -165,8 +165,8 @@ public sealed class SdJwtTestHost : IAsyncDisposable
     /// <summary>
     /// Decodes a JWT with the specified key, which verifies its signature.
     /// </summary>
-    public JsonElement DecodePayload(string jwt, SecretKey secretKey) =>
-        JoseSerializer.Deserialize<JsonElement>(jwt, secretKey);
+    public ValueTask<JsonElement> DecodePayloadAsync(string jwt, SecretKey secretKey) =>
+        JoseSerializer.DeserializeAsync<JsonElement>(jwt, secretKey, CancellationToken.None);
 
     public async ValueTask DisposeAsync() => await ServiceProvider.DisposeAsync();
 

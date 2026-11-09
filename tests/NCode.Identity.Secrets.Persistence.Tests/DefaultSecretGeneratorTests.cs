@@ -60,6 +60,16 @@ public class DefaultSecretGeneratorTests : BaseTests
         KeySpec = "ECC_SECG_P256K1",
     };
 
+    private static readonly RemoteDecryptionAlgorithm OaepRow = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = "RSA-OAEP-256",
+        SecretType = SecretTypes.Rsa,
+        KeySizeBits = 2048,
+        KeySpec = "RSA_2048",
+        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+    };
+
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultSecretVerifierSchemeCatalog _verifierCatalog;
     private readonly Mock<IRemoteKeyProvider> _remoteProvider;
@@ -98,7 +108,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             .Verifiable();
         source
             .SetupGet(x => x.Algorithms)
-            .Returns([RsaRow, LargeRsaRow, EccRow, OtherCurveEccRow])
+            .Returns([RsaRow, LargeRsaRow, EccRow, OtherCurveEccRow, OaepRow])
             .Verifiable();
         _remoteDescriptorCatalog = new DefaultRemoteKeyDescriptorCatalog([source.Object]);
         _remoteCatalog = new DefaultRemoteKeyProviderCatalog(
@@ -117,14 +127,20 @@ public class DefaultSecretGeneratorTests : BaseTests
         );
     }
 
-    private DefaultSecretGenerator CreateGenerator(SharedSecretVerifierOptions options) =>
+    private DefaultSecretGenerator CreateGenerator(
+        SharedSecretVerifierOptions options,
+        string? deployment = "test"
+    ) =>
         new(
             _catalog,
             _verifierCatalog,
             Microsoft.Extensions.Options.Options.Create(options),
             _remoteCatalog,
             _remoteDescriptorCatalog,
-            _remoteDestroyer.Object
+            _remoteDestroyer.Object,
+            Microsoft.Extensions.Options.Options.Create(
+                new SecretProtectionOptions { RemoteKeys = { Deployment = deployment } }
+            )
         );
 
     // Opens the envelope of a stored verifier to its text.
@@ -1081,7 +1097,6 @@ public class DefaultSecretGeneratorTests : BaseTests
             SecretType = secretType,
             KeySizeBits = keySizeBits,
             Curve = curve,
-            Use = "sig",
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ActivatesWhen = activatesWhen,
@@ -1093,25 +1108,27 @@ public class DefaultSecretGeneratorTests : BaseTests
     private Moq.Language.Flow.ISetup<
         IRemoteKeyProvider,
         ValueTask<RemoteKeyCreationResult>
-    > SetupCreateKeyCall(RemoteSigningAlgorithm row) =>
+    > SetupCreateKeyCall(RemoteKeyAlgorithm row) =>
         _remoteProvider.Setup(x =>
             x.CreateKeyAsync(
                 It.Is<RemoteKeyCreationRequest>(request =>
                     request.OwnerId == "tenant:tenant-one"
                     && request.SecretId == "remote-1"
                     && ReferenceEquals(request.Algorithm, row)
-                    && request.GroupName == RemoteKeyGroupName.Create("tenant:tenant-one", row)
+                    && request.GroupName
+                        == RemoteKeyGroupName.Create("test", "tenant:tenant-one", row)
+                    && request.Deployment == "test"
                 ),
                 CancellationToken.None
             )
         );
 
-    private void SetupCreateKey(RemoteSigningAlgorithm row) =>
+    private void SetupCreateKey(RemoteKeyAlgorithm row) =>
         SetupCreateKeyCall(row)
             .ReturnsAsync(new RemoteKeyCreationResult { KeyId = "key-1" })
             .Verifiable();
 
-    private void SetupGetPublicKey(RemoteSigningAlgorithm row, byte[] subjectPublicKeyInfo) =>
+    private void SetupGetPublicKey(RemoteKeyAlgorithm row, byte[] subjectPublicKeyInfo) =>
         SetupGetPublicKeyCall(row)
             .Callback(
                 (RemotePublicKeyRequest _, IBufferWriter<byte> writer, CancellationToken _) =>
@@ -1121,7 +1138,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             .Verifiable();
 
     private Moq.Language.Flow.ISetup<IRemoteKeyProvider, ValueTask> SetupGetPublicKeyCall(
-        RemoteSigningAlgorithm row
+        RemoteKeyAlgorithm row
     ) =>
         _remoteProvider.Setup(x =>
             x.GetPublicKeyAsync(
@@ -1133,7 +1150,7 @@ public class DefaultSecretGeneratorTests : BaseTests
             )
         );
 
-    private void SetupCreateAndReadKey(RemoteSigningAlgorithm row, byte[] subjectPublicKeyInfo)
+    private void SetupCreateAndReadKey(RemoteKeyAlgorithm row, byte[] subjectPublicKeyInfo)
     {
         SetupCreateKey(row);
         SetupGetPublicKey(row, subjectPublicKeyInfo);
@@ -1238,6 +1255,39 @@ public class DefaultSecretGeneratorTests : BaseTests
         );
 
         Assert.Contains("'RS384'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_DecryptionRow_StoresAnEncryptionSecret()
+    {
+        var spki = CreateRsaSubjectPublicKeyInfo();
+        SetupCreateAndReadKey(OaepRow, spki);
+
+        var secret = await _generator.GenerateRemoteSecretAsync(
+            CreateRemoteRequest(algorithm: "RSA-OAEP-256"),
+            CancellationToken.None
+        );
+
+        Assert.Equal(SecretKeyUses.Encryption, secret.Use);
+        Assert.Equal("RSA-OAEP-256", secret.Algorithm);
+        Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
+        Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task GenerateRemoteSecretAsync_DeploymentUnset_ThrowsBeforeCreating(
+        string? deployment
+    )
+    {
+        var generator = CreateGenerator(new SharedSecretVerifierOptions(), deployment);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await generator.GenerateRemoteSecretAsync(CreateRemoteRequest(), CancellationToken.None)
+        );
+
+        Assert.Equal("SecretProtection:RemoteKeys:Deployment is not set.", exception.Message);
     }
 
     // Expects one call to the destroyer with the one record the generator would have returned for the created key.
@@ -1387,7 +1437,6 @@ public class DefaultSecretGeneratorTests : BaseTests
             SecretType = secretType,
             KeySizeBits = keySizeBits,
             Curve = curve,
-            Use = "sig",
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
@@ -1435,6 +1484,24 @@ public class DefaultSecretGeneratorTests : BaseTests
         Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
         Assert.Equal(256, secret.KeySizeBits);
         Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+    }
+
+    [Fact]
+    public async Task BindRemoteSecretAsync_DecryptionRow_StoresAnEncryptionSecret()
+    {
+        var spki = CreateRsaSubjectPublicKeyInfo();
+        SetupGetPublicKey(OaepRow, spki);
+
+        var secret = await _generator.BindRemoteSecretAsync(
+            CreateBindRequest(algorithm: "RSA-OAEP-256"),
+            CancellationToken.None
+        );
+
+        Assert.Equal(SecretKeyUses.Encryption, secret.Use);
+        Assert.Equal("RSA-OAEP-256", secret.Algorithm);
+        Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
+        Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+        Assert.Equal(SecretOrigins.Supplied, secret.Origin);
     }
 
     [Theory]
@@ -1536,7 +1603,6 @@ public class DefaultSecretGeneratorTests : BaseTests
             KeyId = "",
             SecretType = SecretTypes.Rsa,
             KeySizeBits = 2048,
-            Use = "sig",
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),

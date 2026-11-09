@@ -211,7 +211,6 @@ internal sealed class DefaultTenantKeyRollover(
                 SecretType = specification.SecretType,
                 KeySizeBits = specification.KeySizeBits,
                 Curve = specification.Curve,
-                Use = specification.Use,
                 Algorithm = specification.Algorithm,
                 CreatedWhen = now,
                 ActivatesWhen = generation.ActivatesWhen,

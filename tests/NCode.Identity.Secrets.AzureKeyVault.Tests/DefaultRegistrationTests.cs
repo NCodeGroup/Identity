@@ -149,7 +149,7 @@ public class DefaultRegistrationTests : BaseTests
         Assert.IsType<AzureKeyVaultRemoteKeyProvider>(remoteProvider);
         Assert.True(
             descriptorCatalog.TryGetAlgorithm(
-                new RemoteSigningAlgorithmSelector
+                new RemoteKeyAlgorithmSelector
                 {
                     Provider = RemoteKeyProviderNames.AzureKeyVault,
                     Algorithm = "RS256",

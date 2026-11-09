@@ -9,6 +9,7 @@ using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Jose.Tests;
 
@@ -20,6 +21,17 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
 {
     private const string Payload = "the payload";
 
+    private static readonly RemoteDecryptionAlgorithm RsaOaep256Row = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = AlgorithmCodes.KeyManagement.RsaOaep256,
+        SecretType = "rsa",
+        KeySizeBits = 2048,
+        KeySpec = "RSA_2048",
+        EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+    };
+
+    private readonly MockRepository _mockRepository = new(MockBehavior.Strict);
     private readonly RSA _rsa = RSA.Create(2048);
     private readonly ServiceProvider _serviceProvider;
 
@@ -44,7 +56,11 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
 
     public async Task DisposeAsync() => await _serviceProvider.DisposeAsync();
 
-    public void Dispose() => _rsa.Dispose();
+    public void Dispose()
+    {
+        _rsa.Dispose();
+        _mockRepository.Verify();
+    }
 
     #region Scaffolding
 
@@ -56,6 +72,19 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         var bytes = RandomNumberGenerator.GetBytes(bitCount / 8);
         return SecretKeyFactory.CreateSymmetric(new KeyMetadata { KeyId = "sym" }, bytes);
     }
+
+    // The remote key holds the public half of the local key, so the provider mock stands for the service that holds the private half.
+    private SecretKey CreateRemoteRsaKey(Mock<IRemoteKeyProvider> provider) =>
+        SecretKeyFactory.CreateRsaRemote(
+            new KeyMetadata { KeyId = "remote-rsa" },
+            _rsa.ExportSubjectPublicKeyInfo(),
+            new RemoteKeyBinding
+            {
+                Provider = provider.Object,
+                Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, "remote-key-1"),
+                Algorithm = RsaOaep256Row,
+            }
+        );
 
     private ValueTask<string> EncryptAsync(SecretKey secretKey, string keyManagementCode)
     {
@@ -95,10 +124,10 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         return copy;
     }
 
-    private void AssertUniformFailure(string token, SecretKey secretKey)
+    private async Task AssertUniformFailureAsync(string token, SecretKey secretKey)
     {
-        var exception = Assert.Throws<JoseEncryptionException>(() =>
-            JoseSerializer.Decode(token, secretKey)
+        var exception = await Assert.ThrowsAsync<JoseEncryptionException>(async () =>
+            await JoseSerializer.DecodeAsync(token, secretKey, CancellationToken.None)
         );
 
         Assert.Equal("Failed to decrypt the JWE.", exception.Message);
@@ -115,7 +144,10 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         var secretKey = CreateRsaKey();
         var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
 
-        Assert.Equal(Payload, JoseSerializer.Decode(token, secretKey));
+        Assert.Equal(
+            Payload,
+            await JoseSerializer.DecodeAsync(token, secretKey, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -124,8 +156,8 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         var secretKey = CreateRsaKey();
         var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
 
-        AssertUniformFailure(ReplaceSegment(token, 1, FlipFirstBit), secretKey);
-        AssertUniformFailure(ReplaceSegment(token, 4, FlipFirstBit), secretKey);
+        await AssertUniformFailureAsync(ReplaceSegment(token, 1, FlipFirstBit), secretKey);
+        await AssertUniformFailureAsync(ReplaceSegment(token, 4, FlipFirstBit), secretKey);
     }
 
     [Fact]
@@ -134,8 +166,8 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         var secretKey = CreateSymmetricKey(128);
         var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.Aes128);
 
-        AssertUniformFailure(ReplaceSegment(token, 1, FlipFirstBit), secretKey);
-        AssertUniformFailure(ReplaceSegment(token, 4, FlipFirstBit), secretKey);
+        await AssertUniformFailureAsync(ReplaceSegment(token, 1, FlipFirstBit), secretKey);
+        await AssertUniformFailureAsync(ReplaceSegment(token, 4, FlipFirstBit), secretKey);
     }
 
     [Fact]
@@ -144,7 +176,7 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         var secretKey = CreateSymmetricKey(128);
         var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.Aes128);
 
-        AssertUniformFailure(ReplaceSegment(token, 1, bytes => bytes[..^8]), secretKey);
+        await AssertUniformFailureAsync(ReplaceSegment(token, 1, bytes => bytes[..^8]), secretKey);
     }
 
     [Fact]
@@ -153,9 +185,61 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         var secretKey = CreateRsaKey();
         var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
 
-        Assert.Throws<ArgumentException>(() =>
-            JoseSerializer.Decode(token, CreateSymmetricKey(128))
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await JoseSerializer.DecodeAsync(token, CreateSymmetricKey(128), CancellationToken.None)
         );
+    }
+
+    [Fact]
+    public async Task DecodeAsync_UnwrapThrowsIOException_Propagates()
+    {
+        var provider = _mockRepository.Create<IRemoteKeyProvider>();
+        provider
+            .Setup(x =>
+                x.DecryptAsync(
+                    It.IsAny<RemoteDecryptionRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(() => ValueTask.FromException<int>(new IOException("x")))
+            .Verifiable();
+        var token = await EncryptAsync(CreateRsaKey(), AlgorithmCodes.KeyManagement.RsaOaep256);
+
+        await Assert.ThrowsAsync<IOException>(async () =>
+            await JoseSerializer.DecodeAsync(
+                token,
+                CreateRemoteRsaKey(provider),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task DecodeAsync_UnwrapThrowsCryptographicException_FailsAtTheTag()
+    {
+        var provider = _mockRepository.Create<IRemoteKeyProvider>();
+        provider
+            .Setup(x =>
+                x.DecryptAsync(
+                    It.IsAny<RemoteDecryptionRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(() => ValueTask.FromException<int>(new CryptographicException("x")))
+            .Verifiable();
+        var token = await EncryptAsync(CreateRsaKey(), AlgorithmCodes.KeyManagement.RsaOaep256);
+
+        var exception = await Assert.ThrowsAsync<JoseEncryptionException>(async () =>
+            await JoseSerializer.DecodeAsync(
+                token,
+                CreateRemoteRsaKey(provider),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Equal("Failed to decrypt the JWE.", exception.Message);
     }
 
     #endregion

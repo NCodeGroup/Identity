@@ -155,7 +155,7 @@ public class DefaultRegistrationTests : BaseTests
         Assert.IsType<GoogleCloudKmsRemoteKeyProvider>(remoteProvider);
         Assert.True(
             descriptorCatalog.TryGetAlgorithm(
-                new RemoteSigningAlgorithmSelector
+                new RemoteKeyAlgorithmSelector
                 {
                     Provider = RemoteKeyProviderNames.GoogleCloudKms,
                     Algorithm = "PS256",

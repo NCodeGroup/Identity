@@ -19,10 +19,10 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
     private const string UserA = "alice";
     private const string UserB = "bob";
 
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TestAmbientTenantAccessor _accessor;
-    private readonly LocalAccountStore _store;
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TestAmbientTenantAccessor Accessor { get; }
+    private LocalAccountStore Store { get; }
 
     public LocalAccountStoreTenantScopingTests()
     {
@@ -31,22 +31,22 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        _accessor = _provider.GetRequiredService<TestAmbientTenantAccessor>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new LocalAccountStore(
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        Accessor = Provider.GetRequiredService<TestAmbientTenantAccessor>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        Store = new LocalAccountStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
             Mock.Of<IPasswordHasher>(),
-            _dbContext
+            DbContext
         );
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedLocalAccount CreateAccount(
@@ -70,18 +70,18 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
     // Seeds one account per tenant unscoped, then detaches so later reads hit the query where the filter applies.
     private async Task SeedAsync()
     {
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAccount(TenantA, AccountA, UserA),
             password: null,
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAccount(TenantB, AccountB, UserB),
             password: null,
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
@@ -89,13 +89,13 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        _accessor.TenantId = TenantA;
-        Assert.NotNull(await _store.GetByUserNameOrDefaultAsync(UserA, CancellationToken.None));
-        Assert.Null(await _store.GetByUserNameOrDefaultAsync(UserB, CancellationToken.None));
+        Accessor.TenantId = TenantA;
+        Assert.NotNull(await Store.GetByUserNameOrDefaultAsync(UserA, CancellationToken.None));
+        Assert.Null(await Store.GetByUserNameOrDefaultAsync(UserB, CancellationToken.None));
 
-        _accessor.TenantId = TenantB;
-        Assert.NotNull(await _store.GetByUserNameOrDefaultAsync(UserB, CancellationToken.None));
-        Assert.Null(await _store.GetByUserNameOrDefaultAsync(UserA, CancellationToken.None));
+        Accessor.TenantId = TenantB;
+        Assert.NotNull(await Store.GetByUserNameOrDefaultAsync(UserB, CancellationToken.None));
+        Assert.Null(await Store.GetByUserNameOrDefaultAsync(UserA, CancellationToken.None));
     }
 
     [Fact]
@@ -103,9 +103,9 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        _accessor.TenantId = TenantA;
-        Assert.NotNull(await _store.GetByIdOrDefaultAsync(AccountA, CancellationToken.None));
-        Assert.Null(await _store.GetByIdOrDefaultAsync(AccountB, CancellationToken.None));
+        Accessor.TenantId = TenantA;
+        Assert.NotNull(await Store.GetByIdOrDefaultAsync(AccountA, CancellationToken.None));
+        Assert.Null(await Store.GetByIdOrDefaultAsync(AccountB, CancellationToken.None));
     }
 
     [Fact]
@@ -113,8 +113,8 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        _accessor.TenantId = null;
-        Assert.NotNull(await _store.GetByIdOrDefaultAsync(AccountA, CancellationToken.None));
-        Assert.NotNull(await _store.GetByIdOrDefaultAsync(AccountB, CancellationToken.None));
+        Accessor.TenantId = null;
+        Assert.NotNull(await Store.GetByIdOrDefaultAsync(AccountA, CancellationToken.None));
+        Assert.NotNull(await Store.GetByIdOrDefaultAsync(AccountB, CancellationToken.None));
     }
 }

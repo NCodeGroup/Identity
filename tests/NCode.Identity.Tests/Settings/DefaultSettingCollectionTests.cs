@@ -29,11 +29,11 @@ public class DefaultSettingCollectionTests : BaseTests
             OnMerge = SettingMerge.Min,
         };
 
-    private readonly Mock<ISettingDescriptorCollectionProvider> _mockProvider;
+    private Mock<ISettingDescriptorCollectionProvider> MockProvider { get; }
 
     public DefaultSettingCollectionTests()
     {
-        _mockProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
+        MockProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
     }
 
     private static SettingDescriptor<string> Descriptor(string name, string? defaultValue = null) =>
@@ -48,14 +48,14 @@ public class DefaultSettingCollectionTests : BaseTests
         Descriptor(name).Create(value);
 
     private DefaultSettingCollection CreateCollection(params Setting[] settings) =>
-        new(_mockProvider.Object, settings);
+        new(MockProvider.Object, settings);
 
     #region Count / Enumeration Tests
 
     [Fact]
     public void Count_WhenEmpty_ReturnsZero()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
 
         Assert.Empty(collection);
     }
@@ -89,7 +89,7 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void TryGet_ByName_WhenMissing_ReturnsFalse()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
 
         Assert.False(collection.TryGet("missing", out _));
     }
@@ -135,7 +135,7 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void TryGetValue_ByName_WhenMissing_ReturnsFalse()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
 
         Assert.False(collection.TryGetValue("missing", out var value));
         Assert.Null(value);
@@ -155,7 +155,7 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void TryGetValue_ByKey_WhenMissing_ReturnsFalse()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
 
         Assert.False(collection.TryGetValue(new SettingKey<string>("missing"), out var value));
         Assert.Null(value);
@@ -176,17 +176,14 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void GetValue_WhenMissingButDescriptorHasDefault_ReturnsDefault()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
         var mockDescriptorCollection = CreateStrictMock<ISettingDescriptorCollection>();
         SettingDescriptor<string>? descriptor = Descriptor("a", "fallback");
         mockDescriptorCollection
             .Setup(x => x.TryGet(It.IsAny<SettingKey<string>>(), out descriptor))
             .Returns(true)
             .Verifiable();
-        _mockProvider
-            .Setup(x => x.Collection)
-            .Returns(mockDescriptorCollection.Object)
-            .Verifiable();
+        MockProvider.Setup(x => x.Collection).Returns(mockDescriptorCollection.Object).Verifiable();
 
         var value = collection.GetValue(new SettingKey<string>("a"));
 
@@ -196,17 +193,14 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void GetValue_WhenMissingAndNoDefault_ThrowsKeyNotFound()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
         var mockDescriptorCollection = CreateStrictMock<ISettingDescriptorCollection>();
         SettingDescriptor<string>? descriptor = null;
         mockDescriptorCollection
             .Setup(x => x.TryGet(It.IsAny<SettingKey<string>>(), out descriptor))
             .Returns(false)
             .Verifiable();
-        _mockProvider
-            .Setup(x => x.Collection)
-            .Returns(mockDescriptorCollection.Object)
-            .Verifiable();
+        MockProvider.Setup(x => x.Collection).Returns(mockDescriptorCollection.Object).Verifiable();
 
         Assert.Throws<KeyNotFoundException>(() => collection.GetValue(new SettingKey<string>("a")));
     }
@@ -218,7 +212,7 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void Set_Setting_StoresByName()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
 
         collection.Set(Setting("a", "1"));
 
@@ -229,7 +223,7 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void Set_ByKey_WhenDescriptorExists_UsesDescriptor()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
         SetupRegisteredDescriptor(Descriptor("a"));
 
         collection.Set(new SettingKey<string>("a"), "1");
@@ -240,7 +234,7 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void Set_ByKey_WhenDescriptorMissing_Throws()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
         SetupRegisteredDescriptor(null);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -254,7 +248,7 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void Set_ByKey_WhenDescriptorHasAnotherValueType_Throws()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
         SetupRegisteredDescriptor(
             new SettingDescriptor<bool> { Name = "a", AppliesTo = ["client"] }
         );
@@ -274,10 +268,7 @@ public class DefaultSettingCollectionTests : BaseTests
             .Setup(x => x.TryGet("a", out descriptor))
             .Returns(descriptor is not null)
             .Verifiable();
-        _mockProvider
-            .Setup(x => x.Collection)
-            .Returns(mockDescriptorCollection.Object)
-            .Verifiable();
+        MockProvider.Setup(x => x.Collection).Returns(mockDescriptorCollection.Object).Verifiable();
     }
 
     #endregion
@@ -298,7 +289,7 @@ public class DefaultSettingCollectionTests : BaseTests
     [Fact]
     public void Remove_WhenMissing_ReturnsFalse()
     {
-        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        var collection = new DefaultSettingCollection(MockProvider.Object);
 
         Assert.False(collection.Remove(new SettingKey<string>("missing")));
     }

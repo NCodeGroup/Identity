@@ -8,11 +8,11 @@ namespace NCode.Identity.Settings;
 
 public class ReadOnlySettingCollectionProviderTests : BaseTests
 {
-    private readonly Mock<ISettingDescriptorCollectionProvider> _mockDescriptorProvider;
+    private Mock<ISettingDescriptorCollectionProvider> MockDescriptorProvider { get; }
 
     public ReadOnlySettingCollectionProviderTests()
     {
-        _mockDescriptorProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
+        MockDescriptorProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
     }
 
     private static Setting<string> Setting(string name, string value) =>
@@ -27,7 +27,7 @@ public class ReadOnlySettingCollectionProviderTests : BaseTests
     public async Task Collection_MergesDataSources_LastValueWins()
     {
         await using var provider = new ReadOnlySettingCollectionProvider(
-            _mockDescriptorProvider.Object,
+            MockDescriptorProvider.Object,
             [
                 DataSource(Setting("a", "1"), Setting("b", "2")),
                 DataSource(Setting("a", "override"), Setting("c", "3")),
@@ -46,7 +46,7 @@ public class ReadOnlySettingCollectionProviderTests : BaseTests
     public async Task Collection_WhenSingleSource_ContainsAllSettings()
     {
         await using var provider = new ReadOnlySettingCollectionProvider(
-            _mockDescriptorProvider.Object,
+            MockDescriptorProvider.Object,
             [DataSource(Setting("a", "1"))]
         );
 

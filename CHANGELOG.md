@@ -364,19 +364,23 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The host chart deploys the management console on a host of its own.** With `managementConsole.enabled`,
   `charts/ncode-identity-host` runs the console host under the restricted Pod Security Standard with its own
-  ServiceAccount without a token, probes `/health/live` and `/health/ready`, and routes `managementConsole.host`
-  through an Ingress that sends `/api` to the server and every other path to the console. Its `mgmt-client` and
-  `mgmt-dpop` key rings, `managementConsole.keyRings.client` and `.dpop`, each hold a PEM key mounted read-only from a
-  Secret (`pemSecret`), keys that AWS KMS, Azure Key Vault or Google Cloud KMS holds (`remoteKeys`, by key id), or
-  both. The chart registers each service a remote key names and mounts the console's own workload identity for it
-  (`managementConsole.secretProtection`), so the console's private keys can stay out of its pods. Rendering fails for
-  a missing or wildcard console host, an `allowedHosts` that does not list it, an authority that is not `https`, a
-  key ring with no key, two keys of a key ring with one id, a remote key whose id is not its service's key form, a
-  half-set console identity, or more than one console replica without the console's own Valkey
+  ServiceAccount without a token, probes `/health/live` and `/health/ready`, and
+  routes every path of `managementConsole.host` to the console through an Ingress of its own. The console calls the
+  management API at `/api` on its authority's origin, the URL the server compares its DPoP proofs with, and machine
+  callers reach the API at the server's own host. Its `mgmt-client` and `mgmt-dpop` key rings,
+  `managementConsole.keyRings.client` and `.dpop`, each hold a PEM key mounted read-only from a Secret (`pemSecret`),
+  keys that AWS KMS, Azure Key Vault or Google Cloud KMS holds (`remoteKeys`, by key id), or both. The chart mounts
+  the console's own workload identity for each service a remote key names (`managementConsole.secretProtection`), so
+  the console's private keys can stay out of its pods. Rendering fails for a missing or wildcard console host, an
+  authority that is not `https`, a key ring with no key, two keys of a key ring with one id, a remote key whose id is
+  not its service's key form, a half-set console identity, or more than one console replica without the console's own
+  Valkey
   ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
   [ADR-1485](docs/decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),
-  issues [#610](https://github.com/NCodeGroup/Identity/issues/610) and
-  [#712](https://github.com/NCodeGroup/Identity/issues/712)).
+  [ADR-1488](docs/decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md),
+  issues [#610](https://github.com/NCodeGroup/Identity/issues/610),
+  [#712](https://github.com/NCodeGroup/Identity/issues/712) and
+  [#720](https://github.com/NCodeGroup/Identity/issues/720)).
 
 - **The host's chart migrates the database before each rollout.** The chart runs the image's migration worker as a Helm
   `pre-install` and `pre-upgrade` Job, so a failed migration fails the release before any pod is replaced. The Job runs
@@ -913,7 +917,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **A tenant's signing and encryption keys can stay inside a key management service, which signs every token and unwraps
   every content key sent to the tenant.** The tenant setting `tenant_key_provider` names a registered remote key
-  provider — `aws-kms`, `azure-key-vault` or `google-cloud-kms`, which `AddAwsKmsRemoteKeyProvider`,
+  provider that creates keys — `aws-kms`, `azure-key-vault` or `google-cloud-kms`, which `AddAwsKmsRemoteKeyProvider`,
   `AddAzureKeyVaultRemoteKeyProvider` and `AddGoogleCloudKmsRemoteKeyProvider`
   register on the secrets library's builder from `SecretProtection:RemoteKeyProviders:<Vendor>` — and every key the
   tenant provisions, signature and encryption alike, is created in that KMS. The server stores each key's public half
@@ -928,7 +932,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   of the `RemoteKeyAlgorithm` vocabulary — `RemoteSigningAlgorithm` (`RS*`, `PS*` and `ES*`),
   `RemoteDecryptionAlgorithm` and `RemoteKeyAgreementAlgorithm` — that map each JOSE algorithm onto a provider's key
   spec and operation and give the key its use, so a provider holds only the keys its service can use, and a host whose
-  provider cannot hold a provisioned key, or holds it for another use, does not start. A change of custody hands each
+  provider cannot hold a provisioned key, or holds it for another use, does not start. A provider registered without its
+  region, vault URI or key ring (`RemoteKeyProviderDescriptor.CreatesKeys` is `false`) binds a key a KMS already holds
+  and reads, signs with, decrypts with and destroys keys by their identifiers, but creates and lists none: the setting
+  cannot name it, the management API refuses to create a key in it, the sweep skips it, and
+  `SecretProtection:RemoteKeys:Deployment` is required only when a provider creates keys. A change of custody hands each
   key over after the activation delay (`custody_changed`), a successor is a new version of its KMS key (a new tagged key
   on AWS KMS), a removed key the server created is destroyed in its KMS after the commit, each SDK retries a repeatable
   call with jittered exponential back-off, and a key creation is made once; the setting's domain and the provisioning
@@ -939,27 +947,30 @@ Until the first stable release, the [Unreleased] section describes the product a
   key signs verifies with that half, or a challenge encrypted to that half decrypts through the key
   (`POST /api/tenants/{tenantId}/secrets/remote/import`, which needs update authority on the platform; the server never
   destroys a bound key); an update keeps a remote key's algorithm; `SecretResource`'s `remoteKeyProvider` and the
-  console's secrets table name the provider; the capabilities response lists each registered provider with the signature
-  and key-management algorithms, uses, key types, sizes and curves it holds (`remoteKeyProviders`); a tenant's Secrets
-  tab in the console creates a key in a provider through the create-secret form's custody choice and binds a key a KMS
-  holds through a bind dialog, each offering only the provider's algorithms, labelled signing or encryption, and showing
-  each refusal's problem detail; the management API's validation and its capabilities read the descriptors as well. The
-  Helm chart's `secretProtection.remoteKeyProviders` configures each provider and mounts its workload identity.
-  `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`, `IRemoteKeyDescriptorCatalog`, `RemoteKeyAlgorithm`,
-  `IRemoteSecretKey` and `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a provider or a key type. The
-  providers live in `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`, beside each service's key
-  wrapper ([#165](https://github.com/NCodeGroup/Identity/issues/165),
+  console's secrets table name the provider; the capabilities response lists each registered provider, whether it
+  creates keys (`createsKeys`), and the signature and key-management algorithms, uses, key types, sizes and curves it
+  holds (`remoteKeyProviders`); a tenant's Secrets tab in the console creates a key in a provider that creates keys
+  through the create-secret form's custody choice and binds a key a KMS holds through a bind dialog, each offering only
+  the provider's algorithms, labelled signing or encryption, and showing each refusal's problem detail; the management
+  API's validation and its capabilities read the descriptors as well. The Helm chart's
+  `secretProtection.remoteKeyProviders` configures each provider and mounts its workload identity. `IRemoteKeyProvider`,
+  `IRemoteKeyProviderCatalog`, `IRemoteKeyDescriptorCatalog`, `RemoteKeyAlgorithm`, `IRemoteSecretKey` and
+  `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a provider or a key type. The providers live in
+  `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`, beside each service's key wrapper
+  ([#165](https://github.com/NCodeGroup/Identity/issues/165),
   [#648](https://github.com/NCodeGroup/Identity/issues/648), [#649](https://github.com/NCodeGroup/Identity/issues/649),
   [#650](https://github.com/NCodeGroup/Identity/issues/650), [#652](https://github.com/NCodeGroup/Identity/issues/652),
   [#653](https://github.com/NCodeGroup/Identity/issues/653), [#655](https://github.com/NCodeGroup/Identity/issues/655),
   [#657](https://github.com/NCodeGroup/Identity/issues/657), [#687](https://github.com/NCodeGroup/Identity/issues/687),
   [#690](https://github.com/NCodeGroup/Identity/issues/690), [#691](https://github.com/NCodeGroup/Identity/issues/691),
+  [#721](https://github.com/NCodeGroup/Identity/issues/721),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
   [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
   [ADR-1475](docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
   [ADR-1476](docs/decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md),
-  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md)).
+  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+  [ADR-1489](docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)).
 
 - **A background job destroys the KMS keys that no stored secret names.** Every key the server creates in a KMS carries
   the deployment that `SecretProtection:RemoteKeys:Deployment` names (required when a remote key provider is
@@ -2550,11 +2561,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   remote key, the serializer reads a stored one and a BFF loads a key ring's remote keys, and it refuses with
   `RemoteKeyRefusedException`. `IRemoteKeyProver` proves that a remote key holds the private half of its public half, a
   signing key by a challenge it signs and an encryption key by a challenge it decrypts, for the management API's bind
-  and a BFF's key rings. The remote key providers register on the secrets library's builder, so a BFF host registers
-  them from `SecretProtection:RemoteKeyProviders:<Vendor>` as the OP does, and the management console's reference host
-  registers each provider whose section exists
+  and a BFF's key rings. The remote key providers register on the secrets library's builder, and a provider registers
+  without a key-creation location, so the management console's reference host registers all three and needs no
+  `SecretProtection:RemoteKeyProviders` setting
   ([#651](https://github.com/NCodeGroup/Identity/issues/651),
-  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+  [#721](https://github.com/NCodeGroup/Identity/issues/721),
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
+  [ADR-1489](docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)).
 
 - **The OpenID protocol client pushes authorization requests.**
   `IAuthorizationRequestClient.CreateAuthorizationUriAsync` takes a `ClientRegistration` and an `AuthorizationRequest`

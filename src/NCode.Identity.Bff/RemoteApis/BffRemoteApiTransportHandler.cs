@@ -19,11 +19,10 @@ internal sealed class BffRemoteApiTransportHandler(IHttpMessageHandlerFactory ha
         CancellationToken cancellationToken
     )
     {
+        var handler = HandlerFactory.CreateHandler(BffDefaults.RemoteApiHttpClientName);
+
         // The factory owns and rotates the handler it returns, so the invoker never disposes it.
-        using var invoker = new HttpMessageInvoker(
-            HandlerFactory.CreateHandler(BffDefaults.RemoteApiHttpClientName),
-            disposeHandler: false
-        );
+        using var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
 
         return await invoker.SendAsync(request, cancellationToken);
     }

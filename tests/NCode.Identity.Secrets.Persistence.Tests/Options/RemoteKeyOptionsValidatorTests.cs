@@ -8,7 +8,17 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 
 public class RemoteKeyOptionsValidatorTests : BaseTests
 {
-    private ValidateOptionsResult Validate(RemoteKeyOptions keys, int providerCount = 0)
+    private ValidateOptionsResult Validate(RemoteKeyOptions keys)
+    {
+        var catalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
+
+        return new RemoteKeyOptionsValidator(catalog.Object).Validate(
+            null,
+            new SecretProtectionOptions { RemoteKeys = keys }
+        );
+    }
+
+    private ValidateOptionsResult ValidateWithProviders(RemoteKeyOptions keys, int providerCount)
     {
         var catalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
         catalog
@@ -32,7 +42,7 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
     [Fact]
     public void Validate_DefaultsWithoutProviders_Succeeds()
     {
-        Assert.True(Validate(new RemoteKeyOptions()).Succeeded);
+        Assert.True(ValidateWithProviders(new RemoteKeyOptions(), providerCount: 0).Succeeded);
     }
 
     [Fact]
@@ -45,21 +55,29 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
             SweepGracePeriod = TimeSpan.FromHours(1),
         };
 
-        Assert.True(Validate(keys, providerCount: 1).Succeeded);
+        Assert.True(Validate(keys).Succeeded);
     }
 
     [Fact]
-    public void Validate_ValidDeploymentWithProviders_Succeeds()
+    public void Validate_ValidDeployment_Succeeds()
     {
         var keys = new RemoteKeyOptions { Deployment = "prod-eu-1" };
 
-        Assert.True(Validate(keys, providerCount: 2).Succeeded);
+        Assert.True(Validate(keys).Succeeded);
+    }
+
+    [Fact]
+    public void Validate_DeploymentSet_ReadsNoCatalog()
+    {
+        var result = Validate(new RemoteKeyOptions { Deployment = "prod" });
+
+        Assert.True(result.Succeeded);
     }
 
     [Fact]
     public void Validate_MissingDeploymentWithProviders_NamesTheKey()
     {
-        var result = Validate(new RemoteKeyOptions(), providerCount: 1);
+        var result = ValidateWithProviders(new RemoteKeyOptions(), providerCount: 1);
 
         var failure = Assert.Single(result.Failures ?? []);
         Assert.Equal(
@@ -71,7 +89,10 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
     [Fact]
     public void Validate_EmptyDeploymentWithProviders_NamesTheKey()
     {
-        var result = Validate(new RemoteKeyOptions { Deployment = "" }, providerCount: 1);
+        var result = ValidateWithProviders(
+            new RemoteKeyOptions { Deployment = "" },
+            providerCount: 1
+        );
 
         var failure = Assert.Single(result.Failures ?? []);
         Assert.StartsWith("SecretProtection:RemoteKeys:Deployment ", failure);
@@ -105,7 +126,9 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
     [Fact]
     public void Validate_SweepIntervalBelowTheMinimum_NamesTheKey()
     {
-        var result = Validate(new RemoteKeyOptions { SweepInterval = TimeSpan.FromSeconds(59) });
+        var result = Validate(
+            new RemoteKeyOptions { Deployment = "prod", SweepInterval = TimeSpan.FromSeconds(59) }
+        );
 
         var failure = Assert.Single(result.Failures ?? []);
         Assert.StartsWith("SecretProtection:RemoteKeys:SweepInterval ", failure);
@@ -114,7 +137,9 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
     [Fact]
     public void Validate_SweepIntervalAboveTheTimerMaximum_NamesTheKey()
     {
-        var result = Validate(new RemoteKeyOptions { SweepInterval = TimeSpan.FromDays(60) });
+        var result = Validate(
+            new RemoteKeyOptions { Deployment = "prod", SweepInterval = TimeSpan.FromDays(60) }
+        );
 
         var failure = Assert.Single(result.Failures ?? []);
         Assert.StartsWith("SecretProtection:RemoteKeys:SweepInterval ", failure);
@@ -123,7 +148,13 @@ public class RemoteKeyOptionsValidatorTests : BaseTests
     [Fact]
     public void Validate_SweepGracePeriodBelowTheMinimum_NamesTheKey()
     {
-        var result = Validate(new RemoteKeyOptions { SweepGracePeriod = TimeSpan.FromMinutes(59) });
+        var result = Validate(
+            new RemoteKeyOptions
+            {
+                Deployment = "prod",
+                SweepGracePeriod = TimeSpan.FromMinutes(59),
+            }
+        );
 
         var failure = Assert.Single(result.Failures ?? []);
         Assert.StartsWith("SecretProtection:RemoteKeys:SweepGracePeriod ", failure);

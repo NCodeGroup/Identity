@@ -36,12 +36,11 @@ internal sealed partial class RemoteKeyOptionsValidator(
         ArgumentNullException.ThrowIfNull(options);
 
         var keys = options.RemoteKeys;
-        var hasProviders = remoteKeyDescriptorCatalog.Providers.Count > 0;
         List<string> failures = [];
 
         if (string.IsNullOrEmpty(keys.Deployment))
         {
-            if (hasProviders)
+            if (remoteKeyDescriptorCatalog.Providers.Count > 0)
             {
                 failures.Add(
                     $"{Key(nameof(RemoteKeyOptions.Deployment))} is required because a remote key provider is registered."

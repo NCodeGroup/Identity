@@ -20,10 +20,11 @@ GET api/capabilities
 /// Provides the server-wide management capabilities discovery endpoint, letting management clients discover server
 /// behavior (such as the supported secret types and which expose a public key) instead of hard-coding it. The
 /// document is composed from the registered <see cref="DiscoverManagementCapabilitiesCommand"/> handlers, so new
-/// capabilities are exposed by registering a provider rather than by changing this endpoint. It answers only an
-/// authenticated management caller.
+/// capabilities are exposed by registering a provider rather than by changing this endpoint. It answers only a
+/// caller that the management authentication filter authenticated from a management access token, which it reads
+/// from <see cref="IManagementCallerFeature"/>.
 /// </summary>
-// See ADR-1067 and ADR-1482.
+// See ADR-1067, ADR-1482 and ADR-1484.
 internal class CapabilitiesApiEndpointHandler : IEndpointProvider
 {
     /// <inheritdoc />
@@ -45,7 +46,7 @@ internal class CapabilitiesApiEndpointHandler : IEndpointProvider
         CancellationToken cancellationToken
     )
     {
-        if (httpContext.User.Identity?.IsAuthenticated != true)
+        if (httpContext.Features.Get<IManagementCallerFeature>() is null)
             return ManagementProblems.AuthenticationRequired();
 
         var openIdContext = httpContext.GetOpenIdContext();

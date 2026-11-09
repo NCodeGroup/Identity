@@ -32,13 +32,18 @@ public sealed class CapabilitiesApiEndpointHandlerTests : IDisposable
 
     #region Helpers
 
-    private static DefaultHttpContext CreateHttpContext(bool authenticated) =>
-        new()
-        {
-            User = authenticated
-                ? new ClaimsPrincipal(new ClaimsIdentity(authenticationType: "test"))
-                : new ClaimsPrincipal(new ClaimsIdentity()),
-        };
+    private static DefaultHttpContext CreateHttpContext(bool authenticated)
+    {
+        if (!authenticated)
+            return new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
+
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(authenticationType: "test"));
+        var httpContext = new DefaultHttpContext { User = principal };
+        httpContext.Features.Set<IManagementCallerFeature>(
+            new DefaultManagementCallerFeature(principal)
+        );
+        return httpContext;
+    }
 
     #endregion
 
@@ -48,6 +53,21 @@ public sealed class CapabilitiesApiEndpointHandlerTests : IDisposable
     public async Task GetCapabilitiesAsync_WhenTheCallerIsAnonymous_ReturnsAuthenticationRequiredWithoutReadingTheContext()
     {
         var httpContext = CreateHttpContext(authenticated: false);
+
+        var result = await Handler.GetCapabilitiesAsync(httpContext, CancellationToken.None);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status401Unauthorized, problem.StatusCode);
+        Assert.Null(httpContext.Features.Get<IOpenIdContextFeature>());
+    }
+
+    [Fact]
+    public async Task GetCapabilitiesAsync_WhenAnotherSchemeAuthenticatedTheCaller_ReturnsAuthenticationRequired()
+    {
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity("Cookies")),
+        };
 
         var result = await Handler.GetCapabilitiesAsync(httpContext, CancellationToken.None);
 

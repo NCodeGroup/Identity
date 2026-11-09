@@ -3,8 +3,9 @@
 # The chart encodes the host's configuration surface, so it changes with the host and is checked on every change: each
 # values file under ci/ must lint strictly and render, and each release the chart must refuse — the host would refuse
 # it, or its replicas would not share state — must fail to render. The pre-deploy migration Job must render unless
-# disabled (ADR-1180). The chart's management console component is checked too: it must render on a host of its own,
-# stay opt-in (ADR-1458), and hold its key rings in a key management service under its own identity (ADR-1485).
+# disabled (ADR-1180). The chart's management console component is checked too: it must render on a host of its own
+# that routes every path to the console, call the management API at its authority's origin, stay opt-in (ADR-1458,
+# ADR-1488), and hold its key rings in a key management service under its own identity (ADR-1485).
 # Publishing the chart belongs to the release workflow.
 name: Host chart
 
@@ -171,20 +172,27 @@ jobs:
           }
           refuse --set managementConsole.host=
           refuse --set 'managementConsole.host=*.example.com'
-          refuse --set 'allowedHosts={id.example.com}'
           refuse --set managementConsole.authority=http://id.example.com
+          refuse --set managementConsole.managementApiUrl=https://manage.example.com/api
           refuse --set tenantResolution.strategyCode=DynamicByHost --set tenantResolution.staticSingle.issuer=
           refuse --set managementConsole.keyRings.client.pemSecret=
           refuse --set managementConsole.keyRings.dpop.pemSecret=
           refuse --set managementConsole.replicaCount=2
-          # /api reaches the server for machine callers and every other path reaches the console (ADR-1437).
+          # Every path of the console's host reaches the console; the server answers only at its own hosts (ADR-1488).
           ingress=$(helm template release "$CHART" --values "$base" --show-only templates/management-console-ingress.yaml)
-          if ! grep -q 'path: /api' <<< "$ingress"; then
-            echo "::error::The management console Ingress does not route /api to the server."
+          if grep -q 'path: /api' <<< "$ingress" || grep -Eq 'name: release-ncode-identity-host$' <<< "$ingress"; then
+            echo "::error::The management console Ingress routes a path to the server."
             exit 1
           fi
-          if ! grep -Eq 'name: release-ncode-identity-host$' <<< "$ingress"; then
-            echo "::error::The management console Ingress does not name the server Service."
+          # The console calls the management API at /api on its authority's origin, where the server checks its DPoP proofs.
+          if ! helm template release "$CHART" --values "$base" \
+            --show-only templates/management-console-deployment.yaml | grep -q 'value: "https://id.example.com/api"'; then
+            echo "::error::The management console must call the management API at https://id.example.com/api."
+            exit 1
+          fi
+          if ! helm template release "$CHART" --values "$base" --set managementConsole.authority=https://auth.example.com/ \
+            --show-only templates/management-console-deployment.yaml | grep -q 'value: "https://auth.example.com/api"'; then
+            echo "::error::The management console must call the management API at https://auth.example.com/api."
             exit 1
           fi
           # The console is opt-in: a release that does not enable it renders none of its objects.

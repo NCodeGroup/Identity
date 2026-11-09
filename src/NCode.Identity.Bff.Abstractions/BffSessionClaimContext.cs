@@ -18,7 +18,7 @@ namespace NCode.Identity.Bff;
 [PublicAPI]
 public sealed class BffSessionClaimContext
 {
-    private readonly List<Claim> _claims;
+    private List<Claim> ClaimList { get; }
 
     /// <summary>
     /// Gets the claim types that a contributor can neither add nor remove: <c>iss</c>, <c>sub</c>, <c>sid</c>,
@@ -60,7 +60,7 @@ public sealed class BffSessionClaimContext
         HttpContext = httpContext;
         Issuer = issuer;
         Subject = subject;
-        _claims = [.. claims];
+        ClaimList = [.. claims];
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public sealed class BffSessionClaimContext
     /// Gets the claims the session will be created with, as the contributors have shaped them so far. A session stores
     /// each claim's type, value and value type; every claim of a session carries the provider's issuer.
     /// </summary>
-    public IReadOnlyList<Claim> Claims => _claims;
+    public IReadOnlyList<Claim> Claims => ClaimList;
 
     /// <summary>
     /// Adds a claim to the session.
@@ -94,7 +94,7 @@ public sealed class BffSessionClaimContext
         ArgumentNullException.ThrowIfNull(claim);
         ThrowIfReserved(claim.Type, nameof(claim));
 
-        _claims.Add(claim);
+        ClaimList.Add(claim);
     }
 
     /// <summary>
@@ -108,7 +108,7 @@ public sealed class BffSessionClaimContext
         ArgumentNullException.ThrowIfNull(claimType);
         ThrowIfReserved(claimType, nameof(claimType));
 
-        return _claims.RemoveAll(claim =>
+        return ClaimList.RemoveAll(claim =>
             string.Equals(claim.Type, claimType, StringComparison.Ordinal)
         );
     }

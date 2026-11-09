@@ -18,8 +18,8 @@ namespace NCode.Identity.Jwt.Validation;
 [PublicAPI]
 public sealed class JwtValidationContext
 {
-    private readonly HashSet<IJwtValidationRequirement> _pendingRequirements;
-    private readonly List<string> _failureReasons = [];
+    private HashSet<IJwtValidationRequirement> PendingRequirementSet { get; }
+    private List<string> FailureReasonList { get; } = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JwtValidationContext"/> class.
@@ -45,7 +45,7 @@ public sealed class JwtValidationContext
         PropertyBag = propertyBag;
         ServiceProvider = serviceProvider;
         TimeProvider = timeProvider;
-        _pendingRequirements = [.. requirements];
+        PendingRequirementSet = [.. requirements];
     }
 
     /// <summary>
@@ -93,25 +93,25 @@ public sealed class JwtValidationContext
     /// <summary>
     /// Gets the reasons supplied to <see cref="Fail(string, string)"/>, if any.
     /// </summary>
-    public IReadOnlyList<string> FailureReasons => _failureReasons;
+    public IReadOnlyList<string> FailureReasons => FailureReasonList;
 
     /// <summary>
     /// Gets the requirements that no handler has marked as succeeded yet.
     /// </summary>
     public IReadOnlyCollection<IJwtValidationRequirement> PendingRequirements =>
-        _pendingRequirements;
+        PendingRequirementSet;
 
     /// <summary>
     /// Gets a value indicating whether every requirement has succeeded and nothing has failed.
     /// </summary>
-    public bool HasSucceeded => !HasFailed && _pendingRequirements.Count == 0;
+    public bool HasSucceeded => !HasFailed && PendingRequirementSet.Count == 0;
 
     /// <summary>
     /// Marks the specified <paramref name="requirement"/> as satisfied.
     /// </summary>
     /// <param name="requirement">The <see cref="IJwtValidationRequirement"/> that has been satisfied.</param>
     public void Succeed(IJwtValidationRequirement requirement) =>
-        _pendingRequirements.Remove(requirement);
+        PendingRequirementSet.Remove(requirement);
 
     /// <summary>
     /// Records a hard validation failure. Once called, <see cref="HasSucceeded"/> can never become <c>true</c>,
@@ -129,6 +129,6 @@ public sealed class JwtValidationContext
         ArgumentException.ThrowIfNullOrEmpty(failureCode);
 
         FailureCode ??= failureCode;
-        _failureReasons.Add(reason);
+        FailureReasonList.Add(reason);
     }
 }

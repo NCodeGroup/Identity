@@ -32,41 +32,40 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
             EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
         };
 
-    private readonly MockRepository _mockRepository = new(MockBehavior.Strict);
-    private readonly RSA _rsa = RSA.Create(2048);
-    private readonly ServiceProvider _serviceProvider;
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+    private RSA Rsa { get; } = RSA.Create(2048);
+    private ServiceProvider ServiceProvider { get; }
 
     public JoseSerializerJweDecryptionTests()
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSecretsLibrary().AddJoseLibrary();
-        _serviceProvider = services.BuildServiceProvider();
+        ServiceProvider = services.BuildServiceProvider();
     }
 
-    private IJoseSerializer JoseSerializer =>
-        _serviceProvider.GetRequiredService<IJoseSerializer>();
+    private IJoseSerializer JoseSerializer => ServiceProvider.GetRequiredService<IJoseSerializer>();
 
     private ISecretKeyFactory SecretKeyFactory =>
-        _serviceProvider.GetRequiredService<ISecretKeyFactory>();
+        ServiceProvider.GetRequiredService<ISecretKeyFactory>();
 
     private IAlgorithmCollection Algorithms =>
-        _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection;
+        ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection;
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public async Task DisposeAsync() => await _serviceProvider.DisposeAsync();
+    public async Task DisposeAsync() => await ServiceProvider.DisposeAsync();
 
     public void Dispose()
     {
-        _rsa.Dispose();
-        _mockRepository.Verify();
+        Rsa.Dispose();
+        MockRepository.Verify();
     }
 
     #region Scaffolding
 
     private SecretKey CreateRsaKey() =>
-        SecretKeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, _rsa);
+        SecretKeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, Rsa);
 
     private SecretKey CreateSymmetricKey(int bitCount)
     {
@@ -78,7 +77,7 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
     private SecretKey CreateRemoteRsaKey(Mock<IRemoteKeyProvider> provider) =>
         SecretKeyFactory.CreateRsaRemote(
             new KeyMetadata { KeyId = "remote-rsa" },
-            _rsa.ExportSubjectPublicKeyInfo(),
+            Rsa.ExportSubjectPublicKeyInfo(),
             new RemoteKeyBinding
             {
                 Provider = provider.Object,
@@ -194,7 +193,7 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
     [Fact]
     public async Task DecodeAsync_UnwrapThrowsIOException_Propagates()
     {
-        var provider = _mockRepository.Create<IRemoteKeyProvider>();
+        var provider = MockRepository.Create<IRemoteKeyProvider>();
         provider
             .Setup(x =>
                 x.DecryptAsync(
@@ -219,7 +218,7 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
     [Fact]
     public async Task DecodeAsync_UnwrapThrowsCryptographicException_FailsAtTheTag()
     {
-        var provider = _mockRepository.Create<IRemoteKeyProvider>();
+        var provider = MockRepository.Create<IRemoteKeyProvider>();
         provider
             .Setup(x =>
                 x.DecryptAsync(

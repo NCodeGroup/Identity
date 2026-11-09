@@ -187,14 +187,14 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
     // The CORS middleware writes its headers as the response starts, which DefaultHttpContext never signals.
     private sealed class StartingResponseFeature : HttpResponseFeature
     {
-        private readonly List<(Func<object, Task> Callback, object State)> _callbacks = [];
+        private List<(Func<object, Task> Callback, object State)> Callbacks { get; } = [];
 
         public override void OnStarting(Func<object, Task> callback, object state) =>
-            _callbacks.Add((callback, state));
+            Callbacks.Add((callback, state));
 
         public async Task StartAsync()
         {
-            foreach (var (callback, state) in _callbacks)
+            foreach (var (callback, state) in Callbacks)
                 await callback(state);
         }
     }

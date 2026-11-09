@@ -1,11 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
 
@@ -14,8 +12,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // Every management response that reveals a secret is marked so that no cache stores it (ADR-1345).
 public class SecretRevealingManagementResponseTests
 {
-    private const string BootstrapClientId = "it-bootstrap-admin";
-    private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     private const string ResourceServerClientId = "it-no-store-client";
@@ -124,23 +120,15 @@ public class SecretRevealingManagementResponseTests
 
     #region Scaffolding
 
-    private static ConfiguredHostApplicationFactory CreateFactory()
-    {
-        var bootstrapClientSecretBytes = SecureEncoding.UTF8.GetBytes(BootstrapClientSecret);
-        var encodedBootstrapClientSecret = Base64Url.EncodeToString(bootstrapClientSecretBytes);
-        return new ConfiguredHostApplicationFactory(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = encodedBootstrapClientSecret,
-                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            }
-        );
-    }
+    private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
     private static Task<HttpClient> CreateAdministratorClientAsync(
         HostApplicationFactory factory
-    ) => factory.CreateManagementClientAsync(BootstrapClientId, BootstrapClientSecret);
+    ) =>
+        factory.CreateManagementClientAsync(
+            BootstrapAdminApplicationFactory.ClientId,
+            BootstrapAdminApplicationFactory.ClientSecret
+        );
 
     private static async Task<string> CreateClientAsync(HttpClient administrator)
     {

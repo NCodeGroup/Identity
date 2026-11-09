@@ -30,7 +30,7 @@ internal class DefaultSessionService(
 {
     // The sliding idle window is renewed at most once per this interval, so a burst of authorize requests does not
     // amplify into a write per request; the session's last-activity marker may lag real activity by up to this amount.
-    private static readonly TimeSpan TouchGranularity = TimeSpan.FromMinutes(1);
+    private static TimeSpan TouchGranularity { get; } = TimeSpan.FromMinutes(1);
 
     // Page size used when enumerating a subject's sessions; a subject holds far fewer sessions than this in practice.
     private const int EnumerationPageSize = 100;

@@ -35,7 +35,7 @@ internal class DefaultBackChannelLogoutNotifier(
 ) : IBackChannelLogoutNotifier
 {
     // https://openid.net/specs/openid-connect-backchannel-1_0.html#LogoutToken
-    private static readonly TimeSpan LogoutTokenLifetime = TimeSpan.FromMinutes(2);
+    private static TimeSpan LogoutTokenLifetime { get; } = TimeSpan.FromMinutes(2);
 
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;

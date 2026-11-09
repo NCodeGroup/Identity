@@ -15,7 +15,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
     // process. Ed25519 is the fully-specified identifier for exactly that variant (RFC 9864); the polymorphic EdDSA is
     // excluded, because it also accepts an Ed448 key. Intersected with the registered algorithms, Ed25519 applies only
     // when the EdDSA package is registered (ADR-1272).
-    private static readonly string[] SigningAlgorithms =
+    private static string[] SigningAlgorithms { get; } =
     [
         AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
         AlgorithmCodes.DigitalSignature.EcdsaSha256,
@@ -23,7 +23,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
     ];
 
     // FAPI 2.0 permits only strong (asymmetric / mutual-TLS) client authentication.
-    private static readonly string[] TokenEndpointAuthMethods =
+    private static string[] TokenEndpointAuthMethods { get; } =
     [
         OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
         OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,

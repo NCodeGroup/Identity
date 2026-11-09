@@ -17,5 +17,5 @@ public static class AuthenticationParameterParsers
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="IRequestClaims"/> from a JSON payload.
     /// </summary>
-    public static readonly JsonParser<IRequestClaims> RequestClaims = new();
+    public static JsonParser<IRequestClaims> RequestClaims { get; } = new();
 }

@@ -329,9 +329,9 @@ override NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.Toke
 override NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse!
-static readonly NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters.Claims -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims!>!
-static readonly NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters.RequestObjectSource -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.RequestObjectSource>!
-static readonly NCode.Identity.OpenId.Authentication.Messages.Parsers.AuthenticationParameterParsers.RequestClaims -> NCode.Identity.OpenId.Messages.Parsers.JsonParser<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims!>!
+static NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters.Claims.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims!>!
+static NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters.RequestObjectSource.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.RequestObjectSource>!
+static NCode.Identity.OpenId.Authentication.Messages.Parsers.AuthenticationParameterParsers.RequestClaims.get -> NCode.Identity.OpenId.Messages.Parsers.JsonParser<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims!>!
 const NCode.Identity.OpenId.Authentication.Metrics.OpenIdAuthenticationMetrics.MeterName = "NCode.Identity.OpenId.Authentication" -> string!
 const NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptions.SectionName = "GrantRetention" -> string!
 NCode.Identity.OpenId.Authentication.Metrics.OpenIdAuthenticationMetrics

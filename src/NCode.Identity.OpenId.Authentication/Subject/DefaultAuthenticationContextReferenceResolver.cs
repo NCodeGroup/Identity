@@ -15,29 +15,29 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 internal sealed class DefaultAuthenticationContextReferenceResolver
     : IAuthenticationContextReferenceResolver
 {
-    private static readonly HashSet<string> KnowledgeFactors = new(StringComparer.Ordinal)
-    {
-        OpenIdProtocol.AuthenticationMethods.Password,
-        OpenIdProtocol.AuthenticationMethods.PersonalIdentificationOrPattern,
-        OpenIdProtocol.AuthenticationMethods.KnowledgeBasedAuthentication,
-    };
+    private static HashSet<string> KnowledgeFactors { get; } =
+        new(StringComparer.Ordinal)
+        {
+            OpenIdProtocol.AuthenticationMethods.Password,
+            OpenIdProtocol.AuthenticationMethods.PersonalIdentificationOrPattern,
+            OpenIdProtocol.AuthenticationMethods.KnowledgeBasedAuthentication,
+        };
 
-    private static readonly HashSet<string> PossessionOrBiometricFactors = new(
-        StringComparer.Ordinal
-    )
-    {
-        OpenIdProtocol.AuthenticationMethods.OneTimePassword,
-        OpenIdProtocol.AuthenticationMethods.ProofOfPossessionHardwareSecuredKey,
-        OpenIdProtocol.AuthenticationMethods.ProofOfPossessionSoftwareSecuredKey,
-        OpenIdProtocol.AuthenticationMethods.ConfirmationBySms,
-        OpenIdProtocol.AuthenticationMethods.ConfirmationByTelephone,
-        OpenIdProtocol.AuthenticationMethods.SmartCard,
-        OpenIdProtocol.AuthenticationMethods.FacialRecognition,
-        OpenIdProtocol.AuthenticationMethods.FingerprintBiometric,
-        OpenIdProtocol.AuthenticationMethods.IrisScanBiometric,
-        OpenIdProtocol.AuthenticationMethods.RetinaScanBiometric,
-        OpenIdProtocol.AuthenticationMethods.VoiceBiometric,
-    };
+    private static HashSet<string> PossessionOrBiometricFactors { get; } =
+        new(StringComparer.Ordinal)
+        {
+            OpenIdProtocol.AuthenticationMethods.OneTimePassword,
+            OpenIdProtocol.AuthenticationMethods.ProofOfPossessionHardwareSecuredKey,
+            OpenIdProtocol.AuthenticationMethods.ProofOfPossessionSoftwareSecuredKey,
+            OpenIdProtocol.AuthenticationMethods.ConfirmationBySms,
+            OpenIdProtocol.AuthenticationMethods.ConfirmationByTelephone,
+            OpenIdProtocol.AuthenticationMethods.SmartCard,
+            OpenIdProtocol.AuthenticationMethods.FacialRecognition,
+            OpenIdProtocol.AuthenticationMethods.FingerprintBiometric,
+            OpenIdProtocol.AuthenticationMethods.IrisScanBiometric,
+            OpenIdProtocol.AuthenticationMethods.RetinaScanBiometric,
+            OpenIdProtocol.AuthenticationMethods.VoiceBiometric,
+        };
 
     /// <inheritdoc />
     public ValueTask<string?> ResolveAsync(

@@ -311,6 +311,13 @@ internal class ResourceServerApiEndpointHandler(
             statusCode: StatusCodes.Status409Conflict
         );
 
+    /// <summary>
+    /// Finds the scope whose value equals <paramref name="scopeValue"/>, compared with
+    /// <see cref="StringComparison.OrdinalIgnoreCase"/>, among the scopes the resource server holds.
+    /// </summary>
+    /// <param name="resourceServer">The resource server whose scopes are searched.</param>
+    /// <param name="scopeValue">The scope value to find, in any casing.</param>
+    /// <returns>The stored scope, with its own casing, or <see langword="null"/> when the resource server holds no scope with that value.</returns>
     private static PersistedScope? FindScopeOrDefault(
         PersistedResourceServer resourceServer,
         string scopeValue
@@ -742,18 +749,21 @@ internal class ResourceServerApiEndpointHandler(
         await store.AddScopeAsync(resourceServerId, persistedScope, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var scopeResource = ToScopeResource(persistedScope);
+        var resourceValues = ToResourceValues(scopeResource);
+
         await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
             httpContext,
             resourceServer.TenantId,
             resourceServerId,
             persistedScope.Value,
             ResourceChangeTypes.Created,
-            ToResourceValues(ToScopeResource(persistedScope))
+            resourceValues
         );
 
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{request.Value}",
-            ToScopeResource(persistedScope)
+            scopeResource
         );
     }
 
@@ -846,13 +856,16 @@ internal class ResourceServerApiEndpointHandler(
         await store.UpdateScopeAsync(resourceServerId, updatedScope, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var scopeResource = ToScopeResource(updatedScope);
+        var resourceValues = ToResourceValues(scopeResource);
+
         await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
             httpContext,
             resourceServer.TenantId,
             resourceServerId,
             scope.Value,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToScopeResource(updatedScope))
+            resourceValues
         );
 
         return TypedResults.NoContent();

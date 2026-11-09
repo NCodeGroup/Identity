@@ -807,6 +807,10 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A scope with the specified value already exists.",
+            problem.ProblemDetails.Detail
+        );
     }
 
     [Fact]
@@ -910,10 +914,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.Equal(
-            StatusCodes.Status404NotFound,
-            Assert.IsAssignableFrom<IStatusCodeHttpResult>(result).StatusCode
-        );
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -1020,10 +1022,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.Equal(
-            StatusCodes.Status404NotFound,
-            Assert.IsAssignableFrom<IStatusCodeHttpResult>(result).StatusCode
-        );
+        var notFound = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
     [Fact]
@@ -1056,6 +1056,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal("A reserved system scope cannot be removed.", problem.ProblemDetails.Detail);
     }
 
     [Fact]

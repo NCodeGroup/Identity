@@ -26,6 +26,12 @@ public static class InteractiveSettingKeys
         new(InteractiveSettingNames.BrandingLogoUri);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'branding_favicon_uri' setting.
+    /// </summary>
+    public static SettingKey<string> BrandingFaviconUri =>
+        new(InteractiveSettingNames.BrandingFaviconUri);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'branding_primary_color' setting.
     /// </summary>
     public static SettingKey<string> BrandingPrimaryColor =>

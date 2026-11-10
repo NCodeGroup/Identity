@@ -30,10 +30,10 @@ public class DefaultRegistrationTests : BaseTests
     // The BFF reads the host environment, which a host's builder registers.
     private static ServiceCollection CreateServices()
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton(CreateLooseMock<IHostEnvironment>().Object);
-        return services;
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSingleton(CreateLooseMock<IHostEnvironment>().Object);
+        return serviceCollection;
     }
 
     #region AddIdentityBff Tests
@@ -41,11 +41,11 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public async Task AddIdentityBff_WithConfiguration_ComposesTheBffAndItsLibraries()
     {
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
 
-        services.AddIdentityBff(CreateConfiguration());
+        serviceCollection.AddIdentityBff(CreateConfiguration());
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptions<BffOptions>>().Value;
         Assert.Equal(["web"], options.Frontends.Keys);
         Assert.Equal("https://op.example", options.Frontends["web"].Authority);
@@ -61,43 +61,43 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddIdentityBff_Always_ExposesEveryLibraryBuilderOverTheSameServices()
     {
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
 
-        var builder = services.AddIdentityBff(CreateConfiguration());
+        var builder = serviceCollection.AddIdentityBff(CreateConfiguration());
 
-        Assert.Same(services, builder.ServiceCollection);
-        Assert.Same(services, builder.SharedStateLibraryBuilder.ServiceCollection);
-        Assert.Same(services, builder.EventsLibraryBuilder.ServiceCollection);
-        Assert.Same(services, builder.SecretsLibraryBuilder.ServiceCollection);
-        Assert.Same(services, builder.JoseLibraryBuilder.ServiceCollection);
-        Assert.Same(services, builder.JwtLibraryBuilder.ServiceCollection);
-        Assert.Same(services, builder.OpenIdClientLibraryBuilder.ServiceCollection);
-        Assert.Same(services, builder.BffLibraryBuilder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.SharedStateLibraryBuilder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.EventsLibraryBuilder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.SecretsLibraryBuilder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.JoseLibraryBuilder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.JwtLibraryBuilder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.OpenIdClientLibraryBuilder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.BffLibraryBuilder.ServiceCollection);
     }
 
     [Fact]
     public async Task AddIdentityBff_WhenTheHostRegisteredItsOwnSharedState_KeepsIt()
     {
         // A deployment that runs several replicas registers shared adapters; the in-process defaults never replace them.
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
         var valueSet = CreateLooseMock<IExpiringValueSet>().Object;
-        services.AddSingleton(valueSet);
+        serviceCollection.AddSingleton(valueSet);
 
-        services.AddIdentityBff(CreateConfiguration());
+        serviceCollection.AddIdentityBff(CreateConfiguration());
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
         Assert.Same(valueSet, provider.GetRequiredService<IExpiringValueSet>());
     }
 
     [Fact]
     public void AddIdentityBff_Always_RegistersTheRefreshLeaseValidator()
     {
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
 
-        services.AddIdentityBff(CreateConfiguration());
+        serviceCollection.AddIdentityBff(CreateConfiguration());
 
         Assert.Contains(
-            services,
+            serviceCollection,
             x =>
                 x.ServiceType == typeof(IValidateOptions<BffOptions>)
                 && x.ImplementationType == typeof(BffRefreshLeaseValidator)
@@ -108,9 +108,11 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddIdentityBff_WithNullConfiguration_Throws()
     {
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
 
-        var exception = Assert.Throws<ArgumentNullException>(() => services.AddIdentityBff(null!));
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            serviceCollection.AddIdentityBff(null!)
+        );
 
         Assert.Equal("configuration", exception.ParamName);
     }

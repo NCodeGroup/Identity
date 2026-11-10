@@ -46,8 +46,8 @@ public static class BffReverseProxyBuilderExtensions
         {
             ArgumentNullException.ThrowIfNull(builder);
 
-            var services = builder.Services;
-            var isAdded = services.Any(descriptor =>
+            var serviceCollection = builder.Services;
+            var isAdded = serviceCollection.Any(descriptor =>
                 descriptor.ServiceType == typeof(ITransformProvider)
                 && !descriptor.IsKeyedService
                 && descriptor.ImplementationType == typeof(BffTransformProvider)
@@ -55,18 +55,18 @@ public static class BffReverseProxyBuilderExtensions
             if (isAdded)
                 return builder;
 
-            DecorateClientFactory(services);
-            services.AddSingleton<ITransformProvider, BffTransformProvider>();
+            DecorateClientFactory(serviceCollection);
+            serviceCollection.AddSingleton<ITransformProvider, BffTransformProvider>();
             return builder;
         }
     }
 
-    private static void DecorateClientFactory(IServiceCollection services)
+    private static void DecorateClientFactory(IServiceCollection serviceCollection)
     {
         var index = -1;
-        for (var i = services.Count - 1; i >= 0 && index < 0; i--)
+        for (var i = serviceCollection.Count - 1; i >= 0 && index < 0; i--)
         {
-            var descriptor = services[i];
+            var descriptor = serviceCollection[i];
             if (
                 descriptor.ServiceType == typeof(IForwarderHttpClientFactory)
                 && !descriptor.IsKeyedService
@@ -83,8 +83,8 @@ public static class BffReverseProxyBuilderExtensions
             );
         }
 
-        var inner = services[index];
-        services[index] = ServiceDescriptor.Describe(
+        var inner = serviceCollection[index];
+        serviceCollection[index] = ServiceDescriptor.Describe(
             typeof(IForwarderHttpClientFactory),
             serviceProvider =>
                 ActivatorUtilities.CreateInstance<BffForwarderHttpClientFactory>(

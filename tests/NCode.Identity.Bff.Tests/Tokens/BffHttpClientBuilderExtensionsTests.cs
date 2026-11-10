@@ -24,24 +24,26 @@ public class BffHttpClientBuilderExtensionsTests
     [Fact]
     public async Task AddBffAccessTokenHandler_AddsTheHandlerToTheChain()
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        var clientBuilder = services
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        var clientBuilder = serviceCollection
             .AddSecretsLibrary()
             .AddJoseLibrary()
             .AddJwtLibrary()
             .AddOpenIdClientLibrary();
-        var eventsBuilder = services.AddEventServices();
-        services
+        var eventsBuilder = serviceCollection.AddEventServices();
+        serviceCollection
             .AddSharedStateServices()
             .AddInProcessExpiringKeySet()
             .AddInProcessExpiringValueSet()
             .AddInProcessExpiringIndexSet();
-        services.AddSingleton(new Mock<IHostEnvironment>().Object);
+        serviceCollection.AddSingleton(new Mock<IHostEnvironment>().Object);
         clientBuilder.AddBffLibrary(eventsBuilder);
-        services.AddHttpClient(ClientName).AddBffAccessTokenHandler(new BffTokenRequest("user"));
+        serviceCollection
+            .AddHttpClient(ClientName)
+            .AddBffAccessTokenHandler(new BffTokenRequest("user"));
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
 
         var factory = provider.GetRequiredService<IHttpMessageHandlerFactory>();
         var handler = factory.CreateHandler(ClientName);

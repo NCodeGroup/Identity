@@ -52,7 +52,11 @@ internal sealed class BffTokenRequestTransform(
         if (!token.IsSuccess)
         {
             // YARP forwards nothing once a request transform has set the response.
-            await BffResponses.WriteTokenUnavailableAsync(httpContext, token.StatusCode);
+            await BffResponses.WriteTokenUnavailableAsync(
+                httpContext,
+                token.StatusCode,
+                httpContext.RequestAborted
+            );
             return;
         }
 

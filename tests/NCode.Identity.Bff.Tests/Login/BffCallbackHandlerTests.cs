@@ -131,7 +131,7 @@ public class BffCallbackHandlerTests : BaseTests
 
     private async Task AssertFailsAsync(DefaultHttpContext httpContext, string reason)
     {
-        await CreateHandler().HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal($"/?error={reason}", httpContext.Response.Headers.Location.ToString());
@@ -478,7 +478,7 @@ public class BffCallbackHandlerTests : BaseTests
         SetupSuccess(response);
         var httpContext = CreateHttpContext($"?state={State}&code=abc");
 
-        await CreateHandler().HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext, CancellationToken.None);
 
         var now = TimeProvider.GetUtcNow();
         var metadata = Assert.IsType<BffSessionMetadata>(CreatedMetadata);
@@ -512,7 +512,8 @@ public class BffCallbackHandlerTests : BaseTests
     {
         SetupSuccess(new TokenResponse { AccessToken = "at", IdToken = "idt" });
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+        await CreateHandler()
+            .HandleAsync(CreateHttpContext($"?state={State}&code=abc"), CancellationToken.None);
 
         var metadata = Assert.IsType<BffSessionMetadata>(CreatedMetadata);
         Assert.Equal(BffTestFrontends.Authority, metadata.Authority);
@@ -533,7 +534,8 @@ public class BffCallbackHandlerTests : BaseTests
         };
         SetupSuccess(response);
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+        await CreateHandler()
+            .HandleAsync(CreateHttpContext($"?state={State}&code=abc"), CancellationToken.None);
 
         var metadata = Assert.IsType<BffSessionMetadata>(CreatedMetadata);
         var expected = TimeProvider.GetUtcNow() + TimeSpan.FromSeconds(600);
@@ -566,7 +568,11 @@ public class BffCallbackHandlerTests : BaseTests
             .ReturnsAsync(true)
             .Verifiable();
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc", oldHandle));
+        await CreateHandler()
+            .HandleAsync(
+                CreateHttpContext($"?state={State}&code=abc", oldHandle),
+                CancellationToken.None
+            );
     }
 
     #endregion
@@ -670,7 +676,8 @@ public class BffCallbackHandlerTests : BaseTests
             )
         );
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+        await CreateHandler()
+            .HandleAsync(CreateHttpContext($"?state={State}&code=abc"), CancellationToken.None);
 
         var payload = Assert.IsType<BffSessionPayload>(CreatedPayload);
         Assert.Equal(
@@ -757,7 +764,8 @@ public class BffCallbackHandlerTests : BaseTests
         ClaimContributors.Add(first.Object);
         ClaimContributors.Add(second.Object);
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+        await CreateHandler()
+            .HandleAsync(CreateHttpContext($"?state={State}&code=abc"), CancellationToken.None);
 
         var payload = Assert.IsType<BffSessionPayload>(CreatedPayload);
         Assert.Equal(

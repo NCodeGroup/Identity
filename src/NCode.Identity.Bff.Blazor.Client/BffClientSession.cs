@@ -72,8 +72,11 @@ internal sealed class BffClientSession(
     /// Gets the current authentication state and starts monitoring the session on the first call. Without a seed, the
     /// current state is the result of the first probe.
     /// </summary>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The task of the current authentication state.</returns>
-    public Task<AuthenticationState> GetAuthenticationStateAsync()
+    public ValueTask<AuthenticationState> GetAuthenticationStateAsync(
+        CancellationToken cancellationToken
+    )
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
 
@@ -99,7 +102,7 @@ internal sealed class BffClientSession(
         if (startMonitor)
             _ = MonitorAsync(first, Disposal.Token).AsTask();
 
-        return current;
+        return new ValueTask<AuthenticationState>(current);
     }
 
     /// <summary>

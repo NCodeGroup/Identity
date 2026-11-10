@@ -39,12 +39,15 @@ internal class BffLogoutHandler(
     /// Handles the logout request.
     /// </summary>
     /// <param name="httpContext">The current HTTP context.</param>
-    public virtual async Task HandleAsync(HttpContext httpContext)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public virtual async ValueTask HandleAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
         var request = httpContext.Request;
-        var cancellationToken = httpContext.RequestAborted;
         var frontend = Frontends.GetRequired(httpContext);
         var bffOptions = frontend.Options;
 
@@ -52,7 +55,11 @@ internal class BffLogoutHandler(
 
         if (!request.HasFormContentType)
         {
-            await WriteInvalidRequestAsync(httpContext, "The logout request must be a form post.");
+            await WriteInvalidRequestAsync(
+                httpContext,
+                "The logout request must be a form post.",
+                cancellationToken
+            );
             return;
         }
 
@@ -61,7 +68,8 @@ internal class BffLogoutHandler(
         {
             await WriteInvalidRequestAsync(
                 httpContext,
-                "The logout request is not a valid form post."
+                "The logout request is not a valid form post.",
+                cancellationToken
             );
             return;
         }
@@ -71,7 +79,8 @@ internal class BffLogoutHandler(
         {
             await WriteInvalidRequestAsync(
                 httpContext,
-                "The returnUrl parameter must appear once."
+                "The returnUrl parameter must appear once.",
+                cancellationToken
             );
             return;
         }
@@ -79,7 +88,11 @@ internal class BffLogoutHandler(
         var returnUrl = returnUrlValues.Count == 0 ? DefaultReturnUrl : returnUrlValues[0];
         if (returnUrl is null || !BffReturnUrls.IsLocalUrl(returnUrl, bffOptions.ReturnUrls))
         {
-            await WriteInvalidRequestAsync(httpContext, "The returnUrl parameter is not allowed.");
+            await WriteInvalidRequestAsync(
+                httpContext,
+                "The returnUrl parameter is not allowed.",
+                cancellationToken
+            );
             return;
         }
 
@@ -94,7 +107,11 @@ internal class BffLogoutHandler(
         var sid = sidValues.Count == 1 ? sidValues[0] : null;
         if (sid is null || !IsGuardMatch(sid, session.Payload.LogoutGuard))
         {
-            await WriteInvalidRequestAsync(httpContext, "The sid parameter is missing or invalid.");
+            await WriteInvalidRequestAsync(
+                httpContext,
+                "The sid parameter is missing or invalid.",
+                cancellationToken
+            );
             return;
         }
 
@@ -147,11 +164,16 @@ internal class BffLogoutHandler(
         );
     }
 
-    private static Task WriteInvalidRequestAsync(HttpContext httpContext, string title) =>
+    private static ValueTask WriteInvalidRequestAsync(
+        HttpContext httpContext,
+        string title,
+        CancellationToken cancellationToken
+    ) =>
         BffResponses.WriteProblemAsync(
             httpContext,
             StatusCodes.Status400BadRequest,
             BffProblemTypes.InvalidRequest,
-            title
+            title,
+            cancellationToken
         );
 }

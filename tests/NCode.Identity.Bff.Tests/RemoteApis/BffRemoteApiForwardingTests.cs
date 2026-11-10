@@ -177,7 +177,7 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
             }
         );
 
-        await CreateHandler().HandleAsync(context, CreateApi(remote));
+        await CreateHandler().HandleAsync(context, CreateApi(remote), CancellationToken.None);
 
         var recorded = Assert.Single(remote.Requests);
         Assert.Equal(HttpMethod.Post, recorded.Method);
@@ -232,7 +232,8 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
             CreateRemoteResponse(HttpStatusCode.OK, """{"id":7}""")
         );
 
-        await CreateHandler().HandleAsync(context, CreateApi(remote, context));
+        await CreateHandler()
+            .HandleAsync(context, CreateApi(remote, context), CancellationToken.None);
 
         Assert.Equal(2, remote.Requests.Count);
         Assert.Equal("proof-1", remote.Requests[0].DPoP);
@@ -255,7 +256,7 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
             (_, _) => throw new HttpRequestException("connection refused")
         );
 
-        await CreateHandler().HandleAsync(context, CreateApi(remote));
+        await CreateHandler().HandleAsync(context, CreateApi(remote), CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status502BadGateway, context.Response.StatusCode);
     }

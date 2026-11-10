@@ -25,10 +25,14 @@ internal sealed class ManagementConsolePageHandler(
     /// Writes the console page, or a <c>503</c> problem when the bundle has not been built.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The console page, or the problem that reports a missing bundle.</returns>
-    public async Task<IResult> HandleAsync(HttpContext httpContext)
+    public async ValueTask<IResult> HandleAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
-        var page = await bundle.TryReadIndexAsync(httpContext.RequestAborted);
+        var page = await bundle.TryReadIndexAsync(cancellationToken);
         if (page is null)
         {
             httpContext.Response.SetNoStore();

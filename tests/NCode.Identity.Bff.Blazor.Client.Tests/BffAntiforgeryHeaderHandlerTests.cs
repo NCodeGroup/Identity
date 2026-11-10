@@ -119,7 +119,10 @@ public class BffAntiforgeryHeaderHandlerTests : BaseTests
         Assert.True(BffClientUserReader.TryRead(JsonElement.Parse(UserDocument), out var user));
         Assert.NotNull(user);
         session.Seed(user);
-        await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
+        await session
+            .GetAuthenticationStateAsync(CancellationToken.None)
+            .AsTask()
+            .WaitAsync(Timeout);
         Assert.Empty(probeHandler.Requests);
         var inner = StubHttpMessageHandler.Respond(HttpStatusCode.Unauthorized);
         using var invoker = CreateInvoker(session, inner);

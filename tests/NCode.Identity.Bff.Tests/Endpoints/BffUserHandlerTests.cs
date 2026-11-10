@@ -38,7 +38,7 @@ public class BffUserHandlerTests : BaseTests
         httpContext.Response.Body = new MemoryStream();
         var handler = CreateHandler(httpContext, null);
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status401Unauthorized, httpContext.Response.StatusCode);
         Assert.Equal(
@@ -57,7 +57,7 @@ public class BffUserHandlerTests : BaseTests
         var document = JsonElement.Parse("""{"sub":"sub-1","claims":{"role":["admin","user"]}}""");
         var handler = CreateHandler(httpContext, document);
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
         Assert.Equal("application/json; charset=utf-8", httpContext.Response.ContentType);

@@ -43,7 +43,7 @@ internal sealed class BffClientAuthenticationStateProvider
 
     /// <inheritdoc />
     public override Task<AuthenticationState> GetAuthenticationStateAsync() =>
-        Session.GetAuthenticationStateAsync();
+        Session.GetAuthenticationStateAsync(CancellationToken.None).AsTask();
 
     /// <inheritdoc />
     public void Dispose()

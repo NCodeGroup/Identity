@@ -38,19 +38,26 @@ internal class BffBackChannelLogoutHandler(
     /// Handles the back-channel logout request.
     /// </summary>
     /// <param name="httpContext">The current HTTP context.</param>
-    public virtual async Task HandleAsync(HttpContext httpContext)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public virtual async ValueTask HandleAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
         var request = httpContext.Request;
-        var cancellationToken = httpContext.RequestAborted;
 
         httpContext.Response.SetNoStore();
 
         var form = await request.TryReadFormAsync(cancellationToken);
         if (form is null)
         {
-            await RejectAsync(httpContext, OpenIdProtocol.ErrorCodes.InvalidRequest);
+            await RejectAsync(
+                httpContext,
+                OpenIdProtocol.ErrorCodes.InvalidRequest,
+                cancellationToken
+            );
             return;
         }
 
@@ -58,7 +65,11 @@ internal class BffBackChannelLogoutHandler(
         var logoutToken = tokenValues.Count == 1 ? tokenValues[0] : null;
         if (string.IsNullOrEmpty(logoutToken))
         {
-            await RejectAsync(httpContext, OpenIdProtocol.ErrorCodes.InvalidRequest);
+            await RejectAsync(
+                httpContext,
+                OpenIdProtocol.ErrorCodes.InvalidRequest,
+                cancellationToken
+            );
             return;
         }
 
@@ -77,13 +88,13 @@ internal class BffBackChannelLogoutHandler(
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await RejectAsync(httpContext, ProviderUnavailableReason);
+            await RejectAsync(httpContext, ProviderUnavailableReason, cancellationToken);
             return;
         }
 
         if (!result.IsValid)
         {
-            await RejectAsync(httpContext, result.FailureCode);
+            await RejectAsync(httpContext, result.FailureCode, cancellationToken);
             return;
         }
 
@@ -127,7 +138,7 @@ internal class BffBackChannelLogoutHandler(
         }
         catch (BffStoreUnavailableException)
         {
-            await RejectAsync(httpContext, SessionEndFailedReason);
+            await RejectAsync(httpContext, SessionEndFailedReason, cancellationToken);
             return;
         }
 
@@ -162,18 +173,19 @@ internal class BffBackChannelLogoutHandler(
         );
     }
 
-    private async Task RejectAsync(HttpContext httpContext, string reason)
+    private async ValueTask RejectAsync(
+        HttpContext httpContext,
+        string reason,
+        CancellationToken cancellationToken
+    )
     {
-        await auditRecorder.BackchannelLogoutRejectedAsync(
-            httpContext,
-            reason,
-            httpContext.RequestAborted
-        );
+        await auditRecorder.BackchannelLogoutRejectedAsync(httpContext, reason, cancellationToken);
         await BffResponses.WriteProblemAsync(
             httpContext,
             StatusCodes.Status400BadRequest,
             BffProblemTypes.InvalidRequest,
-            "The logout token was rejected."
+            "The logout token was rejected.",
+            cancellationToken
         );
     }
 }

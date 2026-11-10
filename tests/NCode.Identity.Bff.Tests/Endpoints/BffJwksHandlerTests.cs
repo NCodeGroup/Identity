@@ -102,7 +102,7 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
         var httpContext = CreateHttpContext();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
         Assert.Equal("application/json; charset=utf-8", httpContext.Response.ContentType);
@@ -123,7 +123,7 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
         var httpContext = CreateHttpContext();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         var keys = (await ReadBodyAsync(httpContext))["keys"]!.AsArray();
         Assert.All(
@@ -139,7 +139,7 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
         var httpContext = CreateHttpContext();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         var keys = (await ReadBodyAsync(httpContext))["keys"]!.AsArray();
         var key = Assert.Single(keys);
@@ -153,7 +153,7 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
         var httpContext = CreateHttpContext();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         var keys = (await ReadBodyAsync(httpContext))["keys"]!.AsArray();
         Assert.Empty(keys);
@@ -168,7 +168,7 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, keyRing);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            handler.HandleAsync(CreateHttpContext())
+            handler.HandleAsync(CreateHttpContext(), CancellationToken.None).AsTask()
         );
 
         Assert.Contains("Bff:Frontends:default:ClientAuthentication:KeyRing", exception.Message);
@@ -180,7 +180,9 @@ public sealed class BffJwksHandlerTests : BaseTests
         var mockKeyRingProvider = CreateStrictMock<IClientKeyRingProvider>();
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => handler.HandleAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            handler.HandleAsync(null!, CancellationToken.None).AsTask()
+        );
     }
 
     #endregion

@@ -50,7 +50,7 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
         httpContext.Response.Body = new MemoryStream();
 
-        var result = await handler.HandleAsync(httpContext);
+        var result = await handler.HandleAsync(httpContext, CancellationToken.None);
         await result.ExecuteAsync(httpContext);
 
         httpContext.Response.Body.Position = 0;

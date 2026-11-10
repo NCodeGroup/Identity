@@ -106,7 +106,10 @@ internal static class BffRemoteApiEndpoints
         var handler = services.GetRequiredService<BffRemoteApiHandler>();
 
         var builder = endpoints
-            .Map(api.Path + RemainderPattern, context => handler.HandleAsync(context, remoteApi))
+            .Map(
+                api.Path + RemainderPattern,
+                context => handler.HandleAsync(context, remoteApi, context.RequestAborted).AsTask()
+            )
             .WithDisplayName(
                 frontend is null
                     ? $"BFF remote API {api.Path}"

@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Bff.Cookies;
@@ -29,6 +30,11 @@ internal class BffLogoutService(
     /// <param name="httpContext">The current request.</param>
     /// <param name="state">The session to end.</param>
     /// <param name="reason">Why the session ends; see <see cref="BffSessionEndReasons"/>.</param>
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work must complete whatever the caller does, so it runs on its own token and takes none (ADR-1293)."
+    )]
     public virtual async ValueTask EndSessionAsync(
         HttpContext httpContext,
         BffSessionState state,
@@ -62,6 +68,11 @@ internal class BffLogoutService(
             await RevokeAsync(frontend.Registration, refreshToken);
     }
 
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work must complete whatever the caller does, so it runs on its own token and takes none (ADR-1293)."
+    )]
     private async ValueTask RevokeAsync(ClientRegistration registration, string refreshToken)
     {
         var request = new TokenRevocationRequest(refreshToken)

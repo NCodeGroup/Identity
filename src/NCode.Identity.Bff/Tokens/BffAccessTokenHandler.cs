@@ -159,7 +159,7 @@ internal class BffAccessTokenHandler(
         return context;
     }
 
-    private async Task<HttpResponseMessage> SendRecordingNonceAsync(
+    private async ValueTask<HttpResponseMessage> SendRecordingNonceAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken
     )

@@ -19,6 +19,7 @@ using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
@@ -1297,6 +1298,51 @@ public sealed class DefaultRegistrationTests
             ],
             names
         );
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_WhenAProviderThatCreatesKeysHasNoDeployment_FailsToStart()
+    {
+        RemoteKeyProviderDescriptor[] providers = [new() { Name = "test-kms" }];
+        RemoteKeyAlgorithm[] algorithms = [];
+        // the descriptor source describes a provider that creates keys, so the deployment that scopes its keys is required
+        var descriptorSource = new Mock<IRemoteKeyDescriptorSource>(MockBehavior.Strict);
+        descriptorSource.Setup(x => x.Providers).Returns(providers).Verifiable();
+        descriptorSource.Setup(x => x.Algorithms).Returns(algorithms).Verifiable();
+        using var host = BuildHost(
+            [],
+            serviceCollection => serviceCollection.AddSingleton(descriptorSource.Object)
+        );
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains(
+            "SecretProtection:RemoteKeys:Deployment is required",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        descriptorSource.Verify();
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_WhenTheRemoteKeysSectionHasAnUnknownMember_FailsToStart()
+    {
+        using var host = BuildHost(
+            new Dictionary<string, string?> { ["SecretProtection:RemoteKeys:Unknown"] = "x" }
+        );
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains(
+            "'SecretProtection:RemoteKeys'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("'Unknown'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

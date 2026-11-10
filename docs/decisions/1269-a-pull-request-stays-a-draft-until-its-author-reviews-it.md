@@ -54,4 +54,4 @@ The ruleset is unchanged: a draft cannot enter the merge queue, so the existing 
 
 - [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) — pull requests are the only way into `main`.
 - [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) — the merge queue runs the full gate.
-- [ADR-1128](1128-commits-are-attributed-to-people-not-agents.md) — the author of a pull request is a person.
+- [project-template ADR-0018](project-template/0018-agent-attribution-is-avoided-not-enforced.md) — agent attribution is avoided in a pull request's commits, title and description.

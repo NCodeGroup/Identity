@@ -122,6 +122,10 @@ dotnet_diagnostic.IDE0005.severity = warning
 file_header_template = Copyright © NCode Group\nSPDX-License-Identifier: Apache-2.0
 dotnet_diagnostic.IDE0073.severity = warning
 
+# NCID0002 and NCID0003 roll out as warnings while the own async methods of the solution are converted (ADR-1495).
+dotnet_diagnostic.NCID0002.severity = warning
+dotnet_diagnostic.NCID0003.severity = warning
+
 # ── Test projects only ──────────────────────────────────────────────────────
 # The following rules are legitimate on shipping code but pure noise in xUnit tests.
 [tests/**/*.cs]

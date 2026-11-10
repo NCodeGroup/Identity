@@ -49,6 +49,10 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Test Style](csharp-tests.instructions.md#test-style).
 - 👁 **The production code-style rules apply in tests** — template
   [Test Style](csharp-tests.instructions.md#test-style).
+- 👁 **Name an `IServiceCollection` `serviceCollection`** —
+  [`csharp-production.instructions.md`](csharp-production.instructions.md) §4: every local, parameter and lambda
+  parameter, as in `var serviceCollection = new ServiceCollection();` and
+  `builder.ConfigureTestServices(serviceCollection => …)`; an `IServiceProvider` keeps its own name.
 - 👁 **Prefer the size-specific xUnit assertions** — template [Assertions](csharp-tests.instructions.md#assertions).
 - 👁 **Compare an `ImmutableArray<T>` by its elements** — template
   [Assertions](csharp-tests.instructions.md#assertions).

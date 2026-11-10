@@ -62,6 +62,7 @@ NCode.Identity.Jwk.JsonWebKey.PublicKeyUse.get -> string?
 NCode.Identity.Jwk.JsonWebKey.ToJsonString() -> string!
 NCode.Identity.Jwk.JsonWebKey.ToPublicKey() -> NCode.Identity.Jwk.JsonWebKey!
 NCode.Identity.Jwk.JsonWebKey.TryGetMember(string! name, out string? value) -> bool
+NCode.Identity.Jwk.JsonWebKey.WithKeyId(string! keyId) -> NCode.Identity.Jwk.JsonWebKey!
 NCode.Identity.Jwk.JsonWebKey.X509CertificateChain.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.Jwk.JsonWebKey.X509CertificateSha1Thumbprint.get -> string?
 NCode.Identity.Jwk.JsonWebKey.X509CertificateSha256Thumbprint.get -> string?

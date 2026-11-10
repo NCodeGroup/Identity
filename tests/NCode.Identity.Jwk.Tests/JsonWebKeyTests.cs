@@ -62,6 +62,75 @@ public class JsonWebKeyTests
     }
 
     [Fact]
+    public void WithKeyId_WhenKeyHasNoKid_AddsTheKidAndKeepsEveryOtherMember()
+    {
+        var jwk = JsonWebKey.Parse("""{"kty":"EC","crv":"P-256","x":"eA","y":"eQ","use":"sig"}""");
+
+        var named = jwk.WithKeyId("k1");
+
+        Assert.Equal("k1", named.KeyId);
+        Assert.Equal("EC", named.KeyType);
+        Assert.Equal("P-256", named.GetMember("crv"));
+        Assert.Equal("eA", named.GetMember("x"));
+        Assert.Equal("eQ", named.GetMember("y"));
+        Assert.Equal("sig", named.PublicKeyUse);
+    }
+
+    [Fact]
+    public void WithKeyId_WhenKeyHasAKid_ReplacesTheKid()
+    {
+        var jwk = JsonWebKey.Parse("""{"kty":"oct","k":"c2VjcmV0","kid":"old"}""");
+
+        var named = jwk.WithKeyId("new");
+
+        var members = JsonElement.Parse(named.ToJsonString()).EnumerateObject();
+        var kidCount = members.Count(member => member.Name == "kid");
+
+        Assert.Equal("new", named.KeyId);
+        Assert.Equal("c2VjcmV0", named.GetMember("k"));
+        Assert.Equal(1, kidCount);
+    }
+
+    [Fact]
+    public void WithKeyId_LeavesTheOriginalKeyUnchanged()
+    {
+        var jwk = JsonWebKey.Parse("""{"kty":"oct","k":"c2VjcmV0","kid":"old"}""");
+
+        _ = jwk.WithKeyId("new");
+
+        Assert.Equal("old", jwk.KeyId);
+    }
+
+    [Fact]
+    public void WithKeyId_WhenRsaKey_KeepsTheDescriptor()
+    {
+        var jwk = JsonWebKey.Parse("""{"kty":"RSA","n":"bW9k","e":"AQAB","d":"ZA"}""");
+
+        var named = jwk.WithKeyId("k1");
+
+        Assert.NotNull(named.KeyTypeDescriptor);
+        Assert.Same(jwk.KeyTypeDescriptor, named.KeyTypeDescriptor);
+        Assert.True(named.ContainsPrivateKeyMaterial);
+        Assert.Equal(jwk.ComputeThumbprint(), named.ComputeThumbprint());
+    }
+
+    [Fact]
+    public void WithKeyId_WhenKeyIdIsEmpty_Throws()
+    {
+        var jwk = JsonWebKey.Parse("""{"kty":"oct","k":"c2VjcmV0"}""");
+
+        Assert.Throws<ArgumentException>(() => jwk.WithKeyId(string.Empty));
+    }
+
+    [Fact]
+    public void WithKeyId_WhenKeyIdIsNull_Throws()
+    {
+        var jwk = JsonWebKey.Parse("""{"kty":"oct","k":"c2VjcmV0"}""");
+
+        Assert.Throws<ArgumentNullException>(() => jwk.WithKeyId(null!));
+    }
+
+    [Fact]
     public void JsonWebKeySet_RoundTripsKeys()
     {
         const string json =

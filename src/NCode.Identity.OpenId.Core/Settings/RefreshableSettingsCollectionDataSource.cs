@@ -115,7 +115,7 @@ internal sealed class RefreshableSettingsCollectionDataSource
         }
     }
 
-    private void OnTimer() => _ = RefreshOnScheduleAsync(Stopping.Token);
+    private void OnTimer() => _ = RefreshOnScheduleAsync(Stopping.Token).AsTask();
 
     private async ValueTask RefreshOnScheduleAsync(CancellationToken cancellationToken)
     {

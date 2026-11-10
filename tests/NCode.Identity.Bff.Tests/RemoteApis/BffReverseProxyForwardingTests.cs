@@ -199,7 +199,8 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
             Destination,
             cluster.Model.HttpClient,
             ForwarderRequestConfig.Empty,
-            route.Transformer
+            route.Transformer,
+            cancellationToken
         );
     }
 

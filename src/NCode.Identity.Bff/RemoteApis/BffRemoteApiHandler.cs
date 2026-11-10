@@ -77,7 +77,8 @@ internal sealed class BffRemoteApiHandler(
             api.Destination,
             api.Invoker,
             api.RequestConfig,
-            transformer
+            transformer,
+            cancellationToken
         );
 
         if (error != ForwarderError.None && !cancellationToken.IsCancellationRequested)

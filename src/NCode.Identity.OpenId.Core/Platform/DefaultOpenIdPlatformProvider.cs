@@ -101,7 +101,7 @@ internal class DefaultOpenIdPlatformProvider(
 
     // Both clears are caught inside the pass, so the task it returns never faults and starting it unawaited leaves
     // nothing unobserved.
-    private void EvictTenants() => _ = EvictAsync(CancellationToken.None);
+    private void EvictTenants() => _ = EvictAsync(CancellationToken.None).AsTask();
 
     private async ValueTask EvictAsync(CancellationToken cancellationToken)
     {

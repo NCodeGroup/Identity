@@ -72,17 +72,20 @@ public class BffClientSessionTests : BaseTests
         session.Seed(ReadUser(UserDocument));
         var changes = 0;
         session.Changed += _ => Interlocked.Increment(ref changes);
-        await session.GetAuthenticationStateAsync(cancellationToken).AsTask().WaitAsync(Timeout);
+        await session
+            .GetAuthenticationStateAsync(cancellationToken)
+            .AsTask()
+            .WaitAsync(Timeout, cancellationToken);
 
         time.Advance(TimeSpan.FromMinutes(1));
-        await requested.WaitAsync(Timeout);
+        await requested.WaitAsync(Timeout, cancellationToken);
         session.Invalidate();
-        await requested.WaitAsync(Timeout);
+        await requested.WaitAsync(Timeout, cancellationToken);
 
         var state = await session
             .GetAuthenticationStateAsync(cancellationToken)
             .AsTask()
-            .WaitAsync(Timeout);
+            .WaitAsync(Timeout, cancellationToken);
         Assert.True(state.User.Identity?.IsAuthenticated);
         Assert.Equal(0, changes);
         Assert.Contains(Logger.Collector.GetSnapshot(), record => record.Id.Id == eventId);

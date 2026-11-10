@@ -1,6 +1,6 @@
 # 1486. An analyzer in every project reports a field that could be an auto-property
 
-- **Status:** Accepted
+- **Status:** Accepted (decision 2 amended by [ADR-1493](1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md): the analyzers build against the Roslyn EF Core Design pins, older than every SDK global.json admits)
 - **Date:** 2026-11-09
 - **Deciders:** NCode Group
 

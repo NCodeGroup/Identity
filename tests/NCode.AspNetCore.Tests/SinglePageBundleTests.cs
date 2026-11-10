@@ -62,7 +62,8 @@ public class SinglePageBundleTests : BaseTests
     private void WriteAsset(string name, string contents)
     {
         Directory.CreateDirectory(AssetsPath);
-        File.WriteAllText(Path.Combine(AssetsPath, name), contents, SecureEncoding.UTF8);
+        var assetPath = Path.Combine(AssetsPath, name);
+        File.WriteAllText(assetPath, contents, SecureEncoding.UTF8);
     }
 
     #endregion
@@ -72,7 +73,8 @@ public class SinglePageBundleTests : BaseTests
     [Fact]
     public async Task TryReadIndexAsync_WhenTheBundleExists_ReturnsTheParsedIndex()
     {
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var lastWriteTimeUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        WriteIndex(IndexHtml, lastWriteTimeUtc);
         using var bundle = CreateBundle();
 
         var index = await bundle.TryReadIndexAsync(CancellationToken.None);
@@ -109,7 +111,8 @@ public class SinglePageBundleTests : BaseTests
     [Fact]
     public async Task TryReadIndexAsync_WhenTheIndexIsUnchanged_ReturnsTheCachedIndex()
     {
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var lastWriteTimeUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        WriteIndex(IndexHtml, lastWriteTimeUtc);
         using var bundle = CreateBundle();
         var first = await bundle.TryReadIndexAsync(CancellationToken.None);
 
@@ -122,7 +125,8 @@ public class SinglePageBundleTests : BaseTests
     [Fact]
     public async Task TryReadIndexAsync_WhenTheIndexIsUnchanged_ParsesItOnce()
     {
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var lastWriteTimeUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        WriteIndex(IndexHtml, lastWriteTimeUtc);
         using var bundle = CreateBundle();
 
         await bundle.TryReadIndexAsync(CancellationToken.None);
@@ -134,7 +138,8 @@ public class SinglePageBundleTests : BaseTests
     [Fact]
     public async Task TryReadIndexAsync_WhenTheParserFindsNoIndex_ReturnsNull()
     {
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var lastWriteTimeUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        WriteIndex(IndexHtml, lastWriteTimeUtc);
         using var bundle = CreateBundle(DistPath, _ => null);
 
         var index = await bundle.TryReadIndexAsync(CancellationToken.None);
@@ -152,10 +157,8 @@ public class SinglePageBundleTests : BaseTests
         await bundle.TryReadIndexAsync(CancellationToken.None);
 
         // Same length and last-write time: only a cached copy can still return the original text.
-        WriteIndex(
-            IndexHtml.Replace("doctype", "DOCTYPE", StringComparison.Ordinal),
-            lastWriteTimeUtc
-        );
+        var rewrittenHtml = IndexHtml.Replace("doctype", "DOCTYPE", StringComparison.Ordinal);
+        WriteIndex(rewrittenHtml, lastWriteTimeUtc);
 
         var index = await bundle.TryReadIndexAsync(CancellationToken.None);
 
@@ -183,14 +186,14 @@ public class SinglePageBundleTests : BaseTests
     [Fact]
     public async Task TryReadIndexAsync_WhenTheIndexIsRewrittenWithANewWriteTime_ReturnsTheNewIndex()
     {
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var firstWriteTimeUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        WriteIndex(IndexHtml, firstWriteTimeUtc);
         using var bundle = CreateBundle();
         await bundle.TryReadIndexAsync(CancellationToken.None);
 
-        WriteIndex(
-            IndexHtml.Replace("doctype", "DOCTYPE", StringComparison.Ordinal),
-            new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc)
-        );
+        var rewrittenHtml = IndexHtml.Replace("doctype", "DOCTYPE", StringComparison.Ordinal);
+        var secondWriteTimeUtc = new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc);
+        WriteIndex(rewrittenHtml, secondWriteTimeUtc);
 
         var index = await bundle.TryReadIndexAsync(CancellationToken.None);
 
@@ -201,7 +204,8 @@ public class SinglePageBundleTests : BaseTests
     [Fact]
     public async Task TryReadIndexAsync_WhenTheIndexIsRemoved_ReturnsNull()
     {
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var lastWriteTimeUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        WriteIndex(IndexHtml, lastWriteTimeUtc);
         using var bundle = CreateBundle();
         await bundle.TryReadIndexAsync(CancellationToken.None);
 
@@ -237,9 +241,11 @@ public class SinglePageBundleTests : BaseTests
     public void TryGetAsset_WhenThePathNamesNoFileOfTheAssetsDirectory_ReturnsNull(string assetPath)
     {
         // The bundle is nested, so the file outside it is still cleaned up with the test's directory.
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var lastWriteTimeUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        WriteIndex(IndexHtml, lastWriteTimeUtc);
         WriteAsset(".hidden", "x");
-        File.WriteAllText(Path.Combine(Root.FullName, "outside.js"), "x", SecureEncoding.UTF8);
+        var outsidePath = Path.Combine(Root.FullName, "outside.js");
+        File.WriteAllText(outsidePath, "x", SecureEncoding.UTF8);
         using var bundle = CreateBundle();
 
         var file = bundle.TryGetAsset(assetPath);
@@ -261,11 +267,13 @@ public class SinglePageBundleTests : BaseTests
     public void TryGetAsset_WhenTheBundleIsBuiltAfterTheBundleIsCreated_ReturnsTheFile()
     {
         using var bundle = CreateBundle();
-        Assert.Null(bundle.TryGetAsset("index.js"));
+        var before = bundle.TryGetAsset("index.js");
+        Assert.Null(before);
 
         WriteAsset("index.js", "x");
 
-        Assert.NotNull(bundle.TryGetAsset("index.js"));
+        var after = bundle.TryGetAsset("index.js");
+        Assert.NotNull(after);
     }
 
     #endregion
@@ -283,14 +291,33 @@ public class SinglePageBundleTests : BaseTests
         var result = bundle.ServeAsset(httpContext.Response, "index-abc123.js");
 
         var file = Assert.IsType<PhysicalFileHttpResult>(result);
+        var lastWriteTimeUtc = File.GetLastWriteTimeUtc(assetPath);
+        var lastModified = new DateTimeOffset(lastWriteTimeUtc);
+        var cacheControl = httpContext.Response.Headers.CacheControl.ToString();
         Assert.EndsWith("index-abc123.js", file.FileName, StringComparison.Ordinal);
-        Assert.Equal(new DateTimeOffset(File.GetLastWriteTimeUtc(assetPath)), file.LastModified);
+        Assert.Equal(lastModified, file.LastModified);
         Assert.NotNull(file.EntityTag);
         Assert.True(file.EnableRangeProcessing);
-        Assert.Equal(
-            "public, max-age=31536000, immutable",
-            httpContext.Response.Headers.CacheControl.ToString()
-        );
+        Assert.Equal("public, max-age=31536000, immutable", cacheControl);
+    }
+
+    [Theory]
+    [InlineData("favicon-abc123.ico", "image/x-icon")]
+    [InlineData("favicon-abc123.svg", "image/svg+xml")]
+    [InlineData("apple-touch-icon-abc123.png", "image/png")]
+    public void ServeAsset_WhenTheAssetIsAnIcon_ServesItWithItsImageType(
+        string fileName,
+        string contentType
+    )
+    {
+        WriteAsset(fileName, "x");
+        using var bundle = CreateBundle();
+        var httpContext = new DefaultHttpContext();
+
+        var result = bundle.ServeAsset(httpContext.Response, fileName);
+
+        var file = Assert.IsType<PhysicalFileHttpResult>(result);
+        Assert.Equal(contentType, file.ContentType);
     }
 
     [Fact]
@@ -301,9 +328,10 @@ public class SinglePageBundleTests : BaseTests
         var httpContext = new DefaultHttpContext();
 
         var result = bundle.ServeAsset(httpContext.Response, "missing.js");
+        var hasCacheControl = httpContext.Response.Headers.ContainsKey("Cache-Control");
 
         Assert.IsType<NotFound>(result);
-        Assert.False(httpContext.Response.Headers.ContainsKey("Cache-Control"));
+        Assert.False(hasCacheControl);
     }
 
     [Fact]
@@ -314,9 +342,10 @@ public class SinglePageBundleTests : BaseTests
         var httpContext = new DefaultHttpContext();
 
         var result = bundle.ServeAsset(httpContext.Response, "data.unknownext123");
+        var hasCacheControl = httpContext.Response.Headers.ContainsKey("Cache-Control");
 
         Assert.IsType<NotFound>(result);
-        Assert.False(httpContext.Response.Headers.ContainsKey("Cache-Control"));
+        Assert.False(hasCacheControl);
     }
 
     [Fact]
@@ -326,9 +355,10 @@ public class SinglePageBundleTests : BaseTests
         var httpContext = new DefaultHttpContext();
 
         var result = bundle.ServeAsset(httpContext.Response, string.Empty);
+        var hasCacheControl = httpContext.Response.Headers.ContainsKey("Cache-Control");
 
         Assert.IsType<NotFound>(result);
-        Assert.False(httpContext.Response.Headers.ContainsKey("Cache-Control"));
+        Assert.False(hasCacheControl);
     }
 
     #endregion

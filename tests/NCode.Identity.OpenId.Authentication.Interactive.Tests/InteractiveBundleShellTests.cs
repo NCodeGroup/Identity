@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using NCode.AspNetCore;
 using NCode.Buffers;
 using Xunit;
 
@@ -19,9 +23,13 @@ public class InteractiveBundleShellTests
         );
 
         Assert.NotNull(shell);
-        Assert.Equal("<html><HEAD lang=\"en\">", shell.Prelude.ToString());
-        Assert.Equal("<title>t</title></HEAD><body><div id=\"root\">", shell.Head.ToString());
-        Assert.Equal("</div><script></script></body></html>", shell.Tail.ToString());
+        var prelude = shell.Prelude.ToString();
+        var head = shell.Head.ToString();
+        var tail = shell.Tail.ToString();
+
+        Assert.Equal("<html><HEAD lang=\"en\">", prelude);
+        Assert.Equal("<title>t</title></HEAD><body><div id=\"root\">", head);
+        Assert.Equal("</div><script></script></body></html>", tail);
     }
 
     [Fact]
@@ -32,7 +40,9 @@ public class InteractiveBundleShellTests
         );
 
         Assert.NotNull(shell);
-        Assert.Equal("<!-- <header> --><head>", shell.Prelude.ToString());
+        var prelude = shell.Prelude.ToString();
+
+        Assert.Equal("<!-- <header> --><head>", prelude);
     }
 
     [Theory]
@@ -65,18 +75,24 @@ public class InteractiveBundleShellTests
     [BuiltAuthBundleFact]
     public void TryCreate_WhenGivenTheBuiltBundlesIndex_SplitsItSoTheLoginPageLoadsTheBundleBeneathTheSurface()
     {
-        var shell = InteractiveBundleShell.TryCreate(
-            File.ReadAllText(
-                BuiltAuthBundleFactAttribute.IndexPath ?? string.Empty,
-                SecureEncoding.UTF8
-            )
+        var indexHtml = File.ReadAllText(
+            BuiltAuthBundleFactAttribute.IndexPath ?? string.Empty,
+            SecureEncoding.UTF8
         );
+        var shell = InteractiveBundleShell.TryCreate(indexHtml);
         Assert.NotNull(shell);
 
         var writer = new ArrayBufferWriter<char>();
+        var frame = new InteractivePageFrame(
+            shell,
+            "/acme/account/",
+            null,
+            "n0nce",
+            TestLocales.Xx
+        );
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            new InteractivePageFrame(shell, "/acme/account/", null, "n0nce", TestLocales.Xx),
+            frame,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -128,15 +144,49 @@ public class InteractiveBundleShellTests
         );
     }
 
+    [BuiltAuthBundleTheory]
+    [InlineData(
+        "<link rel=\"icon\" href=\"\\./assets/(?<asset>favicon-[^\"/]+\\.ico)\" sizes=\"32x32\"",
+        "image/x-icon"
+    )]
+    [InlineData(
+        "<link rel=\"icon\" href=\"\\./assets/(?<asset>favicon-[^\"/]+\\.svg)\" type=\"image/svg\\+xml\"",
+        "image/svg+xml"
+    )]
+    [InlineData(
+        "<link rel=\"apple-touch-icon\" href=\"\\./assets/(?<asset>apple-touch-icon-[^\"/]+\\.png)\"",
+        "image/png"
+    )]
+    public void TryCreate_WhenGivenTheBuiltBundlesIndex_LinksEachIconAsAnAssetServedWithItsImageType(
+        string linkPattern,
+        string contentType
+    )
+    {
+        var indexPath = BuiltAuthBundleFactAttribute.IndexPath ?? string.Empty;
+        var html = File.ReadAllText(indexPath, SecureEncoding.UTF8);
+        var bundleRootPath = Path.GetDirectoryName(indexPath);
+        using var bundle = new SinglePageBundle<InteractiveBundleShell>(
+            bundleRootPath,
+            InteractiveBundleShell.TryCreate
+        );
+        var httpContext = new DefaultHttpContext();
+
+        var link = Regex.Match(html, linkPattern);
+        var assetPath = link.Groups["asset"].Value;
+        var result = bundle.ServeAsset(httpContext.Response, assetPath);
+
+        Assert.True(link.Success, linkPattern);
+        var file = Assert.IsType<PhysicalFileHttpResult>(result);
+        Assert.Equal(contentType, file.ContentType);
+    }
+
     [Fact]
     public void LanguagePlaceholder_Always_IsTheLangAttributeOfTheBundlesIndex()
     {
         // The bundle's source index.html and the host agree on the placeholder, so a page the host serves never
         // keeps the raw placeholder as its language; the bundle's own tests hold its side of the contract.
-        var indexHtml = File.ReadAllText(
-            Path.Combine(AppContext.BaseDirectory, "auth-index.html"),
-            SecureEncoding.UTF8
-        );
+        var indexPath = Path.Combine(AppContext.BaseDirectory, "auth-index.html");
+        var indexHtml = File.ReadAllText(indexPath, SecureEncoding.UTF8);
 
         Assert.Contains(
             $"<html lang=\"{InteractiveBundleShell.LanguagePlaceholder}\">",

@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using NCode.AspNetCore;
 using NCode.Buffers;
 using Xunit;
 
@@ -49,6 +52,42 @@ public class ManagementConsolePageTests : BaseTests
             scriptTags,
             tag => Assert.Contains("nonce=\"n0nce\"", tag.Value, StringComparison.Ordinal)
         );
+    }
+
+    [BuiltConsoleBundleTheory]
+    [InlineData(
+        "<link rel=\"icon\" href=\"/assets/(?<asset>favicon-[^\"/]+\\.ico)\" sizes=\"32x32\"",
+        "image/x-icon"
+    )]
+    [InlineData(
+        "<link rel=\"icon\" href=\"/assets/(?<asset>favicon-[^\"/]+\\.svg)\" type=\"image/svg\\+xml\"",
+        "image/svg+xml"
+    )]
+    [InlineData(
+        "<link rel=\"apple-touch-icon\" href=\"/assets/(?<asset>apple-touch-icon-[^\"/]+\\.png)\"",
+        "image/png"
+    )]
+    public void Render_WhenGivenTheBuiltBundlesIndex_LinksEachIconAsAnAssetServedWithItsImageType(
+        string linkPattern,
+        string contentType
+    )
+    {
+        var indexPath = BuiltConsoleBundleFactAttribute.IndexPath ?? string.Empty;
+        var html = File.ReadAllText(indexPath, SecureEncoding.UTF8);
+        var bundleRootPath = Path.GetDirectoryName(indexPath);
+        using var bundle = new SinglePageBundle<ManagementConsolePage>(
+            bundleRootPath,
+            static html => new ManagementConsolePage(html)
+        );
+        var httpContext = new DefaultHttpContext();
+
+        var link = Regex.Match(html, linkPattern);
+        var assetPath = link.Groups["asset"].Value;
+        var result = bundle.ServeAsset(httpContext.Response, assetPath);
+
+        Assert.True(link.Success, linkPattern);
+        var file = Assert.IsType<PhysicalFileHttpResult>(result);
+        Assert.Equal(contentType, file.ContentType);
     }
 
     #endregion

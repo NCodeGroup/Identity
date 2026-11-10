@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using NCode.AspNetCore;
 using NCode.Buffers;
 using Xunit;
 
@@ -126,6 +130,49 @@ public class InteractiveBundleShellTests
             html,
             StringComparison.Ordinal
         );
+    }
+
+    [BuiltAuthBundleFact]
+    public void TryCreate_WhenGivenTheBuiltBundlesIndex_LinksTheFamilysIconsFromTheAssetsTheHostServes()
+    {
+        var indexPath = BuiltAuthBundleFactAttribute.IndexPath ?? string.Empty;
+        var html = File.ReadAllText(indexPath, SecureEncoding.UTF8);
+        using var bundle = new SinglePageBundle<InteractiveBundleShell>(
+            Path.GetDirectoryName(indexPath),
+            InteractiveBundleShell.TryCreate
+        );
+
+        (string Pattern, string ContentType)[] icons =
+        [
+            (
+                "<link rel=\"icon\" href=\"\\./assets/(?<asset>favicon-[^\"/]+\\.ico)\" sizes=\"32x32\"",
+                "image/x-icon"
+            ),
+            (
+                "<link rel=\"icon\" href=\"\\./assets/(?<asset>favicon-[^\"/]+\\.svg)\" type=\"image/svg\\+xml\"",
+                "image/svg+xml"
+            ),
+            (
+                "<link rel=\"apple-touch-icon\" href=\"\\./assets/(?<asset>apple-touch-icon-[^\"/]+\\.png)\"",
+                "image/png"
+            ),
+        ];
+
+        foreach (var (pattern, contentType) in icons)
+        {
+            var link = Regex.Match(html, pattern);
+            Assert.True(link.Success, pattern);
+
+            var result = bundle.ServeAsset(
+                new DefaultHttpContext().Response,
+                link.Groups["asset"].Value
+            );
+            Assert.Equal(contentType, Assert.IsType<PhysicalFileHttpResult>(result).ContentType);
+        }
+
+        // The page's policy admits images from its own origin, where the host serves the icons.
+        var policy = InteractivePageSecurity.Create(null).Policy.ToContentSecurityPolicy();
+        Assert.Contains("img-src 'self'", policy, StringComparison.Ordinal);
     }
 
     [Fact]

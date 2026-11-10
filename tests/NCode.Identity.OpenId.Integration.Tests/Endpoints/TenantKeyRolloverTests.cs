@@ -37,7 +37,7 @@ public class TenantKeyRolloverTests
         );
         var client = CreateHttpClient(factory);
 
-        var provisioned = await GetSecretsAsync(administrator);
+        var provisioned = await GetSecretsAsync(administrator, CancellationToken.None);
         var rs256 = Assert.Single(provisioned, secret => secret.Algorithm == "RS256");
         Assert.Equal(3, provisioned.Count);
         Assert.Equal(rs256.CreatedWhen, rs256.ActivatesWhen);
@@ -55,15 +55,16 @@ public class TenantKeyRolloverTests
             rs256,
             activatesWhen: rs256.ActivatesWhen,
             retiresWhen: retiresWhen,
-            expiresWhen: retiresWhen.AddDays(7)
+            expiresWhen: retiresWhen.AddDays(7),
+            CancellationToken.None
         );
 
-        var keys = await GetJwksAsync(client);
+        var keys = await GetJwksAsync(client, CancellationToken.None);
         var rs256Keys = keys.Where(key => key.GetProperty("alg").GetString() == "RS256").ToList();
         Assert.Equal(2, rs256Keys.Count);
         Assert.Equal(4, keys.Count);
 
-        var secrets = await GetSecretsAsync(administrator);
+        var secrets = await GetSecretsAsync(administrator, CancellationToken.None);
         var successor = Assert.Single(
             secrets,
             secret => secret.Algorithm == "RS256" && secret.SecretId != rs256.SecretId
@@ -101,7 +102,7 @@ public class TenantKeyRolloverTests
         );
         var client = CreateHttpClient(factory);
 
-        var provisioned = await GetSecretsAsync(administrator);
+        var provisioned = await GetSecretsAsync(administrator, CancellationToken.None);
         var es256 = Assert.Single(provisioned, secret => secret.Algorithm == "ES256");
 
         // The key's whole lifecycle collapses onto its creation, which lies in the past, so it has expired: the seed
@@ -112,15 +113,16 @@ public class TenantKeyRolloverTests
             es256,
             activatesWhen: es256.CreatedWhen,
             retiresWhen: es256.CreatedWhen,
-            expiresWhen: es256.CreatedWhen
+            expiresWhen: es256.CreatedWhen,
+            CancellationToken.None
         );
 
-        var keys = await GetJwksAsync(client);
+        var keys = await GetJwksAsync(client, CancellationToken.None);
         var es256Key = Assert.Single(keys, key => key.GetProperty("alg").GetString() == "ES256");
         Assert.NotEqual(es256.SecretId, es256Key.GetProperty("kid").GetString());
         Assert.Equal(3, keys.Count);
 
-        var secrets = await GetSecretsAsync(administrator);
+        var secrets = await GetSecretsAsync(administrator, CancellationToken.None);
         Assert.DoesNotContain(secrets, secret => secret.SecretId == es256.SecretId);
         var replacement = Assert.Single(secrets, secret => secret.Algorithm == "ES256");
         Assert.Equal(replacement.CreatedWhen, replacement.ActivatesWhen);
@@ -151,7 +153,7 @@ public class TenantKeyRolloverTests
             CancellationToken.None
         );
 
-        var provisioned = await GetSecretsAsync(administrator);
+        var provisioned = await GetSecretsAsync(administrator, CancellationToken.None);
         var rs256 = Assert.Single(provisioned, secret => secret.Algorithm == "RS256");
 
         using var response = await administrator.PutAsJsonAsync(
@@ -182,10 +184,13 @@ public class TenantKeyRolloverTests
         string? ManagedBy
     );
 
-    private static async Task<List<SecretView>> GetSecretsAsync(HttpClient administrator)
+    private static async ValueTask<List<SecretView>> GetSecretsAsync(
+        HttpClient administrator,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await administrator.GetAsync(SecretsPath);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await administrator.GetAsync(SecretsPath, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
         return
@@ -208,12 +213,13 @@ public class TenantKeyRolloverTests
         ];
     }
 
-    private static async Task UpdateLifecycleAsync(
+    private static async ValueTask UpdateLifecycleAsync(
         HttpClient administrator,
         SecretView secret,
         DateTimeOffset activatesWhen,
         DateTimeOffset retiresWhen,
-        DateTimeOffset expiresWhen
+        DateTimeOffset expiresWhen,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(
@@ -234,15 +240,18 @@ public class TenantKeyRolloverTests
         };
         request.Headers.TryAddWithoutValidation("If-Match", secret.ConcurrencyToken);
 
-        using var response = await administrator.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await administrator.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
     }
 
-    private static async Task<List<JsonElement>> GetJwksAsync(HttpClient client)
+    private static async ValueTask<List<JsonElement>> GetJwksAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync(JwksPath);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.GetAsync(JwksPath, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
         var jsonElement = JsonElement.Parse(body);

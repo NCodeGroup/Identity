@@ -23,17 +23,18 @@ public class TenantRouteTests
 
     private const string PathIssuerTemplate = "http://localhost/{tenantId}";
 
-    private static async Task<JsonElement> GetDiscoveryAsync(
+    private static async ValueTask<JsonElement> GetDiscoveryAsync(
         HostApplicationFactory factory,
-        string discoveryPath
+        string discoveryPath,
+        CancellationToken cancellationToken
     )
     {
         using var client = factory.CreateClient();
 
-        using var response = await client.GetAsync(discoveryPath);
+        using var response = await client.GetAsync(discoveryPath, cancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var json = await response.Content.ReadAsStringAsync();
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonElement.Parse(json);
     }
 
@@ -50,7 +51,11 @@ public class TenantRouteTests
             }
         );
 
-        var discovery = await GetDiscoveryAsync(factory, $"/identity{DiscoveryPath}");
+        var discovery = await GetDiscoveryAsync(
+            factory,
+            $"/identity{DiscoveryPath}",
+            CancellationToken.None
+        );
 
         Assert.Equal("http://localhost/identity", discovery.GetProperty("issuer").GetString());
         Assert.Equal(
@@ -93,7 +98,11 @@ public class TenantRouteTests
             }
         );
 
-        var discovery = await GetDiscoveryAsync(factory, $"/identity{DiscoveryPath}");
+        var discovery = await GetDiscoveryAsync(
+            factory,
+            $"/identity{DiscoveryPath}",
+            CancellationToken.None
+        );
 
         // The issuer already names the tenant route, so the published endpoints must not repeat it.
         Assert.Equal(issuer, discovery.GetProperty("issuer").GetString());
@@ -118,9 +127,18 @@ public class TenantRouteTests
                 ["OpenId:TenantResolution:DynamicByPath:IssuerTemplate"] = PathIssuerTemplate,
             }
         );
-        await SeedTenantAsync(factory, tenantId, $"http://localhost/{tenantId}");
+        await SeedTenantAsync(
+            factory,
+            tenantId,
+            $"http://localhost/{tenantId}",
+            CancellationToken.None
+        );
 
-        var discovery = await GetDiscoveryAsync(factory, $"/{tenantId}{DiscoveryPath}");
+        var discovery = await GetDiscoveryAsync(
+            factory,
+            $"/{tenantId}{DiscoveryPath}",
+            CancellationToken.None
+        );
 
         Assert.Equal("http://localhost/acme", discovery.GetProperty("issuer").GetString());
         Assert.Equal(
@@ -162,7 +180,11 @@ public class TenantRouteTests
         );
 
         // Nothing is seeded: the control plane is bootstrapped by the first request that reaches its address.
-        var discovery = await GetDiscoveryAsync(factory, $"/root{DiscoveryPath}");
+        var discovery = await GetDiscoveryAsync(
+            factory,
+            $"/root{DiscoveryPath}",
+            CancellationToken.None
+        );
 
         Assert.Equal("http://localhost/root", discovery.GetProperty("issuer").GetString());
     }
@@ -181,7 +203,7 @@ public class TenantRouteTests
                 ["OpenId:TenantResolution:DynamicByPath:IssuerTemplate"] = PathIssuerTemplate,
             }
         );
-        await SeedTenantAsync(factory, tenantId, issuer: null);
+        await SeedTenantAsync(factory, tenantId, issuer: null, CancellationToken.None);
         using var client = factory.CreateClient();
 
         // Nothing derives an issuer from the request, so the tenant fails closed instead of publishing the caller's
@@ -193,18 +215,17 @@ public class TenantRouteTests
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }
 
-    private static async Task SeedTenantAsync(
+    private static async ValueTask SeedTenantAsync(
         HostApplicationFactory factory,
         string tenantId,
-        string? issuer
+        string? issuer,
+        CancellationToken cancellationToken
     )
     {
-        await factory.EnsureTeamAsync(CancellationToken.None);
+        await factory.EnsureTeamAsync(cancellationToken);
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
 
         var store = storeManager.GetStore<ITenantStore>();
         var tenant = new PersistedTenantBuilder
@@ -213,8 +234,8 @@ public class TenantRouteTests
             Issuer = issuer,
             Settings = JsonSerializer.SerializeToElement(null, typeof(object)),
         }.Build();
-        await store.AddAsync(tenant, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await store.AddAsync(tenant, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     #endregion

@@ -44,8 +44,9 @@ public class TokenIntrospectionEndpointTests
 
     // The tenant's provisioned keys sign and encrypt its tokens, and the bootstrap administrator creates the clients that
     // act for resource servers through the management API.
-    private static async Task<BootstrapAdminApplicationFactory> CreateFactoryAsync(
-        IReadOnlyDictionary<string, object> tenantSettings
+    private static async ValueTask<BootstrapAdminApplicationFactory> CreateFactoryAsync(
+        IReadOnlyDictionary<string, object> tenantSettings,
+        CancellationToken cancellationToken
     )
     {
         // A tenant that encrypts access tokens to itself lists a key-management algorithm among the keys the host
@@ -57,12 +58,12 @@ public class TokenIntrospectionEndpointTests
                 ["OpenId:Tenant:KeyProvisioning:Keys:1:Algorithm"] = "RSA-OAEP-256",
             }
         );
-        await factory.SeedTenantSettingsAsync(tenantSettings, CancellationToken.None);
+        await factory.SeedTenantSettingsAsync(tenantSettings, cancellationToken);
         await factory.SeedConfidentialClientAsync(
             IssuingClientId,
             ClientSecret,
             [],
-            CancellationToken.None
+            cancellationToken
         );
         return factory;
     }
@@ -70,13 +71,14 @@ public class TokenIntrospectionEndpointTests
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<string> RequestAccessTokenAsync(
+    private static async ValueTask<string> RequestAccessTokenAsync(
         HttpClient client,
-        HttpRequestMessage tokenRequest
+        HttpRequestMessage tokenRequest,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await client.SendAsync(tokenRequest);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.SendAsync(tokenRequest, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
         var jsonElement = JsonElement.Parse(body);
@@ -85,7 +87,11 @@ public class TokenIntrospectionEndpointTests
         return accessToken;
     }
 
-    private static async Task<string> IssueAccessTokenAsync(HttpClient client, string scope)
+    private static async ValueTask<string> IssueAccessTokenAsync(
+        HttpClient client,
+        string scope,
+        CancellationToken cancellationToken
+    )
     {
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, TokenPath)
         {
@@ -99,17 +105,18 @@ public class TokenIntrospectionEndpointTests
                 }
             ),
         };
-        return await RequestAccessTokenAsync(client, tokenRequest);
+        return await RequestAccessTokenAsync(client, tokenRequest, cancellationToken);
     }
 
     // The client acts for the resource server and authenticates with a secret the management API reveals once.
-    private static async Task<(
+    private static async ValueTask<(
         string ClientId,
         string ClientSecret
     )> CreateResourceServerClientAsync(
         HttpClient administrator,
         string resourceServerId,
-        IReadOnlyDictionary<string, object>? extraSettings = null
+        IReadOnlyDictionary<string, object>? extraSettings,
+        CancellationToken cancellationToken
     )
     {
         var settings = new Dictionary<string, object>
@@ -130,9 +137,10 @@ public class TokenIntrospectionEndpointTests
                 isDisabled = false,
                 resourceServerId,
                 settings,
-            }
+            },
+            cancellationToken
         );
-        var createBody = await createResponse.Content.ReadAsStringAsync();
+        var createBody = await createResponse.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
 
         var created = JsonElement.Parse(createBody);
@@ -147,9 +155,10 @@ public class TokenIntrospectionEndpointTests
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
-        var secretBody = await secretResponse.Content.ReadAsStringAsync();
+        var secretBody = await secretResponse.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(secretResponse.StatusCode == HttpStatusCode.Created, secretBody);
 
         var secret = JsonElement.Parse(secretBody);
@@ -159,12 +168,13 @@ public class TokenIntrospectionEndpointTests
         return (clientId, secretMaterial);
     }
 
-    private static async Task<HttpResponseMessage> IntrospectAsync(
+    private static async ValueTask<HttpResponseMessage> IntrospectAsync(
         HttpClient client,
         string clientId,
         string clientSecret,
         string token,
-        string? accept = null
+        string? accept,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, IntrospectPath)
@@ -183,18 +193,26 @@ public class TokenIntrospectionEndpointTests
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(accept));
         }
 
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<JsonElement> IntrospectJsonAsync(
+    private static async ValueTask<JsonElement> IntrospectJsonAsync(
         HttpClient client,
         string clientId,
         string clientSecret,
-        string token
+        string token,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await IntrospectAsync(client, clientId, clientSecret, token);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await IntrospectAsync(
+            client,
+            clientId,
+            clientSecret,
+            token,
+            accept: null,
+            cancellationToken
+        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body);
     }
@@ -209,14 +227,15 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WithUnknownToken_ReturnsInactive()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         using var client = CreateHttpClient(factory);
 
         var root = await IntrospectJsonAsync(
             client,
             IssuingClientId,
             ClientSecret,
-            "not-a-real-token"
+            "not-a-real-token",
+            CancellationToken.None
         );
 
         Assert.False(root.GetProperty("active").GetBoolean());
@@ -225,7 +244,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WithoutToken_ReturnsInvalidRequest()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         using var client = CreateHttpClient(factory);
 
         using var content = new FormUrlEncodedContent(
@@ -245,7 +264,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WithoutClientAuthentication_IsRejected()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         using var client = CreateHttpClient(factory);
 
         using var content = new FormUrlEncodedContent(
@@ -263,7 +282,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_ByAClientActingForAnAudience_ReportsTheTokenNarrowedToIt()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -283,12 +302,24 @@ public class TokenIntrospectionEndpointTests
         );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            extraSettings: null,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
-        var accessToken = await IssueAccessTokenAsync(client, $"{OrdersScope} {BillingScope}");
+        var accessToken = await IssueAccessTokenAsync(
+            client,
+            $"{OrdersScope} {BillingScope}",
+            CancellationToken.None
+        );
 
-        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
+        var root = await IntrospectJsonAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            CancellationToken.None
+        );
 
         Assert.True(root.GetProperty("active").GetBoolean());
         Assert.Equal(OrdersAudience, root.GetProperty("aud").GetString());
@@ -300,7 +331,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_ByTheClientTheTokenWasIssuedTo_ReportsItInactive()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -309,9 +340,15 @@ public class TokenIntrospectionEndpointTests
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
-        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope, CancellationToken.None);
 
-        var root = await IntrospectJsonAsync(client, IssuingClientId, ClientSecret, accessToken);
+        var root = await IntrospectJsonAsync(
+            client,
+            IssuingClientId,
+            ClientSecret,
+            accessToken,
+            CancellationToken.None
+        );
 
         Assert.False(root.GetProperty("active").GetBoolean());
         Assert.Single(root.EnumerateObject());
@@ -320,7 +357,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_ByAClientActingForAnotherResourceServer_ReportsItInactive()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -340,12 +377,20 @@ public class TokenIntrospectionEndpointTests
         );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
-            BillingResourceServerId
+            BillingResourceServerId,
+            extraSettings: null,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
-        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope, CancellationToken.None);
 
-        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
+        var root = await IntrospectJsonAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            CancellationToken.None
+        );
 
         Assert.False(root.GetProperty("active").GetBoolean());
     }
@@ -353,7 +398,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostToken_ByAClientActingForAResourceServer_IsRefused()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -366,7 +411,9 @@ public class TokenIntrospectionEndpointTests
         );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            extraSettings: null,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
 
@@ -389,7 +436,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_ByAPublicClientActingForAResourceServer_IsRefused()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -438,7 +485,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WhenTheResourceServerIsDisabled_RefusesTheClientActingForIt()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -451,7 +498,9 @@ public class TokenIntrospectionEndpointTests
         );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            extraSettings: null,
+            CancellationToken.None
         );
         using var patch = new HttpRequestMessage(
             HttpMethod.Patch,
@@ -473,7 +522,9 @@ public class TokenIntrospectionEndpointTests
             client,
             clientId,
             clientSecret,
-            "not-a-real-token"
+            "not-a-real-token",
+            accept: null,
+            CancellationToken.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -489,7 +540,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task Server_WhenTheTenantEncryptsAccessTokens_ReadsThemAtTheManagementApiAndIntrospection()
     {
-        using var factory = await CreateFactoryAsync(EncryptionRequired);
+        using var factory = await CreateFactoryAsync(EncryptionRequired, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -507,13 +558,21 @@ public class TokenIntrospectionEndpointTests
 
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            extraSettings: null,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
-        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope, CancellationToken.None);
         Assert.Equal(5, accessToken.Split('.').Length);
 
-        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
+        var root = await IntrospectJsonAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            CancellationToken.None
+        );
 
         Assert.True(root.GetProperty("active").GetBoolean());
         Assert.Equal(OrdersAudience, root.GetProperty("aud").GetString());
@@ -522,7 +581,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WhenTheResourceServerDecryptsItsOwnTokens_TheClientActingForItReadsThem()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -550,16 +609,24 @@ public class TokenIntrospectionEndpointTests
 
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            extraSettings: null,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
-        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope, CancellationToken.None);
         Assert.Equal(
             resourceServerKeyId,
             DecodeSegment(accessToken, 0).GetProperty("kid").GetString()
         );
 
-        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
+        var root = await IntrospectJsonAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            CancellationToken.None
+        );
 
         Assert.True(root.GetProperty("active").GetBoolean());
     }
@@ -571,7 +638,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_AsJwt_ReturnsASignedTokenIntrospectionResponse()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -584,17 +651,20 @@ public class TokenIntrospectionEndpointTests
         );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            extraSettings: null,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
-        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope, CancellationToken.None);
 
         using var response = await IntrospectAsync(
             client,
             clientId,
             clientSecret,
             accessToken,
-            JwtResponseMediaType
+            JwtResponseMediaType,
+            CancellationToken.None
         );
 
         var jwt = await response.Content.ReadAsStringAsync();
@@ -624,7 +694,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_AsJwt_ByAnOrdinaryClient_IsNotAcceptable()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         using var client = CreateHttpClient(factory);
 
         using var response = await IntrospectAsync(
@@ -632,7 +702,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             ClientSecret,
             "not-a-real-token",
-            JwtResponseMediaType
+            JwtResponseMediaType,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.NotAcceptable, response.StatusCode);
@@ -641,7 +712,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WhenTheClientRegistersEncryptedResponses_EncryptsTheJwtToItsKey()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -658,7 +729,8 @@ public class TokenIntrospectionEndpointTests
             new Dictionary<string, object>
             {
                 ["introspection_encrypted_response_alg"] = "RSA-OAEP-256",
-            }
+            },
+            CancellationToken.None
         );
 
         using var rsa = RSA.Create(2048);
@@ -677,10 +749,17 @@ public class TokenIntrospectionEndpointTests
         Assert.True(importResponse.StatusCode == HttpStatusCode.Created, importBody);
 
         using var client = CreateHttpClient(factory);
-        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope, CancellationToken.None);
 
         // A client that registered encrypted responses never receives one in the clear.
-        using var jsonResponse = await IntrospectAsync(client, clientId, clientSecret, accessToken);
+        using var jsonResponse = await IntrospectAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            accept: null,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.NotAcceptable, jsonResponse.StatusCode);
 
         using var response = await IntrospectAsync(
@@ -688,7 +767,8 @@ public class TokenIntrospectionEndpointTests
             clientId,
             clientSecret,
             accessToken,
-            JwtResponseMediaType
+            JwtResponseMediaType,
+            CancellationToken.None
         );
 
         var jwt = await response.Content.ReadAsStringAsync();
@@ -704,16 +784,18 @@ public class TokenIntrospectionEndpointTests
 
     #region Dynamic Registration Tests
 
-    private static async Task<string> MintInitialAccessTokenAsync(
+    private static async ValueTask<string> MintInitialAccessTokenAsync(
         HttpClient administrator,
-        string resourceServerId
+        string resourceServerId,
+        CancellationToken cancellationToken
     )
     {
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/grants/initial-access-tokens",
-            new { resourceServerId }
+            new { resourceServerId },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
 
         var jsonElement = JsonElement.Parse(body);
@@ -723,11 +805,12 @@ public class TokenIntrospectionEndpointTests
         return initialAccessToken;
     }
 
-    private static async Task<HttpResponseMessage> RegisterAsync(
+    private static async ValueTask<HttpResponseMessage> RegisterAsync(
         HttpClient client,
         string initialAccessToken,
         string tokenEndpointAuthMethod,
-        IReadOnlyDictionary<string, object>? extraMetadata = null
+        IReadOnlyDictionary<string, object>? extraMetadata,
+        CancellationToken cancellationToken
     )
     {
         var metadata = new Dictionary<string, object>
@@ -750,13 +833,13 @@ public class TokenIntrospectionEndpointTests
             },
             Content = JsonContent.Create(metadata),
         };
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     [Fact]
     public async Task PostRegister_WithATokenScopedToAResourceServer_RegistersAClientThatIntrospectsForIt()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -776,14 +859,17 @@ public class TokenIntrospectionEndpointTests
         );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
 
         using var registrationResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            extraMetadata: null,
+            CancellationToken.None
         );
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
@@ -798,8 +884,18 @@ public class TokenIntrospectionEndpointTests
         Assert.False(string.IsNullOrEmpty(clientId));
         Assert.False(string.IsNullOrEmpty(clientSecret));
 
-        var accessToken = await IssueAccessTokenAsync(client, $"{OrdersScope} {BillingScope}");
-        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
+        var accessToken = await IssueAccessTokenAsync(
+            client,
+            $"{OrdersScope} {BillingScope}",
+            CancellationToken.None
+        );
+        var root = await IntrospectJsonAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            CancellationToken.None
+        );
 
         Assert.True(root.GetProperty("active").GetBoolean());
         Assert.Equal(OrdersAudience, root.GetProperty("aud").GetString());
@@ -809,7 +905,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostRegister_WithIntrospectionEncryption_EncryptsTheJwtToTheRegisteredKey()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -822,7 +918,8 @@ public class TokenIntrospectionEndpointTests
         );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
         using var rsa = RSA.Create(2048);
@@ -851,7 +948,8 @@ public class TokenIntrospectionEndpointTests
                         },
                     },
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
@@ -868,13 +966,14 @@ public class TokenIntrospectionEndpointTests
         Assert.False(string.IsNullOrEmpty(clientId));
         Assert.False(string.IsNullOrEmpty(clientSecret));
 
-        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope, CancellationToken.None);
         using var response = await IntrospectAsync(
             client,
             clientId,
             clientSecret,
             accessToken,
-            JwtResponseMediaType
+            JwtResponseMediaType,
+            CancellationToken.None
         );
 
         var jwt = await response.Content.ReadAsStringAsync();
@@ -888,7 +987,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostRegister_WithATokenScopedToAResourceServer_RefusesAPublicClient()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -901,14 +1000,17 @@ public class TokenIntrospectionEndpointTests
         );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
 
         using var response = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdProtocol.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None,
+            extraMetadata: null,
+            CancellationToken.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -923,7 +1025,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostRegister_WithAnInitialAccessTokenAlreadySpent_ReturnsUnauthorized()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -936,13 +1038,16 @@ public class TokenIntrospectionEndpointTests
         );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
         using var firstResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            extraMetadata: null,
+            CancellationToken.None
         );
         var firstBody = await firstResponse.Content.ReadAsStringAsync();
         Assert.True(firstResponse.StatusCode == HttpStatusCode.Created, firstBody);
@@ -950,7 +1055,9 @@ public class TokenIntrospectionEndpointTests
         using var secondResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            extraMetadata: null,
+            CancellationToken.None
         );
 
         var secondBody = await secondResponse.Content.ReadAsStringAsync();
@@ -965,7 +1072,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostRegister_WhenTheRegistrationIsRefused_LeavesTheInitialAccessTokenUnspent()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -978,13 +1085,16 @@ public class TokenIntrospectionEndpointTests
         );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
         using var refusedResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdProtocol.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None,
+            extraMetadata: null,
+            CancellationToken.None
         );
         var refusedBody = await refusedResponse.Content.ReadAsStringAsync();
         Assert.True(refusedResponse.StatusCode == HttpStatusCode.BadRequest, refusedBody);
@@ -992,7 +1102,9 @@ public class TokenIntrospectionEndpointTests
         using var response = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            extraMetadata: null,
+            CancellationToken.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -1002,7 +1114,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PutRegistration_OfAClientBoundToAResourceServer_RefusesMakingItPublic()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             OrdersResourceServerId,
@@ -1015,13 +1127,16 @@ public class TokenIntrospectionEndpointTests
         );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
-            OrdersResourceServerId
+            OrdersResourceServerId,
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
         using var registrationResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            extraMetadata: null,
+            CancellationToken.None
         );
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
@@ -1063,7 +1178,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostInitialAccessToken_WhenTheResourceServerDoesNotExist_ReturnsBadRequest()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -1080,7 +1195,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostInitialAccessToken_WithoutALifetime_ExpiresAfterOneDay()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -1101,7 +1216,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostInitialAccessToken_WhenTheLifetimeExceedsThirtyDays_ReturnsBadRequest()
     {
-        using var factory = await CreateFactoryAsync(NoSettings);
+        using var factory = await CreateFactoryAsync(NoSettings, CancellationToken.None);
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );

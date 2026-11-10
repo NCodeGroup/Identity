@@ -82,10 +82,18 @@ public class TokenEndpointClientJwksUriTests
             }
         );
 
-    private static async Task<string> GetIssuerAsync(HttpClient client)
+    private static async ValueTask<string> GetIssuerAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.GetAsync(
+            "/.well-known/openid-configuration",
+            cancellationToken
+        );
+        var jsonElement = JsonElement.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
         return jsonElement.GetProperty("issuer").GetString()!;
     }
 
@@ -114,7 +122,7 @@ public class TokenEndpointClientJwksUriTests
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var assertion = BuildPrivateKeyJwt(ClientId, rsa, issuer);
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
@@ -152,7 +160,7 @@ public class TokenEndpointClientJwksUriTests
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
 
         // Signed by a key whose public half is not published at the jwks_uri.
         var assertion = BuildPrivateKeyJwt(ClientId, wrongKey, issuer);

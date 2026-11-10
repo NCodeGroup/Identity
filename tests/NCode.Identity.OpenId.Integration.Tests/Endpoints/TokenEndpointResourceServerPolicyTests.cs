@@ -38,28 +38,24 @@ public class TokenEndpointResourceServerPolicyTests
             }
         );
 
-    private static async Task<HostApplicationFactory> SeedClientSecretPostClientAsync(
+    private static async ValueTask<HostApplicationFactory> SeedClientSecretPostClientAsync(
         string clientId,
         IReadOnlyDictionary<string, object> resourceServerSettings,
-        IReadOnlyDictionary<string, string?>? configuration = null
+        IReadOnlyDictionary<string, string?>? configuration,
+        CancellationToken cancellationToken
     )
     {
         HostApplicationFactory factory = configuration is null
             ? new HostApplicationFactory()
             : new ConfiguredHostApplicationFactory(configuration);
-        await factory.SeedConfidentialClientAsync(
-            clientId,
-            ClientSecret,
-            [],
-            CancellationToken.None
-        );
+        await factory.SeedConfidentialClientAsync(clientId, ClientSecret, [], cancellationToken);
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
             resourceServerSettings,
             [TestPlatformSettingsProvider.ApiScope],
-            CancellationToken.None
+            cancellationToken
         );
         return factory;
     }
@@ -80,10 +76,11 @@ public class TokenEndpointResourceServerPolicyTests
     }
 
     // A client that authenticates with its certificate and whose access tokens are bound to it (RFC 8705 §3).
-    private static async Task<HostApplicationFactory> SeedCertificateBoundClientAsync(
+    private static async ValueTask<HostApplicationFactory> SeedCertificateBoundClientAsync(
         string clientId,
         X509Certificate2 certificate,
-        IReadOnlyDictionary<string, object> resourceServerSettings
+        IReadOnlyDictionary<string, object> resourceServerSettings,
+        CancellationToken cancellationToken
     )
     {
         var factory = new HostApplicationFactory();
@@ -95,7 +92,7 @@ public class TokenEndpointResourceServerPolicyTests
                 [OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens] = true,
             },
             [OpenIdProtocol.GrantTypes.ClientCredentials],
-            CancellationToken.None
+            cancellationToken
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -103,7 +100,7 @@ public class TokenEndpointResourceServerPolicyTests
             $"https://api.{clientId}.integration.test",
             resourceServerSettings,
             [TestPlatformSettingsProvider.ApiScope],
-            CancellationToken.None
+            cancellationToken
         );
         return factory;
     }
@@ -131,8 +128,10 @@ public class TokenEndpointResourceServerPolicyTests
         return request;
     }
 
-    private static async Task<JsonElement> ReadJsonAsync(HttpResponseMessage response) =>
-        JsonElement.Parse(await response.Content.ReadAsStringAsync());
+    private static async ValueTask<JsonElement> ReadJsonAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
+    ) => JsonElement.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
 
     private static JsonElement DecodeJwtPayload(string jwt) =>
         JsonElement.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[1]));
@@ -143,7 +142,12 @@ public class TokenEndpointResourceServerPolicyTests
         const string clientId = "it-rs-policy-lifetime";
         using var factory = await SeedClientSecretPostClientAsync(
             clientId,
-            new Dictionary<string, object> { [OpenIdSettingNames.AccessTokenLifetime] = "00:01:00" }
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.AccessTokenLifetime] = "00:01:00",
+            },
+            configuration: null,
+            CancellationToken.None
         );
 
         using var response = await CreateClient(factory)
@@ -169,14 +173,15 @@ public class TokenEndpointResourceServerPolicyTests
             new Dictionary<string, string?>
             {
                 ["OpenId:Tenant:KeyProvisioning:Keys:0:Algorithm"] = "RS256",
-            }
+            },
+            CancellationToken.None
         );
 
         using var response = await CreateClient(factory)
             .PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-        var jsonElement = await ReadJsonAsync(response);
+        var jsonElement = await ReadJsonAsync(response, CancellationToken.None);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
             jsonElement.GetProperty("error").GetString()
@@ -192,14 +197,16 @@ public class TokenEndpointResourceServerPolicyTests
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.AccessTokenSenderConstraintRequired] = true,
-            }
+            },
+            configuration: null,
+            CancellationToken.None
         );
 
         using var response = await CreateClient(factory)
             .PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var jsonElement = await ReadJsonAsync(response);
+        var jsonElement = await ReadJsonAsync(response, CancellationToken.None);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
             jsonElement.GetProperty("error").GetString()
@@ -221,7 +228,8 @@ public class TokenEndpointResourceServerPolicyTests
                 {
                     OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint,
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         using var response = await CreateClient(factory)
@@ -275,7 +283,7 @@ public class TokenEndpointResourceServerPolicyTests
             .SendAsync(BuildCertificateTokenRequest(clientId, certificate));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var jsonElement = await ReadJsonAsync(response);
+        var jsonElement = await ReadJsonAsync(response, CancellationToken.None);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
             jsonElement.GetProperty("error").GetString()
@@ -302,14 +310,15 @@ public class TokenEndpointResourceServerPolicyTests
                 {
                     OpenIdProtocol.ConfirmationMethods.JwkThumbprint,
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         using var response = await CreateClient(factory)
             .SendAsync(BuildCertificateTokenRequest(clientId, certificate));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var jsonElement = await ReadJsonAsync(response);
+        var jsonElement = await ReadJsonAsync(response, CancellationToken.None);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
             jsonElement.GetProperty("error").GetString()

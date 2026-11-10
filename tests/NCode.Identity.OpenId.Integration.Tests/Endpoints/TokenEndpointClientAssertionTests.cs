@@ -27,13 +27,24 @@ public class TokenEndpointClientAssertionTests
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<string> GetIssuerAsync(HttpClient client) =>
-        await GetMetadataAsync(client, "issuer");
+    private static async ValueTask<string> GetIssuerAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    ) => await GetMetadataAsync(client, "issuer", cancellationToken);
 
-    private static async Task<string> GetMetadataAsync(HttpClient client, string name)
+    private static async ValueTask<string> GetMetadataAsync(
+        HttpClient client,
+        string name,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.GetAsync(
+            "/.well-known/openid-configuration",
+            cancellationToken
+        );
+        var jsonElement = JsonElement.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
         return jsonElement.GetProperty(name).GetString()
             ?? throw new InvalidOperationException($"The discovery document has no '{name}'.");
     }
@@ -112,32 +123,39 @@ public class TokenEndpointClientAssertionTests
             }
         );
 
-    private static async Task AssertInvalidClientAsync(HttpResponseMessage response)
+    private static async ValueTask AssertInvalidClientAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
+    )
     {
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
         );
     }
 
-    private static async Task<HostApplicationFactory> CreateSeededFactoryAsync()
+    private static async ValueTask<HostApplicationFactory> CreateSeededFactoryAsync(
+        CancellationToken cancellationToken
+    )
     {
         var factory = new HostApplicationFactory();
         await factory.SeedClientSecretJwtClientAsync(
             ClientId,
             ClientSecret,
             [OpenIdProtocol.GrantTypes.ClientCredentials],
-            CancellationToken.None
+            cancellationToken
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-assert-rs-api",
             "https://api.assert.integration.test",
             [TestPlatformSettingsProvider.ApiScope],
-            CancellationToken.None
+            cancellationToken
         );
         return factory;
     }
@@ -145,10 +163,10 @@ public class TokenEndpointClientAssertionTests
     [Fact]
     public async Task PostToken_ClientSecretJwt_ReturnsAccessToken()
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var assertion = BuildClientSecretJwt(ClientId, ClientSecret, issuer);
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
@@ -163,10 +181,10 @@ public class TokenEndpointClientAssertionTests
     [Fact]
     public async Task PostToken_ClientSecretJwt_WhenExpAtMaxNumericDate_Returns400()
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var assertion = BuildClientSecretJwt(
             ClientId,
             ClientSecret,
@@ -176,17 +194,17 @@ public class TokenEndpointClientAssertionTests
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
 
-        await AssertInvalidClientAsync(response);
+        await AssertInvalidClientAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostToken_ClientSecretJwt_WhenLifetimeExceedsMaximum_Returns400()
     {
         // The default client_assertion_max_lifetime is five minutes.
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var now = DateTimeOffset.UtcNow;
         var assertion = BuildClientSecretJwt(
             ClientId,
@@ -198,16 +216,16 @@ public class TokenEndpointClientAssertionTests
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
 
-        await AssertInvalidClientAsync(response);
+        await AssertInvalidClientAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostToken_ClientSecretJwt_WhenIssuedLongerAgoThanMaximum_Returns400()
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var now = DateTimeOffset.UtcNow;
         var assertion = BuildClientSecretJwt(
             ClientId,
@@ -219,13 +237,13 @@ public class TokenEndpointClientAssertionTests
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
 
-        await AssertInvalidClientAsync(response);
+        await AssertInvalidClientAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostToken_ClientSecretJwt_AdvertisedInDiscovery()
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
@@ -244,10 +262,10 @@ public class TokenEndpointClientAssertionTests
     [Fact]
     public async Task PostToken_ClientSecretJwt_WhenReplayed_Returns400()
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var assertion = BuildClientSecretJwt(ClientId, ClientSecret, issuer);
 
         using var first = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
@@ -266,7 +284,7 @@ public class TokenEndpointClientAssertionTests
     [Fact]
     public async Task PostToken_ClientSecretJwt_WhenWrongAudience_Returns400()
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
         var assertion = BuildClientSecretJwt(ClientId, ClientSecret, "https://wrong.audience.test");
@@ -285,10 +303,14 @@ public class TokenEndpointClientAssertionTests
     [Fact]
     public async Task PostToken_ClientSecretJwt_WhenAudienceIsThePublishedTokenEndpoint_ReturnsAccessToken()
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
-        var tokenEndpoint = await GetMetadataAsync(client, "token_endpoint");
+        var tokenEndpoint = await GetMetadataAsync(
+            client,
+            "token_endpoint",
+            CancellationToken.None
+        );
         var assertion = BuildClientSecretJwt(ClientId, ClientSecret, tokenEndpoint);
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
@@ -300,7 +322,7 @@ public class TokenEndpointClientAssertionTests
     [Fact]
     public async Task PostToken_ClientSecretJwt_WhenAudienceIsTheTokenEndpointUnderTheRequestsForgedHost_Returns400()
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
         // The Host header names an origin the tenant does not publish, so an audience built from it is not accepted.
@@ -316,16 +338,16 @@ public class TokenEndpointClientAssertionTests
 
         using var response = await client.SendAsync(request);
 
-        await AssertInvalidClientAsync(response);
+        await AssertInvalidClientAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostToken_ClientSecretJwt_WhenTampered_Returns400()
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var assertion = BuildClientSecretJwt(ClientId, "the-wrong-signing-secret", issuer);
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
@@ -347,12 +369,12 @@ public class TokenEndpointClientAssertionTests
     [InlineData("eyJhbGciOiJIUzI1NiJ9.WzFd.c2ln")]
     public async Task PostToken_ClientAssertion_WhenMalformed_ReturnsInvalidClient(string assertion)
     {
-        using var factory = await CreateSeededFactoryAsync();
+        using var factory = await CreateSeededFactoryAsync(CancellationToken.None);
         var client = CreateClient(factory);
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
 
-        await AssertInvalidClientAsync(response);
+        await AssertInvalidClientAsync(response, CancellationToken.None);
     }
 
     [Fact]
@@ -388,7 +410,7 @@ public class TokenEndpointClientAssertionTests
         );
 
         var client = CreateClient(factory);
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var assertion = BuildPrivateKeyJwt(privateKeyClientId, rsa, issuer);
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));

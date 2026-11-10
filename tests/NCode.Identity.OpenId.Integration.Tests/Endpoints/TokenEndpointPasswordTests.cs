@@ -50,24 +50,7 @@ public class TokenEndpointPasswordTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        async Task<(HttpStatusCode Status, string Body)> RequestTokenAsync()
-        {
-            using var content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
-                    ["client_id"] = ClientId,
-                    ["client_secret"] = ClientSecret,
-                    ["username"] = UserName,
-                    ["password"] = Password,
-                    ["scope"] = TestPlatformSettingsProvider.ApiScope,
-                }
-            );
-            using var response = await client.PostAsync("/oauth2/token", content);
-            return (response.StatusCode, await response.Content.ReadAsStringAsync());
-        }
-
-        var (status, body) = await RequestTokenAsync();
+        var (status, body) = await RequestTokenAsync(client, CancellationToken.None);
         Assert.True(status == HttpStatusCode.OK, body);
 
         var jsonElement = JsonElement.Parse(body);
@@ -86,7 +69,7 @@ public class TokenEndpointPasswordTests
         Assert.NotEqual(UserName, subject);
 
         // Re-authenticating the same account resolves to the same principal, so the subject is stable across grants.
-        var (secondStatus, secondBody) = await RequestTokenAsync();
+        var (secondStatus, secondBody) = await RequestTokenAsync(client, CancellationToken.None);
         Assert.True(secondStatus == HttpStatusCode.OK, secondBody);
         var secondDocument = JsonElement.Parse(secondBody);
         var secondPayload = DecodeJwtPayload(
@@ -227,4 +210,28 @@ public class TokenEndpointPasswordTests
         var payloadBytes = Base64Url.DecodeFromChars(payloadSegment);
         return JsonElement.Parse(payloadBytes);
     }
+
+    #region Scaffolding
+
+    private static async ValueTask<(HttpStatusCode Status, string Body)> RequestTokenAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
+    {
+        using var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
+                ["client_id"] = ClientId,
+                ["client_secret"] = ClientSecret,
+                ["username"] = UserName,
+                ["password"] = Password,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
+            }
+        );
+        using var response = await client.PostAsync("/oauth2/token", content, cancellationToken);
+        return (response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
+    }
+
+    #endregion
 }

@@ -68,7 +68,11 @@ public class TenantProvisioningTests
         Assert.Equal("https://acme.auth.test", created.GetProperty("issuer").GetString());
 
         // Seeded as soon as it exists, without waiting for its first request (ADR-1166).
-        var hasOpenIdResourceServer = await HasOpenIdResourceServerAsync(factory, "acme");
+        var hasOpenIdResourceServer = await HasOpenIdResourceServerAsync(
+            factory,
+            "acme",
+            CancellationToken.None
+        );
         Assert.True(hasOpenIdResourceServer);
 
         // Served beneath the derived issuer, through the host strategy's route to it.
@@ -275,7 +279,12 @@ public class TenantProvisioningTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await SaveTenantDirectlyAsync(factory, "acme", "https://login.acme.example");
+        await SaveTenantDirectlyAsync(
+            factory,
+            "acme",
+            "https://login.acme.example",
+            CancellationToken.None
+        );
 
         using var response = await client.GetAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants/acme/address"
@@ -310,7 +319,7 @@ public class TenantProvisioningTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await SaveTenantDirectlyAsync(factory, "initech", issuer: null);
+        await SaveTenantDirectlyAsync(factory, "initech", issuer: null, CancellationToken.None);
 
         using var deleteResponse = await client.DeleteAsync("/api/tenants/initech");
         var deleteBody = await deleteResponse.Content.ReadAsStringAsync();
@@ -336,8 +345,18 @@ public class TenantProvisioningTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await SaveTenantDirectlyAsync(factory, "acme", "https://acme.auth.test");
-        await SaveTenantDirectlyAsync(factory, "acme", "https://login.acme.example");
+        await SaveTenantDirectlyAsync(
+            factory,
+            "acme",
+            "https://acme.auth.test",
+            CancellationToken.None
+        );
+        await SaveTenantDirectlyAsync(
+            factory,
+            "acme",
+            "https://login.acme.example",
+            CancellationToken.None
+        );
 
         using var response = await client.GetAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants/globex/address?issuer={Uri.EscapeDataString("https://acme.auth.test")}"
@@ -358,19 +377,20 @@ public class TenantProvisioningTests
         );
     }
 
-    private static async Task SaveTenantDirectlyAsync(
+    private static async ValueTask SaveTenantDirectlyAsync(
         HostApplicationFactory factory,
         string tenantId,
-        string? issuer
+        string? issuer,
+        CancellationToken cancellationToken
     )
     {
         using var serviceScope = factory.Services.CreateScope();
         await using var storeManager = await serviceScope
             .ServiceProvider.GetRequiredService<IStoreManagerFactory>()
-            .CreateAsync(CancellationToken.None);
+            .CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var tenant = await store.GetOrDefaultAsync(tenantId, CancellationToken.None);
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
             var persistedTenant = new PersistedTenantBuilder
@@ -378,20 +398,21 @@ public class TenantProvisioningTests
                 TenantId = tenantId,
                 Issuer = issuer,
             }.Build();
-            await store.AddAsync(persistedTenant, CancellationToken.None);
+            await store.AddAsync(persistedTenant, cancellationToken);
         }
         else
         {
             tenant.Issuer = issuer;
-            await store.UpdateAsync(tenant, CancellationToken.None);
+            await store.UpdateAsync(tenant, cancellationToken);
         }
 
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task<bool> HasOpenIdResourceServerAsync(
+    private static async ValueTask<bool> HasOpenIdResourceServerAsync(
         HostApplicationFactory factory,
-        string tenantId
+        string tenantId,
+        CancellationToken cancellationToken
     )
     {
         using var serviceScope = factory.Services.CreateScope();
@@ -401,11 +422,11 @@ public class TenantProvisioningTests
             .BeginScope(tenantId);
         await using var storeManager = await services
             .GetRequiredService<IStoreManagerFactory>()
-            .CreateAsync(CancellationToken.None);
+            .CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
         var resourceServer = await store.GetByIdentifierOrDefaultAsync(
             OpenIdConstants.SystemResourceServerIdentifiers.OpenId,
-            CancellationToken.None
+            cancellationToken
         );
         return resourceServer is not null;
     }

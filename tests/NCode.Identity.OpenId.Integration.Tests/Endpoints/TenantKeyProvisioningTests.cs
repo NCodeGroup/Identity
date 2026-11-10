@@ -73,7 +73,7 @@ public class TenantKeyProvisioningTests
         using var factory = CreateStaticFactory();
         using var client = factory.CreateClient();
 
-        var keys = await GetJwksAsync(client, host: null);
+        var keys = await GetJwksAsync(client, host: null, CancellationToken.None);
 
         Assert.Equal(3, keys.Count);
         Assert.Equal(3, keys.Select(key => key.GetProperty("kid").GetString()).Distinct().Count());
@@ -98,10 +98,14 @@ public class TenantKeyProvisioningTests
         );
         using var client = factory.CreateClient();
 
-        var keys = await GetJwksAsync(client, host: null);
+        var keys = await GetJwksAsync(client, host: null, CancellationToken.None);
 
         Assert.Empty(keys);
-        var tenantSecretIds = await GetSecretIdsAsync(factory, HostApplicationFactory.TenantId);
+        var tenantSecretIds = await GetSecretIdsAsync(
+            factory,
+            HostApplicationFactory.TenantId,
+            CancellationToken.None
+        );
         Assert.Empty(tenantSecretIds);
     }
 
@@ -121,7 +125,7 @@ public class TenantKeyProvisioningTests
         var kid = header.GetProperty("kid").GetString();
         var alg = header.GetProperty("alg").GetString();
 
-        var keys = await GetJwksAsync(client, host: null);
+        var keys = await GetJwksAsync(client, host: null, CancellationToken.None);
         var signingKey = Assert.Single(keys, key => key.GetProperty("kid").GetString() == kid);
         Assert.Equal(alg, signingKey.GetProperty("alg").GetString());
     }
@@ -131,8 +135,12 @@ public class TenantKeyProvisioningTests
     {
         using var factory = CreateStaticFactory();
         using var client = factory.CreateClient();
-        await GetJwksAsync(client, host: null);
-        var provisioned = await GetSecretIdsAsync(factory, HostApplicationFactory.TenantId);
+        await GetJwksAsync(client, host: null, CancellationToken.None);
+        var provisioned = await GetSecretIdsAsync(
+            factory,
+            HostApplicationFactory.TenantId,
+            CancellationToken.None
+        );
 
         using (var serviceScope = factory.Services.CreateScope())
         {
@@ -141,7 +149,11 @@ public class TenantKeyProvisioningTests
                 .SeedAsync(HostApplicationFactory.TenantId, CancellationToken.None);
         }
 
-        var reseeded = await GetSecretIdsAsync(factory, HostApplicationFactory.TenantId);
+        var reseeded = await GetSecretIdsAsync(
+            factory,
+            HostApplicationFactory.TenantId,
+            CancellationToken.None
+        );
         Assert.Equal(3, provisioned.Count);
         Assert.Equal(provisioned, reseeded);
     }
@@ -153,7 +165,7 @@ public class TenantKeyProvisioningTests
         using var client = factory.CreateClient();
 
         // This materialization seeds the tenant's keys.
-        await GetJwksAsync(client, host: null);
+        await GetJwksAsync(client, host: null, CancellationToken.None);
 
         var tenantCache = factory.Services.GetRequiredService<IOpenIdTenantCache>();
         var propertyBag = PropertyBagFactory.Create();
@@ -200,10 +212,10 @@ public class TenantKeyProvisioningTests
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
 
         // Provisioned when the tenant is created, before anything requests it (ADR-1166, ADR-1169).
-        var provisioned = await GetSecretIdsAsync(factory, "acme");
+        var provisioned = await GetSecretIdsAsync(factory, "acme", CancellationToken.None);
         Assert.Equal(3, provisioned.Count);
 
-        var keys = await GetJwksAsync(client, host: "acme.auth.test");
+        var keys = await GetJwksAsync(client, host: "acme.auth.test", CancellationToken.None);
         var published = keys.Select(key => key.GetProperty("kid").GetString() ?? string.Empty);
         Assert.Equal(provisioned, published.Order(StringComparer.Ordinal));
     }
@@ -236,12 +248,12 @@ public class TenantKeyProvisioningTests
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
 
         // FAPI 2.0 permits PS256 and ES256 only, so the tenant holds and publishes no RS256 key (ADR-1169 decision 9).
-        var keys = await GetJwksAsync(client, host: "acme.auth.test");
+        var keys = await GetJwksAsync(client, host: "acme.auth.test", CancellationToken.None);
         Assert.Equal(
             ["ES256", "PS256"],
             keys.Select(key => key.GetProperty("alg").GetString()).Order(StringComparer.Ordinal)
         );
-        var acmeSecretIds = await GetSecretIdsAsync(factory, "acme");
+        var acmeSecretIds = await GetSecretIdsAsync(factory, "acme", CancellationToken.None);
         Assert.Equal(2, acmeSecretIds.Count);
     }
 
@@ -257,7 +269,12 @@ public class TenantKeyProvisioningTests
         );
 
         // The platform stops permitting ES256, so a tenant created now is provisioned without its key.
-        await PatchPlatformSettingsAsync(client, operation: "add", value: ["RS256", "PS256"]);
+        await PatchPlatformSettingsAsync(
+            client,
+            operation: "add",
+            value: ["RS256", "PS256"],
+            CancellationToken.None
+        );
 
         using var createResponse = await client.PostAsJsonAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
@@ -271,14 +288,24 @@ public class TenantKeyProvisioningTests
         );
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
-        var initialSecretIds = await GetSecretIdsAsync(factory, "acme");
+        var initialSecretIds = await GetSecretIdsAsync(factory, "acme", CancellationToken.None);
         Assert.Equal(2, initialSecretIds.Count);
 
         // Restoring the default lists permits ES256 again; the reconciliation of the platform's own team, which holds
         // the tenant, seeds it for the tenant (ADR-1412), so the key arrives after the PATCH returns.
-        await PatchPlatformSettingsAsync(client, operation: "remove", value: null);
+        await PatchPlatformSettingsAsync(
+            client,
+            operation: "remove",
+            value: null,
+            CancellationToken.None
+        );
 
-        var secretIds = await WaitForSecretIdsAsync(factory, "acme", count: 3);
+        var secretIds = await WaitForSecretIdsAsync(
+            factory,
+            "acme",
+            count: 3,
+            CancellationToken.None
+        );
         Assert.Equal(3, secretIds.Count);
     }
 
@@ -313,7 +340,7 @@ public class TenantKeyProvisioningTests
         );
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
-        var initialSecretIds = await GetSecretIdsAsync(factory, "acme");
+        var initialSecretIds = await GetSecretIdsAsync(factory, "acme", CancellationToken.None);
         Assert.Equal(2, initialSecretIds.Count);
 
         // A configuration reload that adds ES256 to every list permits it; the reconciliation of the platform's own
@@ -328,7 +355,12 @@ public class TenantKeyProvisioningTests
 
         configuration.Reload();
 
-        var secretIds = await WaitForSecretIdsAsync(factory, "acme", count: 3);
+        var secretIds = await WaitForSecretIdsAsync(
+            factory,
+            "acme",
+            count: 3,
+            CancellationToken.None
+        );
         Assert.Equal(3, secretIds.Count);
     }
 
@@ -355,7 +387,7 @@ public class TenantKeyProvisioningTests
         );
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
-        var acmeSecretIds = await GetSecretIdsAsync(factory, "acme");
+        var acmeSecretIds = await GetSecretIdsAsync(factory, "acme", CancellationToken.None);
         Assert.Equal(3, acmeSecretIds.Count);
 
         // The tenant's keys are part of it, so they do not block its deletion (ADR-1169).
@@ -375,7 +407,11 @@ public class TenantKeyProvisioningTests
         Assert.Equal(modulusBits / 8, modulus.Length);
     }
 
-    private static async Task<List<JsonElement>> GetJwksAsync(HttpClient client, string? host)
+    private static async ValueTask<List<JsonElement>> GetJwksAsync(
+        HttpClient client,
+        string? host,
+        CancellationToken cancellationToken
+    )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, JwksPath);
         if (host is not null)
@@ -383,8 +419,8 @@ public class TenantKeyProvisioningTests
             request.Headers.Host = host;
         }
 
-        using var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
         var jsonElement = JsonElement.Parse(body);
@@ -396,10 +432,11 @@ public class TenantKeyProvisioningTests
 
     // One operation per signing list of the platform's settings: an "add" replaces the list with the value, a "remove"
     // drops it so the default applies again.
-    private static async Task PatchPlatformSettingsAsync(
+    private static async ValueTask PatchPlatformSettingsAsync(
         HttpClient client,
         string operation,
-        string[]? value
+        string[]? value,
+        CancellationToken cancellationToken
     )
     {
         var operations = SigningListNames.Select(name =>
@@ -422,42 +459,44 @@ public class TenantKeyProvisioningTests
             ),
         };
 
-        using var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
     }
 
     // A change of the platform's settings reconciles every team in the background, so the keys of the other
     // tenants arrive after the change that permits them returns.
-    private static async Task<List<string>> WaitForSecretIdsAsync(
+    private static async ValueTask<List<string>> WaitForSecretIdsAsync(
         HostApplicationFactory factory,
         string tenantId,
-        int count
+        int count,
+        CancellationToken cancellationToken
     )
     {
         var stopwatch = Stopwatch.StartNew();
-        var secretIds = await GetSecretIdsAsync(factory, tenantId);
+        var secretIds = await GetSecretIdsAsync(factory, tenantId, cancellationToken);
         while (secretIds.Count < count && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-            secretIds = await GetSecretIdsAsync(factory, tenantId);
+            await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
+            secretIds = await GetSecretIdsAsync(factory, tenantId, cancellationToken);
         }
 
         return secretIds;
     }
 
-    private static async Task<List<string>> GetSecretIdsAsync(
+    private static async ValueTask<List<string>> GetSecretIdsAsync(
         HostApplicationFactory factory,
-        string tenantId
+        string tenantId,
+        CancellationToken cancellationToken
     )
     {
         using var serviceScope = factory.Services.CreateScope();
         await using var storeManager = await serviceScope
             .ServiceProvider.GetRequiredService<IStoreManagerFactory>()
-            .CreateAsync(CancellationToken.None);
+            .CreateAsync(cancellationToken);
         var secrets = await storeManager
             .GetStore<ITenantStore>()
-            .GetSecretsAsync(tenantId, CancellationToken.None);
+            .GetSecretsAsync(tenantId, cancellationToken);
         return [.. secrets.Value.Select(secret => secret.SecretId).Order(StringComparer.Ordinal)];
     }
 }

@@ -57,18 +57,22 @@ public class TokenEndpointClientAuthenticationTests
             }
         );
 
-    private static async Task SeedApiGrantAsync(HostApplicationFactory factory) =>
+    private static async ValueTask SeedApiGrantAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
+    ) =>
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-auth-rs-api",
             "https://api.auth.integration.test",
             [TestPlatformSettingsProvider.ApiScope],
-            CancellationToken.None
+            cancellationToken
         );
 
-    private static async Task<HttpResponseMessage> SendBasicAsync(
+    private static async ValueTask<HttpResponseMessage> SendBasicAsync(
         HttpClient client,
-        string clientSecret
+        string clientSecret,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, TokenPath)
@@ -77,15 +81,16 @@ public class TokenEndpointClientAuthenticationTests
             Content = ClientCredentialsBody(),
         };
 
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task AssertInvalidClientAsync(
+    private static async ValueTask AssertInvalidClientAsync(
         HttpResponseMessage response,
-        HttpStatusCode expectedStatusCode
+        HttpStatusCode expectedStatusCode,
+        CancellationToken cancellationToken
     )
     {
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == expectedStatusCode, body);
 
         var jsonElement = JsonElement.Parse(body);
@@ -120,7 +125,7 @@ public class TokenEndpointClientAuthenticationTests
         );
         using var response = await client.PostAsync(TokenPath, content);
 
-        await AssertInvalidClientAsync(response, HttpStatusCode.BadRequest);
+        await AssertInvalidClientAsync(response, HttpStatusCode.BadRequest, CancellationToken.None);
     }
 
     [Fact]
@@ -133,13 +138,13 @@ public class TokenEndpointClientAuthenticationTests
             [],
             CancellationToken.None
         );
-        await SeedApiGrantAsync(factory);
+        await SeedApiGrantAsync(factory, CancellationToken.None);
         var client = CreateClient(factory);
 
         using var content = ClientSecretPostBody(ClientSecret);
         using var response = await client.PostAsync(TokenPath, content);
 
-        await AssertInvalidClientAsync(response, HttpStatusCode.BadRequest);
+        await AssertInvalidClientAsync(response, HttpStatusCode.BadRequest, CancellationToken.None);
     }
 
     [Fact]
@@ -152,12 +157,16 @@ public class TokenEndpointClientAuthenticationTests
             [],
             CancellationToken.None
         );
-        await SeedApiGrantAsync(factory);
+        await SeedApiGrantAsync(factory, CancellationToken.None);
         var client = CreateClient(factory);
 
-        using var response = await SendBasicAsync(client, ClientSecret);
+        using var response = await SendBasicAsync(client, ClientSecret, CancellationToken.None);
 
-        await AssertInvalidClientAsync(response, HttpStatusCode.Unauthorized);
+        await AssertInvalidClientAsync(
+            response,
+            HttpStatusCode.Unauthorized,
+            CancellationToken.None
+        );
         Assert.Contains(response.Headers.WwwAuthenticate, challenge => challenge.Scheme == "Basic");
     }
 
@@ -176,7 +185,7 @@ public class TokenEndpointClientAuthenticationTests
         using var content = ClientSecretPostBody(ClientSecret);
         using var response = await client.PostAsync(TokenPath, content);
 
-        await AssertInvalidClientAsync(response, HttpStatusCode.BadRequest);
+        await AssertInvalidClientAsync(response, HttpStatusCode.BadRequest, CancellationToken.None);
     }
 
     [Fact]
@@ -190,16 +199,24 @@ public class TokenEndpointClientAuthenticationTests
             [],
             CancellationToken.None
         );
-        await SeedApiGrantAsync(factory);
+        await SeedApiGrantAsync(factory, CancellationToken.None);
         var client = CreateClient(factory);
 
-        using var basicResponse = await SendBasicAsync(client, ClientSecret);
+        using var basicResponse = await SendBasicAsync(
+            client,
+            ClientSecret,
+            CancellationToken.None
+        );
         using var postContent = ClientSecretPostBody(ClientSecret);
         using var postResponse = await client.PostAsync(TokenPath, postContent);
 
         var basicBody = await basicResponse.Content.ReadAsStringAsync();
         Assert.True(basicResponse.StatusCode == HttpStatusCode.OK, basicBody);
-        await AssertInvalidClientAsync(postResponse, HttpStatusCode.BadRequest);
+        await AssertInvalidClientAsync(
+            postResponse,
+            HttpStatusCode.BadRequest,
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -219,12 +236,16 @@ public class TokenEndpointClientAuthenticationTests
             [],
             CancellationToken.None
         );
-        await SeedApiGrantAsync(factory);
+        await SeedApiGrantAsync(factory, CancellationToken.None);
         var client = CreateClient(factory);
 
-        using var response = await SendBasicAsync(client, ClientSecret);
+        using var response = await SendBasicAsync(client, ClientSecret, CancellationToken.None);
 
-        await AssertInvalidClientAsync(response, HttpStatusCode.Unauthorized);
+        await AssertInvalidClientAsync(
+            response,
+            HttpStatusCode.Unauthorized,
+            CancellationToken.None
+        );
     }
 
     #endregion

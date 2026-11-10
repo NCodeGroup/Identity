@@ -49,7 +49,7 @@ internal sealed class ManagementConsolePageHandler(
 
         httpContext.Response.SetHtmlPageSecurity(security.Policy);
         return TypedResults.Text(
-            page.Render(security.Nonce),
+            page.Render(security.Nonce, null),
             "text/html",
             contentEncoding: SecureEncoding.UTF8
         );

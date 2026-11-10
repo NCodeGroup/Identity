@@ -71,6 +71,46 @@ public class StringValuesJsonConverterTests
     }
 
     [Fact]
+    public void Read_WhenArrayOfStrings_ReturnsEachElement()
+    {
+        var result = JsonSerializer.Deserialize<StringValues>("[\"a\",\"b\"]", Options);
+
+        Assert.Equal(new StringValues(["a", "b"]), result);
+    }
+
+    [Fact]
+    public void Read_WhenEmptyArray_ReturnsEmpty()
+    {
+        var result = JsonSerializer.Deserialize<StringValues>("[]", Options);
+
+        Assert.Equal(StringValues.Empty, result);
+    }
+
+    [Fact]
+    public void Read_WhenArrayElementHasSeparator_DoesNotSplitIt()
+    {
+        var result = JsonSerializer.Deserialize<StringValues>("[\"a b\"]", Options);
+
+        Assert.Equal(new StringValues("a b"), result);
+    }
+
+    [Fact]
+    public void Read_WhenStringHasSeparator_SplitsIt()
+    {
+        var result = JsonSerializer.Deserialize<StringValues>("\"a b\"", Options);
+
+        Assert.Equal(new StringValues(["a", "b"]), result);
+    }
+
+    [Fact]
+    public void Read_WhenArrayElementIsNotString_Throws()
+    {
+        Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<StringValues>("[1]", Options)
+        );
+    }
+
+    [Fact]
     public void RoundTrip_WhenMultiple_PreservesValues()
     {
         var original = new StringValues(["a", "b", "c"]);

@@ -1,6 +1,6 @@
 # 1128. Commits are attributed to people, not agents
 
-- **Status:** Accepted (amended 2026-10-24)
+- **Status:** Superseded by [project-template ADR-0018](project-template/0018-agent-attribution-is-avoided-not-enforced.md)
 - **Date:** 2026-10-17
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0002](project-template/0002-commits-are-attributed-to-people-not-agents.md)

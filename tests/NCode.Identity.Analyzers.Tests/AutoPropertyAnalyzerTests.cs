@@ -11,7 +11,11 @@ public class AutoPropertyAnalyzerTests
 {
     private static async Task AssertReportsSingleFieldAsync(string source, string fieldName)
     {
-        var diagnostics = await AnalyzerHarness.AnalyzeAsync(source, CancellationToken.None);
+        var diagnostics = await AnalyzerHarness.AnalyzeAsync(
+            source,
+            new AutoPropertyAnalyzer(),
+            CancellationToken.None
+        );
 
         var diagnostic = Assert.Single(diagnostics);
         Assert.Equal("NCID0001", diagnostic.Id);
@@ -21,7 +25,11 @@ public class AutoPropertyAnalyzerTests
 
     private static async Task AssertReportsNothingAsync(string source)
     {
-        var diagnostics = await AnalyzerHarness.AnalyzeAsync(source, CancellationToken.None);
+        var diagnostics = await AnalyzerHarness.AnalyzeAsync(
+            source,
+            new AutoPropertyAnalyzer(),
+            CancellationToken.None
+        );
 
         Assert.Empty(diagnostics);
     }
@@ -87,6 +95,7 @@ public class AutoPropertyAnalyzerTests
     {
         var diagnostics = await AnalyzerHarness.AnalyzeAsync(
             "class C { private int _a; private string _b = \"\"; public string Get() => _b + _a; }",
+            new AutoPropertyAnalyzer(),
             CancellationToken.None
         );
 

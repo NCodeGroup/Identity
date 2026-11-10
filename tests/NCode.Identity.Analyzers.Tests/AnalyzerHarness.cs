@@ -25,6 +25,7 @@ internal static class AnalyzerHarness
 
     public static async ValueTask<ImmutableArray<Diagnostic>> AnalyzeAsync(
         string source,
+        DiagnosticAnalyzer analyzer,
         CancellationToken cancellationToken
     )
     {
@@ -46,7 +47,7 @@ internal static class AnalyzerHarness
         );
 
         return await compilation
-            .WithAnalyzers([new AutoPropertyAnalyzer()])
+            .WithAnalyzers([analyzer])
             .GetAnalyzerDiagnosticsAsync(cancellationToken);
     }
 }

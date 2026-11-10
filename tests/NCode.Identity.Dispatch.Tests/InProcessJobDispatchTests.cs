@@ -121,11 +121,15 @@ public class InProcessJobDispatchTests
         public void StopApplication() { }
     }
 
-    private static async Task<(
+    private static async ValueTask<(
         ServiceProvider Provider,
         JobDispatchWorker Worker,
         IJobDispatcher Dispatcher
-    )> StartAsync(Action<IServiceCollection> registerHandlers, int? maxConcurrentJobs = null)
+    )> StartAsync(
+        Action<IServiceCollection> registerHandlers,
+        int? maxConcurrentJobs,
+        CancellationToken cancellationToken
+    )
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
@@ -151,18 +155,19 @@ public class InProcessJobDispatchTests
             provider.GetRequiredService<IOptions<InProcessJobDispatcherOptions>>(),
             provider.GetRequiredService<ILogger<JobDispatchWorker>>()
         );
-        await worker.StartAsync(CancellationToken.None);
+        await worker.StartAsync(cancellationToken);
 
         return (provider, worker, provider.GetRequiredService<IJobDispatcher>());
     }
 
-    private static Task<(
+    private static ValueTask<(
         ServiceProvider Provider,
         JobDispatchWorker Worker,
         IJobDispatcher Dispatcher
     )> StartAsync<TJob>(
         IReadOnlyList<IDispatchJobHandler<TJob>> handlers,
-        int? maxConcurrentJobs = null
+        int? maxConcurrentJobs,
+        CancellationToken cancellationToken
     )
         where TJob : class, IDispatchJob =>
         StartAsync(
@@ -173,15 +178,21 @@ public class InProcessJobDispatchTests
                     serviceCollection.AddSingleton<IDispatchJobHandler<TJob>>(handler);
                 }
             },
-            maxConcurrentJobs
+            maxConcurrentJobs,
+            cancellationToken
         );
 
-    private static Task<(
+    private static ValueTask<(
         ServiceProvider Provider,
         JobDispatchWorker Worker,
         IJobDispatcher Dispatcher
-    )> StartAsync<TJob>(IDispatchJobHandler<TJob> handler, int? maxConcurrentJobs = null)
-        where TJob : class, IDispatchJob => StartAsync<TJob>([handler], maxConcurrentJobs);
+    )> StartAsync<TJob>(
+        IDispatchJobHandler<TJob> handler,
+        int? maxConcurrentJobs,
+        CancellationToken cancellationToken
+    )
+        where TJob : class, IDispatchJob =>
+        StartAsync<TJob>([handler], maxConcurrentJobs, cancellationToken);
 
     #region DispatchAsync Tests
 
@@ -189,7 +200,11 @@ public class InProcessJobDispatchTests
     public async Task DispatchAsync_WhenHandlerSucceeds_InvokesHandlerOnce()
     {
         var handler = new RecordingHandler(throwTimes: 0);
-        var (provider, worker, dispatcher) = await StartAsync(handler);
+        var (provider, worker, dispatcher) = await StartAsync(
+            handler,
+            maxConcurrentJobs: null,
+            CancellationToken.None
+        );
 
         await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);
         await handler.Succeeded.WaitAsync(TimeSpan.FromSeconds(5));
@@ -205,7 +220,11 @@ public class InProcessJobDispatchTests
     public async Task DispatchAsync_WhenHandlerThrowsThenSucceeds_RetriesUntilSuccess()
     {
         var handler = new RecordingHandler(throwTimes: 1);
-        var (provider, worker, dispatcher) = await StartAsync(handler);
+        var (provider, worker, dispatcher) = await StartAsync(
+            handler,
+            maxConcurrentJobs: null,
+            CancellationToken.None
+        );
 
         await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);
         await handler.Succeeded.WaitAsync(TimeSpan.FromSeconds(5));
@@ -221,7 +240,11 @@ public class InProcessJobDispatchTests
     public async Task DispatchAsync_WhenHandlerAlwaysThrows_StopsAfterMaxAttempts()
     {
         var handler = new RecordingHandler(throwTimes: int.MaxValue);
-        var (provider, worker, dispatcher) = await StartAsync(handler);
+        var (provider, worker, dispatcher) = await StartAsync(
+            handler,
+            maxConcurrentJobs: null,
+            CancellationToken.None
+        );
 
         await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);
         await handler.FinalAttemptStarted.WaitAsync(TimeSpan.FromSeconds(5));
@@ -236,7 +259,11 @@ public class InProcessJobDispatchTests
     public async Task DispatchAsync_AcrossRetries_KeepsSameDispatchId()
     {
         var handler = new RecordingHandler(throwTimes: 2);
-        var (provider, worker, dispatcher) = await StartAsync(handler);
+        var (provider, worker, dispatcher) = await StartAsync(
+            handler,
+            maxConcurrentJobs: null,
+            CancellationToken.None
+        );
 
         await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);
         await handler.Succeeded.WaitAsync(TimeSpan.FromSeconds(5));
@@ -254,7 +281,11 @@ public class InProcessJobDispatchTests
     public async Task DispatchAsync_WhenAJobWaits_RunsTheNextJobAlongsideIt()
     {
         var handler = new GatedHandler();
-        var (provider, worker, dispatcher) = await StartAsync(handler, maxConcurrentJobs: 2);
+        var (provider, worker, dispatcher) = await StartAsync(
+            handler,
+            maxConcurrentJobs: 2,
+            CancellationToken.None
+        );
 
         await dispatcher.DispatchAsync(new GatedJob { WaitsForRelease = true }, FastOptions);
         await dispatcher.DispatchAsync(new GatedJob { WaitsForRelease = false }, FastOptions);
@@ -270,7 +301,11 @@ public class InProcessJobDispatchTests
     public async Task DispatchAsync_WhenEveryConsumerIsBusy_WaitsForOneToFinish()
     {
         var handler = new GatedHandler();
-        var (provider, worker, dispatcher) = await StartAsync(handler, maxConcurrentJobs: 1);
+        var (provider, worker, dispatcher) = await StartAsync(
+            handler,
+            maxConcurrentJobs: 1,
+            CancellationToken.None
+        );
 
         await dispatcher.DispatchAsync(new GatedJob { WaitsForRelease = true }, FastOptions);
         await dispatcher.DispatchAsync(new GatedJob { WaitsForRelease = false }, FastOptions);
@@ -294,7 +329,11 @@ public class InProcessJobDispatchTests
         var handler = new FailsFirstAttemptHandler(
             new TaskCanceledException("The request timed out.")
         );
-        var (provider, worker, dispatcher) = await StartAsync(handler);
+        var (provider, worker, dispatcher) = await StartAsync(
+            handler,
+            maxConcurrentJobs: null,
+            CancellationToken.None
+        );
 
         await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);
         await handler.Retried.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -310,7 +349,11 @@ public class InProcessJobDispatchTests
     {
         var first = new FailsFirstAttemptHandler(new InvalidOperationException("first"));
         var second = new FailsFirstAttemptHandler(new InvalidOperationException("second"));
-        var (provider, worker, dispatcher) = await StartAsync<RecordingJob>([first, second]);
+        var (provider, worker, dispatcher) = await StartAsync<RecordingJob>(
+            [first, second],
+            maxConcurrentJobs: null,
+            CancellationToken.None
+        );
 
         await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);
         await first.Retried.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -338,7 +381,8 @@ public class InProcessJobDispatchTests
                         ? throw new InvalidOperationException("The handler cannot be resolved.")
                         : handler
                 ),
-            maxConcurrentJobs: 1
+            maxConcurrentJobs: 1,
+            CancellationToken.None
         );
 
         await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);

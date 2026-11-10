@@ -41,8 +41,10 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             DisclosablePaths = [.. disclosablePaths],
         };
 
-    private ValueTask<JsonElement> DecodeIssuerPayloadAsync(SelectiveDisclosureJwt sdJwt) =>
-        Host.DecodePayloadAsync(sdJwt.IssuerSignedJwt, Host.IssuerKey);
+    private ValueTask<JsonElement> DecodeIssuerPayloadAsync(
+        SelectiveDisclosureJwt sdJwt,
+        CancellationToken cancellationToken
+    ) => Host.DecodePayloadAsync(sdJwt.IssuerSignedJwt, Host.IssuerKey, cancellationToken);
 
     private static string[] ReadDigests(JsonElement obj) =>
         [.. obj.GetProperty("_sd").EnumerateArray().Select(x => x.GetString() ?? string.Empty)];
@@ -57,7 +59,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        var payload = await DecodeIssuerPayloadAsync(sdJwt);
+        var payload = await DecodeIssuerPayloadAsync(sdJwt, CancellationToken.None);
         Assert.False(payload.TryGetProperty("given_name", out _));
         Assert.False(payload.TryGetProperty("family_name", out _));
         Assert.Equal("https://issuer.example", payload.GetProperty("iss").GetString());
@@ -93,7 +95,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        var payload = await DecodeIssuerPayloadAsync(sdJwt);
+        var payload = await DecodeIssuerPayloadAsync(sdJwt, CancellationToken.None);
         Assert.False(payload.TryGetProperty("address", out _));
         Assert.Single(ReadDigests(payload));
 
@@ -116,7 +118,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        var payload = await DecodeIssuerPayloadAsync(sdJwt);
+        var payload = await DecodeIssuerPayloadAsync(sdJwt, CancellationToken.None);
         var nationalities = payload.GetProperty("nationalities");
         Assert.Equal(2, nationalities.GetArrayLength());
         Assert.Equal("US", nationalities[0].GetString());
@@ -146,7 +148,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
 
         var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
-        var payload = await DecodeIssuerPayloadAsync(sdJwt);
+        var payload = await DecodeIssuerPayloadAsync(sdJwt, CancellationToken.None);
         Assert.Equal(4, ReadDigests(payload).Length);
         Assert.Equal(5, payload.GetProperty("nationalities").GetArrayLength());
         Assert.Equal(2, sdJwt.Disclosures.Length);
@@ -172,7 +174,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
 
         var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
-        var payload = await DecodeIssuerPayloadAsync(sdJwt);
+        var payload = await DecodeIssuerPayloadAsync(sdJwt, CancellationToken.None);
         Assert.Equal(2, payload.GetProperty("nationalities").GetArrayLength());
         Assert.Equal(3, ReadDigests(payload).Length);
     }
@@ -214,7 +216,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     {
         var sdJwt = await Host.Issuer.IssueAsync(CreateOptions(), CancellationToken.None);
 
-        var payload = await DecodeIssuerPayloadAsync(sdJwt);
+        var payload = await DecodeIssuerPayloadAsync(sdJwt, CancellationToken.None);
         Assert.False(payload.TryGetProperty("_sd_alg", out _));
         Assert.False(payload.TryGetProperty("_sd", out _));
         Assert.Empty(sdJwt.Disclosures);
@@ -236,7 +238,9 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
 
         var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
-        var cnf = (await DecodeIssuerPayloadAsync(sdJwt)).GetProperty("cnf");
+        var cnf = (await DecodeIssuerPayloadAsync(sdJwt, CancellationToken.None)).GetProperty(
+            "cnf"
+        );
         var jwk = new JsonWebKey(cnf.GetProperty("jwk"));
         Assert.Equal("EC", jwk.KeyType);
         Assert.False(jwk.ContainsPrivateKeyMaterial);
@@ -256,7 +260,7 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
 
         var sdJwt = await Host.Issuer.IssueAsync(options, CancellationToken.None);
 
-        var payload = await DecodeIssuerPayloadAsync(sdJwt);
+        var payload = await DecodeIssuerPayloadAsync(sdJwt, CancellationToken.None);
         Assert.Equal("sha-512", payload.GetProperty("_sd_alg").GetString());
         var disclosure = Assert.Single(sdJwt.Disclosures);
         Assert.Equal(

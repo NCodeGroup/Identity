@@ -78,13 +78,14 @@ public sealed class Es256KTests : IAsyncDisposable
     private ValueTask<string> SignAsync(
         SecretKey secretKey,
         SignatureAlgorithm algorithm,
-        object payload
+        object payload,
+        CancellationToken cancellationToken
     ) =>
         Services
             .JoseSerializer.CreateEncoder(
                 new JoseSigningOptions(new JoseSigningCredentials(secretKey, algorithm))
             )
-            .EncodeAsync(payload, CancellationToken.None);
+            .EncodeAsync(payload, cancellationToken);
 
     #endregion
 
@@ -101,7 +102,7 @@ public sealed class Es256KTests : IAsyncDisposable
         );
         var payload = new Dictionary<string, object> { ["sub"] = "alice" };
 
-        var token = await SignAsync(privateKey, Es256K, payload);
+        var token = await SignAsync(privateKey, Es256K, payload, CancellationToken.None);
         var decoded = await Services.JoseSerializer.DecodeAsync(
             token,
             publicKey,
@@ -207,7 +208,7 @@ public sealed class Es256KTests : IAsyncDisposable
         var publicKey = Services.ImportPublicJwk(KnownPublicJwk());
         var payload = new Dictionary<string, object> { ["sub"] = "alice" };
 
-        var token = await SignAsync(privateKey, Es256K, payload);
+        var token = await SignAsync(privateKey, Es256K, payload, CancellationToken.None);
 
         Assert.Equal(
             JsonSerializer.Serialize(payload),

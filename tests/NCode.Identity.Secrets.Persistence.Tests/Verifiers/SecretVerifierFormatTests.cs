@@ -71,9 +71,11 @@ public class SecretVerifierFormatTests
         Assert.Null(verifier);
     }
 
-    private static async Task<bool> VerifyAsync(SecretVerifier verifier, byte[] secret) =>
-        await verifier.VerifyAsync(secret, CancellationToken.None)
-        == SecretVerificationResult.Success;
+    private static async ValueTask<bool> VerifyAsync(
+        SecretVerifier verifier,
+        byte[] secret,
+        CancellationToken cancellationToken
+    ) => await verifier.VerifyAsync(secret, cancellationToken) == SecretVerificationResult.Success;
 
     #region Write Tests
 
@@ -93,9 +95,9 @@ public class SecretVerifierFormatTests
         Assert.Equal(SecretVerifierSchemes.Sha256, verifier.Scheme);
         Assert.Equal("secret-1", verifier.KeyId);
         Assert.Equal(Metadata, verifier.Metadata);
-        Assert.True(await VerifyAsync(verifier, Secret));
-        Assert.False(await VerifyAsync(verifier, OtherSecret));
-        Assert.False(await VerifyAsync(verifier, []));
+        Assert.True(await VerifyAsync(verifier, Secret, CancellationToken.None));
+        Assert.False(await VerifyAsync(verifier, OtherSecret, CancellationToken.None));
+        Assert.False(await VerifyAsync(verifier, [], CancellationToken.None));
     }
 
     [Fact]
@@ -136,8 +138,8 @@ public class SecretVerifierFormatTests
         var verifier = Parse(Write(SecretVerifierSchemes.Pbkdf2Sha256, Secret));
 
         Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, verifier.Scheme);
-        Assert.True(await VerifyAsync(verifier, Secret));
-        Assert.False(await VerifyAsync(verifier, OtherSecret));
+        Assert.True(await VerifyAsync(verifier, Secret, CancellationToken.None));
+        Assert.False(await VerifyAsync(verifier, OtherSecret, CancellationToken.None));
     }
 
     #endregion
@@ -150,8 +152,8 @@ public class SecretVerifierFormatTests
         // The parameters come from the text, so a verifier made with other parameters keeps verifying.
         var verifier = Parse(Pbkdf2Text(Secret, iterations: 1_234, saltLength: 32, keyLength: 64));
 
-        Assert.True(await VerifyAsync(verifier, Secret));
-        Assert.False(await VerifyAsync(verifier, OtherSecret));
+        Assert.True(await VerifyAsync(verifier, Secret, CancellationToken.None));
+        Assert.False(await VerifyAsync(verifier, OtherSecret, CancellationToken.None));
     }
 
     [Theory]

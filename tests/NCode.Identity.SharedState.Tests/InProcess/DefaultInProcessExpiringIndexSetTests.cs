@@ -15,12 +15,13 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
 
     private DefaultInProcessExpiringIndexSet CreateIndexSet() => new(TimeProvider);
 
-    private static async Task<string[]> GetSortedMembersAsync(
+    private static async ValueTask<string[]> GetSortedMembersAsync(
         DefaultInProcessExpiringIndexSet indexSet,
-        string indexKey
+        string indexKey,
+        CancellationToken cancellationToken
     )
     {
-        var members = await indexSet.GetMembersAsync(indexKey, CancellationToken.None);
+        var members = await indexSet.GetMembersAsync(indexKey, cancellationToken);
         return members.Order(StringComparer.Ordinal).ToArray();
     }
 
@@ -33,7 +34,7 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
 
         await indexSet.AddMemberAsync("index", "a", Start.AddMinutes(1), CancellationToken.None);
 
-        Assert.Equal(["a"], await GetSortedMembersAsync(indexSet, "index"));
+        Assert.Equal(["a"], await GetSortedMembersAsync(indexSet, "index", CancellationToken.None));
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
         await indexSet.AddMemberAsync("index", "a", Start, CancellationToken.None);
 
         Assert.Equal(0, indexSet.Count);
-        Assert.Empty(await GetSortedMembersAsync(indexSet, "index"));
+        Assert.Empty(await GetSortedMembersAsync(indexSet, "index", CancellationToken.None));
     }
 
     [Fact]
@@ -55,7 +56,7 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
         await indexSet.AddMemberAsync("index", "a", Start.AddMinutes(10), CancellationToken.None);
         TimeProvider.SetUtcNow(Start.AddMinutes(5));
 
-        Assert.Equal(["a"], await GetSortedMembersAsync(indexSet, "index"));
+        Assert.Equal(["a"], await GetSortedMembersAsync(indexSet, "index", CancellationToken.None));
     }
 
     [Fact]
@@ -82,7 +83,10 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
         start.SetResult();
         await Task.WhenAll(tasks);
 
-        Assert.Equal(expected, await GetSortedMembersAsync(indexSet, "index"));
+        Assert.Equal(
+            expected,
+            await GetSortedMembersAsync(indexSet, "index", CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -105,7 +109,7 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
         );
 
         Assert.Equal(1, indexSet.Count);
-        Assert.Equal(["b"], await GetSortedMembersAsync(indexSet, "live"));
+        Assert.Equal(["b"], await GetSortedMembersAsync(indexSet, "live", CancellationToken.None));
     }
 
     #endregion
@@ -128,7 +132,7 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
         await indexSet.AddMemberAsync("index", "b", Start.AddMinutes(1), CancellationToken.None);
         TimeProvider.SetUtcNow(Start.AddSeconds(10));
 
-        Assert.Equal(["b"], await GetSortedMembersAsync(indexSet, "index"));
+        Assert.Equal(["b"], await GetSortedMembersAsync(indexSet, "index", CancellationToken.None));
     }
 
     [Fact]
@@ -138,7 +142,10 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
         await indexSet.AddMemberAsync("index", "a", Start.AddMinutes(1), CancellationToken.None);
         await indexSet.AddMemberAsync("index", "A", Start.AddMinutes(1), CancellationToken.None);
 
-        Assert.Equal(["A", "a"], await GetSortedMembersAsync(indexSet, "index"));
+        Assert.Equal(
+            ["A", "a"],
+            await GetSortedMembersAsync(indexSet, "index", CancellationToken.None)
+        );
     }
 
     #endregion
@@ -154,7 +161,7 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
 
         await indexSet.RemoveMemberAsync("index", "a", CancellationToken.None);
 
-        Assert.Equal(["b"], await GetSortedMembersAsync(indexSet, "index"));
+        Assert.Equal(["b"], await GetSortedMembersAsync(indexSet, "index", CancellationToken.None));
     }
 
     #endregion
@@ -170,7 +177,7 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
 
         await indexSet.RemoveAsync("index", CancellationToken.None);
 
-        Assert.Empty(await GetSortedMembersAsync(indexSet, "index"));
+        Assert.Empty(await GetSortedMembersAsync(indexSet, "index", CancellationToken.None));
         Assert.Equal(0, indexSet.Count);
     }
 

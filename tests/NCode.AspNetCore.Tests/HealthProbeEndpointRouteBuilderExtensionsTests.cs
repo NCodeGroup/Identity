@@ -43,9 +43,17 @@ public class HealthProbeEndpointRouteBuilderExtensionsTests : BaseTests
                 x.Metadata.GetMetadata<EndpointNameMetadata>()?.EndpointName == endpointName
             );
 
-    private static async Task<int> InvokeAsync(WebApplication app, RouteEndpoint endpoint)
+    private static async ValueTask<int> InvokeAsync(
+        WebApplication app,
+        RouteEndpoint endpoint,
+        CancellationToken cancellationToken
+    )
     {
-        var httpContext = new DefaultHttpContext { RequestServices = app.Services };
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = app.Services,
+            RequestAborted = cancellationToken,
+        };
 
         var requestDelegate = Assert.IsType<RequestDelegate>(endpoint.RequestDelegate);
 
@@ -83,11 +91,13 @@ public class HealthProbeEndpointRouteBuilderExtensionsTests : BaseTests
 
         var readyStatusCode = await InvokeAsync(
             app,
-            FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName)
+            FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName),
+            CancellationToken.None
         );
         var liveStatusCode = await InvokeAsync(
             app,
-            FindEndpoint(app, HealthProbeDefaults.LivenessEndpointName)
+            FindEndpoint(app, HealthProbeDefaults.LivenessEndpointName),
+            CancellationToken.None
         );
 
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, readyStatusCode);
@@ -103,7 +113,8 @@ public class HealthProbeEndpointRouteBuilderExtensionsTests : BaseTests
 
         var readyStatusCode = await InvokeAsync(
             app,
-            FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName)
+            FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName),
+            CancellationToken.None
         );
 
         Assert.Equal(StatusCodes.Status200OK, readyStatusCode);

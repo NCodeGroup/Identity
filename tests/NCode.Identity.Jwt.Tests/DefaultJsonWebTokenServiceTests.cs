@@ -65,71 +65,73 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     }
 
     private ValueTask<string> EncodeTokenAsync(
-        string issuer = "https://issuer.example",
-        string[]? audience = null,
-        DateTimeOffset? notBefore = null,
-        DateTimeOffset? expires = null,
-        IEnumerable<Claim>? subjectClaims = null,
-        string? tokenType = null,
-        IReadOnlyDictionary<string, object>? extraPayloadClaims = null
+        JwtTestTokenOptions options,
+        CancellationToken cancellationToken
     )
     {
         var now = UtcNow;
         var parameters = new JwtEncodingParameters
         {
             SigningCredentials = SigningCredentials,
-            Issuer = issuer,
-            Audience = new StringValues(audience ?? ["https://audience.example"]),
+            Issuer = options.Issuer ?? "https://issuer.example",
+            Audience = new StringValues(options.Audience ?? ["https://audience.example"]),
             IssuedAt = now,
-            NotBefore = notBefore ?? now.AddMinutes(-1),
-            Expires = expires ?? now.AddHours(1),
-            SubjectClaims = subjectClaims,
-            ExtraPayloadClaims = extraPayloadClaims,
-            TokenType = tokenType ?? JoseTokenTypes.Jwt,
+            NotBefore = options.NotBefore ?? now.AddMinutes(-1),
+            Expires = options.Expires ?? now.AddHours(1),
+            SubjectClaims = options.SubjectClaims,
+            ExtraPayloadClaims = options.ExtraPayloadClaims,
+            TokenType = options.TokenType ?? JoseTokenTypes.Jwt,
         };
-        return Encoder.EncodeAsync(parameters, CancellationToken.None);
+        return Encoder.EncodeAsync(parameters, cancellationToken);
     }
 
-    private async Task<JwtValidationResult> ValidateTokenAsync(string token)
+    private async ValueTask<JwtValidationResult> ValidateTokenAsync(
+        string token,
+        CancellationToken cancellationToken
+    )
     {
         var parameters = new JwtValidationParameters().UseValidationKeys([SigningKey]);
 
-        var result = await Validator.ValidateAsync(token, parameters, CancellationToken.None);
+        var result = await Validator.ValidateAsync(token, parameters, cancellationToken);
 
         Assert.True(result.IsValid);
         return result;
     }
 
-    private async Task<JwtValidationResult> EncodeAndValidateAsync(IEnumerable<Claim> subjectClaims)
+    private async ValueTask<JwtValidationResult> EncodeAndValidateAsync(
+        IEnumerable<Claim> subjectClaims,
+        CancellationToken cancellationToken
+    )
     {
-        var token = await EncodeTokenAsync(subjectClaims: subjectClaims);
-        return await ValidateTokenAsync(token);
+        var token = await EncodeTokenAsync(
+            new JwtTestTokenOptions { SubjectClaims = subjectClaims },
+            cancellationToken
+        );
+        return await ValidateTokenAsync(token, cancellationToken);
     }
 
-    private async Task<JwtValidationResult> EncodeAndValidateLifetimeAsync(
+    private async ValueTask<JwtValidationResult> EncodeAndValidateLifetimeAsync(
         IReadOnlyDictionary<string, object> lifetimeClaims,
-        bool requireExpirationTime = true,
-        TimeSpan? maxLifetime = null,
-        bool requireNotBefore = false,
-        bool requireIssuedAt = false
+        JwtTestLifetimeOptions options,
+        CancellationToken cancellationToken
     )
     {
         // Encode through the JOSE serializer so the JWT encoder cannot add default 'iat'/'nbf'/'exp' claims.
         var signingOptions = new JoseSigningOptions(SigningCredentials);
         var encoder = JoseSerializer.CreateEncoder(signingOptions);
-        var token = await encoder.EncodeAsync(lifetimeClaims, CancellationToken.None);
+        var token = await encoder.EncodeAsync(lifetimeClaims, cancellationToken);
 
         var validationParameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
-            .ValidateTokenLifeTime(options =>
+            .ValidateTokenLifeTime(lifetimeOptions =>
             {
-                options.RequireExpirationTime = requireExpirationTime;
-                options.MaxLifetime = maxLifetime;
-                options.RequireNotBefore = requireNotBefore;
-                options.RequireIssuedAt = requireIssuedAt;
+                lifetimeOptions.RequireExpirationTime = options.RequireExpirationTime;
+                lifetimeOptions.MaxLifetime = options.MaxLifetime;
+                lifetimeOptions.RequireNotBefore = options.RequireNotBefore;
+                lifetimeOptions.RequireIssuedAt = options.RequireIssuedAt;
             });
 
-        return await Validator.ValidateAsync(token, validationParameters, CancellationToken.None);
+        return await Validator.ValidateAsync(token, validationParameters, cancellationToken);
     }
 
     #region EncodeJwt Tests
@@ -137,7 +139,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task EncodeJwt_WhenSigned_ReturnsThreeSegmentCompactJws()
     {
-        var token = await EncodeTokenAsync();
+        var token = await EncodeTokenAsync(new JwtTestTokenOptions(), CancellationToken.None);
 
         Assert.Equal(2, token.Count(c => c == '.'));
     }
@@ -160,7 +162,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var token = await Encoder.EncodeAsync(parameters, CancellationToken.None);
 
         var payload = Assert
-            .IsType<DecodedJwt>((await ValidateTokenAsync(token)).DecodedJwt)
+            .IsType<DecodedJwt>(
+                (await ValidateTokenAsync(token, CancellationToken.None)).DecodedJwt
+            )
             .Payload;
         Assert.True(payload.TryGetProperty(JoseClaimNames.Payload.Iat, out _));
         Assert.True(payload.TryGetProperty(JoseClaimNames.Payload.Nbf, out _));
@@ -180,7 +184,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var token = await Encoder.EncodeAsync(parameters, CancellationToken.None);
 
         var payload = Assert
-            .IsType<DecodedJwt>((await ValidateTokenAsync(token)).DecodedJwt)
+            .IsType<DecodedJwt>(
+                (await ValidateTokenAsync(token, CancellationToken.None)).DecodedJwt
+            )
             .Payload;
         Assert.Equal(
             UtcNow.ToUnixTimeSeconds(),
@@ -194,10 +200,14 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task Encode_WhenSingleExtraPayloadClaim_EmitsIt()
     {
         var token = await EncodeTokenAsync(
-            extraPayloadClaims: new Dictionary<string, object> { ["azp"] = "client" }
+            new JwtTestTokenOptions
+            {
+                ExtraPayloadClaims = new Dictionary<string, object> { ["azp"] = "client" },
+            },
+            CancellationToken.None
         );
 
-        var result = await ValidateTokenAsync(token);
+        var result = await ValidateTokenAsync(token, CancellationToken.None);
 
         var payload = Assert.IsType<DecodedJwt>(result.DecodedJwt).Payload;
         Assert.Equal("client", payload.GetProperty("azp").GetString());
@@ -212,9 +222,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         string expected
     )
     {
-        var result = await EncodeAndValidateAsync([
-            new Claim("event_at", claimValue, ClaimValueTypes.DateTime),
-        ]);
+        var result = await EncodeAndValidateAsync(
+            [new Claim("event_at", claimValue, ClaimValueTypes.DateTime)],
+            CancellationToken.None
+        );
 
         var payload = Assert.IsType<DecodedJwt>(result.DecodedJwt).Payload;
         Assert.Equal(expected, payload.GetProperty("event_at").GetString());
@@ -227,9 +238,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         string claimValue
     )
     {
-        var result = await EncodeAndValidateAsync([
-            new Claim("event_at", claimValue, ClaimValueTypes.DateTime),
-        ]);
+        var result = await EncodeAndValidateAsync(
+            [new Claim("event_at", claimValue, ClaimValueTypes.DateTime)],
+            CancellationToken.None
+        );
 
         var payload = Assert.IsType<DecodedJwt>(result.DecodedJwt).Payload;
         Assert.Equal(claimValue, payload.GetProperty("event_at").GetString());
@@ -248,7 +260,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         string claimValue
     )
     {
-        var result = await EncodeAndValidateAsync([new Claim("custom", claimValue)]);
+        var result = await EncodeAndValidateAsync(
+            [new Claim("custom", claimValue)],
+            CancellationToken.None
+        );
 
         var identity = await result.GetClaimsIdentityAsync(CancellationToken.None);
 
@@ -274,13 +289,17 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     {
         var original = JsonElement.Parse(json);
         var firstToken = await EncodeTokenAsync(
-            extraPayloadClaims: new Dictionary<string, object> { ["custom"] = original }
+            new JwtTestTokenOptions
+            {
+                ExtraPayloadClaims = new Dictionary<string, object> { ["custom"] = original },
+            },
+            CancellationToken.None
         );
-        var firstResult = await ValidateTokenAsync(firstToken);
+        var firstResult = await ValidateTokenAsync(firstToken, CancellationToken.None);
         var identity = await firstResult.GetClaimsIdentityAsync(CancellationToken.None);
         var claims = identity.FindAll("custom");
 
-        var secondResult = await EncodeAndValidateAsync(claims);
+        var secondResult = await EncodeAndValidateAsync(claims, CancellationToken.None);
 
         var payload = Assert.IsType<DecodedJwt>(secondResult.DecodedJwt).Payload;
         Assert.Equal(json, payload.GetProperty("custom").GetRawText());
@@ -293,7 +312,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenValidWithMatchingClaims_Succeeds()
     {
-        var token = await EncodeTokenAsync();
+        var token = await EncodeTokenAsync(new JwtTestTokenOptions(), CancellationToken.None);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -312,7 +331,11 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task ValidateAsync_WhenSubjectClaims_ProducesClaimsIdentity()
     {
         var token = await EncodeTokenAsync(
-            subjectClaims: [new Claim("name", "Alice"), new Claim("role", "admin")]
+            new JwtTestTokenOptions
+            {
+                SubjectClaims = [new Claim("name", "Alice"), new Claim("role", "admin")],
+            },
+            CancellationToken.None
         );
 
         var parameters = new JwtValidationParameters().UseValidationKeys([SigningKey]);
@@ -332,7 +355,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     {
         // A multi-audience token must validate against a resource that identifies itself with one of the audiences,
         // even though the token also carries other audiences (RFC 7519 §4.1.3).
-        var token = await EncodeTokenAsync(audience: ["urn:resource:api", "urn:resource:openid"]);
+        var token = await EncodeTokenAsync(
+            new JwtTestTokenOptions { Audience = ["urn:resource:api", "urn:resource:openid"] },
+            CancellationToken.None
+        );
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -351,7 +377,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenIssuerMismatch_Fails()
     {
-        var token = await EncodeTokenAsync(issuer: "https://wrong.example");
+        var token = await EncodeTokenAsync(
+            new JwtTestTokenOptions { Issuer = "https://wrong.example" },
+            CancellationToken.None
+        );
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -368,7 +397,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task ValidateAsync_WhenMultiAudienceMissingExpected_Fails()
     {
         // A multi-audience token must be rejected when none of its audiences identify the validating resource.
-        var token = await EncodeTokenAsync(audience: ["urn:resource:other", "urn:resource:openid"]);
+        var token = await EncodeTokenAsync(
+            new JwtTestTokenOptions { Audience = ["urn:resource:other", "urn:resource:openid"] },
+            CancellationToken.None
+        );
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -384,7 +416,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenClaimValueMismatch_FailsWithInvalidClaim()
     {
-        var token = await EncodeTokenAsync();
+        var token = await EncodeTokenAsync(new JwtTestTokenOptions(), CancellationToken.None);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -406,7 +438,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task ValidateAsync_WhenExpired_Fails()
     {
         var past = UtcNow.AddHours(-2);
-        var token = await EncodeTokenAsync(notBefore: past.AddMinutes(-1), expires: past);
+        var token = await EncodeTokenAsync(
+            new JwtTestTokenOptions { NotBefore = past.AddMinutes(-1), Expires = past },
+            CancellationToken.None
+        );
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -422,7 +457,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenNoValidationKeys_FailsWithKeyNotFound()
     {
-        var token = await EncodeTokenAsync();
+        var token = await EncodeTokenAsync(new JwtTestTokenOptions(), CancellationToken.None);
 
         var parameters = new JwtValidationParameters().UseValidationKeys([]);
 
@@ -435,7 +470,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenTampered_FailsWithDecodeException()
     {
-        var token = await EncodeTokenAsync();
+        var token = await EncodeTokenAsync(new JwtTestTokenOptions(), CancellationToken.None);
         var tampered = token[..^4] + "AAAA";
 
         var parameters = new JwtValidationParameters().UseValidationKeys([SigningKey]);
@@ -450,7 +485,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenGetClaimsIdentityOnFailedResult_Throws()
     {
-        var token = await EncodeTokenAsync();
+        var token = await EncodeTokenAsync(new JwtTestTokenOptions(), CancellationToken.None);
 
         var parameters = new JwtValidationParameters().UseValidationKeys([]);
 
@@ -464,7 +499,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenAssertionIsNotSatisfied_FailsWithAssertionFailed()
     {
-        var token = await EncodeTokenAsync();
+        var token = await EncodeTokenAsync(new JwtTestTokenOptions(), CancellationToken.None);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -487,7 +522,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var exp = UtcNow.AddHours(1).ToUnixTimeSeconds() + 0.5;
 
         var result = await EncodeAndValidateLifetimeAsync(
-            new Dictionary<string, object> { ["exp"] = exp }
+            new Dictionary<string, object> { ["exp"] = exp },
+            new JwtTestLifetimeOptions(),
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -498,7 +535,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     {
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["exp"] = 99_999_999_999_999L },
-            requireExpirationTime: false
+            new JwtTestLifetimeOptions { RequireExpirationTime = false },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -509,7 +547,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task ValidateAsync_WhenExpIsDateString_Fails()
     {
         var result = await EncodeAndValidateLifetimeAsync(
-            new Dictionary<string, object> { ["exp"] = "2099-01-01T00:00:00Z" }
+            new Dictionary<string, object> { ["exp"] = "2099-01-01T00:00:00Z" },
+            new JwtTestLifetimeOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -520,7 +560,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task ValidateAsync_WhenNbfIsNotANumericDate_Fails()
     {
         var result = await EncodeAndValidateLifetimeAsync(
-            new Dictionary<string, object> { ["nbf"] = "soon" }
+            new Dictionary<string, object> { ["nbf"] = "soon" },
+            new JwtTestLifetimeOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -533,7 +575,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var now = UtcNow.ToUnixTimeSeconds();
 
         var result = await EncodeAndValidateLifetimeAsync(
-            new Dictionary<string, object> { ["iat"] = "earlier", ["exp"] = now + 60 }
+            new Dictionary<string, object> { ["iat"] = "earlier", ["exp"] = now + 60 },
+            new JwtTestLifetimeOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -548,7 +592,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var now = UtcNow.ToUnixTimeSeconds();
 
         var result = await EncodeAndValidateLifetimeAsync(
-            new Dictionary<string, object> { ["iat"] = now + 300, ["exp"] = now + 600 }
+            new Dictionary<string, object> { ["iat"] = now + 300, ["exp"] = now + 600 },
+            new JwtTestLifetimeOptions(),
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -560,7 +606,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var now = UtcNow.ToUnixTimeSeconds();
 
         var result = await EncodeAndValidateLifetimeAsync(
-            new Dictionary<string, object> { ["iat"] = now + 301, ["exp"] = now + 600 }
+            new Dictionary<string, object> { ["iat"] = now + 301, ["exp"] = now + 600 },
+            new JwtTestLifetimeOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -575,7 +623,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var now = UtcNow.ToUnixTimeSeconds();
 
         var result = await EncodeAndValidateLifetimeAsync(
-            new Dictionary<string, object> { ["nbf"] = now + 301, ["exp"] = now + 600 }
+            new Dictionary<string, object> { ["nbf"] = now + 301, ["exp"] = now + 600 },
+            new JwtTestLifetimeOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -595,7 +645,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["iat"] = now, ["exp"] = now + 300 },
-            requireNotBefore: true
+            new JwtTestLifetimeOptions { RequireNotBefore = true },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -610,7 +661,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["nbf"] = now, ["exp"] = now + 300 },
-            requireIssuedAt: true
+            new JwtTestLifetimeOptions { RequireIssuedAt = true },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -631,8 +683,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
                 ["nbf"] = now,
                 ["exp"] = now + 300,
             },
-            requireNotBefore: true,
-            requireIssuedAt: true
+            new JwtTestLifetimeOptions { RequireNotBefore = true, RequireIssuedAt = true },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -649,7 +701,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["iat"] = now, ["exp"] = now + 300 },
-            maxLifetime: TimeSpan.FromMinutes(5)
+            new JwtTestLifetimeOptions { MaxLifetime = TimeSpan.FromMinutes(5) },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -662,7 +715,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["iat"] = now, ["exp"] = now + 301 },
-            maxLifetime: TimeSpan.FromMinutes(5)
+            new JwtTestLifetimeOptions { MaxLifetime = TimeSpan.FromMinutes(5) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -679,7 +733,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["iat"] = now - 600, ["exp"] = now + 60 },
-            maxLifetime: TimeSpan.FromMinutes(5)
+            new JwtTestLifetimeOptions { MaxLifetime = TimeSpan.FromMinutes(5) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -698,7 +753,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
                 ["nbf"] = now - 600,
                 ["exp"] = now + 60,
             },
-            maxLifetime: TimeSpan.FromMinutes(5)
+            new JwtTestLifetimeOptions { MaxLifetime = TimeSpan.FromMinutes(5) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -712,7 +768,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["exp"] = now + 600 },
-            maxLifetime: TimeSpan.FromMinutes(5)
+            new JwtTestLifetimeOptions { MaxLifetime = TimeSpan.FromMinutes(5) },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -725,7 +782,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["exp"] = now + 601 },
-            maxLifetime: TimeSpan.FromMinutes(5)
+            new JwtTestLifetimeOptions { MaxLifetime = TimeSpan.FromMinutes(5) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -739,8 +797,12 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["iat"] = now },
-            requireExpirationTime: false,
-            maxLifetime: TimeSpan.FromMinutes(5)
+            new JwtTestLifetimeOptions
+            {
+                RequireExpirationTime = false,
+                MaxLifetime = TimeSpan.FromMinutes(5),
+            },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -756,7 +818,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["iat"] = now, ["exp"] = maxNumericDate },
-            maxLifetime: TimeSpan.FromMinutes(5)
+            new JwtTestLifetimeOptions { MaxLifetime = TimeSpan.FromMinutes(5) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -770,7 +833,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenTokenTypeMatches_Succeeds()
     {
-        var token = await EncodeTokenAsync(tokenType: JoseTokenTypes.AccessTokenJwt);
+        var token = await EncodeTokenAsync(
+            new JwtTestTokenOptions { TokenType = JoseTokenTypes.AccessTokenJwt },
+            CancellationToken.None
+        );
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -793,7 +859,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     {
         // RFC 7515 §4.1.9: the 'application/' prefix is optional and the comparison is case-insensitive, so these all
         // match the expected 'at+jwt'.
-        var token = await EncodeTokenAsync(tokenType: encodedTokenType);
+        var token = await EncodeTokenAsync(
+            new JwtTestTokenOptions { TokenType = encodedTokenType },
+            CancellationToken.None
+        );
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -809,7 +878,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     public async Task ValidateAsync_WhenTokenTypeMismatch_Fails()
     {
         // A plain 'JWT'-typed token must be rejected when 'at+jwt' is required (token-substitution defense).
-        var token = await EncodeTokenAsync(tokenType: JoseTokenTypes.Jwt);
+        var token = await EncodeTokenAsync(
+            new JwtTestTokenOptions { TokenType = JoseTokenTypes.Jwt },
+            CancellationToken.None
+        );
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -825,7 +897,10 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenAnyOfSeveralTokenTypesMatch_Succeeds()
     {
-        var token = await EncodeTokenAsync(tokenType: JoseTokenTypes.LogoutJwt);
+        var token = await EncodeTokenAsync(
+            new JwtTestTokenOptions { TokenType = JoseTokenTypes.LogoutJwt },
+            CancellationToken.None
+        );
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])
@@ -844,7 +919,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenAHandlerFailsWithACode_RecordsTheFirstCode()
     {
-        var token = await EncodeTokenAsync();
+        var token = await EncodeTokenAsync(new JwtTestTokenOptions(), CancellationToken.None);
         JwtValidationContext? captured = null;
 
         var parameters = new JwtValidationParameters()
@@ -870,7 +945,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateAsync_WhenAHandlerFailsWithAnEmptyCode_Throws()
     {
-        var token = await EncodeTokenAsync();
+        var token = await EncodeTokenAsync(new JwtTestTokenOptions(), CancellationToken.None);
 
         var parameters = new JwtValidationParameters()
             .UseValidationKeys([SigningKey])

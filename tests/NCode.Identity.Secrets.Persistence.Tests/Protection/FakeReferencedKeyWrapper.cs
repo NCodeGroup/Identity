@@ -151,7 +151,7 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
         ReadOnlyMemory<byte> context,
         IBufferWriter<byte> destination,
         CancellationToken cancellationToken
-    ) => UnwrapCoreAsync(wrappedKey, access: null, context, destination);
+    ) => UnwrapCoreAsync(wrappedKey, access: null, context, destination, cancellationToken);
 
     /// <inheritdoc />
     public ValueTask UnwrapAsync(
@@ -160,13 +160,14 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
         ReadOnlyMemory<byte> context,
         IBufferWriter<byte> destination,
         CancellationToken cancellationToken
-    ) => UnwrapCoreAsync(wrappedKey, access, context, destination);
+    ) => UnwrapCoreAsync(wrappedKey, access, context, destination, cancellationToken);
 
     private ValueTask UnwrapCoreAsync(
         WrappedKey wrappedKey,
         KeyAccess? access,
         ReadOnlyMemory<byte> context,
-        IBufferWriter<byte> destination
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
     )
     {
         Interlocked.Increment(ref _unwrapCount);

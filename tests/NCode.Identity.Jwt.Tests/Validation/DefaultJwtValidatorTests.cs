@@ -175,7 +175,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 
     private ValueTask<string> EncodeTokenAsync(
         JoseSigningCredentials? signingCredentials,
-        JoseEncryptionCredentials? encryptionCredentials
+        JoseEncryptionCredentials? encryptionCredentials,
+        CancellationToken cancellationToken
     ) =>
         Encoder.EncodeAsync(
             new JwtEncodingParameters
@@ -187,10 +188,13 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
                 NotBefore = UtcNow,
                 Expires = UtcNow.AddMinutes(5),
             },
-            CancellationToken.None
+            cancellationToken
         );
 
-    private ValueTask<string> EncryptContentAsync(string content)
+    private ValueTask<string> EncryptContentAsync(
+        string content,
+        CancellationToken cancellationToken
+    )
     {
         var options = new JoseEncryptionOptions(CreateEncryptionCredentials())
         {
@@ -200,7 +204,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             },
         };
 
-        return JoseSerializer.CreateEncoder(options).EncodeAsync(content, CancellationToken.None);
+        return JoseSerializer.CreateEncoder(options).EncodeAsync(content, cancellationToken);
     }
 
     private static string CreateUnsecuredToken()
@@ -213,14 +217,15 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         return $"{header}.{payload}.";
     }
 
-    private async Task<JwtValidationResult> ValidateAsync(
+    private async ValueTask<JwtValidationResult> ValidateAsync(
         string token,
-        Action<JwtValidationParameters> configure
+        Action<JwtValidationParameters> configure,
+        CancellationToken cancellationToken
     )
     {
         var parameters = new JwtValidationParameters();
         configure(parameters);
-        return await Validator.ValidateAsync(token, parameters, CancellationToken.None);
+        return await Validator.ValidateAsync(token, parameters, cancellationToken);
     }
 
     private sealed class PermissiveNoneSignatureAlgorithm : SignatureAlgorithm
@@ -267,10 +272,15 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
-        var result = await ValidateAsync(token, x => x.UseValidationKeys([SigningKey]));
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([SigningKey]),
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
         var decodedJwt = Assert.IsType<DecodedJwt>(result.DecodedJwt);
@@ -295,12 +305,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(certificateKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([certificateKey]).ValidateCertificateLifeTime()
+            x => x.UseValidationKeys([certificateKey]).ValidateCertificateLifeTime(),
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -323,12 +335,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(certificateKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([certificateKey]).ValidateCertificateLifeTime()
+            x => x.UseValidationKeys([certificateKey]).ValidateCertificateLifeTime(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -341,7 +355,11 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = CreateUnsecuredToken();
 
-        var result = await ValidateAsync(token, x => x.UseValidationKeys([SigningKey]));
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([SigningKey]),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Contains("none", result.Exception.Message, StringComparison.Ordinal);
@@ -354,7 +372,11 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         var emptyKey = ServiceProvider.GetRequiredService<ISecretKeyFactory>().Empty;
         var token = CreateUnsecuredToken();
 
-        var result = await ValidateAsync(token, x => x.UseValidationKeys([emptyKey]));
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([emptyKey]),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
     }
@@ -364,12 +386,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey])
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey]),
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -393,12 +417,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey, EncryptionKey])
+            x => x.UseValidationKeys([SigningKey, EncryptionKey]),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -409,11 +435,16 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenEncryptedWithoutSignature_Fails()
     {
-        var token = await EncodeTokenAsync(signingCredentials: null, CreateEncryptionCredentials());
+        var token = await EncodeTokenAsync(
+            signingCredentials: null,
+            CreateEncryptionCredentials(),
+            CancellationToken.None
+        );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey])
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey]),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -425,13 +456,15 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var innerToken = await EncodeTokenAsync(
             signingCredentials: null,
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
-        var token = await EncryptContentAsync(innerToken);
+        var token = await EncryptContentAsync(innerToken, CancellationToken.None);
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey])
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey]),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -441,11 +474,12 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenNestedJwtEnclosesUnsecuredJws_Fails()
     {
-        var token = await EncryptContentAsync(CreateUnsecuredToken());
+        var token = await EncryptContentAsync(CreateUnsecuredToken(), CancellationToken.None);
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey])
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey]),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -466,7 +500,11 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
                 CancellationToken.None
             );
 
-        var result = await ValidateAsync(token, x => x.UseValidationKeys([SigningKey]));
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([SigningKey]),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Contains("compact", result.Exception.Message, StringComparison.Ordinal);
@@ -483,7 +521,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
@@ -492,7 +531,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             {
                 x.UseValidationKeys([SigningKey]);
                 x.ValidSignatureAlgorithms = permitted;
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(expected, result.IsValid);
@@ -509,7 +549,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
@@ -518,7 +559,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             {
                 x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey]);
                 x.ValidKeyManagementAlgorithms = permitted;
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(expected, result.IsValid);
@@ -534,7 +576,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
@@ -543,7 +586,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             {
                 x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey]);
                 x.ValidContentEncryptionAlgorithms = permitted;
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(expected, result.IsValid);
@@ -565,7 +609,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials(compressionCode: compression)
+            CreateEncryptionCredentials(compressionCode: compression),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
@@ -574,7 +619,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             {
                 x.UseValidationKeys([SigningKey]).UseDecryptionKeys([EncryptionKey]);
                 x.ValidCompressionAlgorithms = permitted;
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(expected, result.IsValid);
@@ -585,7 +631,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
@@ -594,7 +641,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             {
                 x.UseValidationKeys([SigningKey]);
                 x.ValidSignatureAlgorithms = [AlgorithmCodes.DigitalSignature.RsaSsaPssSha256];
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -606,12 +654,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([SigningKey])
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([SigningKey]),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -630,10 +680,15 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
-        var result = await ValidateAsync(token, x => x.UseValidationKeys([encryptionOnlyKey]));
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([encryptionOnlyKey]),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtSecretKeyNotFoundException>(result.Exception);
@@ -651,10 +706,15 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
-        var result = await ValidateAsync(token, x => x.UseValidationKeys([pssOnlyKey]));
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([pssOnlyKey]),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtSecretKeyNotFoundException>(result.Exception);
@@ -668,12 +728,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         var certificateKey = CreateCertificateKey(UtcNow.AddMinutes(-120), UtcNow.AddMinutes(-60));
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(certificateKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([certificateKey]).ValidateCertificateLifeTime()
+            x => x.UseValidationKeys([certificateKey]).ValidateCertificateLifeTime(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -689,10 +751,15 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
-        var result = await ValidateAsync(token, x => x.UseValidationKeys([justExpiredKey]));
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([justExpiredKey]),
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
     }
@@ -708,10 +775,15 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
-        var result = await ValidateAsync(token, x => x.UseValidationKeys([expiredKey]));
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([expiredKey]),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtSecretKeyNotFoundException>(result.Exception);
@@ -733,10 +805,15 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            encryptionCredentials: null
+            encryptionCredentials: null,
+            CancellationToken.None
         );
 
-        var result = await ValidateAsync(token, x => x.UseValidationKeys([retiredKey]));
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([retiredKey]),
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
     }
@@ -750,12 +827,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([expiredKey])
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([expiredKey]),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -779,12 +858,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         var remoteKey = CreateRemoteDecryptionKey(provider.Object, "remote-enc");
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([remoteKey, EncryptionKey])
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([remoteKey, EncryptionKey]),
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -800,12 +881,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         var holderKey = CreateRsaKey("server-other", ServerRsa, use: null, algorithm: null);
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([namedKey, holderKey])
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([namedKey, holderKey]),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -830,12 +913,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         var otherKey = CreateRsaKey("server-other", ServerRsa, use: null, algorithm: null);
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             token,
-            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([remoteKey, otherKey])
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([remoteKey, otherKey]),
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -852,7 +937,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
-            CreateEncryptionCredentials()
+            CreateEncryptionCredentials(),
+            CancellationToken.None
         );
 
         var header = JoseSerializer.Parse(token).Header;
@@ -864,7 +950,11 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task Encode_WhenOnlyEncrypted_OmitsContentType()
     {
-        var token = await EncodeTokenAsync(signingCredentials: null, CreateEncryptionCredentials());
+        var token = await EncodeTokenAsync(
+            signingCredentials: null,
+            CreateEncryptionCredentials(),
+            CancellationToken.None
+        );
 
         var header = JoseSerializer.Parse(token).Header;
 

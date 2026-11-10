@@ -62,8 +62,8 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : BaseTests
     }
 
     // Takes the only turn, as a running verification of any scheme holds it.
-    private async Task HoldTheTurnAsync() =>
-        Assert.True(await Gate.TryEnterAsync(CancellationToken.None));
+    private async ValueTask HoldTheTurnAsync(CancellationToken cancellationToken) =>
+        Assert.True(await Gate.TryEnterAsync(cancellationToken));
 
     #region Constructor Tests
 
@@ -106,7 +106,7 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : BaseTests
     public async Task VerifyAsync_WhenEveryTurnIsTaken_WaitsUntilOneIsReleased()
     {
         var verifier = CreateVerifier(Scheme);
-        await HoldTheTurnAsync();
+        await HoldTheTurnAsync(CancellationToken.None);
 
         var verification = verifier.VerifyAsync(Secret, CancellationToken.None).AsTask();
         Assert.False(verification.IsCompleted);
@@ -123,7 +123,7 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : BaseTests
     public async Task VerifyAsync_WhenTheQueueIsFull_IsRefusedWithoutWaiting()
     {
         var verifier = CreateVerifier(Scheme);
-        await HoldTheTurnAsync();
+        await HoldTheTurnAsync(CancellationToken.None);
         var queued = verifier.VerifyAsync(Secret, CancellationToken.None).AsTask();
         Assert.False(queued.IsCompleted);
 
@@ -142,7 +142,7 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : BaseTests
     public async Task VerifyAsync_WhenNoTurnComesWithinTheQueueTimeout_IsRefused()
     {
         var verifier = CreateVerifier(Scheme);
-        await HoldTheTurnAsync();
+        await HoldTheTurnAsync(CancellationToken.None);
         var queued = verifier.VerifyAsync(Secret, CancellationToken.None).AsTask();
         Assert.False(queued.IsCompleted);
 
@@ -178,7 +178,7 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : BaseTests
     public async Task VerifyAsync_WhenCancelledWhileItWaits_ThrowsWithoutTakingATurn()
     {
         var verifier = CreateVerifier(Scheme);
-        await HoldTheTurnAsync();
+        await HoldTheTurnAsync(CancellationToken.None);
         using var cancellation = new CancellationTokenSource();
 
         var verification = verifier.VerifyAsync(Secret, cancellation.Token).AsTask();
@@ -197,7 +197,7 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : BaseTests
         // verifier's or the scheme's.
         var holder = CreateVerifier(Scheme);
         var waiter = CreateVerifier(Scheme);
-        await HoldTheTurnAsync();
+        await HoldTheTurnAsync(CancellationToken.None);
 
         var verification = waiter.VerifyAsync(Secret, CancellationToken.None).AsTask();
         Assert.False(verification.IsCompleted);

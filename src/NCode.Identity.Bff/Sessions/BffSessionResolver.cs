@@ -20,11 +20,11 @@ internal class BffSessionResolver(
     TimeProvider timeProvider
 )
 {
-    private readonly IBffSessionManager _sessionManager = sessionManager;
-    private readonly BffCookies _cookies = cookies;
-    private readonly IEnumerable<IBffSessionValidator> _validators = validators;
-    private readonly BffFrontendCatalog _frontends = frontends;
-    private readonly TimeProvider _timeProvider = timeProvider;
+    private IBffSessionManager SessionManager { get; } = sessionManager;
+    private BffCookies Cookies { get; } = cookies;
+    private IEnumerable<IBffSessionValidator> Validators { get; } = validators;
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <summary>
     /// Resolves the session of the request, or returns <see langword="null"/> when the request has none.
@@ -52,11 +52,11 @@ internal class BffSessionResolver(
         if (feature.IsResolved)
             return feature.Session;
 
-        var frontend = _frontends.Resolve(httpContext);
+        var frontend = Frontends.Resolve(httpContext);
         if (frontend is null)
             return CompleteWithoutSession(feature);
 
-        var handle = _cookies.ReadSessionHandle(httpContext.Request, frontend);
+        var handle = Cookies.ReadSessionHandle(httpContext.Request, frontend);
         if (handle is null)
             return CompleteWithoutSession(feature);
 
@@ -64,7 +64,7 @@ internal class BffSessionResolver(
             BffGuardedEndpoints.IsApi(endpoint)
             || BffGuardedEndpoints.IsHub(endpoint)
             || BffGuardedEndpoints.IsPage(endpoint);
-        DateTimeOffset? activityAt = slides ? _timeProvider.GetUtcNow() : null;
+        DateTimeOffset? activityAt = slides ? TimeProvider.GetUtcNow() : null;
 
         var state = await ValidateAsync(
             frontend,
@@ -75,7 +75,7 @@ internal class BffSessionResolver(
         );
         if (state is null)
         {
-            _cookies.DeleteSession(httpContext.Response, frontend);
+            Cookies.DeleteSession(httpContext.Response, frontend);
             return CompleteWithoutSession(feature);
         }
 
@@ -103,7 +103,7 @@ internal class BffSessionResolver(
         ArgumentNullException.ThrowIfNull(frontend);
         ArgumentException.ThrowIfNullOrEmpty(handle);
 
-        var state = await _sessionManager.LoadAsync(handle, cancellationToken);
+        var state = await SessionManager.LoadAsync(handle, cancellationToken);
         if (state is null)
             return null;
 
@@ -113,7 +113,7 @@ internal class BffSessionResolver(
         // See ADR-1443: a session belongs to the client its frontend was configured with.
         if (!frontend.IsConfiguredAs(state.Metadata.Client))
         {
-            await _sessionManager.EndAsync(
+            await SessionManager.EndAsync(
                 httpContext,
                 state.StoreKey,
                 state.Metadata,
@@ -123,7 +123,7 @@ internal class BffSessionResolver(
             return null;
         }
 
-        var now = _timeProvider.GetUtcNow();
+        var now = TimeProvider.GetUtcNow();
         string? endReason = null;
         if (now >= state.Metadata.AbsoluteExpiresAt)
             endReason = BffSessionEndReasons.AbsoluteExpiry;
@@ -132,7 +132,7 @@ internal class BffSessionResolver(
 
         if (endReason is not null)
         {
-            await _sessionManager.EndAsync(
+            await SessionManager.EndAsync(
                 httpContext,
                 state.StoreKey,
                 state.Metadata,
@@ -148,13 +148,13 @@ internal class BffSessionResolver(
             state.Metadata,
             principal
         );
-        foreach (var validator in _validators)
+        foreach (var validator in Validators)
         {
             var isValid = await validator.ValidateAsync(validationContext, cancellationToken);
             if (isValid)
                 continue;
 
-            await _sessionManager.EndAsync(
+            await SessionManager.EndAsync(
                 httpContext,
                 state.StoreKey,
                 state.Metadata,
@@ -167,7 +167,7 @@ internal class BffSessionResolver(
         var idleTimeout = frontend.Options.Session.IdleTimeout;
         if (activityAt is { } at && at - state.Metadata.LastAccessedAt >= idleTimeout / 10)
         {
-            return await _sessionManager.UpdateAsync(
+            return await SessionManager.UpdateAsync(
                 state,
                 current => Slide(current, at, idleTimeout),
                 cancellationToken

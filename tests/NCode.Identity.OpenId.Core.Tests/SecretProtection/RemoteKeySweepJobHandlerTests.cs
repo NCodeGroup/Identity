@@ -35,44 +35,44 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
     private const string Deployment = "prod";
     private const string ControlPlaneTenantId = "control-plane";
 
-    private readonly RemoteKeyOptions _remoteKeyOptions = new() { Deployment = Deployment };
-    private readonly FakeTimeProvider _time = new(Now);
-    private readonly Mock<IRemoteKeyProviderCatalog> _catalog;
-    private readonly Mock<IRemoteKeyDescriptorCatalog> _descriptorCatalog;
-    private readonly Mock<IRemoteKeyProvider> _provider;
-    private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
-    private readonly Mock<IStoreManager> _storeManager;
-    private readonly Mock<IRemoteKeyReferenceStore> _store;
-    private readonly Mock<IRemoteSecretDestroyer> _destroyer;
-    private readonly Mock<IEventPublisher> _publisher;
-    private readonly Mock<ITenantResolver> _tenantResolver;
-    private readonly List<RemoteKeyAuditEvent> _published = [];
+    private RemoteKeyOptions RemoteKeyOptions { get; } = new() { Deployment = Deployment };
+    private FakeTimeProvider Time { get; } = new(Now);
+    private Mock<IRemoteKeyProviderCatalog> Catalog { get; }
+    private Mock<IRemoteKeyDescriptorCatalog> DescriptorCatalog { get; }
+    private Mock<IRemoteKeyProvider> Provider { get; }
+    private Mock<IStoreManagerFactory> StoreManagerFactory { get; }
+    private Mock<IStoreManager> StoreManager { get; }
+    private Mock<IRemoteKeyReferenceStore> Store { get; }
+    private Mock<IRemoteSecretDestroyer> Destroyer { get; }
+    private Mock<IEventPublisher> Publisher { get; }
+    private Mock<ITenantResolver> TenantResolver { get; }
+    private List<RemoteKeyAuditEvent> Published { get; } = [];
 
     public RemoteKeySweepJobHandlerTests()
     {
-        _catalog = CreateStrictMock<IRemoteKeyProviderCatalog>();
-        _descriptorCatalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
-        _provider = CreateStrictMock<IRemoteKeyProvider>();
-        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
-        _storeManager = CreateStrictMock<IStoreManager>();
-        _store = CreateStrictMock<IRemoteKeyReferenceStore>();
-        _destroyer = CreateStrictMock<IRemoteSecretDestroyer>();
-        _publisher = CreateStrictMock<IEventPublisher>();
-        _tenantResolver = CreateStrictMock<ITenantResolver>();
+        Catalog = CreateStrictMock<IRemoteKeyProviderCatalog>();
+        DescriptorCatalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
+        Provider = CreateStrictMock<IRemoteKeyProvider>();
+        StoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        StoreManager = CreateStrictMock<IStoreManager>();
+        Store = CreateStrictMock<IRemoteKeyReferenceStore>();
+        Destroyer = CreateStrictMock<IRemoteSecretDestroyer>();
+        Publisher = CreateStrictMock<IEventPublisher>();
+        TenantResolver = CreateStrictMock<ITenantResolver>();
     }
 
     private RemoteKeySweepJobHandler CreateHandler() =>
         new(
-            _catalog.Object,
-            _descriptorCatalog.Object,
-            _storeManagerFactory.Object,
-            _destroyer.Object,
-            _publisher.Object,
-            _tenantResolver.Object,
+            Catalog.Object,
+            DescriptorCatalog.Object,
+            StoreManagerFactory.Object,
+            Destroyer.Object,
+            Publisher.Object,
+            TenantResolver.Object,
             Microsoft.Extensions.Options.Options.Create(
-                new SecretProtectionOptions { RemoteKeys = _remoteKeyOptions }
+                new SecretProtectionOptions { RemoteKeys = RemoteKeyOptions }
             ),
-            _time,
+            Time,
             CreateLooseMock<ILogger<RemoteKeySweepJobHandler>>().Object
         );
 
@@ -102,12 +102,9 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
     // The registered provider and its descriptor, for the tests that reach the check of whether it creates keys.
     private void SetupRegisteredProvider(bool createsKeys)
     {
-        IRemoteKeyProvider? provider = _provider.Object;
-        _catalog
-            .Setup(x => x.TryGetProvider(ProviderName, out provider))
-            .Returns(true)
-            .Verifiable();
-        _descriptorCatalog
+        IRemoteKeyProvider? provider = Provider.Object;
+        Catalog.Setup(x => x.TryGetProvider(ProviderName, out provider)).Returns(true).Verifiable();
+        DescriptorCatalog
             .Setup(x => x.Providers)
             .Returns([
                 new RemoteKeyProviderDescriptor { Name = ProviderName, CreatesKeys = createsKeys },
@@ -119,7 +116,7 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
     private void SetupProvider(params RemoteKeyListing[] listings)
     {
         SetupRegisteredProvider(createsKeys: true);
-        _provider
+        Provider
             .Setup(x =>
                 x.ListKeysAsync(
                     It.Is<RemoteKeyListRequest>(request => request.Deployment == Deployment),
@@ -133,19 +130,19 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
     // The store manager that a page read opens, for the tests that read the references.
     private void SetupStore()
     {
-        _storeManagerFactory
+        StoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => new ValueTask<IStoreManager>(_storeManager.Object))
+            .Returns(() => new ValueTask<IStoreManager>(StoreManager.Object))
             .Verifiable();
-        _storeManager
+        StoreManager
             .Setup(x => x.GetStore<IRemoteKeyReferenceStore>())
-            .Returns(_store.Object)
+            .Returns(Store.Object)
             .Verifiable();
-        _storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        StoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
     private void SetupReferencePage(string? cursor, string? nextCursor, params string[] keyIds) =>
-        _store
+        Store
             .Setup(x =>
                 x.GetKeyIdPageAsync(
                     ProviderName,
@@ -161,22 +158,22 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
             .Verifiable();
 
     private void SetupDestroy(string keyId, bool destroyed) =>
-        _destroyer
+        Destroyer
             .Setup(x => x.DestroyKeyAsync(new RemoteKeyReference(ProviderName, keyId)))
             .Returns(new ValueTask<bool>(destroyed))
             .Verifiable();
 
     private void SetupPublisher() =>
-        _publisher
+        Publisher
             .Setup(x =>
                 x.PublishAsync(It.IsAny<RemoteKeyAuditEvent>(), It.IsAny<CancellationToken>())
             )
-            .Callback<RemoteKeyAuditEvent, CancellationToken>((e, _) => _published.Add(e))
+            .Callback<RemoteKeyAuditEvent, CancellationToken>((e, _) => Published.Add(e))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
     private void SetupControlPlaneTenant() =>
-        _tenantResolver
+        TenantResolver
             .Setup(x => x.GetControlPlaneTenantId())
             .Returns(ControlPlaneTenantId)
             .Verifiable();
@@ -196,7 +193,7 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
 
         await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
 
-        var auditEvent = Assert.Single(_published);
+        var auditEvent = Assert.Single(Published);
         Assert.Equal(ControlPlaneTenantId, auditEvent.TenantId);
         Assert.Equal(RemoteKeyChanges.Destroyed, auditEvent.Change);
         Assert.Equal(RemoteKeyChangeReasons.Orphaned, auditEvent.Reason);
@@ -220,7 +217,7 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
 
         await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     [Fact]
@@ -230,7 +227,7 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
 
         await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     [Fact]
@@ -243,21 +240,21 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
 
         await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     [Fact]
     public async Task HandleAsync_UnregisteredProvider_IsSkipped()
     {
         IRemoteKeyProvider? provider = null;
-        _catalog
+        Catalog
             .Setup(x => x.TryGetProvider(ProviderName, out provider))
             .Returns(false)
             .Verifiable();
 
         await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     [Fact]
@@ -267,17 +264,17 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
 
         await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     [Fact]
     public async Task HandleAsync_NoDeployment_IsSkipped()
     {
-        _remoteKeyOptions.Deployment = null;
+        RemoteKeyOptions.Deployment = null;
 
         await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None);
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     [Fact]
@@ -285,7 +282,7 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
     {
         SetupProvider(Listing("orphan", TimeSpan.FromDays(2)));
         SetupStore();
-        _store
+        Store
             .Setup(x =>
                 x.GetKeyIdPageAsync(
                     ProviderName,
@@ -300,7 +297,7 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
             await CreateHandler().HandleAsync(Job(), Context, CancellationToken.None)
         );
 
-        Assert.Empty(_published);
+        Assert.Empty(Published);
     }
 
     #endregion

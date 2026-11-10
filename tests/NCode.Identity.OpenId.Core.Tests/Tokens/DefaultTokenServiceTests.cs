@@ -39,24 +39,24 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
 
     private static DateTimeOffset CreatedWhen { get; } = new(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly ServiceProvider _serviceProvider;
-    private readonly RSA _tenantRsa = RSA.Create(2048);
+    private ServiceProvider ServiceProvider { get; }
+    private RSA TenantRsa { get; } = RSA.Create(2048);
 
     public DefaultTokenServiceTests()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
-        var tenantKey = _serviceProvider
+        var tenantKey = ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
-            .CreateRsa(new KeyMetadata { KeyId = "tenant" }, _tenantRsa);
+            .CreateRsa(new KeyMetadata { KeyId = "tenant" }, TenantRsa);
         Assert.True(
-            _serviceProvider
+            ServiceProvider
                 .GetRequiredService<ICredentialSelector>()
                 .TryGetSigningCredentials(
-                    _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection,
+                    ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection,
                     [AlgorithmCodes.DigitalSignature.RsaSsaPssSha256],
                     [tenantKey],
                     out var signingCredentials
@@ -105,8 +105,8 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        await _serviceProvider.DisposeAsync();
-        _tenantRsa.Dispose();
+        await ServiceProvider.DisposeAsync();
+        TenantRsa.Dispose();
     }
 
     #region Scaffolding

@@ -17,57 +17,57 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class OwnerRootKeyChangeAnnouncerTests : BaseTests
 {
-    private readonly Mock<IReplicaBroadcaster> _broadcaster;
-    private readonly Mock<IMediator> _mediator;
-    private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
-    private readonly Mock<IStoreManager> _storeManager;
-    private readonly Mock<ITenantStore> _tenantStore;
-    private readonly ServiceProvider _services;
+    private Mock<IReplicaBroadcaster> Broadcaster { get; }
+    private Mock<IMediator> Mediator { get; }
+    private Mock<IStoreManagerFactory> StoreManagerFactory { get; }
+    private Mock<IStoreManager> StoreManager { get; }
+    private Mock<ITenantStore> TenantStore { get; }
+    private ServiceProvider Services { get; }
 
     public OwnerRootKeyChangeAnnouncerTests()
     {
-        _broadcaster = CreateStrictMock<IReplicaBroadcaster>();
-        _mediator = CreateStrictMock<IMediator>();
-        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
-        _storeManager = CreateStrictMock<IStoreManager>();
-        _tenantStore = CreateStrictMock<ITenantStore>();
+        Broadcaster = CreateStrictMock<IReplicaBroadcaster>();
+        Mediator = CreateStrictMock<IMediator>();
+        StoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        StoreManager = CreateStrictMock<IStoreManager>();
+        TenantStore = CreateStrictMock<ITenantStore>();
 
-        var services = new ServiceCollection();
-        services.AddScoped(_ => _mediator.Object);
-        _services = services.BuildServiceProvider();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddScoped(_ => Mediator.Object);
+        Services = serviceCollection.BuildServiceProvider();
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
-            _services.Dispose();
+            Services.Dispose();
 
         base.Dispose(disposing);
     }
 
     private OwnerRootKeyChangeAnnouncer CreateAnnouncer() =>
         new(
-            _services.GetRequiredService<IServiceScopeFactory>(),
-            _broadcaster.Object,
-            _storeManagerFactory.Object
+            Services.GetRequiredService<IServiceScopeFactory>(),
+            Broadcaster.Object,
+            StoreManagerFactory.Object
         );
 
     private void SetupStoreManager()
     {
-        _storeManagerFactory
+        StoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(_storeManager.Object)
+            .ReturnsAsync(StoreManager.Object)
             .Verifiable();
-        _storeManager
+        StoreManager
             .Setup(x => x.GetStore<ITenantStore>())
-            .Returns(_tenantStore.Object)
+            .Returns(TenantStore.Object)
             .Verifiable();
-        _storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        StoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
     private void SetupSend(CancellationToken cancellationToken, Action? onSend = null)
     {
-        _mediator
+        Mediator
             .Setup(x =>
                 x.SendAsync(
                     It.Is<TenantChangedCommand>(command =>
@@ -87,12 +87,12 @@ public sealed class OwnerRootKeyChangeAnnouncerTests : BaseTests
         using var source = new CancellationTokenSource();
         var calls = new List<string>();
         SetupStoreManager();
-        _tenantStore
+        TenantStore
             .Setup(x => x.MarkSecretsChangedAsync("acme", source.Token))
             .Callback(() => calls.Add("mark"))
             .ReturnsAsync(true)
             .Verifiable();
-        _storeManager
+        StoreManager
             .Setup(x => x.SaveChangesAsync(source.Token))
             .Callback(() => calls.Add("save"))
             .Returns(ValueTask.CompletedTask)
@@ -109,7 +109,7 @@ public sealed class OwnerRootKeyChangeAnnouncerTests : BaseTests
     {
         using var source = new CancellationTokenSource();
         SetupStoreManager();
-        _tenantStore
+        TenantStore
             .Setup(x => x.MarkSecretsChangedAsync("acme", source.Token))
             .ReturnsAsync(false)
             .Verifiable();
@@ -123,7 +123,7 @@ public sealed class OwnerRootKeyChangeAnnouncerTests : BaseTests
     {
         using var source = new CancellationTokenSource();
         SetupStoreManager();
-        _tenantStore
+        TenantStore
             .Setup(x => x.MarkSecretsChangedAsync("acme", source.Token))
             .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
             .Verifiable();
@@ -137,7 +137,7 @@ public sealed class OwnerRootKeyChangeAnnouncerTests : BaseTests
     [Fact]
     public async Task Changed_ForAnotherOwnerType_BroadcastsTheOwnerOnTheMasterKeyChannel()
     {
-        _broadcaster
+        Broadcaster
             .Setup(x =>
                 x.PublishAsync("master-key-changed", "partner:acme", It.IsAny<CancellationToken>())
             )
@@ -147,6 +147,6 @@ public sealed class OwnerRootKeyChangeAnnouncerTests : BaseTests
         await CreateAnnouncer()
             .ChangedAsync(new SecretOwner("partner", "acme"), CancellationToken.None);
 
-        _storeManagerFactory.VerifyNoOtherCalls();
+        StoreManagerFactory.VerifyNoOtherCalls();
     }
 }

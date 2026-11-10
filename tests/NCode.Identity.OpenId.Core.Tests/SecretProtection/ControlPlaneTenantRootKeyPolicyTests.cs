@@ -12,21 +12,21 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class ControlPlaneTenantRootKeyPolicyTests : BaseTests
 {
-    private readonly Mock<ITenantResolver> _tenantResolver;
+    private Mock<ITenantResolver> TenantResolver { get; }
 
     public ControlPlaneTenantRootKeyPolicyTests()
     {
-        _tenantResolver = CreateStrictMock<ITenantResolver>();
+        TenantResolver = CreateStrictMock<ITenantResolver>();
     }
 
     private ControlPlaneTenantRootKeyPolicy CreatePolicy(string controlPlaneTenantId)
     {
-        _tenantResolver
+        TenantResolver
             .Setup(x => x.GetControlPlaneTenantId())
             .Returns(controlPlaneTenantId)
             .Verifiable();
 
-        return new ControlPlaneTenantRootKeyPolicy(_tenantResolver.Object);
+        return new ControlPlaneTenantRootKeyPolicy(TenantResolver.Object);
     }
 
     [Fact]

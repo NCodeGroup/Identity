@@ -22,55 +22,35 @@ namespace NCode.Identity.Bff.Login;
 /// <summary>
 /// Handles <c>GET /bff/callback</c>: binds the returning browser to its login transaction.
 /// </summary>
-internal class BffCallbackHandler
+internal class BffCallbackHandler(
+    BffFrontendCatalog frontends,
+    BffLoginTransactionService transactionService,
+    BffCookies cookies,
+    IProviderMetadataResolver metadataResolver,
+    ITokenClient tokenClient,
+    IIdTokenValidator idTokenValidator,
+    IUserInfoClient userInfoClient,
+    IEnumerable<IBffLoginGate> gates,
+    IEnumerable<IBffSessionClaimContributor> claimContributors,
+    IBffSessionManager sessionManager,
+    IBffAuditRecorder auditRecorder,
+    TimeProvider timeProvider,
+    ILogger<BffCallbackHandler> logger
+)
 {
-    private readonly BffFrontendCatalog _frontends;
-    private readonly BffLoginTransactionService _transactionService;
-    private readonly BffCookies _cookies;
-    private readonly IProviderMetadataResolver _metadataResolver;
-    private readonly ITokenClient _tokenClient;
-    private readonly IIdTokenValidator _idTokenValidator;
-    private readonly IUserInfoClient _userInfoClient;
-    private readonly IEnumerable<IBffLoginGate> _gates;
-    private readonly IEnumerable<IBffSessionClaimContributor> _claimContributors;
-    private readonly IBffSessionManager _sessionManager;
-    private readonly IBffAuditRecorder _auditRecorder;
-    private readonly TimeProvider _timeProvider;
-    private readonly ILogger<BffCallbackHandler> _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BffCallbackHandler"/> class.
-    /// </summary>
-    public BffCallbackHandler(
-        BffFrontendCatalog frontends,
-        BffLoginTransactionService transactionService,
-        BffCookies cookies,
-        IProviderMetadataResolver metadataResolver,
-        ITokenClient tokenClient,
-        IIdTokenValidator idTokenValidator,
-        IUserInfoClient userInfoClient,
-        IEnumerable<IBffLoginGate> gates,
-        IEnumerable<IBffSessionClaimContributor> claimContributors,
-        IBffSessionManager sessionManager,
-        IBffAuditRecorder auditRecorder,
-        TimeProvider timeProvider,
-        ILogger<BffCallbackHandler> logger
-    )
-    {
-        _frontends = frontends;
-        _transactionService = transactionService;
-        _cookies = cookies;
-        _metadataResolver = metadataResolver;
-        _tokenClient = tokenClient;
-        _idTokenValidator = idTokenValidator;
-        _userInfoClient = userInfoClient;
-        _gates = gates;
-        _claimContributors = claimContributors;
-        _sessionManager = sessionManager;
-        _auditRecorder = auditRecorder;
-        _timeProvider = timeProvider;
-        _logger = logger;
-    }
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private BffLoginTransactionService TransactionService { get; } = transactionService;
+    private BffCookies Cookies { get; } = cookies;
+    private IProviderMetadataResolver MetadataResolver { get; } = metadataResolver;
+    private ITokenClient TokenClient { get; } = tokenClient;
+    private IIdTokenValidator IdTokenValidator { get; } = idTokenValidator;
+    private IUserInfoClient UserInfoClient { get; } = userInfoClient;
+    private IEnumerable<IBffLoginGate> Gates { get; } = gates;
+    private IEnumerable<IBffSessionClaimContributor> ClaimContributors { get; } = claimContributors;
+    private IBffSessionManager SessionManager { get; } = sessionManager;
+    private IBffAuditRecorder AuditRecorder { get; } = auditRecorder;
+    private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<BffCallbackHandler> Logger { get; } = logger;
 
     /// <summary>
     /// Handles the callback request.
@@ -81,15 +61,15 @@ internal class BffCallbackHandler
         var request = httpContext.Request;
         var cancellationToken = httpContext.RequestAborted;
 
-        var frontend = _frontends.GetRequired(httpContext);
+        var frontend = Frontends.GetRequired(httpContext);
 
         httpContext.Response.SetNoStore();
-        _cookies.DeleteLogin(httpContext.Response, frontend);
+        Cookies.DeleteLogin(httpContext.Response, frontend);
 
         var stateValues = request.Query[OpenIdProtocol.Parameters.State];
         var state = stateValues.Count == 1 ? stateValues[0] : null;
-        var loginSecret = _cookies.ReadLoginSecret(request, frontend);
-        var taken = await _transactionService.TakeAsync(state, loginSecret, cancellationToken);
+        var loginSecret = Cookies.ReadLoginSecret(request, frontend);
+        var taken = await TransactionService.TakeAsync(state, loginSecret, cancellationToken);
         if (taken.Transaction is not { } transaction)
         {
             await FailAsync(
@@ -115,7 +95,7 @@ internal class BffCallbackHandler
         OpenIdProviderMetadata metadata;
         try
         {
-            metadata = await _metadataResolver.GetMetadataAsync(
+            metadata = await MetadataResolver.GetMetadataAsync(
                 transaction.Issuer,
                 cancellationToken
             );
@@ -162,7 +142,7 @@ internal class BffCallbackHandler
         TokenResult tokenResult;
         try
         {
-            tokenResult = await _tokenClient.RequestTokenAsync(
+            tokenResult = await TokenClient.RequestTokenAsync(
                 registration,
                 tokenRequest,
                 cancellationToken
@@ -195,7 +175,7 @@ internal class BffCallbackHandler
         IdTokenValidationResult validation;
         try
         {
-            validation = await _idTokenValidator.ValidateAsync(
+            validation = await IdTokenValidator.ValidateAsync(
                 registration,
                 validationRequest,
                 cancellationToken
@@ -241,7 +221,7 @@ internal class BffCallbackHandler
             UserInfoResult userInfo;
             try
             {
-                userInfo = await _userInfoClient.GetUserInfoAsync(
+                userInfo = await UserInfoClient.GetUserInfoAsync(
                     registration,
                     userInfoRequest,
                     cancellationToken
@@ -271,7 +251,7 @@ internal class BffCallbackHandler
             subject,
             sessionClaims
         );
-        foreach (var contributor in _claimContributors)
+        foreach (var contributor in ClaimContributors)
         {
             await contributor.ContributeAsync(claimContext, cancellationToken);
         }
@@ -279,7 +259,7 @@ internal class BffCallbackHandler
         var claims = BffSessionPrincipal.StoreClaims(claimContext.Claims);
         var principal = BffSessionPrincipal.Create(claims, transaction.Issuer);
         var gateContext = new BffLoginGateContext(httpContext, transaction.Issuer, principal);
-        foreach (var gate in _gates)
+        foreach (var gate in Gates)
         {
             var allowed = await gate.AllowAsync(gateContext, cancellationToken);
             if (allowed)
@@ -290,7 +270,7 @@ internal class BffCallbackHandler
         }
 
         var response = tokenResult.Response;
-        var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         var absolute = now + options.Session.AbsoluteLifetime;
         if (response.RefreshTokenExpiresIn is { } refreshSeconds)
@@ -343,13 +323,13 @@ internal class BffCallbackHandler
             ],
         };
 
-        var oldHandle = _cookies.ReadSessionHandle(request, frontend);
+        var oldHandle = Cookies.ReadSessionHandle(request, frontend);
         if (oldHandle is not null)
         {
-            var old = await _sessionManager.LoadAsync(oldHandle, cancellationToken);
+            var old = await SessionManager.LoadAsync(oldHandle, cancellationToken);
             if (old is not null)
             {
-                await _sessionManager.EndAsync(
+                await SessionManager.EndAsync(
                     httpContext,
                     old.StoreKey,
                     old.Metadata,
@@ -359,13 +339,9 @@ internal class BffCallbackHandler
             }
         }
 
-        var created = await _sessionManager.CreateAsync(
-            sessionMetadata,
-            payload,
-            cancellationToken
-        );
-        _cookies.SetSession(httpContext.Response, frontend, created.Handle, absolute);
-        await _auditRecorder.LoginSucceededAsync(httpContext, subject, cancellationToken);
+        var created = await SessionManager.CreateAsync(sessionMetadata, payload, cancellationToken);
+        Cookies.SetSession(httpContext.Response, frontend, created.Handle, absolute);
+        await AuditRecorder.LoginSucceededAsync(httpContext, subject, cancellationToken);
 
         var returnUrl = BffNavigation.LocalUrl(request, transaction.ReturnUrl);
         httpContext.Response.Redirect(returnUrl);
@@ -373,8 +349,8 @@ internal class BffCallbackHandler
 
     private async ValueTask FailAsync(HttpContext httpContext, BffFrontend frontend, string reason)
     {
-        _logger.LoginFailed(reason);
-        await _auditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
+        Logger.LoginFailed(reason);
+        await AuditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
         var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, frontend.Options, reason);
         httpContext.Response.Redirect(errorUrl);
     }

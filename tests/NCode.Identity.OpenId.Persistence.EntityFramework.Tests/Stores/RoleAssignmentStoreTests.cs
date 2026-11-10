@@ -15,31 +15,31 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     private const string TenantId = "tenant-1";
     private const string Subject = "subject-1";
 
-    private readonly SwitchableAmbientTenantAccessor _ambient = new();
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _tenantStore;
-    private readonly RoleAssignmentStore _store;
+    private SwitchableAmbientTenantAccessor Ambient { get; } = new();
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore TenantStore { get; }
+    private RoleAssignmentStore Store { get; }
 
     public RoleAssignmentStoreTests()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSingleton<IAmbientTenantAccessor>(_ambient);
+        serviceCollection.AddSingleton<IAmbientTenantAccessor>(Ambient);
         serviceCollection.AddTestOpenIdDbContext(options =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _store = new RoleAssignmentStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        TenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        Store = new RoleAssignmentStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedRoleAssignment CreateAssignment(
@@ -62,17 +62,17 @@ public sealed class RoleAssignmentStoreTests : IDisposable
 
     private async Task SeedTenantAsync()
     {
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder
         {
             TenantId = TenantId,
             DisplayName = "Tenant One",
         }.Build();
-        await _tenantStore.AddAsync(tenant, CancellationToken.None);
+        await TenantStore.AddAsync(tenant, CancellationToken.None);
 
         // The tenant must be persisted before its dependents are added (an in-memory query does not observe
         // unsaved inserts).
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
     }
 
     [Fact]
@@ -80,13 +80,13 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     {
         await SeedTenantAsync();
 
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAssignment("assign-1", Subject, "Owner", "client", "client-1"),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        var loaded = await _store.GetOrDefaultAsync("assign-1", CancellationToken.None);
+        var loaded = await Store.GetOrDefaultAsync("assign-1", CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal(TenantId, loaded.TenantId);
@@ -102,21 +102,21 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     {
         await SeedTenantAsync();
 
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAssignment("assign-1", "owner-a", "Owner", "client", "client-1"),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAssignment("assign-2", "owner-b", "Owner", "client", "client-1"),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAssignment("assign-3", "owner-c", "Owner", "client", "client-2"),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        var atNode = await _store.GetByResourceAsync("client", "client-1", CancellationToken.None);
+        var atNode = await Store.GetByResourceAsync("client", "client-1", CancellationToken.None);
 
         Assert.Equal(2, atNode.Count);
         Assert.All(atNode, assignment => Assert.Equal("client-1", assignment.ResourceId));
@@ -127,21 +127,21 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     {
         await SeedTenantAsync();
 
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAssignment("assign-1", Subject, "Owner", "client", "client-1"),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAssignment("assign-2", Subject, "TenantAdmin", "tenant", TenantId),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAssignment("assign-3", "other", "Owner", "client", "client-3"),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        var forPrincipal = await _store.GetByPrincipalAsync(Subject, CancellationToken.None);
+        var forPrincipal = await Store.GetByPrincipalAsync(Subject, CancellationToken.None);
 
         Assert.Equal(2, forPrincipal.Count);
         Assert.All(forPrincipal, assignment => Assert.Equal(Subject, assignment.PrincipalId));
@@ -152,13 +152,13 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     public async Task GetByPrincipalAsync_ReadsAssignmentsOfEveryTenant()
     {
         await SeedTenantAsync();
-        _dbContext.SeedTenant(_provider.GetRequiredService<IIdGenerator<long>>(), "tenant-2");
+        DbContext.SeedTenant(Provider.GetRequiredService<IIdGenerator<long>>(), "tenant-2");
 
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAssignment("assign-1", Subject, "Owner", "client", "client-1"),
             CancellationToken.None
         );
-        await _store.AddAsync(
+        await Store.AddAsync(
             new PersistedRoleAssignment
             {
                 TenantId = "tenant-2",
@@ -171,10 +171,10 @@ public sealed class RoleAssignmentStoreTests : IDisposable
             },
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        using var scope = _ambient.BeginScope("tenant-2");
-        var forPrincipal = await _store.GetByPrincipalAsync(Subject, CancellationToken.None);
+        using var scope = Ambient.BeginScope("tenant-2");
+        var forPrincipal = await Store.GetByPrincipalAsync(Subject, CancellationToken.None);
 
         Assert.Equal(2, forPrincipal.Count);
         Assert.Contains(forPrincipal, assignment => assignment.TenantId == TenantId);
@@ -186,16 +186,16 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     {
         await SeedTenantAsync();
 
-        await _store.AddAsync(
+        await Store.AddAsync(
             CreateAssignment("assign-1", Subject, "Owner", "client", "client-1"),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
-        await _store.RemoveAsync("assign-1", CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
+        await Store.RemoveAsync("assign-1", CancellationToken.None);
+        await DbContext.SaveChangesAsync();
 
-        var loaded = await _store.GetOrDefaultAsync("assign-1", CancellationToken.None);
+        var loaded = await Store.GetOrDefaultAsync("assign-1", CancellationToken.None);
         Assert.Null(loaded);
     }
 }

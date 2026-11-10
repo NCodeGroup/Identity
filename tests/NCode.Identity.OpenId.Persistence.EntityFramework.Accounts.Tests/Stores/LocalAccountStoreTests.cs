@@ -18,10 +18,10 @@ public sealed class LocalAccountStoreTests : IDisposable
     private static Func<string, CancellationToken, ValueTask<bool>> NotRefused { get; } =
         static (_, _) => ValueTask.FromResult(false);
 
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly LocalAccountStore _store;
-    private readonly PlainPasswordHasher _hasher = new();
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private LocalAccountStore Store { get; }
+    private PlainPasswordHasher Hasher { get; } = new();
 
     public LocalAccountStoreTests()
     {
@@ -30,21 +30,21 @@ public sealed class LocalAccountStoreTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new LocalAccountStore(
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        Store = new LocalAccountStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
             Mock.Of<IPasswordHasher>(),
-            _dbContext
+            DbContext
         );
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     #region Helpers
@@ -71,17 +71,17 @@ public sealed class LocalAccountStoreTests : IDisposable
 
     private async Task AddAndDetachAsync(PersistedLocalAccount account)
     {
-        await _store.AddAsync(account, password: null, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddAsync(account, password: null, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private LocalAccountStore CreateStoreWithPasswords() =>
         new(
             Mock.Of<IStoreProvider>(),
-            _provider.GetRequiredService<IIdGenerator<long>>(),
-            _hasher,
-            _dbContext
+            Provider.GetRequiredService<IIdGenerator<long>>(),
+            Hasher,
+            DbContext
         );
 
     private async Task AddWithPasswordAndDetachAsync(
@@ -95,8 +95,8 @@ public sealed class LocalAccountStoreTests : IDisposable
             SecureEncoding.UTF8.GetBytes(password),
             CancellationToken.None
         );
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private sealed class PlainPasswordHasher : IPasswordHasher
@@ -129,7 +129,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     {
         await AddAndDetachAsync(CreateAccount("account-1", "alice", email: "alice@example.com"));
 
-        var loaded = await _store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
+        var loaded = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal("account-1", loaded.LocalAccountId);
@@ -144,7 +144,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     {
         await AddAndDetachAsync(CreateAccount("account-1", "alice"));
 
-        var loaded = await _store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
+        var loaded = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal(TenantId, loaded.TenantId);
@@ -161,7 +161,7 @@ public sealed class LocalAccountStoreTests : IDisposable
             )
         );
 
-        var loaded = await _store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
+        var loaded = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
 
         Assert.NotNull(loaded);
         var claim = Assert.Single(loaded.Claims);
@@ -178,7 +178,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     {
         await AddAndDetachAsync(CreateAccount("Account-1", "alice"));
 
-        var loaded = await _store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
+        var loaded = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal("Account-1", loaded.LocalAccountId);
@@ -187,7 +187,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     [Fact]
     public async Task GetByIdOrDefaultAsync_WhenMissing_ReturnsNull()
     {
-        var loaded = await _store.GetByIdOrDefaultAsync("missing", CancellationToken.None);
+        var loaded = await Store.GetByIdOrDefaultAsync("missing", CancellationToken.None);
 
         Assert.Null(loaded);
     }
@@ -201,7 +201,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     {
         await AddAndDetachAsync(CreateAccount("account-1", "Alice"));
 
-        var loaded = await _store.GetByUserNameOrDefaultAsync("alice", CancellationToken.None);
+        var loaded = await Store.GetByUserNameOrDefaultAsync("alice", CancellationToken.None);
 
         Assert.NotNull(loaded);
         Assert.Equal("Alice", loaded.UserName);
@@ -210,7 +210,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     [Fact]
     public async Task GetByUserNameOrDefaultAsync_WhenMissing_ReturnsNull()
     {
-        var loaded = await _store.GetByUserNameOrDefaultAsync("nobody", CancellationToken.None);
+        var loaded = await Store.GetByUserNameOrDefaultAsync("nobody", CancellationToken.None);
 
         Assert.Null(loaded);
     }
@@ -259,7 +259,7 @@ public sealed class LocalAccountStoreTests : IDisposable
         );
 
         Assert.Null(result.Account);
-        Assert.NotEqual("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
+        Assert.NotEqual("plain:dummy", Assert.Single(Hasher.VerifiedHashes));
     }
 
     [Fact]
@@ -276,7 +276,7 @@ public sealed class LocalAccountStoreTests : IDisposable
         );
 
         Assert.Null(result.Account);
-        Assert.Equal("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
+        Assert.Equal("plain:dummy", Assert.Single(Hasher.VerifiedHashes));
     }
 
     [Fact]
@@ -292,13 +292,13 @@ public sealed class LocalAccountStoreTests : IDisposable
         );
 
         Assert.Null(result.Account);
-        Assert.Equal("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
+        Assert.Equal("plain:dummy", Assert.Single(Hasher.VerifiedHashes));
     }
 
     [Fact]
     public async Task VerifyCredentialAsync_WhenTheDummyHashMatches_ReturnsNull()
     {
-        _hasher.DummyPasswordHash = _hasher.HashPassword("secret"u8);
+        Hasher.DummyPasswordHash = Hasher.HashPassword("secret"u8);
         var store = CreateStoreWithPasswords();
 
         var result = await store.VerifyCredentialAsync(
@@ -314,7 +314,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     [Fact]
     public async Task VerifyCredentialAsync_WhenTheAccountHasNoPasswordAndTheDummyHashMatches_ReturnsNull()
     {
-        _hasher.DummyPasswordHash = _hasher.HashPassword("secret"u8);
+        Hasher.DummyPasswordHash = Hasher.HashPassword("secret"u8);
         var store = CreateStoreWithPasswords();
         await AddAndDetachAsync(CreateAccount("account-1", "alice"));
 
@@ -326,7 +326,7 @@ public sealed class LocalAccountStoreTests : IDisposable
         );
 
         Assert.Null(result.Account);
-        Assert.Equal(_hasher.DummyPasswordHash, Assert.Single(_hasher.VerifiedHashes));
+        Assert.Equal(Hasher.DummyPasswordHash, Assert.Single(Hasher.VerifiedHashes));
     }
 
     [Fact]
@@ -344,7 +344,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         Assert.True(result.IsRefused);
         Assert.Null(result.Account);
-        Assert.Equal("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
+        Assert.Equal("plain:dummy", Assert.Single(Hasher.VerifiedHashes));
         Assert.Equal("alice", result.UserName);
     }
 
@@ -390,7 +390,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         Assert.Equal("Nobody", Assert.Single(askedUserNames));
         Assert.Equal("Nobody", result.UserName);
-        Assert.Equal("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
+        Assert.Equal("plain:dummy", Assert.Single(Hasher.VerifiedHashes));
     }
 
     #endregion
@@ -402,17 +402,17 @@ public sealed class LocalAccountStoreTests : IDisposable
     {
         await AddAndDetachAsync(CreateAccount("account-1", "alice", isEnabled: true));
 
-        var account = await _store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
+        var account = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
         Assert.NotNull(account);
         account.UserName = "alice-renamed";
         account.Email = "renamed@example.com";
         account.IsEnabled = false;
 
-        await _store.UpdateAsync(account, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.UpdateAsync(account, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var loaded = await _store.GetByUserNameOrDefaultAsync(
+        var loaded = await Store.GetByUserNameOrDefaultAsync(
             "alice-renamed",
             CancellationToken.None
         );
@@ -427,7 +427,7 @@ public sealed class LocalAccountStoreTests : IDisposable
         var account = CreateAccount("missing", "ghost");
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.UpdateAsync(account, CancellationToken.None)
+            await Store.UpdateAsync(account, CancellationToken.None)
         );
     }
 

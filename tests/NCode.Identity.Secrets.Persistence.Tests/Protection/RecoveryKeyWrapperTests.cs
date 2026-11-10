@@ -11,21 +11,19 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 public class RecoveryKeyWrapperTests : IDisposable
 {
-    private readonly string _tempDirectory = Path.Combine(
-        Path.GetTempPath(),
-        $"{nameof(RecoveryKeyWrapperTests)}-{Guid.NewGuid():N}"
-    );
+    private string TempDirectory { get; } =
+        Path.Combine(Path.GetTempPath(), $"{nameof(RecoveryKeyWrapperTests)}-{Guid.NewGuid():N}");
 
     public RecoveryKeyWrapperTests()
     {
-        Directory.CreateDirectory(_tempDirectory);
+        Directory.CreateDirectory(TempDirectory);
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDirectory))
+        if (Directory.Exists(TempDirectory))
         {
-            Directory.Delete(_tempDirectory, recursive: true);
+            Directory.Delete(TempDirectory, recursive: true);
         }
     }
 
@@ -51,7 +49,7 @@ public class RecoveryKeyWrapperTests : IDisposable
 
     private string WritePemFile(string pem)
     {
-        var path = Path.Combine(_tempDirectory, $"{Guid.NewGuid():N}.pem");
+        var path = Path.Combine(TempDirectory, $"{Guid.NewGuid():N}.pem");
         File.WriteAllText(path, pem, SecureEncoding.UTF8);
         return path;
     }
@@ -63,7 +61,7 @@ public class RecoveryKeyWrapperTests : IDisposable
     {
         var recovery = new RecoveryKeyOptions
         {
-            PublicKeyPath = Path.Combine(_tempDirectory, "missing.pem"),
+            PublicKeyPath = Path.Combine(TempDirectory, "missing.pem"),
             Disabled = true,
         };
 
@@ -112,7 +110,7 @@ public class RecoveryKeyWrapperTests : IDisposable
     [Fact]
     public void Constructor_PublicKeyPathMissing_Throws()
     {
-        var path = Path.Combine(_tempDirectory, "missing.pem");
+        var path = Path.Combine(TempDirectory, "missing.pem");
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
             CreateWrapper(new RecoveryKeyOptions { PublicKeyPath = path })

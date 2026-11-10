@@ -20,11 +20,11 @@ public sealed class MasterKeyRewrapJobHandlerTests : BaseTests
             MaxAttempts = 5,
         };
 
-    private readonly Mock<IMasterKeyManager> _manager;
+    private Mock<IMasterKeyManager> Manager { get; }
 
     public MasterKeyRewrapJobHandlerTests()
     {
-        _manager = CreateStrictMock<IMasterKeyManager>();
+        Manager = CreateStrictMock<IMasterKeyManager>();
     }
 
     #region HandleAsync Tests
@@ -32,14 +32,14 @@ public sealed class MasterKeyRewrapJobHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_RewrapsTheOwnerOfTheJob()
     {
-        _manager
+        Manager
             .Setup(x => x.RewrapAsync(SecretOwner.ForTenant("acme"), It.IsAny<CancellationToken>()))
             .Returns(
                 new ValueTask<ProtectedValueRewrapResult>(new ProtectedValueRewrapResult(3, 0))
             )
             .Verifiable();
 
-        await new MasterKeyRewrapJobHandler(_manager.Object).HandleAsync(
+        await new MasterKeyRewrapJobHandler(Manager.Object).HandleAsync(
             new MasterKeyRewrapJob { OwnerType = "tenant", OwnerId = "acme" },
             Context,
             CancellationToken.None
@@ -49,13 +49,13 @@ public sealed class MasterKeyRewrapJobHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_AFailure_PropagatesSoTheDispatcherRetries()
     {
-        _manager
+        Manager
             .Setup(x => x.RewrapAsync(It.IsAny<SecretOwner>(), It.IsAny<CancellationToken>()))
             .Throws(new InvalidOperationException("boom"))
             .Verifiable();
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await new MasterKeyRewrapJobHandler(_manager.Object).HandleAsync(
+            await new MasterKeyRewrapJobHandler(Manager.Object).HandleAsync(
                 new MasterKeyRewrapJob { OwnerType = "tenant", OwnerId = "acme" },
                 Context,
                 CancellationToken.None

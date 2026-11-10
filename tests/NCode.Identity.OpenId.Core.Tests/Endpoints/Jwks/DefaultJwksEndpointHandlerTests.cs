@@ -27,7 +27,7 @@ public sealed class DefaultJwksEndpointHandlerTests : BaseTests, IAsyncLifetime
 {
     private static DateTimeOffset Now { get; } = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly ServiceProvider _serviceProvider;
+    private ServiceProvider ServiceProvider { get; }
 
     public DefaultJwksEndpointHandlerTests()
     {
@@ -35,10 +35,10 @@ public sealed class DefaultJwksEndpointHandlerTests : BaseTests, IAsyncLifetime
         var serviceCollection = new ServiceCollection();
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddJoseLibrary();
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
         Handler = new DefaultJwksEndpointHandler(
-            _serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
             new FakeTimeProvider(Now)
         );
     }
@@ -47,7 +47,7 @@ public sealed class DefaultJwksEndpointHandlerTests : BaseTests, IAsyncLifetime
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public async Task DisposeAsync() => await _serviceProvider.DisposeAsync();
+    public async Task DisposeAsync() => await ServiceProvider.DisposeAsync();
 
     #region HandleRouteAsync Tests
 
@@ -101,7 +101,7 @@ public sealed class DefaultJwksEndpointHandlerTests : BaseTests, IAsyncLifetime
             RetiresWhen = retiresWhen ?? activatesWhen.AddDays(90),
             ExpiresWhen = expiresWhen ?? (retiresWhen ?? activatesWhen.AddDays(90)).AddDays(7),
         };
-        return _serviceProvider.GetRequiredService<ISecretKeyFactory>().CreateRsa(metadata, rsa);
+        return ServiceProvider.GetRequiredService<ISecretKeyFactory>().CreateRsa(metadata, rsa);
     }
 
     private DefaultHttpContext CreateHttpContext(IReadOnlyList<SecretKey> keys)

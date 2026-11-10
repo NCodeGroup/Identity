@@ -12,9 +12,9 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
 {
-    private readonly List<PersistedOwnerRootKey> _rootKeys = [];
+    private List<PersistedOwnerRootKey> RootKeyList { get; } = [];
 
-    private readonly List<PersistedMasterKey> _masterKeys = [];
+    private List<PersistedMasterKey> MasterKeyList { get; } = [];
 
     /// <summary>
     /// Gets the number of units of work that were saved.
@@ -24,12 +24,12 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
     /// <summary>
     /// Gets the stored root keys.
     /// </summary>
-    public IReadOnlyList<PersistedOwnerRootKey> RootKeys => _rootKeys;
+    public IReadOnlyList<PersistedOwnerRootKey> RootKeys => RootKeyList;
 
     /// <summary>
     /// Gets the stored master keys.
     /// </summary>
-    public IReadOnlyList<PersistedMasterKey> MasterKeys => _masterKeys;
+    public IReadOnlyList<PersistedMasterKey> MasterKeys => MasterKeyList;
 
     /// <summary>
     /// Stores a copy of the root key.
@@ -37,14 +37,14 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
     public PersistedOwnerRootKey Seed(PersistedOwnerRootKey rootKey)
     {
         rootKey.ConcurrencyToken = Guid.NewGuid().ToString("N");
-        _rootKeys.Add(Copy(rootKey));
+        RootKeyList.Add(Copy(rootKey));
         return rootKey;
     }
 
     /// <summary>
     /// Stores the master key.
     /// </summary>
-    public void Seed(PersistedMasterKey masterKey) => _masterKeys.Add(masterKey);
+    public void Seed(PersistedMasterKey masterKey) => MasterKeyList.Add(masterKey);
 
     /// <inheritdoc />
     public ValueTask<IStoreManager> CreateAsync(CancellationToken cancellationToken) =>
@@ -69,13 +69,13 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
 
     private sealed class Manager(InMemoryOwnerRootKeyStores owner) : IStoreManager
     {
-        private readonly List<Action> _pending = [];
+        private List<Action> Pending { get; } = [];
 
         public T GetStore<T>()
             where T : IStore
         {
             object store =
-                typeof(T) == typeof(IOwnerRootKeyStore) ? new RootKeyStore(owner, _pending)
+                typeof(T) == typeof(IOwnerRootKeyStore) ? new RootKeyStore(owner, Pending)
                 : typeof(T) == typeof(IMasterKeyStore) ? new MasterKeyStore(owner)
                 : throw new NotSupportedException(typeof(T).Name);
 
@@ -84,12 +84,12 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
 
         public ValueTask SaveChangesAsync(CancellationToken cancellationToken)
         {
-            foreach (var action in _pending)
+            foreach (var action in Pending)
             {
                 action();
             }
 
-            _pending.Clear();
+            Pending.Clear();
             owner.SaveCount++;
             return ValueTask.CompletedTask;
         }
@@ -108,7 +108,7 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
         public object? GetService(Type serviceType) => null;
 
         private PersistedOwnerRootKey? Find(string ownerType, string ownerId) =>
-            owner._rootKeys.SingleOrDefault(row =>
+            owner.RootKeyList.SingleOrDefault(row =>
                 string.Equals(row.OwnerType, ownerType, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(row.OwnerId, ownerId, StringComparison.OrdinalIgnoreCase)
             );
@@ -121,7 +121,7 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
                     throw new InvalidOperationException("The owner already has a root key.");
 
                 item.ConcurrencyToken = Guid.NewGuid().ToString("N");
-                owner._rootKeys.Add(Copy(item));
+                owner.RootKeyList.Add(Copy(item));
             });
             return ValueTask.CompletedTask;
         }
@@ -148,7 +148,7 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
                 // The store renews the token of the row, and the item keeps the token it was read with.
                 var renewed = Copy(item);
                 renewed.ConcurrencyToken = Guid.NewGuid().ToString("N");
-                owner._rootKeys[owner._rootKeys.IndexOf(stored)] = renewed;
+                owner.RootKeyList[owner.RootKeyList.IndexOf(stored)] = renewed;
             });
             return ValueTask.CompletedTask;
         }
@@ -187,7 +187,7 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
             )
                 throw new StoreConcurrencyException("The root key changed.");
 
-            pending.Add(() => owner._rootKeys.Remove(stored));
+            pending.Add(() => owner.RootKeyList.Remove(stored));
             return ValueTask.FromResult(true);
         }
     }
@@ -212,7 +212,7 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
             CancellationToken cancellationToken
         ) =>
             ValueTask.FromResult<IReadOnlyList<PersistedMasterKey>>([
-                .. owner._masterKeys.Where(row =>
+                .. owner.MasterKeyList.Where(row =>
                     string.Equals(
                         row.OwnerType,
                         secretOwner.OwnerType,

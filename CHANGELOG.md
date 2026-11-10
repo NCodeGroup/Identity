@@ -952,8 +952,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   holds (`remoteKeyProviders`); a tenant's Secrets tab in the console creates a key in a provider that creates keys
   through the create-secret form's custody choice and binds a key a KMS holds through a bind dialog, each offering only
   the provider's algorithms, labelled signing or encryption, and showing each refusal's problem detail; the management
-  API's validation and its capabilities read the descriptors as well. The Helm chart's
-  `secretProtection.remoteKeyProviders` configures each provider and mounts its workload identity. `IRemoteKeyProvider`,
+  API's validation and its capabilities read the descriptors as well. The Helm chart registers each provider that
+  `secretProtection.remoteKeyProviders.<vendor>.enabled` turns on, renders its region, vault URI or key ring only when
+  it is set, so a release binds keys a KMS already holds without creating any, refuses a location on a provider that is
+  not enabled, and mounts the vendor's workload identity. `IRemoteKeyProvider`,
   `IRemoteKeyProviderCatalog`, `IRemoteKeyDescriptorCatalog`, `RemoteKeyAlgorithm`, `IRemoteSecretKey` and
   `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a provider or a key type. The providers live in
   `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`, beside each service's key wrapper
@@ -964,13 +966,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#657](https://github.com/NCodeGroup/Identity/issues/657), [#687](https://github.com/NCodeGroup/Identity/issues/687),
   [#690](https://github.com/NCodeGroup/Identity/issues/690), [#691](https://github.com/NCodeGroup/Identity/issues/691),
   [#721](https://github.com/NCodeGroup/Identity/issues/721),
+  [#725](https://github.com/NCodeGroup/Identity/issues/725),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
   [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
   [ADR-1475](docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
   [ADR-1476](docs/decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md),
   [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
-  [ADR-1489](docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)).
+  [ADR-1489](docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md),
+  [ADR-1490](docs/decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md)).
 
 - **A background job destroys the KMS keys that no stored secret names.** Every key the server creates in a KMS carries
   the deployment that `SecretProtection:RemoteKeys:Deployment` names
@@ -983,9 +987,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`IRemoteKeyReferenceStore`), and destroys each key none names through `IRemoteSecretDestroyer.DestroyKeyAsync`,
   recording `remote_key.destroyed` with the reason `orphaned` in the control-plane tenant; `SweepEnabled` turns it off.
   The Helm chart's `secretProtection.remoteKeys` sets the deployment and the sweep, and rendering fails for a release
-  that configures a remote key provider without a deployment
+  whose enabled remote key provider has its region, vault URI or key ring, and so creates keys, without a deployment
   ([#654](https://github.com/NCodeGroup/Identity/issues/654), [#704](https://github.com/NCodeGroup/Identity/issues/704),
-  [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)).
+  [#725](https://github.com/NCodeGroup/Identity/issues/725),
+  [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
+  [ADR-1490](docs/decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md)).
 
 - **A management route answers from what it read and declares every problem it answers.** Every management route
   answers `404 Not Found` and `409 Conflict` from the rows it read before writing — a missing resource, a secret
@@ -3654,6 +3660,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   null-forgiving operator fails the build in every project whose name does not end in `.Tests`
   ([#475](https://github.com/NCodeGroup/Identity/issues/475), [#476](https://github.com/NCodeGroup/Identity/issues/476),
   [#477](https://github.com/NCodeGroup/Identity/issues/477), [#490](https://github.com/NCodeGroup/Identity/issues/490)).
+
+- **The build reports a field that could be an auto-property.** `NCode.Identity.Analyzers`, the repository's own Roslyn
+  analyzer project, which every project of the solution loads and no package ships, fails the build with `NCID0001` on
+  a field, instance or static, unless it is a `const`, a `ref` field, a `volatile` or fixed-size buffer field, a field
+  of a `[StructLayout]` or `[InlineArray]` struct, or a field the code uses by reference: passed as `ref`, `out` or `in`
+  (as `Interlocked`, `Volatile` and `LazyInitializer` take it), taken with `ref` or `&`, or a mutable struct called or
+  written in place. A field in generated code is reported only when a `#line` directive maps it to a hand-written file,
+  as a Razor `@code` block's field is, and the analyzer's tests compile their snippets against the test host's own
+  assemblies ([#713](https://github.com/NCodeGroup/Identity/issues/713),
+  [#714](https://github.com/NCodeGroup/Identity/issues/714),
+  [ADR-1486](docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)).
 
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`; `.editorconfig` sets the header as

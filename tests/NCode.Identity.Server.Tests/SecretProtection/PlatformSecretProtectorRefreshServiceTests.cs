@@ -20,15 +20,15 @@ public class PlatformSecretProtectorRefreshServiceTests : BaseTests
 
     private sealed class CapturingLogger<T> : ILogger<T>
     {
-        private readonly object _gate = new();
-        private readonly List<(LogLevel Level, EventId Id)> _events = [];
+        private Lock Gate { get; } = new();
+        private List<(LogLevel Level, EventId Id)> EventList { get; } = [];
 
         public IReadOnlyList<(LogLevel Level, EventId Id)> Events
         {
             get
             {
-                lock (_gate)
-                    return [.. _events];
+                lock (Gate)
+                    return [.. EventList];
             }
         }
 
@@ -45,8 +45,8 @@ public class PlatformSecretProtectorRefreshServiceTests : BaseTests
             Func<TState, Exception?, string> formatter
         )
         {
-            lock (_gate)
-                _events.Add((logLevel, eventId));
+            lock (Gate)
+                EventList.Add((logLevel, eventId));
         }
     }
 

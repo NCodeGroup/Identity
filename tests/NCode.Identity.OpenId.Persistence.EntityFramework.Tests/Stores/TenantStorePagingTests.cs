@@ -12,9 +12,9 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 public sealed class TenantStorePagingTests : IDisposable
 {
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _store;
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore Store { get; }
 
     public TenantStorePagingTests()
     {
@@ -23,16 +23,16 @@ public sealed class TenantStorePagingTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        Store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedTenant CreateTenant(
@@ -51,36 +51,36 @@ public sealed class TenantStorePagingTests : IDisposable
 
     private async Task SeedAsync(int count)
     {
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         for (var index = 1; index <= count; index++)
         {
-            await _store.AddAsync(CreateTenant($"tenant-{index}", index), CancellationToken.None);
+            await Store.AddAsync(CreateTenant($"tenant-{index}", index), CancellationToken.None);
         }
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     private async Task SeedTwoTeamsAsync()
     {
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _dbContext.SeedTeam(idGenerator, "team-a");
-        _dbContext.SeedTeam(idGenerator, "team-b");
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        DbContext.SeedTeam(idGenerator, "team-a");
+        DbContext.SeedTeam(idGenerator, "team-b");
         for (var index = 1; index <= 3; index++)
         {
-            await _store.AddAsync(
+            await Store.AddAsync(
                 CreateTenant($"a-tenant-{index}", index, "team-a"),
                 CancellationToken.None
             );
         }
         for (var index = 1; index <= 2; index++)
         {
-            await _store.AddAsync(
+            await Store.AddAsync(
                 CreateTenant($"b-tenant-{index}", index, "team-b"),
                 CancellationToken.None
             );
         }
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     #region GetOrDefaultAsync Tests
@@ -89,11 +89,11 @@ public sealed class TenantStorePagingTests : IDisposable
     public async Task GetOrDefaultAsync_WhenTheTrackerHoldsTheTenantWithoutItsTeam_LoadsTheTeam()
     {
         await SeedAsync(1);
-        _ = _dbContext
+        _ = DbContext
             .Tenants.AsTracking()
             .Single(tenant => tenant.NormalizedTenantId == "tenant-1");
 
-        var tenant = await _store.GetOrDefaultAsync("tenant-1", CancellationToken.None);
+        var tenant = await Store.GetOrDefaultAsync("tenant-1", CancellationToken.None);
 
         Assert.NotNull(tenant);
         Assert.Equal("platform", tenant.TeamId);
@@ -112,7 +112,7 @@ public sealed class TenantStorePagingTests : IDisposable
         string? cursor = null;
         do
         {
-            var page = await _store.GetPageAsync(
+            var page = await Store.GetPageAsync(
                 "TEAM-A",
                 new PageRequest { Cursor = cursor, Limit = 2 },
                 CancellationToken.None
@@ -137,7 +137,7 @@ public sealed class TenantStorePagingTests : IDisposable
         string? cursor = null;
         do
         {
-            var page = await _store.GetSettingsPageAsync(
+            var page = await Store.GetSettingsPageAsync(
                 "team-b",
                 new PageRequest { Cursor = cursor, Limit = 1 },
                 CancellationToken.None
@@ -154,37 +154,37 @@ public sealed class TenantStorePagingTests : IDisposable
     {
         await SeedTwoTeamsAsync();
 
-        Assert.Equal(3, await _store.CountAsync("team-a", CancellationToken.None));
-        Assert.Equal(2, await _store.CountAsync("team-b", CancellationToken.None));
-        Assert.Equal(0, await _store.CountAsync("team-c", CancellationToken.None));
+        Assert.Equal(3, await Store.CountAsync("team-a", CancellationToken.None));
+        Assert.Equal(2, await Store.CountAsync("team-b", CancellationToken.None));
+        Assert.Equal(0, await Store.CountAsync("team-c", CancellationToken.None));
     }
 
     [Fact]
     public async Task CountAsync_CountsTheTenantsOfEveryTeamBeneath()
     {
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        var parent = _dbContext.SeedTeam(idGenerator, "team-a");
-        _dbContext.SeedChildTeam(idGenerator, parent, "team-a-web");
-        await _store.AddAsync(CreateTenant("a-tenant-1", 1, "team-a"), CancellationToken.None);
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        var parent = DbContext.SeedTeam(idGenerator, "team-a");
+        DbContext.SeedChildTeam(idGenerator, parent, "team-a-web");
+        await Store.AddAsync(CreateTenant("a-tenant-1", 1, "team-a"), CancellationToken.None);
         for (var index = 1; index <= 2; index++)
         {
-            await _store.AddAsync(
+            await Store.AddAsync(
                 CreateTenant($"web-tenant-{index}", index, "team-a-web"),
                 CancellationToken.None
             );
         }
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        Assert.Equal(3, await _store.CountAsync("team-a", CancellationToken.None));
-        Assert.Equal(2, await _store.CountAsync("team-a-web", CancellationToken.None));
+        Assert.Equal(3, await Store.CountAsync("team-a", CancellationToken.None));
+        Assert.Equal(2, await Store.CountAsync("team-a-web", CancellationToken.None));
     }
 
     [Fact]
     public async Task AddAsync_WhenTheTeamIsMissing_Throws()
     {
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.AddAsync(CreateTenant("orphan", 1, "missing"), CancellationToken.None)
+            await Store.AddAsync(CreateTenant("orphan", 1, "missing"), CancellationToken.None)
         );
 
         Assert.Equal("The team with TeamId='missing' does not exist.", exception.Message);
@@ -205,7 +205,7 @@ public sealed class TenantStorePagingTests : IDisposable
 
         do
         {
-            var page = await _store.GetSettingsPageAsync(
+            var page = await Store.GetSettingsPageAsync(
                 new PageRequest { Cursor = cursor, Limit = 2 },
                 CancellationToken.None
             );
@@ -232,13 +232,13 @@ public sealed class TenantStorePagingTests : IDisposable
     {
         await SeedAsync(3);
 
-        var page = await _store.GetSettingsPageAsync(
+        var page = await Store.GetSettingsPageAsync(
             new PageRequest { Limit = 10 },
             CancellationToken.None
         );
 
         Assert.Equal(3, page.Items.Count);
-        Assert.Empty(_dbContext.ChangeTracker.Entries());
+        Assert.Empty(DbContext.ChangeTracker.Entries());
     }
 
     #endregion

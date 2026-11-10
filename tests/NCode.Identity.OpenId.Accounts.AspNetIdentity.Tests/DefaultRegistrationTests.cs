@@ -14,9 +14,9 @@ public sealed class DefaultRegistrationTests : IDisposable
     private const string DecomposedPassword = "cafe\u0301";
     private const string MadeHash = "hash";
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
+    private MockRepository Mocks { get; } = new(MockBehavior.Strict);
 
-    public void Dispose() => _mocks.Verify();
+    public void Dispose() => Mocks.Verify();
 
     #region Helpers
 
@@ -62,7 +62,7 @@ public sealed class DefaultRegistrationTests : IDisposable
     [Fact]
     public void AddAspNetIdentityLocalAccountStore_WhenTheHostRegisteredItsOwnHasher_WrapsIt()
     {
-        var innerHasher = _mocks.Create<IPasswordHasher<IdentityUser>>();
+        var innerHasher = Mocks.Create<IPasswordHasher<IdentityUser>>();
         innerHasher
             .Setup(x => x.HashPassword(It.IsAny<IdentityUser>(), ComposedPassword))
             .Returns(MadeHash)
@@ -82,7 +82,7 @@ public sealed class DefaultRegistrationTests : IDisposable
     [Fact]
     public void AddAspNetIdentityLocalAccountStore_WhenTheHostRegisteredANormalizingHasher_DoesNotWrapItAgain()
     {
-        var innerHasher = _mocks.Create<IPasswordHasher<IdentityUser>>();
+        var innerHasher = Mocks.Create<IPasswordHasher<IdentityUser>>();
         var registered = new NormalizingPasswordHasher<IdentityUser>(innerHasher.Object);
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton<IPasswordHasher<IdentityUser>>(registered);
@@ -128,7 +128,7 @@ public sealed class DefaultRegistrationTests : IDisposable
     [Fact]
     public void AddAspNetIdentityLocalAccountStore_WhenTheHostRegisteredATransientHasherFactory_WrapsItAndKeepsItsLifetime()
     {
-        var innerHasher = _mocks.Create<IPasswordHasher<IdentityUser>>();
+        var innerHasher = Mocks.Create<IPasswordHasher<IdentityUser>>();
         innerHasher
             .Setup(x => x.HashPassword(It.IsAny<IdentityUser>(), ComposedPassword))
             .Returns(MadeHash)

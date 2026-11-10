@@ -5,7 +5,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 public class PlatformOwnerRootKeyPolicyTests
 {
-    private readonly PlatformOwnerRootKeyPolicy _policy = new();
+    private PlatformOwnerRootKeyPolicy Policy { get; } = new();
 
     [Theory]
     [InlineData("platform")]
@@ -13,7 +13,7 @@ public class PlatformOwnerRootKeyPolicyTests
     [InlineData("PLATFORM")]
     public void CanBringRootKey_ThePlatformOwner_IsRefusedWithItsReason(string ownerType)
     {
-        var allowed = _policy.CanBringRootKey(
+        var allowed = Policy.CanBringRootKey(
             new SecretOwner(ownerType, SecretOwner.PlatformOwnerId),
             out var reason
         );
@@ -28,7 +28,7 @@ public class PlatformOwnerRootKeyPolicyTests
     [Fact]
     public void CanBringRootKey_ATenant_IsAllowed()
     {
-        var allowed = _policy.CanBringRootKey(SecretOwner.ForTenant("tenant-a"), out var reason);
+        var allowed = Policy.CanBringRootKey(SecretOwner.ForTenant("tenant-a"), out var reason);
 
         Assert.True(allowed);
         Assert.Null(reason);

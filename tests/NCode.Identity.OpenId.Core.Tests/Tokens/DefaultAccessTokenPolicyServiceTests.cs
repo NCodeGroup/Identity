@@ -52,19 +52,19 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
     private static TokenConfirmation CertificateBound { get; } =
         new() { X509CertificateSha256Thumbprint = "x5t-thumbprint" };
 
-    private readonly ServiceProvider _serviceProvider;
-    private readonly RSA _tenantRsa = RSA.Create(2048);
-    private readonly RSA _resourceServerRsa = RSA.Create(2048);
+    private ServiceProvider ServiceProvider { get; }
+    private RSA TenantRsa { get; } = RSA.Create(2048);
+    private RSA ResourceServerRsa { get; } = RSA.Create(2048);
 
     public DefaultAccessTokenPolicyServiceTests()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
         var algorithmCollectionProvider =
-            _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>();
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>();
         var nullChangeToken = CreateStrictMock<INullChangeToken>().Object;
         MockContext = CreateStrictMock<OpenIdContext>();
 
@@ -91,16 +91,16 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
                 )
             );
 
-        var secretKeyFactory = _serviceProvider.GetRequiredService<ISecretKeyFactory>();
-        TenantKey = secretKeyFactory.CreateRsa(new KeyMetadata { KeyId = "tenant" }, _tenantRsa);
+        var secretKeyFactory = ServiceProvider.GetRequiredService<ISecretKeyFactory>();
+        TenantKey = secretKeyFactory.CreateRsa(new KeyMetadata { KeyId = "tenant" }, TenantRsa);
         ResourceServerKey = secretKeyFactory.CreateRsaPublicKey(
             new KeyMetadata { KeyId = "resource-server", Use = SecretKeyUses.Encryption },
-            _resourceServerRsa
+            ResourceServerRsa
         );
 
         Service = new DefaultAccessTokenPolicyService(
             algorithmCollectionProvider,
-            _serviceProvider.GetRequiredService<ICredentialSelector>(),
+            ServiceProvider.GetRequiredService<ICredentialSelector>(),
             mockScopeProvider.Object
         );
     }
@@ -117,9 +117,9 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
 
     public async Task DisposeAsync()
     {
-        await _serviceProvider.DisposeAsync();
-        _tenantRsa.Dispose();
-        _resourceServerRsa.Dispose();
+        await ServiceProvider.DisposeAsync();
+        TenantRsa.Dispose();
+        ResourceServerRsa.Dispose();
     }
 
     #region Scaffolding
@@ -169,10 +169,10 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
     }
 
     private ISecretKeyCollection CreateKeys(params SecretKey[] keys) =>
-        _serviceProvider.GetRequiredService<ISecretKeyCollectionFactory>().Create(keys);
+        ServiceProvider.GetRequiredService<ISecretKeyCollectionFactory>().Create(keys);
 
     private SecretKey CreateTenantEncryptionKey(ECAlgorithm key) =>
-        _serviceProvider
+        ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
             .CreateEcc(new KeyMetadata { KeyId = "tenant-ec" }, key);
 
@@ -659,11 +659,11 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
     {
         // A key the resource server cannot decrypt with does not make it a reader of its tokens.
         var client = CreateClient(Values((OpenIdSettingNames.AccessTokenEncryptionRequired, true)));
-        var signingKey = _serviceProvider
+        var signingKey = ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
             .CreateRsaPublicKey(
                 new KeyMetadata { KeyId = "rs-sig", Use = SecretKeyUses.Signature },
-                _resourceServerRsa
+                ResourceServerRsa
             );
         var resourceServer = CreateResourceServer("rs-api", null, signingKey);
 
@@ -687,7 +687,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
                 )
             )
         );
-        var pinnedKey = _serviceProvider
+        var pinnedKey = ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
             .CreateRsaPublicKey(
                 new KeyMetadata
@@ -696,7 +696,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
                     Use = SecretKeyUses.Encryption,
                     Algorithm = RsaOaep256,
                 },
-                _resourceServerRsa
+                ResourceServerRsa
             );
         var resourceServer = CreateResourceServer(
             "rs-api",
@@ -775,11 +775,11 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
     public void Evaluate_WhenTheTenantHasNoEncryptionKey_FailsWithServerError()
     {
         var client = CreateClient(Values((OpenIdSettingNames.AccessTokenEncryptionRequired, true)));
-        var signingOnlyKey = _serviceProvider
+        var signingOnlyKey = ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
             .CreateRsa(
                 new KeyMetadata { KeyId = "tenant-sig", Use = SecretKeyUses.Signature },
-                _tenantRsa
+                TenantRsa
             );
 
         AssertRefused(

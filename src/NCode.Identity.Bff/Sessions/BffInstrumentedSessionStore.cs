@@ -15,8 +15,8 @@ namespace NCode.Identity.Bff.Sessions;
 internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMetrics metrics)
     : IBffSessionStore
 {
-    private readonly IBffSessionStore _inner = inner;
-    private readonly BffMetrics _metrics = metrics;
+    private IBffSessionStore Inner { get; } = inner;
+    private BffMetrics Metrics { get; } = metrics;
 
     /// <inheritdoc />
     public ValueTask<bool> TryCreateAsync(
@@ -25,14 +25,14 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.CreateOperation,
-            () => _inner.TryCreateAsync(record, cancellationToken)
+            () => Inner.TryCreateAsync(record, cancellationToken)
         );
 
     /// <inheritdoc />
     public ValueTask<BffSessionRecord?> GetAsync(
         string storeKey,
         CancellationToken cancellationToken
-    ) => MeasureAsync(BffMetrics.GetOperation, () => _inner.GetAsync(storeKey, cancellationToken));
+    ) => MeasureAsync(BffMetrics.GetOperation, () => Inner.GetAsync(storeKey, cancellationToken));
 
     /// <inheritdoc />
     public ValueTask<bool> TryReplaceAsync(
@@ -42,7 +42,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.ReplaceOperation,
-            () => _inner.TryReplaceAsync(record, expectedVersion, cancellationToken)
+            () => Inner.TryReplaceAsync(record, expectedVersion, cancellationToken)
         );
 
     /// <inheritdoc />
@@ -53,7 +53,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.RemoveOperation,
-            () => _inner.RemoveAsync(storeKey, metadata, cancellationToken)
+            () => Inner.RemoveAsync(storeKey, metadata, cancellationToken)
         );
 
     /// <inheritdoc />
@@ -64,7 +64,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.FindBySessionIdOperation,
-            () => _inner.FindBySessionIdAsync(issuer, sessionId, cancellationToken)
+            () => Inner.FindBySessionIdAsync(issuer, sessionId, cancellationToken)
         );
 
     /// <inheritdoc />
@@ -75,7 +75,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.FindBySubjectOperation,
-            () => _inner.FindBySubjectAsync(issuer, subject, cancellationToken)
+            () => Inner.FindBySubjectAsync(issuer, subject, cancellationToken)
         );
 
     /// <inheritdoc />
@@ -84,7 +84,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.FindClientsOperation,
-            () => _inner.FindClientsAsync(cancellationToken)
+            () => Inner.FindClientsAsync(cancellationToken)
         );
 
     /// <inheritdoc />
@@ -94,7 +94,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.FindByClientOperation,
-            () => _inner.FindByClientAsync(client, cancellationToken)
+            () => Inner.FindByClientAsync(client, cancellationToken)
         );
 
     /// <inheritdoc />
@@ -107,7 +107,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
         MeasureAsync(
             BffMetrics.AddTransactionOperation,
             () =>
-                _inner.TryAddTransactionAsync(
+                Inner.TryAddTransactionAsync(
                     transactionKey,
                     protectedTransaction,
                     expiresWhen,
@@ -122,7 +122,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.TakeTransactionOperation,
-            () => _inner.TryTakeTransactionAsync(transactionKey, cancellationToken)
+            () => Inner.TryTakeTransactionAsync(transactionKey, cancellationToken)
         );
 
     /// <inheritdoc />
@@ -133,7 +133,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.AcquireRefreshLeaseOperation,
-            () => _inner.TryAcquireRefreshLeaseAsync(leaseKey, expiresWhen, cancellationToken)
+            () => Inner.TryAcquireRefreshLeaseAsync(leaseKey, expiresWhen, cancellationToken)
         );
 
     /// <inheritdoc />
@@ -143,7 +143,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.IsRefreshLeaseHeldOperation,
-            () => _inner.IsRefreshLeaseHeldAsync(leaseKey, cancellationToken)
+            () => Inner.IsRefreshLeaseHeldAsync(leaseKey, cancellationToken)
         );
 
     /// <inheritdoc />
@@ -153,7 +153,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.ReleaseRefreshLeaseOperation,
-            () => _inner.ReleaseRefreshLeaseAsync(lease, cancellationToken)
+            () => Inner.ReleaseRefreshLeaseAsync(lease, cancellationToken)
         );
 
     private async ValueTask<TResult> MeasureAsync<TResult>(
@@ -166,7 +166,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
         try
         {
             var result = await action();
-            _metrics.SessionStoreOperationCompleted(operation, startTimestamp, exception: null);
+            Metrics.SessionStoreOperationCompleted(operation, startTimestamp, exception: null);
             return result;
         }
         catch (Exception exception)
@@ -183,7 +183,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
         try
         {
             await action();
-            _metrics.SessionStoreOperationCompleted(operation, startTimestamp, exception: null);
+            Metrics.SessionStoreOperationCompleted(operation, startTimestamp, exception: null);
         }
         catch (Exception exception)
         {
@@ -206,7 +206,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
         Exception exception
     )
     {
-        _metrics.SessionStoreOperationCompleted(operation, startTimestamp, exception);
+        Metrics.SessionStoreOperationCompleted(operation, startTimestamp, exception);
         if (activity is null)
             return;
 

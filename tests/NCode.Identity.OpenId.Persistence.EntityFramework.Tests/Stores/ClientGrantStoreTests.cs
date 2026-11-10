@@ -15,12 +15,12 @@ public sealed class ClientGrantStoreTests : IDisposable
     private const string ClientId = "client-1";
     private const string ResourceServerId = "rs-1";
 
-    private readonly ServiceProvider _provider;
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _tenantStore;
-    private readonly ClientStore _clientStore;
-    private readonly ResourceServerStore _resourceServerStore;
-    private readonly ClientGrantStore _store;
+    private ServiceProvider Provider { get; }
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore TenantStore { get; }
+    private ClientStore ClientStore { get; }
+    private ResourceServerStore ResourceServerStore { get; }
+    private ClientGrantStore Store { get; }
 
     public ClientGrantStoreTests()
     {
@@ -29,28 +29,28 @@ public sealed class ClientGrantStoreTests : IDisposable
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = serviceCollection.BuildServiceProvider();
-        _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _clientStore = new ClientStore(
+        Provider = serviceCollection.BuildServiceProvider();
+        DbContext = Provider.GetRequiredService<OpenIdDbContext>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
+        TenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
+        ClientStore = new ClientStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext,
+            DbContext,
             TestCryptoServices.CreateResourceIdGenerator()
         );
-        _resourceServerStore = new ResourceServerStore(
+        ResourceServerStore = new ResourceServerStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,
-            _dbContext
+            DbContext
         );
-        _store = new ClientGrantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        Store = new ClientGrantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedClientGrant CreateGrant(params string[] scopes) =>
@@ -65,34 +65,34 @@ public sealed class ClientGrantStoreTests : IDisposable
 
     private async Task SeedAsync()
     {
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder
         {
             TenantId = TenantId,
             DisplayName = "Tenant One",
         }.Build();
-        await _tenantStore.AddAsync(tenant, CancellationToken.None);
+        await TenantStore.AddAsync(tenant, CancellationToken.None);
 
         // The tenant must be persisted before its dependents are added (an in-memory query does not observe
         // unsaved inserts).
-        await _dbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync();
 
         var client = new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
         }.Build();
-        await _clientStore.AddAsync(client, CancellationToken.None);
+        await ClientStore.AddAsync(client, CancellationToken.None);
 
         var resourceServer = new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = ResourceServerId,
         }.Build();
-        await _resourceServerStore.AddAsync(resourceServer, CancellationToken.None);
+        await ResourceServerStore.AddAsync(resourceServer, CancellationToken.None);
 
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
@@ -100,11 +100,11 @@ public sealed class ClientGrantStoreTests : IDisposable
     {
         await SeedAsync();
 
-        await _store.AddAsync(CreateGrant("read:x", "write:x"), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddAsync(CreateGrant("read:x", "write:x"), CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var reloaded = await _store.GetOrDefaultAsync(
+        var reloaded = await Store.GetOrDefaultAsync(
             ClientId,
             ResourceServerId,
             CancellationToken.None
@@ -119,11 +119,11 @@ public sealed class ClientGrantStoreTests : IDisposable
     public async Task GetPageAsync_ByClient_ReturnsGrant()
     {
         await SeedAsync();
-        await _store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var page = await _store.GetPageAsync(
+        var page = await Store.GetPageAsync(
             ClientId,
             new PageRequest { Limit = 50 },
             CancellationToken.None
@@ -137,16 +137,16 @@ public sealed class ClientGrantStoreTests : IDisposable
     public async Task RemoveAsync_RemovesGrant()
     {
         await SeedAsync();
-        await _store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var removed = await _store.RemoveAsync(ClientId, ResourceServerId, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        var removed = await Store.RemoveAsync(ClientId, ResourceServerId, CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
         Assert.True(removed);
-        var reloaded = await _store.GetOrDefaultAsync(
+        var reloaded = await Store.GetOrDefaultAsync(
             ClientId,
             ResourceServerId,
             CancellationToken.None
@@ -158,11 +158,11 @@ public sealed class ClientGrantStoreTests : IDisposable
     public async Task HasDependentsAsync_WhenGrantExists_ReturnsTrue()
     {
         await SeedAsync();
-        await _store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await Store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
 
-        var hasDependents = await _resourceServerStore.HasDependentsAsync(
+        var hasDependents = await ResourceServerStore.HasDependentsAsync(
             ResourceServerId,
             CancellationToken.None
         );
@@ -175,7 +175,7 @@ public sealed class ClientGrantStoreTests : IDisposable
     {
         await SeedAsync();
 
-        var hasDependents = await _resourceServerStore.HasDependentsAsync(
+        var hasDependents = await ResourceServerStore.HasDependentsAsync(
             ResourceServerId,
             CancellationToken.None
         );

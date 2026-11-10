@@ -58,10 +58,10 @@ public class DefaultSecretSerializerTests : BaseTests
             EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
         };
 
-    private readonly DefaultSecretKeyTypeCatalog _catalog;
-    private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;
-    private readonly DefaultRemoteKeyDescriptorCatalog _remoteDescriptorCatalog;
-    private readonly DefaultSecretSerializer _serializer;
+    private DefaultSecretKeyTypeCatalog Catalog { get; }
+    private DefaultRemoteKeyProviderCatalog RemoteCatalog { get; }
+    private DefaultRemoteKeyDescriptorCatalog RemoteDescriptorCatalog { get; }
+    private DefaultSecretSerializer Serializer { get; }
 
     public DefaultSecretSerializerTests()
     {
@@ -79,13 +79,13 @@ public class DefaultSecretSerializerTests : BaseTests
             new EccSecretKeyTypeDescriptor(secretKeyFactory, new DefaultEccCurveCatalog([])),
         ]);
 
-        _catalog = catalog;
-        _remoteDescriptorCatalog = CreateRemoteDescriptorCatalog();
-        _remoteCatalog = CreateRemoteCatalog(_remoteDescriptorCatalog);
-        _serializer = new DefaultSecretSerializer(
+        Catalog = catalog;
+        RemoteDescriptorCatalog = CreateRemoteDescriptorCatalog();
+        RemoteCatalog = CreateRemoteCatalog(RemoteDescriptorCatalog);
+        Serializer = new DefaultSecretSerializer(
             catalog,
             TestSecretVerifierSchemes.CreateCatalog(),
-            new DefaultRemoteKeyResolver(catalog, _remoteCatalog, _remoteDescriptorCatalog)
+            new DefaultRemoteKeyResolver(catalog, RemoteCatalog, RemoteDescriptorCatalog)
         );
     }
 
@@ -241,7 +241,7 @@ public class DefaultSecretSerializerTests : BaseTests
             keyId: "client-kid"
         );
 
-        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+        var secretKey = Serializer.DeserializeSecret(protector, persisted);
 
         Assert.Equal("client-kid", secretKey.KeyId);
     }
@@ -261,7 +261,7 @@ public class DefaultSecretSerializerTests : BaseTests
             expiresWhen: DateTimeOffset.UnixEpoch.AddDays(99)
         );
 
-        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+        var secretKey = Serializer.DeserializeSecret(protector, persisted);
 
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), secretKey.Metadata.ActivatesWhen);
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), secretKey.Metadata.RetiresWhen);
@@ -281,7 +281,7 @@ public class DefaultSecretSerializerTests : BaseTests
 
         var persisted = CreatePersistedSecret(protector, SecretTypes.Ecc, ecdh.KeySize, pkcs8);
 
-        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+        var secretKey = Serializer.DeserializeSecret(protector, persisted);
 
         var eccKey = Assert.IsAssignableFrom<EccSecretKey>(secretKey);
         Assert.Equal(384, eccKey.KeySizeBits);
@@ -305,7 +305,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeSecret(protector, persisted)
+            Serializer.DeserializeSecret(protector, persisted)
         );
 
         Assert.Contains("unsupported", exception.Message);
@@ -318,7 +318,7 @@ public class DefaultSecretSerializerTests : BaseTests
         var persisted = CreateVerifierSecret(protector, Sha256Text("secret"));
 
         Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeSecret(protector, persisted)
+            Serializer.DeserializeSecret(protector, persisted)
         );
     }
 
@@ -331,7 +331,7 @@ public class DefaultSecretSerializerTests : BaseTests
     {
         var protector = CreateProtector();
 
-        var secretKeys = _serializer.DeserializeSecrets(protector, []);
+        var secretKeys = Serializer.DeserializeSecrets(protector, []);
 
         Assert.Empty(secretKeys);
     }
@@ -359,7 +359,7 @@ public class DefaultSecretSerializerTests : BaseTests
             expiresWhen: new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero)
         );
 
-        var secretKeys = _serializer.DeserializeSecrets(protector, [earlier, later]);
+        var secretKeys = Serializer.DeserializeSecrets(protector, [earlier, later]);
 
         Assert.Equal(2, secretKeys.Count);
         Assert.Equal(["later", "earlier"], secretKeys.Select(x => x.KeyId));
@@ -380,7 +380,7 @@ public class DefaultSecretSerializerTests : BaseTests
         var verifier = CreateVerifierSecret(protector, Sha256Text("secret"), "verifier-1");
 
         Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeSecrets(protector, [key, verifier])
+            Serializer.DeserializeSecrets(protector, [key, verifier])
         );
     }
 
@@ -400,7 +400,7 @@ public class DefaultSecretSerializerTests : BaseTests
             CreateEnvelope(protector, "secret-1", keyMaterial)
         );
 
-        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+        var secretKey = Serializer.DeserializeSecret(protector, persisted);
 
         var symmetric = Assert.IsAssignableFrom<SymmetricSecretKey>(secretKey);
         Assert.Equal("secret-1", symmetric.KeyId);
@@ -425,7 +425,7 @@ public class DefaultSecretSerializerTests : BaseTests
             CreateEnvelope(protector, "secret-1", pkcs8)
         );
 
-        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+        var secretKey = Serializer.DeserializeSecret(protector, persisted);
 
         var rsaKey = Assert.IsAssignableFrom<RsaSecretKey>(secretKey);
         using var exported = rsaKey.ExportRSA();
@@ -446,7 +446,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         Assert.Throws<CryptographicException>(() =>
-            _serializer.DeserializeSecret(protector, persisted)
+            Serializer.DeserializeSecret(protector, persisted)
         );
     }
 
@@ -463,7 +463,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         Assert.Throws<CryptographicException>(() =>
-            _serializer.DeserializeSecret(protector, persisted)
+            Serializer.DeserializeSecret(protector, persisted)
         );
     }
 
@@ -484,7 +484,7 @@ public class DefaultSecretSerializerTests : BaseTests
             Base64Url.EncodeToString(spki)
         );
 
-        var secretKey = _serializer.DeserializePublicSecret(persisted);
+        var secretKey = Serializer.DeserializePublicSecret(persisted);
 
         var rsaKey = Assert.IsAssignableFrom<RsaSecretKey>(secretKey);
         using var exported = rsaKey.ExportRSA();
@@ -504,7 +504,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializePublicSecret(persisted)
+            Serializer.DeserializePublicSecret(persisted)
         );
 
         Assert.Contains(SecretEncodings.Pkcs8, exception.Message);
@@ -524,7 +524,7 @@ public class DefaultSecretSerializerTests : BaseTests
             publicKey: Base64Url.EncodeToString(rsa.ExportSubjectPublicKeyInfo())
         );
 
-        var secretKey = _serializer.DeserializePublicSecret(persisted);
+        var secretKey = Serializer.DeserializePublicSecret(persisted);
 
         var rsaKey = Assert.IsAssignableFrom<RsaSecretKey>(secretKey);
         using var exported = rsaKey.ExportRSA();
@@ -543,7 +543,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializePublicSecret(persisted)
+            Serializer.DeserializePublicSecret(persisted)
         );
     }
 
@@ -562,7 +562,7 @@ public class DefaultSecretSerializerTests : BaseTests
             "RS256"
         );
 
-        var secretKey = _serializer.DeserializeSecret(CreateProtector(), persisted);
+        var secretKey = Serializer.DeserializeSecret(CreateProtector(), persisted);
 
         var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(secretKey);
         Assert.IsAssignableFrom<RsaSecretKey>(secretKey);
@@ -584,7 +584,7 @@ public class DefaultSecretSerializerTests : BaseTests
             "ES256"
         );
 
-        var secretKey = _serializer.DeserializeSecret(CreateProtector(), persisted);
+        var secretKey = Serializer.DeserializeSecret(CreateProtector(), persisted);
 
         var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(secretKey);
         var eccKey = Assert.IsAssignableFrom<EccSecretKey>(secretKey);
@@ -612,7 +612,7 @@ public class DefaultSecretSerializerTests : BaseTests
             "local-1"
         );
 
-        var secretKeys = _serializer.DeserializeSecrets(protector, [remote, local]);
+        var secretKeys = Serializer.DeserializeSecrets(protector, [remote, local]);
 
         Assert.Equal(2, secretKeys.Count);
         Assert.Single(secretKeys.OfType<IRemoteSecretKey>());
@@ -631,7 +631,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         Assert.Throws<FormatException>(() =>
-            _serializer.DeserializeSecret(CreateProtector(), persisted)
+            Serializer.DeserializeSecret(CreateProtector(), persisted)
         );
     }
 
@@ -648,7 +648,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeSecret(CreateProtector(), persisted)
+            Serializer.DeserializeSecret(CreateProtector(), persisted)
         );
 
         Assert.Contains("secret-1", exception.Message);
@@ -661,7 +661,7 @@ public class DefaultSecretSerializerTests : BaseTests
         var persisted = CreateRemoteSecret(SecretTypes.Rsa, 2048, [], "RS256");
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeSecret(CreateProtector(), persisted)
+            Serializer.DeserializeSecret(CreateProtector(), persisted)
         );
 
         Assert.Contains("secret-1", exception.Message);
@@ -679,7 +679,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeSecret(CreateProtector(), persisted)
+            Serializer.DeserializeSecret(CreateProtector(), persisted)
         );
 
         Assert.Contains("secret-1", exception.Message);
@@ -697,7 +697,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeSecret(CreateProtector(), persisted)
+            Serializer.DeserializeSecret(CreateProtector(), persisted)
         );
 
         Assert.Contains("secret-1", exception.Message);
@@ -716,7 +716,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeSecret(CreateProtector(), persisted)
+            Serializer.DeserializeSecret(CreateProtector(), persisted)
         );
     }
 
@@ -733,10 +733,10 @@ public class DefaultSecretSerializerTests : BaseTests
             "other-kms:key-1"
         );
         var serializer = new DefaultSecretSerializer(
-            _catalog,
+            Catalog,
             TestSecretVerifierSchemes.CreateCatalog(),
             new DefaultRemoteKeyResolver(
-                _catalog,
+                Catalog,
                 new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
                 new DefaultRemoteKeyDescriptorCatalog([])
             )
@@ -761,7 +761,7 @@ public class DefaultSecretSerializerTests : BaseTests
             "RS256"
         );
 
-        var secretKey = _serializer.DeserializeRemoteSecret(persisted);
+        var secretKey = Serializer.DeserializeRemoteSecret(persisted);
 
         var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(secretKey);
         Assert.Equal(2048, secretKey.KeySizeBits);
@@ -780,7 +780,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeRemoteSecret(persisted)
+            Serializer.DeserializeRemoteSecret(persisted)
         );
 
         Assert.Contains("secret-1", exception.Message);
@@ -799,7 +799,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeRemoteSecret(persisted)
+            Serializer.DeserializeRemoteSecret(persisted)
         );
 
         Assert.Contains("other-kms", exception.Message);
@@ -818,7 +818,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeRemoteSecret(persisted)
+            Serializer.DeserializeRemoteSecret(persisted)
         );
 
         Assert.Contains("secret-1", exception.Message);
@@ -837,7 +837,7 @@ public class DefaultSecretSerializerTests : BaseTests
             use: "enc"
         );
 
-        var secretKey = _serializer.DeserializeRemoteSecret(persisted);
+        var secretKey = Serializer.DeserializeRemoteSecret(persisted);
 
         var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(secretKey);
         Assert.Equal(SecretKeyUses.Encryption, secretKey.Metadata.Use);
@@ -897,7 +897,7 @@ public class DefaultSecretSerializerTests : BaseTests
         var first = CreateVerifierSecret(protector, Sha256Text("first"), "first");
         var second = CreateVerifierSecret(protector, Sha256Text("second"), "second", "kid-2");
 
-        var verifiers = _serializer.DeserializeVerifiers(protector, [first, second]);
+        var verifiers = Serializer.DeserializeVerifiers(protector, [first, second]);
 
         Assert.Equal(2, verifiers.Count);
         var firstVerifier = verifiers.ElementAt(0);
@@ -924,9 +924,9 @@ public class DefaultSecretSerializerTests : BaseTests
     public async Task DeserializeVerifiers_WhenAPackageRegistersAScheme_ReadsItsVerifiers()
     {
         var serializer = new DefaultSecretSerializer(
-            _catalog,
+            Catalog,
             new DefaultSecretVerifierSchemeCatalog([new PlainTextSecretVerifierScheme()]),
-            new DefaultRemoteKeyResolver(_catalog, _remoteCatalog, _remoteDescriptorCatalog)
+            new DefaultRemoteKeyResolver(Catalog, RemoteCatalog, RemoteDescriptorCatalog)
         );
         var protector = CreateProtector();
         var persisted = CreateVerifierSecret(protector, "$test-plain$secret");
@@ -945,7 +945,7 @@ public class DefaultSecretSerializerTests : BaseTests
     {
         var protector = CreateProtector();
 
-        Assert.Empty(_serializer.DeserializeVerifiers(protector, []));
+        Assert.Empty(Serializer.DeserializeVerifiers(protector, []));
     }
 
     [Fact]
@@ -960,7 +960,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         Assert.Throws<InvalidOperationException>(() =>
-            _serializer.DeserializeVerifiers(protector, [persisted])
+            Serializer.DeserializeVerifiers(protector, [persisted])
         );
     }
 
@@ -971,7 +971,7 @@ public class DefaultSecretSerializerTests : BaseTests
         var persisted = CreateVerifierSecret(protector, "$ncode-argon9$AAAA");
 
         Assert.Throws<FormatException>(() =>
-            _serializer.DeserializeVerifiers(protector, [persisted])
+            Serializer.DeserializeVerifiers(protector, [persisted])
         );
     }
 
@@ -987,7 +987,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         Assert.Throws<CryptographicException>(() =>
-            _serializer.DeserializeVerifiers(protector, [persisted])
+            Serializer.DeserializeVerifiers(protector, [persisted])
         );
     }
 
@@ -1007,7 +1007,7 @@ public class DefaultSecretSerializerTests : BaseTests
         );
 
         Assert.Throws<CryptographicException>(() =>
-            _serializer.DeserializeVerifiers(protector, [persisted])
+            Serializer.DeserializeVerifiers(protector, [persisted])
         );
     }
 

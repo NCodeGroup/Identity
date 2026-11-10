@@ -8,16 +8,13 @@ namespace NCode.Identity.OpenId.LocalDev.Tests.Frontend;
 
 public class FrontendPinsTests : IDisposable
 {
-    private readonly string _directory = Path.Combine(
-        Path.GetTempPath(),
-        Guid.NewGuid().ToString("N")
-    );
+    private string Root { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public void Dispose()
     {
-        if (Directory.Exists(_directory))
+        if (Directory.Exists(Root))
         {
-            Directory.Delete(_directory, recursive: true);
+            Directory.Delete(Root, recursive: true);
         }
     }
 
@@ -104,19 +101,15 @@ public class FrontendPinsTests : IDisposable
     [Fact]
     public void Read_WhenFilesExist_ReturnsPins()
     {
-        Directory.CreateDirectory(_directory);
+        Directory.CreateDirectory(Root);
+        File.WriteAllText(Path.Combine(Root, ".node-version"), "v26.1.0\n", SecureEncoding.UTF8);
         File.WriteAllText(
-            Path.Combine(_directory, ".node-version"),
-            "v26.1.0\n",
-            SecureEncoding.UTF8
-        );
-        File.WriteAllText(
-            Path.Combine(_directory, "package.json"),
+            Path.Combine(Root, "package.json"),
             """{ "packageManager": "pnpm@10.34.7+sha512.abc" }""",
             SecureEncoding.UTF8
         );
 
-        var result = FrontendPins.Read(_directory);
+        var result = FrontendPins.Read(Root);
 
         Assert.Equal(new FrontendPins(26, "10.34.7"), result);
     }

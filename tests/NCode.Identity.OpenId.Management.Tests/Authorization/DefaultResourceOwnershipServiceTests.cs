@@ -291,16 +291,16 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
     private sealed class StubAmbientTenantAccessor : IAmbientTenantAccessor
     {
-        private readonly Stack<string> _scopes = new();
+        private Stack<string> Scopes { get; } = new();
 
-        public bool IsScoped => _scopes.Count > 0;
+        public bool IsScoped => Scopes.Count > 0;
 
-        public string? TenantId => _scopes.TryPeek(out var tenantId) ? tenantId : null;
+        public string? TenantId => Scopes.TryPeek(out var tenantId) ? tenantId : null;
 
         public IDisposable BeginScope(string tenantId)
         {
-            _scopes.Push(tenantId);
-            return new Scope(_scopes);
+            Scopes.Push(tenantId);
+            return new Scope(Scopes);
         }
 
         private sealed class Scope(Stack<string> scopes) : IDisposable

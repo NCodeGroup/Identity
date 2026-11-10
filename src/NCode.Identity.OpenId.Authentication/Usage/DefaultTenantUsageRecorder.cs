@@ -12,8 +12,8 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 // See ADR-1199.
 internal sealed class DefaultTenantUsageRecorder(TimeProvider timeProvider) : ITenantUsageRecorder
 {
-    private readonly Lock _sync = new();
-    private Dictionary<TenantUsageKey, long> _pending = [];
+    private Lock Sync { get; } = new();
+    private Dictionary<TenantUsageKey, long> Pending { get; set; } = [];
 
     private TimeProvider TimeProvider { get; } = timeProvider;
 
@@ -38,9 +38,9 @@ internal sealed class DefaultTenantUsageRecorder(TimeProvider timeProvider) : IT
 
         var day = DateOnly.FromDateTime(TimeProvider.GetUtcNow().UtcDateTime);
         var key = new TenantUsageKey(teamPath, tenantId, day, meter);
-        lock (_sync)
+        lock (Sync)
         {
-            _pending[key] = _pending.GetValueOrDefault(key) + 1;
+            Pending[key] = Pending.GetValueOrDefault(key) + 1;
         }
     }
 
@@ -50,10 +50,10 @@ internal sealed class DefaultTenantUsageRecorder(TimeProvider timeProvider) : IT
     /// <returns>The usage recorded since the last drain.</returns>
     public IReadOnlyDictionary<TenantUsageKey, long> Drain()
     {
-        lock (_sync)
+        lock (Sync)
         {
-            var drained = _pending;
-            _pending = [];
+            var drained = Pending;
+            Pending = [];
             return drained;
         }
     }

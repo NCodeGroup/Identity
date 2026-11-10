@@ -25,30 +25,30 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
 
     private static DateTimeOffset Now { get; } = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private readonly Mock<ILogoutTokenValidator> _validator;
-    private readonly Mock<IBffSessionStore> _store;
-    private readonly Mock<IBffSessionManager> _manager;
-    private readonly Mock<IBffAuditRecorder> _audit;
-    private readonly BffFrontendCatalog _frontends;
-    private readonly ClientRegistration _registration;
+    private Mock<ILogoutTokenValidator> Validator { get; }
+    private Mock<IBffSessionStore> Store { get; }
+    private Mock<IBffSessionManager> Manager { get; }
+    private Mock<IBffAuditRecorder> Audit { get; }
+    private BffFrontendCatalog Frontends { get; }
+    private ClientRegistration Registration { get; }
 
     public BffBackChannelLogoutHandlerTests()
     {
-        _validator = CreateStrictMock<ILogoutTokenValidator>();
-        _store = CreateStrictMock<IBffSessionStore>();
-        _manager = CreateStrictMock<IBffSessionManager>();
-        _audit = CreateStrictMock<IBffAuditRecorder>();
-        _frontends = BffTestFrontends.CreateCatalog(options => options.Authority = Issuer);
-        _registration = BffTestFrontends.Get(_frontends).Registration;
+        Validator = CreateStrictMock<ILogoutTokenValidator>();
+        Store = CreateStrictMock<IBffSessionStore>();
+        Manager = CreateStrictMock<IBffSessionManager>();
+        Audit = CreateStrictMock<IBffAuditRecorder>();
+        Frontends = BffTestFrontends.CreateCatalog(options => options.Authority = Issuer);
+        Registration = BffTestFrontends.Get(Frontends).Registration;
     }
 
     private BffBackChannelLogoutHandler CreateHandler() =>
         new(
-            _frontends,
-            _validator.Object,
-            BffTestTelemetry.Instrument(_store.Object),
-            _manager.Object,
-            _audit.Object
+            Frontends,
+            Validator.Object,
+            BffTestTelemetry.Instrument(Store.Object),
+            Manager.Object,
+            Audit.Object
         );
 
     private static DefaultHttpContext CreateHttpContext(bool form, string? token = Token)
@@ -91,10 +91,10 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         new(default(JsonElement), Issuer, "jti-1", Now.AddMinutes(2), subject, sessionId);
 
     private void SetupValidate(LogoutTokenValidationResult result) =>
-        _validator
+        Validator
             .Setup(x =>
                 x.ValidateAsync(
-                    _registration,
+                    Registration,
                     It.Is<LogoutTokenValidationRequest>(r => r.LogoutToken == Token),
                     It.IsAny<CancellationToken>()
                 )
@@ -103,7 +103,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
             .Verifiable();
 
     private void SetupRejected(string reason) =>
-        _audit
+        Audit
             .Setup(x =>
                 x.BackchannelLogoutRejectedAsync(
                     It.IsAny<HttpContext>(),
@@ -115,13 +115,13 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
             .Verifiable();
 
     private void SetupGet(string key, BffSessionRecord? record) =>
-        _store
+        Store
             .Setup(x => x.GetAsync(key, It.IsAny<CancellationToken>()))
             .ReturnsAsync(record)
             .Verifiable();
 
     private void SetupEnd(string key, BffSessionMetadata metadata) =>
-        _manager
+        Manager
             .Setup(x =>
                 x.EndAsync(
                     It.IsAny<HttpContext>(),
@@ -135,13 +135,13 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
             .Verifiable();
 
     private void SetupHandled(LogoutTokenValidationResult result) =>
-        _validator
-            .Setup(x => x.TryRecordHandledAsync(_registration, result, CancellationToken.None))
+        Validator
+            .Setup(x => x.TryRecordHandledAsync(Registration, result, CancellationToken.None))
             .ReturnsAsync(true)
             .Verifiable();
 
     private void SetupReceived() =>
-        _audit
+        Audit
             .Setup(x =>
                 x.BackchannelLogoutReceivedAsync(
                     It.IsAny<HttpContext>(),
@@ -212,10 +212,10 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_ProviderUnavailable_WritesBadRequest()
     {
-        _validator
+        Validator
             .Setup(x =>
                 x.ValidateAsync(
-                    _registration,
+                    Registration,
                     It.Is<LogoutTokenValidationRequest>(r => r.LogoutToken == Token),
                     It.IsAny<CancellationToken>()
                 )
@@ -237,7 +237,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         const string sid = "sid-1";
         var result = CreateValid(sid, "sub-1");
         SetupValidate(result);
-        _store
+        Store
             .Setup(x => x.FindBySessionIdAsync(Issuer, sid, It.IsAny<CancellationToken>()))
             .ReturnsAsync(["key-1", "key-2", "key-3", "key-4"])
             .Verifiable();
@@ -265,7 +265,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         const string sid = "sid-1";
         var result = CreateValid(sid, "sub-1");
         SetupValidate(result);
-        _store
+        Store
             .Setup(x => x.FindBySessionIdAsync(Issuer, sid, It.IsAny<CancellationToken>()))
             .ReturnsAsync(["key-1"])
             .Verifiable();
@@ -286,7 +286,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         const string subject = "sub-1";
         var result = CreateValid(null, subject);
         SetupValidate(result);
-        _store
+        Store
             .Setup(x => x.FindBySubjectAsync(Issuer, subject, It.IsAny<CancellationToken>()))
             .ReturnsAsync(["key-1"])
             .Verifiable();
@@ -309,7 +309,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         const string sid = "sid-1";
         var result = CreateValid(sid, null);
         SetupValidate(result);
-        _store
+        Store
             .Setup(x => x.FindBySessionIdAsync(Issuer, sid, It.IsAny<CancellationToken>()))
             .Throws(new BffStoreUnavailableException("store down"))
             .Verifiable();

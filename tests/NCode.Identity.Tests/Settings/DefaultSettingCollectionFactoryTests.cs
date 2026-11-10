@@ -5,12 +5,12 @@ namespace NCode.Identity.Settings;
 
 public class DefaultSettingCollectionFactoryTests : BaseTests
 {
-    private readonly DefaultSettingCollectionFactory _factory;
+    private DefaultSettingCollectionFactory Factory { get; }
 
     public DefaultSettingCollectionFactoryTests()
     {
         var mockProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
-        _factory = new DefaultSettingCollectionFactory(mockProvider.Object);
+        Factory = new DefaultSettingCollectionFactory(mockProvider.Object);
     }
 
     #region Create Tests
@@ -18,7 +18,7 @@ public class DefaultSettingCollectionFactoryTests : BaseTests
     [Fact]
     public void Create_WhenEmpty_ReturnsEmptyCollection()
     {
-        var collection = _factory.Create();
+        var collection = Factory.Create();
 
         Assert.Empty(collection);
     }
@@ -30,7 +30,7 @@ public class DefaultSettingCollectionFactoryTests : BaseTests
             "1"
         );
 
-        var collection = _factory.Create([setting]);
+        var collection = Factory.Create([setting]);
 
         Assert.Single(collection);
         Assert.True(collection.TryGetValue("a", out var value));

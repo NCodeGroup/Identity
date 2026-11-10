@@ -21,10 +21,10 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
     private const string TenantB = "tenant-b";
     private const string SecretB = "secret-b";
 
-    private readonly ServiceProvider _provider;
-    private readonly TestAmbientTenantAccessor _ambientTenantAccessor = new();
-    private readonly OpenIdDbContext _dbContext;
-    private readonly TenantStore _store;
+    private ServiceProvider Provider { get; }
+    private TestAmbientTenantAccessor AmbientTenantAccessor { get; } = new();
+    private OpenIdDbContext DbContext { get; }
+    private TenantStore Store { get; }
 
     public TenantStoreTenantScopingTests()
     {
@@ -33,29 +33,29 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
         serviceCollection.AddSingleton<IdValueGenerator>();
         serviceCollection.AddSingleton<UseIdGeneratorConvention>();
 
-        _provider = serviceCollection.BuildServiceProvider();
+        Provider = serviceCollection.BuildServiceProvider();
 
         var options = new DbContextOptionsBuilder<OpenIdDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
-            .UseApplicationServiceProvider(_provider)
+            .UseApplicationServiceProvider(Provider)
             .Options;
 
-        _dbContext = new OpenIdDbContext(
+        DbContext = new OpenIdDbContext(
             options,
-            _ambientTenantAccessor,
+            AmbientTenantAccessor,
             [new CoreModelContributor()]
         );
-        _store = new TenantStore(
+        Store = new TenantStore(
             Mock.Of<IStoreProvider>(),
-            _provider.GetRequiredService<IIdGenerator<long>>(),
-            _dbContext
+            Provider.GetRequiredService<IIdGenerator<long>>(),
+            DbContext
         );
     }
 
     public void Dispose()
     {
-        _dbContext.Dispose();
-        _provider.Dispose();
+        DbContext.Dispose();
+        Provider.Dispose();
     }
 
     private static PersistedSecret CreateSecret(string secretId) =>
@@ -69,19 +69,19 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
 
     private async Task SeedTenantAsync(string tenantId, params PersistedSecret[] secrets)
     {
-        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+        DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
         var tenant = new PersistedTenantBuilder { TenantId = tenantId, Secrets = secrets }.Build();
 
-        await _store.AddAsync(tenant, CancellationToken.None);
+        await Store.AddAsync(tenant, CancellationToken.None);
     }
 
     private async Task SeedAsync()
     {
         await SeedTenantAsync(TenantA);
         await SeedTenantAsync(TenantB, CreateSecret(SecretB));
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
@@ -89,9 +89,9 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        _ambientTenantAccessor.TenantId = TenantA;
+        AmbientTenantAccessor.TenantId = TenantA;
 
-        var crossTenant = await _store.GetSecretOrDefaultAsync(
+        var crossTenant = await Store.GetSecretOrDefaultAsync(
             TenantB,
             SecretB,
             CancellationToken.None
@@ -105,7 +105,7 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        var secret = await _store.GetSecretOrDefaultAsync(TenantB, SecretB, CancellationToken.None);
+        var secret = await Store.GetSecretOrDefaultAsync(TenantB, SecretB, CancellationToken.None);
 
         Assert.NotNull(secret);
         Assert.Equal(SecretB, secret.SecretId);
@@ -116,10 +116,10 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
     {
         await SeedAsync();
 
-        _ambientTenantAccessor.TenantId = TenantA;
+        AmbientTenantAccessor.TenantId = TenantA;
 
         // The tenant entity is unscoped (discoverable by id), but its secrets are tenant-scoped and filtered out.
-        var tenantB = await _store.GetOrDefaultAsync(TenantB, CancellationToken.None);
+        var tenantB = await Store.GetOrDefaultAsync(TenantB, CancellationToken.None);
 
         Assert.NotNull(tenantB);
         Assert.Empty(tenantB.Secrets.Value);

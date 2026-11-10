@@ -45,8 +45,8 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     private static Func<string, CancellationToken, ValueTask<bool>> NotRefused { get; } =
         static (_, _) => ValueTask.FromResult(false);
 
-    private readonly ServiceProvider _provider;
-    private readonly ILocalAccountStore _store;
+    private ServiceProvider Provider { get; }
+    private ILocalAccountStore Store { get; }
 
     public AspNetIdentityLocalAccountStoreEntityFrameworkTests()
     {
@@ -62,16 +62,16 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
             .NewBuilder<StoreManagerLibrary>()
             .AddAspNetIdentityLocalAccountStore<IdentityUser>();
 
-        _provider = serviceCollection.BuildServiceProvider();
+        Provider = serviceCollection.BuildServiceProvider();
 
         var storeProvider = new Mock<IStoreProvider>(MockBehavior.Strict).Object;
-        var factory = _provider.GetRequiredService<Func<IStoreProvider, ILocalAccountStore>>();
-        _store = factory(storeProvider);
+        var factory = Provider.GetRequiredService<Func<IStoreProvider, ILocalAccountStore>>();
+        Store = factory(storeProvider);
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public async Task DisposeAsync() => await _provider.DisposeAsync();
+    public async Task DisposeAsync() => await Provider.DisposeAsync();
 
     #region Helpers
 
@@ -100,7 +100,7 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     // Stores the hash of the password exactly as given, without any normalization.
     private async Task SetStoredPasswordHashAsync(string password)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
         var user = await userManager.FindByIdAsync(LocalAccountId);
         Assert.NotNull(user);
@@ -111,7 +111,7 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
 
     private async Task<PasswordVerificationResult> VerifyStoredPasswordHashAsync(string password)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
         var user = await userManager.FindByIdAsync(LocalAccountId);
         Assert.NotNull(user);
@@ -122,7 +122,7 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     // Checks a password as the host's own ASP.NET Core Identity pages do, through the user manager.
     private async Task<bool> CheckPasswordAsync(string password)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
         var user = await userManager.FindByIdAsync(LocalAccountId);
         Assert.NotNull(user);
@@ -132,7 +132,7 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     // Creates a user as the host's own ASP.NET Core Identity pages do, through the user manager.
     private async Task CreateHostUserAsync(string password)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
         var user = new IdentityUser(UserName) { Id = LocalAccountId };
         var created = await userManager.CreateAsync(user, password);
@@ -147,9 +147,9 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     [Fact]
     public async Task AddAsync_WhenIdentityPasswordValidatorsRefuseThePassword_StoresIt()
     {
-        await _store.AddAsync(CreateAccount(), FirstPassword, CancellationToken.None);
+        await Store.AddAsync(CreateAccount(), FirstPassword, CancellationToken.None);
 
-        var result = await _store.VerifyCredentialAsync(
+        var result = await Store.VerifyCredentialAsync(
             UserName,
             FirstPassword,
             NotRefused,
@@ -167,13 +167,13 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     [Fact]
     public async Task SetPasswordAsync_WhenIdentityPasswordValidatorsRefuseThePassword_StoresItAndRotatesTheSecurityStamp()
     {
-        await _store.AddAsync(CreateAccount(), FirstPassword, CancellationToken.None);
-        var before = await _store.GetByIdOrDefaultAsync(LocalAccountId, CancellationToken.None);
+        await Store.AddAsync(CreateAccount(), FirstPassword, CancellationToken.None);
+        var before = await Store.GetByIdOrDefaultAsync(LocalAccountId, CancellationToken.None);
         Assert.NotNull(before);
 
-        await _store.SetPasswordAsync(LocalAccountId, SecondPassword, CancellationToken.None);
+        await Store.SetPasswordAsync(LocalAccountId, SecondPassword, CancellationToken.None);
 
-        var second = await _store.VerifyCredentialAsync(
+        var second = await Store.VerifyCredentialAsync(
             UserName,
             SecondPassword,
             NotRefused,
@@ -181,7 +181,7 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
         );
         Assert.True(second.IsVerified);
         Assert.NotEqual(before.SecurityStamp, second.Account.SecurityStamp);
-        var first = await _store.VerifyCredentialAsync(
+        var first = await Store.VerifyCredentialAsync(
             UserName,
             FirstPassword,
             NotRefused,
@@ -197,15 +197,15 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     [Fact]
     public async Task VerifyCredentialAsync_WhenTheComposedFormIsSubmitted_VerifiesAPasswordSetDecomposed()
     {
-        await _store.AddAsync(CreateAccount(), DecomposedPasswordBytes, CancellationToken.None);
+        await Store.AddAsync(CreateAccount(), DecomposedPasswordBytes, CancellationToken.None);
 
-        var composed = await _store.VerifyCredentialAsync(
+        var composed = await Store.VerifyCredentialAsync(
             UserName,
             ComposedPasswordBytes,
             NotRefused,
             CancellationToken.None
         );
-        var decomposed = await _store.VerifyCredentialAsync(
+        var decomposed = await Store.VerifyCredentialAsync(
             UserName,
             DecomposedPasswordBytes,
             NotRefused,
@@ -221,12 +221,12 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     [Fact]
     public async Task VerifyCredentialAsync_WhenTheStoredHashIsOfTheDecomposedForm_RehashesTheComposedForm()
     {
-        await _store.AddAsync(CreateAccount(), password: null, CancellationToken.None);
+        await Store.AddAsync(CreateAccount(), password: null, CancellationToken.None);
         await SetStoredPasswordHashAsync(DecomposedPassword);
-        var before = await _store.GetByIdOrDefaultAsync(LocalAccountId, CancellationToken.None);
+        var before = await Store.GetByIdOrDefaultAsync(LocalAccountId, CancellationToken.None);
         Assert.NotNull(before);
 
-        var result = await _store.VerifyCredentialAsync(
+        var result = await Store.VerifyCredentialAsync(
             UserName,
             DecomposedPasswordBytes,
             NotRefused,
@@ -242,7 +242,7 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     [Fact]
     public async Task VerifyCredentialAsync_WhenNoUserHasTheUserName_ReturnsNull()
     {
-        var result = await _store.VerifyCredentialAsync(
+        var result = await Store.VerifyCredentialAsync(
             "nobody",
             FirstPassword,
             NotRefused,
@@ -257,7 +257,7 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     {
         await CreateHostUserAsync(HostPassword);
 
-        var result = await _store.VerifyCredentialAsync(
+        var result = await Store.VerifyCredentialAsync(
             UserName,
             ComposedHostPasswordBytes,
             NotRefused,
@@ -275,7 +275,7 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     [Fact]
     public async Task CheckPasswordAsync_WhenTheAdapterStoredTheComposedForm_VerifiesTheDecomposedForm()
     {
-        await _store.AddAsync(CreateAccount(), ComposedPasswordBytes, CancellationToken.None);
+        await Store.AddAsync(CreateAccount(), ComposedPasswordBytes, CancellationToken.None);
 
         var verified = await CheckPasswordAsync(DecomposedPassword);
 
@@ -285,7 +285,7 @@ public sealed class AspNetIdentityLocalAccountStoreEntityFrameworkTests : IAsync
     [Fact]
     public async Task CheckPasswordAsync_WhenTheStoredHashIsOfTheDecomposedForm_ReplacesItWithTheComposedForm()
     {
-        await _store.AddAsync(CreateAccount(), password: null, CancellationToken.None);
+        await Store.AddAsync(CreateAccount(), password: null, CancellationToken.None);
         await SetStoredPasswordHashAsync(DecomposedPassword);
 
         var verified = await CheckPasswordAsync(DecomposedPassword);

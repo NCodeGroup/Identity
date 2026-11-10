@@ -15,7 +15,7 @@ public class DefaultSettingSerializerTests : BaseTests
             new SettingScopeDescriptor { Name = "resource_server", ParentName = "tenant" },
         ]);
 
-    private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+    private JsonSerializerOptions JsonOptions { get; } = new(JsonSerializerDefaults.Web);
 
     private ISettingScopeCollectionProvider CreateScopeProvider()
     {
@@ -46,7 +46,7 @@ public class DefaultSettingSerializerTests : BaseTests
     {
         var serializer = CreateSerializerWithoutDescriptors();
 
-        var result = serializer.DeserializeSettings(Parse("null"), "client", _jsonOptions);
+        var result = serializer.DeserializeSettings(Parse("null"), "client", JsonOptions);
 
         Assert.Empty(result);
     }
@@ -57,7 +57,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var serializer = CreateSerializerWithoutDescriptors();
 
         Assert.Throws<JsonException>(() =>
-            serializer.DeserializeSettings(Parse("[]"), "client", _jsonOptions)
+            serializer.DeserializeSettings(Parse("[]"), "client", JsonOptions)
         );
     }
 
@@ -77,7 +77,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var result = serializer.DeserializeSettings(
             Parse("""{"a":"value","b":true,"c":["x","y"]}"""),
             "client",
-            _jsonOptions
+            JsonOptions
         );
 
         var settings = result.ToDictionary(x => x.Descriptor.Name, x => x.GetValue());
@@ -98,11 +98,7 @@ public class DefaultSettingSerializerTests : BaseTests
             }
         );
 
-        var result = serializer.DeserializeSettings(
-            Parse("""{"a":null}"""),
-            "client",
-            _jsonOptions
-        );
+        var result = serializer.DeserializeSettings(Parse("""{"a":null}"""), "client", JsonOptions);
 
         var setting = Assert.Single(result);
         Assert.Equal("fallback", setting.GetValue());
@@ -116,7 +112,7 @@ public class DefaultSettingSerializerTests : BaseTests
         );
 
         Assert.Throws<JsonException>(() =>
-            serializer.DeserializeSettings(Parse("""{"a":null}"""), "client", _jsonOptions)
+            serializer.DeserializeSettings(Parse("""{"a":null}"""), "client", JsonOptions)
         );
     }
 
@@ -131,7 +127,7 @@ public class DefaultSettingSerializerTests : BaseTests
             serializer.DeserializeSettings(
                 Parse("""{"a":"value","unregistered_setting":"x"}"""),
                 "client",
-                _jsonOptions
+                JsonOptions
             )
         );
 
@@ -149,7 +145,7 @@ public class DefaultSettingSerializerTests : BaseTests
             serializer.DeserializeSettings(
                 Parse("""{"require_pkce":"yes"}"""),
                 "client",
-                _jsonOptions
+                JsonOptions
             )
         );
 
@@ -172,7 +168,7 @@ public class DefaultSettingSerializerTests : BaseTests
             serializer.DeserializeSettings(
                 Parse("""{"subject_type":"pairwse"}"""),
                 "client",
-                _jsonOptions
+                JsonOptions
             )
         );
 
@@ -198,7 +194,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var result = serializer.DeserializeSettings(
             Parse("""{"lifetime":"00:05:00"}"""),
             "client",
-            _jsonOptions
+            JsonOptions
         );
 
         var setting = Assert.Single(result);
@@ -216,7 +212,7 @@ public class DefaultSettingSerializerTests : BaseTests
             serializer.DeserializeSettings(
                 Parse("""{"require_pkce":true}"""),
                 "resource_server",
-                _jsonOptions
+                JsonOptions
             )
         );
 
@@ -236,7 +232,7 @@ public class DefaultSettingSerializerTests : BaseTests
     {
         var serializer = CreateSerializerWithoutDescriptors();
 
-        var errors = serializer.ValidateSettings(Parse("null"), "client", _jsonOptions);
+        var errors = serializer.ValidateSettings(Parse("null"), "client", JsonOptions);
 
         Assert.Empty(errors);
     }
@@ -251,7 +247,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var errors = serializer.ValidateSettings(
             Parse("""{"a":"00:05:00"}"""),
             "client",
-            _jsonOptions
+            JsonOptions
         );
 
         Assert.Empty(errors);
@@ -262,7 +258,7 @@ public class DefaultSettingSerializerTests : BaseTests
     {
         var serializer = CreateSerializerWithoutDescriptors();
 
-        var errors = serializer.ValidateSettings(Parse("[]"), "client", _jsonOptions);
+        var errors = serializer.ValidateSettings(Parse("[]"), "client", JsonOptions);
 
         var error = Assert.Single(errors);
         Assert.Equal(string.Empty, error.SettingName);
@@ -285,7 +281,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var errors = serializer.ValidateSettings(
             Parse("""{"unknown":1,"flag":"yes","list":"one","text":null,"valid":"ok"}"""),
             "client",
-            _jsonOptions
+            JsonOptions
         );
 
         Assert.Equal(["unknown", "flag", "list", "text"], errors.Select(x => x.SettingName));
@@ -309,7 +305,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var errors = serializer.ValidateSettings(
             Parse("""{"list":["a",null]}"""),
             "client",
-            _jsonOptions
+            JsonOptions
         );
 
         var error = Assert.Single(errors);
@@ -346,7 +342,7 @@ public class DefaultSettingSerializerTests : BaseTests
                 """{"subject_type":"pairwse","code_challenge_methods_supported":["S256","S512"],"length":4}"""
             ),
             "client",
-            _jsonOptions
+            JsonOptions
         );
 
         Assert.Equal(
@@ -376,7 +372,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var errors = serializer.ValidateSettings(
             Parse("""{"subject_type":null}"""),
             "client",
-            _jsonOptions
+            JsonOptions
         );
 
         Assert.Empty(errors);
@@ -397,7 +393,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var errors = serializer.ValidateSettings(
             Parse("""{"require_pkce":true}"""),
             scopeName,
-            _jsonOptions
+            JsonOptions
         );
 
         Assert.Empty(errors);
@@ -417,7 +413,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var errors = serializer.ValidateSettings(
             Parse("""{"security_profiles":["fapi2"]}"""),
             "resource_server",
-            _jsonOptions
+            JsonOptions
         );
 
         var error = Assert.Single(errors);
@@ -442,7 +438,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var errors = serializer.ValidateSettings(
             Parse("""{"session_management_supported":"yes"}"""),
             "client",
-            _jsonOptions
+            JsonOptions
         );
 
         var error = Assert.Single(errors);
@@ -460,7 +456,7 @@ public class DefaultSettingSerializerTests : BaseTests
         var serializer = CreateSerializerWithoutDescriptors();
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            serializer.ValidateSettings(Parse("null"), scopeName, _jsonOptions)
+            serializer.ValidateSettings(Parse("null"), scopeName, JsonOptions)
         );
 
         Assert.Equal("scopeName", exception.ParamName);

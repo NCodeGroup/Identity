@@ -7,7 +7,7 @@ namespace NCode.Identity.Claims;
 
 public class DefaultClaimsServiceTests
 {
-    private readonly DefaultClaimsService _service = new();
+    private DefaultClaimsService Service { get; } = new();
 
     private static ClaimsPrincipal CreatePrincipal(params Claim[] claims) =>
         new(new ClaimsIdentity(claims));
@@ -24,7 +24,7 @@ public class DefaultClaimsServiceTests
         );
         var target = new List<Claim>();
 
-        _service.CopyClaims(source, target, preventDuplicates: false, "name", "role");
+        Service.CopyClaims(source, target, preventDuplicates: false, "name", "role");
 
         Assert.Equal(2, target.Count);
         Assert.Contains(target, x => x is { Type: "name", Value: "alice" });
@@ -37,7 +37,7 @@ public class DefaultClaimsServiceTests
         var source = CreatePrincipal(new Claim("name", "alice"));
         var target = new List<Claim>();
 
-        _service.CopyClaims(source, target, preventDuplicates: false, "missing");
+        Service.CopyClaims(source, target, preventDuplicates: false, "missing");
 
         Assert.Empty(target);
     }
@@ -48,7 +48,7 @@ public class DefaultClaimsServiceTests
         var source = CreatePrincipal(new Claim("name", "alice"), new Claim("name", "second"));
         var target = new List<Claim> { new("name", "existing") };
 
-        _service.CopyClaims(source, target, preventDuplicates: true, "name");
+        Service.CopyClaims(source, target, preventDuplicates: true, "name");
 
         Assert.Single(target);
         Assert.Equal("existing", target[0].Value);
@@ -60,7 +60,7 @@ public class DefaultClaimsServiceTests
         var source = CreatePrincipal(new Claim("name", "alice"), new Claim("name", "second"));
         var target = new List<Claim>();
 
-        _service.CopyClaims(source, target, preventDuplicates: false, "name");
+        Service.CopyClaims(source, target, preventDuplicates: false, "name");
 
         Assert.Equal(2, target.Count);
     }

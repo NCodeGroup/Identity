@@ -19,30 +19,30 @@ public sealed class TenantUsageStoreTests : IDisposable
 
     private static DateOnly Day { get; } = new(2026, 10, 21);
 
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
 
     public TenantUsageStoreTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
-        _provider = serviceCollection.BuildServiceProvider();
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
+        Provider = serviceCollection.BuildServiceProvider();
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         scope.ServiceProvider.GetRequiredService<OpenIdDbContext>().Database.EnsureCreated();
     }
 
     public void Dispose()
     {
-        _provider.Dispose();
-        _connection.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     private TenantUsageStore CreateStore(OpenIdDbContext context) =>
-        new(Mock.Of<IStoreProvider>(), _provider.GetRequiredService<IIdGenerator<long>>(), context);
+        new(Mock.Of<IStoreProvider>(), Provider.GetRequiredService<IIdGenerator<long>>(), context);
 
     private static DataContracts.PersistedTenantUsage Usage(
         string tenantId,
@@ -70,7 +70,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         string teamPath = "/platform/"
     )
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(context)
             .AddAsync(
@@ -96,7 +96,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         DateOnly lastDay
     )
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context)
             .ListByTeamAsync(teamPath, firstDay, lastDay, CancellationToken.None);
@@ -108,7 +108,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         string tenantId = TenantId
     )
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context)
             .ListAsync(tenantId, firstDay, lastDay, CancellationToken.None);
@@ -135,8 +135,8 @@ public sealed class TenantUsageStoreTests : IDisposable
     {
         await AddAsync(TenantId, Day, Requests, 1);
 
-        using var firstScope = _provider.CreateScope();
-        using var secondScope = _provider.CreateScope();
+        using var firstScope = Provider.CreateScope();
+        using var secondScope = Provider.CreateScope();
         var first = firstScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var second = secondScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(first)
@@ -164,8 +164,8 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenAnotherWriterCreatedTheEntryFirst_FailsTheCommit()
     {
-        using var firstScope = _provider.CreateScope();
-        using var secondScope = _provider.CreateScope();
+        using var firstScope = Provider.CreateScope();
+        using var secondScope = Provider.CreateScope();
         var first = firstScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var second = secondScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(first)
@@ -196,7 +196,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         var replicaId = Guid.NewGuid();
         await AddAsync(TenantId, Day, Requests, 1);
 
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             var store = CreateStore(context);
@@ -276,8 +276,8 @@ public sealed class TenantUsageStoreTests : IDisposable
         var replicaId = Guid.NewGuid();
         await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 1);
 
-        using var firstScope = _provider.CreateScope();
-        using var secondScope = _provider.CreateScope();
+        using var firstScope = Provider.CreateScope();
+        using var secondScope = Provider.CreateScope();
         var first = firstScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var second = secondScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(first)
@@ -294,7 +294,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenTheUsageIsEmpty_Throws()
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
@@ -390,7 +390,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         await AddAsync(TenantId, Day, Requests, 2);
 
         int removed;
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             removed = await CreateStore(context).RemoveBeforeAsync(Day, 10, CancellationToken.None);
@@ -410,7 +410,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         await AddAsync(TenantId, Day.AddDays(-2), Requests, 1);
 
         int removed;
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             removed = await CreateStore(context).RemoveBeforeAsync(Day, 2, CancellationToken.None);
@@ -424,7 +424,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task RemoveBeforeAsync_WhenTheLimitIsBelowOne_Throws()
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
@@ -440,14 +440,14 @@ public sealed class TenantUsageStoreTests : IDisposable
         await AddBatchAsync(earlier, 1, TenantId, Day.AddDays(-1), Requests, 1);
         await AddBatchAsync(current, 1, TenantId, Day, Requests, 2);
 
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             await CreateStore(context).RemoveBeforeAsync(Day, 10, CancellationToken.None);
             await context.SaveChangesAsync();
         }
 
-        using var readScope = _provider.CreateScope();
+        using var readScope = Provider.CreateScope();
         var readContext = readScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var replicaIds = await readContext
             .Set<TenantUsageCheckpointEntity>()

@@ -9,11 +9,8 @@ namespace NCode.Identity.Cryptography;
 
 public class DefaultCryptoServiceTests
 {
-    private readonly DefaultCryptoService _service = new([
-        new Base64UrlBinaryEncoder(),
-        new Base64BinaryEncoder(),
-        new HexBinaryEncoder(),
-    ]);
+    private DefaultCryptoService Service { get; } =
+        new([new Base64UrlBinaryEncoder(), new Base64BinaryEncoder(), new HexBinaryEncoder()]);
 
     #region Constructor Tests
 
@@ -36,7 +33,7 @@ public class DefaultCryptoServiceTests
     {
         var destination = new byte[32];
 
-        _service.GenerateBytes(destination);
+        Service.GenerateBytes(destination);
 
         // Extremely unlikely to be all zeros after a cryptographic fill.
         Assert.NotEqual(-1, destination.AsSpan().IndexOfAnyExcept((byte)0));
@@ -51,7 +48,7 @@ public class DefaultCryptoServiceTests
     {
         byte[] data = [1, 2, 3, 4];
 
-        var result = _service.EncodeBinary(data, BinaryEncodings.Base64);
+        var result = Service.EncodeBinary(data, BinaryEncodings.Base64);
 
         Assert.Equal(Convert.ToBase64String(data), result);
     }
@@ -61,7 +58,7 @@ public class DefaultCryptoServiceTests
     {
         byte[] data = [0xAB, 0xCD, 0xEF];
 
-        var result = _service.EncodeBinary(data, BinaryEncodings.Hex);
+        var result = Service.EncodeBinary(data, BinaryEncodings.Hex);
 
         Assert.Equal("ABCDEF", result);
     }
@@ -71,7 +68,7 @@ public class DefaultCryptoServiceTests
     {
         byte[] data = [0xFB, 0xFF, 0xFE];
 
-        var result = _service.EncodeBinary(data, BinaryEncodings.Base64Url);
+        var result = Service.EncodeBinary(data, BinaryEncodings.Base64Url);
 
         Assert.DoesNotContain('+', result);
         Assert.DoesNotContain('/', result);
@@ -87,7 +84,7 @@ public class DefaultCryptoServiceTests
         byte[] data = [1, 2, 3];
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            _service.EncodeBinary(data, binaryEncoding)
+            Service.EncodeBinary(data, binaryEncoding)
         );
 
         Assert.Contains($"'{binaryEncoding}'", exception.Message, StringComparison.Ordinal);
@@ -103,7 +100,7 @@ public class DefaultCryptoServiceTests
     [InlineData(128)]
     public void GenerateKey_ReturnsEncodedKeyOfExpectedLength(int byteLength)
     {
-        var result = _service.GenerateKey(byteLength, BinaryEncodings.Hex);
+        var result = Service.GenerateKey(byteLength, BinaryEncodings.Hex);
 
         Assert.Equal(byteLength * 2, result.Length);
     }
@@ -111,8 +108,8 @@ public class DefaultCryptoServiceTests
     [Fact]
     public void GenerateKey_ProducesDifferentKeys()
     {
-        var first = _service.GenerateKey(32, BinaryEncodings.Base64Url);
-        var second = _service.GenerateKey(32, BinaryEncodings.Base64Url);
+        var first = Service.GenerateKey(32, BinaryEncodings.Base64Url);
+        var second = Service.GenerateKey(32, BinaryEncodings.Base64Url);
 
         Assert.NotEqual(first, second);
     }
@@ -130,7 +127,7 @@ public class DefaultCryptoServiceTests
     {
         byte[] data = "hello world"u8.ToArray();
 
-        var result = _service.HashValue(
+        var result = Service.HashValue(
             data,
             new HashAlgorithmName(hashAlgorithm),
             BinaryEncodings.Hex
@@ -155,7 +152,7 @@ public class DefaultCryptoServiceTests
         byte[] data = [1, 2, 3];
 
         Assert.ThrowsAny<CryptographicException>(() =>
-            _service.HashValue(data, new HashAlgorithmName("unknown"), BinaryEncodings.Hex)
+            Service.HashValue(data, new HashAlgorithmName("unknown"), BinaryEncodings.Hex)
         );
     }
 
@@ -168,7 +165,7 @@ public class DefaultCryptoServiceTests
     {
         const string data = "hello world";
 
-        var result = _service.HashValue(data, HashAlgorithmName.SHA256, BinaryEncodings.Hex);
+        var result = Service.HashValue(data, HashAlgorithmName.SHA256, BinaryEncodings.Hex);
 
         var expected = Convert.ToHexString(SHA256.HashData(SecureEncoding.UTF8.GetBytes(data)));
         Assert.Equal(expected, result);
@@ -179,7 +176,7 @@ public class DefaultCryptoServiceTests
     {
         var data = new string('x', 500);
 
-        var result = _service.HashValue(data, HashAlgorithmName.SHA256, BinaryEncodings.Hex);
+        var result = Service.HashValue(data, HashAlgorithmName.SHA256, BinaryEncodings.Hex);
 
         var expected = Convert.ToHexString(SHA256.HashData(SecureEncoding.UTF8.GetBytes(data)));
         Assert.Equal(expected, result);
@@ -195,7 +192,7 @@ public class DefaultCryptoServiceTests
             throwOnInvalidBytes: true
         );
 
-        var result = _service.HashValue(data, HashAlgorithmName.SHA256, BinaryEncodings.Hex, utf16);
+        var result = Service.HashValue(data, HashAlgorithmName.SHA256, BinaryEncodings.Hex, utf16);
 
         var expected = Convert.ToHexString(SHA256.HashData(utf16.GetBytes(data)));
         Assert.Equal(expected, result);

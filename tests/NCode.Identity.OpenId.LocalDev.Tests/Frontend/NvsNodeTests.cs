@@ -7,19 +7,19 @@ namespace NCode.Identity.OpenId.LocalDev.Tests.Frontend;
 
 public class NvsNodeTests : IDisposable
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+    private string Root { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public void Dispose()
     {
-        if (Directory.Exists(_root))
+        if (Directory.Exists(Root))
         {
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(Root, recursive: true);
         }
     }
 
     private string CreateInstall(string version, bool withX64 = true)
     {
-        var versionDirectory = Path.Combine(_root, version);
+        var versionDirectory = Path.Combine(Root, version);
         Directory.CreateDirectory(versionDirectory);
 
         var x64Directory = Path.Combine(versionDirectory, "x64");
@@ -39,7 +39,7 @@ public class NvsNodeTests : IDisposable
         CreateInstall("22.9.0");
         var expected = CreateInstall("22.22.2");
 
-        var result = NvsNode.FindDirectory(_root, 22);
+        var result = NvsNode.FindDirectory(Root, 22);
 
         Assert.Equal(expected, result);
     }
@@ -50,7 +50,7 @@ public class NvsNodeTests : IDisposable
         var expected = CreateInstall("22.9.0");
         CreateInstall("24.1.0");
 
-        var result = NvsNode.FindDirectory(_root, 22);
+        var result = NvsNode.FindDirectory(Root, 22);
 
         Assert.Equal(expected, result);
     }
@@ -61,7 +61,7 @@ public class NvsNodeTests : IDisposable
         var expected = CreateInstall("22.9.0");
         CreateInstall("22.foo");
 
-        var result = NvsNode.FindDirectory(_root, 22);
+        var result = NvsNode.FindDirectory(Root, 22);
 
         Assert.Equal(expected, result);
     }
@@ -72,7 +72,7 @@ public class NvsNodeTests : IDisposable
         var expected = CreateInstall("22.9.0");
         CreateInstall("22.22.2", withX64: false);
 
-        var result = NvsNode.FindDirectory(_root, 22);
+        var result = NvsNode.FindDirectory(Root, 22);
 
         Assert.Equal(expected, result);
     }
@@ -82,7 +82,7 @@ public class NvsNodeTests : IDisposable
     {
         CreateInstall("24.1.0");
 
-        var result = NvsNode.FindDirectory(_root, 22);
+        var result = NvsNode.FindDirectory(Root, 22);
 
         Assert.Null(result);
     }
@@ -90,7 +90,7 @@ public class NvsNodeTests : IDisposable
     [Fact]
     public void FindDirectory_WhenRootDoesNotExist_ReturnsNull()
     {
-        var result = NvsNode.FindDirectory(_root, 22);
+        var result = NvsNode.FindDirectory(Root, 22);
 
         Assert.Null(result);
     }

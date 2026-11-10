@@ -26,16 +26,16 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 {
     private const string Issuer = "https://issuer.example";
 
-    private readonly DateTimeOffset _utcNow = new(2026, 6, 15, 12, 0, 0, TimeSpan.Zero);
-    private readonly ServiceProvider _serviceProvider;
-    private readonly RSA _clientRsa = RSA.Create(2048);
-    private readonly RSA _serverRsa = RSA.Create(2048);
+    private DateTimeOffset UtcNow { get; } = new(2026, 6, 15, 12, 0, 0, TimeSpan.Zero);
+    private ServiceProvider ServiceProvider { get; }
+    private RSA ClientRsa { get; } = RSA.Create(2048);
+    private RSA ServerRsa { get; } = RSA.Create(2048);
 
     public DefaultJwtValidatorTests()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton<TimeProvider>(new FakeTimeProvider(_utcNow));
+        serviceCollection.AddSingleton<TimeProvider>(new FakeTimeProvider(UtcNow));
         serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary();
         // A viable unsecured algorithm, so the validator's refusal of "none" is proven by its name rule alone.
         serviceCollection.TryAddEnumerable(
@@ -44,19 +44,18 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
                 UnsecuredAlgorithmDataSource
             >()
         );
-        _serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
-        SigningKey = CreateRsaKey("client-sig", _clientRsa, use: null, algorithm: null);
-        EncryptionKey = CreateRsaKey("server-enc", _serverRsa, use: null, algorithm: null);
+        SigningKey = CreateRsaKey("client-sig", ClientRsa, use: null, algorithm: null);
+        EncryptionKey = CreateRsaKey("server-enc", ServerRsa, use: null, algorithm: null);
     }
 
-    private IJwtEncoder Encoder => _serviceProvider.GetRequiredService<IJwtEncoder>();
-    private IJwtValidator Validator => _serviceProvider.GetRequiredService<IJwtValidator>();
-    private IJoseSerializer JoseSerializer =>
-        _serviceProvider.GetRequiredService<IJoseSerializer>();
+    private IJwtEncoder Encoder => ServiceProvider.GetRequiredService<IJwtEncoder>();
+    private IJwtValidator Validator => ServiceProvider.GetRequiredService<IJwtValidator>();
+    private IJoseSerializer JoseSerializer => ServiceProvider.GetRequiredService<IJoseSerializer>();
 
     private IAlgorithmCollection Algorithms =>
-        _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection;
+        ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection;
 
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
@@ -65,12 +64,12 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public async Task DisposeAsync() => await _serviceProvider.DisposeAsync();
+    public async Task DisposeAsync() => await ServiceProvider.DisposeAsync();
 
     public void Dispose()
     {
-        _clientRsa.Dispose();
-        _serverRsa.Dispose();
+        ClientRsa.Dispose();
+        ServerRsa.Dispose();
         MockRepository.Verify();
     }
 
@@ -86,14 +85,14 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         );
 
     private SecretKey CreateRsaKey(RSA rsa, KeyMetadata metadata) =>
-        _serviceProvider.GetRequiredService<ISecretKeyFactory>().CreateRsa(metadata, rsa);
+        ServiceProvider.GetRequiredService<ISecretKeyFactory>().CreateRsa(metadata, rsa);
 
     private SecretKey CreateRemoteDecryptionKey(IRemoteKeyProvider provider, string keyId) =>
-        _serviceProvider
+        ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
             .CreateRsaRemote(
                 new KeyMetadata { KeyId = keyId, Use = SecretKeyUses.Encryption },
-                _clientRsa.ExportSubjectPublicKeyInfo(),
+                ClientRsa.ExportSubjectPublicKeyInfo(),
                 new RemoteKeyBinding
                 {
                     Provider = provider,
@@ -121,12 +120,12 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var request = new CertificateRequest(
             "CN=client",
-            _clientRsa,
+            ClientRsa,
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1
         );
         using var certificate = request.CreateSelfSigned(notBefore, notAfter);
-        return _serviceProvider
+        return ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
             .Create(
                 new KeyMetadata { KeyId = "client-cert", ExpiresWhen = expiresWhen },
@@ -184,9 +183,9 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
                 SigningCredentials = signingCredentials,
                 EncryptionCredentials = encryptionCredentials,
                 Issuer = Issuer,
-                IssuedAt = _utcNow,
-                NotBefore = _utcNow,
-                Expires = _utcNow.AddMinutes(5),
+                IssuedAt = UtcNow,
+                NotBefore = UtcNow,
+                Expires = UtcNow.AddMinutes(5),
             },
             CancellationToken.None
         );
@@ -291,8 +290,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         // The default clock skew is five minutes, so a certificate a minute from either edge of its validity is active.
         var certificateKey = CreateCertificateKey(
-            _utcNow.AddMinutes(notBeforeMinutes),
-            _utcNow.AddMinutes(notAfterMinutes)
+            UtcNow.AddMinutes(notBeforeMinutes),
+            UtcNow.AddMinutes(notAfterMinutes)
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(certificateKey),
@@ -318,9 +317,9 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         // The key's own expiry lies ahead, so the key is tried and the certificate's validity is what refuses it.
         var certificateKey = CreateCertificateKey(
-            _utcNow.AddMinutes(notBeforeMinutes),
-            _utcNow.AddMinutes(notAfterMinutes),
-            expiresWhen: _utcNow.AddDays(1)
+            UtcNow.AddMinutes(notBeforeMinutes),
+            UtcNow.AddMinutes(notAfterMinutes),
+            expiresWhen: UtcNow.AddDays(1)
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(certificateKey),
@@ -352,7 +351,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task ValidateAsync_WhenUnsecuredJwsAndEmptyKey_Fails()
     {
-        var emptyKey = _serviceProvider.GetRequiredService<ISecretKeyFactory>().Empty;
+        var emptyKey = ServiceProvider.GetRequiredService<ISecretKeyFactory>().Empty;
         var token = CreateUnsecuredToken();
 
         var result = await ValidateAsync(token, x => x.UseValidationKeys([emptyKey]));
@@ -625,7 +624,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var encryptionOnlyKey = CreateRsaKey(
             "client-enc",
-            _clientRsa,
+            ClientRsa,
             SecretKeyUses.Encryption,
             algorithm: null
         );
@@ -646,7 +645,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var pssOnlyKey = CreateRsaKey(
             "client-ps256",
-            _clientRsa,
+            ClientRsa,
             use: null,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
         );
@@ -666,10 +665,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         // A certificate key expires with its certificate, so one that expired beyond the clock skew is never tried,
         // whatever the certificate requirement would say.
-        var certificateKey = CreateCertificateKey(
-            _utcNow.AddMinutes(-120),
-            _utcNow.AddMinutes(-60)
-        );
+        var certificateKey = CreateCertificateKey(UtcNow.AddMinutes(-120), UtcNow.AddMinutes(-60));
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(certificateKey),
             encryptionCredentials: null
@@ -688,8 +684,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     public async Task ValidateAsync_WhenTheKeyExpiredWithinTheClockSkew_StillVerifiesWithIt()
     {
         var justExpiredKey = CreateRsaKey(
-            _clientRsa,
-            new KeyMetadata { KeyId = "client-just-expired", ExpiresWhen = _utcNow.AddMinutes(-1) }
+            ClientRsa,
+            new KeyMetadata { KeyId = "client-just-expired", ExpiresWhen = UtcNow.AddMinutes(-1) }
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
@@ -707,8 +703,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         // The key expired beyond the clock skew, so a token it signed, however fresh, is refused: a key verifies only
         // within its validity window (ADR-1403).
         var expiredKey = CreateRsaKey(
-            _clientRsa,
-            new KeyMetadata { KeyId = "client-expired", ExpiresWhen = _utcNow.AddMinutes(-6) }
+            ClientRsa,
+            new KeyMetadata { KeyId = "client-expired", ExpiresWhen = UtcNow.AddMinutes(-6) }
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
@@ -727,12 +723,12 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         // A retired key signs nothing more but still verifies what it signed until it expires (ADR-1403).
         var retiredKey = CreateRsaKey(
-            _clientRsa,
+            ClientRsa,
             new KeyMetadata
             {
                 KeyId = "client-retired",
-                RetiresWhen = _utcNow.AddDays(-1),
-                ExpiresWhen = _utcNow.AddSeconds(1),
+                RetiresWhen = UtcNow.AddDays(-1),
+                ExpiresWhen = UtcNow.AddSeconds(1),
             }
         );
         var token = await EncodeTokenAsync(
@@ -749,8 +745,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     public async Task ValidateAsync_WhenTheDecryptionKeyHasExpired_FailsWithDecryptionFailed()
     {
         var expiredKey = CreateRsaKey(
-            _serverRsa,
-            new KeyMetadata { KeyId = "server-expired", ExpiresWhen = _utcNow.AddMinutes(-6) }
+            ServerRsa,
+            new KeyMetadata { KeyId = "server-expired", ExpiresWhen = UtcNow.AddMinutes(-6) }
         );
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
@@ -801,7 +797,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         using var otherRsa = RSA.Create(2048);
         var namedKey = CreateRsaKey("server-enc", otherRsa, use: null, algorithm: null);
-        var holderKey = CreateRsaKey("server-other", _serverRsa, use: null, algorithm: null);
+        var holderKey = CreateRsaKey("server-other", ServerRsa, use: null, algorithm: null);
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials()
@@ -831,7 +827,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
             .Returns(() => ValueTask.FromException<int>(new CryptographicException("refused")))
             .Verifiable();
         var remoteKey = CreateRemoteDecryptionKey(provider.Object, "remote-enc");
-        var otherKey = CreateRsaKey("server-other", _serverRsa, use: null, algorithm: null);
+        var otherKey = CreateRsaKey("server-other", ServerRsa, use: null, algorithm: null);
         var token = await EncodeTokenAsync(
             CreateSigningCredentials(SigningKey),
             CreateEncryptionCredentials()

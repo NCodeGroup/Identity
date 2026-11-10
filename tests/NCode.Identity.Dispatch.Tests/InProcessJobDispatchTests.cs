@@ -30,16 +30,14 @@ public class InProcessJobDispatchTests
 
     private sealed class RecordingHandler(int throwTimes) : IDispatchJobHandler<RecordingJob>
     {
-        private readonly TaskCompletionSource _succeeded = new(
-            TaskCreationOptions.RunContinuationsAsynchronously
-        );
-        private readonly TaskCompletionSource _finalAttempt = new(
-            TaskCreationOptions.RunContinuationsAsynchronously
-        );
+        private TaskCompletionSource SucceededSource { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private TaskCompletionSource FinalAttempt { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public List<DispatchContext> Attempts { get; } = [];
-        public Task Succeeded => _succeeded.Task;
-        public Task FinalAttemptStarted => _finalAttempt.Task;
+        public Task Succeeded => SucceededSource.Task;
+        public Task FinalAttemptStarted => FinalAttempt.Task;
 
         public ValueTask HandleAsync(
             RecordingJob job,
@@ -50,12 +48,12 @@ public class InProcessJobDispatchTests
             Attempts.Add(context);
 
             if (context.Attempt == context.MaxAttempts)
-                _finalAttempt.TrySetResult();
+                FinalAttempt.TrySetResult();
 
             if (context.Attempt <= throwTimes)
                 throw new InvalidOperationException("boom");
 
-            _succeeded.TrySetResult();
+            SucceededSource.TrySetResult();
             return ValueTask.CompletedTask;
         }
     }

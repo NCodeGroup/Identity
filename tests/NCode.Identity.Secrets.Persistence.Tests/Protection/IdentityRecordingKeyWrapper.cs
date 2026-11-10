@@ -15,20 +15,20 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 public sealed class IdentityRecordingKeyWrapper(IReferencedKeyWrapper inner) : IReferencedKeyWrapper
 {
-    private readonly ConcurrentQueue<KeyAccess> _unwrapAccesses = new();
+    private ConcurrentQueue<KeyAccess> UnwrapAccessQueue { get; } = new();
 
-    private readonly ConcurrentDictionary<string, bool> _refused = new(StringComparer.Ordinal);
+    private ConcurrentDictionary<string, bool> Refused { get; } = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Gets the access of every unwrap that carried one, in call order, including the refused ones.
     /// </summary>
-    public IReadOnlyList<KeyAccess> UnwrapAccesses => _unwrapAccesses.ToArray();
+    public IReadOnlyList<KeyAccess> UnwrapAccesses => UnwrapAccessQueue.ToArray();
 
     /// <summary>
     /// Refuses every wrap and unwrap under an access identity.
     /// </summary>
     /// <param name="identity">The access identity to refuse.</param>
-    public void Refuse(string identity) => _refused[identity] = true;
+    public void Refuse(string identity) => Refused[identity] = true;
 
     /// <inheritdoc />
     public string Name => inner.Name;
@@ -82,7 +82,7 @@ public sealed class IdentityRecordingKeyWrapper(IReferencedKeyWrapper inner) : I
         CancellationToken cancellationToken
     )
     {
-        _unwrapAccesses.Enqueue(access);
+        UnwrapAccessQueue.Enqueue(access);
         ThrowIfRefused(access);
 
         return inner.UnwrapAsync(wrappedKey, access, context, destination, cancellationToken);
@@ -90,7 +90,7 @@ public sealed class IdentityRecordingKeyWrapper(IReferencedKeyWrapper inner) : I
 
     private void ThrowIfRefused(KeyAccess? access)
     {
-        if (access is not null && _refused.ContainsKey(access.Identity))
+        if (access is not null && Refused.ContainsKey(access.Identity))
         {
             throw new CryptographicException("The access identity is refused.");
         }

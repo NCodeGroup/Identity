@@ -14,36 +14,36 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 // index is deliberately NOT unique. Uses SQLite because the EF InMemory provider does not enforce unique indexes.
 public sealed class TenantIssuerIndexTests : IDisposable
 {
-    private readonly SqliteConnection _connection;
-    private readonly ServiceProvider _provider;
+    private SqliteConnection Connection { get; }
+    private ServiceProvider Provider { get; }
 
     public TenantIssuerIndexTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        Connection = new SqliteConnection("DataSource=:memory:");
+        Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
-        _provider = serviceCollection.BuildServiceProvider();
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
+        Provider = serviceCollection.BuildServiceProvider();
 
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         context.Database.EnsureCreated();
     }
 
     public void Dispose()
     {
-        _provider.Dispose();
-        _connection.Dispose();
+        Provider.Dispose();
+        Connection.Dispose();
     }
 
     #region Helpers
 
     private async Task AddTenantAsync(string tenantId, string? issuer)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
         var store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, context);
 
         context.SeedTeam(idGenerator, "platform");
@@ -61,7 +61,7 @@ public sealed class TenantIssuerIndexTests : IDisposable
 
     private int CountTenants()
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return context.Tenants.Count();
     }

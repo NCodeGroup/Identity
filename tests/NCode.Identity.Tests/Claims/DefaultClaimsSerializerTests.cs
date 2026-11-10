@@ -7,7 +7,7 @@ namespace NCode.Identity.Claims;
 
 public class DefaultClaimsSerializerTests
 {
-    private readonly DefaultClaimsSerializer _serializer = DefaultClaimsSerializer.Singleton;
+    private DefaultClaimsSerializer Serializer { get; } = DefaultClaimsSerializer.Singleton;
 
     #region SerializeClaim Tests
 
@@ -17,7 +17,7 @@ public class DefaultClaimsSerializerTests
         var claim = new Claim("name", "alice", "vt", "issuer", "original");
         claim.Properties["k"] = "v";
 
-        var serializable = _serializer.SerializeClaim(claim);
+        var serializable = Serializer.SerializeClaim(claim);
 
         Assert.Equal("name", serializable.Type);
         Assert.Equal("alice", serializable.Value);
@@ -37,9 +37,9 @@ public class DefaultClaimsSerializerTests
     {
         var claim = new Claim("name", "alice", "vt", "issuer", "original");
         claim.Properties["k"] = "v";
-        var serializable = _serializer.SerializeClaim(claim);
+        var serializable = Serializer.SerializeClaim(claim);
 
-        var result = _serializer.DeserializeClaim(serializable);
+        var result = Serializer.DeserializeClaim(serializable);
 
         Assert.Equal("name", result.Type);
         Assert.Equal("alice", result.Value);
@@ -60,8 +60,8 @@ public class DefaultClaimsSerializerTests
         identity.AddClaim(new Claim("name", "alice"));
         identity.AddClaim(new Claim("role", "admin"));
 
-        var serializable = _serializer.SerializeIdentity(identity);
-        var result = _serializer.DeserializeIdentity(serializable);
+        var serializable = Serializer.SerializeIdentity(identity);
+        var result = Serializer.DeserializeIdentity(serializable);
 
         Assert.Equal("pwd", result.AuthenticationType);
         Assert.Equal("name", result.NameClaimType);
@@ -77,12 +77,12 @@ public class DefaultClaimsSerializerTests
         var identity = new ClaimsIdentity("pwd");
         identity.AddClaim(new Claim("name", "alice"));
 
-        var serializable = _serializer.SerializeIdentity(identity);
+        var serializable = Serializer.SerializeIdentity(identity);
 
         var claim = Assert.Single(serializable.Claims);
         Assert.Equal(serializable.ReferenceId, claim.SubjectRef);
 
-        var result = _serializer.DeserializeIdentity(serializable);
+        var result = Serializer.DeserializeIdentity(serializable);
         Assert.Same(result, result.FindFirst("name")?.Subject);
     }
 
@@ -94,8 +94,8 @@ public class DefaultClaimsSerializerTests
         var identity = new ClaimsIdentity("pwd") { Actor = actor };
         identity.AddClaim(new Claim("name", "alice"));
 
-        var serializable = _serializer.SerializeIdentity(identity);
-        var result = _serializer.DeserializeIdentity(serializable);
+        var serializable = Serializer.SerializeIdentity(identity);
+        var result = Serializer.DeserializeIdentity(serializable);
 
         Assert.NotNull(result.Actor);
         Assert.Equal("actor-auth", result.Actor.AuthenticationType);
@@ -113,8 +113,8 @@ public class DefaultClaimsSerializerTests
         identity.AddClaim(new Claim("name", "alice"));
         var principal = new ClaimsPrincipal(identity);
 
-        var serializable = _serializer.SerializePrincipal(principal);
-        var result = _serializer.DeserializePrincipal(serializable);
+        var serializable = Serializer.SerializePrincipal(principal);
+        var result = Serializer.DeserializePrincipal(serializable);
 
         var resultIdentity = Assert.Single(result.Identities);
         Assert.Equal("alice", resultIdentity.FindFirst("name")?.Value);

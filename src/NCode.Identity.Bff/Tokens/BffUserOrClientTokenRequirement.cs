@@ -14,8 +14,8 @@ internal class BffUserOrClientTokenRequirement(
     IBffClientTokenService clientService
 ) : IBffTokenRequirement
 {
-    private readonly IBffUserTokenService _userService = userService;
-    private readonly IBffClientTokenService _clientService = clientService;
+    private IBffUserTokenService UserService { get; } = userService;
+    private IBffClientTokenService ClientService { get; } = clientService;
 
     /// <inheritdoc />
     public string Name => BffTokenRequirementNames.UserOrClient;
@@ -33,8 +33,8 @@ internal class BffUserOrClientTokenRequirement(
         var scope = IBffSessionScope.From(context);
         var state = await scope.ResolveAsync(cancellationToken);
         if (state is not null)
-            return await _userService.GetAccessTokenAsync(scope, request, cancellationToken);
+            return await UserService.GetAccessTokenAsync(scope, request, cancellationToken);
 
-        return await _clientService.GetAccessTokenAsync(scope, request, cancellationToken);
+        return await ClientService.GetAccessTokenAsync(scope, request, cancellationToken);
     }
 }

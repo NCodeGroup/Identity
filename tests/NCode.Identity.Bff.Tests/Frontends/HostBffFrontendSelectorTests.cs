@@ -9,7 +9,7 @@ namespace NCode.Identity.Bff.Tests.Frontends;
 
 public class HostBffFrontendSelectorTests : BaseTests
 {
-    private readonly HostBffFrontendSelector _selector = new();
+    private HostBffFrontendSelector Selector { get; } = new();
 
     private static BffFrontendSelection CreateSelection(
         string[] values,
@@ -28,7 +28,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     [Fact]
     public void Name_IsTheHostRuleName()
     {
-        Assert.Equal(BffFrontendSelectorNames.Host, _selector.Name);
+        Assert.Equal(BffFrontendSelectorNames.Host, Selector.Name);
     }
 
     #endregion
@@ -40,8 +40,8 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["app.example.com"]);
 
-        Assert.True(_selector.IsMatch(CreateRequest("app.example.com"), selection));
-        Assert.True(_selector.IsMatch(CreateRequest("app.example.com:8443"), selection));
+        Assert.True(Selector.IsMatch(CreateRequest("app.example.com"), selection));
+        Assert.True(Selector.IsMatch(CreateRequest("app.example.com:8443"), selection));
     }
 
     [Fact]
@@ -49,9 +49,9 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["app.example.com:8443"]);
 
-        Assert.True(_selector.IsMatch(CreateRequest("app.example.com:8443"), selection));
-        Assert.False(_selector.IsMatch(CreateRequest("app.example.com:9443"), selection));
-        Assert.False(_selector.IsMatch(CreateRequest("app.example.com"), selection));
+        Assert.True(Selector.IsMatch(CreateRequest("app.example.com:8443"), selection));
+        Assert.False(Selector.IsMatch(CreateRequest("app.example.com:9443"), selection));
+        Assert.False(Selector.IsMatch(CreateRequest("app.example.com"), selection));
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["App.Example.com"]);
 
-        Assert.True(_selector.IsMatch(CreateRequest("APP.example.COM"), selection));
+        Assert.True(Selector.IsMatch(CreateRequest("APP.example.COM"), selection));
     }
 
     [Fact]
@@ -67,8 +67,8 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["app.example.com"]);
 
-        Assert.False(_selector.IsMatch(CreateRequest("other.example.com"), selection));
-        Assert.False(_selector.IsMatch(CreateRequest("sub.app.example.com"), selection));
+        Assert.False(Selector.IsMatch(CreateRequest("other.example.com"), selection));
+        Assert.False(Selector.IsMatch(CreateRequest("sub.app.example.com"), selection));
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["one.example.com", "two.example.com"]);
 
-        Assert.True(_selector.IsMatch(CreateRequest("two.example.com"), selection));
+        Assert.True(Selector.IsMatch(CreateRequest("two.example.com"), selection));
     }
 
     #endregion
@@ -88,7 +88,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["app.example.com", "app.example.com:8443"]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Empty(failures);
     }
@@ -98,7 +98,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["127.0.0.1:5001"], "https://127.0.0.1:5001");
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Empty(failures);
     }
@@ -108,7 +108,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection([]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Equal(["Values must name at least one host."], failures);
     }
@@ -128,7 +128,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["app.example.com", value]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Equal(
             [
@@ -143,7 +143,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["other.example.com"]);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Equal(
             [
@@ -158,7 +158,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["app.example.com:8443"], "https://app.example.com");
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Single(failures);
     }
@@ -168,7 +168,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["APP.example.com:8443"], "https://app.example.com:8443");
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Empty(failures);
     }
@@ -185,7 +185,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection([value], publicOrigin);
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         if (isRefused)
         {
@@ -207,7 +207,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["other.example.com"], "not a uri");
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Empty(failures);
     }
@@ -217,7 +217,7 @@ public class HostBffFrontendSelectorTests : BaseTests
     {
         var selection = CreateSelection(["app.example.com"], "/app");
 
-        var failures = _selector.Validate(selection);
+        var failures = Selector.Validate(selection);
 
         Assert.Empty(failures);
     }
@@ -232,7 +232,7 @@ public class HostBffFrontendSelectorTests : BaseTests
         var first = CreateSelection(["app.example.com"]);
         var second = CreateSelection(["APP.example.com"]);
 
-        Assert.True(_selector.Overlaps(first, second));
+        Assert.True(Selector.Overlaps(first, second));
     }
 
     [Fact]
@@ -241,7 +241,7 @@ public class HostBffFrontendSelectorTests : BaseTests
         var first = CreateSelection(["app.example.com:8443"]);
         var second = CreateSelection(["app.example.com:8443"]);
 
-        Assert.True(_selector.Overlaps(first, second));
+        Assert.True(Selector.Overlaps(first, second));
     }
 
     [Fact]
@@ -250,8 +250,8 @@ public class HostBffFrontendSelectorTests : BaseTests
         var first = CreateSelection(["app.example.com:8443"]);
         var second = CreateSelection(["app.example.com"]);
 
-        Assert.True(_selector.Overlaps(first, second));
-        Assert.True(_selector.Overlaps(second, first));
+        Assert.True(Selector.Overlaps(first, second));
+        Assert.True(Selector.Overlaps(second, first));
     }
 
     [Fact]
@@ -260,7 +260,7 @@ public class HostBffFrontendSelectorTests : BaseTests
         var first = CreateSelection(["app.example.com:8443"]);
         var second = CreateSelection(["app.example.com:9443"]);
 
-        Assert.False(_selector.Overlaps(first, second));
+        Assert.False(Selector.Overlaps(first, second));
     }
 
     [Fact]
@@ -269,7 +269,7 @@ public class HostBffFrontendSelectorTests : BaseTests
         var first = CreateSelection(["one.example.com"]);
         var second = CreateSelection(["two.example.com"]);
 
-        Assert.False(_selector.Overlaps(first, second));
+        Assert.False(Selector.Overlaps(first, second));
     }
 
     #endregion

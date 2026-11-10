@@ -30,9 +30,9 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
     private static Func<string, CancellationToken, ValueTask<bool>> NotRefused { get; } =
         static (_, _) => ValueTask.FromResult(false);
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
+    private MockRepository Mocks { get; } = new(MockBehavior.Strict);
 
-    public void Dispose() => _mocks.Verify();
+    public void Dispose() => Mocks.Verify();
 
     #region Helpers
 
@@ -63,12 +63,12 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
             null,
             null,
         ];
-        var userManager = _mocks.Create<UserManager<IdentityUser>>((object[])constructorArguments);
+        var userManager = Mocks.Create<UserManager<IdentityUser>>((object[])constructorArguments);
 
         // UserManager's constructor assigns its virtual Logger property; allow that set on the strict mock.
         userManager.SetupSet(x => x.Logger = It.IsAny<ILogger>()).Verifiable();
 
-        var serviceProvider = _mocks.Create<IServiceProvider>();
+        var serviceProvider = Mocks.Create<IServiceProvider>();
         serviceProvider
             .Setup(x => x.GetService(typeof(UserManager<IdentityUser>)))
             .Returns(userManager.Object)
@@ -84,15 +84,15 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
 
         // The store opens a DI scope per call to resolve the scoped UserManager; mock the plumbing so the strict
         // UserManager mock is never disposed (a non-virtual Dispose would escape the mock).
-        var scope = _mocks.Create<IServiceScope>();
+        var scope = Mocks.Create<IServiceScope>();
         scope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object).Verifiable();
         scope.Setup(x => x.Dispose()).Verifiable();
 
-        var scopeFactory = _mocks.Create<IServiceScopeFactory>();
+        var scopeFactory = Mocks.Create<IServiceScopeFactory>();
         scopeFactory.Setup(x => x.CreateScope()).Returns(scope.Object).Verifiable();
 
         // The unit-of-work store provider is only used for the IStoreProvider delegation, never by these operations.
-        var storeProvider = _mocks.Create<IStoreProvider>();
+        var storeProvider = Mocks.Create<IStoreProvider>();
 
         return (
             new AspNetIdentityLocalAccountStore<IdentityUser>(
@@ -105,10 +105,10 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
     }
 
     private Mock<IPasswordHasher<IdentityUser>> CreatePasswordHasher() =>
-        _mocks.Create<IPasswordHasher<IdentityUser>>();
+        Mocks.Create<IPasswordHasher<IdentityUser>>();
 
     private Mock<IUserPasswordStore<IdentityUser>> CreatePasswordStore() =>
-        _mocks.Create<IUserPasswordStore<IdentityUser>>();
+        Mocks.Create<IUserPasswordStore<IdentityUser>>();
 
     private static void SetupDummyPasswordHash(
         Mock<IPasswordHasher<IdentityUser>> passwordHasher
@@ -926,7 +926,7 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
     [Fact]
     public async Task SetPasswordAsync_WhenTheUserStoreDoesNotStorePasswords_Throws()
     {
-        var userStore = _mocks.Create<IUserStore<IdentityUser>>();
+        var userStore = Mocks.Create<IUserStore<IdentityUser>>();
         var (store, _) = CreateStore(userStore: userStore.Object);
 
         await Assert.ThrowsAsync<NotSupportedException>(async () =>

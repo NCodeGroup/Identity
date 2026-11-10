@@ -21,37 +21,25 @@ namespace NCode.Identity.Bff.Login;
 /// <summary>
 /// Handles <c>GET /bff/login</c>: validates the request and builds the authorization request.
 /// </summary>
-internal class BffLoginHandler
+internal class BffLoginHandler(
+    BffFrontendCatalog frontends,
+    IAuthorizationRequestClient authorizationRequestClient,
+    BffLoginTransactionService transactionService,
+    BffCookies cookies,
+    IBffAuditRecorder auditRecorder,
+    TimeProvider timeProvider
+)
 {
     private const string ReturnUrlParameterName = "returnUrl";
     private const string DefaultReturnUrl = "/";
 
-    private readonly BffFrontendCatalog _frontends;
-    private readonly IAuthorizationRequestClient _authorizationRequestClient;
-    private readonly BffLoginTransactionService _transactionService;
-    private readonly BffCookies _cookies;
-    private readonly IBffAuditRecorder _auditRecorder;
-    private readonly TimeProvider _timeProvider;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BffLoginHandler"/> class.
-    /// </summary>
-    public BffLoginHandler(
-        BffFrontendCatalog frontends,
-        IAuthorizationRequestClient authorizationRequestClient,
-        BffLoginTransactionService transactionService,
-        BffCookies cookies,
-        IBffAuditRecorder auditRecorder,
-        TimeProvider timeProvider
-    )
-    {
-        _frontends = frontends;
-        _authorizationRequestClient = authorizationRequestClient;
-        _transactionService = transactionService;
-        _cookies = cookies;
-        _auditRecorder = auditRecorder;
-        _timeProvider = timeProvider;
-    }
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private IAuthorizationRequestClient AuthorizationRequestClient { get; } =
+        authorizationRequestClient;
+    private BffLoginTransactionService TransactionService { get; } = transactionService;
+    private BffCookies Cookies { get; } = cookies;
+    private IBffAuditRecorder AuditRecorder { get; } = auditRecorder;
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <summary>
     /// Handles the login request.
@@ -61,7 +49,7 @@ internal class BffLoginHandler
     {
         var request = httpContext.Request;
         var cancellationToken = httpContext.RequestAborted;
-        var frontend = _frontends.GetRequired(httpContext);
+        var frontend = Frontends.GetRequired(httpContext);
         var options = frontend.Options;
 
         httpContext.Response.SetNoStore();
@@ -150,7 +138,7 @@ internal class BffLoginHandler
         AuthorizationRequestResult result;
         try
         {
-            result = await _authorizationRequestClient.CreateAuthorizationUriAsync(
+            result = await AuthorizationRequestClient.CreateAuthorizationUriAsync(
                 registration,
                 authorizationRequest,
                 cancellationToken
@@ -185,8 +173,8 @@ internal class BffLoginHandler
             MaxAge = parsedMaxAge,
         };
         var expiresWhen =
-            _timeProvider.GetUtcNowWithPrecisionInSeconds() + options.Session.LoginLifetime;
-        await _transactionService.StoreAsync(
+            TimeProvider.GetUtcNowWithPrecisionInSeconds() + options.Session.LoginLifetime;
+        await TransactionService.StoreAsync(
             state,
             initiator,
             transaction,
@@ -194,7 +182,7 @@ internal class BffLoginHandler
             cancellationToken
         );
 
-        _cookies.SetLogin(httpContext.Response, frontend, initiator);
+        Cookies.SetLogin(httpContext.Response, frontend, initiator);
         httpContext.Response.Redirect(result.AuthorizationUri.AbsoluteUri);
     }
 
@@ -204,7 +192,7 @@ internal class BffLoginHandler
         string reason
     )
     {
-        await _auditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
+        await AuditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
         var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, options, reason);
         httpContext.Response.Redirect(errorUrl);
     }

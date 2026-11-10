@@ -13,28 +13,28 @@ namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 
 public class DurationSecondsParserTests : BaseTests
 {
-    private readonly OpenIdEnvironment _environment;
-    private readonly DurationSecondsParser _parser = CommonParameterParsers.DurationSeconds;
-    private readonly ParameterDescriptor _descriptor;
+    private OpenIdEnvironment Environment { get; }
+    private DurationSecondsParser Parser { get; } = CommonParameterParsers.DurationSeconds;
+    private ParameterDescriptor Descriptor { get; }
 
     public DurationSecondsParserTests()
     {
-        _environment = CreateStrictMock<OpenIdEnvironment>().Object;
-        _descriptor = new ParameterDescriptor(
-            new KnownParameter<TimeSpan?>("expires_in", _parser) { AllowMissingStringValues = true }
+        Environment = CreateStrictMock<OpenIdEnvironment>().Object;
+        Descriptor = new ParameterDescriptor(
+            new KnownParameter<TimeSpan?>("expires_in", Parser) { AllowMissingStringValues = true }
         );
     }
 
     private string Write(TimeSpan? value)
     {
-        var parameter = _parser.Create(_environment, _descriptor, _parser, value);
+        var parameter = Parser.Create(Environment, Descriptor, Parser, value);
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream))
         {
             writer.WriteStartObject();
-            _parser.Write(
+            Parser.Write(
                 writer,
-                _environment,
+                Environment,
                 parameter,
                 SerializationFormat.OpenId,
                 JsonSerializerOptions.Default
@@ -48,10 +48,10 @@ public class DurationSecondsParserTests : BaseTests
     {
         var reader = new Utf8JsonReader(SecureEncoding.UTF8.GetBytes(json));
         Assert.True(reader.Read());
-        var parameter = _parser.Read(
+        var parameter = Parser.Read(
             ref reader,
-            _environment,
-            _descriptor,
+            Environment,
+            Descriptor,
             SerializationFormat.OpenId,
             JsonSerializerOptions.Default
         );
@@ -97,14 +97,14 @@ public class DurationSecondsParserTests : BaseTests
     {
         Assert.Equal(
             "3600",
-            _parser.GetStringValues(_environment, _descriptor, TimeSpan.FromHours(1))
+            Parser.GetStringValues(Environment, Descriptor, TimeSpan.FromHours(1))
         );
     }
 
     [Fact]
     public void Parse_WhenSecondsString_ReturnsTimeSpan()
     {
-        Assert.Equal(TimeSpan.FromHours(1), _parser.Parse(_environment, _descriptor, "3600"));
+        Assert.Equal(TimeSpan.FromHours(1), Parser.Parse(Environment, Descriptor, "3600"));
     }
 
     #endregion

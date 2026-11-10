@@ -16,7 +16,7 @@ public sealed class TenantUsageStoreInMemoryTests : IDisposable
 
     private static DateOnly Day { get; } = new(2026, 10, 21);
 
-    private readonly ServiceProvider _provider;
+    private ServiceProvider Provider { get; }
 
     public TenantUsageStoreInMemoryTests()
     {
@@ -27,20 +27,20 @@ public sealed class TenantUsageStoreInMemoryTests : IDisposable
         serviceCollection.AddTestOpenIdDbContext(options =>
             options.UseInMemoryDatabase(databaseName)
         );
-        _provider = serviceCollection.BuildServiceProvider();
+        Provider = serviceCollection.BuildServiceProvider();
     }
 
     public void Dispose()
     {
-        _provider.Dispose();
+        Provider.Dispose();
     }
 
     private TenantUsageStore CreateStore(OpenIdDbContext context) =>
-        new(Mock.Of<IStoreProvider>(), _provider.GetRequiredService<IIdGenerator<long>>(), context);
+        new(Mock.Of<IStoreProvider>(), Provider.GetRequiredService<IIdGenerator<long>>(), context);
 
     private async Task AddAsync(DateOnly day)
     {
-        using var scope = _provider.CreateScope();
+        using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(context)
             .AddAsync(
@@ -69,14 +69,14 @@ public sealed class TenantUsageStoreInMemoryTests : IDisposable
         await AddAsync(Day.AddDays(-1));
         await AddAsync(Day);
 
-        using (var scope = _provider.CreateScope())
+        using (var scope = Provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             await CreateStore(context).RemoveBeforeAsync(Day, 10, CancellationToken.None);
             await context.SaveChangesAsync();
         }
 
-        using var readScope = _provider.CreateScope();
+        using var readScope = Provider.CreateScope();
         var readContext = readScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var days = await readContext
             .Set<TenantUsageEntity>()

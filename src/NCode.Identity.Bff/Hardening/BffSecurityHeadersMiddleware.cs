@@ -13,8 +13,8 @@ namespace NCode.Identity.Bff.Hardening;
 /// </summary>
 internal class BffSecurityHeadersMiddleware(RequestDelegate next, BffFrontendCatalog frontends)
 {
-    private readonly RequestDelegate _next = next;
-    private readonly BffFrontendCatalog _frontends = frontends;
+    private RequestDelegate Next { get; } = next;
+    private BffFrontendCatalog Frontends { get; } = frontends;
 
     /// <summary>
     /// Runs the middleware for a request.
@@ -25,10 +25,10 @@ internal class BffSecurityHeadersMiddleware(RequestDelegate next, BffFrontendCat
         ArgumentNullException.ThrowIfNull(context);
 
         // A request that no frontend selects still gets the strict defaults.
-        var headers = _frontends.Resolve(context)?.SecurityHeaders ?? BffSecurityHeaders.Default;
+        var headers = Frontends.Resolve(context)?.SecurityHeaders ?? BffSecurityHeaders.Default;
 
         context.Response.OnStarting(WriteHeaders, (context.Response, headers));
-        return _next(context);
+        return Next(context);
     }
 
     private static Task WriteHeaders(object state)

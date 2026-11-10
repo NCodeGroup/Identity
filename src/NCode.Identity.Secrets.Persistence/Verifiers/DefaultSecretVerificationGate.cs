@@ -20,14 +20,15 @@ internal sealed class DefaultSecretVerificationGate(
 {
     // The options are validated when they are read, by SecretVerificationGateOptionsValidator, so the limits are in
     // range.
-    private readonly Lazy<SemaphoreSlim> _turns = new(
-        () =>
-            new SemaphoreSlim(
-                optionsAccessor.Value.MaxConcurrency,
-                optionsAccessor.Value.MaxConcurrency
-            ),
-        LazyThreadSafetyMode.ExecutionAndPublication
-    );
+    private Lazy<SemaphoreSlim> Turns { get; } =
+        new(
+            () =>
+                new SemaphoreSlim(
+                    optionsAccessor.Value.MaxConcurrency,
+                    optionsAccessor.Value.MaxConcurrency
+                ),
+            LazyThreadSafetyMode.ExecutionAndPublication
+        );
 
     // The number of verifications waiting for a turn, an Interlocked target.
     private int _waiterCount;
@@ -39,7 +40,7 @@ internal sealed class DefaultSecretVerificationGate(
     /// <summary>
     /// Gets the number of free turns.
     /// </summary>
-    internal int FreeTurnCount => _turns.Value.CurrentCount;
+    internal int FreeTurnCount => Turns.Value.CurrentCount;
 
     /// <summary>
     /// Gets the number of verifications that wait for a turn.
@@ -51,7 +52,7 @@ internal sealed class DefaultSecretVerificationGate(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var turns = _turns.Value;
+        var turns = Turns.Value;
         var options = OptionsAccessor.Value;
 
         // A free turn is taken without queuing; SemaphoreSlim.Wait(0) never blocks.
@@ -91,14 +92,14 @@ internal sealed class DefaultSecretVerificationGate(
     }
 
     /// <inheritdoc />
-    public void Release() => _turns.Value.Release();
+    public void Release() => Turns.Value.Release();
 
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_turns.IsValueCreated)
+        if (Turns.IsValueCreated)
         {
-            _turns.Value.Dispose();
+            Turns.Value.Dispose();
         }
     }
 }

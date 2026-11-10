@@ -22,9 +22,8 @@ A pull request into `main` merges by squash, through the merge queue. The queue 
 one commit whose subject is the pull request's title and whose body is its description. No merge commit reaches
 `main`.
 
-- The required `Commit attribution` check is the guard
-  ([ADR-1128](1128-commits-are-attributed-to-people-not-agents.md)): it reads the pull request's title and description
-  that the squash commit takes, runs again when they are edited, and in the merge queue checks the commit that lands.
+- The squash commit takes the pull request's title and description, so they follow the rule that agent attribution is
+  avoided ([project-template ADR-0018](project-template/0018-agent-attribution-is-avoided-not-enforced.md)).
 - A plan's `Plan step N` commits stay on the pull request's branch; `main` holds one commit per pull request.
 - The merge queue's run on the merged result stands for a branch up to date with `main`.
 
@@ -42,7 +41,8 @@ one commit whose subject is the pull request's title and whose body is its descr
 - `git log` on `main` reads as one conventional commit per pull request; the step commits remain on the merged pull
   request.
 - GitHub copies the co-author trailers of every branch commit and the pull request's description into the squash
-  commit, so the `Commit attribution` check must stay required.
+  commit, so a trailer a tool adds reaches `main`; nothing checks for it
+  ([project-template ADR-0018](project-template/0018-agent-attribution-is-avoided-not-enforced.md)).
 - [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
   [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) and
   [ADR-1269](1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md) refine project-template ADR-0005 and
@@ -53,6 +53,4 @@ one commit whose subject is the pull request's title and whose body is its descr
 - [project-template ADR-0005](project-template/0005-the-default-branch-accepts-changes-only-through-pull-requests.md),
   [project-template ADR-0006](project-template/0006-a-person-merges-every-pull-request.md) and
   [project-template ADR-0013](project-template/0013-pull-requests-merge-with-a-merge-commit-or-by-rebasing.md).
-- [`.github/workflows/commit-attribution.yml`](../../.github/workflows/commit-attribution.yml): the `Commit attribution`
-  check.
 - [NCodeGroup/project-template#200](https://github.com/NCodeGroup/project-template/issues/200).

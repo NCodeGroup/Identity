@@ -14,7 +14,11 @@ public class ManagementConsolePageSecurityTests
     [Fact]
     public void Create_WithoutALogo_WritesTheStrictPolicy()
     {
-        var security = ManagementConsolePageSecurity.Create(Authority, logoUrl: null);
+        var security = ManagementConsolePageSecurity.Create(
+            Authority,
+            logoUrl: null,
+            faviconUrl: null
+        );
 
         var nonce = security.Nonce;
         Assert.Equal(
@@ -28,11 +32,60 @@ public class ManagementConsolePageSecurityTests
     {
         var security = ManagementConsolePageSecurity.Create(
             Authority,
-            "https://cdn.example:8443/logo.png"
+            "https://cdn.example:8443/logo.png",
+            faviconUrl: null
         );
 
         Assert.Contains(
             "img-src 'self' https://cdn.example:8443;",
+            security.Policy.ToContentSecurityPolicy(),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Create_WhenTheBrandingHasAFavicon_AdmitsItsOriginInImgSrc()
+    {
+        var security = ManagementConsolePageSecurity.Create(
+            Authority,
+            logoUrl: null,
+            "https://tabs.example:8443/tab.ico"
+        );
+
+        Assert.Contains(
+            "img-src 'self' https://tabs.example:8443;",
+            security.Policy.ToContentSecurityPolicy(),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Create_WhenTheLogoAndTheFaviconShareAnOrigin_AdmitsItOnce()
+    {
+        var security = ManagementConsolePageSecurity.Create(
+            Authority,
+            "https://cdn.example/logo.png",
+            "https://cdn.example/tab.ico"
+        );
+
+        Assert.Contains(
+            "img-src 'self' https://cdn.example;",
+            security.Policy.ToContentSecurityPolicy(),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Create_WhenTheLogoAndTheFaviconHaveDifferentOrigins_AdmitsBoth()
+    {
+        var security = ManagementConsolePageSecurity.Create(
+            Authority,
+            "https://cdn.example/logo.png",
+            "https://tabs.example/tab.ico"
+        );
+
+        Assert.Contains(
+            "img-src 'self' https://cdn.example https://tabs.example;",
             security.Policy.ToContentSecurityPolicy(),
             StringComparison.Ordinal
         );
@@ -43,7 +96,7 @@ public class ManagementConsolePageSecurityTests
     [InlineData("/logo.png")]
     public void Create_WithALogoThatIsNotAbsolute_AllowsOnlyTheConsolesOwnImages(string logoUrl)
     {
-        var security = ManagementConsolePageSecurity.Create(Authority, logoUrl);
+        var security = ManagementConsolePageSecurity.Create(Authority, logoUrl, faviconUrl: null);
 
         Assert.Contains(
             "img-src 'self';",
@@ -55,8 +108,16 @@ public class ManagementConsolePageSecurityTests
     [Fact]
     public void Create_Always_CreatesAFreshNonce()
     {
-        var first = ManagementConsolePageSecurity.Create(Authority, logoUrl: null);
-        var second = ManagementConsolePageSecurity.Create(Authority, logoUrl: null);
+        var first = ManagementConsolePageSecurity.Create(
+            Authority,
+            logoUrl: null,
+            faviconUrl: null
+        );
+        var second = ManagementConsolePageSecurity.Create(
+            Authority,
+            logoUrl: null,
+            faviconUrl: null
+        );
 
         Assert.NotEqual(first.Nonce, second.Nonce);
     }

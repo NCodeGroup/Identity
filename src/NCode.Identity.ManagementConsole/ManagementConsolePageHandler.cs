@@ -44,7 +44,8 @@ internal sealed class ManagementConsolePageHandler(
         );
         var security = ManagementConsolePageSecurity.Create(
             authority,
-            optionsAccessor.Value.Branding.LogoUrl
+            optionsAccessor.Value.Branding.LogoUrl,
+            optionsAccessor.Value.Branding.FaviconUrl
         );
 
         httpContext.Response.SetHtmlPageSecurity(security.Policy);

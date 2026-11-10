@@ -26,7 +26,7 @@ public class InteractiveAuthenticationPageRendererTests
         + "<body><div id=\"root\"></div></body></html>";
 
     private static InteractiveBranding AcmeBranding { get; } =
-        new("Acme", null, null, null, "dark", null);
+        new("Acme", null, null, null, null, "dark", null);
 
     private static InteractivePageFrame CreateFrame(
         InteractiveBundleShell? shell = null,
@@ -207,6 +207,7 @@ public class InteractiveAuthenticationPageRendererTests
                 shell: InteractiveBundleShell.TryCreate(BundleShell),
                 branding: new InteractiveBranding(
                     "</script><script>alert(1)</script>",
+                    null,
                     null,
                     null,
                     null,

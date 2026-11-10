@@ -30,6 +30,7 @@ public class InteractivePageSecurityTests
             null,
             null,
             null,
+            null,
             null
         );
 
@@ -44,7 +45,7 @@ public class InteractivePageSecurityTests
     [Fact]
     public void Create_WhenTheLogoIsNotAnAbsoluteUri_AllowsOnlyTheSurfacesImages()
     {
-        var branding = new InteractiveBranding(null, "logo.png", null, null, null, null);
+        var branding = new InteractiveBranding(null, "logo.png", null, null, null, null, null);
 
         var security = InteractivePageSecurity.Create(branding);
 

@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// Checks whether a client authenticates with a credential by revoking an unknown token: revocation is a no-op once the
 /// client authenticates (RFC 7009 §2.2), so the response reports only whether the client was accepted.
 /// </summary>
-public static partial class ClientAuthenticationProbe
+public static class ClientAuthenticationProbe
 {
     /// <summary>
     /// Reads the tenant's issuer from its discovery document, which a client assertion names as its audience.

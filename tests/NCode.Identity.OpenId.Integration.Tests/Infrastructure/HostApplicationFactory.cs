@@ -51,7 +51,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// run loop (<see cref="ApplicationRunLoopHost"/>), so each hosted service is stopped once.
 /// </remarks>
 // See ADR-1169.
-public partial class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
+public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 {
     /// <summary>The tenant id used by the host's static single-tenant provider.</summary>
     public const string TenantId = "default";

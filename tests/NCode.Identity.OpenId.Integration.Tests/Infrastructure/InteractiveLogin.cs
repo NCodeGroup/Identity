@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// Signs an end-user in through the interactive login page and returns the OP session cookie, so a test can drive the
 /// authorization endpoint as an authenticated user agent.
 /// </summary>
-public static partial class InteractiveLogin
+public static class InteractiveLogin
 {
     /// <summary>
     /// The name of the OP session cookie the interactive login issues.

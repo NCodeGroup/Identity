@@ -100,7 +100,8 @@ public class ManagementConsoleHostTests
         using var response = await client.GetAsync("/config/bootstrap.json");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var root = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var root = JsonElement.Parse(body);
         Assert.Equal("/management", root.GetProperty("apiBaseUrl").GetString());
         var bff = root.GetProperty("bff");
         Assert.Equal("/bff", bff.GetProperty("basePath").GetString());

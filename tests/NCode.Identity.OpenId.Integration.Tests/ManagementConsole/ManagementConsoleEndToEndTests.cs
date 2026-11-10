@@ -179,7 +179,8 @@ public class ManagementConsoleEndToEndTests
             CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.OK, user.StatusCode);
-        var body = JsonElement.Parse(await user.Content.ReadAsStringAsync());
+        var userBody = await user.Content.ReadAsStringAsync();
+        var body = JsonElement.Parse(userBody);
         Assert.True(body.TryGetProperty("sub", out _));
         Assert.True(body.TryGetProperty("logoutSid", out _));
 
@@ -192,7 +193,8 @@ public class ManagementConsoleEndToEndTests
             CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.OK, management.StatusCode);
-        var caller = JsonElement.Parse(await management.Content.ReadAsStringAsync());
+        var managementBody = await management.Content.ReadAsStringAsync();
+        var caller = JsonElement.Parse(managementBody);
         Assert.Equal(JsonValueKind.Object, caller.ValueKind);
 
         // The provider requires no DPoP nonce, so the console's one management request reaches it once.

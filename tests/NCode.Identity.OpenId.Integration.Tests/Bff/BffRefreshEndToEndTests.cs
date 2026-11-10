@@ -73,8 +73,10 @@ public class BffRefreshEndToEndTests
         var calls = new List<Task<HttpStatusCode>>();
         for (var i = 0; i < CallsPerHost; i++)
         {
-            calls.Add(GetStatusAsync(hostA, csrf, CancellationToken.None).AsTask());
-            calls.Add(GetStatusAsync(hostB, csrf, CancellationToken.None).AsTask());
+            var callA = GetStatusAsync(hostA, csrf, CancellationToken.None).AsTask();
+            var callB = GetStatusAsync(hostB, csrf, CancellationToken.None).AsTask();
+            calls.Add(callA);
+            calls.Add(callB);
         }
 
         var statuses = await Task.WhenAll(calls);

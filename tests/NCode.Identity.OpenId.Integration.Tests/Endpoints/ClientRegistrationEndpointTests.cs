@@ -1179,9 +1179,8 @@ public class ClientRegistrationEndpointTests
         Assert.False(root.TryGetProperty("client_secret", out _));
 
         var clientId = root.GetProperty("client_id").GetString() ?? string.Empty;
-        var discovery = JsonElement.Parse(
-            await client.GetStringAsync("/.well-known/openid-configuration")
-        );
+        var discoveryBody = await client.GetStringAsync("/.well-known/openid-configuration");
+        var discovery = JsonElement.Parse(discoveryBody);
         var issuer = discovery.GetProperty("issuer").GetString() ?? string.Empty;
         using var tokenResponse = await client.PostAsync(
             "/oauth2/token",

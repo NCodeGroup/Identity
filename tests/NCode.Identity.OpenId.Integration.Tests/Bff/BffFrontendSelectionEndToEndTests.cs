@@ -42,7 +42,8 @@ public class BffFrontendSelectionEndToEndTests
         using var response = await client.GetAsync($"{AdminOrigin}/bff/jwks");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var responseBody = await response.Content.ReadAsStringAsync();
+        var body = JsonElement.Parse(responseBody);
         Assert.Equal(JsonValueKind.Array, body.GetProperty("keys").ValueKind);
     }
 

@@ -136,7 +136,8 @@ public class BffFrontendsEndToEndTests
             [csrf],
             CancellationToken.None
         );
-        var body = JsonElement.Parse(await user.Content.ReadAsStringAsync());
+        var userBody = await user.Content.ReadAsStringAsync();
+        var body = JsonElement.Parse(userBody);
         var logoutSid = body.GetProperty("logoutSid").GetString() ?? string.Empty;
 
         Assert.NotEmpty(logoutSid);

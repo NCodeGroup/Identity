@@ -1346,9 +1346,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
             using var response = await client.SendAsync(tokenRequest, cancellationToken);
             response.EnsureSuccessStatusCode();
-            var jsonElement = System.Text.Json.JsonElement.Parse(
-                await response.Content.ReadAsStringAsync(cancellationToken)
-            );
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var jsonElement = System.Text.Json.JsonElement.Parse(body);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
                 "Bearer",
                 jsonElement.GetProperty("access_token").GetString()

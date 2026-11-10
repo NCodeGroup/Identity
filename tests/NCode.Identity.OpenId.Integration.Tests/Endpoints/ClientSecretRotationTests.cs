@@ -263,9 +263,8 @@ public class ClientSecretRotationTests
             return null;
         }
 
-        var jsonElement = JsonElement.Parse(
-            await response.Content.ReadAsStringAsync(cancellationToken)
-        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var jsonElement = JsonElement.Parse(body);
         return jsonElement.GetProperty("error").GetString();
     }
 

@@ -87,6 +87,25 @@ public class ManagementConsoleHostTests
         Assert.Contains("max-age=31536000", cacheControl, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(ManagementConsoleApplicationFactory.IcoAssetName, "image/x-icon")]
+    [InlineData(ManagementConsoleApplicationFactory.SvgAssetName, "image/svg+xml")]
+    [InlineData(ManagementConsoleApplicationFactory.PngAssetName, "image/png")]
+    public async Task GetAsset_OfAnIcon_IsServedWithItsImageType(
+        string assetName,
+        string contentType
+    )
+    {
+        await using var factory = new ManagementConsoleApplicationFactory();
+        using var client = factory.CreateBrowserClient();
+        var assetPath = $"/assets/{assetName}";
+
+        using var response = await client.GetAsync(assetPath);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(contentType, response.Content.Headers.ContentType?.MediaType);
+    }
+
     #endregion
 
     #region Bootstrap Tests

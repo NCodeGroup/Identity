@@ -259,6 +259,36 @@ public class InteractiveTenantRouteTests
     }
 
     [Theory]
+    [InlineData("favicon-abc123.ico", "image/x-icon")]
+    [InlineData("favicon-abc123.svg", "image/svg+xml")]
+    [InlineData("apple-touch-icon-abc123.png", "image/png")]
+    public async Task GetAsset_WhenTheFileIsAnIcon_ServesItWithItsImageType(
+        string fileName,
+        string contentType
+    )
+    {
+        var bundleRoot = CreateBundle();
+        try
+        {
+            var iconPath = Path.Combine(bundleRoot.FullName, "assets", fileName);
+            await File.WriteAllTextAsync(iconPath, "icon", SecureEncoding.UTF8);
+            using var factory = CreatePathFactory(bundleRoot.FullName);
+            await SeedTenantAsync(factory, "acme");
+            using var client = CreateClient(factory);
+            var requestPath = $"/acme/account/assets/{fileName}";
+
+            using var response = await client.GetAsync(requestPath);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(contentType, response.Content.Headers.ContentType?.MediaType);
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
+    }
+
+    [Theory]
     [InlineData("/account/assets/app.js")]
     [InlineData("/acme/account/assets/missing.js")]
     [InlineData("/acme/account/assets")]

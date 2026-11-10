@@ -41,6 +41,9 @@ NCode.AspNetCore.ContentSecurityPolicyDirective
 NCode.AspNetCore.ContentSecurityPolicyDirective.ContentSecurityPolicyDirective(string! name, params System.Collections.Generic.IEnumerable<string!>! sources) -> void
 NCode.AspNetCore.ContentSecurityPolicyDirective.Name.get -> string!
 NCode.AspNetCore.ContentSecurityPolicyDirective.Sources.get -> System.Collections.Immutable.ImmutableArray<string!>
+NCode.AspNetCore.HtmlIconLinks
+static NCode.AspNetCore.HtmlIconLinks.Create(string! href) -> string!
+static NCode.AspNetCore.HtmlIconLinks.Remove(string! html) -> string!
 NCode.AspNetCore.HtmlPageSecurityPolicy
 NCode.AspNetCore.HtmlPageSecurityPolicy.AllowsAnyFormAction.get -> bool
 NCode.AspNetCore.HtmlPageSecurityPolicy.AllowsAnyFormAction.init -> void

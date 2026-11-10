@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
@@ -28,12 +27,12 @@ using Xunit;
 
 namespace NCode.Identity.Server.Tests;
 
-public sealed class DefaultRegistrationTests
+public sealed class DefaultRegistrationTests : BaseTests
 {
-    private static IHost BuildHost(Dictionary<string, string?> configurationData) =>
+    private IHost BuildHost(Dictionary<string, string?> configurationData) =>
         BuildHost(configurationData, _ => { });
 
-    private static IHost BuildHost(
+    private IHost BuildHost(
         Dictionary<string, string?> configurationData,
         Action<IServiceCollection> configureServices
     )
@@ -52,9 +51,7 @@ public sealed class DefaultRegistrationTests
         hostBuilder.Services.AddIdentityServer().AddConfiguration(hostBuilder.Configuration);
 
         // These tests exercise configuration only; the persistence provider a host composes is never called.
-        hostBuilder.Services.AddSingleton(
-            new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object
-        );
+        hostBuilder.Services.AddSingleton(CreateStrictMock<IStoreManagerFactory>().Object);
 
         configureServices(hostBuilder.Services);
 
@@ -575,7 +572,7 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_WhenAClientJwtCredentialSelectorIsRegistered_KeepsIt()
     {
-        var selector = new Mock<IClientJwtCredentialSelector>(MockBehavior.Strict).Object;
+        var selector = CreateStrictMock<IClientJwtCredentialSelector>().Object;
         var services = new ServiceCollection();
         services.AddSingleton(selector);
 
@@ -1306,7 +1303,7 @@ public sealed class DefaultRegistrationTests
         RemoteKeyProviderDescriptor[] providers = [new() { Name = "test-kms" }];
         RemoteKeyAlgorithm[] algorithms = [];
         // the descriptor source describes a provider that creates keys, so the deployment that scopes its keys is required
-        var descriptorSource = new Mock<IRemoteKeyDescriptorSource>(MockBehavior.Strict);
+        var descriptorSource = CreateStrictMock<IRemoteKeyDescriptorSource>();
         descriptorSource.Setup(x => x.Providers).Returns(providers).Verifiable();
         descriptorSource.Setup(x => x.Algorithms).Returns(algorithms).Verifiable();
         using var host = BuildHost(
@@ -1323,7 +1320,6 @@ public sealed class DefaultRegistrationTests
             exception.Message,
             StringComparison.Ordinal
         );
-        descriptorSource.Verify();
     }
 
     [Fact]

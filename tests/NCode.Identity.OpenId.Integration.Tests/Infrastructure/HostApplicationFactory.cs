@@ -1167,16 +1167,6 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// </summary>
     /// <param name="clientId">The identifier of the client that authenticates with a shared secret.</param>
     /// <param name="clientSecret">The client's secret, as sent to the token endpoint.</param>
-    /// <returns>The HTTP client, which does not follow redirects and carries the bearer token.</returns>
-    public Task<HttpClient> CreateManagementClientAsync(string clientId, string clientSecret) =>
-        CreateManagementClientAsync(clientId, clientSecret, CancellationToken.None).AsTask();
-
-    /// <summary>
-    /// Creates an HTTP client that calls the management API as the given client: it obtains a
-    /// <c>client_credentials</c> access token with the <c>read:clients</c> scope, then sends it as a bearer token.
-    /// </summary>
-    /// <param name="clientId">The identifier of the client that authenticates with a shared secret.</param>
-    /// <param name="clientSecret">The client's secret, as sent to the token endpoint.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The HTTP client, which does not follow redirects and carries the bearer token.</returns>
     public ValueTask<HttpClient> CreateManagementClientAsync(

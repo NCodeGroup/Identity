@@ -64,13 +64,6 @@ public class BootstrapAdminApplicationFactory(
     /// <summary>
     /// Creates an <see cref="HttpClient"/> that calls the management API as the bootstrap administrator.
     /// </summary>
-    /// <returns>A task that completes with the authenticated client.</returns>
-    public Task<HttpClient> CreateAdministratorClientAsync() =>
-        CreateAdministratorClientAsync(CancellationToken.None).AsTask();
-
-    /// <summary>
-    /// Creates an <see cref="HttpClient"/> that calls the management API as the bootstrap administrator.
-    /// </summary>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The authenticated client, which does not follow redirects.</returns>
     public ValueTask<HttpClient> CreateAdministratorClientAsync(

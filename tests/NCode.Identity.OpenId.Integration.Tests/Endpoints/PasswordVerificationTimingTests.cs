@@ -124,7 +124,8 @@ public class PasswordVerificationTimingTests
             client,
             userName,
             WrongPassword,
-            "/foo"
+            "/foo",
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         Assert.Null(InteractiveLogin.ReadSessionCookie(response));
@@ -141,7 +142,8 @@ public class PasswordVerificationTimingTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdProtocol.GrantTypes.Password
+            [OpenIdProtocol.GrantTypes.Password],
+            CancellationToken.None
         );
         var client = CreateClient(factory);
 
@@ -166,7 +168,10 @@ public class PasswordVerificationTimingTests
     public async Task SignIn_WhenTheAccountHasNoPassword_VerifiesAgainstTheDummyHash()
     {
         using var factory = new RecordingPasswordHasherFactory();
-        await factory.SeedLocalAccountAsync(PasswordlessUserName);
+        await factory.SeedPasswordlessLocalAccountAsync(
+            PasswordlessUserName,
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
 
         await AssertSignInRefusedAsync(client, PasswordlessUserName);
@@ -179,9 +184,14 @@ public class PasswordVerificationTimingTests
     {
         using var factory = new RecordingPasswordHasherFactory();
         await factory.SeedTenantSettingsAsync(
-            new Dictionary<string, object> { [OpenIdSettingNames.PasswordFailedAttemptsLimit] = 1 }
+            new Dictionary<string, object> { [OpenIdSettingNames.PasswordFailedAttemptsLimit] = 1 },
+            CancellationToken.None
         );
-        await factory.SeedLocalAccountAsync(LimitedUserName, LimitedPassword);
+        await factory.SeedLocalAccountAsync(
+            LimitedUserName,
+            LimitedPassword,
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
 
         await AssertSignInRefusedAsync(client, LimitedUserName);
@@ -192,7 +202,8 @@ public class PasswordVerificationTimingTests
             client,
             LimitedUserName,
             LimitedPassword,
-            "/foo"
+            "/foo",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);

@@ -2,11 +2,87 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography.X509Certificates;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 
 public partial class HostApplicationFactory
 {
+    public Task<string> SeedLocalAccountAsync(
+        string userName,
+        string password,
+        string? email = null,
+        bool emailVerified = false
+    ) =>
+        SeedLocalAccountAsync(userName, password, email, emailVerified, CancellationToken.None)
+            .AsTask();
+
+    public Task<IReadOnlyCollection<PersistedSecret>> GetClientSecretsAsync(string clientId) =>
+        GetClientSecretsAsync(clientId, CancellationToken.None).AsTask();
+
+    public Task ExpireClientSecretsAsync(string clientId) =>
+        ExpireClientSecretsAsync(clientId, CancellationToken.None).AsTask();
+
+    public Task SeedResourceServerWithClientGrantAsync(
+        string clientId,
+        string resourceServerId,
+        string identifier,
+        params string[] scopes
+    ) =>
+        SeedResourceServerWithClientGrantAsync(
+                clientId,
+                resourceServerId,
+                identifier,
+                scopes,
+                CancellationToken.None
+            )
+            .AsTask();
+
+    public Task SeedResourceServerWithClientGrantAsync(
+        string clientId,
+        string resourceServerId,
+        string identifier,
+        IReadOnlyDictionary<string, object> settings,
+        params string[] scopes
+    ) =>
+        SeedResourceServerWithClientGrantAsync(
+                clientId,
+                resourceServerId,
+                identifier,
+                settings,
+                scopes,
+                CancellationToken.None
+            )
+            .AsTask();
+
+    public Task SeedClientDirectlyAsync(string clientId, string storedSecret) =>
+        SeedClientDirectlyAsync(clientId, storedSecret, CancellationToken.None).AsTask();
+
+    public Task SeedTenantSettingsAsync(IReadOnlyDictionary<string, object> settings) =>
+        SeedTenantSettingsAsync(settings, CancellationToken.None).AsTask();
+
+    public Task ReplaceTenantSettingsAsync(IReadOnlyDictionary<string, object> settings) =>
+        ReplaceTenantSettingsAsync(settings, CancellationToken.None).AsTask();
+
+    public Task<HttpClient> CreateManagementUserClientAsync(
+        string clientId,
+        string redirectUri,
+        string userName,
+        string password,
+        string scope
+    ) =>
+        CreateManagementUserClientAsync(
+                clientId,
+                redirectUri,
+                userName,
+                password,
+                scope,
+                CancellationToken.None
+            )
+            .AsTask();
+
+    public Task EnsureTeamAsync() => EnsureTeamAsync(CancellationToken.None).AsTask();
+
     public Task SeedPublicClientAsync(string clientId, params string[] redirectUris) =>
         SeedPublicClientAsync(clientId, redirectUris, CancellationToken.None).AsTask();
 

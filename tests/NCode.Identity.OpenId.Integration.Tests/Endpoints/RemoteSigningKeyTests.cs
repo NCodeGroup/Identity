@@ -4,7 +4,6 @@
 using System.Buffers.Text;
 using System.Diagnostics;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -130,7 +129,10 @@ public class RemoteSigningKeyTests
         using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
 
-        var accessToken = await GetBootstrapTokenAsync(client);
+        var accessToken = await BootstrapAdminApplicationFactory.TokenRequest.GetAccessTokenAsync(
+            client,
+            CancellationToken.None
+        );
 
         Assert.True(provider.SignatureCount > 0);
         var keys = await GetJwksAsync(client, host: null);
@@ -144,7 +146,10 @@ public class RemoteSigningKeyTests
         using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
 
-        var accessToken = await GetBootstrapTokenAsync(client);
+        var accessToken = await BootstrapAdminApplicationFactory.TokenRequest.GetAccessTokenAsync(
+            client,
+            CancellationToken.None
+        );
         var keys = await GetJwksAsync(client, host: null);
         var kid = DecodeJwtHeader(accessToken).GetProperty("kid").GetString();
         var tampered = $"{accessToken[..^4]}AAAA";
@@ -170,10 +175,9 @@ public class RemoteSigningKeyTests
         );
         using var client = factory.CreateClient();
 
-        var accessToken = await GetBootstrapTokenAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
         );
         await CreateTenantAsync(client, "acme");
 
@@ -217,7 +221,10 @@ public class RemoteSigningKeyTests
         );
 
         // The local keys still sign: the root tenant's token carries a local key and the provider signed nothing.
-        var rootToken = await GetBootstrapTokenAsync(client);
+        var rootToken = await BootstrapAdminApplicationFactory.TokenRequest.GetAccessTokenAsync(
+            client,
+            CancellationToken.None
+        );
         var rootSecrets = await GetStoredSecretsAsync(factory, "root");
         var signingKey = Assert.Single(
             rootSecrets,
@@ -237,10 +244,9 @@ public class RemoteSigningKeyTests
         using var provider = new TestRemoteKeyProvider();
         using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
-        var accessToken = await GetBootstrapTokenAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
         );
 
         var secrets = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
@@ -267,7 +273,10 @@ public class RemoteSigningKeyTests
         using var provider = new TestRemoteKeyProvider();
         using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
-        await AuthorizeAsync(client);
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
+        );
         var expiresWhen = GetExpiresWhen(factory);
 
         using var response = await client.PostAsJsonAsync(
@@ -305,7 +314,10 @@ public class RemoteSigningKeyTests
         using var provider = new TestRemoteKeyProvider();
         using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
-        await AuthorizeAsync(client);
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
+        );
 
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var keyId = provider.AddKey(
@@ -332,7 +344,10 @@ public class RemoteSigningKeyTests
         using var provider = new TestRemoteKeyProvider();
         using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
-        await AuthorizeAsync(client);
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
+        );
         var before = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
 
         var keyId = provider.AddKey(RSA.Create(2048));
@@ -352,7 +367,10 @@ public class RemoteSigningKeyTests
         using var provider = new TestRemoteKeyProvider();
         using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
-        await AuthorizeAsync(client);
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
+        );
         var secretId = await BindKeyAsync(factory, client, provider);
 
         using var response = await client.DeleteAsync(
@@ -365,15 +383,6 @@ public class RemoteSigningKeyTests
     }
 
     #endregion
-
-    private static async Task AuthorizeAsync(HttpClient client)
-    {
-        var accessToken = await GetBootstrapTokenAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
-        );
-    }
 
     private static DateTimeOffset GetExpiresWhen(HostApplicationFactory factory) =>
         factory.Services.GetRequiredService<TimeProvider>().GetUtcNow().AddYears(1);
@@ -474,38 +483,6 @@ public class RemoteSigningKeyTests
 
         var jsonElement = JsonElement.Parse(body);
         return [.. jsonElement.GetProperty("keys").EnumerateArray().Select(key => key.Clone())];
-    }
-
-    // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
-    private static async Task<string> GetBootstrapTokenAsync(HttpClient client)
-    {
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = "read:clients",
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-
-        var jsonElement = JsonElement.Parse(body);
-        return jsonElement.GetProperty("access_token").GetString() ?? string.Empty;
     }
 
     private static JsonElement DecodeJwtHeader(string jwt) =>

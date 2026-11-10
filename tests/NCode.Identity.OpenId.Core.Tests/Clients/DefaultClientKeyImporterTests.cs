@@ -233,9 +233,42 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     }
 
     [Fact]
-    public void TryImportRegisteredKeySet_WhenKidIsMissing_ReturnsError()
+    public void TryImportRegisteredKeySet_WhenKidIsMissing_NamesTheKeyByItsThumbprint()
     {
-        var imported = TryImportRegistered(KeySet(RsaKey(kid: null)), out _, out var error);
+        var json = RsaKey(kid: null).ToJsonString();
+        var expected = JsonWebKey.Parse(json).ComputeThumbprint();
+
+        var imported = TryImportRegistered(
+            KeySet(RsaKey(kid: null)),
+            out var secrets,
+            out var error
+        );
+
+        Assert.True(imported, error);
+        Assert.NotNull(secrets);
+        var secret = Assert.Single(secrets);
+        Assert.Equal(expected, secret.KeyId);
+    }
+
+    [Fact]
+    public void TryImportRegisteredKeySet_WhenTwoKeysHaveNoKidAndAreTheSameKey_ReturnsError()
+    {
+        var keySet = KeySet(RsaKey(kid: null), RsaKey(kid: null));
+
+        var imported = TryImportRegistered(keySet, out _, out var error);
+
+        Assert.False(imported);
+        Assert.Contains("'kid'", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryImportRegisteredKeySet_WhenAKeyDeclaresAnotherKeysThumbprint_ReturnsError()
+    {
+        var json = RsaKey(kid: null).ToJsonString();
+        var thumbprint = JsonWebKey.Parse(json).ComputeThumbprint();
+        var keySet = KeySet(RsaKey(kid: null), EcKey(thumbprint));
+
+        var imported = TryImportRegistered(keySet, out _, out var error);
 
         Assert.False(imported);
         Assert.Contains("'kid'", error, StringComparison.Ordinal);

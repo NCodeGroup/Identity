@@ -173,7 +173,12 @@ public class RateLimitTests
     public async Task PostToken_WhenAConfidentialClientHasSpentTheTokenQuota_ReturnsTooManyRequests()
     {
         using var factory = CreateFactory(OpenIdSettingNames.QuotaTenantTokenRequestsPerDay, "1");
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
 
         using var first = await client.PostAsync(TokenPath, ConfidentialBody());
@@ -188,7 +193,11 @@ public class RateLimitTests
     {
         // A public client is named by its client_id alone, so its requests must not spend the tenant's token quota.
         using var factory = CreateFactory(OpenIdSettingNames.QuotaTenantTokenRequestsPerDay, "1");
-        await factory.SeedPublicClientAsync(ClientId, "https://client.example/callback");
+        await factory.SeedPublicClientAsync(
+            ClientId,
+            ["https://client.example/callback"],
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
 
         for (var i = 0; i < 3; ++i)

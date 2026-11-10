@@ -23,12 +23,13 @@ public class PasswordAttemptLimitTests
     #region Scaffolding
 
     // The tenant reads its settings at its first request, so this is always the first call on a factory.
-    private static Task SeedLimitAsync(HostApplicationFactory factory) =>
+    private static ValueTask SeedLimitAsync(HostApplicationFactory factory) =>
         factory.SeedTenantSettingsAsync(
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.PasswordFailedAttemptsLimit] = FailedAttemptsLimit,
-            }
+            },
+            CancellationToken.None
         );
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
@@ -72,7 +73,8 @@ public class PasswordAttemptLimitTests
             client,
             UserName,
             password,
-            "/foo"
+            "/foo",
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         return InteractiveLogin.ReadSessionCookie(response);
@@ -90,9 +92,10 @@ public class PasswordAttemptLimitTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdProtocol.GrantTypes.Password
+            [OpenIdProtocol.GrantTypes.Password],
+            CancellationToken.None
         );
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
         var (acceptedStatusCode, acceptedError) = await RequestTokenAsync(client, Password);
@@ -118,7 +121,7 @@ public class PasswordAttemptLimitTests
     {
         using var factory = new HostApplicationFactory();
         await SeedLimitAsync(factory);
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
         Assert.NotNull(await SubmitAsync(client, Password));
@@ -132,7 +135,8 @@ public class PasswordAttemptLimitTests
             client,
             UserName,
             Password,
-            "/foo"
+            "/foo",
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.Found, limitedResponse.StatusCode);
         Assert.Null(InteractiveLogin.ReadSessionCookie(limitedResponse));
@@ -146,7 +150,7 @@ public class PasswordAttemptLimitTests
     {
         using var factory = new HostApplicationFactory();
         await SeedLimitAsync(factory);
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
         Assert.Null(await SubmitAsync(client, WrongPassword));

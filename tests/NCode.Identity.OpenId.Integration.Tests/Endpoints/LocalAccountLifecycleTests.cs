@@ -139,7 +139,12 @@ public class LocalAccountLifecycleTests
     // Signs in, authorizes and redeems the code for the refresh token of the new session.
     private static async Task<string> IssueRefreshTokenAsync(HttpClient client, string clientId)
     {
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var code = await GetCodeAsync(client, sessionCookie, clientId);
         var (statusCode, body) = await PostTokenAsync(
@@ -260,8 +265,12 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-disable";
         using var factory = new BootstrapAdminApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
         using var administrator = await factory.CreateAdministratorClientAsync(
@@ -284,8 +293,12 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-reset";
         using var factory = new BootstrapAdminApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
         using var administrator = await factory.CreateAdministratorClientAsync(
@@ -308,8 +321,12 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-delete";
         using var factory = new BootstrapAdminApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
         using var administrator = await factory.CreateAdministratorClientAsync(
@@ -331,8 +348,12 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-store";
         using var factory = new HostApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
 
@@ -348,11 +369,16 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-device-enabled";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var (deviceCode, userCode) = await StartDeviceAuthorizationAsync(client, clientId);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var approvalStatusCode = await PostDeviceVerificationAsync(client, sessionCookie, userCode);
         Assert.Equal(HttpStatusCode.OK, approvalStatusCode);
 
@@ -378,12 +404,17 @@ public class LocalAccountLifecycleTests
         const string ownerClientId = "it-lifecycle-device-owner";
         const string otherClientId = "it-lifecycle-device-other";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(ownerClientId, RedirectUri);
-        await factory.SeedPublicClientAsync(otherClientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(ownerClientId, [RedirectUri], CancellationToken.None);
+        await factory.SeedPublicClientAsync(otherClientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var (deviceCode, userCode) = await StartDeviceAuthorizationAsync(client, ownerClientId);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var approvalStatusCode = await PostDeviceVerificationAsync(client, sessionCookie, userCode);
         Assert.Equal(HttpStatusCode.OK, approvalStatusCode);
 
@@ -404,11 +435,20 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-device";
         using var factory = new HostApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var (deviceCode, userCode) = await StartDeviceAuthorizationAsync(client, clientId);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var approvalStatusCode = await PostDeviceVerificationAsync(client, sessionCookie, userCode);
         Assert.Equal(HttpStatusCode.OK, approvalStatusCode);
 
@@ -432,11 +472,20 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-device-session";
         using var factory = new BootstrapAdminApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var (_, userCode) = await StartDeviceAuthorizationAsync(client, clientId);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -457,8 +506,12 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-block";
         using var factory = new BootstrapAdminApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
         var principalId = await GetPrincipalIdAsync(factory, localAccountId);
@@ -490,8 +543,12 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-principal-store";
         using var factory = new HostApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
         var principalId = await GetPrincipalIdAsync(factory, localAccountId);
@@ -521,7 +578,9 @@ public class LocalAccountLifecycleTests
         var responseBody = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, responseBody);
         var client = CreateClient(factory);
-        Assert.NotNull(await InteractiveLogin.SignInAsync(client, userName, password));
+        Assert.NotNull(
+            await InteractiveLogin.SignInAsync(client, userName, password, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -546,7 +605,11 @@ public class LocalAccountLifecycleTests
     public async Task ResetPassword_WhenThePolicyRefusesThePassword_KeepsThePassword()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -560,7 +623,9 @@ public class LocalAccountLifecycleTests
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, responseBody);
         Assert.Contains("at least 15", responseBody);
         var client = CreateClient(factory);
-        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, Password));
+        Assert.NotNull(
+            await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -568,9 +633,14 @@ public class LocalAccountLifecycleTests
     {
         const string refusedPassword = "short-pass";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var changeResponse = await InteractiveLogin.PostFormAsync(
             client,
@@ -582,7 +652,8 @@ public class LocalAccountLifecycleTests
                 ["current_password"] = Password,
                 ["new_password"] = refusedPassword,
                 ["confirm_password"] = refusedPassword,
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, changeResponse.StatusCode);
@@ -590,7 +661,9 @@ public class LocalAccountLifecycleTests
         Assert.NotNull(location);
         Assert.Contains("error=password_too_short", location.OriginalString);
 
-        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, Password));
+        Assert.NotNull(
+            await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -602,16 +675,22 @@ public class LocalAccountLifecycleTests
 
         // The tenant reads its settings at its first request, so they are seeded before anything is sent.
         await factory.SeedTenantSettingsAsync(
-            new Dictionary<string, object> { [OpenIdSettingNames.PasswordFailedAttemptsLimit] = 2 }
+            new Dictionary<string, object> { [OpenIdSettingNames.PasswordFailedAttemptsLimit] = 2 },
+            CancellationToken.None
         );
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
 
         using var firstWrongResponse = await InteractiveLogin.SubmitLoginAsync(
             client,
             UserName,
             wrongPassword,
-            "/foo"
+            "/foo",
+            CancellationToken.None
         );
         Assert.Null(InteractiveLogin.ReadSessionCookie(firstWrongResponse));
 
@@ -619,7 +698,8 @@ public class LocalAccountLifecycleTests
             client,
             UserName,
             wrongPassword,
-            "/foo"
+            "/foo",
+            CancellationToken.None
         );
         Assert.Null(InteractiveLogin.ReadSessionCookie(secondWrongResponse));
 
@@ -628,7 +708,8 @@ public class LocalAccountLifecycleTests
             client,
             UserName,
             Password,
-            "/foo"
+            "/foo",
+            CancellationToken.None
         );
         Assert.Null(InteractiveLogin.ReadSessionCookie(limitedResponse));
 
@@ -642,7 +723,14 @@ public class LocalAccountLifecycleTests
         var resetBody = await resetResponse.Content.ReadAsStringAsync();
         Assert.True(resetResponse.StatusCode == HttpStatusCode.NoContent, resetBody);
 
-        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, resetPassword));
+        Assert.NotNull(
+            await InteractiveLogin.SignInAsync(
+                client,
+                UserName,
+                resetPassword,
+                CancellationToken.None
+            )
+        );
     }
 
     #endregion
@@ -653,9 +741,18 @@ public class LocalAccountLifecycleTests
     public async Task AccountMe_WhenThePrincipalWasBlocked_ReturnsUnauthorized()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var principalId = await GetPrincipalIdAsync(factory, localAccountId);
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -679,9 +776,13 @@ public class LocalAccountLifecycleTests
     public async Task SignIn_WhenThePrincipalIsBlocked_ShowsTheRefusalOnTheLoginPage()
     {
         using var factory = new HostApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
-        await InteractiveLogin.SignInAsync(client, UserName, Password);
+        await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None);
         var principalId = await GetPrincipalIdAsync(factory, localAccountId);
         await BlockInStoreAsync(factory, principalId);
 
@@ -689,7 +790,8 @@ public class LocalAccountLifecycleTests
             client,
             UserName,
             Password,
-            "/foo"
+            "/foo",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
@@ -704,10 +806,14 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-signin-blocked";
         using var factory = new HostApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        await InteractiveLogin.SignInAsync(client, UserName, Password);
+        await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None);
         var principalId = await GetPrincipalIdAsync(factory, localAccountId);
         await BlockInStoreAsync(factory, principalId);
 
@@ -723,7 +829,8 @@ public class LocalAccountLifecycleTests
             client,
             UserName,
             Password,
-            returnUrl
+            returnUrl,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
@@ -739,16 +846,21 @@ public class LocalAccountLifecycleTests
     public async Task SignIn_WhenTheAccountIsDisabled_ShowsTheRefusalOnTheLoginPage()
     {
         using var factory = new HostApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
-        await InteractiveLogin.SignInAsync(client, UserName, Password);
+        await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None);
         await DisableInStoreAsync(factory, localAccountId);
 
         using var response = await InteractiveLogin.SubmitLoginAsync(
             client,
             UserName,
             Password,
-            "/foo"
+            "/foo",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
@@ -763,10 +875,19 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-authorize-blocked";
         using var factory = new HostApplicationFactory();
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var principalId = await GetPrincipalIdAsync(factory, localAccountId);
 
         // The principal is blocked behind the server's back, so its session is still active.
@@ -788,11 +909,16 @@ public class LocalAccountLifecycleTests
     {
         const string clientId = "it-lifecycle-change-password";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         var otherRefreshToken = await IssueRefreshTokenAsync(client, clientId);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var changeResponse = await InteractiveLogin.PostFormAsync(
             client,
@@ -804,7 +930,8 @@ public class LocalAccountLifecycleTests
                 ["current_password"] = Password,
                 ["new_password"] = NewPassword,
                 ["confirm_password"] = NewPassword,
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, changeResponse.StatusCode);
@@ -820,16 +947,28 @@ public class LocalAccountLifecycleTests
         using var meResponse = await client.SendAsync(meRequest);
         Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
 
-        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, NewPassword));
+        Assert.NotNull(
+            await InteractiveLogin.SignInAsync(
+                client,
+                UserName,
+                NewPassword,
+                CancellationToken.None
+            )
+        );
     }
 
     [Fact]
     public async Task ChangePassword_WhenTheCurrentPasswordIsWrong_ChangesNothing()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var changeResponse = await InteractiveLogin.PostFormAsync(
             client,
@@ -841,7 +980,8 @@ public class LocalAccountLifecycleTests
                 ["current_password"] = "wrong",
                 ["new_password"] = NewPassword,
                 ["confirm_password"] = NewPassword,
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, changeResponse.StatusCode);
@@ -849,7 +989,9 @@ public class LocalAccountLifecycleTests
         Assert.NotNull(location);
         Assert.Contains("error=invalid_current_password", location.OriginalString);
 
-        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, Password));
+        Assert.NotNull(
+            await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -858,12 +1000,12 @@ public class LocalAccountLifecycleTests
         const string passwordClientId = "it-lifecycle-change-password-ropc";
         const string passwordClientSecret = "lifecycle-password-client-secret";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedConfidentialClientAsync(
             passwordClientId,
             passwordClientSecret,
-            OpenIdProtocol.GrantTypes.Password,
-            OpenIdProtocol.GrantTypes.RefreshToken
+            [OpenIdProtocol.GrantTypes.Password, OpenIdProtocol.GrantTypes.RefreshToken],
+            CancellationToken.None
         );
         var client = CreateClient(factory);
         var (issueStatusCode, issueBody) = await PostTokenAsync(
@@ -881,7 +1023,12 @@ public class LocalAccountLifecycleTests
         Assert.True(issueStatusCode == HttpStatusCode.OK, issueBody.ToString());
         var refreshToken = issueBody.GetProperty("refresh_token").GetString();
         Assert.False(string.IsNullOrEmpty(refreshToken), issueBody.ToString());
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var changeResponse = await InteractiveLogin.PostFormAsync(
             client,
@@ -893,7 +1040,8 @@ public class LocalAccountLifecycleTests
                 ["current_password"] = Password,
                 ["new_password"] = NewPassword,
                 ["confirm_password"] = NewPassword,
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, changeResponse.StatusCode);
@@ -918,9 +1066,14 @@ public class LocalAccountLifecycleTests
     public async Task ChangePassword_WithoutTheAntiforgeryToken_ChangesNothing()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "/account/password");
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
@@ -935,7 +1088,9 @@ public class LocalAccountLifecycleTests
         using var response = await client.SendAsync(request);
 
         Assert.InRange((int)response.StatusCode, 400, 499);
-        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, Password));
+        Assert.NotNull(
+            await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None)
+        );
     }
 
     #endregion

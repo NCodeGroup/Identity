@@ -60,10 +60,15 @@ public class PasswordNormalizationTests
     public async Task SignIn_WhenTheComposedFormIsTyped_VerifiesAPasswordSetDecomposed()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, DecomposedPassword);
+        await factory.SeedLocalAccountAsync(UserName, DecomposedPassword, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, ComposedPassword);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            ComposedPassword,
+            CancellationToken.None
+        );
 
         Assert.False(string.IsNullOrEmpty(sessionCookie));
     }
@@ -75,9 +80,10 @@ public class PasswordNormalizationTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdProtocol.GrantTypes.Password
+            [OpenIdProtocol.GrantTypes.Password],
+            CancellationToken.None
         );
-        await factory.SeedLocalAccountAsync(UserName, ComposedPassword);
+        await factory.SeedLocalAccountAsync(UserName, ComposedPassword, CancellationToken.None);
         var client = CreateClient(factory);
 
         var (statusCode, body) = await RequestTokenAsync(client, DecomposedPassword);

@@ -61,7 +61,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         return await client.PostAsync("/oauth2/par", form);
     }
 
-    private Task SeedClientAsync(
+    private ValueTask SeedClientAsync(
         string clientId,
         string[] redirectUriKinds,
         string registeredRedirectUri
@@ -72,7 +72,8 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             {
                 [OpenIdSettingNames.RedirectUriKindsSupported] = redirectUriKinds,
             },
-            registeredRedirectUri
+            [registeredRedirectUri],
+            CancellationToken.None
         );
 
     private static async Task<HttpClient> CreateHttpsOnlyRegistrationClientAsync(
@@ -86,7 +87,8 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
                 {
                     OpenIdConstants.RedirectUriKinds.Https,
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         return registrationFactory.CreateClient(
@@ -183,7 +185,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
     {
         const string clientId = "no-kind-client";
         const string redirectUri = "myapp://callback";
-        await Factory.SeedPublicClientAsync(clientId, redirectUri);
+        await Factory.SeedPublicClientAsync(clientId, [redirectUri], CancellationToken.None);
 
         using var response = await AuthorizeAsync(clientId, redirectUri);
 

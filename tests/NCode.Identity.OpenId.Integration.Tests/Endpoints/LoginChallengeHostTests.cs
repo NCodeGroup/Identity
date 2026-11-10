@@ -22,7 +22,7 @@ public class LoginChallengeHostTests
     public async Task Authorize_WhenTheHostHeaderIsForged_RedirectsToTheLoginPageOnTheSameOrigin()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
         using var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
             {

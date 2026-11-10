@@ -62,14 +62,14 @@ Neon / Aiven free tiers as the always-on database (wrong region, scale-to-zero, 
 Decided in [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md).
 
 - **Customer environments are tenants on production.** A customer's dev, test, and prod are separate tenants on the one
-  production platform (the Auth0 model): `acme-dev.auth.nidentity.io`, `acme-test.auth.nidentity.io`,
-  `acme.auth.nidentity.io`. Their non-production runs on exactly the hardware, versions, and configuration their
+  production platform (the Auth0 model): `acme-dev.auth.ncodeid.net`, `acme-test.auth.ncodeid.net`,
+  `acme.auth.ncodeid.net`. Their non-production runs on exactly the hardware, versions, and configuration their
   production does, so no customer incident can be blamed on environment drift, and promotion is tenant configuration
   (management API), not infrastructure.
 - **The platform itself has two environments:** **production** — every customer tenant, plus internal `canary` and
   `conformance` tenants for post-deploy smoke tests and OpenID certification runs — and the **lab**, the platform
   owner's private proving ground for platform changes, upgrades, and conformance experiments, which never hosts a
-  customer tenant. Lab hosts carry a `lab` label (`auth.lab.nidentity.io`) so a platform environment can't be confused
+  customer tenant. Lab hosts carry a `lab` label (`auth.lab.ncodeid.net`) so a platform environment can't be confused
   with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
   platform environment ([ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)).
 - **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits (done, issue [#84](https://github.com/NCodeGroup/Identity/issues/84)) and
@@ -191,21 +191,23 @@ it across 3 replicas, so it isn't used.
 [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)). The scheme uses
 **functional namespaces** under the apex — `auth` for the OpenID protocol, `mtls` for its certificate-bound aliases,
 `manage` for the management plane — mirroring Auth0 (`{tenant}.us.auth0.com` for tenants, `manage.auth0.com` for the
-dashboard):
+dashboard). The platform's hosts live on `ncodeid.net`, which carries nothing else, and the site, docs, status page
+and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
 
 | Hostname                                        | Serves                                                                                                   | Certificate                    |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `auth.nidentity.io`                             | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-1031](decisions/1031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.nidentity.io`            |
-| `{tenant}.auth.nidentity.io`                    | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.nidentity.io`)                     | `*.auth.nidentity.io`          |
-| `mtls.nidentity.io`, `{tenant}.mtls.nidentity.io` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1195) | `mtls.…` + `*.mtls.nidentity.io` |
-| `manage.nidentity.io`                           | Management API (`/api`) and admin console — the control-plane surface ([ADR-1042](decisions/1042-management-api-route-driven-tenant-scope.md)) | `manage.nidentity.io`          |
-| `nidentity.io`, `www.nidentity.io`              | Project site / docs                                                                                      | Hosting provider               |
+| `auth.ncodeid.net`                              | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-1031](decisions/1031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.ncodeid.net`            |
+| `{tenant}.auth.ncodeid.net`                     | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.ncodeid.net`)                     | `*.auth.ncodeid.net`          |
+| `mtls.ncodeid.net`, `{tenant}.mtls.ncodeid.net` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1195) | `mtls.…` + `*.mtls.ncodeid.net` |
+| `manage.ncodeid.net`                            | Management API (`/api`) and admin console — the control-plane surface ([ADR-1042](decisions/1042-management-api-route-driven-tenant-scope.md)) | `manage.ncodeid.net`          |
+| `ncodeid.net`, `www.ncodeid.net`                  | Redirect (301) to `https://ncodeid.com`                                                                  | Cloudflare edge                |
+| `ncodeid.com`, `www.ncodeid.com`, `status.ncodeid.com` | Project site, docs and status page — the brand domain ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)) | Hosting provider               |
 
 Why this shape:
 
 - **`auth`, not `id` or `login`:** the hosts serve machine-to-machine token, discovery, and JWKS endpoints as well as
   the login UI, and `auth.<domain>` is the convention developers expect.
-- **Tenants nest under a function label rather than the apex** (`acme.auth.nidentity.io`, not `acme.nidentity.io`): no
+- **Tenants nest under a function label rather than the apex** (`acme.auth.ncodeid.net`, not `acme.ncodeid.net`): no
   tenant name can ever collide with a service host (`www`, `manage`, `mtls`, `status`, `docs`, `dev`, …), so there is no
   reserved-name list to maintain, and each function gets one wildcard certificate. A tenant can still be moved to a
   dedicated deployment ([ADR-1024](decisions/1024-control-plane-and-per-tenant-planes.md)) by changing its DNS record, without
@@ -221,22 +223,22 @@ Why this shape:
 - **The server derives these hosts from configuration**
   ([ADR-1165](decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
   `OpenId:TenantResolution:StrategyCode = DynamicByHost`, `DynamicByHost:IssuerTemplate =
-  https://{tenantId}.auth.nidentity.io`, and `Root:Issuer = https://auth.nidentity.io`. A tenant created without an
+  https://{tenantId}.auth.ncodeid.net`, and `Root:Issuer = https://auth.ncodeid.net`. A tenant created without an
   issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The mTLS
-  aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.nidentity.io` and
-  `Root:MtlsEndpointAliasAuthority = https://mtls.nidentity.io`
+  aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.ncodeid.net` and
+  `Root:MtlsEndpointAliasAuthority = https://mtls.ncodeid.net`
   ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). The root tenant
-  is created when the first request reaches `auth.nidentity.io`, with the bootstrap administrator named into it
+  is created when the first request reaches `auth.ncodeid.net`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
   [ADR-1166](decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
-  `manage.nidentity.io`, which is no tenant's host, because the management API authenticates against the root tenant
+  `manage.ncodeid.net`, which is no tenant's host, because the management API authenticates against the root tenant
   rather than the host it is called on
   ([ADR-1191](decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
 
-**Environments.** Customer environments are just tenants on production (`acme-dev.auth.nidentity.io`), so they need no
-extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.nidentity.io`,
-`{tenant}.auth.lab.nidentity.io`, `{tenant}.mtls.lab.nidentity.io`, `manage.lab.nidentity.io`. Ephemeral Azure runs use
-one host each, `{run}.ci.nidentity.io`. The lab shares the production zone, so it must never hold a token that can edit
+**Environments.** Customer environments are just tenants on production (`acme-dev.auth.ncodeid.net`), so they need no
+extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.ncodeid.net`,
+`{tenant}.auth.lab.ncodeid.net`, `{tenant}.mtls.lab.ncodeid.net`, `manage.lab.ncodeid.net`. Ephemeral Azure runs use
+one host each, `{run}.ci.ncodeid.net`. The lab shares the production zone, so it must never hold a token that can edit
 it: only the OpenTofu pipeline writes DNS (production changes gated by required reviewers), and lab/CI clusters obtain
 certificates over HTTP-01 for their specific hosts — or, if they need wildcards, over DNS-01 with each
 `_acme-challenge` name CNAME-delegated to a separate, throwaway validation zone, so a compromised lab cluster can't

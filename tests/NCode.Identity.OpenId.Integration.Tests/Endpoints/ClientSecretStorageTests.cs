@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -19,14 +18,15 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // the client is registered for (ADR-1391).
 public class ClientSecretStorageTests
 {
-    private const string ManagementScope = "read:clients";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     [Fact]
     public async Task PostSecret_ForAClientThatComparesItsSecret_StoresOnlyAVerifierAndRevealsTheSecretOnce()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var client = CreateHttpClient(factory);
 
         var clientId = await CreateClientAsync(
@@ -64,7 +64,9 @@ public class ClientSecretStorageTests
     public async Task PostSecret_ForAClientSecretJwtClient_StoresASecretThatKeysTheClientAssertion()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var client = CreateHttpClient(factory);
         var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
 
@@ -90,7 +92,9 @@ public class ClientSecretStorageTests
     public async Task PatchSettings_WhenSwitchedToClientSecretJwt_IssuesASecretThatKeysTheAssertionAndRevealsItOnce()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var client = CreateHttpClient(factory);
         var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
 
@@ -138,7 +142,9 @@ public class ClientSecretStorageTests
     public async Task PatchSettings_WhenSwitchedAwayFromClientSecretJwt_StoresTheSecretAsAVerifier()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var client = CreateHttpClient(factory);
 
         var clientId = await CreateClientAsync(
@@ -178,7 +184,9 @@ public class ClientSecretStorageTests
     public async Task PatchSettings_WhenTheMethodIsUnchanged_IssuesNoSecret()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         // A client created without a secret keeps none when other settings change, so an edit never issues one.
         var clientId = await CreateClientAsync(
@@ -201,7 +209,9 @@ public class ClientSecretStorageTests
     public async Task PatchTenantSettings_WhenTheTenantsMethodChanges_KeepsEveryStoredClientsMethod()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var client = CreateHttpClient(factory);
 
         var (tenantStatusCode, tenantBody) = await PatchSettingsAsync(
@@ -242,7 +252,9 @@ public class ClientSecretStorageTests
     {
         // A secret stored as a one-way verifier keys no HS256 request object. See ADR-1391.
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients",
@@ -272,7 +284,9 @@ public class ClientSecretStorageTests
     public async Task BootstrapAdministrator_IsStoredAsAVerifierOfItsConfiguredSecret()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         var stored = Assert.Single(
             await factory.GetClientSecretsAsync(BootstrapAdminApplicationFactory.ClientId)
@@ -284,43 +298,6 @@ public class ClientSecretStorageTests
 
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    )
-    {
-        var client = CreateHttpClient(factory);
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = ManagementScope,
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(tokenRequest);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        var jsonElement = JsonElement.Parse(body);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            jsonElement.GetProperty("access_token").GetString()
-        );
-        return client;
-    }
 
     private static async Task<string> CreateClientAsync(
         HttpClient administrator,

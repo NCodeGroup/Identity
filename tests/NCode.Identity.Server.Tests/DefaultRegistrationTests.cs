@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
@@ -19,6 +18,7 @@ using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
@@ -27,12 +27,12 @@ using Xunit;
 
 namespace NCode.Identity.Server.Tests;
 
-public sealed class DefaultRegistrationTests
+public sealed class DefaultRegistrationTests : BaseTests
 {
-    private static IHost BuildHost(Dictionary<string, string?> configurationData) =>
+    private IHost BuildHost(Dictionary<string, string?> configurationData) =>
         BuildHost(configurationData, _ => { });
 
-    private static IHost BuildHost(
+    private IHost BuildHost(
         Dictionary<string, string?> configurationData,
         Action<IServiceCollection> configureServices
     )
@@ -51,9 +51,7 @@ public sealed class DefaultRegistrationTests
         hostBuilder.Services.AddIdentityServer().AddConfiguration(hostBuilder.Configuration);
 
         // These tests exercise configuration only; the persistence provider a host composes is never called.
-        hostBuilder.Services.AddSingleton(
-            new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object
-        );
+        hostBuilder.Services.AddSingleton(CreateStrictMock<IStoreManagerFactory>().Object);
 
         configureServices(hostBuilder.Services);
 
@@ -574,7 +572,7 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_WhenAClientJwtCredentialSelectorIsRegistered_KeepsIt()
     {
-        var selector = new Mock<IClientJwtCredentialSelector>(MockBehavior.Strict).Object;
+        var selector = CreateStrictMock<IClientJwtCredentialSelector>().Object;
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(selector);
 
@@ -1297,6 +1295,50 @@ public sealed class DefaultRegistrationTests
             ],
             names
         );
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_WhenAProviderThatCreatesKeysHasNoDeployment_FailsToStart()
+    {
+        RemoteKeyProviderDescriptor[] providers = [new() { Name = "test-kms" }];
+        RemoteKeyAlgorithm[] algorithms = [];
+        // the descriptor source describes a provider that creates keys, so the deployment that scopes its keys is required
+        var descriptorSource = CreateStrictMock<IRemoteKeyDescriptorSource>();
+        descriptorSource.Setup(x => x.Providers).Returns(providers).Verifiable();
+        descriptorSource.Setup(x => x.Algorithms).Returns(algorithms).Verifiable();
+        using var host = BuildHost(
+            [],
+            serviceCollection => serviceCollection.AddSingleton(descriptorSource.Object)
+        );
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains(
+            "SecretProtection:RemoteKeys:Deployment is required",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_WhenTheRemoteKeysSectionHasAnUnknownMember_FailsToStart()
+    {
+        using var host = BuildHost(
+            new Dictionary<string, string?> { ["SecretProtection:RemoteKeys:Unknown"] = "x" }
+        );
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains(
+            "'SecretProtection:RemoteKeys'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("'Unknown'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

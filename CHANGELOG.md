@@ -400,6 +400,16 @@ Until the first stable release, the [Unreleased] section describes the product a
   Nerdbank.GitVersioning versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of
   Done, CSharpier formatting, and scoped coding-convention instruction files. See [`docs/decisions/`](docs/decisions/).
 
+- **The family has a logo, and one script draws every file of it.** The mark is `{id}`, the letters i and d between the
+  braces of the NCode Group's `{N}`, in the group's blue. `brand/` holds it as SVG masters and as the PNG and ICO files
+  each place takes: a NuGet package icon, a favicon set, pictures for GitHub, GitLab and My Apps, badge logos, social
+  cards, and lockups with the wordmark "NCode Identity". Every package carries the blue tile as its icon, the host
+  chart names it as its own, and the README opens with the lockup. `brand/build.py` draws every file from one geometry,
+  with a drawing of its own for each size from 16 to 48 pixels, and stops when a file breaks its platform's limit.
+  `brand/outlines.py` converts the wordmark to outlines from a pinned release of Inter, whose license
+  `THIRD-PARTY-NOTICES.md` records
+  ([ADR-1491](docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md)).
+
 - **Feature branches run a fast gate, and the merge queue runs the full gate.** `./build/dod.ps1 -Affected` (with
   `-Base`) runs only the test projects a change reaches through the project graph, and `-Filter` passes a `dotnet test
   --filter` expression through; test assemblies run in parallel in every mode. A pull request into `main` runs the

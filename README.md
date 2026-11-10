@@ -1,4 +1,9 @@
-# NCode.Identity
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/lockup/ncode-identity-lockup-light.svg">
+    <img src="brand/lockup/ncode-identity-lockup-blue.svg" alt="NCode Identity" height="56">
+  </picture>
+</h1>
 
 [![.NET CI](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml)
 [![Frontend CI](https://github.com/NCodeGroup/Identity/actions/workflows/frontend.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/Identity/actions/workflows/frontend.yml)
@@ -160,6 +165,7 @@ and shipped versions are serviced from `release/vX.Y` lines beside it
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Build, conventions, and the change workflow                                    |
 | [`GOVERNANCE.md`](GOVERNANCE.md)     | Ownership, versioning, releases, and publishing                                |
 | [`SECURITY.md`](SECURITY.md)         | How to report a vulnerability                                                  |
+| [`brand/`](brand/README.md)          | The logo kit: the `{id}` mark as SVG masters and as the PNG and ICO files each platform takes |
 
 ## References
 

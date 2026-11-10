@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -277,6 +278,11 @@ internal sealed class TenantKeyRolloverService(
     // every replica must still evict the tenant and serve its keys as they are. A key the pass removed is destroyed in
     // its key management service last, in a finally of its own, so a failed publish or announcement still destroys it;
     // the destroyer runs through PostCommitWork and never throws. See ADR-1351 and ADR-1471.
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1471)."
+    )]
     private async ValueTask RunAfterCommitAsync(
         IMediator mediator,
         string tenantId,

@@ -101,16 +101,16 @@ internal class DefaultOpenIdPlatformProvider(
 
     // Both clears are caught inside the pass, so the task it returns never faults and starting it unawaited leaves
     // nothing unobserved.
-    private void EvictTenants() => _ = EvictAsync();
+    private void EvictTenants() => _ = EvictAsync(CancellationToken.None);
 
-    private async Task EvictAsync()
+    private async ValueTask EvictAsync(CancellationToken cancellationToken)
     {
         // The team cache is cleared first: a tenant materialized between the two clears is then rebuilt from a fresh
         // team rather than from a cached team that still holds the old platform-derived settings. Each cache is
         // cleared on its own, so a failed team-cache clear still clears the tenants.
         try
         {
-            await TeamCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None);
+            await TeamCache.ClearAsync(PropertyBagFactory.Create(), cancellationToken);
         }
         catch (Exception exception)
         {
@@ -119,7 +119,7 @@ internal class DefaultOpenIdPlatformProvider(
 
         try
         {
-            await TenantCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None);
+            await TenantCache.ClearAsync(PropertyBagFactory.Create(), cancellationToken);
         }
         catch (Exception exception)
         {

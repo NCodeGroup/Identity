@@ -210,7 +210,7 @@ and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platforms-h
 | `{tenant}.auth.ncodeid.net`                     | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.ncodeid.net`)                     | `*.auth.ncodeid.net`          |
 | `mtls.ncodeid.net`, `{tenant}.mtls.ncodeid.net` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1195) | `mtls.…` + `*.mtls.ncodeid.net` |
 | `manage.ncodeid.net`                            | Management API (`/api`) and admin console — the control-plane surface ([ADR-1042](decisions/1042-management-api-route-driven-tenant-scope.md)) | `manage.ncodeid.net`          |
-| `ncodeid.net`, `www.ncodeid.net`                  | Redirect (301) to `https://ncodeid.com`                                                                  | Cloudflare edge                |
+| `ncodeid.net`, `www.ncodeid.net`                  | Redirect (301) to `https://ncodeid.com`, with the HSTS header                                            | `ncodeid.net` + `www.ncodeid.net` (cert-manager) |
 | `ncodeid.com`, `www.ncodeid.com`, `status.ncodeid.com` | Project site, docs and status page — the brand domain ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)) | Hosting provider               |
 
 Why this shape:
@@ -259,9 +259,11 @@ All identity hosts are **DNS-only** in Cloudflare (no proxy), so TLS reaches Tra
 **Day-one records** (before any hosting exists):
 
 - **CAA:** `0 issue "letsencrypt.org"` and `0 issuewild "letsencrypt.org"` (optionally pinned to the ACME account
-  with `accounturi=`) in every zone — no other CA may issue for any of the platform's domains. Cloudflare Universal SSL silently adds CAA records for
-  its own CAs, so the `cloudflare-zone` module keeps it off; DNS-only hosts never use its edge certificates, and a host
-  proxied through Cloudflare later needs an advanced certificate from a listed CA.
+  with `accounturi=`) in every zone except the two redirect-only ones — no other CA may issue for those domains.
+  Cloudflare Universal SSL silently adds CAA records for its own CAs, so the `cloudflare-zone` module keeps it off in
+  those zones; DNS-only hosts never use its edge certificates, and a host proxied through Cloudflare later needs an
+  advanced certificate from a listed CA. The two redirect-only zones proxy their redirect hosts, so Universal SSL is on
+  there and their CAA records list Cloudflare's CAs; they carry no issuer.
 - **Inbound mail only:** Cloudflare Email Routing (free, receive-only; `cloudflare_email_routing_settings` / `_dns` /
   `_address` / `_rule`) runs on `ncodeid.com` only and forwards per-purpose addresses — `security@` for `security.txt`,
   `platform@` as the owner of every cloud resource
@@ -680,10 +682,10 @@ speed-test endpoint from the Denver network the users are on.
 - **Management plane:** `manage.` behind an IP allow-list or operator mTLS in addition to OAuth.
 - **Accounts:** passkeys / hardware 2FA on every vendor account (Porkbun, Cloudflare, Akamai, OCI, AWS, GitHub, GitLab,
   npm, Spaceship, Azure, Grafana), least-privilege API tokens, recovery codes stored offline, and a second trusted admin.
-- **Web:** HSTS with `includeSubDomains` on every domain. `ncodeid.net` is preloaded once every host serves HTTPS (its
-  apex redirect serves the preload header); `ncodeid.com` is not preloaded, because third-party hosts (the status page
-  and the site host) serve its subdomains. An RFC 9116 `/.well-known/security.txt` points to
-  [`SECURITY.md`](../SECURITY.md).
+- **Web:** HSTS with `includeSubDomains` on every domain. `ncodeid.net` is preloaded once every host serves HTTPS (the
+  platform's ingress serves its apex redirect and the preload header); `ncodeid.com` is not preloaded, because
+  third-party hosts (the status page and the site host) serve its subdomains. An RFC 9116 `/.well-known/security.txt`
+  points to [`SECURITY.md`](../SECURITY.md).
 
 **Business and legal (before onboarding customers):** privacy policy, terms, a DPA and subprocessor list (Akamai,
 Cloudflare, Grafana Labs, and the key-vault provider); data residency is US-only (Dallas) — EU customers will need a

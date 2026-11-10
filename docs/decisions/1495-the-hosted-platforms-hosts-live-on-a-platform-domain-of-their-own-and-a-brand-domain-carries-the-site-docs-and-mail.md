@@ -29,7 +29,7 @@ site, docs, status page and operator mail.**
 1. **The platform domain is `ncodeid.net`.** It keeps the namespaces of
    [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md): `auth.`, `{tenant}.auth.`, `mtls.`,
    `{tenant}.mtls.`, `manage.`, lab `….lab.` and CI `{run}.ci.`. Its apex and `www.` redirect (301) to
-   `https://ncodeid.com`. It is the only domain that ever carries an issuer.
+   `https://ncodeid.com`, served by the platform's ingress. It is the only domain that ever carries an issuer.
 2. **The brand domain is `ncodeid.com`.** It carries `ncodeid.com` and `www.` (the project site and docs, served by the
    hosting provider), `status.ncodeid.com` (UptimeRobot), the inbound Email Routing addresses (`security@`,
    `platform@`, `postmaster@`, `abuse@` and the per-vendor aliases) and the `security.txt` contact
@@ -48,8 +48,13 @@ site, docs, status page and operator mail.**
 5. **`ncodegroup.com` is not the platform's.** It is the NCode Group's own domain, and the platform's stacks and
    records never manage it.
 6. **Each domain is its own Cloudflare zone.** All four are registered at Porkbun, and the bootstrap stack creates
-   each zone with DNSSEC and its own scoped CI token. The redirects are Cloudflare Single Redirect rules on proxied
-   apex and `www` records. Identity hosts stay DNS-only, never proxied.
+   each zone with DNSSEC and its own scoped CI token. The redirect-only domains' redirects are Cloudflare Single
+   Redirect rules on proxied apex and `www` records, and Universal SSL is on in those two zones, because a proxied
+   host needs an edge certificate, so their CAA records list Cloudflare's certificate authorities; they carry no
+   issuer. In every other zone Universal SSL is off and CAA restricts issuance to Let's Encrypt. The apex and `www.`
+   of `ncodeid.net` are DNS-only records to the platform's ingress, which serves the 301 to `https://ncodeid.com` and
+   the HSTS header with a cert-manager Let's Encrypt certificate for those two hosts (HTTP-01). Identity hosts stay
+   DNS-only, never proxied.
 7. **The platform zone holds only records the platform's OpenTofu roots write.** No hosting-provider or vendor
    integration is given a token for it, and lab and CI clusters hold no token that can edit any zone.
 8. **Registration is long on the two domains that matter.** `ncodeid.net` and `ncodeid.com` are renewed to the
@@ -61,9 +66,9 @@ site, docs, status page and operator mail.**
     System mail (verification, password reset, email MFA) sends only from `mail.ncodeid.net`, with that provider's SPF
     include and DKIM keys. Operator addresses live on `ncodeid.com`.
 11. **HSTS follows who serves the subdomains.** The platform domain is submitted to the HSTS preload list with
-    `includeSubDomains` once every host serves HTTPS, and its apex redirect serves the preload header. The brand
-    domain sends `includeSubDomains` and is not preloaded, because third-party hosts (the status page and the site
-    host) serve its subdomains.
+    `includeSubDomains` once every host serves HTTPS, and the ingress's apex redirect serves the preload header. The
+    brand domain sends `includeSubDomains` and is not preloaded, because third-party hosts (the status page and the
+    site host) serve its subdomains.
 12. **The Public Suffix List does not list `ncodeid.net`.** Host-only `__Host-` cookies are the cookie control.
     Listing stays available and requires at least two years of registration remaining and a `_psl` TXT record.
 13. **Lab and CI stay under the platform domain.** Token isolation between environments

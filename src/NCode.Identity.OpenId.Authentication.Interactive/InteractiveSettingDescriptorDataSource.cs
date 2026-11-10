@@ -45,11 +45,14 @@ internal partial class InteractiveSettingDescriptorDataSource(INullChangeToken n
             // over TLS like the page that shows it.
             yield return BrandingDescriptor(
                 InteractiveSettingNames.BrandingLogoUri,
-                SettingRules.Must<string>(
-                    "an absolute https URI",
-                    value =>
-                        AbsoluteUri.TryParse(value, out var uri) && uri.Scheme == Uri.UriSchemeHttps
-                )
+                AbsoluteHttpsUri()
+            );
+
+            // branding_favicon_uri: the icon the browser shows in the tab, fetched by the end-user's browser, so it must
+            // be served over TLS like the page that shows it.
+            yield return BrandingDescriptor(
+                InteractiveSettingNames.BrandingFaviconUri,
+                AbsoluteHttpsUri()
             );
 
             // branding_primary_color / branding_secondary_color: the theme's palette colors. Hexadecimal only, the one
@@ -85,6 +88,12 @@ internal partial class InteractiveSettingDescriptorDataSource(INullChangeToken n
             IsDiscoverable = false,
             OnMerge = SettingMerge.Replace,
         };
+
+    private static SettingRule<string> AbsoluteHttpsUri() =>
+        SettingRules.Must<string>(
+            "an absolute https URI",
+            value => AbsoluteUri.TryParse(value, out var uri) && uri.Scheme == Uri.UriSchemeHttps
+        );
 
     private static SettingRule<string> HexColor() =>
         SettingRules.Must<string>(

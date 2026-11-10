@@ -53,6 +53,7 @@ public sealed class InteractiveSettingDescriptorDataSourceTests
             [
                 InteractiveSettingNames.BrandingDisplayName,
                 InteractiveSettingNames.BrandingLogoUri,
+                InteractiveSettingNames.BrandingFaviconUri,
                 InteractiveSettingNames.BrandingPrimaryColor,
                 InteractiveSettingNames.BrandingSecondaryColor,
                 InteractiveSettingNames.BrandingColorMode,
@@ -75,6 +76,7 @@ public sealed class InteractiveSettingDescriptorDataSourceTests
     [Theory]
     [InlineData(InteractiveSettingNames.BrandingDisplayName, "Acme Corporation")]
     [InlineData(InteractiveSettingNames.BrandingLogoUri, "https://cdn.acme.example/logo.svg")]
+    [InlineData(InteractiveSettingNames.BrandingFaviconUri, "https://cdn.acme.example/tab.ico")]
     [InlineData(InteractiveSettingNames.BrandingPrimaryColor, "#1565c0")]
     [InlineData(InteractiveSettingNames.BrandingPrimaryColor, "#FFF")]
     [InlineData(InteractiveSettingNames.BrandingSecondaryColor, "#9c27b0")]
@@ -92,6 +94,9 @@ public sealed class InteractiveSettingDescriptorDataSourceTests
     [InlineData(InteractiveSettingNames.BrandingLogoUri, "http://cdn.acme.example/logo.svg")]
     [InlineData(InteractiveSettingNames.BrandingLogoUri, "/logo.svg")]
     [InlineData(InteractiveSettingNames.BrandingLogoUri, "javascript:alert(1)")]
+    [InlineData(InteractiveSettingNames.BrandingFaviconUri, "http://cdn.acme.example/tab.ico")]
+    [InlineData(InteractiveSettingNames.BrandingFaviconUri, "/tab.ico")]
+    [InlineData(InteractiveSettingNames.BrandingFaviconUri, "javascript:alert(1)")]
     [InlineData(InteractiveSettingNames.BrandingPrimaryColor, "blue")]
     [InlineData(InteractiveSettingNames.BrandingPrimaryColor, "#12345")]
     [InlineData(InteractiveSettingNames.BrandingPrimaryColor, "#1565c0\n")]

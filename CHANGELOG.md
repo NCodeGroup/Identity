@@ -3691,6 +3691,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#714](https://github.com/NCodeGroup/Identity/issues/714),
   [ADR-1486](docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)).
 
+- **The build reports an own async method that returns `Task` or takes no trailing `CancellationToken`.**
+  `NCode.Identity.Analyzers` fails the build with `NCID0002` on a method returning `Task` or `Task<T>` and with
+  `NCID0003` on an asynchronous method whose last parameter is not a `CancellationToken`, in every project,
+  production and tests alike, unless a framework contract fixes the shape: an xUnit test method, an ASP.NET Core
+  middleware `Invoke`/`InvokeAsync`, an entry point, the dispose pattern's `DisposeAsyncCore`, an override or
+  implementation of a member an assembly outside the family declares, a method group handed to an ASP.NET Core API,
+  a method of the post-commit types that run on their own bounded token, or a method an ADR makes uncancellable
+  ([#743](https://github.com/NCodeGroup/Identity/issues/743),
+  [#744](https://github.com/NCodeGroup/Identity/issues/744),
+  [ADR-1495](docs/decisions/1495-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md)).
+
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`; `.editorconfig` sets the header as
   `file_header_template` and raises `IDE0073` to `warning`, so a file whose header is missing or differs fails the build

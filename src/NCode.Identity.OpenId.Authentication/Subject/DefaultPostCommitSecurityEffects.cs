@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Passwords;
@@ -15,6 +16,11 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// own <see cref="PostCommitWork.RunAsync{TState}"/> step, logs a failure and never throws it.
 /// </summary>
 // See ADR-1468.
+[SuppressMessage(
+    "Design",
+    "NCID0003",
+    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+)]
 internal sealed class DefaultPostCommitSecurityEffects(
     ISessionService sessionService,
     IPasswordAttemptLimiter passwordAttemptLimiter,

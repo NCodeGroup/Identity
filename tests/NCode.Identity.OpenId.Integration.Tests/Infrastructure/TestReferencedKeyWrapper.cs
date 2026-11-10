@@ -189,7 +189,7 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
         ReadOnlyMemory<byte> context,
         IBufferWriter<byte> destination,
         CancellationToken cancellationToken
-    ) => UnwrapCoreAsync(wrappedKey, access: null, context, destination);
+    ) => UnwrapCoreAsync(wrappedKey, access: null, context, destination, cancellationToken);
 
     /// <inheritdoc />
     public ValueTask UnwrapAsync(
@@ -202,16 +202,19 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
     {
         ArgumentNullException.ThrowIfNull(access);
 
-        return UnwrapCoreAsync(wrappedKey, access, context, destination);
+        return UnwrapCoreAsync(wrappedKey, access, context, destination, cancellationToken);
     }
 
     private ValueTask UnwrapCoreAsync(
         WrappedKey wrappedKey,
         KeyAccess? access,
         ReadOnlyMemory<byte> context,
-        IBufferWriter<byte> destination
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
     )
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         ArgumentNullException.ThrowIfNull(wrappedKey);
         ArgumentNullException.ThrowIfNull(destination);
 

@@ -31,9 +31,14 @@ public class ClientSecretStorageTests
 
         var clientId = await CreateClientAsync(
             administrator,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
-        var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
+        var (secretId, secretMaterial) = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
 
         var secrets = await factory.GetClientSecretsAsync(clientId, CancellationToken.None);
         var stored = Assert.Single(secrets);
@@ -76,9 +81,14 @@ public class ClientSecretStorageTests
 
         var clientId = await CreateClientAsync(
             administrator,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            CancellationToken.None
         );
-        var (_, secretMaterial) = await CreateSecretAsync(administrator, clientId);
+        var (_, secretMaterial) = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
 
         var secrets = await factory.GetClientSecretsAsync(clientId, CancellationToken.None);
         var stored = Assert.Single(secrets);
@@ -105,16 +115,22 @@ public class ClientSecretStorageTests
 
         var clientId = await CreateClientAsync(
             administrator,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
-        var (verifiedSecretId, verifiedSecret) = await CreateSecretAsync(administrator, clientId);
+        var (verifiedSecretId, verifiedSecret) = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
 
         // A verifier is no HMAC key, so the change issues a secret the server can read back, revealed only in its
         // response, and removes the verifier, which cannot authenticate the client with that method.
         var issued = await SetAuthenticationMethodAsync(
             administrator,
             clientId,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            CancellationToken.None
         );
 
         Assert.NotNull(issued);
@@ -124,7 +140,12 @@ public class ClientSecretStorageTests
         var stored = Assert.Single(secrets);
         Assert.Equal(issuedSecretId, stored.SecretId);
         Assert.Equal(SecretEncodings.SymmetricRaw, stored.SecretEncoding);
-        var isVerifier = await IsVerifierAsync(administrator, clientId, issuedSecretId);
+        var isVerifier = await IsVerifierAsync(
+            administrator,
+            clientId,
+            issuedSecretId,
+            CancellationToken.None
+        );
         Assert.False(isVerifier);
         var revocationError = await ClientAuthenticationProbe.RevokeWithAssertionAsync(
             client,
@@ -155,14 +176,20 @@ public class ClientSecretStorageTests
 
         var clientId = await CreateClientAsync(
             administrator,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            CancellationToken.None
         );
-        var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
+        var (secretId, secretMaterial) = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
 
         var issued = await SetAuthenticationMethodAsync(
             administrator,
             clientId,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
 
         // The client keeps its secret, which the server cannot read back: its octets are replaced by the
@@ -173,7 +200,12 @@ public class ClientSecretStorageTests
         Assert.NotEqual(secretId, stored.SecretId);
         Assert.Equal(SecretEncodings.Verifier, stored.SecretEncoding);
         Assert.Equal(SecretOrigins.Generated, stored.Origin);
-        var isVerifier = await IsVerifierAsync(administrator, clientId, stored.SecretId);
+        var isVerifier = await IsVerifierAsync(
+            administrator,
+            clientId,
+            stored.SecretId,
+            CancellationToken.None
+        );
         Assert.True(isVerifier);
         var revocationError = await ClientAuthenticationProbe.RevokeWithSecretAsync(
             client,
@@ -202,14 +234,16 @@ public class ClientSecretStorageTests
         // A client created without a secret keeps none when other settings change, so an edit never issues one.
         var clientId = await CreateClientAsync(
             administrator,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
 
         var (statusCode, body) = await PatchSettingsAsync(
             administrator,
             $"{TenantApiPath}/clients/{clientId}/settings",
             "client_name",
-            "renamed client"
+            "renamed client",
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.NoContent, body);
@@ -230,7 +264,8 @@ public class ClientSecretStorageTests
             administrator,
             $"{TenantApiPath}/settings",
             "token_endpoint_auth_method",
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
         Assert.True(tenantStatusCode == HttpStatusCode.NoContent, tenantBody);
 
@@ -242,15 +277,25 @@ public class ClientSecretStorageTests
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
         var clientId = GetRequiredString(JsonElement.Parse(createBody), "clientId");
-        var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
-        var isVerifier = await IsVerifierAsync(administrator, clientId, secretId);
+        var (secretId, secretMaterial) = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
+        var isVerifier = await IsVerifierAsync(
+            administrator,
+            clientId,
+            secretId,
+            CancellationToken.None
+        );
         Assert.True(isVerifier);
 
         (tenantStatusCode, tenantBody) = await PatchSettingsAsync(
             administrator,
             $"{TenantApiPath}/settings",
             "token_endpoint_auth_method",
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            CancellationToken.None
         );
         Assert.True(tenantStatusCode == HttpStatusCode.NoContent, tenantBody);
 
@@ -318,9 +363,10 @@ public class ClientSecretStorageTests
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<string> CreateClientAsync(
+    private static async ValueTask<string> CreateClientAsync(
         HttpClient administrator,
-        string tokenEndpointAuthMethod
+        string tokenEndpointAuthMethod,
+        CancellationToken cancellationToken
     )
     {
         using var response = await administrator.PostAsJsonAsync(
@@ -332,21 +378,23 @@ public class ClientSecretStorageTests
                 {
                     ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
                 },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         return GetRequiredString(JsonElement.Parse(body), "clientId");
     }
 
     // Returns the secret the change issued, which its response reveals once, or null when the client keeps its secret.
-    private static async Task<(
+    private static async ValueTask<(
         string SecretId,
         string SecretMaterial
     )?> SetAuthenticationMethodAsync(
         HttpClient administrator,
         string clientId,
-        string tokenEndpointAuthMethod
+        string tokenEndpointAuthMethod,
+        CancellationToken cancellationToken
     )
     {
         var operations = new[]
@@ -370,8 +418,8 @@ public class ClientSecretStorageTests
             ),
         };
 
-        using var response = await administrator.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await administrator.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (response.StatusCode == HttpStatusCode.NoContent)
         {
             return null;
@@ -386,11 +434,12 @@ public class ClientSecretStorageTests
         );
     }
 
-    private static async Task<(HttpStatusCode StatusCode, string Body)> PatchSettingsAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, string Body)> PatchSettingsAsync(
         HttpClient administrator,
         string path,
         string settingName,
-        string value
+        string value,
+        CancellationToken cancellationToken
     )
     {
         var operations = new[]
@@ -411,13 +460,14 @@ public class ClientSecretStorageTests
             ),
         };
 
-        using var response = await administrator.SendAsync(request);
-        return (response.StatusCode, await response.Content.ReadAsStringAsync());
+        using var response = await administrator.SendAsync(request, cancellationToken);
+        return (response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
     }
 
-    private static async Task<(string SecretId, string SecretMaterial)> CreateSecretAsync(
+    private static async ValueTask<(string SecretId, string SecretMaterial)> CreateSecretAsync(
         HttpClient administrator,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     )
     {
         using var response = await administrator.PostAsJsonAsync(
@@ -427,9 +477,10 @@ public class ClientSecretStorageTests
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
         return (
@@ -438,16 +489,18 @@ public class ClientSecretStorageTests
         );
     }
 
-    private static async Task<bool> IsVerifierAsync(
+    private static async ValueTask<bool> IsVerifierAsync(
         HttpClient administrator,
         string clientId,
-        string secretId
+        string secretId,
+        CancellationToken cancellationToken
     )
     {
         using var response = await administrator.GetAsync(
-            $"{TenantApiPath}/clients/{clientId}/secrets/{secretId}"
+            $"{TenantApiPath}/clients/{clientId}/secrets/{secretId}",
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body).GetProperty("isVerifier").GetBoolean();
     }

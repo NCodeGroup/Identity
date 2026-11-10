@@ -49,10 +49,11 @@ public class TokenEndpointSecurityProfileTests
             }
         );
 
-    private static async Task SeedClientCredentialsClientAsync(
+    private static async ValueTask SeedClientCredentialsClientAsync(
         HostApplicationFactory factory,
         string clientId,
-        IReadOnlyCollection<string> securityProfiles
+        IReadOnlyCollection<string> securityProfiles,
+        CancellationToken cancellationToken
     )
     {
         await factory.SeedConfidentialClientWithSecurityProfilesAsync(
@@ -60,20 +61,24 @@ public class TokenEndpointSecurityProfileTests
             ClientSecret,
             securityProfiles,
             [OpenIdProtocol.GrantTypes.ClientCredentials],
-            CancellationToken.None
+            cancellationToken
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
             [TestPlatformSettingsProvider.ApiScope],
-            CancellationToken.None
+            cancellationToken
         );
     }
 
-    private static async Task<string?> GetErrorDescriptionAsync(HttpResponseMessage response)
+    private static async ValueTask<string?> GetErrorDescriptionAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
+    )
     {
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var jsonElement = JsonElement.Parse(body);
         return jsonElement.TryGetProperty("error_description", out var description)
             ? description.GetString()
             : null;
@@ -85,7 +90,7 @@ public class TokenEndpointSecurityProfileTests
         const string clientId = "it-profile-baseline";
 
         using var factory = new HostApplicationFactory();
-        await SeedClientCredentialsClientAsync(factory, clientId, []);
+        await SeedClientCredentialsClientAsync(factory, clientId, [], CancellationToken.None);
 
         var client = CreateClient(factory);
         using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
@@ -103,7 +108,8 @@ public class TokenEndpointSecurityProfileTests
         await SeedClientCredentialsClientAsync(
             factory,
             clientId,
-            [OpenIdConstants.SecurityProfiles.Fapi2]
+            [OpenIdConstants.SecurityProfiles.Fapi2],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);
@@ -111,7 +117,8 @@ public class TokenEndpointSecurityProfileTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
@@ -127,7 +134,8 @@ public class TokenEndpointSecurityProfileTests
         await SeedClientCredentialsClientAsync(
             factory,
             clientId,
-            [OpenIdConstants.SecurityProfiles.Fapi1Advanced]
+            [OpenIdConstants.SecurityProfiles.Fapi1Advanced],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);
@@ -135,7 +143,8 @@ public class TokenEndpointSecurityProfileTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
@@ -149,7 +158,12 @@ public class TokenEndpointSecurityProfileTests
 
         using var factory = new HostApplicationFactory();
         // The store is written directly, past every entry point that would reject the misspelled profile name.
-        await SeedClientCredentialsClientAsync(factory, clientId, ["fapi-2"]);
+        await SeedClientCredentialsClientAsync(
+            factory,
+            clientId,
+            ["fapi-2"],
+            CancellationToken.None
+        );
 
         var client = CreateClient(factory);
         using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
@@ -165,7 +179,7 @@ public class TokenEndpointSecurityProfileTests
         const string clientId = "it-profile-permissive";
 
         using var factory = new ProfiledHostApplicationFactory(PermissiveProfile.Name);
-        await SeedClientCredentialsClientAsync(factory, clientId, []);
+        await SeedClientCredentialsClientAsync(factory, clientId, [], CancellationToken.None);
 
         var client = CreateClient(factory);
         using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
@@ -180,13 +194,13 @@ public class TokenEndpointSecurityProfileTests
         const string clientId = "it-profile-platform-mandated";
 
         using var factory = new ProfiledHostApplicationFactory(RefusingProfile.Name);
-        await SeedClientCredentialsClientAsync(factory, clientId, []);
+        await SeedClientCredentialsClientAsync(factory, clientId, [], CancellationToken.None);
 
         var client = CreateClient(factory);
         using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errorDescription = await GetErrorDescriptionAsync(response);
+        var errorDescription = await GetErrorDescriptionAsync(response, CancellationToken.None);
         Assert.Equal(RefusingRequirement.Description, errorDescription);
     }
 
@@ -196,13 +210,18 @@ public class TokenEndpointSecurityProfileTests
         const string clientId = "it-profile-platform-and-client";
 
         using var factory = new ProfiledHostApplicationFactory(RefusingProfile.Name);
-        await SeedClientCredentialsClientAsync(factory, clientId, [PermissiveProfile.Name]);
+        await SeedClientCredentialsClientAsync(
+            factory,
+            clientId,
+            [PermissiveProfile.Name],
+            CancellationToken.None
+        );
 
         var client = CreateClient(factory);
         using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errorDescription = await GetErrorDescriptionAsync(response);
+        var errorDescription = await GetErrorDescriptionAsync(response, CancellationToken.None);
         Assert.Equal(RefusingRequirement.Description, errorDescription);
     }
 
@@ -217,7 +236,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         var metadata = jsonElement;
         Assert.True(metadata.GetProperty("require_pushed_authorization_requests").GetBoolean());
         var authMethods = metadata
@@ -240,7 +260,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         var metadata = jsonElement;
         Assert.True(metadata.GetProperty("require_pushed_authorization_requests").GetBoolean());
         Assert.True(
@@ -278,7 +299,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.True(jsonElement.GetProperty("require_pushed_authorization_requests").GetBoolean());
     }
 

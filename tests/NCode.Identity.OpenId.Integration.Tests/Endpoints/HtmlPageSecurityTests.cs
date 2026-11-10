@@ -50,15 +50,16 @@ public class HtmlPageSecurityTests
             }
         );
 
-    private static async Task<HttpResponseMessage> GetWithSessionAsync(
+    private static async ValueTask<HttpResponseMessage> GetWithSessionAsync(
         HttpClient client,
         string url,
-        string sessionCookie
+        string sessionCookie,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     private static string? ReadAntiforgeryCookie(HttpResponseMessage response) =>
@@ -164,7 +165,8 @@ public class HtmlPageSecurityTests
         using var authorizeResponse = await GetWithSessionAsync(
             client,
             "/oauth2/authorize" + query,
-            sessionCookie
+            sessionCookie,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, authorizeResponse.StatusCode);
@@ -177,7 +179,8 @@ public class HtmlPageSecurityTests
         using var response = await GetWithSessionAsync(
             client,
             consentUrl.PathAndQuery,
-            sessionCookie
+            sessionCookie,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -235,7 +238,12 @@ public class HtmlPageSecurityTests
             List<string> nonces = [];
             for (var attempt = 0; attempt < 2; attempt++)
             {
-                using var response = await GetWithSessionAsync(client, "/account", sessionCookie);
+                using var response = await GetWithSessionAsync(
+                    client,
+                    "/account",
+                    sessionCookie,
+                    CancellationToken.None
+                );
 
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
                 var policy = AssertFramingForbidden(response);
@@ -296,7 +304,8 @@ public class HtmlPageSecurityTests
         using var response = await GetWithSessionAsync(
             client,
             "/oauth2/authorize" + query,
-            sessionCookie
+            sessionCookie,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

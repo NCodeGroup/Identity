@@ -95,10 +95,11 @@ public class PasswordVerificationTimingTests
             }
         );
 
-    private static async Task<(HttpStatusCode StatusCode, string Body)> RequestTokenAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, string Body)> RequestTokenAsync(
         HttpClient client,
         string userName,
-        string password
+        string password,
+        CancellationToken cancellationToken
     )
     {
         using var content = new FormUrlEncodedContent(
@@ -113,19 +114,23 @@ public class PasswordVerificationTimingTests
             }
         );
 
-        using var response = await client.PostAsync("/oauth2/token", content);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.PostAsync("/oauth2/token", content, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         return (response.StatusCode, body);
     }
 
-    private static async Task AssertSignInRefusedAsync(HttpClient client, string userName)
+    private static async ValueTask AssertSignInRefusedAsync(
+        HttpClient client,
+        string userName,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await InteractiveLogin.SubmitLoginAsync(
             client,
             userName,
             WrongPassword,
             "/foo",
-            CancellationToken.None
+            cancellationToken
         );
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         Assert.Null(InteractiveLogin.ReadSessionCookie(response));
@@ -147,7 +152,12 @@ public class PasswordVerificationTimingTests
         );
         var client = CreateClient(factory);
 
-        var (statusCode, body) = await RequestTokenAsync(client, UnknownUserName, WrongPassword);
+        var (statusCode, body) = await RequestTokenAsync(
+            client,
+            UnknownUserName,
+            WrongPassword,
+            CancellationToken.None
+        );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body);
         Assert.Equal(1, GetHasher(factory).DummyVerificationCount);
@@ -159,7 +169,7 @@ public class PasswordVerificationTimingTests
         using var factory = new RecordingPasswordHasherFactory();
         var client = CreateClient(factory);
 
-        await AssertSignInRefusedAsync(client, UnknownUserName);
+        await AssertSignInRefusedAsync(client, UnknownUserName, CancellationToken.None);
 
         Assert.Equal(1, GetHasher(factory).DummyVerificationCount);
     }
@@ -174,7 +184,7 @@ public class PasswordVerificationTimingTests
         );
         var client = CreateClient(factory);
 
-        await AssertSignInRefusedAsync(client, PasswordlessUserName);
+        await AssertSignInRefusedAsync(client, PasswordlessUserName, CancellationToken.None);
 
         Assert.Equal(1, GetHasher(factory).DummyVerificationCount);
     }
@@ -194,7 +204,7 @@ public class PasswordVerificationTimingTests
         );
         var client = CreateClient(factory);
 
-        await AssertSignInRefusedAsync(client, LimitedUserName);
+        await AssertSignInRefusedAsync(client, LimitedUserName, CancellationToken.None);
 
         Assert.Equal(0, GetHasher(factory).DummyVerificationCount);
 

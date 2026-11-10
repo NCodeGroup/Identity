@@ -55,7 +55,8 @@ public class BffFrontendReloadEndToEndTests
             keySet,
             valueSet,
             indexSet,
-            reloadableConfiguration: reloadable
+            new BffTestHostOptions { ReloadableConfiguration = reloadable },
+            CancellationToken.None
         );
 
         var browser = factory.CreateClient(
@@ -75,22 +76,40 @@ public class BffFrontendReloadEndToEndTests
         const string adminLoginPath = "/admin/bff/login?returnUrl=%2Fadmin";
         const string adminUserPath = "/admin/bff/user";
 
-        using (var absent = await host.SendAsync(HttpMethod.Get, adminLoginPath))
-        {
-            Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
-        }
+        using var absent = await host.SendAsync(
+            HttpMethod.Get,
+            adminLoginPath,
+            [],
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
 
         reloadable.Replace(CreateAdminConfiguration(AdminClientId));
-        await LoginAsync(browser, providerSession, host, adminLoginPath);
-        var adminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        await LoginAsync(browser, providerSession, host, adminLoginPath, CancellationToken.None);
+        var adminUserStatus = await GetStatusAsync(
+            host,
+            adminUserPath,
+            csrf,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, adminUserStatus);
 
         reloadable.Replace(new Dictionary<string, string?>());
-        var removedAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        var removedAdminUserStatus = await GetStatusAsync(
+            host,
+            adminUserPath,
+            csrf,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.NotFound, removedAdminUserStatus);
 
         reloadable.Replace(CreateAdminConfiguration(AdminOtherClientId));
-        var otherClientAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        var otherClientAdminUserStatus = await GetStatusAsync(
+            host,
+            adminUserPath,
+            csrf,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Unauthorized, otherClientAdminUserStatus);
     }
 
@@ -114,16 +133,17 @@ public class BffFrontendReloadEndToEndTests
             [$"{AdminPrefix}:PathPrefix"] = "/admin/bff",
         };
 
-    private static async Task LoginAsync(
+    private static async ValueTask LoginAsync(
         HttpClient browser,
         string providerSession,
         BffTestHost host,
-        string loginPath
+        string loginPath,
+        CancellationToken cancellationToken
     )
     {
         var pathAndQuery =
             $"{loginPath}&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
-        using var login = await host.SendAsync(HttpMethod.Get, pathAndQuery);
+        using var login = await host.SendAsync(HttpMethod.Get, pathAndQuery, [], cancellationToken);
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
         var authorizeUri = login.Headers.Location;
         Assert.NotNull(authorizeUri);
@@ -133,21 +153,27 @@ public class BffFrontendReloadEndToEndTests
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={providerSession}"
         );
-        using var authorize = await browser.SendAsync(authorizeRequest);
+        using var authorize = await browser.SendAsync(authorizeRequest, cancellationToken);
         var callbackUri = authorize.Headers.Location;
         Assert.NotNull(callbackUri);
 
-        using var callback = await host.SendAsync(HttpMethod.Get, callbackUri.PathAndQuery);
+        using var callback = await host.SendAsync(
+            HttpMethod.Get,
+            callbackUri.PathAndQuery,
+            [],
+            cancellationToken
+        );
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
     }
 
-    private static async Task<HttpStatusCode> GetStatusAsync(
+    private static async ValueTask<HttpStatusCode> GetStatusAsync(
         BffTestHost host,
         string path,
-        (string Name, string Value) csrf
+        (string Name, string Value) csrf,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await host.SendAsync(HttpMethod.Get, path, csrf);
+        using var response = await host.SendAsync(HttpMethod.Get, path, [csrf], cancellationToken);
         return response.StatusCode;
     }
 

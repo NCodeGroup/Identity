@@ -31,14 +31,17 @@ public class ManagementOpenApiDocumentTests
 
     #region Helpers
 
-    private static async Task<JsonElement> GetDocumentAsync(HostApplicationFactory factory)
+    private static async ValueTask<JsonElement> GetDocumentAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
+    )
     {
         var client = factory.CreateClient();
 
-        using var response = await client.GetAsync("/openapi/v1.json");
+        using var response = await client.GetAsync("/openapi/v1.json", cancellationToken);
 
         response.EnsureSuccessStatusCode();
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonElement.Parse(body);
     }
 
@@ -67,7 +70,7 @@ public class ManagementOpenApiDocumentTests
     {
         using var factory = new HostApplicationFactory();
 
-        var document = await GetDocumentAsync(factory);
+        var document = await GetDocumentAsync(factory, CancellationToken.None);
 
         var seenPaths = 0;
         foreach (var pathEntry in document.GetProperty("paths").EnumerateObject())
@@ -128,7 +131,7 @@ public class ManagementOpenApiDocumentTests
         const string path = "/api/tenants/{tenantId}/grants";
         using var factory = new HostApplicationFactory();
 
-        var document = await GetDocumentAsync(factory);
+        var document = await GetDocumentAsync(factory, CancellationToken.None);
 
         Assert.Equal(UnauthorizedDescription, GetResponseDescription(document, path, "get", "401"));
         Assert.Equal(
@@ -150,7 +153,7 @@ public class ManagementOpenApiDocumentTests
     {
         using var factory = new HostApplicationFactory();
 
-        var document = await GetDocumentAsync(factory);
+        var document = await GetDocumentAsync(factory, CancellationToken.None);
 
         Assert.Equal(
             "The grant does not exist.",

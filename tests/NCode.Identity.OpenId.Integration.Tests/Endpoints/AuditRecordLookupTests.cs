@@ -42,18 +42,17 @@ public class AuditRecordLookupTests
             ),
         };
 
-    private static async Task SeedAsync(
+    private static async ValueTask SeedAsync(
         HostApplicationFactory factory,
-        params PersistedAuditRecord[] records
+        IReadOnlyList<PersistedAuditRecord> records,
+        CancellationToken cancellationToken
     )
     {
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
-        await storeManager.GetStore<IAuditRecordStore>().AddAsync(records, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
+        await storeManager.GetStore<IAuditRecordStore>().AddAsync(records, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     #region ListAuditRecords Tests
@@ -64,7 +63,11 @@ public class AuditRecordLookupTests
         using var factory = CreateFactory();
         var older = Record(HostApplicationFactory.TenantId, "client-a");
         var newer = Record(HostApplicationFactory.TenantId, "client-b");
-        await SeedAsync(factory, older, newer, Record("another-tenant", "client-a"));
+        await SeedAsync(
+            factory,
+            [older, newer, Record("another-tenant", "client-a")],
+            CancellationToken.None
+        );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -94,7 +97,11 @@ public class AuditRecordLookupTests
     {
         using var factory = CreateFactory();
         var match = Record(HostApplicationFactory.TenantId, "client-a");
-        await SeedAsync(factory, match, Record(HostApplicationFactory.TenantId, "client-b"));
+        await SeedAsync(
+            factory,
+            [match, Record(HostApplicationFactory.TenantId, "client-b")],
+            CancellationToken.None
+        );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );

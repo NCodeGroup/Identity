@@ -71,16 +71,17 @@ public class OpenIdClientEndToEndTests
         return serviceCollection.BuildServiceProvider();
     }
 
-    private static async Task SeedResourceServerAsync(
+    private static async ValueTask SeedResourceServerAsync(
         HostApplicationFactory factory,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     ) =>
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             clientId + "-rs",
             ResourceServerUri,
             [TestPlatformSettingsProvider.ApiScope],
-            CancellationToken.None
+            cancellationToken
         );
 
     private static ClientRegistration CreateSecretPostRegistration(string clientId) =>
@@ -110,7 +111,7 @@ public class OpenIdClientEndToEndTests
             [OpenIdProtocol.GrantTypes.ClientCredentials],
             CancellationToken.None
         );
-        await SeedResourceServerAsync(factory, clientId);
+        await SeedResourceServerAsync(factory, clientId, CancellationToken.None);
 
         await using var provider = CreateClientProvider(
             factory,
@@ -158,7 +159,7 @@ public class OpenIdClientEndToEndTests
             [OpenIdProtocol.GrantTypes.ClientCredentials],
             CancellationToken.None
         );
-        await SeedResourceServerAsync(factory, clientId);
+        await SeedResourceServerAsync(factory, clientId, CancellationToken.None);
 
         await using var provider = CreateClientProvider(factory, CreateSecretKey);
 
@@ -186,7 +187,7 @@ public class OpenIdClientEndToEndTests
             [OpenIdProtocol.GrantTypes.ClientCredentials],
             CancellationToken.None
         );
-        await SeedResourceServerAsync(factory, clientId);
+        await SeedResourceServerAsync(factory, clientId, CancellationToken.None);
 
         await using var provider = CreateClientProvider(factory, CreateSecretKey);
         var registration = CreateSecretPostRegistration(clientId);

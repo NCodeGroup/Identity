@@ -98,14 +98,15 @@ public class AuthorizationRequestClientEndToEndTests
             },
         };
 
-    private static async Task<AuthorizationRequestResult> PushAsync(
+    private static async ValueTask<AuthorizationRequestResult> PushAsync(
         ServiceProvider provider,
         ClientRegistration registration,
-        AuthorizationRequest request
+        AuthorizationRequest request,
+        CancellationToken cancellationToken
     ) =>
         await provider
             .GetRequiredService<IAuthorizationRequestClient>()
-            .CreateAuthorizationUriAsync(registration, request, CancellationToken.None);
+            .CreateAuthorizationUriAsync(registration, request, cancellationToken);
 
     // RFC 9126 §2.1, §2.2 and §4: one 201 push whose body carries client_id once and no request_uri, and an
     // authorization URL that carries only the client_id and the request_uri.
@@ -142,12 +143,13 @@ public class AuthorizationRequestClientEndToEndTests
 
     // Follows the authorization URL as the signed-in end-user's browser, then
     // redeems the code with the client and the verifier of the request.
-    private static async Task AssertCodeFlowCompletesAsync(
+    private static async ValueTask AssertCodeFlowCompletesAsync(
         HostApplicationFactory factory,
         ServiceProvider provider,
         ClientRegistration registration,
         AuthorizationRequest request,
-        AuthorizationRequestResult result
+        AuthorizationRequestResult result,
+        CancellationToken cancellationToken
     )
     {
         Assert.NotNull(result.AuthorizationUri);
@@ -162,7 +164,7 @@ public class AuthorizationRequestClientEndToEndTests
             browser,
             UserName,
             Password,
-            CancellationToken.None
+            cancellationToken
         );
 
         using var authorizeRequest = new HttpRequestMessage(
@@ -173,7 +175,7 @@ public class AuthorizationRequestClientEndToEndTests
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={sessionCookie}"
         );
-        using var authorizeResponse = await browser.SendAsync(authorizeRequest);
+        using var authorizeResponse = await browser.SendAsync(authorizeRequest, cancellationToken);
 
         var location = authorizeResponse.Headers.Location;
         Assert.NotNull(location);
@@ -191,7 +193,7 @@ public class AuthorizationRequestClientEndToEndTests
             .RequestTokenAsync(
                 registration,
                 new AuthorizationCodeTokenRequest(code, request.RedirectUri, request.CodeVerifier),
-                CancellationToken.None
+                cancellationToken
             );
 
         Assert.True(tokenResult.IsSuccess, tokenResult.Error?.ToString());
@@ -226,11 +228,18 @@ public class AuthorizationRequestClientEndToEndTests
         );
         var request = CreateAuthorizationRequest();
 
-        var result = await PushAsync(provider, registration, request);
+        var result = await PushAsync(provider, registration, request, CancellationToken.None);
 
         var push = AssertPushed(result, exchanges, clientId);
         Assert.Equal("Basic", push.AuthorizationScheme);
-        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
+        await AssertCodeFlowCompletesAsync(
+            factory,
+            provider,
+            registration,
+            request,
+            result,
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -256,13 +265,20 @@ public class AuthorizationRequestClientEndToEndTests
         );
         var request = CreateAuthorizationRequest();
 
-        var result = await PushAsync(provider, registration, request);
+        var result = await PushAsync(provider, registration, request, CancellationToken.None);
 
         var push = AssertPushed(result, exchanges, clientId);
         Assert.Null(push.AuthorizationScheme);
         var body = HttpUtility.ParseQueryString(push.Body ?? string.Empty);
         Assert.Equal(ClientSecret, body[OpenIdProtocol.Parameters.ClientSecret]);
-        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
+        await AssertCodeFlowCompletesAsync(
+            factory,
+            provider,
+            registration,
+            request,
+            result,
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -307,7 +323,7 @@ public class AuthorizationRequestClientEndToEndTests
         );
         var request = CreateAuthorizationRequest();
 
-        var result = await PushAsync(provider, registration, request);
+        var result = await PushAsync(provider, registration, request, CancellationToken.None);
 
         var push = AssertPushed(result, exchanges, clientId);
         Assert.Null(push.AuthorizationScheme);
@@ -316,7 +332,14 @@ public class AuthorizationRequestClientEndToEndTests
             OpenIdProtocol.ClientAssertionTypes.JwtBearer,
             body[OpenIdProtocol.Parameters.ClientAssertionType]
         );
-        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
+        await AssertCodeFlowCompletesAsync(
+            factory,
+            provider,
+            registration,
+            request,
+            result,
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -353,10 +376,17 @@ public class AuthorizationRequestClientEndToEndTests
         Assert.True(metadata.RequirePushedAuthorizationRequests);
         var request = CreateAuthorizationRequest();
 
-        var result = await PushAsync(provider, registration, request);
+        var result = await PushAsync(provider, registration, request, CancellationToken.None);
 
         AssertPushed(result, exchanges, clientId);
-        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
+        await AssertCodeFlowCompletesAsync(
+            factory,
+            provider,
+            registration,
+            request,
+            result,
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -390,10 +420,17 @@ public class AuthorizationRequestClientEndToEndTests
         Assert.False(metadata.RequirePushedAuthorizationRequests);
         var request = CreateAuthorizationRequest();
 
-        var result = await PushAsync(provider, registration, request);
+        var result = await PushAsync(provider, registration, request, CancellationToken.None);
 
         AssertPushed(result, exchanges, clientId);
-        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
+        await AssertCodeFlowCompletesAsync(
+            factory,
+            provider,
+            registration,
+            request,
+            result,
+            CancellationToken.None
+        );
     }
 
     #endregion

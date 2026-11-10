@@ -44,38 +44,45 @@ public class BffRefreshEndToEndTests
         {
             ["Bff:Tokens:RefreshBeforeExpiry"] = "01:00:00",
         };
+        var options = new BffTestHostOptions
+        {
+            ExtraConfiguration = configuration,
+            Exchanges = exchanges,
+        };
         await using var hostA = await BffTestHost.StartAsync(
             factory,
             keySet,
             valueSet,
             indexSet,
-            configuration,
-            exchanges
+            options,
+            CancellationToken.None
         );
         await using var hostB = await BffTestHost.StartAsync(
             factory,
             keySet,
             valueSet,
             indexSet,
-            configuration,
-            exchanges
+            options,
+            CancellationToken.None
         );
 
-        await LoginAsync(factory, hostA);
+        await LoginAsync(factory, hostA, CancellationToken.None);
         hostB.CopyCookiesFrom(hostA);
 
         var csrf = (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue);
         var calls = new List<Task<HttpStatusCode>>();
         for (var i = 0; i < CallsPerHost; i++)
         {
-            calls.Add(GetStatusAsync(hostA, csrf));
-            calls.Add(GetStatusAsync(hostB, csrf));
+            var callA = GetStatusAsync(hostA, csrf, CancellationToken.None).AsTask();
+            var callB = GetStatusAsync(hostB, csrf, CancellationToken.None).AsTask();
+            calls.Add(callA);
+            calls.Add(callB);
         }
 
         var statuses = await Task.WhenAll(calls);
         Assert.All(statuses, status => Assert.Equal(HttpStatusCode.OK, status));
 
-        var further = await GetStatusAsync(hostA, csrf);
+        var further = await GetStatusAsync(hostA, csrf, CancellationToken.None);
         Assert.Equal(HttpStatusCode.OK, further);
 
         var tokenExchanges = exchanges
@@ -102,16 +109,26 @@ public class BffRefreshEndToEndTests
 
     #region Scaffolding
 
-    private static async Task<HttpStatusCode> GetStatusAsync(
+    private static async ValueTask<HttpStatusCode> GetStatusAsync(
         BffTestHost host,
-        (string Name, string Value) csrf
+        (string Name, string Value) csrf,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await host.SendAsync(HttpMethod.Get, BffTestHost.ApiTokenPath, csrf);
+        using var response = await host.SendAsync(
+            HttpMethod.Get,
+            BffTestHost.ApiTokenPath,
+            [csrf],
+            cancellationToken
+        );
         return response.StatusCode;
     }
 
-    private static async Task LoginAsync(HostApplicationFactory factory, BffTestHost host)
+    private static async ValueTask LoginAsync(
+        HostApplicationFactory factory,
+        BffTestHost host,
+        CancellationToken cancellationToken
+    )
     {
         var browser = factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -124,12 +141,12 @@ public class BffRefreshEndToEndTests
             browser,
             UserName,
             Password,
-            CancellationToken.None
+            cancellationToken
         );
 
         var loginPath =
             $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
-        using var login = await host.SendAsync(HttpMethod.Get, loginPath);
+        using var login = await host.SendAsync(HttpMethod.Get, loginPath, [], cancellationToken);
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
         var authorizeUri = login.Headers.Location;
         Assert.NotNull(authorizeUri);
@@ -139,11 +156,16 @@ public class BffRefreshEndToEndTests
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={providerSession}"
         );
-        using var authorize = await browser.SendAsync(authorizeRequest);
+        using var authorize = await browser.SendAsync(authorizeRequest, cancellationToken);
         var callbackUri = authorize.Headers.Location;
         Assert.NotNull(callbackUri);
 
-        using var callback = await host.SendAsync(HttpMethod.Get, callbackUri.PathAndQuery);
+        using var callback = await host.SendAsync(
+            HttpMethod.Get,
+            callbackUri.PathAndQuery,
+            [],
+            cancellationToken
+        );
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
     }
 

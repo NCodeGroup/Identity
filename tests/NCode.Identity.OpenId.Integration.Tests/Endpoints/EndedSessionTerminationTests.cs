@@ -29,10 +29,11 @@ public class EndedSessionTerminationTests
 
     #region Helpers
 
-    private static async Task<string> GetCodeAsync(
+    private static async ValueTask<string> GetCodeAsync(
         HttpClient client,
         string sessionCookie,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -47,7 +48,7 @@ public class EndedSessionTerminationTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, cancellationToken);
 
         var location = response.Headers.Location;
         Assert.NotNull(location);
@@ -58,9 +59,10 @@ public class EndedSessionTerminationTests
         return code;
     }
 
-    private static async Task<(HttpStatusCode StatusCode, JsonElement Body)> PostTokenAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, JsonElement Body)> PostTokenAsync(
         HttpClient client,
-        Dictionary<string, string> form
+        Dictionary<string, string> form,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
@@ -68,22 +70,27 @@ public class EndedSessionTerminationTests
             Content = new FormUrlEncodedContent(form),
         };
 
-        using var response = await client.SendAsync(request);
-        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        var body = JsonElement.Parse(responseBody);
         return (response.StatusCode, body);
     }
 
     // Signs in, authorizes and redeems the code for the refresh token of the new session.
-    private static async Task<string> IssueRefreshTokenAsync(HttpClient client, string clientId)
+    private static async ValueTask<string> IssueRefreshTokenAsync(
+        HttpClient client,
+        string clientId,
+        CancellationToken cancellationToken
+    )
     {
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
-            CancellationToken.None
+            cancellationToken
         );
 
-        var code = await GetCodeAsync(client, sessionCookie, clientId);
+        var code = await GetCodeAsync(client, sessionCookie, clientId, cancellationToken);
         var (statusCode, body) = await PostTokenAsync(
             client,
             new Dictionary<string, string>
@@ -93,7 +100,8 @@ public class EndedSessionTerminationTests
                 ["code"] = code,
                 ["redirect_uri"] = RedirectUri,
                 ["code_verifier"] = TestPkce.CodeVerifier,
-            }
+            },
+            cancellationToken
         );
         Assert.True(statusCode == HttpStatusCode.OK, body.ToString());
 
@@ -104,39 +112,42 @@ public class EndedSessionTerminationTests
 
     // Ends the only session by moving its expiration into the past, as if no request used it until it ended, and
     // returns the identifier of its grant.
-    private static async Task<string> EndTheSessionAsync(IServiceProvider services)
+    private static async ValueTask<string> EndTheSessionAsync(
+        IServiceProvider services,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
 
         var page = await store.GetPageAsync(
             new GrantFilter { GrantType = OpenIdConstants.PersistedGrantTypes.Session },
             new PageRequest { Limit = 10 },
-            CancellationToken.None
+            cancellationToken
         );
         var session = Assert.Single(page.Items);
         Assert.Null(session.RevokedWhen);
 
         session.ExpiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1);
-        await store.UpdateAsync(session, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await store.UpdateAsync(session, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
 
         return session.GrantId;
     }
 
-    private static async Task<PersistedGrant?> FindAsync(IServiceProvider services, string grantId)
+    private static async ValueTask<PersistedGrant?> FindAsync(
+        IServiceProvider services,
+        string grantId,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
-        return await store.GetOrDefaultAsync(grantId, CancellationToken.None);
+        return await store.GetOrDefaultAsync(grantId, cancellationToken);
     }
 
     #endregion
@@ -165,20 +176,23 @@ public class EndedSessionTerminationTests
             }
         );
 
-        var refreshToken = await IssueRefreshTokenAsync(client, clientId);
+        var refreshToken = await IssueRefreshTokenAsync(client, clientId, CancellationToken.None);
 
-        var grantId = await EndTheSessionAsync(host.Services);
+        var grantId = await EndTheSessionAsync(host.Services, CancellationToken.None);
 
         var stopwatch = Stopwatch.StartNew();
         while (stopwatch.Elapsed < PollTimeout)
         {
-            if ((await FindAsync(host.Services, grantId))?.RevokedWhen is not null)
+            if (
+                (await FindAsync(host.Services, grantId, CancellationToken.None))?.RevokedWhen
+                is not null
+            )
                 break;
 
             await Task.Delay(PollInterval);
         }
 
-        var session = await FindAsync(host.Services, grantId);
+        var session = await FindAsync(host.Services, grantId, CancellationToken.None);
         Assert.NotNull(session);
         Assert.NotNull(session.RevokedWhen);
 
@@ -189,7 +203,8 @@ public class EndedSessionTerminationTests
                 ["grant_type"] = "refresh_token",
                 ["client_id"] = clientId,
                 ["refresh_token"] = refreshToken,
-            }
+            },
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.BadRequest, statusCode);
         Assert.Equal("invalid_grant", body.GetProperty("error").GetString());

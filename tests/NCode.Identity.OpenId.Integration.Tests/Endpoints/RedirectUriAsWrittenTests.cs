@@ -32,12 +32,13 @@ public class RedirectUriAsWrittenTests
             }
         );
 
-    private static async Task<HttpResponseMessage> AuthorizeAsync(
+    private static async ValueTask<HttpResponseMessage> AuthorizeAsync(
         HttpClient client,
         string? sessionCookie,
         string clientId,
         string redirectUri,
-        string extraQuery
+        string extraQuery,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -55,14 +56,15 @@ public class RedirectUriAsWrittenTests
             request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
         }
 
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<HttpResponseMessage> ContinueAsync(
+    private static async ValueTask<HttpResponseMessage> ContinueAsync(
         HttpClient client,
         string sessionCookie,
         string clientId,
-        string redirectUri
+        string redirectUri,
+        CancellationToken cancellationToken
     )
     {
         using var authorizeResponse = await AuthorizeAsync(
@@ -70,7 +72,8 @@ public class RedirectUriAsWrittenTests
             sessionCookie: null,
             clientId,
             redirectUri,
-            extraQuery: string.Empty
+            extraQuery: string.Empty,
+            cancellationToken
         );
 
         Assert.Equal(HttpStatusCode.Found, authorizeResponse.StatusCode);
@@ -82,17 +85,18 @@ public class RedirectUriAsWrittenTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, continueUrl);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        var continueResponse = await client.SendAsync(request);
+        var continueResponse = await client.SendAsync(request, cancellationToken);
 
         Assert.Equal(HttpStatusCode.SeeOther, continueResponse.StatusCode);
         return continueResponse;
     }
 
-    private static async Task<(HttpStatusCode StatusCode, JsonElement Body)> RedeemAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, JsonElement Body)> RedeemAsync(
         HttpClient client,
         string clientId,
         string code,
-        string redirectUri
+        string redirectUri,
+        CancellationToken cancellationToken
     )
     {
         var form = new Dictionary<string, string>
@@ -106,8 +110,9 @@ public class RedirectUriAsWrittenTests
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token");
         request.Content = new FormUrlEncodedContent(form);
 
-        using var response = await client.SendAsync(request);
-        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        var body = JsonElement.Parse(responseBody);
         return (response.StatusCode, body);
     }
 
@@ -132,7 +137,8 @@ public class RedirectUriAsWrittenTests
             sessionCookie: null,
             clientId,
             PrivateUseRedirectUri,
-            extraQuery: "&prompt=none"
+            extraQuery: "&prompt=none",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
@@ -168,7 +174,8 @@ public class RedirectUriAsWrittenTests
             client,
             sessionCookie,
             clientId,
-            PrivateUseRedirectUri
+            PrivateUseRedirectUri,
+            CancellationToken.None
         );
 
         var location = response.Headers.Location;
@@ -181,7 +188,13 @@ public class RedirectUriAsWrittenTests
         var code = HttpUtility.ParseQueryString(location.Query)["code"];
         Assert.True(!string.IsNullOrEmpty(code), location.OriginalString);
 
-        var (statusCode, body) = await RedeemAsync(client, clientId, code, PrivateUseRedirectUri);
+        var (statusCode, body) = await RedeemAsync(
+            client,
+            clientId,
+            code,
+            PrivateUseRedirectUri,
+            CancellationToken.None
+        );
 
         Assert.True(statusCode == HttpStatusCode.OK, body.ToString());
     }
@@ -210,14 +223,21 @@ public class RedirectUriAsWrittenTests
             client,
             sessionCookie,
             clientId,
-            PrivateUseRedirectUri
+            PrivateUseRedirectUri,
+            CancellationToken.None
         );
         var location = response.Headers.Location;
         Assert.NotNull(location);
         var code = HttpUtility.ParseQueryString(location.Query)["code"];
         Assert.True(!string.IsNullOrEmpty(code), location.OriginalString);
 
-        var (statusCode, body) = await RedeemAsync(client, clientId, code, normalizedRedirectUri);
+        var (statusCode, body) = await RedeemAsync(
+            client,
+            clientId,
+            code,
+            normalizedRedirectUri,
+            CancellationToken.None
+        );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body.ToString());
         Assert.Equal("invalid_grant", body.GetProperty("error").GetString());
@@ -244,14 +264,21 @@ public class RedirectUriAsWrittenTests
             sessionCookie,
             clientId,
             WebRedirectUri,
-            extraQuery: "&prompt=none"
+            extraQuery: "&prompt=none",
+            CancellationToken.None
         );
         var location = response.Headers.Location;
         Assert.NotNull(location);
         var code = HttpUtility.ParseQueryString(location.Query)["code"];
         Assert.True(!string.IsNullOrEmpty(code), location.OriginalString);
 
-        var (statusCode, body) = await RedeemAsync(client, clientId, code, hostCaseRedirectUri);
+        var (statusCode, body) = await RedeemAsync(
+            client,
+            clientId,
+            code,
+            hostCaseRedirectUri,
+            CancellationToken.None
+        );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body.ToString());
         Assert.Equal("invalid_grant", body.GetProperty("error").GetString());

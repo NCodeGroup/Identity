@@ -23,6 +23,9 @@ public class TenantUsageTests
 {
     private const string UsagePath = $"/api/tenants/{HostApplicationFactory.TenantId}/usage";
 
+    private static IReadOnlyDictionary<string, string?> NoSettings { get; } =
+        new Dictionary<string, string?>();
+
     #region Helpers
 
     private static WebApplicationFactory<HostApiMarker> CreateFactory(
@@ -37,33 +40,34 @@ public class TenantUsageTests
         );
 
     private static BootstrapAdminApplicationFactory CreateHost(
-        IReadOnlyDictionary<string, string?>? settings = null
+        IReadOnlyDictionary<string, string?> settings
     )
     {
         var configuration = new Dictionary<string, string?>();
-        foreach (var (name, value) in settings ?? new Dictionary<string, string?>())
+        foreach (var (name, value) in settings)
             configuration[$"OpenId:Platform:Settings:{name}"] = value;
 
         return new BootstrapAdminApplicationFactory(configuration);
     }
 
     // The ledger is written by the periodic flush, so poll until the meter reaches the expected count.
-    private static async Task<JsonElement> WaitForUsageAsync(
+    private static async ValueTask<JsonElement> WaitForUsageAsync(
         HttpClient administrator,
         string meter,
-        long expected
+        long expected,
+        CancellationToken cancellationToken
     )
     {
         var deadline = DateTime.UtcNow.AddSeconds(30);
         while (true)
         {
-            using var response = await administrator.GetAsync(UsagePath);
-            var body = await response.Content.ReadAsStringAsync();
+            using var response = await administrator.GetAsync(UsagePath, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
             Assert.True(response.StatusCode == HttpStatusCode.OK, body);
             var usage = JsonElement.Parse(body);
             if (GetCount(usage, meter) >= expected || DateTime.UtcNow > deadline)
                 return usage;
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
         }
     }
 
@@ -71,7 +75,10 @@ public class TenantUsageTests
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
     // An anonymous token request is metered: the endpoint rejects it, but no rate limit or quota refuses it.
-    private static async Task<HttpStatusCode> PostAnonymousTokenRequestAsync(HttpClient client)
+    private static async ValueTask<HttpStatusCode> PostAnonymousTokenRequestAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
@@ -79,7 +86,7 @@ public class TenantUsageTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
             }
         );
-        using var response = await client.PostAsync("/oauth2/token", content);
+        using var response = await client.PostAsync("/oauth2/token", content, cancellationToken);
         return response.StatusCode;
     }
 
@@ -97,7 +104,7 @@ public class TenantUsageTests
     [Fact]
     public async Task GetUsage_AfterAdmittedRequests_ReturnsTheFlushedCounts()
     {
-        using var host = CreateHost();
+        using var host = CreateHost(NoSettings);
         using var factory = CreateFactory(host);
         using var administrator =
             await BootstrapAdminApplicationFactory.TokenRequest.CreateClientAsync(
@@ -108,7 +115,10 @@ public class TenantUsageTests
 
         for (var i = 0; i < 3; ++i)
         {
-            var anonymousStatusCode = await PostAnonymousTokenRequestAsync(client);
+            var anonymousStatusCode = await PostAnonymousTokenRequestAsync(
+                client,
+                CancellationToken.None
+            );
             Assert.NotEqual(HttpStatusCode.TooManyRequests, anonymousStatusCode);
         }
 
@@ -160,18 +170,31 @@ public class TenantUsageTests
         // The administrator's token request spent the first of the two requests the quota allows; the first anonymous
         // token request spends the second, the next two are admitted as overage, and the overage ceiling refuses the
         // last. Discovery is public metadata, so it spends neither (ADR-1198).
-        using (var discovery = await client.GetAsync("/.well-known/openid-configuration"))
-            Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
+        using var discovery = await client.GetAsync("/.well-known/openid-configuration");
+        Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
 
         var statusCodes = new List<HttpStatusCode>();
         for (var i = 0; i < 4; ++i)
-            statusCodes.Add(await PostAnonymousTokenRequestAsync(client));
+        {
+            var statusCode = await PostAnonymousTokenRequestAsync(client, CancellationToken.None);
+            statusCodes.Add(statusCode);
+        }
 
         Assert.DoesNotContain(HttpStatusCode.TooManyRequests, statusCodes[..3]);
         Assert.Equal(HttpStatusCode.TooManyRequests, statusCodes[3]);
 
-        var usage = await WaitForUsageAsync(administrator, TenantUsageMeters.Requests, 4);
-        usage = await WaitForUsageAsync(administrator, TenantUsageMeters.RequestsOverage, 2);
+        var usage = await WaitForUsageAsync(
+            administrator,
+            TenantUsageMeters.Requests,
+            4,
+            CancellationToken.None
+        );
+        usage = await WaitForUsageAsync(
+            administrator,
+            TenantUsageMeters.RequestsOverage,
+            2,
+            CancellationToken.None
+        );
         Assert.Equal(4, GetCount(usage, TenantUsageMeters.Requests));
         Assert.Equal(2, GetCount(usage, TenantUsageMeters.RequestsOverage));
     }
@@ -193,16 +216,29 @@ public class TenantUsageTests
         var client = CreateClient(factory);
 
         using var refusedRequest = BootstrapAdminApplicationFactory.TokenRequest.CreateMessage();
-        using (var refused = await client.SendAsync(refusedRequest))
-            Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
-        var anonymousStatusCode = await PostAnonymousTokenRequestAsync(client);
+        using var refused = await client.SendAsync(refusedRequest);
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        var anonymousStatusCode = await PostAnonymousTokenRequestAsync(
+            client,
+            CancellationToken.None
+        );
         Assert.NotEqual(HttpStatusCode.TooManyRequests, anonymousStatusCode);
 
         // The administrator's token request and the anonymous one are usage; the refused request is not. Wait for both,
         // then for a few more flushes, so a recorded refusal would have reached the ledger too.
-        await WaitForUsageAsync(administrator, TenantUsageMeters.Requests, 2);
+        await WaitForUsageAsync(
+            administrator,
+            TenantUsageMeters.Requests,
+            2,
+            CancellationToken.None
+        );
         await Task.Delay(TimeSpan.FromMilliseconds(500));
-        var usage = await WaitForUsageAsync(administrator, TenantUsageMeters.Requests, 2);
+        var usage = await WaitForUsageAsync(
+            administrator,
+            TenantUsageMeters.Requests,
+            2,
+            CancellationToken.None
+        );
         Assert.Equal(2, GetCount(usage, TenantUsageMeters.Requests));
         Assert.Equal(1, GetCount(usage, TenantUsageMeters.TokenRequests));
     }
@@ -210,7 +246,7 @@ public class TenantUsageTests
     [Fact]
     public async Task GetUsage_WhenTheRangeIsReversed_ReturnsValidationProblem()
     {
-        using var host = CreateHost();
+        using var host = CreateHost(NoSettings);
         using var factory = CreateFactory(host);
         using var administrator =
             await BootstrapAdminApplicationFactory.TokenRequest.CreateClientAsync(
@@ -230,7 +266,7 @@ public class TenantUsageTests
     [Fact]
     public async Task GetUsage_WhenAnonymous_ReturnsUnauthorized()
     {
-        using var host = CreateHost();
+        using var host = CreateHost(NoSettings);
         using var factory = CreateFactory(host);
         var client = CreateClient(factory);
 
@@ -249,12 +285,15 @@ public class TenantUsageTests
         // The default one-minute flush interval means only the final flush at the host's stop writes the ledger. The
         // factory shares its in-memory database with the host it derives, so the parent factory reads what the stopped
         // host added.
-        using var host = CreateHost();
+        using var host = CreateHost(NoSettings);
         var recordingHost = host.WithWebHostBuilder(_ => { });
         var client = CreateClient(recordingHost);
         for (var i = 0; i < 3; ++i)
         {
-            var anonymousStatusCode = await PostAnonymousTokenRequestAsync(client);
+            var anonymousStatusCode = await PostAnonymousTokenRequestAsync(
+                client,
+                CancellationToken.None
+            );
             Assert.NotEqual(HttpStatusCode.TooManyRequests, anonymousStatusCode);
         }
 

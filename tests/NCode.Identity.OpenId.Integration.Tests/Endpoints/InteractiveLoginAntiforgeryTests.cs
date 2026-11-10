@@ -45,13 +45,15 @@ public class InteractiveLoginAntiforgeryTests
 
         var (firstRequestToken, firstCookieToken) = await GetAntiforgeryTokensAsync(
             client,
-            sessionCookie: null
+            sessionCookie: null,
+            CancellationToken.None
         );
         using var firstLogin = await PostLoginAsync(
             client,
             firstRequestToken,
             firstCookieToken,
-            sessionCookie: null
+            sessionCookie: null,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, firstLogin.StatusCode);
@@ -60,13 +62,15 @@ public class InteractiveLoginAntiforgeryTests
 
         var (secondRequestToken, secondCookieToken) = await GetAntiforgeryTokensAsync(
             client,
-            (InteractiveCookieName, sessionCookie)
+            (InteractiveCookieName, sessionCookie),
+            CancellationToken.None
         );
         using var secondLogin = await PostLoginAsync(
             client,
             secondRequestToken,
             secondCookieToken,
-            (InteractiveCookieName, sessionCookie)
+            (InteractiveCookieName, sessionCookie),
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, secondLogin.StatusCode);
@@ -100,10 +104,14 @@ public class InteractiveLoginAntiforgeryTests
         Assert.Contains("secure", attributes);
     }
 
-    private static async Task<(
+    private static async ValueTask<(
         string? RequestToken,
         string? CookieToken
-    )> GetAntiforgeryTokensAsync(HttpClient client, (string Name, string? Value)? sessionCookie)
+    )> GetAntiforgeryTokensAsync(
+        HttpClient client,
+        (string Name, string? Value)? sessionCookie,
+        CancellationToken cancellationToken
+    )
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
@@ -111,21 +119,22 @@ public class InteractiveLoginAntiforgeryTests
         );
         AppendCookies(request, sessionCookie);
 
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, cancellationToken);
 
         var requestToken = ReadSetCookieValue(response, AntiforgeryRequestCookieName);
         var cookieToken = ReadSetCookieRaw(response, AntiforgeryCookiePrefix);
         return (requestToken, cookieToken);
     }
 
-    private static Task<HttpResponseMessage> PostLoginAsync(
+    private static async ValueTask<HttpResponseMessage> PostLoginAsync(
         HttpClient client,
         string? requestToken,
         string? cookieToken,
-        (string Name, string? Value)? sessionCookie
+        (string Name, string? Value)? sessionCookie,
+        CancellationToken cancellationToken
     )
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/account/login");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/account/login");
 
         var cookies = new List<string>();
         if (cookieToken is not null)
@@ -152,7 +161,7 @@ public class InteractiveLoginAntiforgeryTests
             }
         );
 
-        return client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     private static void AppendCookies(

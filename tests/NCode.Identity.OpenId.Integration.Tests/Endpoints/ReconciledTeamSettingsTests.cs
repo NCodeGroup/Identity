@@ -37,10 +37,11 @@ public class ReconciledTeamSettingsTests
         await PatchPlatformSettingAsync(
             administrator,
             OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
-            ["RS256"]
+            ["RS256"],
+            CancellationToken.None
         );
 
-        var team = await WaitForReconciledTeamAsync(factory);
+        var team = await WaitForReconciledTeamAsync(factory, CancellationToken.None);
 
         Assert.NotNull(team);
         Assert.NotNull(team.ReconciledSettingsFingerprint);
@@ -68,10 +69,11 @@ public class ReconciledTeamSettingsTests
 
     private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
-    private static async Task PatchPlatformSettingAsync(
+    private static async ValueTask PatchPlatformSettingAsync(
         HttpClient administrator,
         string settingName,
-        string[] values
+        string[] values,
+        CancellationToken cancellationToken
     )
     {
         var operations = new[]
@@ -92,25 +94,26 @@ public class ReconciledTeamSettingsTests
             ),
         };
 
-        using var response = await administrator.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await administrator.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
     }
 
     // The reconciliation of a team's settings runs in the background, so the record arrives after the write returns.
-    private static async Task<PersistedTeam?> WaitForReconciledTeamAsync(
-        HostApplicationFactory factory
+    private static async ValueTask<PersistedTeam?> WaitForReconciledTeamAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
     )
     {
         var stopwatch = Stopwatch.StartNew();
-        var team = await GetTeamAsync(factory);
+        var team = await GetTeamAsync(factory, cancellationToken);
         while (
             !RecordsTheChange(team?.ReconciledSettings)
             && stopwatch.Elapsed < TimeSpan.FromSeconds(15)
         )
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-            team = await GetTeamAsync(factory);
+            await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
+            team = await GetTeamAsync(factory, cancellationToken);
         }
 
         return team;
@@ -124,15 +127,18 @@ public class ReconciledTeamSettingsTests
         )
         && algorithms.GetArrayLength() == 1;
 
-    private static async Task<PersistedTeam?> GetTeamAsync(HostApplicationFactory factory)
+    private static async ValueTask<PersistedTeam?> GetTeamAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
+    )
     {
         using var serviceScope = factory.Services.CreateScope();
         await using var storeManager = await serviceScope
             .ServiceProvider.GetRequiredService<IStoreManagerFactory>()
-            .CreateAsync(CancellationToken.None);
+            .CreateAsync(cancellationToken);
         return await storeManager
             .GetStore<ITeamStore>()
-            .GetOrDefaultAsync(TeamId, CancellationToken.None);
+            .GetOrDefaultAsync(TeamId, cancellationToken);
     }
 
     #endregion

@@ -63,24 +63,26 @@ public class RateLimitTests
             }
         );
 
-    private static async Task<HttpResponseMessage> GetDiscoveryAsync(
+    private static async ValueTask<HttpResponseMessage> GetDiscoveryAsync(
         HttpClient client,
-        string? partition
+        string? partition,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, DiscoveryPath);
         if (partition is not null)
             request.Headers.Add(TestPartitionHeaderName, partition);
 
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task AssertTooManyRequestsAsync(
+    private static async ValueTask AssertTooManyRequestsAsync(
         HttpResponseMessage response,
-        TimeSpan maxRetryAfter
+        TimeSpan maxRetryAfter,
+        CancellationToken cancellationToken
     )
     {
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.TooManyRequests, body);
         var retryAfter = response.Headers.RetryAfter?.Delta;
         Assert.NotNull(retryAfter);
@@ -120,7 +122,11 @@ public class RateLimitTests
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
 
-        await AssertTooManyRequestsAsync(response, TimeSpan.FromSeconds(120));
+        await AssertTooManyRequestsAsync(
+            response,
+            TimeSpan.FromSeconds(120),
+            CancellationToken.None
+        );
     }
 
     #endregion
@@ -144,7 +150,7 @@ public class RateLimitTests
 
         using var response = await client.PostAsync(TokenPath, AnonymousBody());
 
-        await AssertTooManyRequestsAsync(response, TimeSpan.FromDays(1));
+        await AssertTooManyRequestsAsync(response, TimeSpan.FromDays(1), CancellationToken.None);
     }
 
     [Fact]
@@ -185,7 +191,7 @@ public class RateLimitTests
         using var second = await client.PostAsync(TokenPath, ConfidentialBody());
 
         Assert.NotEqual(HttpStatusCode.TooManyRequests, first.StatusCode);
-        await AssertTooManyRequestsAsync(second, TimeSpan.FromDays(1));
+        await AssertTooManyRequestsAsync(second, TimeSpan.FromDays(1), CancellationToken.None);
     }
 
     [Fact]
@@ -228,16 +234,16 @@ public class RateLimitTests
         using var factory = new RegisteredLimitApplicationFactory();
         var client = CreateClient(factory);
 
-        using var first = await GetDiscoveryAsync(client, "a");
+        using var first = await GetDiscoveryAsync(client, "a", CancellationToken.None);
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
 
-        using var second = await GetDiscoveryAsync(client, "a");
-        await AssertTooManyRequestsAsync(second, TimeSpan.FromSeconds(120));
+        using var second = await GetDiscoveryAsync(client, "a", CancellationToken.None);
+        await AssertTooManyRequestsAsync(second, TimeSpan.FromSeconds(120), CancellationToken.None);
 
-        using var otherPartition = await GetDiscoveryAsync(client, "b");
+        using var otherPartition = await GetDiscoveryAsync(client, "b", CancellationToken.None);
         Assert.Equal(HttpStatusCode.OK, otherPartition.StatusCode);
 
-        using var noPartition = await GetDiscoveryAsync(client, null);
+        using var noPartition = await GetDiscoveryAsync(client, null, CancellationToken.None);
         Assert.Equal(HttpStatusCode.OK, noPartition.StatusCode);
     }
 

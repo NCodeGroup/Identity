@@ -49,7 +49,14 @@ public class BffBackChannelLogoutEndToEndTests
             CancellationToken.None
         );
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
-        await using var host = await BffTestHost.StartAsync(factory, keySet, valueSet, indexSet);
+        await using var host = await BffTestHost.StartAsync(
+            factory,
+            keySet,
+            valueSet,
+            indexSet,
+            new BffTestHostOptions(),
+            CancellationToken.None
+        );
 
         var browser = CreateBrowser(factory);
         var providerSession = await InteractiveLogin.SignInAsync(
@@ -58,25 +65,37 @@ public class BffBackChannelLogoutEndToEndTests
             Password,
             CancellationToken.None
         );
-        await LoginAsync(browser, providerSession, host);
+        await LoginAsync(browser, providerSession, host, CancellationToken.None);
 
         var csrf = (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue);
         var userPath = $"{BffDefaults.EndpointPrefix}/user";
-        using (var before = await host.SendAsync(HttpMethod.Get, userPath, csrf))
-        {
-            Assert.Equal(HttpStatusCode.OK, before.StatusCode);
-        }
+        using var before = await host.SendAsync(
+            HttpMethod.Get,
+            userPath,
+            [csrf],
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.OK, before.StatusCode);
 
-        await EndSessionAsync(browser, providerSession);
-        var logoutToken = await WaitForLogoutTokenAsync(deliveries);
+        await EndSessionAsync(browser, providerSession, CancellationToken.None);
+        var logoutToken = await WaitForLogoutTokenAsync(deliveries, CancellationToken.None);
 
         using var form = new FormUrlEncodedContent(
             new Dictionary<string, string> { [OpenIdProtocol.Parameters.LogoutToken] = logoutToken }
         );
-        using var backChannel = await host.PostFormAsync(BackChannelLogoutPath, form);
+        using var backChannel = await host.PostFormAsync(
+            BackChannelLogoutPath,
+            form,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, backChannel.StatusCode);
 
-        using var after = await host.SendAsync(HttpMethod.Get, userPath, csrf);
+        using var after = await host.SendAsync(
+            HttpMethod.Get,
+            userPath,
+            [csrf],
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Unauthorized, after.StatusCode);
     }
 
@@ -102,14 +121,16 @@ public class BffBackChannelLogoutEndToEndTests
             keySet,
             valueSet,
             indexSet,
-            authenticateBeforeBff: true
+            new BffTestHostOptions { AuthenticateBeforeBff = true },
+            CancellationToken.None
         );
 
         var csrf = (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue);
         using var user = await host.SendAsync(
             HttpMethod.Get,
             $"{BffDefaults.EndpointPrefix}/user",
-            csrf
+            [csrf],
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.InternalServerError, user.StatusCode);
@@ -128,15 +149,16 @@ public class BffBackChannelLogoutEndToEndTests
             }
         );
 
-    private static async Task LoginAsync(
+    private static async ValueTask LoginAsync(
         HttpClient browser,
         string providerSession,
-        BffTestHost host
+        BffTestHost host,
+        CancellationToken cancellationToken
     )
     {
         var loginPath =
             $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
-        using var login = await host.SendAsync(HttpMethod.Get, loginPath);
+        using var login = await host.SendAsync(HttpMethod.Get, loginPath, [], cancellationToken);
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
         var authorizeUri = login.Headers.Location;
         Assert.NotNull(authorizeUri);
@@ -146,35 +168,45 @@ public class BffBackChannelLogoutEndToEndTests
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={providerSession}"
         );
-        using var authorize = await browser.SendAsync(authorizeRequest);
+        using var authorize = await browser.SendAsync(authorizeRequest, cancellationToken);
         var callbackUri = authorize.Headers.Location;
         Assert.NotNull(callbackUri);
 
-        using var callback = await host.SendAsync(HttpMethod.Get, callbackUri.PathAndQuery);
+        using var callback = await host.SendAsync(
+            HttpMethod.Get,
+            callbackUri.PathAndQuery,
+            [],
+            cancellationToken
+        );
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
     }
 
-    private static async Task EndSessionAsync(HttpClient browser, string providerSession)
+    private static async ValueTask EndSessionAsync(
+        HttpClient browser,
+        string providerSession,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await InteractiveLogin.ConfirmEndSessionAsync(
             browser,
             EndSessionPath,
             providerSession,
-            CancellationToken.None
+            cancellationToken
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     // The provider delivers the logout token on a background worker, so it arrives after the end-session response.
-    private static async Task<string> WaitForLogoutTokenAsync(
-        ConcurrentQueue<RecordedHttpExchange> deliveries
+    private static async ValueTask<string> WaitForLogoutTokenAsync(
+        ConcurrentQueue<RecordedHttpExchange> deliveries,
+        CancellationToken cancellationToken
     )
     {
         var stopwatch = Stopwatch.StartNew();
         while (deliveries.IsEmpty && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
         }
 
         var delivery = Assert.Single(deliveries);

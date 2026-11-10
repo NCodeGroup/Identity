@@ -55,10 +55,8 @@ public class DeveloperSpaClientSeedingTests(DeveloperSeedingHostApplicationFacto
         Assert.NotEmpty(seededSpaClients);
 
         // A first request provisions the tenant, which runs the seed fan-out.
-        using (var warmupClient = Factory.CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        using var warmupClient = Factory.CreateClient();
+        using var warmupResponse = await warmupClient.GetAsync("/oauth2/jwks");
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

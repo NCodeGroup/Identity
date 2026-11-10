@@ -36,20 +36,21 @@ public class BffFrontendSelectionEndToEndTests
     [Fact]
     public async Task Jwks_OnTheFrontendThatEnablesIt_ReturnsTheKeySet()
     {
-        await using var app = await StartAsync();
+        await using var app = await StartAsync(CancellationToken.None);
         using var client = app.GetTestServer().CreateClient();
 
         using var response = await client.GetAsync($"{AdminOrigin}/bff/jwks");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var responseBody = await response.Content.ReadAsStringAsync();
+        var body = JsonElement.Parse(responseBody);
         Assert.Equal(JsonValueKind.Array, body.GetProperty("keys").ValueKind);
     }
 
     [Fact]
     public async Task Jwks_OnTheFrontendThatDoesNotEnableIt_ReturnsNotFound()
     {
-        await using var app = await StartAsync();
+        await using var app = await StartAsync(CancellationToken.None);
         using var client = app.GetTestServer().CreateClient();
 
         using var response = await client.GetAsync($"{ShopOrigin}/bff/jwks");
@@ -66,10 +67,10 @@ public class BffFrontendSelectionEndToEndTests
     [InlineData(AdminOrigin)]
     public async Task User_WithoutASession_ReturnsUnauthorizedOnEachFrontend(string origin)
     {
-        await using var app = await StartAsync();
+        await using var app = await StartAsync(CancellationToken.None);
         using var client = app.GetTestServer().CreateClient();
 
-        using var response = await SendAsync(client, $"{origin}/bff/user");
+        using var response = await SendAsync(client, $"{origin}/bff/user", CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -86,11 +87,11 @@ public class BffFrontendSelectionEndToEndTests
         string? configuredPolicy
     )
     {
-        await using var app = await StartAsync();
+        await using var app = await StartAsync(CancellationToken.None);
         using var client = app.GetTestServer().CreateClient();
         var expected = configuredPolicy ?? new BffSecurityHeadersOptions().ContentSecurityPolicy;
 
-        using var response = await SendAsync(client, $"{origin}/bff/user");
+        using var response = await SendAsync(client, $"{origin}/bff/user", CancellationToken.None);
 
         Assert.Equal(
             expected,
@@ -105,10 +106,14 @@ public class BffFrontendSelectionEndToEndTests
     [Fact]
     public async Task LocalApi_LimitedToAnotherFrontend_ReturnsNotFound()
     {
-        await using var app = await StartAsync();
+        await using var app = await StartAsync(CancellationToken.None);
         using var client = app.GetTestServer().CreateClient();
 
-        using var response = await SendAsync(client, $"{ShopOrigin}/api/admin");
+        using var response = await SendAsync(
+            client,
+            $"{ShopOrigin}/api/admin",
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -116,10 +121,14 @@ public class BffFrontendSelectionEndToEndTests
     [Fact]
     public async Task LocalApi_LimitedToTheSelectedFrontend_ReturnsUnauthorizedWithoutASession()
     {
-        await using var app = await StartAsync();
+        await using var app = await StartAsync(CancellationToken.None);
         using var client = app.GetTestServer().CreateClient();
 
-        using var response = await SendAsync(client, $"{AdminOrigin}/api/admin");
+        using var response = await SendAsync(
+            client,
+            $"{AdminOrigin}/api/admin",
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -128,14 +137,18 @@ public class BffFrontendSelectionEndToEndTests
 
     #region Scaffolding
 
-    private static async Task<HttpResponseMessage> SendAsync(HttpClient client, string uri)
+    private static async ValueTask<HttpResponseMessage> SendAsync(
+        HttpClient client,
+        string uri,
+        CancellationToken cancellationToken
+    )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         request.Headers.Add(BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue);
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<WebApplication> StartAsync()
+    private static async ValueTask<WebApplication> StartAsync(CancellationToken cancellationToken)
     {
         var builder = WebApplication.CreateBuilder(
             new WebApplicationOptions
@@ -203,7 +216,7 @@ public class BffFrontendSelectionEndToEndTests
         app.MapBffEndpoints();
         app.MapGet("/api/admin", () => "admin").AsBffApi().RequireBffFrontend("admin");
 
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         return app;
     }
 

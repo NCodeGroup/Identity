@@ -33,7 +33,7 @@ public class UnreadableSettingsDocumentTests
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/effective-settings");
 
-        await AssertConflictNamingTheTenantAsync(response);
+        await AssertConflictNamingTheTenantAsync(response, CancellationToken.None);
     }
 
     #endregion
@@ -51,7 +51,7 @@ public class UnreadableSettingsDocumentTests
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");
 
-        await AssertConflictNamingTheTenantAsync(response);
+        await AssertConflictNamingTheTenantAsync(response, CancellationToken.None);
     }
 
     #endregion
@@ -70,7 +70,8 @@ public class UnreadableSettingsDocumentTests
         var (statusCode, body) = await RemoveSettingAsync(
             administrator,
             $"{TenantApiPath}/settings",
-            "it_unregistered_setting"
+            "it_unregistered_setting",
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.NoContent, body);
@@ -83,14 +84,15 @@ public class UnreadableSettingsDocumentTests
     public async Task PatchTenantSettings_WhenAStoredClientDocumentCannotBeHonored_ReturnsNoContent()
     {
         using var factory = CreateFactory();
-        using var administrator = await SeedUnreadableClientAsync(factory);
+        using var administrator = await SeedUnreadableClientAsync(factory, CancellationToken.None);
 
         // access_token_lifetime is a Min setting a client can register, so the change walks the clients.
         var (statusCode, body) = await PatchSettingAsync(
             administrator,
             $"{TenantApiPath}/settings",
             OpenIdSettingNames.AccessTokenLifetime,
-            "00:04:00"
+            "00:04:00",
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.NoContent, body);
@@ -104,14 +106,15 @@ public class UnreadableSettingsDocumentTests
     public async Task PatchPlatformSettings_WhenAStoredClientDocumentCannotBeHonored_ReturnsNoContent()
     {
         using var factory = CreateFactory();
-        using var administrator = await SeedUnreadableClientAsync(factory);
+        using var administrator = await SeedUnreadableClientAsync(factory, CancellationToken.None);
 
         // access_token_lifetime is a Min setting a client can register, so the change walks the clients.
         var (statusCode, body) = await PatchSettingAsync(
             administrator,
             "/api/platform/settings",
             OpenIdSettingNames.AccessTokenLifetime,
-            "00:04:00"
+            "00:04:00",
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.NoContent, body);
@@ -140,7 +143,7 @@ public class UnreadableSettingsDocumentTests
             JsonContent.Create(new { password = "unreadable-settings-password-reset" })
         );
 
-        await AssertConflictNamingTheTenantAsync(response);
+        await AssertConflictNamingTheTenantAsync(response, CancellationToken.None);
     }
 
     #endregion
@@ -149,8 +152,9 @@ public class UnreadableSettingsDocumentTests
 
     private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
-    private static async Task<HttpClient> SeedUnreadableClientAsync(
-        BootstrapAdminApplicationFactory factory
+    private static async ValueTask<HttpClient> SeedUnreadableClientAsync(
+        BootstrapAdminApplicationFactory factory,
+        CancellationToken cancellationToken
     )
     {
         // A direct store write of a setting no descriptor registers, so no check refuses the client and its document
@@ -159,14 +163,17 @@ public class UnreadableSettingsDocumentTests
             UnreadableClientId,
             new Dictionary<string, object> { ["it_unregistered_setting"] = true },
             [RedirectUri],
-            CancellationToken.None
+            cancellationToken
         );
-        var administrator = await factory.CreateAdministratorClientAsync(CancellationToken.None);
+        var administrator = await factory.CreateAdministratorClientAsync(cancellationToken);
 
         // The report proves the document is unreadable before any write is tried.
-        using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");
+        using var response = await administrator.GetAsync(
+            $"{TenantApiPath}/incoherent-clients",
+            cancellationToken
+        );
 
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         var jsonElement = JsonElement.Parse(body);
         var item = Assert.Single(
@@ -189,9 +196,12 @@ public class UnreadableSettingsDocumentTests
             cancellationToken
         );
 
-    private static async Task AssertConflictNamingTheTenantAsync(HttpResponseMessage response)
+    private static async ValueTask AssertConflictNamingTheTenantAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
+    )
     {
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         var jsonElement = JsonElement.Parse(body);
@@ -204,11 +214,12 @@ public class UnreadableSettingsDocumentTests
         );
     }
 
-    private static async Task<(HttpStatusCode StatusCode, string Body)> PatchSettingAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, string Body)> PatchSettingAsync(
         HttpClient administrator,
         string path,
         string settingName,
-        object value
+        object value,
+        CancellationToken cancellationToken
     )
     {
         var operations = new[]
@@ -229,14 +240,15 @@ public class UnreadableSettingsDocumentTests
             ),
         };
 
-        using var response = await administrator.SendAsync(request);
-        return (response.StatusCode, await response.Content.ReadAsStringAsync());
+        using var response = await administrator.SendAsync(request, cancellationToken);
+        return (response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
     }
 
-    private static async Task<(HttpStatusCode StatusCode, string Body)> RemoveSettingAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, string Body)> RemoveSettingAsync(
         HttpClient administrator,
         string path,
-        string settingName
+        string settingName,
+        CancellationToken cancellationToken
     )
     {
         var operations = new[] { new { op = "remove", path = $"/{settingName}" } };
@@ -249,8 +261,8 @@ public class UnreadableSettingsDocumentTests
             ),
         };
 
-        using var response = await administrator.SendAsync(request);
-        return (response.StatusCode, await response.Content.ReadAsStringAsync());
+        using var response = await administrator.SendAsync(request, cancellationToken);
+        return (response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
     }
 
     #endregion

@@ -18,12 +18,13 @@ public class ManagementRequestBindingTests
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
     private const string ProblemMediaType = "application/problem+json";
 
-    private static async Task AssertProblemAsync(
+    private static async ValueTask AssertProblemAsync(
         HttpResponseMessage response,
-        HttpStatusCode expectedStatusCode
+        HttpStatusCode expectedStatusCode,
+        CancellationToken cancellationToken
     )
     {
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == expectedStatusCode, body);
         Assert.Equal(ProblemMediaType, response.Content.Headers.ContentType?.MediaType);
         Assert.Equal(
@@ -48,7 +49,7 @@ public class ManagementRequestBindingTests
             content
         );
 
-        await AssertProblemAsync(response, HttpStatusCode.BadRequest);
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, CancellationToken.None);
     }
 
     [Fact]
@@ -69,7 +70,7 @@ public class ManagementRequestBindingTests
             content
         );
 
-        await AssertProblemAsync(response, HttpStatusCode.BadRequest);
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, CancellationToken.None);
     }
 
     [Fact]
@@ -86,7 +87,11 @@ public class ManagementRequestBindingTests
             content
         );
 
-        await AssertProblemAsync(response, HttpStatusCode.UnsupportedMediaType);
+        await AssertProblemAsync(
+            response,
+            HttpStatusCode.UnsupportedMediaType,
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -99,7 +104,7 @@ public class ManagementRequestBindingTests
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/grants?limit=abc");
 
-        await AssertProblemAsync(response, HttpStatusCode.BadRequest);
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, CancellationToken.None);
     }
 
     [Fact]
@@ -110,7 +115,7 @@ public class ManagementRequestBindingTests
 
         using var response = await client.GetAsync($"{TenantApiPath}/grants?limit=abc");
 
-        await AssertProblemAsync(response, HttpStatusCode.BadRequest);
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, CancellationToken.None);
     }
 
     [Fact]
@@ -128,7 +133,7 @@ public class ManagementRequestBindingTests
 
         using var response = await client.GetAsync($"{TenantApiPath}/grants?limit=abc");
 
-        await AssertProblemAsync(response, HttpStatusCode.BadRequest);
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, CancellationToken.None);
     }
 
     #endregion
@@ -146,7 +151,7 @@ public class ManagementRequestBindingTests
 
         using var response = await administrator.PutAsync($"{TenantApiPath}/grants", content);
 
-        await AssertProblemAsync(response, HttpStatusCode.MethodNotAllowed);
+        await AssertProblemAsync(response, HttpStatusCode.MethodNotAllowed, CancellationToken.None);
         Assert.NotEmpty(response.Content.Headers.Allow);
     }
 
@@ -160,7 +165,7 @@ public class ManagementRequestBindingTests
 
         using var response = await administrator.GetAsync("/api/no-such-route");
 
-        await AssertProblemAsync(response, HttpStatusCode.NotFound);
+        await AssertProblemAsync(response, HttpStatusCode.NotFound, CancellationToken.None);
     }
 
     [Fact]

@@ -108,7 +108,7 @@ public class TokenEndpointClientCredentialsTests
         var accessToken = root.GetProperty("access_token").GetString();
         Assert.NotNull(accessToken);
 
-        var principalId = await GetClientPrincipalIdAsync(factory);
+        var principalId = await GetClientPrincipalIdAsync(factory, CancellationToken.None);
         var payload = DecodeJwtPayload(accessToken);
 
         // A client acting for itself is the token's subject, and 'sub' names its principal (ADR-1450).
@@ -146,7 +146,8 @@ public class TokenEndpointClientCredentialsTests
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.True(jsonElement.TryGetProperty("error", out _));
     }
 
@@ -197,7 +198,10 @@ public class TokenEndpointClientCredentialsTests
             }
         );
 
-    private static async Task<string> GetClientPrincipalIdAsync(HostApplicationFactory factory)
+    private static async ValueTask<string> GetClientPrincipalIdAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = factory.Services.CreateScope();
         var services = scope.ServiceProvider;
@@ -206,11 +210,11 @@ public class TokenEndpointClientCredentialsTests
             .BeginScope(HostApplicationFactory.TenantId);
         await using var storeManager = await services
             .GetRequiredService<IStoreManagerFactory>()
-            .CreateAsync(CancellationToken.None);
+            .CreateAsync(cancellationToken);
 
         var persistedClient = await storeManager
             .GetStore<IClientStore>()
-            .GetOrDefaultAsync(ClientId, CancellationToken.None);
+            .GetOrDefaultAsync(ClientId, cancellationToken);
         Assert.NotNull(persistedClient);
         return persistedClient.PrincipalId;
     }

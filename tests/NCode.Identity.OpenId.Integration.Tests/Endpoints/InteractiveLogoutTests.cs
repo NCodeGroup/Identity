@@ -59,7 +59,7 @@ public class InteractiveLogoutTests
             }
         );
 
-        var sessionCookie = await LoginAsync(client);
+        var sessionCookie = await LoginAsync(client, CancellationToken.None);
         Assert.NotNull(sessionCookie);
 
         using var meRequest = new HttpRequestMessage(HttpMethod.Get, MePath);
@@ -74,13 +74,15 @@ public class InteractiveLogoutTests
         // Mint antiforgery tokens bound to the authenticated session, then POST the logout.
         var (requestToken, cookieToken) = await GetAntiforgeryTokensAsync(
             client,
-            (InteractiveCookieName, sessionCookie)
+            (InteractiveCookieName, sessionCookie),
+            CancellationToken.None
         );
         using var logout = await PostLogoutAsync(
             client,
             requestToken,
             cookieToken,
-            (InteractiveCookieName, sessionCookie)
+            (InteractiveCookieName, sessionCookie),
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, logout.StatusCode);
@@ -117,7 +119,7 @@ public class InteractiveLogoutTests
                         }
                     );
 
-                    var sessionCookie = await LoginAsync(client);
+                    var sessionCookie = await LoginAsync(client, CancellationToken.None);
                     if (string.IsNullOrEmpty(sessionCookie))
                     {
                         failures.Add($"request {i}: login issued no session cookie");
@@ -161,21 +163,34 @@ public class InteractiveLogoutTests
 
     #region Login Helpers
 
-    private static async Task<string?> LoginAsync(HttpClient client)
+    private static async ValueTask<string?> LoginAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
         var (requestToken, cookieToken) = await GetAntiforgeryTokensAsync(
             client,
-            sessionCookie: null
+            sessionCookie: null,
+            cancellationToken
         );
-        using var login = await PostLoginAsync(client, requestToken, cookieToken);
+        using var login = await PostLoginAsync(
+            client,
+            requestToken,
+            cookieToken,
+            cancellationToken
+        );
         Assert.Equal(HttpStatusCode.Found, login.StatusCode);
         return ReadSetCookieValue(login, InteractiveCookieName);
     }
 
-    private static async Task<(
+    private static async ValueTask<(
         string? RequestToken,
         string? CookieToken
-    )> GetAntiforgeryTokensAsync(HttpClient client, (string Name, string? Value)? sessionCookie)
+    )> GetAntiforgeryTokensAsync(
+        HttpClient client,
+        (string Name, string? Value)? sessionCookie,
+        CancellationToken cancellationToken
+    )
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
@@ -186,20 +201,21 @@ public class InteractiveLogoutTests
             request.Headers.Add("Cookie", $"{sessionCookie.Value.Name}={value}");
         }
 
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, cancellationToken);
 
         var requestToken = ReadSetCookieValue(response, AntiforgeryRequestCookieName);
         var cookieToken = ReadSetCookieRaw(response, AntiforgeryCookiePrefix);
         return (requestToken, cookieToken);
     }
 
-    private static Task<HttpResponseMessage> PostLoginAsync(
+    private static async ValueTask<HttpResponseMessage> PostLoginAsync(
         HttpClient client,
         string? requestToken,
-        string? cookieToken
+        string? cookieToken,
+        CancellationToken cancellationToken
     )
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, LoginPath);
+        using var request = new HttpRequestMessage(HttpMethod.Post, LoginPath);
         AddAntiforgeryCookies(request, requestToken, cookieToken, sessionCookie: null);
 
         request.Content = new FormUrlEncodedContent(
@@ -212,17 +228,18 @@ public class InteractiveLogoutTests
             }
         );
 
-        return client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static Task<HttpResponseMessage> PostLogoutAsync(
+    private static async ValueTask<HttpResponseMessage> PostLogoutAsync(
         HttpClient client,
         string? requestToken,
         string? cookieToken,
-        (string Name, string? Value)? sessionCookie
+        (string Name, string? Value)? sessionCookie,
+        CancellationToken cancellationToken
     )
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, LogoutPath);
+        using var request = new HttpRequestMessage(HttpMethod.Post, LogoutPath);
         AddAntiforgeryCookies(request, requestToken, cookieToken, sessionCookie);
 
         request.Content = new FormUrlEncodedContent(
@@ -233,7 +250,7 @@ public class InteractiveLogoutTests
             }
         );
 
-        return client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     private static void AddAntiforgeryCookies(

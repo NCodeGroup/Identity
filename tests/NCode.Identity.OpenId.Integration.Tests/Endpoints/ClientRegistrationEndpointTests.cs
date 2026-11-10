@@ -115,7 +115,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            "introspection_*_response_*"
+            "introspection_*_response_*",
+            CancellationToken.None
         );
     }
 
@@ -220,7 +221,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            settingName
+            settingName,
+            CancellationToken.None
         );
     }
 
@@ -244,7 +246,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            OpenIdSettingNames.JwksUri
+            OpenIdSettingNames.JwksUri,
+            CancellationToken.None
         );
     }
 
@@ -364,7 +367,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            OpenIdSettingNames.ResponseTypesSupported
+            OpenIdSettingNames.ResponseTypesSupported,
+            CancellationToken.None
         );
     }
 
@@ -398,7 +402,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            "token_endpoint_auth_method"
+            "token_endpoint_auth_method",
+            CancellationToken.None
         );
     }
 
@@ -423,7 +428,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            OpenIdProtocol.GrantTypes.Implicit
+            OpenIdProtocol.GrantTypes.Implicit,
+            CancellationToken.None
         );
     }
 
@@ -462,13 +468,14 @@ public class ClientRegistrationEndpointTests
                 .Select(value => value.GetString() ?? string.Empty),
         ];
 
-    private static async Task AssertRegistrationErrorAsync(
+    private static async ValueTask AssertRegistrationErrorAsync(
         HttpResponseMessage response,
         string expectedError,
-        string expectedQuotedName
+        string expectedQuotedName,
+        CancellationToken cancellationToken
     )
     {
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
 
         var jsonElement = JsonElement.Parse(body);
@@ -542,7 +549,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            "jwks"
+            "jwks",
+            CancellationToken.None
         );
     }
 
@@ -563,7 +571,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            "kid"
+            "kid",
+            CancellationToken.None
         );
     }
 
@@ -690,7 +699,8 @@ public class ClientRegistrationEndpointTests
 
         var (clientId, clientSecret, _) = await RegisterSharedSecretClientAsync(
             client,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            CancellationToken.None
         );
 
         var secrets = await factory.GetClientSecretsAsync(clientId, CancellationToken.None);
@@ -716,7 +726,8 @@ public class ClientRegistrationEndpointTests
 
         var (clientId, clientSecret, _) = await RegisterSharedSecretClientAsync(
             client,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
 
         var secrets = await factory.GetClientSecretsAsync(clientId, CancellationToken.None);
@@ -749,13 +760,15 @@ public class ClientRegistrationEndpointTests
 
         var (clientId, verifiedSecret, registration) = await RegisterSharedSecretClientAsync(
             client,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
 
         var update = await UpdateAuthenticationMethodAsync(
             client,
             registration,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            CancellationToken.None
         );
 
         // The verifier of the old secret is no HMAC key, so the update issues a replacement (RFC 7592 §2.2) that the
@@ -796,7 +809,8 @@ public class ClientRegistrationEndpointTests
 
         var (clientId, clientSecret, registration) = await RegisterSharedSecretClientAsync(
             client,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            CancellationToken.None
         );
 
         // The client keeps its secret, and the server cannot read it back: its octets are replaced by the verifier that
@@ -804,7 +818,8 @@ public class ClientRegistrationEndpointTests
         var update = await UpdateAuthenticationMethodAsync(
             client,
             registration,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
 
         Assert.False(update.TryGetProperty("client_secret", out _));
@@ -846,7 +861,8 @@ public class ClientRegistrationEndpointTests
         var update = await UpdateRegistrationAsync(
             client,
             registration,
-            CreateKeyRegistration(jwk)
+            CreateKeyRegistration(jwk),
+            CancellationToken.None
         );
 
         var clientSecret = update.GetProperty("client_secret").GetString();
@@ -888,7 +904,8 @@ public class ClientRegistrationEndpointTests
         );
         var (clientId, _, registration) = await RegisterSharedSecretClientAsync(
             client,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
         var settingsPath =
             $"/api/tenants/{HostApplicationFactory.TenantId}/clients/{clientId}/settings";
@@ -916,7 +933,8 @@ public class ClientRegistrationEndpointTests
         await UpdateAuthenticationMethodAsync(
             client,
             registration,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
 
         using var settingsResponse = await administrator.GetAsync(settingsPath);
@@ -936,14 +954,16 @@ public class ClientRegistrationEndpointTests
         );
         var (clientId, expiredSecret, registration) = await RegisterSharedSecretClientAsync(
             client,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
         await factory.ExpireClientSecretsAsync(clientId, CancellationToken.None);
 
         var update = await UpdateAuthenticationMethodAsync(
             client,
             registration,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
 
         var newSecret = update.GetProperty("client_secret").GetString();
@@ -977,13 +997,15 @@ public class ClientRegistrationEndpointTests
         );
         var (clientId, clientSecret, registration) = await RegisterSharedSecretClientAsync(
             client,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
 
         var update = await UpdateAuthenticationMethodAsync(
             client,
             registration,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            CancellationToken.None
         );
 
         Assert.False(update.TryGetProperty("client_secret", out _));
@@ -1022,7 +1044,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            "request_object_signing_alg_values_supported"
+            "request_object_signing_alg_values_supported",
+            CancellationToken.None
         );
     }
 
@@ -1156,9 +1179,8 @@ public class ClientRegistrationEndpointTests
         Assert.False(root.TryGetProperty("client_secret", out _));
 
         var clientId = root.GetProperty("client_id").GetString() ?? string.Empty;
-        var discovery = JsonElement.Parse(
-            await client.GetStringAsync("/.well-known/openid-configuration")
-        );
+        var discoveryBody = await client.GetStringAsync("/.well-known/openid-configuration");
+        var discovery = JsonElement.Parse(discoveryBody);
         var issuer = discovery.GetProperty("issuer").GetString() ?? string.Empty;
         using var tokenResponse = await client.PostAsync(
             "/oauth2/token",
@@ -1203,7 +1225,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            "jwks_uri"
+            "jwks_uri",
+            CancellationToken.None
         );
     }
 
@@ -1272,7 +1295,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            "tls_client_auth_subject_dn"
+            "tls_client_auth_subject_dn",
+            CancellationToken.None
         );
     }
 
@@ -1383,7 +1407,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            expectedQuotedName
+            expectedQuotedName,
+            CancellationToken.None
         );
     }
 
@@ -1414,7 +1439,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            "tls_client_certificate_bound_access_tokens"
+            "tls_client_certificate_bound_access_tokens",
+            CancellationToken.None
         );
     }
 
@@ -1609,7 +1635,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            OpenIdSettingNames.BackChannelLogoutUri
+            OpenIdSettingNames.BackChannelLogoutUri,
+            CancellationToken.None
         );
     }
 
@@ -1677,7 +1704,8 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            OpenIdSettingNames.FrontChannelLogoutUri
+            OpenIdSettingNames.FrontChannelLogoutUri,
+            CancellationToken.None
         );
     }
 
@@ -1694,18 +1722,25 @@ public class ClientRegistrationEndpointTests
                 .ClientSecretPost,
         };
 
-    private static Task<HttpResponseMessage> PostClientCredentialsRegistrationAsync(
-        HttpClient client
+    private static async ValueTask<HttpResponseMessage> PostClientCredentialsRegistrationAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
     )
     {
         var registration = CreateClientCredentialsRegistration();
-        return client.PostAsJsonAsync("/oauth2/register", registration);
+        return await client.PostAsJsonAsync("/oauth2/register", registration, cancellationToken);
     }
 
-    private static async Task<JsonElement> RegisterClientCredentialsClientAsync(HttpClient client)
+    private static async ValueTask<JsonElement> RegisterClientCredentialsClientAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await PostClientCredentialsRegistrationAsync(client);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await PostClientCredentialsRegistrationAsync(
+            client,
+            cancellationToken
+        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         return JsonElement.Parse(body);
     }
@@ -1737,7 +1772,10 @@ public class ClientRegistrationEndpointTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        using var registrationResponse = await PostClientCredentialsRegistrationAsync(client);
+        using var registrationResponse = await PostClientCredentialsRegistrationAsync(
+            client,
+            CancellationToken.None
+        );
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
@@ -1751,7 +1789,10 @@ public class ClientRegistrationEndpointTests
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var registration = await RegisterClientCredentialsClientAsync(client);
+        var registration = await RegisterClientCredentialsClientAsync(
+            client,
+            CancellationToken.None
+        );
 
         using var readRequest = CreateClientConfigurationRequest(HttpMethod.Get, registration);
         using var readResponse = await client.SendAsync(readRequest);
@@ -1768,7 +1809,10 @@ public class ClientRegistrationEndpointTests
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var registration = await RegisterClientCredentialsClientAsync(client);
+        var registration = await RegisterClientCredentialsClientAsync(
+            client,
+            CancellationToken.None
+        );
         var update = CreateClientCredentialsRegistration();
         update["client_id"] = registration.GetProperty("client_id").GetString() ?? string.Empty;
 
@@ -1788,7 +1832,10 @@ public class ClientRegistrationEndpointTests
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var registration = await RegisterClientCredentialsClientAsync(client);
+        var registration = await RegisterClientCredentialsClientAsync(
+            client,
+            CancellationToken.None
+        );
 
         using var deleteRequest = CreateClientConfigurationRequest(HttpMethod.Delete, registration);
         using var deleteResponse = await client.SendAsync(deleteRequest);
@@ -1800,11 +1847,15 @@ public class ClientRegistrationEndpointTests
 
     #endregion
 
-    private static async Task<(
+    private static async ValueTask<(
         string ClientId,
         string ClientSecret,
         JsonElement Registration
-    )> RegisterSharedSecretClientAsync(HttpClient client, string tokenEndpointAuthMethod)
+    )> RegisterSharedSecretClientAsync(
+        HttpClient client,
+        string tokenEndpointAuthMethod,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await client.PostAsJsonAsync(
             "/oauth2/register",
@@ -1812,9 +1863,10 @@ public class ClientRegistrationEndpointTests
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var registration = JsonElement.Parse(body);
         var clientId = registration.GetProperty("client_id").GetString();
@@ -1824,10 +1876,11 @@ public class ClientRegistrationEndpointTests
         return (clientId, clientSecret, registration);
     }
 
-    private static Task<JsonElement> UpdateAuthenticationMethodAsync(
+    private static ValueTask<JsonElement> UpdateAuthenticationMethodAsync(
         HttpClient client,
         JsonElement registration,
-        string tokenEndpointAuthMethod
+        string tokenEndpointAuthMethod,
+        CancellationToken cancellationToken
     ) =>
         UpdateRegistrationAsync(
             client,
@@ -1836,13 +1889,15 @@ public class ClientRegistrationEndpointTests
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
-            }
+            },
+            cancellationToken
         );
 
-    private static async Task<JsonElement> UpdateRegistrationAsync(
+    private static async ValueTask<JsonElement> UpdateRegistrationAsync(
         HttpClient client,
         JsonElement registration,
-        Dictionary<string, object> metadata
+        Dictionary<string, object> metadata,
+        CancellationToken cancellationToken
     )
     {
         metadata["client_id"] = registration.GetProperty("client_id").GetString() ?? string.Empty;
@@ -1858,8 +1913,8 @@ public class ClientRegistrationEndpointTests
             registration.GetProperty("registration_access_token").GetString()
         );
 
-        using var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body);
     }

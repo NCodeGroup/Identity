@@ -470,9 +470,10 @@ public class InteractiveTenantRouteTests
                 {
                     [InteractiveSettingNames.BrandingFaviconUri] =
                         "https://cdn.acme.example/tab.ico",
-                }
+                },
+                CancellationToken.None
             );
-            await SeedTenantAsync(factory, "beta");
+            await SeedTenantAsync(factory, "beta", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var acmeResponse = await client.GetAsync("/acme/account/login");

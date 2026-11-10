@@ -62,19 +62,24 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
             EncodedValue = encodedValue,
         }.Build();
 
-    private async Task SeedTenantAsync(string tenantId, params PersistedSecret[] secrets)
+    private async ValueTask SeedTenantAsync(
+        string tenantId,
+        PersistedSecret[] secrets,
+        CancellationToken cancellationToken
+    )
     {
         DbContext.SeedTeam(ServiceProvider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder { TenantId = tenantId, Secrets = secrets }.Build();
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task SeedClientAsync(
+    private async ValueTask SeedClientAsync(
         string tenantId,
         string clientId,
-        params PersistedSecret[] secrets
+        PersistedSecret[] secrets,
+        CancellationToken cancellationToken
     )
     {
         var client = new PersistedClientBuilder
@@ -84,8 +89,8 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
             Secrets = secrets,
         }.Build();
 
-        await ClientStore.AddAsync(client, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await ClientStore.AddAsync(client, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -94,11 +99,16 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
     [Fact]
     public async Task GetKeyIdPage_TenantAndClientRemoteSecrets_ReturnsTheirKeyIds()
     {
-        await SeedTenantAsync(TenantId, CreateSecret("tenant-secret", $"{Provider}:key-1"));
+        await SeedTenantAsync(
+            TenantId,
+            [CreateSecret("tenant-secret", $"{Provider}:key-1")],
+            CancellationToken.None
+        );
         await SeedClientAsync(
             TenantId,
             "client-1",
-            CreateSecret("client-secret", $"{Provider}:key-2")
+            [CreateSecret("client-secret", $"{Provider}:key-2")],
+            CancellationToken.None
         );
 
         var page = await Store.GetKeyIdPageAsync(
@@ -116,10 +126,13 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
     {
         await SeedTenantAsync(
             TenantId,
-            CreateSecret("matching-secret", $"{Provider}:key-1"),
-            CreateSecret("other-provider-secret", "azure-key-vault:key-2"),
-            CreateSecret("similar-provider-secret", $"{Provider}-2:key-3"),
-            CreateSecret("pkcs8-secret", $"{Provider}:key-4", SecretEncodings.Pkcs8)
+            [
+                CreateSecret("matching-secret", $"{Provider}:key-1"),
+                CreateSecret("other-provider-secret", "azure-key-vault:key-2"),
+                CreateSecret("similar-provider-secret", $"{Provider}-2:key-3"),
+                CreateSecret("pkcs8-secret", $"{Provider}:key-4", SecretEncodings.Pkcs8),
+            ],
+            CancellationToken.None
         );
 
         var page = await Store.GetKeyIdPageAsync(
@@ -137,8 +150,11 @@ public sealed class RemoteKeyReferenceStoreTests : IDisposable
     {
         await SeedTenantAsync(
             TenantId,
-            CreateSecret("secret-a", $"{Provider}:key-1"),
-            CreateSecret("secret-b", $"{Provider}:key-2")
+            [
+                CreateSecret("secret-a", $"{Provider}:key-1"),
+                CreateSecret("secret-b", $"{Provider}:key-2"),
+            ],
+            CancellationToken.None
         );
 
         var first = await Store.GetKeyIdPageAsync(

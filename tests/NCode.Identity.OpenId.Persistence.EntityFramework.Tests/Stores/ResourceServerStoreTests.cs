@@ -80,7 +80,7 @@ public sealed class ResourceServerStoreTests : IDisposable
             ConcurrencyToken = string.Empty,
         };
 
-    private async Task SeedTenantAsync()
+    private async ValueTask SeedTenantAsync(CancellationToken cancellationToken)
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder
@@ -89,8 +89,8 @@ public sealed class ResourceServerStoreTests : IDisposable
             DisplayName = "Tenant One",
         }.Build();
 
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -99,7 +99,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_RoundtripsWithScopes()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
 
         await Store.AddAsync(
             CreateResourceServer(scopes: [CreateScope("read:x"), CreateScope("write:x")]),
@@ -120,7 +120,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task GetByIdentifierOrDefaultAsync_ReturnsMatch()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -138,7 +138,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task AddScopeAsync_AddsScope()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -156,7 +156,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task RemoveScopeAsync_WhenSystemScope_Throws()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(
             CreateResourceServer(scopes: [CreateScope("openid", isSystem: true)]),
             CancellationToken.None
@@ -172,7 +172,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task RemoveScopeAsync_RemovesNonSystemScope()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(
             CreateResourceServer(scopes: [CreateScope("read:x")]),
             CancellationToken.None
@@ -201,7 +201,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenSystem_Throws()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(isSystem: true), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -214,7 +214,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task RemoveAsync_RemovesNonSystem()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(
             CreateResourceServer(scopes: [CreateScope("read:x")]),
             CancellationToken.None
@@ -233,7 +233,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task RemoveAsync_RemovesTheRoleAssignmentsAtTheResourceServersNode()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         var roleAssignmentStore = new RoleAssignmentStore(
             Mock.Of<IStoreProvider>(),
@@ -274,7 +274,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_UpdatesValueAndBumpsToken()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -301,7 +301,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenConcurrencyMismatch_Throws()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -339,7 +339,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task AddSecretAsync_ThenGetSecrets_RoundtripsAndBumpsToken()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -365,7 +365,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task GetSecretOrDefaultAsync_ReturnsScopedSecret()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -389,7 +389,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task UpdateSecretAsync_UpdatesMetadataOnly()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -438,7 +438,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task RemoveSecretAsync_RemovesSecret()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -467,7 +467,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task RemoveAsync_AlsoRemovesSecrets()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await Store.AddAsync(CreateResourceServer(), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -488,12 +488,13 @@ public sealed class ResourceServerStoreTests : IDisposable
 
     #region Runtime Query Tests
 
-    private async Task AddServerAsync(
+    private async ValueTask AddServerAsync(
         string resourceServerId,
         string identifier,
         bool isSystem,
         bool isDisabled,
-        params string[] scopes
+        string[] scopes,
+        CancellationToken cancellationToken
     )
     {
         var resourceServer = new PersistedResourceServerBuilder
@@ -507,24 +508,31 @@ public sealed class ResourceServerStoreTests : IDisposable
             Scopes = scopes.Select(scope => CreateScope(scope)).ToList(),
         }.Build();
 
-        await Store.AddAsync(resourceServer, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await Store.AddAsync(resourceServer, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
     public async Task GetEnabledScopesAsync_WhenNoFilter_ReturnsAllEnabledScopes()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await AddServerAsync(
             "rs-a",
             "urn:a",
             isSystem: false,
             isDisabled: false,
-            "read:a",
-            "write:a"
+            ["read:a", "write:a"],
+            CancellationToken.None
         );
-        await AddServerAsync("rs-dead", "urn:dead", isSystem: false, isDisabled: true, "read:dead");
+        await AddServerAsync(
+            "rs-dead",
+            "urn:dead",
+            isSystem: false,
+            isDisabled: true,
+            ["read:dead"],
+            CancellationToken.None
+        );
 
         var scopes = await Store.GetEnabledScopesAsync(scopeValues: null, CancellationToken.None);
 
@@ -537,14 +545,14 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task GetEnabledScopesAsync_WhenFiltered_ReturnsOnlyMatchingValues()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await AddServerAsync(
             "rs-a",
             "urn:a",
             isSystem: false,
             isDisabled: false,
-            "read:a",
-            "write:a"
+            ["read:a", "write:a"],
+            CancellationToken.None
         );
 
         var scopes = await Store.GetEnabledScopesAsync(["read:a"], CancellationToken.None);
@@ -556,9 +564,23 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task GetEnabledIdentifiersAsync_ExcludesDisabled()
     {
-        await SeedTenantAsync();
-        await AddServerAsync("rs-a", "urn:a", isSystem: false, isDisabled: false, "read:a");
-        await AddServerAsync("rs-dead", "urn:dead", isSystem: false, isDisabled: true, "read:dead");
+        await SeedTenantAsync(CancellationToken.None);
+        await AddServerAsync(
+            "rs-a",
+            "urn:a",
+            isSystem: false,
+            isDisabled: false,
+            ["read:a"],
+            CancellationToken.None
+        );
+        await AddServerAsync(
+            "rs-dead",
+            "urn:dead",
+            isSystem: false,
+            isDisabled: true,
+            ["read:dead"],
+            CancellationToken.None
+        );
 
         var identifiers = await Store.GetEnabledIdentifiersAsync(CancellationToken.None);
 
@@ -568,17 +590,31 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task GetEnabledScopeProjectionsByScopesAsync_ReturnsOwningEnabledServers()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         await AddServerAsync(
             "rs-a",
             "urn:a",
             isSystem: false,
             isDisabled: false,
-            "read:x",
-            "write:a"
+            ["read:x", "write:a"],
+            CancellationToken.None
         );
-        await AddServerAsync("rs-b", "urn:b", isSystem: false, isDisabled: false, "read:b");
-        await AddServerAsync("rs-dead", "urn:dead", isSystem: false, isDisabled: true, "read:x");
+        await AddServerAsync(
+            "rs-b",
+            "urn:b",
+            isSystem: false,
+            isDisabled: false,
+            ["read:b"],
+            CancellationToken.None
+        );
+        await AddServerAsync(
+            "rs-dead",
+            "urn:dead",
+            isSystem: false,
+            isDisabled: true,
+            ["read:x"],
+            CancellationToken.None
+        );
 
         var projections = await Store.GetEnabledScopeProjectionsByScopesAsync(
             ["read:x"],
@@ -593,17 +629,39 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task GetEnabledScopeProjectionsBySystemOrIdsAsync_ReturnsSystemAndGranted()
     {
-        await SeedTenantAsync();
-        await AddServerAsync("rs-sys", "urn:sys", isSystem: true, isDisabled: false, "openid");
+        await SeedTenantAsync(CancellationToken.None);
+        await AddServerAsync(
+            "rs-sys",
+            "urn:sys",
+            isSystem: true,
+            isDisabled: false,
+            ["openid"],
+            CancellationToken.None
+        );
         await AddServerAsync(
             "rs-granted",
             "urn:granted",
             isSystem: false,
             isDisabled: false,
-            "read:g"
+            ["read:g"],
+            CancellationToken.None
         );
-        await AddServerAsync("rs-other", "urn:other", isSystem: false, isDisabled: false, "read:o");
-        await AddServerAsync("rs-dead", "urn:dead", isSystem: true, isDisabled: true, "dead");
+        await AddServerAsync(
+            "rs-other",
+            "urn:other",
+            isSystem: false,
+            isDisabled: false,
+            ["read:o"],
+            CancellationToken.None
+        );
+        await AddServerAsync(
+            "rs-dead",
+            "urn:dead",
+            isSystem: true,
+            isDisabled: true,
+            ["dead"],
+            CancellationToken.None
+        );
 
         var projections = await Store.GetEnabledScopeProjectionsBySystemOrIdsAsync(
             ["rs-granted"],
@@ -620,10 +678,31 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task FindEnabledByScopesAsync_ReturnsOwningEnabledServersWithSecrets()
     {
-        await SeedTenantAsync();
-        await AddServerAsync("rs-a", "urn:a", isSystem: false, isDisabled: false, "read:x");
-        await AddServerAsync("rs-b", "urn:b", isSystem: false, isDisabled: false, "read:y");
-        await AddServerAsync("rs-dead", "urn:dead", isSystem: false, isDisabled: true, "read:x");
+        await SeedTenantAsync(CancellationToken.None);
+        await AddServerAsync(
+            "rs-a",
+            "urn:a",
+            isSystem: false,
+            isDisabled: false,
+            ["read:x"],
+            CancellationToken.None
+        );
+        await AddServerAsync(
+            "rs-b",
+            "urn:b",
+            isSystem: false,
+            isDisabled: false,
+            ["read:y"],
+            CancellationToken.None
+        );
+        await AddServerAsync(
+            "rs-dead",
+            "urn:dead",
+            isSystem: false,
+            isDisabled: true,
+            ["read:x"],
+            CancellationToken.None
+        );
 
         var matches = await Store.FindEnabledByScopesAsync(
             ["read:x"],
@@ -639,10 +718,31 @@ public sealed class ResourceServerStoreTests : IDisposable
     [Fact]
     public async Task FindEnabledByScopesAsync_WhenIdentifiersProvided_NarrowsByIdentifier()
     {
-        await SeedTenantAsync();
-        await AddServerAsync("rs-a", "urn:a", isSystem: false, isDisabled: false, "read:x");
-        await AddServerAsync("rs-b", "urn:b", isSystem: false, isDisabled: false, "read:x");
-        await AddServerAsync("rs-c", "urn:c", isSystem: false, isDisabled: false, "read:x");
+        await SeedTenantAsync(CancellationToken.None);
+        await AddServerAsync(
+            "rs-a",
+            "urn:a",
+            isSystem: false,
+            isDisabled: false,
+            ["read:x"],
+            CancellationToken.None
+        );
+        await AddServerAsync(
+            "rs-b",
+            "urn:b",
+            isSystem: false,
+            isDisabled: false,
+            ["read:x"],
+            CancellationToken.None
+        );
+        await AddServerAsync(
+            "rs-c",
+            "urn:c",
+            isSystem: false,
+            isDisabled: false,
+            ["read:x"],
+            CancellationToken.None
+        );
 
         var matches = await Store.FindEnabledByScopesAsync(
             ["read:x"],

@@ -55,7 +55,10 @@ public sealed class ClientStoreSecretsTests : IDisposable
             EncodedValue = "encoded-value",
         }.Build();
 
-    private async Task SeedClientAsync(params PersistedSecret[] secrets)
+    private async ValueTask SeedClientAsync(
+        PersistedSecret[] secrets,
+        CancellationToken cancellationToken
+    )
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder
@@ -64,8 +67,8 @@ public sealed class ClientStoreSecretsTests : IDisposable
             DisplayName = "Tenant One",
         }.Build();
 
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
 
         var client = new PersistedClientBuilder
         {
@@ -74,24 +77,27 @@ public sealed class ClientStoreSecretsTests : IDisposable
             Secrets = secrets,
         }.Build();
 
-        await Store.AddAsync(client, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await Store.AddAsync(client, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task<PersistedSecret?> GetSecretOrDefaultAsync(string secretId)
+    private async ValueTask<PersistedSecret?> GetSecretOrDefaultAsync(
+        string secretId,
+        CancellationToken cancellationToken
+    )
     {
-        var secrets = await Store.GetSecretsOrDefaultAsync(ClientId, CancellationToken.None);
+        var secrets = await Store.GetSecretsOrDefaultAsync(ClientId, cancellationToken);
         return secrets?.Value.SingleOrDefault(x =>
             string.Equals(x.SecretId, secretId, StringComparison.Ordinal)
         );
     }
 
-    private async Task<string> GetClientSecretsTokenAsync()
+    private async ValueTask<string> GetClientSecretsTokenAsync(CancellationToken cancellationToken)
     {
         var client = await DbContext
             .Clients.AsNoTracking()
-            .SingleAsync(x => x.ClientId == ClientId);
+            .SingleAsync(x => x.ClientId == ClientId, cancellationToken);
         return client.SecretsConcurrencyToken;
     }
 
@@ -100,7 +106,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task GetSecretsOrDefaultAsync_WhenExists_ReturnsSecrets()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         var result = await Store.GetSecretsOrDefaultAsync(ClientId, CancellationToken.None);
 
@@ -114,7 +120,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task GetSecretsOrDefaultAsync_WhenMissing_ReturnsNull()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         var result = await Store.GetSecretsOrDefaultAsync("missing", CancellationToken.None);
 
@@ -128,7 +134,10 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task GetSecretOrDefaultAsync_WhenExists_ReturnsSecretWithOwningTenant()
     {
-        await SeedClientAsync(CreateSecret("secret-1"), CreateSecret("secret-2"));
+        await SeedClientAsync(
+            [CreateSecret("secret-1"), CreateSecret("secret-2")],
+            CancellationToken.None
+        );
 
         var result = await Store.GetSecretOrDefaultAsync(
             ClientId,
@@ -145,7 +154,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task GetSecretOrDefaultAsync_WhenSecretMissing_ReturnsNull()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         var result = await Store.GetSecretOrDefaultAsync(
             ClientId,
@@ -159,7 +168,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task GetSecretOrDefaultAsync_WhenClientMissing_ReturnsNull()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         var result = await Store.GetSecretOrDefaultAsync(
             "missing",
@@ -177,8 +186,8 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task AddSecretAsync_WhenNew_AssignsTokenAndBumpsClientToken()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
-        var tokenBefore = await GetClientSecretsTokenAsync();
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
+        var tokenBefore = await GetClientSecretsTokenAsync(CancellationToken.None);
 
         var added = CreateSecret("secret-2");
         await Store.AddSecretAsync(ClientId, added, CancellationToken.None);
@@ -186,17 +195,17 @@ public sealed class ClientStoreSecretsTests : IDisposable
 
         Assert.False(string.IsNullOrEmpty(added.ConcurrencyToken));
 
-        var reloaded = await GetSecretOrDefaultAsync("secret-2");
+        var reloaded = await GetSecretOrDefaultAsync("secret-2", CancellationToken.None);
         Assert.NotNull(reloaded);
 
-        var tokenAfter = await GetClientSecretsTokenAsync();
+        var tokenAfter = await GetClientSecretsTokenAsync(CancellationToken.None);
         Assert.NotEqual(tokenBefore, tokenAfter);
     }
 
     [Fact]
     public async Task AddSecretAsync_WhenDuplicate_Throws()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await Store.AddSecretAsync(ClientId, CreateSecret("secret-1"), CancellationToken.None)
@@ -206,7 +215,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task AddSecretAsync_WhenKeyIdIsSet_RoundTripsKeyId()
     {
-        await SeedClientAsync();
+        await SeedClientAsync([], CancellationToken.None);
 
         var added = new PersistedSecretBuilder
         {
@@ -223,7 +232,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
 
-        var reloaded = await GetSecretOrDefaultAsync("secret-2");
+        var reloaded = await GetSecretOrDefaultAsync("secret-2", CancellationToken.None);
 
         Assert.NotNull(reloaded);
         Assert.Equal("client-kid", reloaded.KeyId);
@@ -236,9 +245,9 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task UpdateSecretAsync_WhenTokenMatches_UpdatesMetadata()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
-        var current = await GetSecretOrDefaultAsync("secret-1");
+        var current = await GetSecretOrDefaultAsync("secret-1", CancellationToken.None);
         Assert.NotNull(current);
 
         var updated = new PersistedSecretBuilder
@@ -261,7 +270,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
         await Store.UpdateSecretAsync(ClientId, updated, CancellationToken.None);
         await DbContext.SaveChangesAsync();
 
-        var reloaded = await GetSecretOrDefaultAsync("secret-1");
+        var reloaded = await GetSecretOrDefaultAsync("secret-1", CancellationToken.None);
         Assert.NotNull(reloaded);
         Assert.Equal("enc", reloaded.Use);
         Assert.Equal("RS512", reloaded.Algorithm);
@@ -272,7 +281,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task UpdateSecretAsync_WhenTokenMismatch_Throws()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         var stale = CreateSecret("secret-1");
         stale.ConcurrencyToken = "stale-token";
@@ -285,7 +294,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task UpdateSecretAsync_WhenMissing_Throws()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await Store.UpdateSecretAsync(ClientId, CreateSecret("missing"), CancellationToken.None)
@@ -299,25 +308,28 @@ public sealed class ClientStoreSecretsTests : IDisposable
     [Fact]
     public async Task RemoveSecretAsync_WhenExists_RemovesAndReturnsTrue()
     {
-        await SeedClientAsync(CreateSecret("secret-1"), CreateSecret("secret-2"));
-        var tokenBefore = await GetClientSecretsTokenAsync();
+        await SeedClientAsync(
+            [CreateSecret("secret-1"), CreateSecret("secret-2")],
+            CancellationToken.None
+        );
+        var tokenBefore = await GetClientSecretsTokenAsync(CancellationToken.None);
 
         var removed = await Store.RemoveSecretAsync(ClientId, "secret-1", CancellationToken.None);
         await DbContext.SaveChangesAsync();
 
         Assert.True(removed);
 
-        var gone = await GetSecretOrDefaultAsync("secret-1");
+        var gone = await GetSecretOrDefaultAsync("secret-1", CancellationToken.None);
         Assert.Null(gone);
 
-        var tokenAfter = await GetClientSecretsTokenAsync();
+        var tokenAfter = await GetClientSecretsTokenAsync(CancellationToken.None);
         Assert.NotEqual(tokenBefore, tokenAfter);
     }
 
     [Fact]
     public async Task RemoveSecretAsync_WhenMissing_ReturnsFalse()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         var removed = await Store.RemoveSecretAsync(ClientId, "missing", CancellationToken.None);
 

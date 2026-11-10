@@ -60,25 +60,25 @@ public sealed class ClientStorePagingTests : IDisposable
             OwningNodeId = owningNodeId,
         }.Build();
 
-    private async Task SeedAsync(int count)
+    private async ValueTask SeedAsync(int count, CancellationToken cancellationToken)
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder { TenantId = TenantId }.Build();
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
 
         for (var index = 1; index <= count; index++)
         {
-            await Store.AddAsync(CreateClient($"client-{index}"), CancellationToken.None);
+            await Store.AddAsync(CreateClient($"client-{index}"), cancellationToken);
         }
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
     public async Task GetPageAsync_TraversesEveryItemExactlyOnce()
     {
-        await SeedAsync(5);
+        await SeedAsync(5, CancellationToken.None);
 
         var seen = new List<string>();
         string? cursor = null;
@@ -104,7 +104,7 @@ public sealed class ClientStorePagingTests : IDisposable
     [Fact]
     public async Task GetPageAsync_WhenAllFitOnOnePage_ReturnsNullCursor()
     {
-        await SeedAsync(3);
+        await SeedAsync(3, CancellationToken.None);
 
         var page = await Store.GetPageAsync(new PageRequest { Limit = 10 }, CancellationToken.None);
 
@@ -115,7 +115,7 @@ public sealed class ClientStorePagingTests : IDisposable
     [Fact]
     public async Task GetPageAsync_WhenCursorIsMalformed_StartsFromBeginning()
     {
-        await SeedAsync(3);
+        await SeedAsync(3, CancellationToken.None);
 
         var page = await Store.GetPageAsync(
             new PageRequest { Cursor = "not-a-valid-cursor", Limit = 10 },
@@ -139,7 +139,7 @@ public sealed class ClientStorePagingTests : IDisposable
     [Fact]
     public async Task GetSettingsPageAsync_TraversesEveryClientExactlyOnce()
     {
-        await SeedAsync(5);
+        await SeedAsync(5, CancellationToken.None);
 
         var seen = new List<string>();
         string? cursor = null;
@@ -174,7 +174,7 @@ public sealed class ClientStorePagingTests : IDisposable
     [Fact]
     public async Task GetSettingsPageAsync_ReadsWithoutTracking()
     {
-        await SeedAsync(3);
+        await SeedAsync(3, CancellationToken.None);
 
         var page = await Store.GetSettingsPageAsync(
             new PageRequest { Limit = 10 },
@@ -192,7 +192,7 @@ public sealed class ClientStorePagingTests : IDisposable
     [Fact]
     public async Task GetPageByOwningNodeAsync_ListsOnlyTheClientsTheNodeOwns()
     {
-        await SeedAsync(1);
+        await SeedAsync(1, CancellationToken.None);
         await Store.AddAsync(
             CreateClient("team-client-1", owningNodeType: "team", owningNodeId: "team-1"),
             CancellationToken.None
@@ -239,7 +239,7 @@ public sealed class ClientStorePagingTests : IDisposable
     [Fact]
     public async Task GetByPrincipalOrDefaultAsync_FindsTheClientInAnotherTenant()
     {
-        await SeedAsync(1);
+        await SeedAsync(1, CancellationToken.None);
         var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
         DbContext.SeedTenant(idGenerator, "tenant-2");
         var otherClient = CreateClient("other-client", tenantId: "tenant-2");
@@ -260,7 +260,7 @@ public sealed class ClientStorePagingTests : IDisposable
     [Fact]
     public async Task GetByPrincipalOrDefaultAsync_WhenNoClientHoldsThePrincipal_ReturnsNull()
     {
-        await SeedAsync(2);
+        await SeedAsync(2, CancellationToken.None);
 
         var loaded = await Store.GetByPrincipalOrDefaultAsync(
             "unknown-principal",

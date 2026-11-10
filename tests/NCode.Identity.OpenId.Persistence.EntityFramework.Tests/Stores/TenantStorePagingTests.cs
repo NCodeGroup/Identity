@@ -49,18 +49,18 @@ public sealed class TenantStorePagingTests : IDisposable
             ),
         }.Build();
 
-    private async Task SeedAsync(int count)
+    private async ValueTask SeedAsync(int count, CancellationToken cancellationToken)
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         for (var index = 1; index <= count; index++)
         {
-            await Store.AddAsync(CreateTenant($"tenant-{index}", index), CancellationToken.None);
+            await Store.AddAsync(CreateTenant($"tenant-{index}", index), cancellationToken);
         }
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task SeedTwoTeamsAsync()
+    private async ValueTask SeedTwoTeamsAsync(CancellationToken cancellationToken)
     {
         var idGenerator = Provider.GetRequiredService<IIdGenerator<long>>();
         DbContext.SeedTeam(idGenerator, "team-a");
@@ -69,17 +69,17 @@ public sealed class TenantStorePagingTests : IDisposable
         {
             await Store.AddAsync(
                 CreateTenant($"a-tenant-{index}", index, "team-a"),
-                CancellationToken.None
+                cancellationToken
             );
         }
         for (var index = 1; index <= 2; index++)
         {
             await Store.AddAsync(
                 CreateTenant($"b-tenant-{index}", index, "team-b"),
-                CancellationToken.None
+                cancellationToken
             );
         }
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -88,7 +88,7 @@ public sealed class TenantStorePagingTests : IDisposable
     [Fact]
     public async Task GetOrDefaultAsync_WhenTheTrackerHoldsTheTenantWithoutItsTeam_LoadsTheTeam()
     {
-        await SeedAsync(1);
+        await SeedAsync(1, CancellationToken.None);
         _ = DbContext
             .Tenants.AsTracking()
             .Single(tenant => tenant.NormalizedTenantId == "tenant-1");
@@ -106,7 +106,7 @@ public sealed class TenantStorePagingTests : IDisposable
     [Fact]
     public async Task GetPageAsync_WithATeam_ReturnsOnlyItsTenants()
     {
-        await SeedTwoTeamsAsync();
+        await SeedTwoTeamsAsync(CancellationToken.None);
 
         var seen = new List<string>();
         string? cursor = null;
@@ -131,7 +131,7 @@ public sealed class TenantStorePagingTests : IDisposable
     [Fact]
     public async Task GetSettingsPageAsync_WithATeam_TraversesOnlyItsTenants()
     {
-        await SeedTwoTeamsAsync();
+        await SeedTwoTeamsAsync(CancellationToken.None);
 
         var seen = new List<string>();
         string? cursor = null;
@@ -152,7 +152,7 @@ public sealed class TenantStorePagingTests : IDisposable
     [Fact]
     public async Task CountAsync_CountsTheTeamsTenants()
     {
-        await SeedTwoTeamsAsync();
+        await SeedTwoTeamsAsync(CancellationToken.None);
 
         Assert.Equal(3, await Store.CountAsync("team-a", CancellationToken.None));
         Assert.Equal(2, await Store.CountAsync("team-b", CancellationToken.None));
@@ -197,7 +197,7 @@ public sealed class TenantStorePagingTests : IDisposable
     [Fact]
     public async Task GetSettingsPageAsync_TraversesEveryTenantExactlyOnce()
     {
-        await SeedAsync(5);
+        await SeedAsync(5, CancellationToken.None);
 
         var seen = new Dictionary<string, int>();
         string? cursor = null;
@@ -230,7 +230,7 @@ public sealed class TenantStorePagingTests : IDisposable
     [Fact]
     public async Task GetSettingsPageAsync_ReadsWithoutTracking()
     {
-        await SeedAsync(3);
+        await SeedAsync(3, CancellationToken.None);
 
         var page = await Store.GetSettingsPageAsync(
             new PageRequest { Limit = 10 },

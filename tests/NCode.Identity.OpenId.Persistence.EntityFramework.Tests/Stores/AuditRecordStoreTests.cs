@@ -80,43 +80,51 @@ public sealed class AuditRecordStoreTests : IDisposable
         return serviceCollection.BuildServiceProvider();
     }
 
-    private Task<int> AddAsync(params PersistedAuditRecord[] records) =>
-        AddAsync(Provider, records);
+    private ValueTask<int> AddAsync(
+        PersistedAuditRecord[] records,
+        CancellationToken cancellationToken
+    ) => AddAsync(Provider, records, cancellationToken);
 
-    private async Task<int> AddAsync(
+    private async ValueTask<int> AddAsync(
         ServiceProvider provider,
-        params PersistedAuditRecord[] records
+        PersistedAuditRecord[] records,
+        CancellationToken cancellationToken
     )
     {
         using var scope = provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        var added = await CreateStore(context).AddAsync(records, CancellationToken.None);
-        await context.SaveChangesAsync();
+        var added = await CreateStore(context).AddAsync(records, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return added;
     }
 
-    private async Task<int> RemoveBeforeAsync(
+    private async ValueTask<int> RemoveBeforeAsync(
         ServiceProvider provider,
         DateTimeOffset time,
-        int limit
+        int limit,
+        CancellationToken cancellationToken
     )
     {
         using var scope = provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        var removed = await CreateStore(context)
-            .RemoveBeforeAsync(time, limit, CancellationToken.None);
-        await context.SaveChangesAsync();
+        var removed = await CreateStore(context).RemoveBeforeAsync(time, limit, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return removed;
     }
 
-    private Task<(int Records, int Resources)> CountAsync() => CountAsync(Provider);
+    private ValueTask<(int Records, int Resources)> CountAsync(
+        CancellationToken cancellationToken
+    ) => CountAsync(Provider, cancellationToken);
 
-    private static async Task<(int Records, int Resources)> CountAsync(ServiceProvider provider)
+    private static async ValueTask<(int Records, int Resources)> CountAsync(
+        ServiceProvider provider,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        var records = await context.AuditRecords.CountAsync();
-        var resources = await context.AuditRecordResources.CountAsync();
+        var records = await context.AuditRecords.CountAsync(cancellationToken);
+        var resources = await context.AuditRecordResources.CountAsync(cancellationToken);
         return (records, resources);
     }
 
@@ -133,7 +141,7 @@ public sealed class AuditRecordStoreTests : IDisposable
             ]
         );
 
-        var added = await AddAsync(record);
+        var added = await AddAsync([record], CancellationToken.None);
 
         Assert.Equal(1, added);
         using var scope = Provider.CreateScope();
@@ -157,12 +165,12 @@ public sealed class AuditRecordStoreTests : IDisposable
     public async Task AddAsync_WhenTheStoreHoldsAnEvent_AddsOnlyTheOthers()
     {
         var held = Record();
-        await AddAsync(held);
+        await AddAsync([held], CancellationToken.None);
 
-        var added = await AddAsync(held, Record());
+        var added = await AddAsync([held, Record()], CancellationToken.None);
 
         Assert.Equal(1, added);
-        Assert.Equal((2, 0), await CountAsync());
+        Assert.Equal((2, 0), await CountAsync(CancellationToken.None));
     }
 
     [Fact]
@@ -170,10 +178,10 @@ public sealed class AuditRecordStoreTests : IDisposable
     {
         var eventId = Guid.CreateVersion7();
 
-        var added = await AddAsync(Record(eventId), Record(eventId));
+        var added = await AddAsync([Record(eventId), Record(eventId)], CancellationToken.None);
 
         Assert.Equal(1, added);
-        Assert.Equal((1, 0), await CountAsync());
+        Assert.Equal((1, 0), await CountAsync(CancellationToken.None));
     }
 
     [Fact]
@@ -191,11 +199,12 @@ public sealed class AuditRecordStoreTests : IDisposable
 
     #region GetPageAsync Tests
 
-    private static async Task<PagedResult<PersistedAuditRecord>> GetPageAsync(
+    private static async ValueTask<PagedResult<PersistedAuditRecord>> GetPageAsync(
         ServiceProvider provider,
         AuditRecordFilter filter,
-        string? cursor = null,
-        int limit = 10
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken
     )
     {
         using var scope = provider.CreateScope();
@@ -208,7 +217,7 @@ public sealed class AuditRecordStoreTests : IDisposable
         return await store.GetPageAsync(
             filter,
             new PageRequest { Cursor = cursor, Limit = limit },
-            CancellationToken.None
+            cancellationToken
         );
     }
 
@@ -232,7 +241,7 @@ public sealed class AuditRecordStoreTests : IDisposable
             Record = JsonElements.EmptyObject,
         };
         var tooOld = Record(eventTime: Now.AddDays(-2));
-        await AddAsync(provider, match, otherTenant, tooOld);
+        await AddAsync(provider, [match, otherTenant, tooOld], CancellationToken.None);
 
         var page = await GetPageAsync(
             provider,
@@ -245,7 +254,10 @@ public sealed class AuditRecordStoreTests : IDisposable
                 ClientId = "client-1",
                 ActorId = "admin-1",
                 TraceId = "0af7651916cd43dd8448eb211c80319c",
-            }
+            },
+            cursor: null,
+            limit: 10,
+            CancellationToken.None
         );
 
         Assert.Equal(match.EventId, Assert.Single(page.Items).EventId);
@@ -263,7 +275,7 @@ public sealed class AuditRecordStoreTests : IDisposable
                 new PersistedAuditResource { Type = "tenant", Id = "tenant-1" },
             ]
         );
-        await AddAsync(provider, owner, Record());
+        await AddAsync(provider, [owner, Record()], CancellationToken.None);
 
         var byOwner = await GetPageAsync(
             provider,
@@ -272,7 +284,10 @@ public sealed class AuditRecordStoreTests : IDisposable
                 TenantId = "tenant-1",
                 ResourceType = "tenant",
                 ResourceId = "tenant-1",
-            }
+            },
+            cursor: null,
+            limit: 10,
+            CancellationToken.None
         );
         var mismatched = await GetPageAsync(
             provider,
@@ -281,7 +296,10 @@ public sealed class AuditRecordStoreTests : IDisposable
                 TenantId = "tenant-1",
                 ResourceType = "tenant",
                 ResourceId = "client-1",
-            }
+            },
+            cursor: null,
+            limit: 10,
+            CancellationToken.None
         );
 
         var item = Assert.Single(byOwner.Items);
@@ -296,11 +314,17 @@ public sealed class AuditRecordStoreTests : IDisposable
         await using var provider = CreateInMemoryProvider();
         var records = Enumerable.Range(0, 3).Select(_ => Record()).ToList();
         foreach (var record in records)
-            await AddAsync(provider, record);
+            await AddAsync(provider, [record], CancellationToken.None);
         var filter = new AuditRecordFilter { TenantId = "tenant-1" };
 
-        var first = await GetPageAsync(provider, filter, limit: 2);
-        var second = await GetPageAsync(provider, filter, first.NextCursor, limit: 2);
+        var first = await GetPageAsync(provider, filter, null, 2, CancellationToken.None);
+        var second = await GetPageAsync(
+            provider,
+            filter,
+            first.NextCursor,
+            2,
+            CancellationToken.None
+        );
 
         Assert.Equal(
             [records[2].EventId, records[1].EventId],
@@ -319,11 +343,17 @@ public sealed class AuditRecordStoreTests : IDisposable
         var newest = Record(eventTime: Now);
         var oldest = Record(eventTime: Now.AddMinutes(-2));
         foreach (var record in new[] { older, newest, oldest })
-            await AddAsync(provider, record);
+            await AddAsync(provider, [record], CancellationToken.None);
         var filter = new AuditRecordFilter { TenantId = "tenant-1" };
 
-        var first = await GetPageAsync(provider, filter, limit: 2);
-        var second = await GetPageAsync(provider, filter, first.NextCursor, limit: 2);
+        var first = await GetPageAsync(provider, filter, null, 2, CancellationToken.None);
+        var second = await GetPageAsync(
+            provider,
+            filter,
+            first.NextCursor,
+            2,
+            CancellationToken.None
+        );
 
         Assert.Equal([newest.EventId, older.EventId], first.Items.Select(item => item.EventId));
         Assert.NotNull(first.NextCursor);
@@ -341,15 +371,23 @@ public sealed class AuditRecordStoreTests : IDisposable
         var resource = new PersistedAuditResource { Type = "client", Id = "client-1" };
         await AddAsync(
             provider,
-            Record(eventTime: Now.AddDays(-91), resources: [resource]),
-            Record(eventTime: Now.AddDays(-90).AddSeconds(-1), resources: [resource]),
-            Record(eventTime: Now.AddDays(-89), resources: [resource])
+            [
+                Record(eventTime: Now.AddDays(-91), resources: [resource]),
+                Record(eventTime: Now.AddDays(-90).AddSeconds(-1), resources: [resource]),
+                Record(eventTime: Now.AddDays(-89), resources: [resource]),
+            ],
+            CancellationToken.None
         );
 
-        var removed = await RemoveBeforeAsync(provider, Now.AddDays(-90), limit: 10);
+        var removed = await RemoveBeforeAsync(
+            provider,
+            Now.AddDays(-90),
+            limit: 10,
+            CancellationToken.None
+        );
 
         Assert.Equal(2, removed);
-        Assert.Equal((1, 1), await CountAsync(provider));
+        Assert.Equal((1, 1), await CountAsync(provider, CancellationToken.None));
     }
 
     [Fact]
@@ -358,24 +396,27 @@ public sealed class AuditRecordStoreTests : IDisposable
         await using var provider = CreateInMemoryProvider();
         await AddAsync(
             provider,
-            Record(eventTime: Now.AddDays(-100)),
-            Record(eventTime: Now.AddDays(-100)),
-            Record(eventTime: Now.AddDays(-100))
+            [
+                Record(eventTime: Now.AddDays(-100)),
+                Record(eventTime: Now.AddDays(-100)),
+                Record(eventTime: Now.AddDays(-100)),
+            ],
+            CancellationToken.None
         );
 
-        var first = await RemoveBeforeAsync(provider, Now, limit: 2);
-        var second = await RemoveBeforeAsync(provider, Now, limit: 2);
+        var first = await RemoveBeforeAsync(provider, Now, limit: 2, CancellationToken.None);
+        var second = await RemoveBeforeAsync(provider, Now, limit: 2, CancellationToken.None);
 
         Assert.Equal(2, first);
         Assert.Equal(1, second);
-        Assert.Equal((0, 0), await CountAsync(provider));
+        Assert.Equal((0, 0), await CountAsync(provider, CancellationToken.None));
     }
 
     [Fact]
     public async Task RemoveBeforeAsync_WhenTheLimitIsBelowOne_Throws()
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
-            await RemoveBeforeAsync(Provider, Now, limit: 0)
+            await RemoveBeforeAsync(Provider, Now, limit: 0, CancellationToken.None)
         );
     }
 

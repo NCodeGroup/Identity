@@ -63,7 +63,7 @@ public sealed class ClientGrantStoreTests : IDisposable
             Scopes = scopes,
         };
 
-    private async Task SeedAsync()
+    private async ValueTask SeedAsync(CancellationToken cancellationToken)
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder
@@ -71,34 +71,34 @@ public sealed class ClientGrantStoreTests : IDisposable
             TenantId = TenantId,
             DisplayName = "Tenant One",
         }.Build();
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
+        await TenantStore.AddAsync(tenant, cancellationToken);
 
         // The tenant must be persisted before its dependents are added (an in-memory query does not observe
         // unsaved inserts).
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
 
         var client = new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
         }.Build();
-        await ClientStore.AddAsync(client, CancellationToken.None);
+        await ClientStore.AddAsync(client, cancellationToken);
 
         var resourceServer = new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = ResourceServerId,
         }.Build();
-        await ResourceServerStore.AddAsync(resourceServer, CancellationToken.None);
+        await ResourceServerStore.AddAsync(resourceServer, cancellationToken);
 
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
     public async Task AddAsync_RoundtripsScopes()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         await Store.AddAsync(CreateGrant("read:x", "write:x"), CancellationToken.None);
         await DbContext.SaveChangesAsync();
@@ -118,7 +118,7 @@ public sealed class ClientGrantStoreTests : IDisposable
     [Fact]
     public async Task GetPageAsync_ByClient_ReturnsGrant()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
         await Store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -136,7 +136,7 @@ public sealed class ClientGrantStoreTests : IDisposable
     [Fact]
     public async Task RemoveAsync_RemovesGrant()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
         await Store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -157,7 +157,7 @@ public sealed class ClientGrantStoreTests : IDisposable
     [Fact]
     public async Task HasDependentsAsync_WhenGrantExists_ReturnsTrue()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
         await Store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
         await DbContext.SaveChangesAsync();
         DbContext.ChangeTracker.Clear();
@@ -173,7 +173,7 @@ public sealed class ClientGrantStoreTests : IDisposable
     [Fact]
     public async Task HasDependentsAsync_WhenNoGrant_ReturnsFalse()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         var hasDependents = await ResourceServerStore.HasDependentsAsync(
             ResourceServerId,

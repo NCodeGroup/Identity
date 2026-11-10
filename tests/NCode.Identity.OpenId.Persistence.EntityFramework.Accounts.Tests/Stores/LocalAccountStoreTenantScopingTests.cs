@@ -68,26 +68,26 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
         };
 
     // Seeds one account per tenant unscoped, then detaches so later reads hit the query where the filter applies.
-    private async Task SeedAsync()
+    private async ValueTask SeedAsync(CancellationToken cancellationToken)
     {
         await Store.AddAsync(
             CreateAccount(TenantA, AccountA, UserA),
             password: null,
-            CancellationToken.None
+            cancellationToken
         );
         await Store.AddAsync(
             CreateAccount(TenantB, AccountB, UserB),
             password: null,
-            CancellationToken.None
+            cancellationToken
         );
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
     public async Task GetByUserNameOrDefaultAsync_WhenScopedToTenant_HidesOtherTenants()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         Accessor.TenantId = TenantA;
         Assert.NotNull(await Store.GetByUserNameOrDefaultAsync(UserA, CancellationToken.None));
@@ -101,7 +101,7 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
     [Fact]
     public async Task GetByIdOrDefaultAsync_WhenScopedToTenant_HidesOtherTenants()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         Accessor.TenantId = TenantA;
         Assert.NotNull(await Store.GetByIdOrDefaultAsync(AccountA, CancellationToken.None));
@@ -111,7 +111,7 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
     [Fact]
     public async Task GetByIdOrDefaultAsync_WhenUnscoped_SeesAllTenants()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         Accessor.TenantId = null;
         Assert.NotNull(await Store.GetByIdOrDefaultAsync(AccountA, CancellationToken.None));

@@ -39,7 +39,11 @@ public sealed class TenantIssuerIndexTests : IDisposable
 
     #region Helpers
 
-    private async Task AddTenantAsync(string tenantId, string? issuer)
+    private async ValueTask AddTenantAsync(
+        string tenantId,
+        string? issuer,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
@@ -47,8 +51,8 @@ public sealed class TenantIssuerIndexTests : IDisposable
         var store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, context);
 
         context.SeedTeam(idGenerator, "platform");
-        await store.AddAsync(CreatePersistedTenant(tenantId, issuer), CancellationToken.None);
-        await context.SaveChangesAsync();
+        await store.AddAsync(CreatePersistedTenant(tenantId, issuer), cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     private static PersistedTenant CreatePersistedTenant(string tenantId, string? issuer) =>
@@ -71,8 +75,8 @@ public sealed class TenantIssuerIndexTests : IDisposable
     [Fact]
     public async Task NullIssuer_AllowsMultipleTenants()
     {
-        await AddTenantAsync("tenant-1", issuer: null);
-        await AddTenantAsync("tenant-2", issuer: null);
+        await AddTenantAsync("tenant-1", issuer: null, CancellationToken.None);
+        await AddTenantAsync("tenant-2", issuer: null, CancellationToken.None);
 
         Assert.Equal(2, CountTenants());
     }
@@ -80,8 +84,8 @@ public sealed class TenantIssuerIndexTests : IDisposable
     [Fact]
     public async Task DistinctIssuers_AreAllowed()
     {
-        await AddTenantAsync("tenant-1", "https://a.test");
-        await AddTenantAsync("tenant-2", "https://b.test");
+        await AddTenantAsync("tenant-1", "https://a.test", CancellationToken.None);
+        await AddTenantAsync("tenant-2", "https://b.test", CancellationToken.None);
 
         Assert.Equal(2, CountTenants());
     }
@@ -89,12 +93,12 @@ public sealed class TenantIssuerIndexTests : IDisposable
     [Fact]
     public async Task DuplicateIssuer_IsRejected()
     {
-        await AddTenantAsync("tenant-1", "https://example.test");
+        await AddTenantAsync("tenant-1", "https://example.test", CancellationToken.None);
 
         // An issuer IS the tenant's identity and is asserted in every token it mints, so two tenants claiming one is a
         // protocol-level collision the schema must refuse.
         await Assert.ThrowsAsync<DbUpdateException>(() =>
-            AddTenantAsync("tenant-2", "https://example.test")
+            AddTenantAsync("tenant-2", "https://example.test", CancellationToken.None).AsTask()
         );
     }
 
@@ -103,8 +107,8 @@ public sealed class TenantIssuerIndexTests : IDisposable
     {
         // Path-based tenants legitimately share a host, which is why the derived host index must NOT be unique. Making
         // it unique would make the path strategy unusable beyond a single tenant.
-        await AddTenantAsync("tenant-1", "https://op.test/tenant-a");
-        await AddTenantAsync("tenant-2", "https://op.test/tenant-b");
+        await AddTenantAsync("tenant-1", "https://op.test/tenant-a", CancellationToken.None);
+        await AddTenantAsync("tenant-2", "https://op.test/tenant-b", CancellationToken.None);
 
         Assert.Equal(2, CountTenants());
     }

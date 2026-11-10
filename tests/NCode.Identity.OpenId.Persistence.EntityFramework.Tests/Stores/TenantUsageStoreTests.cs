@@ -60,14 +60,15 @@ public sealed class TenantUsageStoreTests : IDisposable
             Count = count,
         };
 
-    private async Task AddBatchAsync(
+    private async ValueTask AddBatchAsync(
         Guid replicaId,
         long batchNumber,
         string tenantId,
         DateOnly day,
         string meter,
         long count,
-        string teamPath = "/platform/"
+        string teamPath,
+        CancellationToken cancellationToken
     )
     {
         using var scope = Provider.CreateScope();
@@ -77,52 +78,88 @@ public sealed class TenantUsageStoreTests : IDisposable
                 replicaId,
                 batchNumber,
                 [Usage(tenantId, day, meter, count, teamPath)],
-                CancellationToken.None
+                cancellationToken
             );
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
     }
 
-    private Task AddAsync(
+    private ValueTask AddBatchAsync(
+        Guid replicaId,
+        long batchNumber,
         string tenantId,
         DateOnly day,
         string meter,
         long count,
-        string teamPath = "/platform/"
-    ) => AddBatchAsync(Guid.NewGuid(), 1, tenantId, day, meter, count, teamPath);
+        CancellationToken cancellationToken
+    ) =>
+        AddBatchAsync(
+            replicaId,
+            batchNumber,
+            tenantId,
+            day,
+            meter,
+            count,
+            "/platform/",
+            cancellationToken
+        );
 
-    private async Task<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListByTeamAsync(
+    private ValueTask AddAsync(
+        string tenantId,
+        DateOnly day,
+        string meter,
+        long count,
+        string teamPath,
+        CancellationToken cancellationToken
+    ) => AddBatchAsync(Guid.NewGuid(), 1, tenantId, day, meter, count, teamPath, cancellationToken);
+
+    private ValueTask AddAsync(
+        string tenantId,
+        DateOnly day,
+        string meter,
+        long count,
+        CancellationToken cancellationToken
+    ) => AddAsync(tenantId, day, meter, count, "/platform/", cancellationToken);
+
+    private async ValueTask<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListByTeamAsync(
         string teamPath,
         DateOnly firstDay,
-        DateOnly lastDay
+        DateOnly lastDay,
+        CancellationToken cancellationToken
     )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context)
-            .ListByTeamAsync(teamPath, firstDay, lastDay, CancellationToken.None);
+            .ListByTeamAsync(teamPath, firstDay, lastDay, cancellationToken);
     }
 
-    private async Task<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListAsync(
+    private async ValueTask<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListAsync(
         DateOnly firstDay,
         DateOnly lastDay,
-        string tenantId = TenantId
+        string tenantId,
+        CancellationToken cancellationToken
     )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        return await CreateStore(context)
-            .ListAsync(tenantId, firstDay, lastDay, CancellationToken.None);
+        return await CreateStore(context).ListAsync(tenantId, firstDay, lastDay, cancellationToken);
     }
+
+    private ValueTask<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListAsync(
+        DateOnly firstDay,
+        DateOnly lastDay,
+        CancellationToken cancellationToken
+    ) => ListAsync(firstDay, lastDay, TenantId, cancellationToken);
 
     #region AddAsync Tests
 
     [Fact]
     public async Task AddAsync_WhenTheDayHasAnEntry_AddsToIt()
     {
-        await AddAsync(TenantId, Day, Requests, 3);
-        await AddAsync(TenantId, Day, Requests, 4);
+        await AddAsync(TenantId, Day, Requests, 3, CancellationToken.None);
+        await AddAsync(TenantId, Day, Requests, 4, CancellationToken.None);
 
-        var usage = await ListAsync(Day, Day);
+        var usage = await ListAsync(Day, Day, CancellationToken.None);
 
         var entry = Assert.Single(usage);
         Assert.Equal(7, entry.Count);
@@ -133,7 +170,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenAnotherWriterUpdatedTheEntryFirst_FailsTheCommit()
     {
-        await AddAsync(TenantId, Day, Requests, 1);
+        await AddAsync(TenantId, Day, Requests, 1, CancellationToken.None);
 
         using var firstScope = Provider.CreateScope();
         using var secondScope = Provider.CreateScope();
@@ -157,7 +194,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         await first.SaveChangesAsync();
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => second.SaveChangesAsync());
 
-        var entry = Assert.Single(await ListAsync(Day, Day));
+        var entry = Assert.Single(await ListAsync(Day, Day, CancellationToken.None));
         Assert.Equal(3, entry.Count);
     }
 
@@ -186,7 +223,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         await first.SaveChangesAsync();
         await Assert.ThrowsAsync<DbUpdateException>(() => second.SaveChangesAsync());
 
-        var entry = Assert.Single(await ListAsync(Day, Day));
+        var entry = Assert.Single(await ListAsync(Day, Day, CancellationToken.None));
         Assert.Equal(2, entry.Count);
     }
 
@@ -194,7 +231,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     public async Task AddAsync_WhenABatchSpansDaysAndRepeatsAnEntry_AddsEachToItsDay()
     {
         var replicaId = Guid.NewGuid();
-        await AddAsync(TenantId, Day, Requests, 1);
+        await AddAsync(TenantId, Day, Requests, 1, CancellationToken.None);
 
         using (var scope = Provider.CreateScope())
         {
@@ -231,7 +268,7 @@ public sealed class TenantUsageStoreTests : IDisposable
                 (Day.AddDays(1), Requests, 7L),
                 (Day.AddDays(1), TokenRequests, 11L),
             ],
-            (await ListAsync(Day, Day.AddDays(1))).Select(entry =>
+            (await ListAsync(Day, Day.AddDays(1), CancellationToken.None)).Select(entry =>
                 (entry.Day, entry.Meter, entry.Count)
             )
         );
@@ -241,10 +278,10 @@ public sealed class TenantUsageStoreTests : IDisposable
     public async Task AddAsync_WhenTheReplicaAddedTheBatchBefore_AddsNothing()
     {
         var replicaId = Guid.NewGuid();
-        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3);
-        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3);
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3, CancellationToken.None);
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3, CancellationToken.None);
 
-        var entry = Assert.Single(await ListAsync(Day, Day));
+        var entry = Assert.Single(await ListAsync(Day, Day, CancellationToken.None));
         Assert.Equal(3, entry.Count);
     }
 
@@ -252,10 +289,10 @@ public sealed class TenantUsageStoreTests : IDisposable
     public async Task AddAsync_WhenTheBatchFollowsTheReplicasLastBatch_AddsIt()
     {
         var replicaId = Guid.NewGuid();
-        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3);
-        await AddBatchAsync(replicaId, 2, TenantId, Day, Requests, 4);
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3, CancellationToken.None);
+        await AddBatchAsync(replicaId, 2, TenantId, Day, Requests, 4, CancellationToken.None);
 
-        var entry = Assert.Single(await ListAsync(Day, Day));
+        var entry = Assert.Single(await ListAsync(Day, Day, CancellationToken.None));
         Assert.Equal(7, entry.Count);
     }
 
@@ -263,10 +300,10 @@ public sealed class TenantUsageStoreTests : IDisposable
     public async Task AddAsync_WhenTheBatchIsNumberedBelowTheReplicasLastBatch_AddsNothing()
     {
         var replicaId = Guid.NewGuid();
-        await AddBatchAsync(replicaId, 2, TenantId, Day, Requests, 4);
-        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3);
+        await AddBatchAsync(replicaId, 2, TenantId, Day, Requests, 4, CancellationToken.None);
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3, CancellationToken.None);
 
-        var entry = Assert.Single(await ListAsync(Day, Day));
+        var entry = Assert.Single(await ListAsync(Day, Day, CancellationToken.None));
         Assert.Equal(4, entry.Count);
     }
 
@@ -274,7 +311,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     public async Task AddAsync_WhenAnotherUnitOfWorkAddedTheBatchFirst_FailsTheCommit()
     {
         var replicaId = Guid.NewGuid();
-        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 1);
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 1, CancellationToken.None);
 
         using var firstScope = Provider.CreateScope();
         using var secondScope = Provider.CreateScope();
@@ -288,7 +325,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         await first.SaveChangesAsync();
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => second.SaveChangesAsync());
 
-        Assert.Empty(await ListAsync(Day, Day, "tenant-3"));
+        Assert.Empty(await ListAsync(Day, Day, "tenant-3", CancellationToken.None));
     }
 
     [Fact]
@@ -309,13 +346,13 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task ListAsync_ReturnsTheTenantsRangeOrderedByDayThenMeter()
     {
-        await AddAsync(TenantId, Day.AddDays(1), TokenRequests, 1);
-        await AddAsync(TenantId, Day.AddDays(1), Requests, 2);
-        await AddAsync(TenantId, Day, Requests, 3);
-        await AddAsync(TenantId, Day.AddDays(2), Requests, 4);
-        await AddAsync("tenant-2", Day, Requests, 5);
+        await AddAsync(TenantId, Day.AddDays(1), TokenRequests, 1, CancellationToken.None);
+        await AddAsync(TenantId, Day.AddDays(1), Requests, 2, CancellationToken.None);
+        await AddAsync(TenantId, Day, Requests, 3, CancellationToken.None);
+        await AddAsync(TenantId, Day.AddDays(2), Requests, 4, CancellationToken.None);
+        await AddAsync("tenant-2", Day, Requests, 5, CancellationToken.None);
 
-        var usage = await ListAsync(Day, Day.AddDays(1));
+        var usage = await ListAsync(Day, Day.AddDays(1), CancellationToken.None);
 
         Assert.Equal(
             [
@@ -330,14 +367,14 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task ListByTeamAsync_ReturnsEveryTenantOfTheTeamInTheRange()
     {
-        await AddAsync("tenant-2", Day, Requests, 1, "/team-a/");
-        await AddAsync("tenant-1", Day.AddDays(1), Requests, 2, "/team-a/");
-        await AddAsync("tenant-1", Day, TokenRequests, 3, "/team-a/");
-        await AddAsync("tenant-1", Day, Requests, 4, "/team-a/");
-        await AddAsync("tenant-1", Day.AddDays(2), Requests, 5, "/team-a/");
-        await AddAsync("tenant-3", Day, Requests, 6, "/team-b/");
+        await AddAsync("tenant-2", Day, Requests, 1, "/team-a/", CancellationToken.None);
+        await AddAsync("tenant-1", Day.AddDays(1), Requests, 2, "/team-a/", CancellationToken.None);
+        await AddAsync("tenant-1", Day, TokenRequests, 3, "/team-a/", CancellationToken.None);
+        await AddAsync("tenant-1", Day, Requests, 4, "/team-a/", CancellationToken.None);
+        await AddAsync("tenant-1", Day.AddDays(2), Requests, 5, "/team-a/", CancellationToken.None);
+        await AddAsync("tenant-3", Day, Requests, 6, "/team-b/", CancellationToken.None);
 
-        var usage = await ListByTeamAsync("/team-a/", Day, Day.AddDays(1));
+        var usage = await ListByTeamAsync("/team-a/", Day, Day.AddDays(1), CancellationToken.None);
 
         Assert.Equal(
             [
@@ -354,11 +391,11 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task ListByTeamAsync_ListsTheTenantsOfEveryTeamBeneath()
     {
-        await AddAsync("tenant-1", Day, Requests, 1, "/team-a/");
-        await AddAsync("tenant-2", Day, Requests, 2, "/team-a/team-a-web/");
-        await AddAsync("tenant-3", Day, Requests, 3, "/team-a-x/");
+        await AddAsync("tenant-1", Day, Requests, 1, "/team-a/", CancellationToken.None);
+        await AddAsync("tenant-2", Day, Requests, 2, "/team-a/team-a-web/", CancellationToken.None);
+        await AddAsync("tenant-3", Day, Requests, 3, "/team-a-x/", CancellationToken.None);
 
-        var usage = await ListByTeamAsync("/team-a/", Day, Day);
+        var usage = await ListByTeamAsync("/team-a/", Day, Day, CancellationToken.None);
 
         Assert.Equal(
             [("tenant-1", "/team-a/"), ("tenant-2", "/team-a/team-a-web/")],
@@ -370,9 +407,11 @@ public sealed class TenantUsageStoreTests : IDisposable
     public async Task ListByTeamAsync_ListsRowsOfATenantWithNoTenantRow()
     {
         // No tenant row exists for the usage row.
-        await AddAsync("deleted-tenant", Day, Requests, 7, "/team-a/");
+        await AddAsync("deleted-tenant", Day, Requests, 7, "/team-a/", CancellationToken.None);
 
-        var entry = Assert.Single(await ListByTeamAsync("/team-a/", Day, Day));
+        var entry = Assert.Single(
+            await ListByTeamAsync("/team-a/", Day, Day, CancellationToken.None)
+        );
 
         Assert.Equal("deleted-tenant", entry.TenantId);
         Assert.Equal(7, entry.Count);
@@ -385,9 +424,9 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task RemoveBeforeAsync_WhenSaved_RemovesOnlyEarlierDaysOfEveryTenant()
     {
-        await AddAsync(TenantId, Day.AddDays(-1), Requests, 1);
-        await AddAsync("tenant-2", Day.AddDays(-2), Requests, 1);
-        await AddAsync(TenantId, Day, Requests, 2);
+        await AddAsync(TenantId, Day.AddDays(-1), Requests, 1, CancellationToken.None);
+        await AddAsync("tenant-2", Day.AddDays(-2), Requests, 1, CancellationToken.None);
+        await AddAsync(TenantId, Day, Requests, 2, CancellationToken.None);
 
         int removed;
         using (var scope = Provider.CreateScope())
@@ -398,16 +437,16 @@ public sealed class TenantUsageStoreTests : IDisposable
         }
 
         Assert.Equal(2, removed);
-        var entry = Assert.Single(await ListAsync(Day.AddDays(-5), Day));
+        var entry = Assert.Single(await ListAsync(Day.AddDays(-5), Day, CancellationToken.None));
         Assert.Equal(Day, entry.Day);
     }
 
     [Fact]
     public async Task RemoveBeforeAsync_WhenMoreEntriesThanTheLimit_RemovesTheLimit()
     {
-        await AddAsync(TenantId, Day.AddDays(-1), Requests, 1);
-        await AddAsync(TenantId, Day.AddDays(-1), TokenRequests, 1);
-        await AddAsync(TenantId, Day.AddDays(-2), Requests, 1);
+        await AddAsync(TenantId, Day.AddDays(-1), Requests, 1, CancellationToken.None);
+        await AddAsync(TenantId, Day.AddDays(-1), TokenRequests, 1, CancellationToken.None);
+        await AddAsync(TenantId, Day.AddDays(-2), Requests, 1, CancellationToken.None);
 
         int removed;
         using (var scope = Provider.CreateScope())
@@ -418,7 +457,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         }
 
         Assert.Equal(2, removed);
-        Assert.Single(await ListAsync(Day.AddDays(-5), Day));
+        Assert.Single(await ListAsync(Day.AddDays(-5), Day, CancellationToken.None));
     }
 
     [Fact]
@@ -437,8 +476,16 @@ public sealed class TenantUsageStoreTests : IDisposable
     {
         var earlier = Guid.NewGuid();
         var current = Guid.NewGuid();
-        await AddBatchAsync(earlier, 1, TenantId, Day.AddDays(-1), Requests, 1);
-        await AddBatchAsync(current, 1, TenantId, Day, Requests, 2);
+        await AddBatchAsync(
+            earlier,
+            1,
+            TenantId,
+            Day.AddDays(-1),
+            Requests,
+            1,
+            CancellationToken.None
+        );
+        await AddBatchAsync(current, 1, TenantId, Day, Requests, 2, CancellationToken.None);
 
         using (var scope = Provider.CreateScope())
         {

@@ -64,7 +64,10 @@ public sealed class FederatedIdentityStoreTests : IDisposable
             ConcurrencyToken = string.Empty,
         };
 
-    private async Task SeedPrincipalAsync(string principalId = PrincipalId)
+    private async ValueTask SeedPrincipalAsync(
+        string principalId,
+        CancellationToken cancellationToken
+    )
     {
         await PrincipalStore.AddAsync(
             new PersistedFederatedPrincipal
@@ -73,18 +76,18 @@ public sealed class FederatedIdentityStoreTests : IDisposable
                 PrincipalId = principalId,
                 ConcurrencyToken = string.Empty,
             },
-            CancellationToken.None
+            cancellationToken
         );
 
         // The principal must be persisted before its identities are added (an in-memory query does not observe
         // unsaved inserts).
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
     }
 
     [Fact]
     public async Task AddAsync_WhenPersisted_RoundTripsByFederatedIdentityId()
     {
-        await SeedPrincipalAsync();
+        await SeedPrincipalAsync(PrincipalId, CancellationToken.None);
 
         await Store.AddAsync(
             CreateIdentity("identity-1", PrincipalId, Issuer, Subject),
@@ -118,7 +121,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     [Fact]
     public async Task GetByIssuerSubjectAsync_WhenMatch_ResolvesToOwningPrincipal()
     {
-        await SeedPrincipalAsync();
+        await SeedPrincipalAsync(PrincipalId, CancellationToken.None);
         await Store.AddAsync(
             CreateIdentity("identity-1", PrincipalId, Issuer, Subject),
             CancellationToken.None
@@ -135,7 +138,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     [Fact]
     public async Task GetByIssuerSubjectAsync_WhenNoMatch_ReturnsNull()
     {
-        await SeedPrincipalAsync();
+        await SeedPrincipalAsync(PrincipalId, CancellationToken.None);
 
         var loaded = await Store.GetByIssuerSubjectAsync(Issuer, Subject, CancellationToken.None);
 
@@ -145,7 +148,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     [Fact]
     public async Task GetByPrincipalAsync_ReturnsAllIdentitiesOfThePrincipal()
     {
-        await SeedPrincipalAsync();
+        await SeedPrincipalAsync(PrincipalId, CancellationToken.None);
         await Store.AddAsync(
             CreateIdentity("identity-1", PrincipalId, Issuer, Subject),
             CancellationToken.None
@@ -167,7 +170,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     [Fact]
     public async Task GetByJoinKeyAsync_WhenMatch_ReturnsIdentitiesWithThatJoinKey()
     {
-        await SeedPrincipalAsync();
+        await SeedPrincipalAsync(PrincipalId, CancellationToken.None);
         await Store.AddAsync(
             CreateIdentity("identity-1", PrincipalId, Issuer, Subject, "user@example.com"),
             CancellationToken.None

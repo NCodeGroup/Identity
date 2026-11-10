@@ -55,10 +55,10 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
             },
         };
 
-    private async Task SeedPlatformAsync()
+    private async ValueTask SeedPlatformAsync(CancellationToken cancellationToken)
     {
-        await Store.AddAsync(CreatePlatform(), CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await Store.AddAsync(CreatePlatform(), cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -76,7 +76,7 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenARowExists_ThrowsOnSave()
     {
-        await SeedPlatformAsync();
+        await SeedPlatformAsync(CancellationToken.None);
 
         await Store.AddAsync(CreatePlatform(), CancellationToken.None);
 
@@ -94,7 +94,7 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
     [Fact]
     public async Task GetOrDefaultAsync_WhenARowExists_RoundTripsTheSettings()
     {
-        await SeedPlatformAsync();
+        await SeedPlatformAsync(CancellationToken.None);
 
         var platform = await Store.GetOrDefaultAsync(CancellationToken.None);
 
@@ -115,7 +115,7 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
     [Fact]
     public async Task UpdateAsync_WhenTheRowChanged_Throws()
     {
-        await SeedPlatformAsync();
+        await SeedPlatformAsync(CancellationToken.None);
 
         var platform = await Store.GetOrDefaultAsync(CancellationToken.None);
         Assert.NotNull(platform);
@@ -129,7 +129,7 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_UpdatesTheSettingsAndTheirToken()
     {
-        await SeedPlatformAsync();
+        await SeedPlatformAsync(CancellationToken.None);
 
         var settings = await Store.GetSettingsOrDefaultAsync(CancellationToken.None);
         Assert.NotNull(settings);
@@ -152,7 +152,7 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheSettingsChanged_Throws()
     {
-        await SeedPlatformAsync();
+        await SeedPlatformAsync(CancellationToken.None);
 
         var settings = await Store.GetSettingsOrDefaultAsync(CancellationToken.None);
         Assert.NotNull(settings);

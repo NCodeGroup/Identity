@@ -36,7 +36,7 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         TenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, DbContext);
     }
 
-    public Task InitializeAsync() => SeedTenantAsync();
+    public Task InitializeAsync() => SeedTenantAsync(CancellationToken.None).AsTask();
 
     public Task DisposeAsync() => Task.CompletedTask;
 
@@ -46,7 +46,7 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         Provider.Dispose();
     }
 
-    private async Task SeedTenantAsync()
+    private async ValueTask SeedTenantAsync(CancellationToken cancellationToken)
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder
@@ -54,20 +54,28 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
             TenantId = TenantId,
             DisplayName = "Tenant One",
         }.Build();
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task AddTenantAsync(string tenantId, string teamId)
+    private async ValueTask AddTenantAsync(
+        string tenantId,
+        string teamId,
+        CancellationToken cancellationToken
+    )
     {
         var tenant = new PersistedTenantBuilder { TenantId = tenantId, TeamId = teamId }.Build();
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task AddExpiredSessionGrantAsync(string grantId, string tenantId)
+    private async ValueTask AddExpiredSessionGrantAsync(
+        string grantId,
+        string tenantId,
+        CancellationToken cancellationToken
+    )
     {
         var grant = CreateGrant(
             hashedKey: $"hk-{grantId}",
@@ -76,8 +84,8 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
             tenantId: tenantId
         );
         grant.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
-        await Store.AddAsync(grant, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await Store.AddAsync(grant, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -448,10 +456,18 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         DbContext.SeedTeam(idGenerator, "other");
         DbContext.ChangeTracker.Clear();
 
-        await AddTenantAsync("tenant-beneath-grandparent", "acme-web-eu");
-        await AddTenantAsync("tenant-of-other-team", "other");
-        await AddExpiredSessionGrantAsync("grant-skipped", "tenant-beneath-grandparent");
-        await AddExpiredSessionGrantAsync("grant-enabled", "tenant-of-other-team");
+        await AddTenantAsync("tenant-beneath-grandparent", "acme-web-eu", CancellationToken.None);
+        await AddTenantAsync("tenant-of-other-team", "other", CancellationToken.None);
+        await AddExpiredSessionGrantAsync(
+            "grant-skipped",
+            "tenant-beneath-grandparent",
+            CancellationToken.None
+        );
+        await AddExpiredSessionGrantAsync(
+            "grant-enabled",
+            "tenant-of-other-team",
+            CancellationToken.None
+        );
 
         var page = await Store.GetUnrevokedExpiredPageAsync(
             SessionGrantType,
@@ -473,8 +489,12 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         DbContext.SeedTeam(idGenerator, "acme-x");
         DbContext.ChangeTracker.Clear();
 
-        await AddTenantAsync("tenant-of-acme-x", "acme-x");
-        await AddExpiredSessionGrantAsync("grant-returned", "tenant-of-acme-x");
+        await AddTenantAsync("tenant-of-acme-x", "acme-x", CancellationToken.None);
+        await AddExpiredSessionGrantAsync(
+            "grant-returned",
+            "tenant-of-acme-x",
+            CancellationToken.None
+        );
 
         var page = await Store.GetUnrevokedExpiredPageAsync(
             SessionGrantType,

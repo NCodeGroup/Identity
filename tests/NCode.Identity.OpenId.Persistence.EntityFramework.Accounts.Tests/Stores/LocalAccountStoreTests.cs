@@ -69,10 +69,13 @@ public sealed class LocalAccountStoreTests : IDisposable
             ConcurrencyToken = string.Empty,
         };
 
-    private async Task AddAndDetachAsync(PersistedLocalAccount account)
+    private async ValueTask AddAndDetachAsync(
+        PersistedLocalAccount account,
+        CancellationToken cancellationToken
+    )
     {
-        await Store.AddAsync(account, password: null, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await Store.AddAsync(account, password: null, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -84,18 +87,15 @@ public sealed class LocalAccountStoreTests : IDisposable
             DbContext
         );
 
-    private async Task AddWithPasswordAndDetachAsync(
+    private async ValueTask AddWithPasswordAndDetachAsync(
         LocalAccountStore store,
         PersistedLocalAccount account,
-        string password
+        string password,
+        CancellationToken cancellationToken
     )
     {
-        await store.AddAsync(
-            account,
-            SecureEncoding.UTF8.GetBytes(password),
-            CancellationToken.None
-        );
-        await DbContext.SaveChangesAsync();
+        await store.AddAsync(account, SecureEncoding.UTF8.GetBytes(password), cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -127,7 +127,10 @@ public sealed class LocalAccountStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenPersisted_RoundTripsById()
     {
-        await AddAndDetachAsync(CreateAccount("account-1", "alice", email: "alice@example.com"));
+        await AddAndDetachAsync(
+            CreateAccount("account-1", "alice", email: "alice@example.com"),
+            CancellationToken.None
+        );
 
         var loaded = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
 
@@ -142,7 +145,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenPersisted_StampsOwningTenant()
     {
-        await AddAndDetachAsync(CreateAccount("account-1", "alice"));
+        await AddAndDetachAsync(CreateAccount("account-1", "alice"), CancellationToken.None);
 
         var loaded = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
 
@@ -158,7 +161,8 @@ public sealed class LocalAccountStoreTests : IDisposable
                 "account-1",
                 "alice",
                 claims: new PersistedLocalAccountClaim { Type = "role", Value = "admin" }
-            )
+            ),
+            CancellationToken.None
         );
 
         var loaded = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
@@ -176,7 +180,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     [Fact]
     public async Task GetByIdOrDefaultAsync_WhenCaseDiffers_IsCaseInsensitive()
     {
-        await AddAndDetachAsync(CreateAccount("Account-1", "alice"));
+        await AddAndDetachAsync(CreateAccount("Account-1", "alice"), CancellationToken.None);
 
         var loaded = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
 
@@ -199,7 +203,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     [Fact]
     public async Task GetByUserNameOrDefaultAsync_WhenCaseDiffers_IsCaseInsensitive()
     {
-        await AddAndDetachAsync(CreateAccount("account-1", "Alice"));
+        await AddAndDetachAsync(CreateAccount("account-1", "Alice"), CancellationToken.None);
 
         var loaded = await Store.GetByUserNameOrDefaultAsync("alice", CancellationToken.None);
 
@@ -226,7 +230,8 @@ public sealed class LocalAccountStoreTests : IDisposable
         await AddWithPasswordAndDetachAsync(
             store,
             CreateAccount("account-1", "alice", isEnabled: false),
-            "secret"
+            "secret",
+            CancellationToken.None
         );
 
         var result = await store.VerifyCredentialAsync(
@@ -248,7 +253,8 @@ public sealed class LocalAccountStoreTests : IDisposable
         await AddWithPasswordAndDetachAsync(
             store,
             CreateAccount("account-1", "alice", isEnabled: false),
-            "secret"
+            "secret",
+            CancellationToken.None
         );
 
         var result = await store.VerifyCredentialAsync(
@@ -266,7 +272,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     public async Task VerifyCredentialAsync_WhenTheAccountHasNoPassword_VerifiesAgainstTheDummyHash()
     {
         var store = CreateStoreWithPasswords();
-        await AddAndDetachAsync(CreateAccount("account-1", "alice"));
+        await AddAndDetachAsync(CreateAccount("account-1", "alice"), CancellationToken.None);
 
         var result = await store.VerifyCredentialAsync(
             "alice",
@@ -316,7 +322,7 @@ public sealed class LocalAccountStoreTests : IDisposable
     {
         Hasher.DummyPasswordHash = Hasher.HashPassword("secret"u8);
         var store = CreateStoreWithPasswords();
-        await AddAndDetachAsync(CreateAccount("account-1", "alice"));
+        await AddAndDetachAsync(CreateAccount("account-1", "alice"), CancellationToken.None);
 
         var result = await store.VerifyCredentialAsync(
             "alice",
@@ -333,7 +339,12 @@ public sealed class LocalAccountStoreTests : IDisposable
     public async Task VerifyCredentialAsync_WhenTheGateRefuses_VerifiesTheDummyHashInsteadOfTheStoredHash()
     {
         var store = CreateStoreWithPasswords();
-        await AddWithPasswordAndDetachAsync(store, CreateAccount("account-1", "alice"), "secret");
+        await AddWithPasswordAndDetachAsync(
+            store,
+            CreateAccount("account-1", "alice"),
+            "secret",
+            CancellationToken.None
+        );
 
         var result = await store.VerifyCredentialAsync(
             "alice",
@@ -352,7 +363,12 @@ public sealed class LocalAccountStoreTests : IDisposable
     public async Task VerifyCredentialAsync_WhenTheCaseDiffers_AsksTheGateAboutTheStoredUserName()
     {
         var store = CreateStoreWithPasswords();
-        await AddWithPasswordAndDetachAsync(store, CreateAccount("account-1", "Alice"), "secret");
+        await AddWithPasswordAndDetachAsync(
+            store,
+            CreateAccount("account-1", "Alice"),
+            "secret",
+            CancellationToken.None
+        );
         var askedUserNames = new List<string>();
 
         var result = await store.VerifyCredentialAsync(
@@ -400,7 +416,10 @@ public sealed class LocalAccountStoreTests : IDisposable
     [Fact]
     public async Task UpdateAsync_WhenAccountExists_UpdatesMutableFields()
     {
-        await AddAndDetachAsync(CreateAccount("account-1", "alice", isEnabled: true));
+        await AddAndDetachAsync(
+            CreateAccount("account-1", "alice", isEnabled: true),
+            CancellationToken.None
+        );
 
         var account = await Store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
         Assert.NotNull(account);

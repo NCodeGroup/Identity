@@ -72,33 +72,36 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
             Name = resourceServerId,
         }.Build();
 
-    private async Task SeedTenantAndResourceServersAsync()
+    private async ValueTask SeedTenantAndResourceServersAsync(CancellationToken cancellationToken)
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder { TenantId = TenantId }.Build();
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
 
         await ResourceServerStore.AddAsync(
             CreateResourceServer(ResourceServerId),
-            CancellationToken.None
+            cancellationToken
         );
         await ResourceServerStore.AddAsync(
             CreateResourceServer(OtherResourceServerId),
-            CancellationToken.None
+            cancellationToken
         );
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task AddClientsAsync(params PersistedClient[] clients)
+    private async ValueTask AddClientsAsync(
+        PersistedClient[] clients,
+        CancellationToken cancellationToken
+    )
     {
         foreach (var client in clients)
         {
-            await Store.AddAsync(client, CancellationToken.None);
+            await Store.AddAsync(client, cancellationToken);
         }
 
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -109,10 +112,13 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenBoundToAResourceServer_RoundtripsTheBinding()
     {
-        await SeedTenantAndResourceServersAsync();
+        await SeedTenantAndResourceServersAsync(CancellationToken.None);
         await AddClientsAsync(
-            CreateClient("bound", ResourceServerId),
-            CreateClient("ordinary", resourceServerId: null)
+            [
+                CreateClient("bound", ResourceServerId),
+                CreateClient("ordinary", resourceServerId: null),
+            ],
+            CancellationToken.None
         );
 
         var bound = await Store.GetOrDefaultAsync("bound", CancellationToken.None);
@@ -126,7 +132,7 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenTheResourceServerIsUnknown_Throws()
     {
-        await SeedTenantAndResourceServersAsync();
+        await SeedTenantAndResourceServersAsync(CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await Store.AddAsync(CreateClient("bound", "rs-unknown"), CancellationToken.None)
@@ -136,13 +142,16 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
     [Fact]
     public async Task GetPageByResourceServerAsync_ReturnsOnlyTheClientsThatActForIt()
     {
-        await SeedTenantAndResourceServersAsync();
+        await SeedTenantAndResourceServersAsync(CancellationToken.None);
         await AddClientsAsync(
-            CreateClient("bound-1", ResourceServerId),
-            CreateClient("other", OtherResourceServerId),
-            CreateClient("ordinary", resourceServerId: null),
-            CreateClient("bound-2", ResourceServerId),
-            CreateClient("bound-3", ResourceServerId)
+            [
+                CreateClient("bound-1", ResourceServerId),
+                CreateClient("other", OtherResourceServerId),
+                CreateClient("ordinary", resourceServerId: null),
+                CreateClient("bound-2", ResourceServerId),
+                CreateClient("bound-3", ResourceServerId),
+            ],
+            CancellationToken.None
         );
 
         var seen = new List<string>();
@@ -168,8 +177,8 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
     [Fact]
     public async Task HasDependentsAsync_WhenAClientActsForTheResourceServer_ReturnsTrue()
     {
-        await SeedTenantAndResourceServersAsync();
-        await AddClientsAsync(CreateClient("bound", ResourceServerId));
+        await SeedTenantAndResourceServersAsync(CancellationToken.None);
+        await AddClientsAsync([CreateClient("bound", ResourceServerId)], CancellationToken.None);
 
         var hasDependents = await ResourceServerStore.HasDependentsAsync(
             ResourceServerId,
@@ -187,8 +196,8 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenAClientActsForTheResourceServer_Throws()
     {
-        await SeedTenantAndResourceServersAsync();
-        await AddClientsAsync(CreateClient("bound", ResourceServerId));
+        await SeedTenantAndResourceServersAsync(CancellationToken.None);
+        await AddClientsAsync([CreateClient("bound", ResourceServerId)], CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await ResourceServerStore.RemoveAsync(ResourceServerId, CancellationToken.None)

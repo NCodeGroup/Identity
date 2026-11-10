@@ -60,7 +60,7 @@ public sealed class RoleAssignmentStoreTests : IDisposable
             ConcurrencyToken = string.Empty,
         };
 
-    private async Task SeedTenantAsync()
+    private async ValueTask SeedTenantAsync(CancellationToken cancellationToken)
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder
@@ -68,17 +68,17 @@ public sealed class RoleAssignmentStoreTests : IDisposable
             TenantId = TenantId,
             DisplayName = "Tenant One",
         }.Build();
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
+        await TenantStore.AddAsync(tenant, cancellationToken);
 
         // The tenant must be persisted before its dependents are added (an in-memory query does not observe
         // unsaved inserts).
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
     }
 
     [Fact]
     public async Task AddAsync_WhenPersisted_RoundTripsByAssignmentId()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
 
         await Store.AddAsync(
             CreateAssignment("assign-1", Subject, "Owner", "client", "client-1"),
@@ -100,7 +100,7 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     [Fact]
     public async Task GetByResourceAsync_WhenNodeHasOwners_ReturnsOnlyThatNode()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
 
         await Store.AddAsync(
             CreateAssignment("assign-1", "owner-a", "Owner", "client", "client-1"),
@@ -125,7 +125,7 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     [Fact]
     public async Task GetByPrincipalAsync_ReturnsEveryAssignmentForThePrincipal()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
 
         await Store.AddAsync(
             CreateAssignment("assign-1", Subject, "Owner", "client", "client-1"),
@@ -151,7 +151,7 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     [Fact]
     public async Task GetByPrincipalAsync_ReadsAssignmentsOfEveryTenant()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         DbContext.SeedTenant(Provider.GetRequiredService<IIdGenerator<long>>(), "tenant-2");
 
         await Store.AddAsync(
@@ -184,7 +184,7 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenAssignmentExists_RemovesIt()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
 
         await Store.AddAsync(
             CreateAssignment("assign-1", Subject, "Owner", "client", "client-1"),

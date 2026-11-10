@@ -37,20 +37,20 @@ public sealed class TeamStorePagingTests : IDisposable
     private static PersistedTeam CreateTeam(string teamId) =>
         new PersistedTeamBuilder { TeamId = teamId }.Build();
 
-    private async Task SeedAsync(int count)
+    private async ValueTask SeedAsync(int count, CancellationToken cancellationToken)
     {
         for (var index = 1; index <= count; index++)
         {
-            await Store.AddAsync(CreateTeam($"team-{index}"), CancellationToken.None);
+            await Store.AddAsync(CreateTeam($"team-{index}"), cancellationToken);
         }
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
     public async Task GetPageAsync_TraversesEveryTeamExactlyOnceInIdOrder()
     {
-        await SeedAsync(5);
+        await SeedAsync(5, CancellationToken.None);
 
         var seen = new List<string>();
         string? cursor = null;

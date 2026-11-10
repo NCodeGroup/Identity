@@ -47,25 +47,29 @@ public sealed class TeamStoreHierarchyTests : IDisposable
             DisplayName = "Team",
         }.Build();
 
-    private async Task SaveAndClearAsync()
+    private async ValueTask SaveAndClearAsync(CancellationToken cancellationToken)
     {
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task AddTeamAsync(string teamId, string? parentTeamId = null)
+    private async ValueTask AddTeamAsync(
+        string teamId,
+        string? parentTeamId,
+        CancellationToken cancellationToken
+    )
     {
-        await Store.AddAsync(CreateTeam(teamId, parentTeamId), CancellationToken.None);
-        await SaveAndClearAsync();
+        await Store.AddAsync(CreateTeam(teamId, parentTeamId), cancellationToken);
+        await SaveAndClearAsync(cancellationToken);
     }
 
-    private async Task SeedTreeAsync()
+    private async ValueTask SeedTreeAsync(CancellationToken cancellationToken)
     {
-        await AddTeamAsync("acme");
-        await AddTeamAsync("acme-web", "acme");
-        await AddTeamAsync("acme-web-eu", "acme-web");
-        await AddTeamAsync("acme-api", "acme");
-        await AddTeamAsync("acme-x");
+        await AddTeamAsync("acme", null, cancellationToken);
+        await AddTeamAsync("acme-web", "acme", cancellationToken);
+        await AddTeamAsync("acme-web-eu", "acme-web", cancellationToken);
+        await AddTeamAsync("acme-api", "acme", cancellationToken);
+        await AddTeamAsync("acme-x", null, cancellationToken);
     }
 
     #region AddAsync Tests
@@ -73,8 +77,8 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     [Fact]
     public async Task AddAsync_WithAParent_StoresTheTeamBeneathIt()
     {
-        await AddTeamAsync("acme");
-        await AddTeamAsync("acme-web", "acme");
+        await AddTeamAsync("acme", null, CancellationToken.None);
+        await AddTeamAsync("acme-web", "acme", CancellationToken.None);
 
         var team = await Store.GetOrDefaultAsync("acme-web", CancellationToken.None);
 
@@ -98,7 +102,7 @@ public sealed class TeamStoreHierarchyTests : IDisposable
         for (var depth = 1; depth <= TeamPaths.MaxDepth; ++depth)
         {
             var teamId = $"team-{depth}";
-            await AddTeamAsync(teamId, parentTeamId);
+            await AddTeamAsync(teamId, parentTeamId, CancellationToken.None);
             parentTeamId = teamId;
         }
 
@@ -114,7 +118,7 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     [Fact]
     public async Task GetLineageAsync_ReturnsTheTopLevelTeamFirstAndTheTeamLast()
     {
-        await SeedTreeAsync();
+        await SeedTreeAsync(CancellationToken.None);
 
         var lineage = await Store.GetLineageAsync("acme-web-eu", CancellationToken.None);
 
@@ -124,7 +128,7 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     [Fact]
     public async Task GetLineageAsync_WhenTheTeamDoesNotExist_ReturnsEmpty()
     {
-        await SeedTreeAsync();
+        await SeedTreeAsync(CancellationToken.None);
 
         var lineage = await Store.GetLineageAsync("missing-team", CancellationToken.None);
 
@@ -138,7 +142,7 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     [Fact]
     public async Task CountDescendantsAsync_CountsEveryLevel()
     {
-        await SeedTreeAsync();
+        await SeedTreeAsync(CancellationToken.None);
 
         Assert.Equal(3, await Store.CountDescendantsAsync("acme", CancellationToken.None));
         Assert.Equal(1, await Store.CountDescendantsAsync("acme-web", CancellationToken.None));
@@ -152,7 +156,7 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     [Fact]
     public async Task GetChildPageAsync_ListsOnlyTheTeamsDirectlyBeneath()
     {
-        await SeedTreeAsync();
+        await SeedTreeAsync(CancellationToken.None);
 
         var first = await Store.GetChildPageAsync(
             "acme",
@@ -180,7 +184,7 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     [Fact]
     public async Task GetChildPageAsync_WhenTheTeamDoesNotExist_ReturnsAnEmptyPage()
     {
-        await SeedTreeAsync();
+        await SeedTreeAsync(CancellationToken.None);
 
         var page = await Store.GetChildPageAsync(
             "missing-team",
@@ -199,7 +203,7 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     [Fact]
     public async Task HasDependentsAsync_WhenTheTeamHoldsATeam_ReturnsTrue()
     {
-        await SeedTreeAsync();
+        await SeedTreeAsync(CancellationToken.None);
 
         Assert.True(await Store.HasDependentsAsync("acme-web", CancellationToken.None));
         Assert.False(await Store.HasDependentsAsync("acme-x", CancellationToken.None));
@@ -212,7 +216,7 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenTheTeamHoldsATeam_Throws()
     {
-        await SeedTreeAsync();
+        await SeedTreeAsync(CancellationToken.None);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await Store.RemoveAsync("acme-web", CancellationToken.None)
@@ -231,7 +235,7 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     [Fact]
     public async Task GetConcurrencyTokensAsync_WithAChildTeam_ReturnsItsToken()
     {
-        await SeedTreeAsync();
+        await SeedTreeAsync(CancellationToken.None);
         var team = await Store.GetOrDefaultAsync("acme-web", CancellationToken.None);
         Assert.NotNull(team);
 

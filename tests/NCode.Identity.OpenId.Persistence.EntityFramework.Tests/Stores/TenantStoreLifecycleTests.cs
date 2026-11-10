@@ -88,14 +88,17 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             Secrets = secrets,
         }.Build();
 
-    private async Task SeedTenantAsync(params PersistedSecret[] secrets)
+    private async ValueTask SeedTenantAsync(
+        PersistedSecret[] secrets,
+        CancellationToken cancellationToken
+    )
     {
-        await Store.AddAsync(CreateTenant(secrets), CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await Store.AddAsync(CreateTenant(secrets), cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task SeedClientAsync()
+    private async ValueTask SeedClientAsync(CancellationToken cancellationToken)
     {
         var client = new PersistedClientBuilder
         {
@@ -103,12 +106,15 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             ClientId = ClientId,
         }.Build();
 
-        await ClientStore.AddAsync(client, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await ClientStore.AddAsync(client, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task SeedResourceServerAsync(bool isSystem)
+    private async ValueTask SeedResourceServerAsync(
+        bool isSystem,
+        CancellationToken cancellationToken
+    )
     {
         const string resourceServerId = "rs-1";
 
@@ -130,12 +136,12 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             ],
         }.Build();
 
-        await ResourceServerStore.AddAsync(resourceServer, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await ResourceServerStore.AddAsync(resourceServer, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task SeedRoleAssignmentAsync()
+    private async ValueTask SeedRoleAssignmentAsync(CancellationToken cancellationToken)
     {
         await RoleAssignmentStore.AddAsync(
             new PersistedRoleAssignment
@@ -148,9 +154,9 @@ public sealed class TenantStoreLifecycleTests : IDisposable
                 ResourceId = ClientId,
                 ConcurrencyToken = string.Empty,
             },
-            CancellationToken.None
+            cancellationToken
         );
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -175,12 +181,15 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             KeyCheck = $"key-check-{version}",
         };
 
-    private async Task SeedMasterKeysAsync(params PersistedMasterKey[] masterKeys)
+    private async ValueTask SeedMasterKeysAsync(
+        PersistedMasterKey[] masterKeys,
+        CancellationToken cancellationToken
+    )
     {
         foreach (var masterKey in masterKeys)
-            await MasterKeyStore.AddAsync(masterKey, CancellationToken.None);
+            await MasterKeyStore.AddAsync(masterKey, cancellationToken);
 
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -216,7 +225,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task GetConcurrencyTokensAsync_ReturnsTheRowTokenOfEachExistingTenant()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync([], CancellationToken.None);
         var tenant = Assert.Single(await Store.GetManyAsync([TenantId], CancellationToken.None));
 
         var tokens = await Store.GetConcurrencyTokensAsync(
@@ -231,7 +240,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenNoDependents_RemovesAndReturnsTrue()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync([], CancellationToken.None);
 
         var removed = await Store.RemoveAsync(TenantId, CancellationToken.None);
         await DbContext.SaveChangesAsync();
@@ -244,7 +253,10 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenTheTenantHoldsSecrets_RemovesThemWithIt()
     {
-        await SeedTenantAsync(CreateSecret("secret-1"), CreateSecret("secret-2"));
+        await SeedTenantAsync(
+            [CreateSecret("secret-1"), CreateSecret("secret-2")],
+            CancellationToken.None
+        );
 
         var removed = await Store.RemoveAsync(TenantId, CancellationToken.None);
         await DbContext.SaveChangesAsync();
@@ -258,15 +270,18 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_TenantWithMasterKeys_RemovesThemAndKeepsOthers()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync([], CancellationToken.None);
         var otherTenantKey = CreateMasterKey(SecretOwnerTypes.Tenant, "tenant-2", 1);
         // The platform key's owner id matches the tenant's on purpose: only the owner type keeps it.
         var platformKey = CreateMasterKey(SecretOwnerTypes.Platform, TenantId, 1);
         await SeedMasterKeysAsync(
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantId, 1),
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantId.ToUpperInvariant(), 2),
-            otherTenantKey,
-            platformKey
+            [
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantId, 1),
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantId.ToUpperInvariant(), 2),
+                otherTenantKey,
+                platformKey,
+            ],
+            CancellationToken.None
         );
 
         var removed = await Store.RemoveAsync(TenantId, CancellationToken.None);
@@ -285,7 +300,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_TenantWithAnOwnerRootKey_RemovesItAndKeepsOthers()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync([], CancellationToken.None);
         foreach (var owner in new[] { TenantId.ToUpperInvariant(), "tenant-2" })
         {
             await OwnerRootKeyStore.AddAsync(
@@ -317,9 +332,9 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenTheTenantHoldsASystemResourceServerAndOwners_RemovesThemWithIt()
     {
-        await SeedTenantAsync();
-        await SeedResourceServerAsync(isSystem: true);
-        await SeedRoleAssignmentAsync();
+        await SeedTenantAsync([], CancellationToken.None);
+        await SeedResourceServerAsync(isSystem: true, CancellationToken.None);
+        await SeedRoleAssignmentAsync(CancellationToken.None);
 
         var removed = await Store.RemoveAsync(TenantId, CancellationToken.None);
         await DbContext.SaveChangesAsync();
@@ -335,8 +350,8 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenHasANonSystemResourceServer_Throws()
     {
-        await SeedTenantAsync();
-        await SeedResourceServerAsync(isSystem: false);
+        await SeedTenantAsync([], CancellationToken.None);
+        await SeedResourceServerAsync(isSystem: false, CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await Store.RemoveAsync(TenantId, CancellationToken.None)
@@ -346,8 +361,8 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenHasClients_Throws()
     {
-        await SeedTenantAsync();
-        await SeedClientAsync();
+        await SeedTenantAsync([], CancellationToken.None);
+        await SeedClientAsync(CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await Store.RemoveAsync(TenantId, CancellationToken.None)
@@ -365,7 +380,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task HasDependentsAsync_WhenNoDependents_ReturnsFalse()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync([], CancellationToken.None);
 
         var result = await Store.HasDependentsAsync(TenantId, CancellationToken.None);
 
@@ -375,8 +390,8 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task HasDependentsAsync_WhenHasClients_ReturnsTrue()
     {
-        await SeedTenantAsync();
-        await SeedClientAsync();
+        await SeedTenantAsync([], CancellationToken.None);
+        await SeedClientAsync(CancellationToken.None);
 
         var result = await Store.HasDependentsAsync(TenantId, CancellationToken.None);
 
@@ -386,7 +401,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task HasDependentsAsync_WhenTheTenantHoldsOnlySecrets_ReturnsFalse()
     {
-        await SeedTenantAsync(CreateSecret("secret-1"));
+        await SeedTenantAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         var result = await Store.HasDependentsAsync(TenantId, CancellationToken.None);
 
@@ -396,8 +411,8 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     [Fact]
     public async Task HasDependentsAsync_WhenHasANonSystemResourceServer_ReturnsTrue()
     {
-        await SeedTenantAsync();
-        await SeedResourceServerAsync(isSystem: false);
+        await SeedTenantAsync([], CancellationToken.None);
+        await SeedResourceServerAsync(isSystem: false, CancellationToken.None);
 
         var result = await Store.HasDependentsAsync(TenantId, CancellationToken.None);
 

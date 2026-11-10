@@ -65,22 +65,28 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
             Failure = failedWhen is null ? null : "AccessDenied: revoked",
         };
 
-    private async Task AddAsync(params PersistedOwnerRootKey[] rootKeys)
+    private async ValueTask AddAsync(
+        PersistedOwnerRootKey[] rootKeys,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = CreateStore(context);
         foreach (var rootKey in rootKeys)
-            await store.AddAsync(rootKey, CancellationToken.None);
+            await store.AddAsync(rootKey, cancellationToken);
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<PersistedOwnerRootKey?> FindAsync(SecretOwner owner)
+    private async ValueTask<PersistedOwnerRootKey?> FindAsync(
+        SecretOwner owner,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        return await CreateStore(context).FindAsync(owner, CancellationToken.None);
+        return await CreateStore(context).FindAsync(owner, cancellationToken);
     }
 
     #endregion
@@ -93,9 +99,9 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
         var expected = CreateRootKey("Tenant-One", validatedWhen: Now.AddMinutes(-5));
         expected.FailedWhen = Now.AddMinutes(-65);
         expected.Failure = "earlier failure";
-        await AddAsync(expected);
+        await AddAsync([expected], CancellationToken.None);
 
-        var actual = await FindAsync(SecretOwner.ForTenant("Tenant-One"));
+        var actual = await FindAsync(SecretOwner.ForTenant("Tenant-One"), CancellationToken.None);
 
         Assert.NotNull(actual);
         Assert.Equal(SecretOwnerTypes.Tenant, actual.OwnerType);
@@ -117,20 +123,27 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
     [Fact]
     public async Task Find_MatchesTheOwnerWithoutRegardToCase()
     {
-        await AddAsync(CreateRootKey("Tenant-One"));
+        await AddAsync([CreateRootKey("Tenant-One")], CancellationToken.None);
 
-        Assert.NotNull(await FindAsync(new SecretOwner("TENANT", "tenant-one")));
-        Assert.Null(await FindAsync(SecretOwner.ForTenant("tenant-two")));
-        Assert.Null(await FindAsync(new SecretOwner(SecretOwnerTypes.Platform, "tenant-one")));
+        Assert.NotNull(
+            await FindAsync(new SecretOwner("TENANT", "tenant-one"), CancellationToken.None)
+        );
+        Assert.Null(await FindAsync(SecretOwner.ForTenant("tenant-two"), CancellationToken.None));
+        Assert.Null(
+            await FindAsync(
+                new SecretOwner(SecretOwnerTypes.Platform, "tenant-one"),
+                CancellationToken.None
+            )
+        );
     }
 
     [Fact]
     public async Task Add_SecondRootKeyForTheSameOwner_ViolatesTheUniqueIndex()
     {
-        await AddAsync(CreateRootKey("Tenant-One"));
+        await AddAsync([CreateRootKey("Tenant-One")], CancellationToken.None);
 
         await Assert.ThrowsAnyAsync<DbUpdateException>(async () =>
-            await AddAsync(CreateRootKey("TENANT-ONE"))
+            await AddAsync([CreateRootKey("TENANT-ONE")], CancellationToken.None)
         );
     }
 
@@ -141,8 +154,8 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
     [Fact]
     public async Task Update_WithTheCurrentToken_ChangesTheRowAndRenewsTheToken()
     {
-        await AddAsync(CreateRootKey("Tenant-One"));
-        var current = await FindAsync(SecretOwner.ForTenant("tenant-one"));
+        await AddAsync([CreateRootKey("Tenant-One")], CancellationToken.None);
+        var current = await FindAsync(SecretOwner.ForTenant("tenant-one"), CancellationToken.None);
         Assert.NotNull(current);
         var originalToken = current.ConcurrencyToken;
 
@@ -157,7 +170,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
             await context.SaveChangesAsync();
         }
 
-        var updated = await FindAsync(SecretOwner.ForTenant("tenant-one"));
+        var updated = await FindAsync(SecretOwner.ForTenant("tenant-one"), CancellationToken.None);
         Assert.Equal(OwnerRootKeyStates.Unavailable, updated?.State);
         Assert.Equal(Now, updated?.FailedWhen);
         Assert.Equal("AccessDenied: revoked", updated?.Failure);
@@ -169,8 +182,8 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
     [Fact]
     public async Task Update_WithAStaleToken_ThrowsStoreConcurrencyException()
     {
-        await AddAsync(CreateRootKey("Tenant-One"));
-        var current = await FindAsync(SecretOwner.ForTenant("tenant-one"));
+        await AddAsync([CreateRootKey("Tenant-One")], CancellationToken.None);
+        var current = await FindAsync(SecretOwner.ForTenant("tenant-one"), CancellationToken.None);
         Assert.NotNull(current);
         current.ConcurrencyToken = "stale";
 
@@ -201,8 +214,11 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
     [Fact]
     public async Task Remove_WithTheCurrentToken_RemovesTheRow()
     {
-        await AddAsync(CreateRootKey("Tenant-One"), CreateRootKey("tenant-two"));
-        var current = await FindAsync(SecretOwner.ForTenant("tenant-one"));
+        await AddAsync(
+            [CreateRootKey("Tenant-One"), CreateRootKey("tenant-two")],
+            CancellationToken.None
+        );
+        var current = await FindAsync(SecretOwner.ForTenant("tenant-one"), CancellationToken.None);
         Assert.NotNull(current);
 
         using (var scope = Provider.CreateScope())
@@ -213,8 +229,10 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
             Assert.True(removed);
         }
 
-        Assert.Null(await FindAsync(SecretOwner.ForTenant("tenant-one")));
-        Assert.NotNull(await FindAsync(SecretOwner.ForTenant("tenant-two")));
+        Assert.Null(await FindAsync(SecretOwner.ForTenant("tenant-one"), CancellationToken.None));
+        Assert.NotNull(
+            await FindAsync(SecretOwner.ForTenant("tenant-two"), CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -232,8 +250,8 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
     [Fact]
     public async Task Remove_WithAStaleToken_ThrowsStoreConcurrencyException()
     {
-        await AddAsync(CreateRootKey("Tenant-One"));
-        var current = await FindAsync(SecretOwner.ForTenant("tenant-one"));
+        await AddAsync([CreateRootKey("Tenant-One")], CancellationToken.None);
+        var current = await FindAsync(SecretOwner.ForTenant("tenant-one"), CancellationToken.None);
         Assert.NotNull(current);
         current.ConcurrencyToken = "stale";
         using var scope = Provider.CreateScope();

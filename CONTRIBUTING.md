@@ -12,8 +12,9 @@ enforced quality bar.
   system-wide. The net10 targeting pack restores automatically.
 - PowerShell 7.4+ (`pwsh`) to run the Definition-of-Done script and `./build/Install-Dotnet.ps1`.
 - Local tools: run `dotnet tool restore` once after cloning to install the repo-pinned **CSharpier** formatter.
-- Git hooks: run `git config core.hooksPath .githooks` once after cloning to enable the repo-versioned hooks (see
-  [Commit attribution](#commit-attribution)).
+- Git hooks: run `git config core.hooksPath .githooks` once after cloning to enable the repo-versioned
+  `.githooks/pre-push` hook, which refuses a push to the default branch when the Landing section of `AGENTS.md` says
+  `protect: hook`.
 - Windows: run `git config --global core.longpaths true` once. A Claude Code plan's worktree under
   `.claude/worktrees/` adds enough depth that some paths pass Windows' 260-character limit, and without it
   `git worktree remove` fails with "Filename too long" and leaves the folder behind.
@@ -176,50 +177,18 @@ See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how
 
 ## Commit attribution
 
-A commit records the **people** who authored it. **Never add agent attribution to a commit message** — a
+A commit records the **people** who authored it. **Avoid agent attribution in a commit message** — a
 `Co-authored-by:` trailer naming an agent account (`Copilot`, `copilot-swe-agent[bot]`, Claude's
 `noreply@anthropic.com`, or any other tooling identity), a `Claude-Session:` trailer, or a "Generated with" line: the
 repository host reads such a trailer as authorship and lists the agent in the contributor graph, which can only be
 undone by rewriting published history. Which tools produced a change belongs in the pull request, not in the commit's
 authorship record.
 
-Three layers keep the record clean:
-
-- The repo-versioned [`.githooks/commit-msg`](.githooks/commit-msg) hook, which comes from the project template, strips
-  such lines automatically once hooks are enabled (`git config core.hooksPath .githooks` — see
-  [Prerequisites](#prerequisites)). Hooks are client-side only, so this is a safety net, not a guarantee; don't write
-  the lines in the first place.
-- The editor settings stop the tools from adding them: `attribution` in [`.claude/settings.json`](.claude/settings.json)
-  keeps Claude Code's commit and pull request attribution empty, and `git.addAICoAuthor` is `off` in
-  [`.vscode/settings.json`](.vscode/settings.json).
-- The required `Commit attribution` check
-  ([`.template/Test-CommitAttribution.ps1`](.template/Test-CommitAttribution.ps1), from the project template) runs on
-  pull requests, in the merge queue and on pushes to `main` and release lines. It fails when a commit's author or
-  committer is an AI agent account, or when a message carries agent attribution, because a squash merge credits every
-  commit author. It also reads the pull request's title and description, which the squash merge copies into the
-  commit on `main`, and runs again when they are edited: when it finds such a line there, edit the pull request
-  instead of rebasing.
-
-The `Commit attribution` check prints the command that fixes the commits it fails; run it, then force-push the branch.
-The Copilot cloud agent authors its commits as `copilot-swe-agent[bot]`, so its pull request fails the check until a
-person re-authors the commits:
-
-```shell
-git rebase origin/main --exec "git commit --amend --no-edit --reset-author"
-git push --force-with-lease
-```
-
-A commit message that carries agent attribution keeps it through `--amend --no-edit`, so for such a commit the
-check's command runs the `commit-msg` hook on each message, which strips those lines, and keeps the commit's author. A
-commit that also has an agent account as its author or committer needs `--reset-author` in the same command, as the
-check prints it:
-
-```shell
-git rebase origin/main --exec "git -c core.hooksPath=.githooks commit --amend --no-edit"
-git push --force-with-lease
-```
-
-See [ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md).
+The editor settings keep the tools from adding it: `attribution` in [`.claude/settings.json`](.claude/settings.json)
+keeps Claude Code's commit and pull request attribution empty, and `git.addAICoAuthor` is `off` in
+[`.vscode/settings.json`](.vscode/settings.json). Nothing checks for it or blocks a commit, push or pull request that
+has it, so one a tool adds anyway needs no fix. See
+[project-template ADR-0018](docs/decisions/project-template/0018-agent-attribution-is-avoided-not-enforced.md).
 
 ## Code formatting — CSharpier
 
@@ -252,10 +221,14 @@ To upgrade a package, change its single `Version` in `Directory.Packages.props` 
 ## Dependabot pull requests
 
 [`.github/dependabot.yml`](.github/dependabot.yml) groups updates per ecosystem (NuGet minor/patch, NuGet majors,
-frontend dev toolchain, frontend production, GitHub Actions). CI gates them like any other change, so a green
-Dependabot PR can be merged as-is. **Weekly version updates are paused** while the family is refactored ahead of its
-first release (issue [#36](https://github.com/NCodeGroup/Identity/issues/36)): every ecosystem sets `open-pull-requests-limit: 0`. Security updates still arrive as
-pull requests (one group per ecosystem) whenever a published advisory affects a dependency.
+frontend dev toolchain, frontend production, GitHub Actions, the .NET SDK floor, base images). CI gates them like any
+other change, so a green Dependabot PR can be merged as-is. **Weekly version updates are paused** while the family is
+refactored ahead of its first release (issue [#36](https://github.com/NCodeGroup/Identity/issues/36)): every other
+ecosystem sets `open-pull-requests-limit: 0`. Security updates still arrive as pull requests (one group per ecosystem)
+whenever a published advisory affects a dependency. The docker and dotnet-sdk ecosystems keep their limit of 5 and run
+during the pause: a digest pin and the SDK floor in `global.json` follow their upstream releases
+([ADR-1249](docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
+[ADR-1493](docs/decisions/1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md)).
 
 When one is red, the fix belongs **on its branch**: check out the PR branch, commit the code or config the new versions
 require, rebase onto `main` if it has moved, and push. Dependabot stops rebasing a branch once someone else has pushed

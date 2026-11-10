@@ -149,6 +149,36 @@ public class ManagementConsoleOptionsValidatorTests : BaseTests
 
     [Theory]
     [InlineData("")]
+    [InlineData("http://cdn.example/tab.ico")]
+    [InlineData("/tab.ico")]
+    [InlineData("javascript:alert(1)")]
+    public void Validate_WhenTheFaviconUrlIsNotAbsoluteHttps_Fails(string url)
+    {
+        var options = CreateValidOptions();
+        options.Branding.FaviconUrl = url;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "ManagementConsole:Branding:FaviconUrl must be an absolute https URL",
+            result.Failures?.Single() ?? string.Empty
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenTheFaviconUrlIsAbsoluteHttps_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.Branding.FaviconUrl = "https://cdn.example/tab.ico";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("")]
     [InlineData("auto")]
     [InlineData("Dark")]
     public void Validate_WhenModeIsInvalid_Fails(string mode)

@@ -20,7 +20,7 @@ public class ManagementConsolePageTests : BaseTests
         const string html =
             "<meta content=\"__NCODE_CSP_NONCE__\"><script nonce=\"__NCODE_CSP_NONCE__\">";
 
-        var rendered = new ManagementConsolePage(html).Render("abc");
+        var rendered = new ManagementConsolePage(html).Render("abc", null);
 
         Assert.Equal("<meta content=\"abc\"><script nonce=\"abc\">", rendered);
     }
@@ -28,9 +28,73 @@ public class ManagementConsolePageTests : BaseTests
     [Fact]
     public void Render_WhenThePageHasNoPlaceholder_ReturnsThePageUnchanged()
     {
-        var rendered = new ManagementConsolePage("<html></html>").Render("abc");
+        var rendered = new ManagementConsolePage("<html></html>").Render("abc", null);
 
         Assert.Equal("<html></html>", rendered);
+    }
+
+    [Fact]
+    public void Render_WhenAFaviconIsGiven_LinksItInPlaceOfTheIcons()
+    {
+        const string html =
+            "<html><head><link rel=\"icon\" href=\"./assets/favicon-ab12.ico\"><title>t</title></head><body></body></html>";
+
+        var rendered = new ManagementConsolePage(html).Render("abc", "https://cdn.example/tab.ico");
+
+        Assert.Contains(
+            "<link rel=\"icon\" href=\"https://cdn.example/tab.ico\" /></head>",
+            rendered,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("<title>t</title>", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("favicon-ab12", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_WhenAFaviconIsGiven_WritesTheConfiguredTextAsTheHref()
+    {
+        const string html = "<html><head></head><body></body></html>";
+
+        var rendered = new ManagementConsolePage(html).Render("abc", "https://CDN.example");
+
+        Assert.Contains(
+            "<link rel=\"icon\" href=\"https://CDN.example\" />",
+            rendered,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Render_WhenNoFaviconIsGiven_KeepsTheIcons()
+    {
+        const string html =
+            "<html><head><link rel=\"icon\" href=\"./assets/favicon-ab12.ico\"></head><body></body></html>";
+
+        var rendered = new ManagementConsolePage(html).Render("abc", null);
+
+        Assert.Equal(html, rendered);
+    }
+
+    [Fact]
+    public void Render_WhenAFaviconIsGivenAndThePageHasNoHead_KeepsTheIcons()
+    {
+        const string html = "<link rel=\"icon\" href=\"./assets/favicon-ab12.ico\"><body></body>";
+
+        var rendered = new ManagementConsolePage(html).Render("abc", "https://cdn.example/tab.ico");
+
+        Assert.Equal(html, rendered);
+    }
+
+    [Fact]
+    public void Render_WhenAFaviconIsGiven_StillWritesTheNonce()
+    {
+        const string html =
+            "<html><head><meta content=\"__NCODE_CSP_NONCE__\"><link rel=\"icon\" href=\"./a.ico\"></head></html>";
+
+        var rendered = new ManagementConsolePage(html).Render("abc", "https://cdn.example/tab.ico");
+
+        Assert.DoesNotContain("__NCODE_CSP_NONCE__", rendered, StringComparison.Ordinal);
+        Assert.Contains("<meta content=\"abc\">", rendered, StringComparison.Ordinal);
     }
 
     [BuiltConsoleBundleFact]
@@ -41,7 +105,7 @@ public class ManagementConsolePageTests : BaseTests
             SecureEncoding.UTF8
         );
 
-        var rendered = new ManagementConsolePage(html).Render("n0nce");
+        var rendered = new ManagementConsolePage(html).Render("n0nce", null);
 
         Assert.DoesNotContain("__NCODE_CSP_NONCE__", rendered, StringComparison.Ordinal);
         Assert.Matches("<meta property=\"csp-nonce\"[^>]*nonce=\"n0nce\"", rendered);

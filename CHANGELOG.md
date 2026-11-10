@@ -111,7 +111,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Polly.RateLimiting` to a consumer: a project that uses one of them, such as `AddStandardResilienceHandler`,
   references that package itself ([#471](https://github.com/NCodeGroup/Identity/issues/471),
   [ADR-1385](docs/decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md)).
-- **Project template v0.75.1.** The repository's plan-and-execute workflow, agent instructions and checks come from project-template v0.75.1. They include the template's pre-release posture, which `- pre-release: untracked` in `AGENTS.md`'s Landing section selects, as project-template ADR-0015 records: until the first stable release every text describes the family as it is, each plan keeps `## [Unreleased]` a catalog under `### Added` and `### Security`, `/review-plan-diff` checks that a plan's texts describe the product as it is, and no change keeps compatibility, so a stored payload's shape changes in place at version 1 and a stored document that isn't a versioned envelope is refused (project-template ADR-0108); `build/Get-TestRuntimes.ps1`, which names the runtime of each older .NET a test project targets, and the `.github/actions/install-dotnet` composite action, through which CI, the end-to-end and frontend checks, the prerelease publish and the Copilot cloud agent's setup install the SDK `global.json` selects and those runtimes; `build/Install-Dotnet.ps1`, which installs the same SDK and runtimes on a developer's machine, each download checked against the SHA-512 in Microsoft's release metadata; the `/address-feedback` and `/run-feedback` commands, in Claude Code and Copilot, which fix or answer every review thread, top-level comment and review summary on a pull request and reply to each, `/run-feedback` repeating that every five minutes until the pull request merges or closes and asking NCode Review to review each push with a `/review` comment, and each resuming a run that stopped, whichever tool started it; `/run-issues`, which does the same for the pull requests it opens and turns a finding the issue doesn't ask for into a follow-up; project-template ADR-0014, under which every such discussion is remediated and replied to before the pull request merges, with the person who merges resolving each thread; the weekly `template-update` workflow, which keeps an issue open while a newer template version is out; the template's `Release` workflow, `.github/workflows/tag-release.yml`, which runs `.template/Publish-Release.ps1` on each push to `main` and publishes nothing, because the Landing section says `release: none`; `/ship-plan`'s choice to act on a plan's follow-ups next, which files them as issues and has `/finish-plan` end with a `/plan-issue` command for each; Claude Code settings that allow every Bash and PowerShell command, ask before one that mentions `.env` or `secrets`, and deny reading `.env` files and `secrets/`, with a `SessionStart` hook, `.claude/hooks/ensure-pwsh.sh`, that installs `pwsh` in a Claude Code cloud session that lacks it; `code-review-auto-merge.yml` for NCode Review pin bumps, which turns on auto-merge with the first merge method `main` allows; the template's C# test conventions in `.github/instructions/csharp-tests.instructions.md`; and the template's general decision records in `docs/decisions/project-template/`, the source of truth for the rules they cover. The workflow commands that post to GitHub read back each description, issue and comment they write, except a `/review` comment, which NCode Review reads from its first line, and remove any agent attribution a session's tooling appends, and run through `gh api` REST routes in a session that refuses GitHub's GraphQL API, such as a Claude Code cloud session; the `Commit attribution` check and `.githooks/commit-msg` catch attribution from any AI agent or model. The template's `file_header_template` is the two-line SPDX header [ADR-1309](docs/decisions/1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) enforces, and `build/dod.ps1` is this repository's own: the `project_owned_files` answer names it, so template updates leave it alone ([#516](https://github.com/NCodeGroup/Identity/issues/516), [#536](https://github.com/NCodeGroup/Identity/issues/536), [#542](https://github.com/NCodeGroup/Identity/issues/542)).
+- **Project template v0.84.1.** The repository's plan-and-execute workflow, agent instructions and checks come from project-template v0.84.1. They include the template's pre-release posture, which `- pre-release: untracked` in `AGENTS.md`'s Landing section selects, as project-template ADR-0015 records: until the first stable release every text describes the family as it is, each plan keeps `## [Unreleased]` a catalog under `### Added` and `### Security`, `/review-plan-diff` checks that a plan's texts describe the product as it is, and no change keeps compatibility, so a stored payload's shape changes in place at version 1 and a stored document that isn't a versioned envelope is refused (project-template ADR-0108); `build/Get-TestRuntimes.ps1`, which names the runtime of each older .NET a test project targets, and the `.github/actions/install-dotnet` composite action, through which CI, the end-to-end and frontend checks, the prerelease publish and the Copilot cloud agent's setup install the SDK `global.json` selects and those runtimes; `build/Install-Dotnet.ps1`, which installs the same SDK and runtimes on a developer's machine, each download checked against the SHA-512 in Microsoft's release metadata; the `/address-feedback` and `/run-feedback` commands, in Claude Code and Copilot, which fix or answer every review thread, top-level comment and review summary on a pull request and reply to each, `/run-feedback` repeating that every five minutes until the pull request merges or closes and asking NCode Review to review each push with a `/review` comment, and each resuming a run that stopped, whichever tool started it; `/run-issues`, which does the same for the pull requests it opens and turns a finding the issue doesn't ask for into a follow-up; project-template ADR-0014, under which every such discussion is remediated and replied to before the pull request merges, with the person who merges resolving each thread; the weekly `template-update` workflow, which keeps an issue open while a newer template version is out; the template's `Tag and publish release` workflow, `.github/workflows/tag-release.yml`, which runs `.template/Publish-Release.ps1` on each push to `main` and publishes nothing, because the Landing section says `release: none`; `/ship-plan`'s choice to act on a plan's follow-ups next, which files them as issues and has `/finish-plan` end with a `/plan-issue` command for each; Claude Code settings that allow every Bash and PowerShell command, ask before one that mentions `.env` or `secrets`, and deny reading `.env` files and `secrets/`, with a `SessionStart` hook, `.claude/hooks/session-start.sh`, that runs each `.claude/hooks/ensure-*.sh` in a Claude Code cloud session, among them `ensure-pwsh.sh`, which installs `pwsh` where it is missing; `code-review-auto-merge.yml` for NCode Review pin bumps, which turns on auto-merge with the first merge method `main` allows; the template's C# test conventions in `.github/instructions/csharp-tests.instructions.md`; and the template's general decision records in `docs/decisions/project-template/`, the source of truth for the rules they cover. The workflow commands that post to GitHub run through `gh api` REST routes in a session that refuses GitHub's GraphQL API, such as a Claude Code cloud session; `/ship-plan` and `/run-issues` delete agent attribution lines from the pull request title and description they write, and nothing checks commits or pull requests for attribution (project-template ADR-0018). The template's `file_header_template` is the two-line SPDX header [ADR-1309](docs/decisions/1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) enforces, and `build/dod.ps1` is this repository's own: the `project_owned_files` answer names it, so template updates leave it alone ([#516](https://github.com/NCodeGroup/Identity/issues/516), [#536](https://github.com/NCodeGroup/Identity/issues/536), [#542](https://github.com/NCodeGroup/Identity/issues/542)).
 
 - **The reference host, its local-dev orchestrator and the shipped library carry distinct names.**
   `NCode.Identity.OpenId.Host` is the deployable reference host, with its companions
@@ -399,9 +399,10 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The family builds with repository-wide engineering conventions.** These are Central Package Management, lockstep
   Nerdbank.GitVersioning versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of
   Done, CSharpier formatting, and scoped coding-convention instruction files. `global.json` requires .NET SDK 10.0.403
-  or a later .NET 10 SDK, the newest release past the three-day cooldown, so an SDK whose compiler cannot build the
-  family stops at once with the version it needs
+  or a later .NET 10 SDK, the newest release past the three-day cooldown, which Dependabot's `dotnet-sdk` stream keeps
+  current, so an SDK whose compiler cannot build the family stops at once with the version it needs
   ([#738](https://github.com/NCodeGroup/Identity/issues/738),
+  [#746](https://github.com/NCodeGroup/Identity/issues/746),
   [ADR-1493](docs/decisions/1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md)). See
   [`docs/decisions/`](docs/decisions/).
 
@@ -409,15 +410,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   braces of the NCode Group's `{N}`, in the group's blue. `brand/` holds it as SVG masters and as the PNG and ICO files
   each place takes: a NuGet package icon, a favicon set, pictures for GitHub, GitLab and My Apps, badge logos, social
   cards, and lockups with the wordmark "NCode Identity". Every package carries the blue tile as its icon, the host
-  chart names it as its own, and the README opens with the lockup. The four web apps show its icon in the browser tab:
-  each links the kit's ICO, SVG and iOS icon, its build gives them content-hashed names in the assets its host serves,
-  and the `favicon copies` stage of `./build/dod.ps1` keeps every app's copies equal to the kit's. `brand/build.py`
-  draws every file from one geometry, with a drawing of its own for each size from 16 to 48 pixels, and stops when a
-  file breaks its platform's limit. `brand/outlines.py` converts the wordmark to outlines from a pinned release of
-  Inter, whose license `THIRD-PARTY-NOTICES.md` records
+  chart names it as its own, and the README opens with the lockup. The four web apps show its icon in the browser tab,
+  unless a tenant or the console's branding sets its own icon: each links the kit's ICO, SVG and iOS icon, its build
+  gives them content-hashed names in the assets its host serves, and the `favicon copies` stage of `./build/dod.ps1`
+  keeps every app's copies equal to the kit's. `brand/build.py` draws every file from one geometry, with a drawing of
+  its own for each size from 16 to 48 pixels, and stops when a file breaks its platform's limit. `brand/outlines.py`
+  converts the wordmark to outlines from a pinned release of Inter, whose license `THIRD-PARTY-NOTICES.md` records
   ([#737](https://github.com/NCodeGroup/Identity/issues/737),
+  [#745](https://github.com/NCodeGroup/Identity/issues/745),
   [ADR-1491](docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md),
-  [ADR-1492](docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md)).
+  [ADR-1492](docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md),
+  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
 
 - **Feature branches run a fast gate, and the merge queue runs the full gate.** `./build/dod.ps1 -Affected` (with
   `-Base`) runs only the test projects a change reaches through the project graph, and `-Filter` passes a `dotnet test
@@ -2047,17 +2050,21 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#290](https://github.com/NCodeGroup/Identity/issues/290)).
 
 - **A tenant brands its login, consent, and account pages.** The interactive surface registers the tenant settings
-  `branding_display_name`, `branding_logo_uri` (absolute `https`), `branding_primary_color` and
-  `branding_secondary_color` (hexadecimal), and `branding_color_mode` (`light` or `dark`), named in
-  `InteractiveSettingNames` and `InteractiveSettingKeys`. Every page served with the `apps/auth` bundle carries the
-  tenant's branding, in the bootstrap document's `branding` shape, in a `<script type="application/json" id="branding">`
-  block after its `<base>`, and the bundle themes itself from it without a request: it themes the surface with the
-  colors and mode, draws the logo, and titles the login and account pages with the display name; a page without branding
-  gets the default theme. `@ncode/config` exports `parseBrandingConfig`, which the bootstrap parser uses too, so a
-  malformed branding token is dropped, never trusted
+  `branding_display_name`, `branding_logo_uri` (absolute `https`), `branding_favicon_uri` (absolute `https`),
+  `branding_primary_color` and `branding_secondary_color` (hexadecimal), and `branding_color_mode` (`light` or `dark`),
+  named in `InteractiveSettingNames` and `InteractiveSettingKeys`. Every page served with the `apps/auth` bundle
+  carries the tenant's branding, in the bootstrap document's `branding` shape, in a
+  `<script type="application/json" id="branding">` block after its `<base>`, and the bundle themes itself from it
+  without a request: it themes the surface with the colors and mode, draws the logo, and titles the login and account
+  pages with the display name; a page without branding gets the default theme. `@ncode/config` exports
+  `parseBrandingConfig`, which the bootstrap parser uses too, so a malformed branding token is dropped, never trusted.
+  A tenant that sets `branding_favicon_uri` shows that icon in its pages' tabs instead of the family's: the host links
+  it, drops the bundle's family icon links, and admits its origin in the page's `img-src`
   ([ADR-1194](docs/decisions/1194-a-tenant-brands-its-interactive-surface-through-settings.md),
-  [ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), issue
-  [#211](https://github.com/NCodeGroup/Identity/issues/211)).
+  [ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md),
+  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md),
+  issues [#211](https://github.com/NCodeGroup/Identity/issues/211),
+  [#745](https://github.com/NCodeGroup/Identity/issues/745)).
 
 - **The interactive surface renders in the language the request prefers.** The locales the end-user interface
   renders are a registered vocabulary (`IUiLocale`, resolved through `IUiLocaleCatalog`), so the tenant settings
@@ -2821,11 +2828,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`private_key_jwt`, PAR, DPoP, back-channel logout) and listens on `https://localhost:5005` under the AppHost, which
   generates the console's keys per machine. The host refuses a missing or wildcard `AllowedHosts` in Production,
   trusts forwarded headers only from the proxies its `ForwardedHeaders` section names, and sends
-  `Strict-Transport-Security` outside Development
+  `Strict-Transport-Security` outside Development. The console's `ManagementConsole:Branding:FaviconUrl` (absolute
+  `https`) replaces the family's tab icon the same way
   ([#158](https://github.com/NCodeGroup/Identity/issues/158),
   [#611](https://github.com/NCodeGroup/Identity/issues/611),
+  [#745](https://github.com/NCodeGroup/Identity/issues/745),
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
-  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
+  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
+  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
 
 - **A BFF loads its key rings from PEM files and key management services when the host starts.**
   `Bff:KeyRings:{name}:PemFiles` lists EC or RSA private-key PEM files, each key's `kid` its file name without the
@@ -3722,7 +3732,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The plan-and-execute workflow comes from the project template, executes on Claude Sonnet 5.5, and runs in Claude
   Code too.** The repository follows [project-template](https://github.com/NCodeGroup/project-template) at the version
   `.copier-answers.yml` and `.template-version` record: its agents, prompt files, skills, Claude Code commands,
-  `CLAUDE.md`, `commit-msg` hook and `.template/` scripts are template-owned, and `./.template/Update-Project.ps1` takes
+  `CLAUDE.md` and `.template/` scripts are template-owned, and `./.template/Update-Project.ps1` takes
   a newer version. `PLAN.md` is gitignored and never committed: a plan's first commit is an empty `Plan: <title>`, each
   step's checkpoint stages only the files the step lists, a re-plan is an empty commit, and the `Plan step` checkpoints
   reach the plan's pull request branch, whose title is the conventional commit subject the squash merge takes. An
@@ -3741,9 +3751,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   repository-wide agent rules are in `.github/instructions/repository.instructions.md`. `.gitignore` ignores, and Claude
   Code denies reading, only the root `secrets/` folder, so a `Secrets/` source folder such as `Contracts/Secrets/` is
   committed on every platform; the template update runs on Windows when the repository's `.gitignore` ignores a folder
-  the template's does not, such as `src/frontend/node_modules`; every checkout except `copilot-setup-steps.yml`'s sets
-  `persist-credentials: false`, keeping the job's token out of `.git/config`; and the `commit-msg` hook starts with
-  `#!/usr/bin/env sh`, so pre-commit on Windows runs it
+  the template's does not, such as `src/frontend/node_modules`; and every checkout except `copilot-setup-steps.yml`'s sets
+  `persist-credentials: false`, keeping the job's token out of `.git/config`
   ([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
 
 - **Local and Copilot workflow formats are supported together.** The repository keeps both the Local prompts and the
@@ -5827,17 +5836,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1200](docs/decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md)).
 
-- **A required check rejects commits and pull requests attributed to an AI agent.** The `Commit attribution` workflow
-  (`.github/workflows/commit-attribution.yml`) runs the template's `./.template/Test-CommitAttribution.ps1` on pull
-  requests, in the merge queue (the commit that lands, including the trailers GitHub writes when it squashes) and on
-  pushes to `main` and `release/**`, and fails when the author or committer of a commit is an AI agent account, such as
-  the Copilot cloud agent's `copilot-swe-agent[bot]`, or when its message carries agent attribution: a `Co-authored-by:`
-  line naming an agent, a `Claude-Session:` line, or a line that starts with "Generated with [Claude Code". On a pull
-  request it also reads the title and description, which the squash merge makes the message of the commit that lands on
-  `main`, and runs again whenever the pull request is edited. The `commit-msg` hook strips such lines, and Claude Code's
-  and VS Code's settings add none. A pull request from the cloud agent fails the check until its commits are re-authored
-  with `git rebase origin/main --exec "git commit --amend --no-edit --reset-author"` and `git push --force-with-lease`
-  ([ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md)).
+- **Agent attribution stays out of commits by rule and setting, and no check enforces it.** The instructions tell every
+  agent never to add a `Co-authored-by:` trailer naming an agent, a `Claude-Session:` trailer or a "Generated with"
+  line to a commit message, Claude Code's and VS Code's settings add none, and `/ship-plan` and `/run-issues` delete
+  such lines from the pull request title and description they write, which the squash merge makes the commit on
+  `main`. Nothing checks commits, pushes or pull requests for attribution, so one a tool adds anyway blocks nothing
+  ([project-template ADR-0018](docs/decisions/project-template/0018-agent-attribution-is-avoided-not-enforced.md)).
 - **A master key is bounded in time and destroyed once nothing names it.** An owner's master key rotates every year, the
   values a tenant's key protected, and a platform value that a registered protected-value source reports, are rewrapped
   under the new version without their payloads being touched, a retired key is destroyed only after its grace and when

@@ -16,7 +16,7 @@ internal readonly record struct InteractivePageSecurity(string Nonce, HtmlPageSe
 {
     /// <summary>
     /// Creates the security of one interactive page response. The policy allows the page's scripts and styles only
-    /// with a fresh nonce, the surface's own images and API calls, and the origin of the tenant's logo.
+    /// with a fresh nonce, the surface's own images and API calls, and the origins of the tenant's logo and tab icon.
     /// </summary>
     /// <param name="branding">The tenant's branding, or <see langword="null"/> when the page has none.</param>
     /// <returns>The nonce and the policy of the response.</returns>
@@ -25,10 +25,11 @@ internal readonly record struct InteractivePageSecurity(string Nonce, HtmlPageSe
         var nonce = ContentSecurityPolicySources.CreateNonce();
 
         List<string> imageSources = [ContentSecurityPolicySources.Self];
-        if (AbsoluteUri.TryParse(branding?.LogoUrl, out var logoUri))
-        {
-            imageSources.Add(ContentSecurityPolicySources.Origin(logoUri));
-        }
+        var logoUri = AbsoluteUri.TryParse(branding?.LogoUrl, out var parsedLogoUri)
+            ? parsedLogoUri
+            : null;
+        ContentSecurityPolicySources.AddOrigin(imageSources, logoUri);
+        ContentSecurityPolicySources.AddOrigin(imageSources, branding?.FaviconUri);
 
         var policy = new HtmlPageSecurityPolicy
         {

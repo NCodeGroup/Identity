@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using NCode.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
@@ -313,7 +314,8 @@ internal static class InteractiveAuthenticationPageRenderer
     // request's tenant, so the bundle's relative asset URLs, its API calls, and the forms' relative actions resolve
     // there whatever path the page itself was served at (ADR-1193). The tenant's branding follows the base, so the
     // bundle finds it in the page it mounts over. The bundle's own markup carries the nonce and the language tag in
-    // place of their placeholders; no rendered value does. See ADR-1256 and ADR-1402.
+    // place of their placeholders; no rendered value does. A tenant's tab icon is the page's only icon, written before
+    // the bundle's head, which is then written without the family's icon links (ADR-1494). See ADR-1256 and ADR-1402.
     private static void WriteHead(
         IBufferWriter<char> writer,
         InteractivePageFrame frame,
@@ -329,7 +331,17 @@ internal static class InteractiveAuthenticationPageRenderer
                 WriteBranding(writer, branding);
             }
 
-            WriteShellSegment(writer, shell.Head.Span, frame);
+            if (frame.Branding is { FaviconUri: not null, FaviconUrl: { } faviconUrl })
+            {
+                var iconLink = HtmlIconLinks.Create(faviconUrl);
+                Write(writer, iconLink);
+                WriteShellSegment(writer, shell.HeadWithoutIcons.Span, frame);
+            }
+            else
+            {
+                WriteShellSegment(writer, shell.Head.Span, frame);
+            }
+
             return;
         }
 
@@ -337,6 +349,12 @@ internal static class InteractiveAuthenticationPageRenderer
         WriteEncoded(writer, frame.Locale.LanguageTag);
         Write(writer, StandaloneHeadAfterLanguage);
         WriteBase(writer, frame.SurfaceBase);
+        if (frame.Branding is { FaviconUri: not null, FaviconUrl: { } standaloneFaviconUrl })
+        {
+            var standaloneIconLink = HtmlIconLinks.Create(standaloneFaviconUrl);
+            Write(writer, standaloneIconLink);
+        }
+
         Write(writer, StandaloneTitleStart);
         WriteEncoded(writer, title);
         Write(writer, StandaloneHeadEnd);

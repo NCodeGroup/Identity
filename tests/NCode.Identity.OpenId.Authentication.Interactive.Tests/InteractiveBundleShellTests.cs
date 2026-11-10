@@ -45,6 +45,41 @@ public class InteractiveBundleShellTests
         Assert.Equal("<!-- <header> --><head>", prelude);
     }
 
+    [Fact]
+    public void TryCreate_WhenTheHeadHasIconLinks_BuildsAHeadWithoutThem()
+    {
+        var shell = InteractiveBundleShell.TryCreate(
+            "<html><head><link rel=\"icon\" href=\"a.ico\"><link rel=\"apple-touch-icon\" href=\"a.png\"><link rel=\"stylesheet\" href=\"a.css\"><title>t</title></head><body><div id=\"root\"></div></body></html>"
+        );
+
+        Assert.NotNull(shell);
+        var head = shell.Head.ToString();
+        var headWithoutIcons = shell.HeadWithoutIcons.ToString();
+
+        Assert.Equal(
+            "<link rel=\"icon\" href=\"a.ico\"><link rel=\"apple-touch-icon\" href=\"a.png\"><link rel=\"stylesheet\" href=\"a.css\"><title>t</title></head><body><div id=\"root\">",
+            head
+        );
+        Assert.Equal(
+            "<link rel=\"stylesheet\" href=\"a.css\"><title>t</title></head><body><div id=\"root\">",
+            headWithoutIcons
+        );
+    }
+
+    [Fact]
+    public void TryCreate_WhenTheHeadHasNoIconLinks_BuildsAnIdenticalHeadWithoutIcons()
+    {
+        var shell = InteractiveBundleShell.TryCreate(
+            "<html><head><link rel=\"stylesheet\" href=\"a.css\"><title>t</title></head><body><div id=\"root\"></div></body></html>"
+        );
+
+        Assert.NotNull(shell);
+        var head = shell.Head.ToString();
+        var headWithoutIcons = shell.HeadWithoutIcons.ToString();
+
+        Assert.Equal(head, headWithoutIcons);
+    }
+
     [Theory]
     [InlineData("<body><div id=\"root\"></div></body>")]
     [InlineData("<header></header><body><div id=\"root\"></div></body>")]

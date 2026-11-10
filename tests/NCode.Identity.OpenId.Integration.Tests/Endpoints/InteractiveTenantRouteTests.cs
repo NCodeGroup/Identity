@@ -46,6 +46,13 @@ public class InteractiveTenantRouteTests
         "<!doctype html><html><head><script type=\"module\" src=\"./assets/app.js\"></script></head>"
         + "<body><div id=\"root\"></div></body></html>";
 
+    private const string BundleIndexHtmlWithIcons =
+        "<!doctype html><html><head>"
+        + "<link rel=\"icon\" href=\"./assets/favicon-ab12.ico\" sizes=\"32x32\" />"
+        + "<link rel=\"apple-touch-icon\" href=\"./assets/apple-touch-icon-ab12.png\" />"
+        + "<script type=\"module\" src=\"./assets/app.js\"></script></head>"
+        + "<body><div id=\"root\"></div></body></html>";
+
     private const string BundleScript = "console.log('app');";
 
     private static ConfiguredHostApplicationFactory CreatePathFactory(
@@ -63,12 +70,12 @@ public class InteractiveTenantRouteTests
             }
         );
 
-    private static DirectoryInfo CreateBundle()
+    private static DirectoryInfo CreateBundle(string indexHtml = BundleIndexHtml)
     {
         var bundleRoot = Directory.CreateTempSubdirectory("bundle-");
         File.WriteAllText(
             Path.Combine(bundleRoot.FullName, "index.html"),
-            BundleIndexHtml,
+            indexHtml,
             SecureEncoding.UTF8
         );
         var assets = bundleRoot.CreateSubdirectory("assets");
@@ -442,6 +449,55 @@ public class InteractiveTenantRouteTests
                 betaHtml,
                 StringComparison.Ordinal
             );
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GetLogin_WhenTheTenantSetsAFavicon_LinksItAndAdmitsItsOrigin()
+    {
+        var bundleRoot = CreateBundle(BundleIndexHtmlWithIcons);
+        try
+        {
+            await using var factory = CreatePathFactory(bundleRoot.FullName);
+            await SeedTenantAsync(
+                factory,
+                "acme",
+                new Dictionary<string, object>
+                {
+                    [InteractiveSettingNames.BrandingFaviconUri] =
+                        "https://cdn.acme.example/tab.ico",
+                },
+                CancellationToken.None
+            );
+            await SeedTenantAsync(factory, "beta", settings: NoSettings, CancellationToken.None);
+            using var client = CreateClient(factory);
+
+            using var acmeResponse = await client.GetAsync("/acme/account/login");
+            using var betaResponse = await client.GetAsync("/beta/account/login");
+
+            Assert.Equal(HttpStatusCode.OK, acmeResponse.StatusCode);
+            var acmeHtml = await acmeResponse.Content.ReadAsStringAsync();
+            Assert.Contains(
+                "<link rel=\"icon\" href=\"https://cdn.acme.example/tab.ico\" />",
+                acmeHtml,
+                StringComparison.Ordinal
+            );
+            Assert.DoesNotContain("favicon-ab12", acmeHtml, StringComparison.Ordinal);
+            var policy = Assert.Single(acmeResponse.Headers.GetValues("Content-Security-Policy"));
+            var imgSrc = Assert.Single(
+                policy.Split(';', StringSplitOptions.TrimEntries),
+                directive => directive.StartsWith("img-src ", StringComparison.Ordinal)
+            );
+            Assert.Contains("https://cdn.acme.example", imgSrc, StringComparison.Ordinal);
+            Assert.Equal(HttpStatusCode.OK, betaResponse.StatusCode);
+            var betaHtml = await betaResponse.Content.ReadAsStringAsync();
+            Assert.Contains("favicon-ab12", betaHtml, StringComparison.Ordinal);
+            Assert.Contains("apple-touch-icon-ab12", betaHtml, StringComparison.Ordinal);
+            Assert.DoesNotContain("cdn.acme.example", betaHtml, StringComparison.Ordinal);
         }
         finally
         {

@@ -7,6 +7,7 @@ using NCode.AspNetCore;
 using NCode.Buffers;
 using NCode.Identity.Bff;
 using NCode.Identity.ManagementConsole.Options;
+using NCode.Identity.OpenId;
 
 namespace NCode.Identity.ManagementConsole;
 
@@ -46,16 +47,18 @@ internal sealed class ManagementConsolePageHandler(
         var authority = new Uri(
             bffOptionsAccessor.Current.Frontends[ManagementConsoleDefaults.FrontendName].Authority
         );
+        var branding = optionsAccessor.Value.Branding;
         var security = ManagementConsolePageSecurity.Create(
             authority,
-            optionsAccessor.Value.Branding.LogoUrl
+            branding.LogoUrl,
+            branding.FaviconUrl
         );
 
         httpContext.Response.SetHtmlPageSecurity(security.Policy);
-        return TypedResults.Text(
-            page.Render(security.Nonce),
-            "text/html",
-            contentEncoding: SecureEncoding.UTF8
-        );
+        var faviconUrl = AbsoluteUri.TryParseHttps(branding.FaviconUrl, out _)
+            ? branding.FaviconUrl
+            : null;
+        var html = page.Render(security.Nonce, faviconUrl);
+        return TypedResults.Text(html, "text/html", contentEncoding: SecureEncoding.UTF8);
     }
 }

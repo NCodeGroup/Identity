@@ -37,8 +37,9 @@ identity-platform, whose `AGENTS.md` lists them as overrides, that supersedes th
    `Closes NCodeGroup/Identity#<number>` or `Refs NCodeGroup/Identity#<number>`.
 3. **Merge method (project-template ADR-0013).** identity-platform's `main` takes only squash merges, with linear
    history: the pull request's title, a conventional commit subject, and its description become the one commit on
-   `main`, and the required `Commit attribution` check keeps agent trailers out of both, for the reasons
-   [ADR-1304](1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) gives for this repository.
+   `main`, and agent attribution is avoided in both
+   ([project-template ADR-0018](project-template/0018-agent-attribution-is-avoided-not-enforced.md)); the merge
+   method's reasons are [ADR-1304](1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md)'s.
 
 In this repository, the record refines project-template ADR-0010 and ADR-1306: `docs/decisions/` and the issues also
 serve identity-platform.

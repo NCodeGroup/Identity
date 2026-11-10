@@ -1319,8 +1319,10 @@ answers these paths:
 | `/management/api/*`       | The OP's management API (`ManagementConsole:ManagementApiUrl`), with the user's DPoP-bound `urn:ncode:management` token ([§5.5](#55-token-management)).                              |
 
 The page's policy allows scripts only with the nonce and `'strict-dynamic'`, styles only with the nonce, images from the
-console's own origin and the origin of the branding's logo, `connect-src 'self'`, form submissions to the console and to
-the OP's authority, no base URI and no framing.
+console's own origin and the origins of the branding's logo and tab icon, `connect-src 'self'`, form submissions to the
+console and to the OP's authority, no base URI and no framing. `ManagementConsole:Branding:FaviconUrl`, an absolute
+`https` URL, replaces the family's icon links in the served page with one link to it
+([ADR-1494](decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
 
 **Client registration.** `mgmt-console` is registered with explicit metadata
 ([ADR-1294](decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)):

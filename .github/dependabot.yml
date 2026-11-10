@@ -5,14 +5,15 @@
 # from is covered; updates land as pull requests against the single `main` trunk (project-template ADR-0004) and are
 # gated by CI.
 #
-# VERSION UPDATES ARE PAUSED (issue #36), except for the docker ecosystem. While the family is refactored heavily
-# ahead of its first release, a weekly version bump is mostly churn against code that is about to move. Every other
-# ecosystem therefore sets `open-pull-requests-limit: 0`, which is GitHub's documented way to pause version updates
-# while keeping their configuration. The docker ecosystem keeps its limit of 5 because a digest pin receives its fixes
-# only through that stream (ADR-1249). Security updates continue: with the repository setting "Dependabot security
-# updates" on, Dependabot opens a pull request whenever a published advisory affects a dependency, and the limit does
-# not apply to those. Everything below — ignore rules, cooldown, groups — stays in place, so resuming means setting
-# each paused limit back to 5.
+# VERSION UPDATES ARE PAUSED (issue #36), except for the docker and dotnet-sdk ecosystems. While the family is
+# refactored heavily ahead of its first release, a weekly version bump is mostly churn against code that is about to
+# move. Every other ecosystem therefore sets `open-pull-requests-limit: 0`, which is GitHub's documented way to pause
+# version updates while keeping their configuration. The docker ecosystem keeps its limit of 5 because a digest pin
+# receives its fixes only through that stream (ADR-1249). The dotnet-sdk ecosystem keeps its limit of 5 too, because the
+# floor of global.json follows each SDK release (ADR-1493). Security updates continue: with the repository setting
+# "Dependabot security updates" on, Dependabot opens a pull request whenever a published advisory affects a
+# dependency, and the limit does not apply to those. Everything below — ignore rules, cooldown, groups — stays in
+# place, so resuming means setting each paused limit back to 5.
 #
 # Updates are GROUPED per ecosystem. Ungrouped, a repository this size opens a pull request per package and buries the
 # trunk in noise; grouped, a week's updates arrive as one reviewable change that CI verifies as a unit. Security updates
@@ -154,3 +155,18 @@ updates:
       end-to-end-provider-security:
         applies-to: security-updates
         patterns: ['*']
+
+  # The .NET SDK floor in global.json (ADR-1493). A floor that lags admits an SDK that miscompiles the solution, so this
+  # stream runs while issue #36 pauses the other ecosystems, like the docker entries. A major moves deliberately, as a
+  # planned migration (project-template ADR-0008), so semver-major updates are ignored. A floor above the SDK of the
+  # pinned SDK image fails the image builds until the docker stream's digest update lands (ADR-1493).
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']

@@ -65,6 +65,11 @@ admits that SDK.
    older than the Roslyn of every SDK `global.json` admits (10.0.403 ships 5.9.0), so every admitted SDK loads them. The
    version does not wait for the floor. Dependabot's ignore of the minor and major updates of
    `Microsoft.CodeAnalysis.CSharp` stays, because it moves with EF Core Design.
+4. **Dependabot's dotnet-sdk stream raises the floor.** The `dotnet-sdk` entry of `.github/dependabot.yml` proposes each
+   new SDK release three days after it ships, as project-template ADR-0008 item 3 expects, and ignores major updates
+   (item 7). It runs while issue #36 pauses the other ecosystems. A proposed floor above the SDK of the pinned SDK image
+   fails the host and console image builds until the docker stream's digest update lands, which is decision 2 working as
+   intended.
 
 ## Options considered
 
@@ -76,6 +81,8 @@ admits that SDK.
   next call it miscompiles.
 - **`rollForward` `disable` or `latestPatch`.** Rejected: either fixes the build to one SDK band, so every newer SDK
   and every servicing release of another band is refused, against the template's rule to keep the SDK current.
+- **Raise the floor by hand.** Rejected: a floor that lags admits SDKs that miscompile the solution, and
+  project-template ADR-0008 item 3 expects the SDK's own entry.
 
 ## Consequences
 
@@ -83,10 +90,12 @@ admits that SDK.
   `./build/Install-Dotnet.ps1` installs.
 - CI keeps installing the newest SDK.
 - The analyzers load in every admitted SDK, because their Roslyn is older than each one's.
+- A new SDK release arrives as a Dependabot pull request that changes `global.json`.
 
 ## References
 
 - Issue [#738](https://github.com/NCodeGroup/Identity/issues/738)
+- Issue [#746](https://github.com/NCodeGroup/Identity/issues/746)
 - [dotnet/roslyn#80024](https://github.com/dotnet/roslyn/issues/80024)
 - [dotnet/roslyn#80433](https://github.com/dotnet/roslyn/pull/80433)
 - [dotnet/roslyn#80433 maintainer comment](https://github.com/dotnet/roslyn/pull/80433#issuecomment-3798934789)

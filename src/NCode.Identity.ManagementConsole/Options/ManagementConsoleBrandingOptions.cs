@@ -25,6 +25,12 @@ public sealed class ManagementConsoleBrandingOptions
     public string? LogoUrl { get; set; }
 
     /// <summary>
+    /// Gets or sets the absolute <c>https</c> URL of the icon the browser shows in the console's tab, in place of the
+    /// family's. The configuration key is <c>ManagementConsole:Branding:FaviconUrl</c>.
+    /// </summary>
+    public string? FaviconUrl { get; set; }
+
+    /// <summary>
     /// Gets or sets the console's primary color. The configuration key is
     /// <c>ManagementConsole:Branding:PrimaryColor</c>.
     /// </summary>

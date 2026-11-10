@@ -26,6 +26,12 @@ public static class InteractiveSettingNames
     public const string BrandingLogoUri = "branding_logo_uri";
 
     /// <summary>
+    /// Contains the name of the <c>branding_favicon_uri</c> setting: the absolute <c>https</c> URI of the icon the
+    /// browser shows in the tab of the surface's pages, or empty for the family's icon.
+    /// </summary>
+    public const string BrandingFaviconUri = "branding_favicon_uri";
+
+    /// <summary>
     /// Contains the name of the <c>branding_primary_color</c> setting: the surface's primary color, as a hexadecimal
     /// color such as <c>#1565c0</c>.
     /// </summary>

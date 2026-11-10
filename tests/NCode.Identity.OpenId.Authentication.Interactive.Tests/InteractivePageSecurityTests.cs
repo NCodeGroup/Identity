@@ -30,6 +30,7 @@ public class InteractivePageSecurityTests
             null,
             null,
             null,
+            null,
             null
         );
 
@@ -44,11 +45,74 @@ public class InteractivePageSecurityTests
     [Fact]
     public void Create_WhenTheLogoIsNotAnAbsoluteUri_AllowsOnlyTheSurfacesImages()
     {
-        var branding = new InteractiveBranding(null, "logo.png", null, null, null, null);
+        var branding = new InteractiveBranding(null, "logo.png", null, null, null, null, null);
 
         var security = InteractivePageSecurity.Create(branding);
 
         Assert.Contains("img-src 'self';", security.Policy.ToContentSecurityPolicy());
+    }
+
+    [Fact]
+    public void Create_WhenTheBrandingHasAFavicon_AdmitsItsOriginInImgSrc()
+    {
+        var branding = new InteractiveBranding(
+            null,
+            null,
+            "https://cdn.acme.example/tab.ico",
+            null,
+            null,
+            null,
+            null
+        );
+
+        var security = InteractivePageSecurity.Create(branding);
+
+        Assert.Contains(
+            "img-src 'self' https://cdn.acme.example;",
+            security.Policy.ToContentSecurityPolicy()
+        );
+    }
+
+    [Fact]
+    public void Create_WhenTheLogoAndTheFaviconShareAnOrigin_AdmitsItOnce()
+    {
+        var branding = new InteractiveBranding(
+            null,
+            "https://cdn.acme.example/logo.png",
+            "https://cdn.acme.example/tab.ico",
+            null,
+            null,
+            null,
+            null
+        );
+
+        var security = InteractivePageSecurity.Create(branding);
+
+        Assert.Contains(
+            "img-src 'self' https://cdn.acme.example;",
+            security.Policy.ToContentSecurityPolicy()
+        );
+    }
+
+    [Fact]
+    public void Create_WhenTheLogoAndTheFaviconHaveDifferentOrigins_AdmitsBoth()
+    {
+        var branding = new InteractiveBranding(
+            null,
+            "https://cdn.acme.example/logo.png",
+            "https://icons.acme.example/tab.ico",
+            null,
+            null,
+            null,
+            null
+        );
+
+        var security = InteractivePageSecurity.Create(branding);
+
+        Assert.Contains(
+            "img-src 'self' https://cdn.acme.example https://icons.acme.example;",
+            security.Policy.ToContentSecurityPolicy()
+        );
     }
 
     [Fact]

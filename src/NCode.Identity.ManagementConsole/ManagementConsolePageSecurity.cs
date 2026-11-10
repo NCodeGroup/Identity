@@ -19,21 +19,28 @@ internal readonly record struct ManagementConsolePageSecurity(
 {
     /// <summary>
     /// Creates the security of one console page response. The policy allows the page's scripts and styles only with a
-    /// fresh nonce, the console's own images and API calls, the origin of the branding's logo, and form submissions
-    /// to the console and to its authority, which signs the user in. It forbids a base URI and framing.
+    /// fresh nonce, the console's own images and API calls, the origins of the branding's logo and tab icon, and form
+    /// submissions to the console and to its authority, which signs the user in. It forbids a base URI and framing.
     /// </summary>
     /// <param name="authority">The authority that the console's BFF signs users in with.</param>
     /// <param name="logoUrl">The branding's logo URL, or <see langword="null"/> when the console has none.</param>
+    /// <param name="faviconUrl">The branding's tab icon URL, or <see langword="null"/> when the console has none.</param>
     /// <returns>The nonce and the policy of the response.</returns>
-    public static ManagementConsolePageSecurity Create(Uri authority, string? logoUrl)
+    public static ManagementConsolePageSecurity Create(
+        Uri authority,
+        string? logoUrl,
+        string? faviconUrl
+    )
     {
         var nonce = ContentSecurityPolicySources.CreateNonce();
 
         List<string> imageSources = [ContentSecurityPolicySources.Self];
-        if (AbsoluteUri.TryParse(logoUrl, out var logoUri))
-        {
-            imageSources.Add(ContentSecurityPolicySources.Origin(logoUri));
-        }
+        var logoUri = AbsoluteUri.TryParse(logoUrl, out var parsedLogoUri) ? parsedLogoUri : null;
+        var faviconUri = AbsoluteUri.TryParseHttps(faviconUrl, out var parsedFaviconUri)
+            ? parsedFaviconUri
+            : null;
+        ContentSecurityPolicySources.AddOrigin(imageSources, logoUri);
+        ContentSecurityPolicySources.AddOrigin(imageSources, faviconUri);
 
         var policy = new HtmlPageSecurityPolicy
         {

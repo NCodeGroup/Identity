@@ -46,4 +46,36 @@ public class AbsoluteUriTests
     }
 
     #endregion
+
+    #region TryParseHttps Tests
+
+    [Theory]
+    [InlineData("https://client.example/icon.png")]
+    [InlineData("HTTPS://CLIENT.EXAMPLE/icon.png")]
+    public void TryParseHttps_WhenTheTextIsAnHttpsUri_ReturnsTheUri(string value)
+    {
+        var parsed = AbsoluteUri.TryParseHttps(value, out var uri);
+
+        Assert.True(parsed);
+        Assert.NotNull(uri);
+        Assert.Equal(Uri.UriSchemeHttps, uri.Scheme);
+    }
+
+    [Theory]
+    [InlineData("http://client.example/icon.png")]
+    [InlineData("/icon.png")]
+    [InlineData(" https://client.example/icon.png")]
+    [InlineData("https://client.example/icon .png")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void TryParseHttps_WhenTheTextIsNotAnHttpsUri_ReturnsFalse(string? value)
+    {
+        var parsed = AbsoluteUri.TryParseHttps(value, out var uri);
+
+        Assert.False(parsed);
+        Assert.Null(uri);
+    }
+
+    #endregion
 }

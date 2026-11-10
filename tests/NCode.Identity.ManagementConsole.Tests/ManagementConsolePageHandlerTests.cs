@@ -155,7 +155,7 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         var handler = CreateHandler(out var reader, "https://cdn.example/tab.ico");
         using var _ = reader;
 
-        var (httpContext, body) = await HandleAsync(handler);
+        var (httpContext, body) = await HandleAsync(handler, CancellationToken.None);
 
         Assert.Contains(
             "<link rel=\"icon\" href=\"https://cdn.example/tab.ico\" />",
@@ -184,7 +184,7 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         var handler = CreateHandler(out var reader);
         using var _ = reader;
 
-        var (_, body) = await HandleAsync(handler);
+        var (_, body) = await HandleAsync(handler, CancellationToken.None);
 
         Assert.Contains("favicon-ab12", body, StringComparison.Ordinal);
     }

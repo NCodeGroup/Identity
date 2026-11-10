@@ -161,11 +161,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var token = await Encoder.EncodeAsync(parameters, CancellationToken.None);
 
-        var payload = Assert
-            .IsType<DecodedJwt>(
-                (await ValidateTokenAsync(token, CancellationToken.None)).DecodedJwt
-            )
-            .Payload;
+        var validated = await ValidateTokenAsync(token, CancellationToken.None);
+        var payload = Assert.IsType<DecodedJwt>(validated.DecodedJwt).Payload;
         Assert.True(payload.TryGetProperty(JoseClaimNames.Payload.Iat, out _));
         Assert.True(payload.TryGetProperty(JoseClaimNames.Payload.Nbf, out _));
         Assert.True(payload.TryGetProperty(JoseClaimNames.Payload.Exp, out _));
@@ -183,11 +180,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         var token = await Encoder.EncodeAsync(parameters, CancellationToken.None);
 
-        var payload = Assert
-            .IsType<DecodedJwt>(
-                (await ValidateTokenAsync(token, CancellationToken.None)).DecodedJwt
-            )
-            .Payload;
+        var validated = await ValidateTokenAsync(token, CancellationToken.None);
+        var payload = Assert.IsType<DecodedJwt>(validated.DecodedJwt).Payload;
         Assert.Equal(
             UtcNow.ToUnixTimeSeconds(),
             payload.GetProperty(JoseClaimNames.Payload.Iat).GetInt64()

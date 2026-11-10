@@ -86,6 +86,13 @@ internal sealed class ManagementConsoleOptionsValidator(IHostEnvironment environ
             );
         }
 
+        if (branding.FaviconUrl is not null && !IsAbsoluteHttpsUrl(branding.FaviconUrl))
+        {
+            failures.Add(
+                $"{Key}:Branding:FaviconUrl must be an absolute https URL; it is '{Describe(branding.FaviconUrl)}'."
+            );
+        }
+
         if (
             branding.Mode is not null
             && !string.Equals(branding.Mode, "light", StringComparison.Ordinal)

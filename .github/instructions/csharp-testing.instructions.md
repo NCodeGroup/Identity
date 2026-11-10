@@ -303,15 +303,20 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
   refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery
   dance.
-- 👁 **The integration-test infrastructure's helpers are async methods of ours** — template
-  [Language and Async](csharp.instructions.md#language-and-async). Every helper under
-  `tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure` that does asynchronous work returns `ValueTask` or
-  `ValueTask<T>`, ends in `Async` and takes a `CancellationToken` last, which it passes to every awaited call that
-  accepts one. A list it takes, such as a client's redirect URIs, grant types or scopes, is an `IReadOnlyList<string>`
-  before the token, never a `params` array, so a test passes a collection expression and `CancellationToken.None`
-  (`factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None)`). A member a framework contract
-  declares keeps that contract's shape: xUnit test methods, `WebApplicationFactory`, `HttpMessageHandler` and
-  `AuthenticationHandler` overrides, and `IHost` and `IHostedLifecycleService` members.
+- 👁 **The integration tests' async methods are async methods of ours** — template
+  [Language and Async](csharp.instructions.md#language-and-async). Every method in
+  `tests/NCode.Identity.OpenId.Integration.Tests` that does asynchronous work — an `Infrastructure` helper,
+  `BffTestHost`, and each test class's own helpers — returns `ValueTask` or `ValueTask<T>`, ends in `Async` and takes
+  a `CancellationToken` last, which it passes to every awaited call that accepts one; a test method passes
+  `CancellationToken.None`. A list it takes, such as a client's redirect URIs, grant types or scopes, is an
+  `IReadOnlyList<T>` before the token, never a `params` array, so a test passes a collection expression and
+  `CancellationToken.None` (`factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None)`).
+  Nothing optional precedes the token: every caller passes each input, and a set of optional inputs is a type with
+  `init` properties (`BffTestHostOptions`). A caller that hands a helper's result to an API that takes a `Task`, such
+  as `Task.WhenAll`, passes `.AsTask()`. A member a framework contract declares keeps that contract's shape: xUnit
+  test methods, `WebApplicationFactory`, `HttpMessageHandler` and `AuthenticationHandler` overrides,
+  `IAsyncDisposable.DisposeAsync`, `IHost` and `IHostedLifecycleService` members, and the async lambdas a framework
+  API takes, such as a minimal-API handler.
 - 👁 **Call the management API through the one management token request.** `ManagementTokenRequest` is the
   `client_credentials` request (`client_secret_basic`, scope `read:clients`) a test sends for a management token.
   `BootstrapAdminApplicationFactory.CreateAdministratorClientAsync` returns a client acting as the bootstrap

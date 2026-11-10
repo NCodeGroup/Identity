@@ -88,12 +88,16 @@ public class BffFrontendsEndToEndTests
         const string adminUserPath = "/admin/bff/user";
 
         await LoginAsync(browser, providerSession, host, "/bff/login?returnUrl=%2F");
-        Assert.Equal(HttpStatusCode.OK, await GetStatusAsync(host, webUserPath, csrf));
-        Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(host, adminUserPath, csrf));
+        var webUserStatus = await GetStatusAsync(host, webUserPath, csrf);
+        Assert.Equal(HttpStatusCode.OK, webUserStatus);
+        var unauthenticatedAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthenticatedAdminUserStatus);
 
         await LoginAsync(browser, providerSession, host, "/admin/bff/login?returnUrl=%2Fadmin");
-        Assert.Equal(HttpStatusCode.OK, await GetStatusAsync(host, webUserPath, csrf));
-        Assert.Equal(HttpStatusCode.OK, await GetStatusAsync(host, adminUserPath, csrf));
+        var adminSessionWebUserStatus = await GetStatusAsync(host, webUserPath, csrf);
+        Assert.Equal(HttpStatusCode.OK, adminSessionWebUserStatus);
+        var adminSessionAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        Assert.Equal(HttpStatusCode.OK, adminSessionAdminUserStatus);
 
         string logoutSid;
         using (var user = await host.SendAsync(HttpMethod.Get, webUserPath, csrf))
@@ -112,8 +116,10 @@ public class BffFrontendsEndToEndTests
             Assert.Equal(HttpStatusCode.Redirect, logout.StatusCode);
         }
 
-        Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(host, webUserPath, csrf));
-        Assert.Equal(HttpStatusCode.OK, await GetStatusAsync(host, adminUserPath, csrf));
+        var loggedOutWebUserStatus = await GetStatusAsync(host, webUserPath, csrf);
+        Assert.Equal(HttpStatusCode.Unauthorized, loggedOutWebUserStatus);
+        var retainedAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        Assert.Equal(HttpStatusCode.OK, retainedAdminUserStatus);
     }
 
     #endregion

@@ -578,9 +578,13 @@ public class LocalAccountLifecycleTests
         var responseBody = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, responseBody);
         var client = CreateClient(factory);
-        Assert.NotNull(
-            await InteractiveLogin.SignInAsync(client, userName, password, CancellationToken.None)
+        var signInCookie = await InteractiveLogin.SignInAsync(
+            client,
+            userName,
+            password,
+            CancellationToken.None
         );
+        Assert.NotNull(signInCookie);
     }
 
     [Fact]
@@ -623,9 +627,13 @@ public class LocalAccountLifecycleTests
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, responseBody);
         Assert.Contains("at least 15", responseBody);
         var client = CreateClient(factory);
-        Assert.NotNull(
-            await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None)
+        var signInCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
         );
+        Assert.NotNull(signInCookie);
     }
 
     [Fact]
@@ -661,9 +669,13 @@ public class LocalAccountLifecycleTests
         Assert.NotNull(location);
         Assert.Contains("error=password_too_short", location.OriginalString);
 
-        Assert.NotNull(
-            await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None)
+        var signInCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
         );
+        Assert.NotNull(signInCookie);
     }
 
     [Fact]
@@ -723,14 +735,13 @@ public class LocalAccountLifecycleTests
         var resetBody = await resetResponse.Content.ReadAsStringAsync();
         Assert.True(resetResponse.StatusCode == HttpStatusCode.NoContent, resetBody);
 
-        Assert.NotNull(
-            await InteractiveLogin.SignInAsync(
-                client,
-                UserName,
-                resetPassword,
-                CancellationToken.None
-            )
+        var signInCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            resetPassword,
+            CancellationToken.None
         );
+        Assert.NotNull(signInCookie);
     }
 
     #endregion
@@ -947,14 +958,13 @@ public class LocalAccountLifecycleTests
         using var meResponse = await client.SendAsync(meRequest);
         Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
 
-        Assert.NotNull(
-            await InteractiveLogin.SignInAsync(
-                client,
-                UserName,
-                NewPassword,
-                CancellationToken.None
-            )
+        var signInCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            NewPassword,
+            CancellationToken.None
         );
+        Assert.NotNull(signInCookie);
     }
 
     [Fact]
@@ -989,9 +999,13 @@ public class LocalAccountLifecycleTests
         Assert.NotNull(location);
         Assert.Contains("error=invalid_current_password", location.OriginalString);
 
-        Assert.NotNull(
-            await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None)
+        var signInCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
         );
+        Assert.NotNull(signInCookie);
     }
 
     [Fact]
@@ -1088,9 +1102,13 @@ public class LocalAccountLifecycleTests
         using var response = await client.SendAsync(request);
 
         Assert.InRange((int)response.StatusCode, 400, 499);
-        Assert.NotNull(
-            await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None)
+        var signInCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
         );
+        Assert.NotNull(signInCookie);
     }
 
     #endregion

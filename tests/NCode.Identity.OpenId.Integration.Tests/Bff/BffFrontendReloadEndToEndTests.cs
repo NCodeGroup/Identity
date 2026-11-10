@@ -82,13 +82,16 @@ public class BffFrontendReloadEndToEndTests
 
         reloadable.Replace(CreateAdminConfiguration(AdminClientId));
         await LoginAsync(browser, providerSession, host, adminLoginPath);
-        Assert.Equal(HttpStatusCode.OK, await GetStatusAsync(host, adminUserPath, csrf));
+        var adminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        Assert.Equal(HttpStatusCode.OK, adminUserStatus);
 
         reloadable.Replace(new Dictionary<string, string?>());
-        Assert.Equal(HttpStatusCode.NotFound, await GetStatusAsync(host, adminUserPath, csrf));
+        var removedAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        Assert.Equal(HttpStatusCode.NotFound, removedAdminUserStatus);
 
         reloadable.Replace(CreateAdminConfiguration(AdminOtherClientId));
-        Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(host, adminUserPath, csrf));
+        var otherClientAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        Assert.Equal(HttpStatusCode.Unauthorized, otherClientAdminUserStatus);
     }
 
     #endregion

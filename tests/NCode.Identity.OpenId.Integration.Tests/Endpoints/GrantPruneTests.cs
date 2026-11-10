@@ -120,9 +120,12 @@ public class GrantPruneTests
             await Task.Delay(PollInterval);
         }
 
-        Assert.Null(await FindAsync(host.Services, "expired"));
-        Assert.Null(await FindAsync(host.Services, "revoked"));
-        Assert.NotNull(await FindAsync(host.Services, "live"));
+        var expired = await FindAsync(host.Services, "expired");
+        Assert.Null(expired);
+        var revoked = await FindAsync(host.Services, "revoked");
+        Assert.Null(revoked);
+        var live = await FindAsync(host.Services, "live");
+        Assert.NotNull(live);
     }
 
     #endregion

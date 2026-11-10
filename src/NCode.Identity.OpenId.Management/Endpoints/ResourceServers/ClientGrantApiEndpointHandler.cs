@@ -137,7 +137,8 @@ internal class ClientGrantApiEndpointHandler(
                     cancellationToken
                 );
             },
-            ToResource
+            ToResource,
+            cancellationToken
         );
     }
 

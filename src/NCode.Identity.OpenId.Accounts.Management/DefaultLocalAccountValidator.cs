@@ -30,7 +30,8 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
             TenantScopeResource.For(tenantId),
             Operations.Create,
             "The caller is not authorized to create local accounts in this tenant.",
-            "Authentication is required to create local accounts in this tenant."
+            "Authentication is required to create local accounts in this tenant.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -44,7 +45,8 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
             TenantScopeResource.For(tenantId),
             Operations.Update,
             "The caller is not authorized to update this local account.",
-            "Authentication is required to update this local account."
+            "Authentication is required to update this local account.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -58,7 +60,8 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
             TenantScopeResource.For(tenantId),
             Operations.Delete,
             "The caller is not authorized to delete this local account.",
-            "Authentication is required to delete this local account."
+            "Authentication is required to delete this local account.",
+            cancellationToken
         );
 
     /// <inheritdoc />

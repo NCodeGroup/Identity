@@ -27,7 +27,8 @@ public abstract class DefaultResourceValidator(IAuthorizationService authorizati
         object resource,
         IAuthorizationRequirement operation,
         string forbiddenDetail,
-        string unauthenticatedDetail
+        string unauthenticatedDetail,
+        CancellationToken cancellationToken
     )
     {
         var authorizationResult = await AuthorizationService.AuthorizeAsync(

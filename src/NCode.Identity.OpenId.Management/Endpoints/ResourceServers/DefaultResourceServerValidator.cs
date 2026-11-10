@@ -29,7 +29,8 @@ internal class DefaultResourceServerValidator(IAuthorizationService authorizatio
             ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId),
             Operations.Create,
             "The caller is not authorized to create this resource server.",
-            "Authentication is required to create this resource server."
+            "Authentication is required to create this resource server.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -44,7 +45,8 @@ internal class DefaultResourceServerValidator(IAuthorizationService authorizatio
             ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
             Operations.Update,
             "The caller is not authorized to update this resource server.",
-            "Authentication is required to update this resource server."
+            "Authentication is required to update this resource server.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -59,7 +61,8 @@ internal class DefaultResourceServerValidator(IAuthorizationService authorizatio
             ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
             Operations.Delete,
             "The caller is not authorized to delete this resource server.",
-            "Authentication is required to delete this resource server."
+            "Authentication is required to delete this resource server.",
+            cancellationToken
         );
 
     /// <inheritdoc />

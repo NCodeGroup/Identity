@@ -39,7 +39,8 @@ internal class DefaultTenantValidator(
             ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, teamId),
             Operations.Create,
             "The caller is not authorized to create this tenant.",
-            "Authentication is required to create this tenant."
+            "Authentication is required to create this tenant.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -53,7 +54,8 @@ internal class DefaultTenantValidator(
             ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId),
             Operations.Update,
             "The caller is not authorized to update this tenant.",
-            "Authentication is required to update this tenant."
+            "Authentication is required to update this tenant.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -67,7 +69,8 @@ internal class DefaultTenantValidator(
             ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId),
             Operations.Delete,
             "The caller is not authorized to delete this tenant.",
-            "Authentication is required to delete this tenant."
+            "Authentication is required to delete this tenant.",
+            cancellationToken
         );
 
     /// <inheritdoc />

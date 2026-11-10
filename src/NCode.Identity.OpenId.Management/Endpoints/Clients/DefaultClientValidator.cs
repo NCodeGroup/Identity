@@ -35,7 +35,8 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
             ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId),
             Operations.Create,
             "The caller is not authorized to create this client.",
-            "Authentication is required to create this client."
+            "Authentication is required to create this client.",
+            cancellationToken
         );
         if (error is not null || resourceServerId is null)
         {
@@ -47,7 +48,8 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
             ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
             Operations.Update,
             "The caller is not authorized to create a client for this resource server.",
-            "Authentication is required to create a client for this resource server."
+            "Authentication is required to create a client for this resource server.",
+            cancellationToken
         );
     }
 
@@ -65,7 +67,8 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
             ResourceNode.For(controlPlaneTenantId, owningNodeType, owningNodeId),
             Operations.Create,
             "The caller is not authorized to create a machine client of this owner.",
-            "Authentication is required to create a machine client."
+            "Authentication is required to create a machine client.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -80,7 +83,8 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
             ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
             Operations.Update,
             "The caller is not authorized to update this client.",
-            "Authentication is required to update this client."
+            "Authentication is required to update this client.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -95,7 +99,8 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
             ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
             Operations.Delete,
             "The caller is not authorized to delete this client.",
-            "Authentication is required to delete this client."
+            "Authentication is required to delete this client.",
+            cancellationToken
         );
 
     /// <inheritdoc />

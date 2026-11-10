@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -118,7 +119,7 @@ internal class PrincipalApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Read))
+        if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Read, cancellationToken))
         {
             return AuthorizationFailed(httpContext);
         }
@@ -153,7 +154,9 @@ internal class PrincipalApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
+        if (
+            !await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update, cancellationToken)
+        )
         {
             return AuthorizationFailed(httpContext);
         }
@@ -215,7 +218,9 @@ internal class PrincipalApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
+        if (
+            !await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update, cancellationToken)
+        )
         {
             return AuthorizationFailed(httpContext);
         }
@@ -257,6 +262,11 @@ internal class PrincipalApiEndpointHandler(
         return principal;
     }
 
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    )]
     private ValueTask RecordPrincipalChangedAsync(
         HttpContext httpContext,
         string tenantId,
@@ -279,7 +289,8 @@ internal class PrincipalApiEndpointHandler(
     private async ValueTask<bool> AuthorizeTenantAsync(
         HttpContext httpContext,
         string tenantId,
-        IAuthorizationRequirement operation
+        IAuthorizationRequirement operation,
+        CancellationToken cancellationToken
     )
     {
         var result = await AuthorizationService.AuthorizeAsync(

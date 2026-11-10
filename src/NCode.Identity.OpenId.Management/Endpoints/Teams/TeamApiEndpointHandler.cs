@@ -532,7 +532,8 @@ internal class TeamApiEndpointHandler(
                     cancellationToken
                 );
             },
-            ToTeamResource
+            ToTeamResource,
+            cancellationToken
         );
     }
 
@@ -575,7 +576,8 @@ internal class TeamApiEndpointHandler(
                     cancellationToken
                 );
             },
-            ToTeamResource
+            ToTeamResource,
+            cancellationToken
         );
     }
 
@@ -1226,7 +1228,8 @@ internal class TeamApiEndpointHandler(
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
             roleList,
-            (_, _) => HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation),
+            (_, token) =>
+                HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation, token),
             cancellationToken
         );
     }
@@ -1293,7 +1296,8 @@ internal class TeamApiEndpointHandler(
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
             roleList,
-            (_, _) => HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation),
+            (_, token) =>
+                HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation, token),
             cancellationToken
         );
     }

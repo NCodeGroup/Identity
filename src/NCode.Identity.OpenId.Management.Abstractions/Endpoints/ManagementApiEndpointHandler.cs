@@ -233,6 +233,7 @@ public abstract class ManagementApiEndpointHandler
     /// never authorized without a node.</param>
     /// <param name="fetchPageAsync">A function that fetches the page once authorization has succeeded.</param>
     /// <param name="mapper">A function that maps a persisted item to its response representation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TItem">The type of the persisted item.</typeparam>
     /// <typeparam name="TResource">The type of the response representation.</typeparam>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
@@ -240,7 +241,8 @@ public abstract class ManagementApiEndpointHandler
         HttpContext httpContext,
         object authorizationResource,
         Func<ValueTask<PagedResult<TItem>>> fetchPageAsync,
-        Func<TItem, TResource> mapper
+        Func<TItem, TResource> mapper,
+        CancellationToken cancellationToken
     )
     {
         var authorizationResult = await AuthorizationService.AuthorizeAsync(

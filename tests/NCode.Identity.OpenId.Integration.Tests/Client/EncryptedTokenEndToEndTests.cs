@@ -159,7 +159,8 @@ public class EncryptedTokenEndToEndTests
     private static ValueTask SeedClientAsync(
         HostApplicationFactory factory,
         string clientId,
-        IReadOnlyDictionary<string, object>? extraSettings = null
+        IReadOnlyDictionary<string, object>? extraSettings,
+        CancellationToken cancellationToken
     )
     {
         var settings = new Dictionary<string, object>
@@ -177,7 +178,7 @@ public class EncryptedTokenEndToEndTests
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             settings,
             [RedirectUri],
-            CancellationToken.None
+            cancellationToken
         );
     }
 
@@ -347,7 +348,8 @@ public class EncryptedTokenEndToEndTests
                 [OpenIdSettingNames.UserInfoSignedResponseAlg] = "RS256",
                 [OpenIdSettingNames.UserInfoEncryptedResponseAlg] = "RSA-OAEP-256",
                 [OpenIdSettingNames.UserInfoEncryptedResponseEnc] = "A256GCM",
-            }
+            },
+            CancellationToken.None
         );
         await using var provider = CreateClientProvider(factory, clientRsa);
         var registration = new ClientRegistration(
@@ -412,7 +414,7 @@ public class EncryptedTokenEndToEndTests
             ClientJwksResponder = _ => jwks,
         };
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedClientAsync(factory, clientId);
+        await SeedClientAsync(factory, clientId, null, CancellationToken.None);
         await using var provider = CreateClientProvider(factory, clientRsa);
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);
@@ -456,7 +458,7 @@ public class EncryptedTokenEndToEndTests
             ClientJwksResponder = _ => jwks,
         };
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedClientAsync(factory, clientId);
+        await SeedClientAsync(factory, clientId, null, CancellationToken.None);
 
         SecretKey? remoteKey = null;
         await using var provider = CreateRemoteClientProvider(
@@ -524,7 +526,7 @@ public class EncryptedTokenEndToEndTests
             ClientJwksResponder = _ => jwks,
         };
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedClientAsync(factory, clientId);
+        await SeedClientAsync(factory, clientId, null, CancellationToken.None);
         await using var provider = CreateClientProvider(factory, clientRsa);
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);

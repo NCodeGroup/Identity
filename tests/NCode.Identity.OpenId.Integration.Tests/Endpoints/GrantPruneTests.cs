@@ -97,10 +97,8 @@ public class GrantPruneTests
         );
 
         // A first request makes the host persist the tenant, which a grant requires as a foreign key.
-        using (var warmupClient = host.CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        using var warmupClient = host.CreateClient();
+        using var warmupResponse = await warmupClient.GetAsync("/oauth2/jwks");
 
         var now = DateTimeOffset.UtcNow;
         await AddAsync(

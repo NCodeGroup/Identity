@@ -365,10 +365,8 @@ public class TokenEndpointClientAuthenticationTests
     {
         using var factory = new HostApplicationFactory();
         // Warm up the tenant so the request reaches client authentication.
-        using (var warmup = CreateClient(factory))
-        {
-            using var _ = await warmup.GetAsync("/oauth2/jwks");
-        }
+        using var warmup = CreateClient(factory);
+        using var warmupResponse = await warmup.GetAsync("/oauth2/jwks");
 
         var client = CreateClient(factory);
 

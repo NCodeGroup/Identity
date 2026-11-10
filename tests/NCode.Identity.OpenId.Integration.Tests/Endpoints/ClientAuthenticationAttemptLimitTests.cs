@@ -162,15 +162,13 @@ public class ClientAuthenticationAttemptLimitTests
         await SeedAsync(factory, CancellationToken.None);
         var client = CreateClient(factory);
 
-        using (
-            var failed = await PostTokenAsync(
-                client,
-                ClientAddress,
-                "mistyped-secret",
-                CancellationToken.None
-            )
-        )
-            Assert.Equal(HttpStatusCode.BadRequest, failed.StatusCode);
+        using var failed = await PostTokenAsync(
+            client,
+            ClientAddress,
+            "mistyped-secret",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.BadRequest, failed.StatusCode);
 
         using var response = await PostTokenAsync(
             client,

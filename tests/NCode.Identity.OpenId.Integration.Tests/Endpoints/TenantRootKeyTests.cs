@@ -426,14 +426,14 @@ public class TenantRootKeyTests
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
-    private static ValueTask<HttpResponseMessage> PostRevokeAsync(
+    private static async ValueTask<HttpResponseMessage> PostRevokeAsync(
         HttpClient client,
         string clientId,
         string clientSecret,
         CancellationToken cancellationToken
     )
     {
-        var content = new FormUrlEncodedContent(
+        using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
                 ["client_id"] = clientId,
@@ -441,23 +441,7 @@ public class TenantRootKeyTests
                 ["token"] = "not-a-real-token",
             }
         );
-        return PostAndDisposeAsync(
-            client,
-            $"/{TenantId}/oauth2/revoke",
-            content,
-            cancellationToken
-        );
-    }
-
-    private static async ValueTask<HttpResponseMessage> PostAndDisposeAsync(
-        HttpClient client,
-        string path,
-        HttpContent content,
-        CancellationToken cancellationToken
-    )
-    {
-        using (content)
-            return await client.PostAsync(path, content, cancellationToken);
+        return await client.PostAsync($"/{TenantId}/oauth2/revoke", content, cancellationToken);
     }
 
     // Revokes an unknown token at the tenant's route: revocation is a no-op once the client authenticates, so the

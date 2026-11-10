@@ -432,54 +432,87 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         CancellationToken cancellationToken
     )
     {
-        var expired = new List<PersistedSecret>();
-        using (var scope = Services.CreateScope())
-        {
-            var storeManagerFactory =
-                scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-            await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
-            var store = storeManager.GetStore<IClientStore>();
-            var secrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
-            foreach (var secret in secrets?.Value ?? [])
-            {
-                await store.RemoveSecretAsync(clientId, secret.SecretId, cancellationToken);
-                var expiredSecret = new PersistedSecretBuilder
-                {
-                    SecretId = secret.SecretId,
-                    KeyId = secret.KeyId,
-                    Use = secret.Use,
-                    Algorithm = secret.Algorithm,
-                    CreatedWhen = secret.CreatedWhen,
-                    ExpiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
-                    ActivatesWhen = secret.CreatedWhen,
-                    RetiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
-                    SecretType = secret.SecretType,
-                    SecretEncoding = secret.SecretEncoding,
-                    Origin = secret.Origin,
-                    KeySizeBits = secret.KeySizeBits,
-                    EncodedValue = secret.EncodedValue,
-                    PublicKey = secret.PublicKey,
-                }.Build();
-                expired.Add(expiredSecret);
-            }
-
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
+        var removed = await RemoveClientSecretsAsync(clientId, cancellationToken);
+        var expired = removed.Select(CreateExpiredSecret).ToList();
 
         // The removal is saved first, so the secrets are added again under the identifiers their envelopes are bound to.
-        using (var scope = Services.CreateScope())
-        {
-            var storeManagerFactory =
-                scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-            await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
-            var store = storeManager.GetStore<IClientStore>();
-            foreach (var secret in expired)
-            {
-                await store.AddSecretAsync(clientId, secret, cancellationToken);
-            }
+        await AddClientSecretsAsync(clientId, expired, cancellationToken);
+    }
 
-            await storeManager.SaveChangesAsync(cancellationToken);
+    /// <summary>
+    /// Removes every secret a client holds from the store and saves the removal.
+    /// </summary>
+    /// <param name="clientId">The identifier of the client whose secrets are removed.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="ValueTask{TResult}"/> that yields the secrets that were removed.</returns>
+    private async ValueTask<IReadOnlyList<PersistedSecret>> RemoveClientSecretsAsync(
+        string clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        using var scope = Services.CreateScope();
+        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+        var secrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
+        var removed = new List<PersistedSecret>();
+        foreach (var secret in secrets?.Value ?? [])
+        {
+            await store.RemoveSecretAsync(clientId, secret.SecretId, cancellationToken);
+            removed.Add(secret);
         }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+        return removed;
+    }
+
+    /// <summary>
+    /// Copies a secret with its expiry and retirement moved into the past, keeping its identifier and stored value.
+    /// </summary>
+    /// <param name="secret">The secret to copy.</param>
+    /// <returns>A <see cref="PersistedSecret"/> that has already expired.</returns>
+    private static PersistedSecret CreateExpiredSecret(PersistedSecret secret) =>
+        new PersistedSecretBuilder
+        {
+            SecretId = secret.SecretId,
+            KeyId = secret.KeyId,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
+            ActivatesWhen = secret.CreatedWhen,
+            RetiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
+            SecretType = secret.SecretType,
+            SecretEncoding = secret.SecretEncoding,
+            Origin = secret.Origin,
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+            PublicKey = secret.PublicKey,
+        }.Build();
+
+    /// <summary>
+    /// Adds the given secrets to a client in the store and saves the addition.
+    /// </summary>
+    /// <param name="clientId">The identifier of the client that receives the secrets.</param>
+    /// <param name="secrets">The secrets to add.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="ValueTask"/> that completes when the secrets are saved.</returns>
+    private async ValueTask AddClientSecretsAsync(
+        string clientId,
+        IReadOnlyList<PersistedSecret> secrets,
+        CancellationToken cancellationToken
+    )
+    {
+        using var scope = Services.CreateScope();
+        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+        foreach (var secret in secrets)
+        {
+            await store.AddSecretAsync(clientId, secret, cancellationToken);
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>

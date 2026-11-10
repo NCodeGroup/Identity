@@ -69,17 +69,13 @@ public class BffBackChannelLogoutEndToEndTests
 
         var csrf = (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue);
         var userPath = $"{BffDefaults.EndpointPrefix}/user";
-        using (
-            var before = await host.SendAsync(
-                HttpMethod.Get,
-                userPath,
-                [csrf],
-                CancellationToken.None
-            )
-        )
-        {
-            Assert.Equal(HttpStatusCode.OK, before.StatusCode);
-        }
+        using var before = await host.SendAsync(
+            HttpMethod.Get,
+            userPath,
+            [csrf],
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.OK, before.StatusCode);
 
         await EndSessionAsync(browser, providerSession, CancellationToken.None);
         var logoutToken = await WaitForLogoutTokenAsync(deliveries, CancellationToken.None);

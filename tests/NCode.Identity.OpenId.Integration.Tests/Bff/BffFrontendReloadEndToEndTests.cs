@@ -76,17 +76,13 @@ public class BffFrontendReloadEndToEndTests
         const string adminLoginPath = "/admin/bff/login?returnUrl=%2Fadmin";
         const string adminUserPath = "/admin/bff/user";
 
-        using (
-            var absent = await host.SendAsync(
-                HttpMethod.Get,
-                adminLoginPath,
-                [],
-                CancellationToken.None
-            )
-        )
-        {
-            Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
-        }
+        using var absent = await host.SendAsync(
+            HttpMethod.Get,
+            adminLoginPath,
+            [],
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
 
         reloadable.Replace(CreateAdminConfiguration(AdminClientId));
         await LoginAsync(browser, providerSession, host, adminLoginPath, CancellationToken.None);

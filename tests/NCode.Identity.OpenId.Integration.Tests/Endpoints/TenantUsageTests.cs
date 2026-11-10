@@ -167,8 +167,8 @@ public class TenantUsageTests
         // The administrator's token request spent the first of the two requests the quota allows; the first anonymous
         // token request spends the second, the next two are admitted as overage, and the overage ceiling refuses the
         // last. Discovery is public metadata, so it spends neither (ADR-1198).
-        using (var discovery = await client.GetAsync("/.well-known/openid-configuration"))
-            Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
+        using var discovery = await client.GetAsync("/.well-known/openid-configuration");
+        Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
 
         var statusCodes = new List<HttpStatusCode>();
         for (var i = 0; i < 4; ++i)
@@ -210,8 +210,8 @@ public class TenantUsageTests
         var client = CreateClient(factory);
 
         using var refusedRequest = BootstrapAdminApplicationFactory.TokenRequest.CreateMessage();
-        using (var refused = await client.SendAsync(refusedRequest))
-            Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        using var refused = await client.SendAsync(refusedRequest);
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
         var anonymousStatusCode = await PostAnonymousTokenRequestAsync(
             client,
             CancellationToken.None

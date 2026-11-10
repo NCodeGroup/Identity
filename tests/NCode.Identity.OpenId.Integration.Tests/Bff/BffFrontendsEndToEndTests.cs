@@ -130,37 +130,28 @@ public class BffFrontendsEndToEndTests
         );
         Assert.Equal(HttpStatusCode.OK, adminSessionAdminUserStatus);
 
-        string logoutSid;
-        using (
-            var user = await host.SendAsync(
-                HttpMethod.Get,
-                webUserPath,
-                [csrf],
-                CancellationToken.None
-            )
-        )
-        {
-            var body = JsonElement.Parse(await user.Content.ReadAsStringAsync());
-            logoutSid = body.GetProperty("logoutSid").GetString() ?? string.Empty;
-        }
+        using var user = await host.SendAsync(
+            HttpMethod.Get,
+            webUserPath,
+            [csrf],
+            CancellationToken.None
+        );
+        var body = JsonElement.Parse(await user.Content.ReadAsStringAsync());
+        var logoutSid = body.GetProperty("logoutSid").GetString() ?? string.Empty;
 
         Assert.NotEmpty(logoutSid);
 
         using var form = new FormUrlEncodedContent(
             new Dictionary<string, string> { ["sid"] = logoutSid, ["returnUrl"] = "/" }
         );
-        using (
-            var logout = await host.SendAsync(
-                HttpMethod.Post,
-                "/bff/logout",
-                form,
-                [],
-                CancellationToken.None
-            )
-        )
-        {
-            Assert.Equal(HttpStatusCode.Redirect, logout.StatusCode);
-        }
+        using var logout = await host.SendAsync(
+            HttpMethod.Post,
+            "/bff/logout",
+            form,
+            [],
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.Redirect, logout.StatusCode);
 
         var loggedOutWebUserStatus = await GetStatusAsync(
             host,

@@ -552,39 +552,39 @@ public class RemoteSigningKeyTests
         {
             case "RS256":
             case "PS256":
-                using (var rsa = RSA.Create())
-                {
-                    rsa.ImportParameters(
-                        new RSAParameters
-                        {
-                            Modulus = Base64Url.DecodeFromChars(key.GetProperty("n").GetString()),
-                            Exponent = Base64Url.DecodeFromChars(key.GetProperty("e").GetString()),
-                        }
-                    );
-                    return rsa.VerifyData(
-                        signingInput,
-                        signature,
-                        HashAlgorithmName.SHA256,
-                        algorithm == "PS256" ? RSASignaturePadding.Pss : RSASignaturePadding.Pkcs1
-                    );
-                }
+            {
+                using var rsa = RSA.Create();
+                rsa.ImportParameters(
+                    new RSAParameters
+                    {
+                        Modulus = Base64Url.DecodeFromChars(key.GetProperty("n").GetString()),
+                        Exponent = Base64Url.DecodeFromChars(key.GetProperty("e").GetString()),
+                    }
+                );
+                return rsa.VerifyData(
+                    signingInput,
+                    signature,
+                    HashAlgorithmName.SHA256,
+                    algorithm == "PS256" ? RSASignaturePadding.Pss : RSASignaturePadding.Pkcs1
+                );
+            }
 
             case "ES256":
-                using (var ecdsa = ECDsa.Create())
-                {
-                    ecdsa.ImportParameters(
-                        new ECParameters
+            {
+                using var ecdsa = ECDsa.Create();
+                ecdsa.ImportParameters(
+                    new ECParameters
+                    {
+                        Curve = ECCurve.NamedCurves.nistP256,
+                        Q = new ECPoint
                         {
-                            Curve = ECCurve.NamedCurves.nistP256,
-                            Q = new ECPoint
-                            {
-                                X = Base64Url.DecodeFromChars(key.GetProperty("x").GetString()),
-                                Y = Base64Url.DecodeFromChars(key.GetProperty("y").GetString()),
-                            },
-                        }
-                    );
-                    return ecdsa.VerifyData(signingInput, signature, HashAlgorithmName.SHA256);
-                }
+                            X = Base64Url.DecodeFromChars(key.GetProperty("x").GetString()),
+                            Y = Base64Url.DecodeFromChars(key.GetProperty("y").GetString()),
+                        },
+                    }
+                );
+                return ecdsa.VerifyData(signingInput, signature, HashAlgorithmName.SHA256);
+            }
 
             default:
                 throw new InvalidOperationException($"The test does not verify '{algorithm}'.");

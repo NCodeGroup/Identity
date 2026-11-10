@@ -3082,22 +3082,18 @@ public class TeamManagementTests
         await CreateTeamAsync(client, "initech", new { }, CancellationToken.None);
         await CreateTenantAsync(client, "initech", "initech-dev", CancellationToken.None);
 
-        using (var served = await GetDiscoveryAsync(client, "initech-dev", CancellationToken.None))
-            Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+        using var served = await GetDiscoveryAsync(client, "initech-dev", CancellationToken.None);
+        Assert.Equal(HttpStatusCode.OK, served.StatusCode);
 
         await SetTeamDisabledAsync(client, "initech", isDisabled: true, CancellationToken.None);
 
-        using (
-            var silenced = await GetDiscoveryAsync(client, "initech-dev", CancellationToken.None)
-        )
-            Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
+        using var silenced = await GetDiscoveryAsync(client, "initech-dev", CancellationToken.None);
+        Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
 
         await SetTeamDisabledAsync(client, "initech", isDisabled: false, CancellationToken.None);
 
-        using (
-            var restored = await GetDiscoveryAsync(client, "initech-dev", CancellationToken.None)
-        )
-            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+        using var restored = await GetDiscoveryAsync(client, "initech-dev", CancellationToken.None);
+        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
     }
 
     [Fact]
@@ -3115,33 +3111,31 @@ public class TeamManagementTests
 
         await SetTeamDisabledAsync(client, "umbrella", isDisabled: true, CancellationToken.None);
 
-        using (
-            var silenced = await GetDiscoveryAsync(client, "umbrella-dev", CancellationToken.None)
-        )
-            Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
+        using var silenced = await GetDiscoveryAsync(
+            client,
+            "umbrella-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
 
-        using (
-            var effective = await client.GetAsync("/api/tenants/umbrella-dev/effective-settings")
-        )
-            Assert.Equal(HttpStatusCode.OK, effective.StatusCode);
+        using var effective = await client.GetAsync("/api/tenants/umbrella-dev/effective-settings");
+        Assert.Equal(HttpStatusCode.OK, effective.StatusCode);
 
-        using (var clients = await client.GetAsync("/api/tenants/umbrella-dev/clients"))
-        {
-            var clientsBody = await clients.Content.ReadAsStringAsync();
-            Assert.True(clients.StatusCode == HttpStatusCode.OK, clientsBody);
-            var ids = JsonElement
-                .Parse(clientsBody)
-                .GetProperty("items")
-                .EnumerateArray()
-                .Select(item => item.GetProperty("clientId").GetString())
-                .ToList();
-            Assert.Contains(clientId, ids);
-        }
+        using var clients = await client.GetAsync("/api/tenants/umbrella-dev/clients");
+        var clientsBody = await clients.Content.ReadAsStringAsync();
+        Assert.True(clients.StatusCode == HttpStatusCode.OK, clientsBody);
+        var ids = JsonElement
+            .Parse(clientsBody)
+            .GetProperty("items")
+            .EnumerateArray()
+            .Select(item => item.GetProperty("clientId").GetString())
+            .ToList();
+        Assert.Contains(clientId, ids);
 
         // Revoking a session acts through the tenant's OpenID runtime, which a disabled team's tenant does not serve.
         // The runtime is materialized before the session is looked up, so an unknown session id answers 404 here.
-        using (var revoked = await client.DeleteAsync("/api/tenants/umbrella-dev/sessions/unknown"))
-            Assert.Equal(HttpStatusCode.NotFound, revoked.StatusCode);
+        using var revoked = await client.DeleteAsync("/api/tenants/umbrella-dev/sessions/unknown");
+        Assert.Equal(HttpStatusCode.NotFound, revoked.StatusCode);
 
         // PatchAsync asserts 204 No Content.
         await PatchAsync(
@@ -3161,18 +3155,18 @@ public class TeamManagementTests
 
         await SetTeamDisabledAsync(client, "umbrella", isDisabled: false, CancellationToken.None);
 
-        using (
-            var restored = await GetDiscoveryAsync(client, "umbrella-dev", CancellationToken.None)
-        )
-            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+        using var restored = await GetDiscoveryAsync(
+            client,
+            "umbrella-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
 
         // An unknown session is reported as revoked once the tenant is served again.
-        using (
-            var revokedAgain = await client.DeleteAsync(
-                "/api/tenants/umbrella-dev/sessions/unknown"
-            )
-        )
-            Assert.Equal(HttpStatusCode.NoContent, revokedAgain.StatusCode);
+        using var revokedAgain = await client.DeleteAsync(
+            "/api/tenants/umbrella-dev/sessions/unknown"
+        );
+        Assert.Equal(HttpStatusCode.NoContent, revokedAgain.StatusCode);
     }
 
     [Fact]
@@ -3183,59 +3177,48 @@ public class TeamManagementTests
         await CreateTeamAsync(client, "wonka", new { }, CancellationToken.None);
         await CreateTenantAsync(client, "wonka", "wonka-dev", CancellationToken.None);
 
-        string accountPath;
-        using (
-            var created = await client.PostAsJsonAsync(
-                "/api/tenants/wonka-dev/local-accounts",
-                new { userName = "wonka-user", password = "wonka-user-password-1" }
-            )
-        )
-        {
-            var createdBody = await created.Content.ReadAsStringAsync();
-            Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
-            var localAccountId = JsonElement
-                .Parse(createdBody)
-                .GetProperty("localAccountId")
-                .GetString();
-            accountPath = $"/api/tenants/wonka-dev/local-accounts/{localAccountId}";
-        }
+        using var created = await client.PostAsJsonAsync(
+            "/api/tenants/wonka-dev/local-accounts",
+            new { userName = "wonka-user", password = "wonka-user-password-1" }
+        );
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+        var localAccountId = JsonElement
+            .Parse(createdBody)
+            .GetProperty("localAccountId")
+            .GetString();
+        var accountPath = $"/api/tenants/wonka-dev/local-accounts/{localAccountId}";
 
         await SetTeamDisabledAsync(client, "wonka", isDisabled: true, CancellationToken.None);
 
         // A route that acts through the tenant's OpenID runtime materializes it before it writes, so a tenant that is
         // not served refuses the request and nothing is committed.
-        using (var disabled = await client.PostAsync($"{accountPath}/disable", content: null))
-            Assert.Equal(HttpStatusCode.NotFound, disabled.StatusCode);
+        using var disabled = await client.PostAsync($"{accountPath}/disable", content: null);
+        Assert.Equal(HttpStatusCode.NotFound, disabled.StatusCode);
 
-        using (
-            var reset = await client.PostAsJsonAsync(
-                $"{accountPath}/password",
-                new { password = "wonka-user-password-2" }
-            )
-        )
-            Assert.Equal(HttpStatusCode.NotFound, reset.StatusCode);
+        using var reset = await client.PostAsJsonAsync(
+            $"{accountPath}/password",
+            new { password = "wonka-user-password-2" }
+        );
+        Assert.Equal(HttpStatusCode.NotFound, reset.StatusCode);
 
         // Deleting the account is refused too, and the account survives it.
-        using (var deleted = await client.DeleteAsync(accountPath))
-            Assert.Equal(HttpStatusCode.NotFound, deleted.StatusCode);
+        using var deleted = await client.DeleteAsync(accountPath);
+        Assert.Equal(HttpStatusCode.NotFound, deleted.StatusCode);
 
         await SetTeamDisabledAsync(client, "wonka", isDisabled: false, CancellationToken.None);
 
-        using (var account = await client.GetAsync(accountPath))
-        {
-            var accountBody = await account.Content.ReadAsStringAsync();
-            Assert.True(account.StatusCode == HttpStatusCode.OK, accountBody);
-            Assert.True(
-                JsonElement.Parse(accountBody).GetProperty("isEnabled").GetBoolean(),
-                accountBody
-            );
-        }
+        using var account = await client.GetAsync(accountPath);
+        var accountBody = await account.Content.ReadAsStringAsync();
+        Assert.True(account.StatusCode == HttpStatusCode.OK, accountBody);
+        Assert.True(
+            JsonElement.Parse(accountBody).GetProperty("isEnabled").GetBoolean(),
+            accountBody
+        );
 
-        using (var disabledAgain = await client.PostAsync($"{accountPath}/disable", content: null))
-        {
-            var disabledBody = await disabledAgain.Content.ReadAsStringAsync();
-            Assert.True(disabledAgain.StatusCode == HttpStatusCode.NoContent, disabledBody);
-        }
+        using var disabledAgain = await client.PostAsync($"{accountPath}/disable", content: null);
+        var disabledBody = await disabledAgain.Content.ReadAsStringAsync();
+        Assert.True(disabledAgain.StatusCode == HttpStatusCode.NoContent, disabledBody);
     }
 
     #endregion
@@ -3902,14 +3885,12 @@ public class TeamManagementTests
             CancellationToken.None
         );
 
-        using (
-            var served = await GetDiscoveryAsync(
-                administrator,
-                "globex-web-dev",
-                CancellationToken.None
-            )
-        )
-            Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+        using var served = await GetDiscoveryAsync(
+            administrator,
+            "globex-web-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.OK, served.StatusCode);
 
         await SetTeamDisabledAsync(
             administrator,
@@ -3918,14 +3899,12 @@ public class TeamManagementTests
             CancellationToken.None
         );
 
-        using (
-            var silenced = await GetDiscoveryAsync(
-                administrator,
-                "globex-web-dev",
-                CancellationToken.None
-            )
-        )
-            Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
+        using var silenced = await GetDiscoveryAsync(
+            administrator,
+            "globex-web-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
 
         await SetTeamDisabledAsync(
             administrator,
@@ -3934,14 +3913,12 @@ public class TeamManagementTests
             CancellationToken.None
         );
 
-        using (
-            var restored = await GetDiscoveryAsync(
-                administrator,
-                "globex-web-dev",
-                CancellationToken.None
-            )
-        )
-            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+        using var restored = await GetDiscoveryAsync(
+            administrator,
+            "globex-web-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
     }
 
     [Fact]

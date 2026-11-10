@@ -142,12 +142,10 @@ public class TenantKeyProvisioningTests
             CancellationToken.None
         );
 
-        using (var serviceScope = factory.Services.CreateScope())
-        {
-            await serviceScope
-                .ServiceProvider.GetRequiredService<ITenantProvisioner>()
-                .SeedAsync(HostApplicationFactory.TenantId, CancellationToken.None);
-        }
+        using var serviceScope = factory.Services.CreateScope();
+        await serviceScope
+            .ServiceProvider.GetRequiredService<ITenantProvisioner>()
+            .SeedAsync(HostApplicationFactory.TenantId, CancellationToken.None);
 
         var reseeded = await GetSecretIdsAsync(
             factory,

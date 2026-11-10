@@ -24,10 +24,9 @@ judge whether it passed invites an agent to read success into a failure.
      record and links none that is missing.
    - Build: Release, with warnings as errors, the analyzers and the banned APIs
      ([ADR-0100](0100-warnings-are-errors-in-every-project.md),
-     [ADR-0102](0102-disallowed-apis-are-banned-at-build-time.md)), and, for a library, its tracked public API
-     (ADR-0131).
+     [ADR-0102](0102-disallowed-apis-are-banned-at-build-time.md)), and, for a library, its tracked public API.
    - Test: `--no-build`; `-Filter` narrows the tests run.
-   - Pack: for a library only, into `artifacts/packages`, with symbol packages (ADR-0130).
+   - Pack: for a library only, into `artifacts/packages`, with symbol packages.
 2. Its last line is `Definition of Done: PASSED`, and it exits 0. Scripts test the exit code, not the output.
 3. `-Fast` builds in Debug and does not pack: the local gate.
 4. A repository with no solution at its root yet passes, with a note saying so.

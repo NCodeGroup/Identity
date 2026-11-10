@@ -59,11 +59,16 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
     }
 
     private ManagementConsolePageHandler CreateHandler(
-        out SinglePageBundle<ManagementConsolePage> reader
+        out SinglePageBundle<ManagementConsolePage> reader,
+        string? faviconUrl = null
     )
     {
         var options = Microsoft.Extensions.Options.Options.Create(
-            new ManagementConsoleOptions { BundleRootPath = "dist" }
+            new ManagementConsoleOptions
+            {
+                BundleRootPath = "dist",
+                Branding = new ManagementConsoleBrandingOptions { FaviconUrl = faviconUrl },
+            }
         );
         reader = new SinglePageBundle<ManagementConsolePage>(
             DistPath,
@@ -134,6 +139,53 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
             StringComparison.Ordinal
         );
         Assert.Contains("form-action 'self' https://id.example", policy, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheBrandingHasAFavicon_WritesItsLinkAndAdmitsItsOrigin()
+    {
+        Directory.CreateDirectory(DistPath);
+        await File.WriteAllTextAsync(
+            Path.Combine(DistPath, "index.html"),
+            "<!doctype html><html><head><link rel=\"icon\" href=\"./assets/favicon-ab12.ico\"></head><body></body></html>",
+            SecureEncoding.UTF8,
+            CancellationToken.None
+        );
+        var handler = CreateHandler(out var reader, "https://cdn.example/tab.ico");
+        using var _ = reader;
+
+        var (httpContext, body) = await HandleAsync(handler);
+
+        Assert.Contains(
+            "<link rel=\"icon\" href=\"https://cdn.example/tab.ico\" />",
+            body,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain("favicon-ab12", body, StringComparison.Ordinal);
+
+        var policy = httpContext.Response.Headers.ContentSecurityPolicy.ToString();
+        var imgSrc = policy
+            .Split(';', StringSplitOptions.TrimEntries)
+            .Single(directive => directive.StartsWith("img-src ", StringComparison.Ordinal));
+        Assert.Contains("https://cdn.example", imgSrc, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheBrandingHasNoFavicon_KeepsTheIcons()
+    {
+        Directory.CreateDirectory(DistPath);
+        await File.WriteAllTextAsync(
+            Path.Combine(DistPath, "index.html"),
+            "<!doctype html><html><head><link rel=\"icon\" href=\"./assets/favicon-ab12.ico\"></head><body></body></html>",
+            SecureEncoding.UTF8,
+            CancellationToken.None
+        );
+        var handler = CreateHandler(out var reader);
+        using var _ = reader;
+
+        var (_, body) = await HandleAsync(handler);
+
+        Assert.Contains("favicon-ab12", body, StringComparison.Ordinal);
     }
 
     #endregion

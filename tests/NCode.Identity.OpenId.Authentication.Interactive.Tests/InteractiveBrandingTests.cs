@@ -24,7 +24,7 @@ public sealed class InteractiveBrandingTests
 
     private IReadOnlySettingCollection CreateSettings(
         IReadOnlyDictionary<string, string> values,
-        int expectedReads = 5
+        int expectedReads = 6
     )
     {
         var mockSettings = MockRepository.Create<IReadOnlySettingCollection>();
@@ -77,6 +77,7 @@ public sealed class InteractiveBrandingTests
             new InteractiveBranding(
                 "Acme",
                 "https://cdn.acme.example/logo.svg",
+                null,
                 "#1565c0",
                 "#9c27b0",
                 "dark",
@@ -126,7 +127,7 @@ public sealed class InteractiveBrandingTests
     {
         var settings = CreateSettings(
             new Dictionary<string, string> { [OpenIdSettingNames.EnvironmentName] = "sandbox" },
-            expectedReads: 6
+            expectedReads: 7
         );
         var catalog = CreateCatalog(settings, "development", isProduction: false);
 
@@ -142,7 +143,7 @@ public sealed class InteractiveBrandingTests
     [Fact]
     public void FromSettings_WhenANonProductionTenantHasNoName_OmitsTheName()
     {
-        var settings = CreateSettings(new Dictionary<string, string>(), expectedReads: 6);
+        var settings = CreateSettings(new Dictionary<string, string>(), expectedReads: 7);
         var catalog = CreateCatalog(settings, "testing", isProduction: false);
 
         var branding = InteractiveBranding.FromSettings(settings, catalog);
@@ -168,6 +169,73 @@ public sealed class InteractiveBrandingTests
         Assert.Equal("{}", json);
         Assert.DoesNotContain("environment", json);
         MockRepository.Verify();
+    }
+
+    [Fact]
+    public void FromSettings_WhenTheTenantSetsAFavicon_ReadsIt()
+    {
+        var settings = CreateSettings(
+            new Dictionary<string, string>
+            {
+                [InteractiveSettingNames.BrandingFaviconUri] = "https://cdn.acme.example/tab.ico",
+            }
+        );
+        var catalog = CreateCatalog(settings, "production", isProduction: true);
+
+        var branding = InteractiveBranding.FromSettings(settings, catalog);
+
+        Assert.Equal("https://cdn.acme.example/tab.ico", branding.FaviconUrl);
+        Assert.Equal(new Uri("https://cdn.acme.example/tab.ico"), branding.FaviconUri);
+        MockRepository.Verify();
+    }
+
+    [Fact]
+    public void FromSettings_WhenTheTenantSetsNoFavicon_LeavesItNull()
+    {
+        var settings = CreateSettings(new Dictionary<string, string>());
+        var catalog = CreateCatalog(settings, "production", isProduction: true);
+
+        var branding = InteractiveBranding.FromSettings(settings, catalog);
+
+        Assert.Null(branding.FaviconUrl);
+        Assert.Null(branding.FaviconUri);
+        MockRepository.Verify();
+    }
+
+    #endregion
+
+    #region FaviconUri Property Tests
+
+    [Theory]
+    [InlineData("http://cdn.acme.example/tab.ico")]
+    [InlineData("/tab.ico")]
+    public void FaviconUri_WhenTheValueIsNotAbsoluteHttps_IsNull(string value)
+    {
+        var branding = new InteractiveBranding(null, null, value, null, null, null, null);
+
+        Assert.Null(branding.FaviconUri);
+    }
+
+    #endregion
+
+    #region Serialize Tests
+
+    [Fact]
+    public void Serialize_WhenTheTenantSetsAFavicon_OmitsIt()
+    {
+        var branding = new InteractiveBranding(
+            null,
+            null,
+            "https://cdn.acme.example/tab.ico",
+            null,
+            null,
+            null,
+            null
+        );
+
+        var json = JsonSerializer.Serialize(branding, JsonSerializerOptions.Web);
+
+        Assert.DoesNotContain("favicon", json, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion

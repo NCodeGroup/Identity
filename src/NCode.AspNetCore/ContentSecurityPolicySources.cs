@@ -99,4 +99,27 @@ public static class ContentSecurityPolicySources
             : $":{uri.Port.ToString(CultureInfo.InvariantCulture)}";
         return $"{uri.Scheme}://{uri.IdnHost}{port}";
     }
+
+    /// <summary>
+    /// Adds the source that allows the origin of an absolute URI to a directive's sources, unless the sources already
+    /// list it.
+    /// </summary>
+    /// <param name="sources">The directive's sources, which the method appends to.</param>
+    /// <param name="uri">The absolute URI whose origin the source allows; the method does nothing for <see langword="null"/>.</param>
+    /// <exception cref="ArgumentException">The URI is not absolute.</exception>
+    public static void AddOrigin(ICollection<string> sources, Uri? uri)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+
+        if (uri is null)
+        {
+            return;
+        }
+
+        var origin = Origin(uri);
+        if (!sources.Contains(origin))
+        {
+            sources.Add(origin);
+        }
+    }
 }

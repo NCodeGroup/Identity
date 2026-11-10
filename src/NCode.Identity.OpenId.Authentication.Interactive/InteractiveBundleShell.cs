@@ -1,20 +1,26 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using NCode.AspNetCore;
+
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// The single-page bundle's <c>index.html</c> split once at the end of its <c>&lt;head&gt;</c> start tag and at its
 /// empty <c>#root</c> mount point, so a served page is written as the prelude, the document's <c>&lt;base&gt;</c>, the
-/// head, the page's markup, and the tail without composing the document as one string.
+/// head, the page's markup, and the tail without composing the document as one string. It also holds the head with every
+/// icon link removed, for a page whose tenant sets its own tab icon.
 /// </summary>
 /// <param name="Prelude">The document up to and including the <c>&lt;head&gt;</c> start tag.</param>
 /// <param name="Head">The document from the end of the <c>&lt;head&gt;</c> start tag up to and including the mount
 /// point's opening tag.</param>
+/// <param name="HeadWithoutIcons">The head with every icon link removed, which a page whose tenant sets its own tab
+/// icon is written with.</param>
 /// <param name="Tail">The document from the mount point's closing tag to its end.</param>
 internal sealed record InteractiveBundleShell(
     ReadOnlyMemory<char> Prelude,
     ReadOnlyMemory<char> Head,
+    ReadOnlyMemory<char> HeadWithoutIcons,
     ReadOnlyMemory<char> Tail
 )
 {
@@ -64,6 +70,7 @@ internal sealed record InteractiveBundleShell(
         return new InteractiveBundleShell(
             html.AsMemory(0, preludeLength),
             html.AsMemory(preludeLength, headEnd - preludeLength),
+            HtmlIconLinks.Remove(html[preludeLength..headEnd]).AsMemory(),
             html.AsMemory(headEnd)
         );
     }

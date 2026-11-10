@@ -16,10 +16,6 @@ internal sealed class ManagementConsoleOptionsValidator(IHostEnvironment environ
 {
     private const string Key = ManagementConsoleDefaults.ConfigurationSectionName;
 
-    private static bool IsAbsoluteHttpsUrl(string? url) =>
-        AbsoluteUri.TryParse(url, out var uri)
-        && string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal);
-
     private static string Describe(string? url)
     {
         if (!AbsoluteUri.TryParse(url, out var uri))
@@ -79,10 +75,20 @@ internal sealed class ManagementConsoleOptionsValidator(IHostEnvironment environ
 
         var branding = options.Branding;
 
-        if (branding.LogoUrl is not null && !IsAbsoluteHttpsUrl(branding.LogoUrl))
+        if (branding.LogoUrl is not null && !AbsoluteUri.TryParseHttps(branding.LogoUrl, out _))
         {
             failures.Add(
                 $"{Key}:Branding:LogoUrl must be an absolute https URL; it is '{Describe(branding.LogoUrl)}'."
+            );
+        }
+
+        if (
+            branding.FaviconUrl is not null
+            && !AbsoluteUri.TryParseHttps(branding.FaviconUrl, out _)
+        )
+        {
+            failures.Add(
+                $"{Key}:Branding:FaviconUrl must be an absolute https URL; it is '{Describe(branding.FaviconUrl)}'."
             );
         }
 

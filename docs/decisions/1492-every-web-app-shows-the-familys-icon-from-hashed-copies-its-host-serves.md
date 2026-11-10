@@ -1,6 +1,6 @@
 # 1492. Every web app shows the family's icon from hashed copies its host serves
 
-- **Status:** Accepted
+- **Status:** Accepted (decision 6 amended by [ADR-1494](1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md): a tenant's tab icon is its branding setting `branding_favicon_uri`)
 - **Refines:** [ADR-1491](1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md)
 - **Date:** 2026-11-10
 - **Deciders:** NCode Group

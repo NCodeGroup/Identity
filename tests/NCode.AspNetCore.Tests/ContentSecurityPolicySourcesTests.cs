@@ -35,6 +35,56 @@ public class ContentSecurityPolicySourcesTests : BaseTests
 
     #endregion
 
+    #region AddOrigin Tests
+
+    [Fact]
+    public void AddOrigin_WhenTheUriIsNull_LeavesTheSourcesUnchanged()
+    {
+        var sources = new List<string> { ContentSecurityPolicySources.Self };
+
+        ContentSecurityPolicySources.AddOrigin(sources, null);
+
+        Assert.Equal([ContentSecurityPolicySources.Self], sources);
+    }
+
+    [Fact]
+    public void AddOrigin_WhenTheOriginIsNotListed_AddsIt()
+    {
+        var sources = new List<string> { ContentSecurityPolicySources.Self };
+
+        ContentSecurityPolicySources.AddOrigin(
+            sources,
+            new Uri("https://cdn.example.com/logo.png", UriKind.Absolute)
+        );
+
+        Assert.Equal([ContentSecurityPolicySources.Self, "https://cdn.example.com"], sources);
+    }
+
+    [Fact]
+    public void AddOrigin_WhenTheOriginIsAlreadyListed_DoesNotAddItAgain()
+    {
+        var sources = new List<string> { "https://cdn.example.com" };
+
+        ContentSecurityPolicySources.AddOrigin(
+            sources,
+            new Uri("https://CDN.example.com/icon.png", UriKind.Absolute)
+        );
+
+        Assert.Equal(["https://cdn.example.com"], sources);
+    }
+
+    [Fact]
+    public void AddOrigin_WhenTheUriIsRelative_Throws()
+    {
+        var sources = new List<string>();
+
+        Assert.Throws<ArgumentException>(() =>
+            ContentSecurityPolicySources.AddOrigin(sources, new Uri("/logo.png", UriKind.Relative))
+        );
+    }
+
+    #endregion
+
     #region Sha256 Tests
 
     [Fact]

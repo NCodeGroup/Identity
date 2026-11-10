@@ -21,6 +21,8 @@ NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions
 NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions
 NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.DisplayName.get -> string?
 NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.DisplayName.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.FaviconUrl.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.FaviconUrl.set -> void
 NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.LogoUrl.get -> string?
 NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.LogoUrl.set -> void
 NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.ManagementConsoleBrandingOptions() -> void

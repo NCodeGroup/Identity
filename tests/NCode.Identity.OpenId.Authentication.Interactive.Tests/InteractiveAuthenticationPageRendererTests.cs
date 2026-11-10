@@ -26,7 +26,7 @@ public class InteractiveAuthenticationPageRendererTests
         + "<body><div id=\"root\"></div></body></html>";
 
     private static InteractiveBranding AcmeBranding { get; } =
-        new("Acme", null, null, null, "dark", null);
+        new("Acme", null, null, null, null, "dark", null);
 
     private static InteractivePageFrame CreateFrame(
         InteractiveBundleShell? shell = null,
@@ -211,6 +211,7 @@ public class InteractiveAuthenticationPageRendererTests
                     null,
                     null,
                     null,
+                    null,
                     null
                 )
             ),
@@ -240,6 +241,115 @@ public class InteractiveAuthenticationPageRendererTests
         var html = writer.WrittenSpan.ToString();
 
         Assert.DoesNotContain("id=\"branding\"", html, StringComparison.Ordinal);
+    }
+
+    private const string IconBundleShell =
+        "<!doctype html><html><head><link rel=\"icon\" href=\"./assets/favicon-ab12.ico\" sizes=\"32x32\">"
+        + "<link rel=\"apple-touch-icon\" href=\"./assets/apple-touch-icon-ab12.png\"><title>t</title></head>"
+        + "<body><div id=\"root\"></div></body></html>";
+
+    private static string RenderLoginPageHtml(InteractiveBundleShell? shell, string? faviconUrl)
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            CreateFrame(
+                shell: shell,
+                branding: new InteractiveBranding("Acme", null, faviconUrl, null, null, null, null)
+            ),
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        return writer.WrittenSpan.ToString();
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenTheTenantSetsAFavicon_LinksItInPlaceOfTheFamilysIcons()
+    {
+        var html = RenderLoginPageHtml(
+            InteractiveBundleShell.TryCreate(IconBundleShell),
+            "https://cdn.acme.example/tab.ico"
+        );
+
+        Assert.Contains(
+            "<link rel=\"icon\" href=\"https://cdn.acme.example/tab.ico\" />",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("<title>t</title>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("favicon-ab12", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("apple-touch-icon", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenTheTenantSetsNoFavicon_KeepsTheFamilysIcons()
+    {
+        var html = RenderLoginPageHtml(InteractiveBundleShell.TryCreate(IconBundleShell), null);
+
+        Assert.Contains("favicon-ab12", html, StringComparison.Ordinal);
+        Assert.Contains("apple-touch-icon", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("cdn.acme.example", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenTheFaviconIsNotHttps_KeepsTheFamilysIcons()
+    {
+        var html = RenderLoginPageHtml(
+            InteractiveBundleShell.TryCreate(IconBundleShell),
+            "http://cdn.acme.example/tab.ico"
+        );
+
+        Assert.Contains("favicon-ab12", html, StringComparison.Ordinal);
+        Assert.Contains("apple-touch-icon", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("cdn.acme.example", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenBundleIsAbsentAndTheTenantSetsAFavicon_LinksItOnce()
+    {
+        var html = RenderLoginPageHtml(null, "https://cdn.acme.example/tab.ico");
+
+        Assert.Equal(1, CountOccurrences(html, "<link rel=\"icon\""));
+        Assert.Contains(
+            "<link rel=\"icon\" href=\"https://cdn.acme.example/tab.ico\" />",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenTheTenantSetsAFavicon_WritesTheConfiguredTextAsTheHref()
+    {
+        var html = RenderLoginPageHtml(null, "https://CDN.acme.example");
+
+        Assert.Contains(
+            "<link rel=\"icon\" href=\"https://CDN.acme.example\" />",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenBundleIsAbsentAndTheTenantSetsNoFavicon_LinksNoIcon()
+    {
+        var html = RenderLoginPageHtml(null, null);
+
+        Assert.DoesNotContain("<link", html, StringComparison.Ordinal);
+    }
+
+    private static int CountOccurrences(string text, string value)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = text.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
     }
 
     #endregion

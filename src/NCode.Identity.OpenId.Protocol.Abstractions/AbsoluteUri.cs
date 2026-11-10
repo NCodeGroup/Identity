@@ -38,4 +38,27 @@ public static class AbsoluteUri
         uri = null;
         return false;
     }
+
+    /// <summary>
+    /// Parses the specified text as an absolute URI, as <see cref="TryParse"/> does, that also names the <c>https</c> scheme.
+    /// </summary>
+    /// <param name="value">The text to parse.</param>
+    /// <param name="uri">When this method returns <see langword="true"/>, the parsed URI.</param>
+    /// <returns>
+    /// <see langword="true"/> when the text is such an absolute <c>https</c> URI; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool TryParseHttps(
+        [NotNullWhen(true)] string? value,
+        [NotNullWhen(true)] out Uri? uri
+    )
+    {
+        if (TryParse(value, out var parsed) && parsed.Scheme == Uri.UriSchemeHttps)
+        {
+            uri = parsed;
+            return true;
+        }
+
+        uri = null;
+        return false;
+    }
 }

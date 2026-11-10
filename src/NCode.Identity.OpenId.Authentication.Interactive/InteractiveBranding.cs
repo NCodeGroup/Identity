@@ -15,6 +15,10 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// </summary>
 /// <param name="DisplayName">The name shown in place of the product's, or <see langword="null"/>.</param>
 /// <param name="LogoUrl">The absolute <c>https</c> URI of the logo, or <see langword="null"/>.</param>
+/// <param name="FaviconUrl">
+/// The absolute <c>https</c> URI of the tab icon, or <see langword="null"/>. It is written by the host into the
+/// page's head and never serialized into the branding block.
+/// </param>
 /// <param name="PrimaryColor">The primary color, or <see langword="null"/>.</param>
 /// <param name="SecondaryColor">The secondary color, or <see langword="null"/>.</param>
 /// <param name="Mode">The color mode, <c>light</c> or <c>dark</c>, or <see langword="null"/>.</param>
@@ -26,6 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 internal sealed record InteractiveBranding(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DisplayName,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? LogoUrl,
+    [property: JsonIgnore] string? FaviconUrl,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? PrimaryColor,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? SecondaryColor,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Mode,
@@ -33,6 +38,12 @@ internal sealed record InteractiveBranding(
         InteractiveEnvironment? Environment
 )
 {
+    /// <summary>
+    /// Gets the tab icon's absolute <c>https</c> URI, or <see langword="null"/> when <see cref="FaviconUrl"/> is not one.
+    /// </summary>
+    [JsonIgnore]
+    public Uri? FaviconUri => AbsoluteUri.TryParseHttps(FaviconUrl, out var uri) ? uri : null;
+
     /// <summary>
     /// Reads the branding tokens from a tenant's effective <paramref name="settings"/>, and the environment when the
     /// tenant's effective environment type, resolved through <paramref name="tenantEnvironmentCatalog"/>, is not a
@@ -54,6 +65,7 @@ internal sealed record InteractiveBranding(
         return new InteractiveBranding(
             NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingDisplayName)),
             NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingLogoUri)),
+            NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingFaviconUri)),
             NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingPrimaryColor)),
             NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingSecondaryColor)),
             NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingColorMode)),

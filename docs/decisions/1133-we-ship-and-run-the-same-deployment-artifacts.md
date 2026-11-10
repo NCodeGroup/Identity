@@ -1,6 +1,8 @@
 # 1133. We ship and run the same deployment artifacts
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md): no component or stack carries a default
+  for any of the platform's domains)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

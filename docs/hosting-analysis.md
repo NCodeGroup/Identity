@@ -62,14 +62,14 @@ Neon / Aiven free tiers as the always-on database (wrong region, scale-to-zero, 
 Decided in [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md).
 
 - **Customer environments are tenants on production.** A customer's dev, test, and prod are separate tenants on the one
-  production platform (the Auth0 model): `acme-dev.auth.nidentity.io`, `acme-test.auth.nidentity.io`,
-  `acme.auth.nidentity.io`. Their non-production runs on exactly the hardware, versions, and configuration their
+  production platform (the Auth0 model): `acme-dev.auth.ncodeid.net`, `acme-test.auth.ncodeid.net`,
+  `acme.auth.ncodeid.net`. Their non-production runs on exactly the hardware, versions, and configuration their
   production does, so no customer incident can be blamed on environment drift, and promotion is tenant configuration
   (management API), not infrastructure.
 - **The platform itself has two environments:** **production** — every customer tenant, plus internal `canary` and
   `conformance` tenants for post-deploy smoke tests and OpenID certification runs — and the **lab**, the platform
   owner's private proving ground for platform changes, upgrades, and conformance experiments, which never hosts a
-  customer tenant. Lab hosts carry a `lab` label (`auth.lab.nidentity.io`) so a platform environment can't be confused
+  customer tenant. Lab hosts carry a `lab` label (`auth.lab.ncodeid.net`) so a platform environment can't be confused
   with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
   platform environment ([ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)).
 - **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits (done, issue [#84](https://github.com/NCodeGroup/Identity/issues/84)) and
@@ -157,10 +157,20 @@ flowchart LR
   `mtlsEndpointAliasAuthority`), so only that host asks for client certificates; per-tenant alias hosts route to their
   tenant ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
 
-### Domain and DNS — `nidentity.io`
+### Domains and DNS
 
-The domain is registered at **Porkbun** (expires 2027-04-11). Registration stays there; DNS hosting moves to
-**Cloudflare DNS (free)** — Porkbun's managed DNS is not used.
+The platform names four domains
+([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
+
+| Domain              | Role                                                                          |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `ncodeid.net`       | Platform domain: every issuer-bearing host                                    |
+| `ncodeid.com`       | Brand domain: site, docs, status page and operator mail                       |
+| `ncodeidentity.com` | Redirect-only, to `https://ncodeid.com`                                       |
+| `ncodeidentity.net` | Redirect-only, to `https://ncodeid.com`                                       |
+
+All four are registered at **Porkbun**; `ncodeid.net` and `ncodeid.com` are renewed to the registry's 10-year maximum.
+DNS is hosted on **Cloudflare DNS (free)**, one zone per domain — Porkbun's managed DNS is not used.
 
 **Manual steps** — the only ones outside IaC, each done once — are written step by step, with verification, in the
 [platform bootstrap runbook](platform-bootstrap.md): registrar hardening at Porkbun, the GitHub organization and the
@@ -172,7 +182,7 @@ stack, the registrar delegation, and the email-routing verification.
 from the owner's machine with those short-lived credentials (local state, then migrated into the bucket it creates):
 the S3 **state bucket** (versioning, encryption, public-access block, TLS-only policy) and **backup bucket** (Object
 Lock in compliance mode, archive lifecycle); the GitHub OIDC provider with a read-only **plan** role and an **apply**
-role that trusts only the repository's protected `production` environment; the zone (`cloudflare_zone`, which outputs
+role that trusts only the repository's protected `production` environment; the zones (`cloudflare_zone`, which outputs
 the nameservers) and DNSSEC (`cloudflare_zone_dnssec`, which outputs the DS record); scoped Cloudflare tokens
 (`cloudflare_account_token`) stored as SSM `SecureString`s; and, through `integrations/github`, the repository's
 environments and rulesets. Revoke the bootstrap token afterwards.
@@ -191,21 +201,23 @@ it across 3 replicas, so it isn't used.
 [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)). The scheme uses
 **functional namespaces** under the apex — `auth` for the OpenID protocol, `mtls` for its certificate-bound aliases,
 `manage` for the management plane — mirroring Auth0 (`{tenant}.us.auth0.com` for tenants, `manage.auth0.com` for the
-dashboard):
+dashboard). The platform's hosts live on `ncodeid.net`, which carries nothing else, and the site, docs, status page
+and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
 
 | Hostname                                        | Serves                                                                                                   | Certificate                    |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `auth.nidentity.io`                             | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-1031](decisions/1031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.nidentity.io`            |
-| `{tenant}.auth.nidentity.io`                    | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.nidentity.io`)                     | `*.auth.nidentity.io`          |
-| `mtls.nidentity.io`, `{tenant}.mtls.nidentity.io` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1195) | `mtls.…` + `*.mtls.nidentity.io` |
-| `manage.nidentity.io`                           | Management API (`/api`) and admin console — the control-plane surface ([ADR-1042](decisions/1042-management-api-route-driven-tenant-scope.md)) | `manage.nidentity.io`          |
-| `nidentity.io`, `www.nidentity.io`              | Project site / docs                                                                                      | Hosting provider               |
+| `auth.ncodeid.net`                              | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-1031](decisions/1031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.ncodeid.net`            |
+| `{tenant}.auth.ncodeid.net`                     | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.ncodeid.net`)                     | `*.auth.ncodeid.net`          |
+| `mtls.ncodeid.net`, `{tenant}.mtls.ncodeid.net` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1195) | `mtls.…` + `*.mtls.ncodeid.net` |
+| `manage.ncodeid.net`                            | Management API (`/api`) and admin console — the control-plane surface ([ADR-1042](decisions/1042-management-api-route-driven-tenant-scope.md)) | `manage.ncodeid.net`          |
+| `ncodeid.net`, `www.ncodeid.net`                  | Redirect (301) to `https://ncodeid.com`, with the HSTS header                                            | `ncodeid.net` + `www.ncodeid.net` (cert-manager) |
+| `ncodeid.com`, `www.ncodeid.com`, `status.ncodeid.com` | Project site, docs and status page — the brand domain ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)) | Hosting provider               |
 
 Why this shape:
 
 - **`auth`, not `id` or `login`:** the hosts serve machine-to-machine token, discovery, and JWKS endpoints as well as
   the login UI, and `auth.<domain>` is the convention developers expect.
-- **Tenants nest under a function label rather than the apex** (`acme.auth.nidentity.io`, not `acme.nidentity.io`): no
+- **Tenants nest under a function label rather than the apex** (`acme.auth.ncodeid.net`, not `acme.ncodeid.net`): no
   tenant name can ever collide with a service host (`www`, `manage`, `mtls`, `status`, `docs`, `dev`, …), so there is no
   reserved-name list to maintain, and each function gets one wildcard certificate. A tenant can still be moved to a
   dedicated deployment ([ADR-1024](decisions/1024-control-plane-and-per-tenant-planes.md)) by changing its DNS record, without
@@ -221,22 +233,22 @@ Why this shape:
 - **The server derives these hosts from configuration**
   ([ADR-1165](decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
   `OpenId:TenantResolution:StrategyCode = DynamicByHost`, `DynamicByHost:IssuerTemplate =
-  https://{tenantId}.auth.nidentity.io`, and `Root:Issuer = https://auth.nidentity.io`. A tenant created without an
+  https://{tenantId}.auth.ncodeid.net`, and `Root:Issuer = https://auth.ncodeid.net`. A tenant created without an
   issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The mTLS
-  aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.nidentity.io` and
-  `Root:MtlsEndpointAliasAuthority = https://mtls.nidentity.io`
+  aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.ncodeid.net` and
+  `Root:MtlsEndpointAliasAuthority = https://mtls.ncodeid.net`
   ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). The root tenant
-  is created when the first request reaches `auth.nidentity.io`, with the bootstrap administrator named into it
+  is created when the first request reaches `auth.ncodeid.net`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
   [ADR-1166](decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
-  `manage.nidentity.io`, which is no tenant's host, because the management API authenticates against the root tenant
+  `manage.ncodeid.net`, which is no tenant's host, because the management API authenticates against the root tenant
   rather than the host it is called on
   ([ADR-1191](decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
 
-**Environments.** Customer environments are just tenants on production (`acme-dev.auth.nidentity.io`), so they need no
-extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.nidentity.io`,
-`{tenant}.auth.lab.nidentity.io`, `{tenant}.mtls.lab.nidentity.io`, `manage.lab.nidentity.io`. Ephemeral Azure runs use
-one host each, `{run}.ci.nidentity.io`. The lab shares the production zone, so it must never hold a token that can edit
+**Environments.** Customer environments are just tenants on production (`acme-dev.auth.ncodeid.net`), so they need no
+extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.ncodeid.net`,
+`{tenant}.auth.lab.ncodeid.net`, `{tenant}.mtls.lab.ncodeid.net`, `manage.lab.ncodeid.net`. Ephemeral Azure runs use
+one host each, `{run}.ci.ncodeid.net`. The lab shares the platform zone, so it must never hold a token that can edit
 it: only the OpenTofu pipeline writes DNS (production changes gated by required reviewers), and lab/CI clusters obtain
 certificates over HTTP-01 for their specific hosts — or, if they need wildcards, over DNS-01 with each
 `_acme-challenge` name CNAME-delegated to a separate, throwaway validation zone, so a compromised lab cluster can't
@@ -247,52 +259,41 @@ All identity hosts are **DNS-only** in Cloudflare (no proxy), so TLS reaches Tra
 **Day-one records** (before any hosting exists):
 
 - **CAA:** `0 issue "letsencrypt.org"` and `0 issuewild "letsencrypt.org"` (optionally pinned to the ACME account
-  with `accounturi=`) — no other CA may issue for the domain. Cloudflare Universal SSL silently adds CAA records for
-  its own CAs, so the `cloudflare-zone` module keeps it off; DNS-only hosts never use its edge certificates, and a host
-  proxied through Cloudflare later needs an advanced certificate from a listed CA.
+  with `accounturi=`) in every zone except the two redirect-only ones — no other CA may issue for those domains.
+  Cloudflare Universal SSL silently adds CAA records for its own CAs, so the `cloudflare-zone` module keeps it off in
+  those zones; DNS-only hosts never use its edge certificates, and a host proxied through Cloudflare later needs an
+  advanced certificate from a listed CA. The two redirect-only zones proxy their redirect hosts, so Universal SSL is on
+  there and their CAA records list Cloudflare's CAs; they carry no issuer.
 - **Inbound mail only:** Cloudflare Email Routing (free, receive-only; `cloudflare_email_routing_settings` / `_dns` /
-  `_address` / `_rule`) forwards per-purpose addresses — `security@` for `security.txt`, `platform@` as the owner of
-  every cloud resource ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account
-  such as `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Its MX and SPF
-  records replace a null MX; DMARC stays `v=DMARC1; p=reject` because nothing sends as the domain yet — an identity
-  domain is a prime phishing target.
+  `_address` / `_rule`) runs on `ncodeid.com` only and forwards per-purpose addresses — `security@` for `security.txt`,
+  `platform@` as the owner of every cloud resource
+  ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account such as
+  `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Every zone publishes DMARC
+  `v=DMARC1; p=reject` because nothing sends mail yet — an identity domain is a prime phishing target. Every zone except
+  `ncodeid.com` publishes SPF `v=spf1 -all` and a null MX (`0 .`); `ncodeid.com` publishes the Email Routing MX records
+  and its single SPF record is the one Email Routing publishes.
 - **Account recovery:** the registrar, DNS host, and GitHub owner accounts recover through an **off-domain** personal
   mailbox, so a broken domain or DNS host can't lock out the accounts needed to fix it. Other vendor accounts (npm,
-  GitLab, Docker Hub) use per-purpose `@nidentity.io` routing addresses, which can be re-pointed to another admin
+  GitLab, Docker Hub) use per-purpose `@ncodeid.com` routing addresses, which can be re-pointed to another admin
   without touching each account.
 
-**Cookies:** tenants share the registrable domain, so session cookies must stay host-only (`__Host-` prefix, no
+**Cookies:** tenants share the platform domain, so session cookies must stay host-only (`__Host-` prefix, no
 `Domain` attribute) to keep one tenant's host from reading or setting another's.
 
-**`.io` caveat:** the `.io` ccTLD's long-term status has been questioned since the 2024–25 Chagos sovereignty
-agreement; no retirement is scheduled _(verify)_. Because the issuer URL is effectively permanent, consider registering
-a fallback name while it is cheap.
+**TLD policy:** every domain the platform names is under a generic TLD. Under the ccNSO Retirement of ccTLDs Policy a
+ccTLD leaves the root five years after ISO 3166-1 deletes its code (up to ten with a retirement plan), and an issuer
+domain is permanent, so no issuer sits under one.
 
-**Domain portfolio (RDAP, 2026-10-18):** `nidentity.com` is held at Name.com since 2007-07-10 (expires 2027-07-10) and
-listed for sale on Spaceship as make-offer (minimum offer $250); `nidentity.net`, `nidentity.dev`, and `nidentity.app` are unregistered.
-Decide the **primary issuer domain before the first real client** — switching is free now and breaking later. Owning the
-`.com` also keeps a look-alike of an identity brand out of a phisher's hands. A separate non-production domain is not
-needed: subdomains plus the token isolation above give the same protection.
+**Public Suffix List:** `ncodeid.net` is not listed; host-only `__Host-` cookies are the cookie control. Listing stays
+available and requires at least two years of registration remaining and a `_psl` TXT record.
 
-**`nidentity.com` due diligence (2026-10-18):** Wayback history shows a 2001–03 redirect to `nidsolutions.com`, PPC
-parking ("may be for sale") from at least 2009, and a for-sale lander since; not listed on Spamhaus DBL, SURBL, or
-URIBL; no MX record; nameservers point at Spaceship, so the listing is controlled by whoever controls the domain. The
-GitHub organization `nidentity` belongs to an unrelated party (created 2021-10-17, no public repositories); repositories
-and container images stay under `NCodeGroup` (`ghcr.io/ncodegroup/…`), which doesn't need to match the product domain.
-The GitLab group [`gitlab.com/nidentity`](https://gitlab.com/nidentity) is held defensively (public, 2FA required,
-no code — it points to GitHub); GitHub remains the single home for source, infrastructure code, CI, and packages
-([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)). On npm the `@ncode` scope
+**Code and package namespaces:** repositories and container images stay under `NCodeGroup` (`ghcr.io/ncodegroup/…`),
+which doesn't need to match the product domain; GitHub remains the single home for source, infrastructure code, CI and
+packages ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)). On npm the `@ncode` scope
 belongs to an unrelated party, so JavaScript packages publish under the org-owned `@ncodegroup` scope (matching the
-GitHub organization and GitHub Packages' scope rule), and `@nidentity` is held defensively (both orgs enforce 2FA); the
-frontend's `@ncode/*`
-workspace packages are private and resolve only through `workspace:*`, so they are renamed only if and when one is
-published.
-Further checks: Google Safe Browsing reports no unsafe content; **no `NIDENTITY` trademark** in the USPTO or the WIPO
-Global Brand Database; other uses of the name are minor and unrelated or dormant — four `NIdentity.*` NuGet packages
-(published December 2022, ~2k downloads each, source repository gone; no conflict, since this family publishes under
-the reserved, verified `NCode.` prefix), a small personal GitHub repository, a music
-account on X, and an art workshop. On Spaceship, Make Offer negotiations carry a 10% seller commission that the parties
-may agree to split, and a seller can require an upfront "Quality Offer" deposit.
+GitHub organization and GitHub Packages' scope rule). The frontend's `@ncode/*` workspace packages are private and
+resolve only through `workspace:*`, so they are renamed only if and when one is published. The family publishes on NuGet
+under the reserved, verified `NCode.` prefix.
 
 ## 4. Compute sizing
 
@@ -666,7 +667,7 @@ speed-test endpoint from the Denver network the users are on.
   key vault.
 - **Alerting:** Grafana Cloud alerts on token-endpoint error rate and p95 latency, certificate expiry, database
   connections and replication lag, and node/disk pressure; on-call via Grafana IRM's free tier; a public status page
-  (`status.nidentity.io`, UptimeRobot free).
+  (`status.ncodeid.com`, UptimeRobot free).
 - **Audit events** ([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)): decide retention and customer export —
   they contain PII.
 - **Cost guardrails:** billing alerts on every vendor, an Azure budget alert, and bandwidth-overage alerts.
@@ -681,8 +682,10 @@ speed-test endpoint from the Denver network the users are on.
 - **Management plane:** `manage.` behind an IP allow-list or operator mTLS in addition to OAuth.
 - **Accounts:** passkeys / hardware 2FA on every vendor account (Porkbun, Cloudflare, Akamai, OCI, AWS, GitHub, GitLab,
   npm, Spaceship, Azure, Grafana), least-privilege API tokens, recovery codes stored offline, and a second trusted admin.
-- **Web:** HSTS with `includeSubDomains` (HSTS preload for `nidentity.io` once stable) and an RFC 9116
-  `/.well-known/security.txt` pointing to [`SECURITY.md`](../SECURITY.md).
+- **Web:** HSTS with `includeSubDomains` on every domain. `ncodeid.net` is preloaded once every host serves HTTPS (the
+  platform's ingress serves its apex redirect and the preload header); `ncodeid.com` is not preloaded, because
+  third-party hosts (the status page and the site host) serve its subdomains. An RFC 9116 `/.well-known/security.txt`
+  points to [`SECURITY.md`](../SECURITY.md).
 
 **Business and legal (before onboarding customers):** privacy policy, terms, a DPA and subprocessor list (Akamai,
 Cloudflare, Grafana Labs, and the key-vault provider); data residency is US-only (Dallas) — EU customers will need a
@@ -691,7 +694,7 @@ single-datacenter platform supports (~99.9%); an incident-response runbook.
 
 **Outbound email (future):** verification, password reset, and email MFA need a sending provider — OCI Email Delivery
 (3,000 emails/month free) or Cloudflare Email Sending (Workers Paid, $5/month; its SMTP endpoint also lets the owner
-reply as `security@` from an existing mailbox). Send transactional mail from a subdomain to isolate its reputation, add
+reply as `security@` from an existing mailbox). Transactional mail sends only from `mail.ncodeid.net`, which isolates its reputation; add
 the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
 
 ## 14. Open decisions
@@ -707,4 +710,4 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
    issue [#132](https://github.com/NCodeGroup/Identity/issues/132)).
 5. **Server prerequisites before mTLS goes live:** done — [#86](https://github.com/NCodeGroup/Identity/issues/86) (route per-tenant mTLS alias hosts), [#82](https://github.com/NCodeGroup/Identity/issues/82) (in-app
    chain validation), [#83](https://github.com/NCodeGroup/Identity/issues/83) (Traefik header format), and [#117](https://github.com/NCodeGroup/Identity/issues/117) (each tenant's alias derived from a template).
-6. **Primary domain:** acquire `nidentity.com` ($250 offer pending) or stay on `nidentity.io` (§3).
+6. **Domains — decided** ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)): `ncodeid.net` carries every issuer, `ncodeid.com` the site, docs, status page and mail (§3).

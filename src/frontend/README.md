@@ -189,6 +189,16 @@ served:
   the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies
   the bootstrap document to the OP host (see [Runtime configuration](#runtime-configuration)).
 
+### Every app shows the family's icon
+
+Each app links the kit's three files (`favicon.ico`, `favicon.svg` and `apple-touch-icon.png`) from `index.html` with
+the tags [`brand/README.md`](../../brand/README.md#favicon) gives, and carries copies of them in its `favicon/` folder.
+The build gives each a content-hashed name under `assets/`, which the app's host serves immutable under its
+`img-src 'self'`; a standalone app's dev server serves the folder as it is. No app links the web manifest, because none
+is offered as an installed app. `build/favicon-copies.ps1` (the `favicon copies` stage of `./build/dod.ps1`) fails when
+a copy differs from the kit's file, and each app's `src/favicon.test.ts` holds its links and files
+([ADR-1492](../../docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md)).
+
 ## Runtime configuration
 
 The serving host must publish `/config/bootstrap.json`. The OpenID Provider host publishes the document of a public-client

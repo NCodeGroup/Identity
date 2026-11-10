@@ -132,7 +132,11 @@ public class TokenEndpointResourceServerPolicyTests
     private static async ValueTask<JsonElement> ReadJsonAsync(
         HttpResponseMessage response,
         CancellationToken cancellationToken
-    ) => JsonElement.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+    )
+    {
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        return JsonElement.Parse(body);
+    }
 
     private static JsonElement DecodeJwtPayload(string jwt) =>
         JsonElement.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[1]));

@@ -77,9 +77,8 @@ public class TokenEndpointSecurityProfileTests
         CancellationToken cancellationToken
     )
     {
-        var jsonElement = JsonElement.Parse(
-            await response.Content.ReadAsStringAsync(cancellationToken)
-        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var jsonElement = JsonElement.Parse(body);
         return jsonElement.TryGetProperty("error_description", out var description)
             ? description.GetString()
             : null;
@@ -118,7 +117,8 @@ public class TokenEndpointSecurityProfileTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
@@ -143,7 +143,8 @@ public class TokenEndpointSecurityProfileTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
@@ -235,7 +236,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         var metadata = jsonElement;
         Assert.True(metadata.GetProperty("require_pushed_authorization_requests").GetBoolean());
         var authMethods = metadata
@@ -258,7 +260,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         var metadata = jsonElement;
         Assert.True(metadata.GetProperty("require_pushed_authorization_requests").GetBoolean());
         Assert.True(
@@ -296,7 +299,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.True(jsonElement.GetProperty("require_pushed_authorization_requests").GetBoolean());
     }
 

@@ -325,7 +325,8 @@ public class TokenEndpointMutualTlsTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
             jsonElement.GetProperty("error").GetString()
@@ -360,7 +361,8 @@ public class TokenEndpointMutualTlsTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
@@ -678,7 +680,8 @@ public class TokenEndpointMutualTlsTests
         var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
 
         var methods = jsonElement
             .GetProperty("token_endpoint_auth_methods_supported")

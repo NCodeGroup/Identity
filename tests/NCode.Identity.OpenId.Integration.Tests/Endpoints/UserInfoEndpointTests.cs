@@ -125,9 +125,8 @@ public class UserInfoEndpointTests
         var keyId = header.GetProperty("kid").GetString();
 
         using var jwksResponse = await client.GetAsync("/oauth2/jwks", cancellationToken);
-        var jwks = JsonElement.Parse(
-            await jwksResponse.Content.ReadAsStringAsync(cancellationToken)
-        );
+        var body = await jwksResponse.Content.ReadAsStringAsync(cancellationToken);
+        var jwks = JsonElement.Parse(body);
         var jwk = jwks.GetProperty("keys")
             .EnumerateArray()
             .Single(key => key.GetProperty("kid").GetString() == keyId);

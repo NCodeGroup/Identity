@@ -257,7 +257,8 @@ public class TokenIntrospectionEndpointTests
         using var response = await client.PostAsync(IntrospectPath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal("invalid_request", jsonElement.GetProperty("error").GetString());
     }
 
@@ -462,7 +463,8 @@ public class TokenIntrospectionEndpointTests
             }
         );
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
-        var created = JsonElement.Parse(await createResponse.Content.ReadAsStringAsync());
+        var createdBody = await createResponse.Content.ReadAsStringAsync();
+        var created = JsonElement.Parse(createdBody);
         var clientId = created.GetProperty("clientId").GetString();
         using var client = CreateHttpClient(factory);
 
@@ -604,7 +606,8 @@ public class TokenIntrospectionEndpointTests
             }
         );
         Assert.Equal(HttpStatusCode.Created, keyResponse.StatusCode);
-        var key = JsonElement.Parse(await keyResponse.Content.ReadAsStringAsync());
+        var keyBody = await keyResponse.Content.ReadAsStringAsync();
+        var key = JsonElement.Parse(keyBody);
         var resourceServerKeyId = key.GetProperty("secretId").GetString();
 
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(

@@ -91,9 +91,8 @@ public class TokenEndpointClientJwksUriTests
             "/.well-known/openid-configuration",
             cancellationToken
         );
-        var jsonElement = JsonElement.Parse(
-            await response.Content.ReadAsStringAsync(cancellationToken)
-        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var jsonElement = JsonElement.Parse(body);
         return jsonElement.GetProperty("issuer").GetString()!;
     }
 
@@ -169,7 +168,8 @@ public class TokenEndpointClientJwksUriTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()

@@ -614,9 +614,8 @@ public class InteractiveUiLocalesTests
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var document = JsonSerializer.Deserialize<JsonElement>(
-            await response.Content.ReadAsStringAsync()
-        );
+        var body = await response.Content.ReadAsStringAsync();
+        var document = JsonSerializer.Deserialize<JsonElement>(body);
 
         Assert.Equal(
             ["en", "fr"],
@@ -635,9 +634,8 @@ public class InteractiveUiLocalesTests
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var document = JsonSerializer.Deserialize<JsonElement>(
-            await response.Content.ReadAsStringAsync()
-        );
+        var body = await response.Content.ReadAsStringAsync();
+        var document = JsonSerializer.Deserialize<JsonElement>(body);
 
         Assert.False(document.TryGetProperty(OpenIdSettingNames.UiLocalesSupported, out _));
     }

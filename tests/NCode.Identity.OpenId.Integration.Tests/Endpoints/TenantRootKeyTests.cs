@@ -462,10 +462,8 @@ public class TenantRootKeyTests
         if (response.StatusCode == HttpStatusCode.OK)
             return null;
 
-        return JsonElement
-            .Parse(await response.Content.ReadAsStringAsync(cancellationToken))
-            .GetProperty("error")
-            .GetString();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        return JsonElement.Parse(body).GetProperty("error").GetString();
     }
 
     private static string? GetString(JsonElement element, string name) =>

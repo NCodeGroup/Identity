@@ -70,7 +70,8 @@ public class MasterKeyRotationTests
         var retryAfterDelta = retryAfter.Delta;
         Assert.NotNull(retryAfterDelta);
         Assert.True(retryAfterDelta.Value > TimeSpan.Zero);
-        var tooSoonProblem = JsonElement.Parse(await tooSoon.Content.ReadAsStringAsync());
+        var tooSoonBody = await tooSoon.Content.ReadAsStringAsync();
+        var tooSoonProblem = JsonElement.Parse(tooSoonBody);
         Assert.Equal(
             (long)retryAfterDelta.Value.TotalSeconds,
             tooSoonProblem.GetProperty("retryAfterSeconds").GetInt64()

@@ -122,7 +122,8 @@ public class LocalAccountLifecycleTests
         };
 
         using var response = await client.SendAsync(request, cancellationToken);
-        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        var body = JsonElement.Parse(responseBody);
         return (response.StatusCode, body);
     }
 

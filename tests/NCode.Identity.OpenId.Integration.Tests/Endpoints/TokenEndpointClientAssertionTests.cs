@@ -42,9 +42,8 @@ public class TokenEndpointClientAssertionTests
             "/.well-known/openid-configuration",
             cancellationToken
         );
-        var jsonElement = JsonElement.Parse(
-            await response.Content.ReadAsStringAsync(cancellationToken)
-        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var jsonElement = JsonElement.Parse(body);
         return jsonElement.GetProperty(name).GetString()
             ?? throw new InvalidOperationException($"The discovery document has no '{name}'.");
     }
@@ -130,9 +129,8 @@ public class TokenEndpointClientAssertionTests
     {
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(
-            await response.Content.ReadAsStringAsync(cancellationToken)
-        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
@@ -247,7 +245,8 @@ public class TokenEndpointClientAssertionTests
         var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
 
         var methods = jsonElement
             .GetProperty("token_endpoint_auth_methods_supported")
@@ -274,7 +273,8 @@ public class TokenEndpointClientAssertionTests
         using var second = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
         Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await second.Content.ReadAsStringAsync());
+        var secondBody = await second.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(secondBody);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
@@ -293,7 +293,8 @@ public class TokenEndpointClientAssertionTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
@@ -354,7 +355,8 @@ public class TokenEndpointClientAssertionTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()

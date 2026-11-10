@@ -175,7 +175,10 @@ public class TenantUsageTests
 
         var statusCodes = new List<HttpStatusCode>();
         for (var i = 0; i < 4; ++i)
-            statusCodes.Add(await PostAnonymousTokenRequestAsync(client, CancellationToken.None));
+        {
+            var statusCode = await PostAnonymousTokenRequestAsync(client, CancellationToken.None);
+            statusCodes.Add(statusCode);
+        }
 
         Assert.DoesNotContain(HttpStatusCode.TooManyRequests, statusCodes[..3]);
         Assert.Equal(HttpStatusCode.TooManyRequests, statusCodes[3]);

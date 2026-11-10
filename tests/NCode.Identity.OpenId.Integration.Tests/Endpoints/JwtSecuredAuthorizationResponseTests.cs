@@ -296,7 +296,8 @@ public class JwtSecuredAuthorizationResponseTests
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
             jsonElement.GetProperty("error").GetString()
@@ -336,7 +337,8 @@ public class JwtSecuredAuthorizationResponseTests
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
             jsonElement.GetProperty("error").GetString()

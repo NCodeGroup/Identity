@@ -2,13 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -22,7 +20,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // the tenant fail closed, and a restored or removed key brings the tenant back (ADR-1414).
 public class TenantRootKeyTests
 {
-    private const string ManagementScope = "read:clients";
     private const string ControlPlaneTenantId = "root";
     private const string TenantId = "acme";
     private const string TenantApiPath = $"/api/tenants/{TenantId}";
@@ -35,7 +32,10 @@ public class TenantRootKeyTests
         var wrapper = new TestReferencedKeyWrapper();
         var recorder = new RecordingAuditEventHandler();
         using var factory = new TenantRootKeyHostApplicationFactory(wrapper, recorder);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            $"/{ControlPlaneTenantId}/oauth2/token",
+            CancellationToken.None
+        );
         using var client = CreateHttpClient(factory);
         await CreateTenantAsync(administrator);
         var clientId = await CreateClientAsync(administrator);
@@ -180,7 +180,10 @@ public class TenantRootKeyTests
             wrapper,
             new RecordingAuditEventHandler()
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            $"/{ControlPlaneTenantId}/oauth2/token",
+            CancellationToken.None
+        );
         using var client = CreateHttpClient(factory);
         await CreateTenantAsync(administrator);
         var clientId = await CreateClientAsync(administrator);
@@ -223,7 +226,10 @@ public class TenantRootKeyTests
             new TestReferencedKeyWrapper(),
             new RecordingAuditEventHandler()
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            $"/{ControlPlaneTenantId}/oauth2/token",
+            CancellationToken.None
+        );
         await CreateTenantAsync(administrator);
 
         using var response = await PutRootKeyAsync(administrator, KeyReference, "bad");
@@ -245,7 +251,10 @@ public class TenantRootKeyTests
             new TestReferencedKeyWrapper(),
             new RecordingAuditEventHandler()
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            $"/{ControlPlaneTenantId}/oauth2/token",
+            CancellationToken.None
+        );
         await CreateTenantAsync(administrator);
 
         using var response = await administrator.PutAsJsonAsync(
@@ -270,7 +279,10 @@ public class TenantRootKeyTests
             new TestReferencedKeyWrapper(),
             new RecordingAuditEventHandler()
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            $"/{ControlPlaneTenantId}/oauth2/token",
+            CancellationToken.None
+        );
         await CreateTenantAsync(administrator);
         var clientId = await CreateClientAsync(administrator);
         await CreateSecretAsync(administrator, clientId);
@@ -303,7 +315,10 @@ public class TenantRootKeyTests
             new TestReferencedKeyWrapper(),
             new RecordingAuditEventHandler()
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            $"/{ControlPlaneTenantId}/oauth2/token",
+            CancellationToken.None
+        );
         var controlPlaneRootKeyPath =
             $"/api/tenants/{ControlPlaneTenantId}/encryption-keys/root-key";
 
@@ -427,45 +442,6 @@ public class TenantRootKeyTests
                 accessIdentity,
             }
         );
-
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    )
-    {
-        var client = CreateHttpClient(factory);
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(
-            HttpMethod.Post,
-            $"/{ControlPlaneTenantId}/oauth2/token"
-        )
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = ManagementScope,
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(tokenRequest);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            JsonElement.Parse(body).GetProperty("access_token").GetString()
-        );
-        return client;
-    }
 
     private static async Task<string> CreateClientAsync(HttpClient administrator)
     {

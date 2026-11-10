@@ -162,13 +162,11 @@ and fail with errors such as a client aborting its request after 10 s, which the
 **Never add agent attribution to a commit message** — a `Co-authored-by:` trailer naming an agent account (`Copilot`,
 `copilot-swe-agent[bot]`, Claude's `noreply@anthropic.com`, or any other tooling identity), a `Claude-Session:` trailer,
 or a "Generated with" line. A commit records the **people** who authored it; the repository host reads such a trailer as
-authorship and lists the agent in the contributor graph, which can only be undone by rewriting published history. The
-versioned [`.githooks/commit-msg`](../../.githooks/commit-msg) hook strips these lines as a safety net, but it is
-enabled per clone and must not be relied on — do not generate them in the first place. The required `Commit attribution`
-check ([`.template/Test-CommitAttribution.ps1`](../../.template/Test-CommitAttribution.ps1), from the project template)
-rejects agent-authored commits and agent attribution on pull requests, in the merge queue and on pushes, because a
-squash merge credits every commit author. See
-[ADR-1128](../../docs/decisions/1128-commits-are-attributed-to-people-not-agents.md).
+authorship and lists the agent in the contributor graph, which can only be undone by rewriting published history.
+Nothing checks for it or blocks a commit, push or pull request that has it, so keep it out at the source: do not
+generate the lines. Claude Code's and VS Code's settings add none, and `/ship-plan` and `/run-issues` delete such
+lines from the pull request title and description they write. See
+[project-template ADR-0018](../../docs/decisions/project-template/0018-agent-attribution-is-avoided-not-enforced.md).
 
 ## Push protocol
 

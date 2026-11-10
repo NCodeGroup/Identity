@@ -12,8 +12,8 @@ This repository adopted [project-template](https://github.com/polewskm/project-t
 installer's output. Three parts of the decision change:
 
 - **The files come from the template.** The agents, prompt files and skills under `.github/`, Claude Code's commands
-  under `.claude/commands/`, `.claude/agents/plan-executor.md`, `CLAUDE.md`, `.githooks/commit-msg` and `.template/`
-  are owned by project-template. [`.copier-answers.yml`](../../.copier-answers.yml) records the version, and
+  under `.claude/commands/`, `.claude/agents/plan-executor.md`, `CLAUDE.md` and `.template/` are owned by
+  project-template. [`.copier-answers.yml`](../../.copier-answers.yml) records the version, and
   `./.template/Update-Project.ps1` moves to a newer one. A workflow change is made and tagged in project-template,
   then pulled in; the installer command below no longer applies. The template's rules arrive in
   [`project-template.instructions.md`](../../.github/instructions/project-template.instructions.md), and this
@@ -29,9 +29,7 @@ installer's output. Three parts of the decision change:
   `.github/copilot-instructions.md`, which Claude Code does not read, to
   [`repository.instructions.md`](../../.github/instructions/repository.instructions.md), which `AGENTS.md` lists.
 
-The commit-attribution check is now the template's `.template/Test-CommitAttribution.ps1`, and the template tests it
-and the hook ([ADR-1128](1128-commits-are-attributed-to-people-not-agents.md)). identity-platform keeps the installer
-until it adopts the template too (issue [#189](https://github.com/NCodeGroup/Identity/issues/189)).
+identity-platform keeps the installer until it adopts the template too (issue [#189](https://github.com/NCodeGroup/Identity/issues/189)).
 
 The adoption kept the files the template merges with this repository's own (`.editorconfig`, `.gitattributes`,
 `.gitignore`, `.vscode/settings.json`, `.claude/settings.json`, `Directory.Build.props` and `Directory.Packages.props`)
@@ -39,11 +37,9 @@ as the template writes them, so a later template update merges cleanly; only the
 `ManagePackageVersionsCentrally` was removed, and the two `.props` files are formatted with CSharpier, which skips the
 template-owned `build/ProjectTemplate.props`. `Directory.Build.props` imports that file first and keeps its own
 settings after the import, so they win. The template's `nuget_package` answer is `false`, because
-`Directory.Build.props` and `Directory.Build.targets` already own packaging. The `Commit attribution` check stays its
-own workflow rather than the template's `ci.yml` job, because this repository keeps its own `ci.yml`. The template's
-generic `csharp.instructions.md` applies too, and `csharp-production.instructions.md` and
-`csharp-testing.instructions.md` win where they differ; `.claude/rules/` points Claude Code at them by path, because
-it ignores `applyTo`.
+`Directory.Build.props` and `Directory.Build.targets` already own packaging. The template's generic
+`csharp.instructions.md` applies too, and `csharp-production.instructions.md` and `csharp-testing.instructions.md` win
+where they differ; `.claude/rules/` points Claude Code at them by path, because it ignores `applyTo`.
 
 The update to project-template `v0.10.0` adds `/finish-plan`, which retires a plan once its pull request merges: it
 deletes `PLAN.md`, fast-forwards `main`, deletes the plan's branch and, in Claude Code, removes its worktree. The
@@ -220,4 +216,4 @@ individual review.
 - [`AGENTS.md` — Plan-and-execute workflow](../../AGENTS.md#plan-and-execute-workflow)
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — conventions and lessons live in the repository
 - [ADR-1305](1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) — trunk-based development on `main` and its release lines
-- [ADR-1128](1128-commits-are-attributed-to-people-not-agents.md) — commits are attributed to people, not agents
+- [project-template ADR-0018](project-template/0018-agent-attribution-is-avoided-not-enforced.md) — agent attribution is avoided, not enforced

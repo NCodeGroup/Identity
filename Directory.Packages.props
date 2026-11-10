@@ -30,7 +30,7 @@
     <!-- Held at 3.3.4: 5.x reformats C# 14 `extension` members inconsistently (static vs .extension form) and
          rejects the existing extension-block API files, regressing the extension syntax the codebase relies on. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
-    <!-- The repository's own analyzers (src/NCode.Identity.Analyzers, ADR-1486) build against the Roslyn of the oldest SDK global.json admits (10.0.100 ships 5.0.0), so every SDK it rolls forward to loads them; EF Core Design pins the same version. Their tests compile snippets with it. -->
+    <!-- The repository's own analyzers (src/NCode.Identity.Analyzers, ADR-1486, ADR-1493) build against the Roslyn EF Core Design pins exactly (Microsoft.CodeAnalysis.CSharp.Workspaces 5.0.0 requires Microsoft.CodeAnalysis.CSharp 5.0.0), which is older than the Roslyn of every SDK global.json admits, so every one loads them. Their tests compile snippets with it. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
     <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />

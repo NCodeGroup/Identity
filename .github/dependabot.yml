@@ -34,7 +34,7 @@ updates:
     cooldown:
       default-days: 3
     ignore:
-      # The repository's analyzer builds against the Roslyn of the oldest SDK global.json admits, which EF Core Design also pins exactly, so this version moves with global.json's floor, deliberately (ADR-1486).
+      # The repository's analyzers build against the Roslyn that EF Core Design pins exactly, older than the Roslyn of every SDK global.json admits, so this version moves with EF Core Design, deliberately (ADR-1486, ADR-1493).
       - dependency-name: 'Microsoft.CodeAnalysis.CSharp'
         update-types: ['version-update:semver-major', 'version-update:semver-minor']
     groups:

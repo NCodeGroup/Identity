@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 
 /// <summary>
 /// Hosts the management console's reference host in-process on a <see cref="TestServer"/>. The console's bundle is a
-/// small page and one asset in a temporary directory, its two key rings are in-memory P-256 keys, and, when a
+/// small page, one script and three icons in a temporary directory, its two key rings are in-memory P-256 keys, and, when a
 /// <see cref="HostApplicationFactory"/> is given, the console reaches that provider's endpoints and its management API
 /// through its test server.
 /// </summary>
@@ -45,6 +45,21 @@ public sealed class ManagementConsoleApplicationFactory
     /// The content of the bundle's asset.
     /// </summary>
     public const string AssetContent = "export const ready = true;";
+
+    /// <summary>
+    /// The file name of the bundle's ICO icon asset.
+    /// </summary>
+    public const string IcoAssetName = "favicon-test.ico";
+
+    /// <summary>
+    /// The file name of the bundle's SVG icon asset.
+    /// </summary>
+    public const string SvgAssetName = "favicon-test.svg";
+
+    /// <summary>
+    /// The file name of the bundle's iOS icon asset.
+    /// </summary>
+    public const string PngAssetName = "apple-touch-icon-test.png";
 
     private const string IndexHtml = """
         <!doctype html>
@@ -97,6 +112,12 @@ public sealed class ManagementConsoleApplicationFactory
             AssetContent,
             SecureEncoding.UTF8
         );
+        string[] iconAssetNames = [IcoAssetName, SvgAssetName, PngAssetName];
+        foreach (var iconAssetName in iconAssetNames)
+        {
+            var iconPath = Path.Combine(assetsPath, iconAssetName);
+            File.WriteAllText(iconPath, "icon", SecureEncoding.UTF8);
+        }
     }
 
     /// <summary>

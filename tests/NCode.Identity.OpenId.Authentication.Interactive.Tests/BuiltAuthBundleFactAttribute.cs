@@ -23,16 +23,20 @@ public sealed class BuiltAuthBundleFactAttribute : FactAttribute
     public static string? IndexPath => Environment.GetEnvironmentVariable(IndexPathVariable);
 
     /// <summary>
+    /// Gets the reason a test against the built bundle is skipped, or <c>null</c> when the environment names the built bundle.
+    /// </summary>
+    internal static string? SkipReason =>
+        string.IsNullOrEmpty(IndexPath)
+            ? $"Set {IndexPathVariable} to the absolute path of the built apps/auth index.html to run this test; "
+                + "the Frontend CI workflow sets it after it builds the bundle."
+            : null;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="BuiltAuthBundleFactAttribute"/> class, which skips the fact when
     /// the environment names no built bundle.
     /// </summary>
     public BuiltAuthBundleFactAttribute()
     {
-        if (string.IsNullOrEmpty(IndexPath))
-        {
-            Skip =
-                $"Set {IndexPathVariable} to the absolute path of the built apps/auth index.html to run this test; "
-                + "the Frontend CI workflow sets it after it builds the bundle.";
-        }
+        Skip = SkipReason;
     }
 }

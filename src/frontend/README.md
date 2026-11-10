@@ -73,7 +73,7 @@ src/frontend/
     ui/       @ncode/ui      — MUI design system + stateless components + Storybook
     shell/    @ncode/shell   — stateful app-shell containers shared by the surfaces (the runtime-config BootstrapGate)
     conformance-core/ @ncode/conformance-core — framework-free conformance logic (discovery, audit, spec-coverage, probes)
-    test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard and the Testing Library wait timeout)
+    test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard, the Testing Library wait timeout and the family icon set)
     vite-config/  @ncode/vite-config — the Vite/Vitest preset every workspace builds and tests from
   apps/
     mgmt/     @ncode/app-mgmt — Management console (served by its BFF host, `NCode.Identity.ManagementConsole.Host`)
@@ -188,6 +188,17 @@ served:
   a full HMR dev server. Their config is `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })`, which pins
   the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies
   the bootstrap document to the OP host (see [Runtime configuration](#runtime-configuration)).
+
+### Every app shows the family's icon
+
+Each app links the kit's three files (`favicon.ico`, `favicon.svg` and `apple-touch-icon.png`) from `index.html` with
+the tags [`brand/README.md`](../../brand/README.md#favicon) gives, and carries copies of them in its `favicon/` folder.
+The build gives each a content-hashed name under `assets/`, which the app's host serves immutable under its
+`img-src 'self'`; a standalone app's dev server serves the folder as it is. No app links the web manifest, because none
+is offered as an installed app. `build/favicon-copies.ps1` (the `favicon copies` stage of `./build/dod.ps1`) fails when
+a copy differs from the kit's file, and each app's `src/favicon.test.ts` checks its links and files against the family
+icon set that `@ncode/test-support` holds
+([ADR-1492](../../docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md)).
 
 ## Runtime configuration
 

@@ -211,6 +211,13 @@ try {
         $global:LASTEXITCODE = 0
     }
 
+    # Favicon copies gate: each web app carries copies of the kit's favicon files because a frontend build reads only
+    # src/. Build-free, so it runs before the slow stages. Its fixture tests end with the repository's own kit and apps.
+    Invoke-Step 'favicon copies' {
+        & (Join-Path $PSScriptRoot 'tests\favicon-copies.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
+
     Invoke-Step 'restore' { dotnet restore $solution }
     # Build also PACKS: GeneratePackageOnBuild (Directory.Build.targets) emits each shippable .nupkg + .snupkg to
     # artifacts/packages as part of the build, so there is no separate pack step. -Fast builds projects in parallel

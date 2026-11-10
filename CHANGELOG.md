@@ -399,9 +399,10 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The family builds with repository-wide engineering conventions.** These are Central Package Management, lockstep
   Nerdbank.GitVersioning versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of
   Done, CSharpier formatting, and scoped coding-convention instruction files. `global.json` requires .NET SDK 10.0.403
-  or a later .NET 10 SDK, the newest release past the three-day cooldown, so an SDK whose compiler cannot build the
-  family stops at once with the version it needs
+  or a later .NET 10 SDK, the newest release past the three-day cooldown, which Dependabot's `dotnet-sdk` stream keeps
+  current, so an SDK whose compiler cannot build the family stops at once with the version it needs
   ([#738](https://github.com/NCodeGroup/Identity/issues/738),
+  [#746](https://github.com/NCodeGroup/Identity/issues/746),
   [ADR-1493](docs/decisions/1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md)). See
   [`docs/decisions/`](docs/decisions/).
 
@@ -409,15 +410,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   braces of the NCode Group's `{N}`, in the group's blue. `brand/` holds it as SVG masters and as the PNG and ICO files
   each place takes: a NuGet package icon, a favicon set, pictures for GitHub, GitLab and My Apps, badge logos, social
   cards, and lockups with the wordmark "NCode Identity". Every package carries the blue tile as its icon, the host
-  chart names it as its own, and the README opens with the lockup. The four web apps show its icon in the browser tab:
-  each links the kit's ICO, SVG and iOS icon, its build gives them content-hashed names in the assets its host serves,
-  and the `favicon copies` stage of `./build/dod.ps1` keeps every app's copies equal to the kit's. `brand/build.py`
-  draws every file from one geometry, with a drawing of its own for each size from 16 to 48 pixels, and stops when a
-  file breaks its platform's limit. `brand/outlines.py` converts the wordmark to outlines from a pinned release of
-  Inter, whose license `THIRD-PARTY-NOTICES.md` records
+  chart names it as its own, and the README opens with the lockup. The four web apps show its icon in the browser tab,
+  unless a tenant or the console's branding sets its own icon: each links the kit's ICO, SVG and iOS icon, its build
+  gives them content-hashed names in the assets its host serves, and the `favicon copies` stage of `./build/dod.ps1`
+  keeps every app's copies equal to the kit's. `brand/build.py` draws every file from one geometry, with a drawing of
+  its own for each size from 16 to 48 pixels, and stops when a file breaks its platform's limit. `brand/outlines.py`
+  converts the wordmark to outlines from a pinned release of Inter, whose license `THIRD-PARTY-NOTICES.md` records
   ([#737](https://github.com/NCodeGroup/Identity/issues/737),
+  [#745](https://github.com/NCodeGroup/Identity/issues/745),
   [ADR-1491](docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md),
-  [ADR-1492](docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md)).
+  [ADR-1492](docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md),
+  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
 
 - **Feature branches run a fast gate, and the merge queue runs the full gate.** `./build/dod.ps1 -Affected` (with
   `-Base`) runs only the test projects a change reaches through the project graph, and `-Filter` passes a `dotnet test
@@ -2047,17 +2050,21 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#290](https://github.com/NCodeGroup/Identity/issues/290)).
 
 - **A tenant brands its login, consent, and account pages.** The interactive surface registers the tenant settings
-  `branding_display_name`, `branding_logo_uri` (absolute `https`), `branding_primary_color` and
-  `branding_secondary_color` (hexadecimal), and `branding_color_mode` (`light` or `dark`), named in
-  `InteractiveSettingNames` and `InteractiveSettingKeys`. Every page served with the `apps/auth` bundle carries the
-  tenant's branding, in the bootstrap document's `branding` shape, in a `<script type="application/json" id="branding">`
-  block after its `<base>`, and the bundle themes itself from it without a request: it themes the surface with the
-  colors and mode, draws the logo, and titles the login and account pages with the display name; a page without branding
-  gets the default theme. `@ncode/config` exports `parseBrandingConfig`, which the bootstrap parser uses too, so a
-  malformed branding token is dropped, never trusted
+  `branding_display_name`, `branding_logo_uri` (absolute `https`), `branding_favicon_uri` (absolute `https`),
+  `branding_primary_color` and `branding_secondary_color` (hexadecimal), and `branding_color_mode` (`light` or `dark`),
+  named in `InteractiveSettingNames` and `InteractiveSettingKeys`. Every page served with the `apps/auth` bundle
+  carries the tenant's branding, in the bootstrap document's `branding` shape, in a
+  `<script type="application/json" id="branding">` block after its `<base>`, and the bundle themes itself from it
+  without a request: it themes the surface with the colors and mode, draws the logo, and titles the login and account
+  pages with the display name; a page without branding gets the default theme. `@ncode/config` exports
+  `parseBrandingConfig`, which the bootstrap parser uses too, so a malformed branding token is dropped, never trusted.
+  A tenant that sets `branding_favicon_uri` shows that icon in its pages' tabs instead of the family's: the host links
+  it, drops the bundle's family icon links, and admits its origin in the page's `img-src`
   ([ADR-1194](docs/decisions/1194-a-tenant-brands-its-interactive-surface-through-settings.md),
-  [ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), issue
-  [#211](https://github.com/NCodeGroup/Identity/issues/211)).
+  [ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md),
+  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md),
+  issues [#211](https://github.com/NCodeGroup/Identity/issues/211),
+  [#745](https://github.com/NCodeGroup/Identity/issues/745)).
 
 - **The interactive surface renders in the language the request prefers.** The locales the end-user interface
   renders are a registered vocabulary (`IUiLocale`, resolved through `IUiLocaleCatalog`), so the tenant settings
@@ -2821,11 +2828,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`private_key_jwt`, PAR, DPoP, back-channel logout) and listens on `https://localhost:5005` under the AppHost, which
   generates the console's keys per machine. The host refuses a missing or wildcard `AllowedHosts` in Production,
   trusts forwarded headers only from the proxies its `ForwardedHeaders` section names, and sends
-  `Strict-Transport-Security` outside Development
+  `Strict-Transport-Security` outside Development. The console's `ManagementConsole:Branding:FaviconUrl` (absolute
+  `https`) replaces the family's tab icon the same way
   ([#158](https://github.com/NCodeGroup/Identity/issues/158),
   [#611](https://github.com/NCodeGroup/Identity/issues/611),
+  [#745](https://github.com/NCodeGroup/Identity/issues/745),
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
-  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
+  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
+  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
 
 - **A BFF loads its key rings from PEM files and key management services when the host starts.**
   `Bff:KeyRings:{name}:PemFiles` lists EC or RSA private-key PEM files, each key's `kid` its file name without the

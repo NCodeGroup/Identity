@@ -11,14 +11,19 @@
 Each step says **what** to do, **why** it is manual, and how to **verify** it. Placeholders are in angle brackets; the
 values used by the NCode hosted platform are listed once here.
 
-| Placeholder        | Meaning                                         | NCode value                          |
-| ------------------ | ----------------------------------------------- | ------------------------------------ |
-| `<domain>`         | Apex domain for the platform                    | `nidentity.io`                       |
-| `<github-org>`     | GitHub organization                             | `NCodeGroup`                         |
-| `<infra-repo>`     | Public infrastructure repository                | `identity-platform`                  |
-| `<aws-region>`     | Home region of the platform's AWS account       | `us-west-2` (Oregon)                 |
-| `<oci-region>`     | Home region of the lab's OCI tenancy            | `us-phoenix-1` (Phoenix)             |
-| `<recovery-email>` | An **off-domain** mailbox you control           | the owner's personal mailbox         |
+| Placeholder            | Meaning                                         | NCode value                              |
+| ---------------------- | ----------------------------------------------- | ---------------------------------------- |
+| `<platform-domain>`    | Domain of every issuer-bearing host             | `ncodeid.net`                            |
+| `<brand-domain>`       | Domain of the site, docs, status page and mail  | `ncodeid.com`                            |
+| `<redirect-domains>`   | Domains that only redirect to `<brand-domain>`  | `ncodeidentity.com`, `ncodeidentity.net` |
+| `<github-org>`         | GitHub organization                             | `NCodeGroup`                             |
+| `<infra-repo>`         | Public infrastructure repository                | `identity-platform`                      |
+| `<aws-region>`         | Home region of the platform's AWS account       | `us-west-2` (Oregon)                     |
+| `<oci-region>`         | Home region of the lab's OCI tenancy            | `us-phoenix-1` (Phoenix)                 |
+| `<recovery-email>`     | An **off-domain** mailbox you control           | the owner's personal mailbox             |
+
+"The platform's domains" means all four
+([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)).
 
 **Region choice.** The AWS account holds only state and backups, so `us-west-2` puts them in a different geography from
 the Dallas production cluster — a regional outage can't take both. OCI has no Oregon region; Phoenix is the closest OCI
@@ -29,8 +34,8 @@ region to Denver and has three availability domains to spread the lab's nodes ac
 - **Accounts security baseline** (applies to every step): a password manager, a passkey or hardware security key for
   every account that supports one, and recovery codes stored offline.
 - **Recovery email rule:** the registrar, DNS, cloud, and GitHub owner accounts use `<recovery-email>` — **never** an
-  address at `<domain>`. If the domain or its DNS breaks, those are the accounts you need to fix it. Other vendor
-  accounts may use per-purpose `@<domain>` routing addresses.
+  address at any of the platform's domains. If a domain or its DNS breaks, those are the accounts you need to fix it.
+  Other vendor accounts may use per-purpose `@<brand-domain>` routing addresses.
 - **Local tools:** `git`; OpenTofu through [tenv](https://github.com/tofuutils/tenv) (`scoop install tenv` /
   `brew install tenv`), which picks the version in the infrastructure repository's `.opentofu-version` (`tenv tofu
   install` in the repository) and verifies its signature; AWS CLI v2;
@@ -42,14 +47,19 @@ region to Denver and has three availability domains to spread the lab's nodes ac
 
 Manual because a registrar credential can hand over the whole domain; it is never automated.
 
-1. Turn on account 2FA (passkey / hardware key), **auto-renew**, and **registrar lock** for `<domain>`.
-2. Leave **API access off** for the domain, keep the **Cloudflare integration disconnected** (it would store a standing
-   Cloudflare credential at the registrar), and turn **off** "Allow Afternic fast transfer opt-ins" so third-party
-   attempts to list the domain for sale are rejected automatically.
-3. Do **not** change nameservers yet — that is step 7, after the bootstrap stack has created the zone.
+Every item applies to each of the platform's domains: `<platform-domain>`, `<brand-domain>` and each of
+`<redirect-domains>`.
 
-**Verify:** RDAP for `<domain>` shows `client transfer prohibited`
-(`Invoke-RestMethod https://rdap.org/domain/<domain> | Select-Object -ExpandProperty status`).
+1. Turn on account 2FA (passkey / hardware key), **auto-renew**, and **registrar lock** for each domain, and renew
+   `<platform-domain>` and `<brand-domain>` to the registry's 10-year maximum.
+2. Leave **API access off** for each domain, keep the **Cloudflare integration disconnected** (it would store a standing
+   Cloudflare credential at the registrar), and turn **off** "Allow Afternic fast transfer opt-ins" so third-party
+   attempts to list a domain for sale are rejected automatically.
+3. Do **not** change nameservers yet — that is step 7, after the bootstrap stack has created the zones.
+
+**Verify:** RDAP for each domain shows `client transfer prohibited`
+(`foreach ($d in 'ncodeid.net', 'ncodeid.com', 'ncodeidentity.com', 'ncodeidentity.net') { Invoke-RestMethod
+https://rdap.org/domain/$d | Select-Object -ExpandProperty status }`).
 
 ## 2. GitHub organization and repository
 
@@ -67,7 +77,7 @@ settings declaratively.
 2. **Create the repository:** New repository → owner `<github-org>`, name `<infra-repo>`, **Public**, description
    "Public infrastructure as code for the NCode.Identity hosted platform: reusable OpenTofu and Kubernetes components,
    opinionated stacks, and the live configuration we run.", and **no** README, `.gitignore`, license, or Copilot starter
-   prompt — the first commit adds the files. The website (`https://<domain>`) and topics are managed by the bootstrap
+   prompt — the first commit adds the files. The website (`https://<brand-domain>`) and topics are managed by the bootstrap
    stack (an empty repository has no About panel to set them in).
 3. **Harden it before the first push** (the bootstrap stack takes these over afterwards):
    - Settings → Actions → General:

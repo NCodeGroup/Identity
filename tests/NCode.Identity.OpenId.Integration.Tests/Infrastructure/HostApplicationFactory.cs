@@ -1167,44 +1167,17 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// </summary>
     /// <param name="clientId">The identifier of the client that authenticates with a shared secret.</param>
     /// <param name="clientSecret">The client's secret, as sent to the token endpoint.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The HTTP client, which does not follow redirects and carries the bearer token.</returns>
-    public async Task<HttpClient> CreateManagementClientAsync(string clientId, string clientSecret)
-    {
-        const string managementScope = "read:clients";
-
-        var client = CreateClient(
-            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+    public ValueTask<HttpClient> CreateManagementClientAsync(
+        string clientId,
+        string clientSecret,
+        CancellationToken cancellationToken
+    ) =>
+        new ManagementTokenRequest(clientId, clientSecret).CreateClientAsync(
+            this,
+            cancellationToken
         );
-        var credentials = SecureEncoding.UTF8.GetBytes($"{clientId}:{clientSecret}");
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = managementScope,
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(tokenRequest);
-        response.EnsureSuccessStatusCode();
-        var jsonElement = System.Text.Json.JsonElement.Parse(
-            await response.Content.ReadAsStringAsync()
-        );
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            jsonElement.GetProperty("access_token").GetString()
-        );
-        return client;
-    }
 
     /// <summary>
     /// Creates an HTTP client that calls the management API as an end-user: it signs the user in through the

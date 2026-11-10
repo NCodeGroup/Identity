@@ -412,8 +412,8 @@ public sealed class DefaultRegistrationTests
             {
                 ["OpenId:Platform:Settings:session_management_supported"] = "true",
             },
-            services =>
-                services.AddSingleton<IClientAuthenticationHandler>(_ =>
+            serviceCollection =>
+                serviceCollection.AddSingleton<IClientAuthenticationHandler>(_ =>
                     throw new InvalidOperationException(
                         "A client-authentication handler was constructed."
                     )
@@ -452,8 +452,8 @@ public sealed class DefaultRegistrationTests
                 ["OpenId:ClientCertificateRevocation:Sources:0"] = "crl",
                 ["OpenId:ClientCertificateRevocation:Sources:1"] = "deny_list",
             },
-            services =>
-                services.AddSingleton<IClientCertificateRevocationSource>(_ =>
+            serviceCollection =>
+                serviceCollection.AddSingleton<IClientCertificateRevocationSource>(_ =>
                     throw new InvalidOperationException("A revocation source was constructed.")
                 )
         );
@@ -575,12 +575,12 @@ public sealed class DefaultRegistrationTests
     public void AddIdentityServer_WhenAClientJwtCredentialSelectorIsRegistered_KeepsIt()
     {
         var selector = new Mock<IClientJwtCredentialSelector>(MockBehavior.Strict).Object;
-        var services = new ServiceCollection();
-        services.AddSingleton(selector);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(selector);
 
-        services.AddIdentityServer();
+        serviceCollection.AddIdentityServer();
 
-        using var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
         Assert.Same(selector, serviceProvider.GetRequiredService<IClientJwtCredentialSelector>());
     }
 

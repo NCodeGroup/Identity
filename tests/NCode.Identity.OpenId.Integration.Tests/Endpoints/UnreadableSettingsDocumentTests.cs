@@ -26,9 +26,8 @@ public class UnreadableSettingsDocumentTests
     public async Task GetTenantEffectiveSettings_WhenTheTenantDocumentCannotBeHonored_ReturnsConflictNamingTheTenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
         await MakeTenantDocumentUnreadableAsync(factory);
 
@@ -45,9 +44,8 @@ public class UnreadableSettingsDocumentTests
     public async Task ListIncoherentClients_WhenTheTenantDocumentCannotBeHonored_ReturnsConflictNamingTheTenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
         await MakeTenantDocumentUnreadableAsync(factory);
 
@@ -64,9 +62,8 @@ public class UnreadableSettingsDocumentTests
     public async Task PatchTenantSettings_WhenTheTenantDocumentCannotBeHonored_RepairsIt()
     {
         using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
         await MakeTenantDocumentUnreadableAsync(factory);
 
@@ -132,9 +129,8 @@ public class UnreadableSettingsDocumentTests
             "it-unreadable-user",
             "unreadable-settings-password"
         );
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
         await MakeTenantDocumentUnreadableAsync(factory);
 
@@ -152,7 +148,9 @@ public class UnreadableSettingsDocumentTests
 
     private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
-    private static async Task<HttpClient> SeedUnreadableClientAsync(HostApplicationFactory factory)
+    private static async Task<HttpClient> SeedUnreadableClientAsync(
+        BootstrapAdminApplicationFactory factory
+    )
     {
         // A direct store write of a setting no descriptor registers, so no check refuses the client and its document
         // cannot be read.
@@ -161,10 +159,7 @@ public class UnreadableSettingsDocumentTests
             new Dictionary<string, object> { ["it_unregistered_setting"] = true },
             RedirectUri
         );
-        var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
-        );
+        var administrator = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         // The report proves the document is unreadable before any write is tried.
         using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");

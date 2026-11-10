@@ -2,11 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -28,6 +26,8 @@ public class TenantProvisioningTests
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
     private const string DiscoveryPath = "/.well-known/openid-configuration";
 
+    // The TestServer's own host is the root tenant's: nothing is seeded, so the administrator's first token request
+    // bootstraps the control plane, and with it the bootstrap administrator.
     private static BootstrapAdminApplicationFactory CreateFactory(
         string? mtlsEndpointAliasTemplate = null
     ) =>
@@ -45,52 +45,11 @@ public class TenantProvisioningTests
             "root"
         );
 
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    )
-    {
-        var client = factory.CreateClient();
-
-        // The TestServer's own host is the root tenant's: nothing is seeded, so this request bootstraps the control
-        // plane, and with it the bootstrap administrator.
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = "read:clients",
-                }
-            ),
-        };
-        using var tokenResponse = await client.SendAsync(tokenRequest);
-        var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
-        Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
-
-        var token = JsonElement.Parse(tokenBody);
-        var accessToken = token.GetProperty("access_token").GetString();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
-        );
-        return client;
-    }
-
     [Fact]
     public async Task CreateTenant_WithoutAnIssuer_IsServedSeededBeneathItsDerivedIssuer()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         using var createResponse = await client.PostAsJsonAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
@@ -130,7 +89,7 @@ public class TenantProvisioningTests
     public async Task ListTenants_ShowsEachTenantsEffectiveEnvironment()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         using var createResponse = await client.PostAsJsonAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
@@ -164,7 +123,7 @@ public class TenantProvisioningTests
     public async Task CreateTenant_WithAnMtlsEndpointAlias_IsServedOnTheAliasHostAndPublishesItsAliases()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         using var createResponse = await client.PostAsJsonAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
@@ -208,7 +167,7 @@ public class TenantProvisioningTests
         using var factory = CreateFactory(
             mtlsEndpointAliasTemplate: "https://{tenantId}.mtls.test"
         );
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         using var previewResponse = await client.GetAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants/acme/address"
@@ -259,7 +218,7 @@ public class TenantProvisioningTests
     public async Task CreateTenant_WithAnotherTenantsHostAsItsMtlsEndpointAlias_ReportsAConflict()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         using var firstResponse = await client.PostAsJsonAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
@@ -293,7 +252,7 @@ public class TenantProvisioningTests
     public async Task GetAddress_ForANewTenant_PreviewsItsDerivedIssuer()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         using var response = await client.GetAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants/globex/address"
@@ -314,7 +273,7 @@ public class TenantProvisioningTests
     public async Task GetTeamAddress_ForATakenTenantId_ReportsItExists()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await SaveTenantDirectlyAsync(factory, "acme", "https://login.acme.example");
 
         using var response = await client.GetAsync(
@@ -332,7 +291,7 @@ public class TenantProvisioningTests
     public async Task GetAddress_ForTheRootTenantsAddress_ReportsItAsReserved()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         using var response = await client.GetAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants/globex/address?issuer={Uri.EscapeDataString(RootIssuer)}"
@@ -349,7 +308,7 @@ public class TenantProvisioningTests
     public async Task CreateTenant_WithTheIdentifierOfADeletedTenant_ReportsAConflict()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await SaveTenantDirectlyAsync(factory, "initech", issuer: null);
 
         using var deleteResponse = await client.DeleteAsync("/api/tenants/initech");
@@ -375,7 +334,7 @@ public class TenantProvisioningTests
     public async Task GetAddress_ForAnIssuerAnotherTenantGaveUp_ReportsAConflict()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await SaveTenantDirectlyAsync(factory, "acme", "https://acme.auth.test");
         await SaveTenantDirectlyAsync(factory, "acme", "https://login.acme.example");
 

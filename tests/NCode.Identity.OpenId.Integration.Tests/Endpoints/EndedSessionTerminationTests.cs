@@ -146,8 +146,8 @@ public class EndedSessionTerminationTests
         await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedPublicClientAsync(clientId, RedirectUri);
         using var host = factory.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services.Configure<EndedSessionTerminationOptions>(options =>
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection.Configure<EndedSessionTerminationOptions>(options =>
                     options.Interval = TimeSpan.FromMilliseconds(50)
                 )
             )

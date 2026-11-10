@@ -324,8 +324,8 @@ public class HtmlPageSecurityTests
         );
         await factory.SeedLocalAccountAsync(UserName, Password);
         using var host = factory.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services.AddSingleton<IFrontChannelLogoutService>(
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection.AddSingleton<IFrontChannelLogoutService>(
                     new StubFrontChannelLogoutService()
                 )
             )

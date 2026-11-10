@@ -3,12 +3,10 @@
 
 using System.Buffers.Text;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -136,7 +134,10 @@ public class RemoteEncryptionKeyTests
         using var provider = new TestRemoteKeyProvider();
         using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
-        await AuthorizeAsync(client);
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
+        );
 
         using var key = RSA.Create(3072);
         var keyId = provider.AddKey(
@@ -173,15 +174,6 @@ public class RemoteEncryptionKeyTests
 
     #endregion
 
-    private static async Task AuthorizeAsync(HttpClient client)
-    {
-        var accessToken = await GetBootstrapTokenAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
-        );
-    }
-
     private static async Task<List<JsonElement>> GetJwksAsync(HttpClient client)
     {
         using var response = await client.GetAsync(JwksPath);
@@ -190,38 +182,6 @@ public class RemoteEncryptionKeyTests
 
         var jsonElement = JsonElement.Parse(body);
         return [.. jsonElement.GetProperty("keys").EnumerateArray().Select(key => key.Clone())];
-    }
-
-    // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
-    private static async Task<string> GetBootstrapTokenAsync(HttpClient client)
-    {
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = "read:clients",
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-
-        var jsonElement = JsonElement.Parse(body);
-        return jsonElement.GetProperty("access_token").GetString() ?? string.Empty;
     }
 
     private static async Task<List<PersistedSecret>> GetStoredSecretsAsync(

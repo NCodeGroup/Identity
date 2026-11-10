@@ -28,17 +28,17 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
         params IOpenIdExceptionTranslator[] translators
     )
     {
-        var services = new ServiceCollection();
-        services.AddSingleton(recorder);
-        services.AddLogging();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(recorder);
+        serviceCollection.AddLogging();
         if (handler is not null)
-            services.AddSingleton(handler);
+            serviceCollection.AddSingleton(handler);
         foreach (var translator in translators)
-            services.AddSingleton(translator);
+            serviceCollection.AddSingleton(translator);
 
         var httpContext = new DefaultHttpContext
         {
-            RequestServices = services.BuildServiceProvider(),
+            RequestServices = serviceCollection.BuildServiceProvider(),
         };
         httpContext.Features.Set<IOpenIdContextFeature>(
             Mock.Of<IOpenIdContextFeature>(feature => feature.OpenIdContext == openIdContext)

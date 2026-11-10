@@ -49,6 +49,10 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Test Style](csharp-tests.instructions.md#test-style).
 - 👁 **The production code-style rules apply in tests** — template
   [Test Style](csharp-tests.instructions.md#test-style).
+- 👁 **Name an `IServiceCollection` `serviceCollection`** —
+  [`csharp-production.instructions.md`](csharp-production.instructions.md) §4: every local, parameter and lambda
+  parameter, as in `var serviceCollection = new ServiceCollection();` and
+  `builder.ConfigureTestServices(serviceCollection => …)`; an `IServiceProvider` keeps its own name.
 - 👁 **Prefer the size-specific xUnit assertions** — template [Assertions](csharp-tests.instructions.md#assertions).
 - 👁 **Compare an `ImmutableArray<T>` by its elements** — template
   [Assertions](csharp-tests.instructions.md#assertions).
@@ -299,6 +303,13 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
   refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery
   dance.
+- 👁 **Call the management API through the one management token request.** `ManagementTokenRequest` is the
+  `client_credentials` request (`client_secret_basic`, scope `read:clients`) a test sends for a management token.
+  `BootstrapAdminApplicationFactory.CreateAdministratorClientAsync` returns a client acting as the bootstrap
+  administrator, with the token path when the control plane's tenant is served under its own path;
+  `HostApplicationFactory.CreateManagementClientAsync` one acting as another shared-secret client; and
+  `BootstrapAdminApplicationFactory.TokenRequest` builds the message, reads the access token, authorizes an existing
+  client or creates one from a `WithWebHostBuilder` host, so no test writes another copy of the request.
 - 👁 **Drive the device flow through its endpoints.** Start it at `/oauth2/device_authorization`, sign the user in with
   `InteractiveLogin.SignInAsync`, approve at `/oauth2/device` with the session cookie and the form fields `user_code`
   and `action=approve`, and redeem the `device_code` at `/oauth2/token` (`LocalAccountLifecycleTests`).

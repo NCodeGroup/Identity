@@ -2,11 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
 
@@ -16,14 +14,15 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // authenticating until it expires or is deleted (ADR-1320).
 public class ClientSecretRotationTests
 {
-    private const string ManagementScope = "read:clients";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     [Fact]
     public async Task PostRotate_WhenSecretIsShared_KeepsTheRotatedSecretUntilItIsDeleted()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var client = CreateHttpClient(factory);
 
         var clientId = await CreateClientAsync(administrator);
@@ -68,7 +67,9 @@ public class ClientSecretRotationTests
     public async Task PostRotate_WhenTheRotatedSecretExpiresAtOnce_OnlyTheReplacementAuthenticates()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var client = CreateHttpClient(factory);
 
         var clientId = await CreateClientAsync(administrator);
@@ -89,7 +90,9 @@ public class ClientSecretRotationTests
     public async Task PostRotate_WhenSecretIsUnknown_ReturnsNotFound()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var clientId = await CreateClientAsync(administrator);
 
         using var response = await administrator.PostAsJsonAsync(
@@ -104,43 +107,6 @@ public class ClientSecretRotationTests
 
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    )
-    {
-        var client = CreateHttpClient(factory);
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = ManagementScope,
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(tokenRequest);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        var jsonElement = JsonElement.Parse(body);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            jsonElement.GetProperty("access_token").GetString()
-        );
-        return client;
-    }
 
     private static async Task<string> CreateClientAsync(HttpClient administrator)
     {

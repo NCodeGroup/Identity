@@ -91,12 +91,12 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
         var identity = authenticated
             ? new ClaimsIdentity(authenticationType: "test")
             : new ClaimsIdentity();
-        var services = new ServiceCollection();
-        services.AddSingleton(Mock.Of<IMediator>());
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(Mock.Of<IMediator>());
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(identity),
-            RequestServices = services.BuildServiceProvider(),
+            RequestServices = serviceCollection.BuildServiceProvider(),
         };
         // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
         httpContext.Features.Set<IOpenIdContextFeature>(

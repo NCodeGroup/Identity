@@ -29,10 +29,9 @@ public class TokenIntrospectionEndpointTests
     private const string BillingResourceServerId = "it-billing-rs";
     private const string BillingAudience = "https://billing.introspect.test";
     private const string BillingScope = "billing:read";
-    private const string ManagementScope = "read:clients";
     private const string JwtResponseMediaType = "application/token-introspection+jwt";
     private const string IntrospectPath = "/oauth2/introspect";
-    private const string TokenPath = "/oauth2/token";
+    private const string TokenPath = ManagementTokenRequest.DefaultTokenPath;
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     private static IReadOnlyDictionary<string, object> NoSettings { get; } =
@@ -45,7 +44,7 @@ public class TokenIntrospectionEndpointTests
 
     // The tenant's provisioned keys sign and encrypt its tokens, and the bootstrap administrator creates the clients that
     // act for resource servers through the management API.
-    private static async Task<HostApplicationFactory> CreateFactoryAsync(
+    private static async Task<BootstrapAdminApplicationFactory> CreateFactoryAsync(
         IReadOnlyDictionary<string, object> tenantSettings
     )
     {
@@ -65,40 +64,6 @@ public class TokenIntrospectionEndpointTests
 
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    )
-    {
-        var client = CreateHttpClient(factory);
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, TokenPath)
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = ManagementScope,
-                }
-            ),
-        };
-
-        var accessToken = await RequestAccessTokenAsync(client, tokenRequest);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
-        );
-        return client;
-    }
 
     private static async Task<string> RequestAccessTokenAsync(
         HttpClient client,
@@ -306,7 +271,9 @@ public class TokenIntrospectionEndpointTests
             BillingAudience,
             BillingScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId
@@ -358,7 +325,9 @@ public class TokenIntrospectionEndpointTests
             BillingAudience,
             BillingScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             BillingResourceServerId
@@ -381,7 +350,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId
@@ -414,7 +385,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         using var createResponse = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients",
             new
@@ -460,7 +433,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId
@@ -510,7 +485,9 @@ public class TokenIntrospectionEndpointTests
         );
 
         // The management token itself is encrypted to the tenant, and the management API reads it.
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var managementToken = administrator.DefaultRequestHeaders.Authorization?.Parameter;
         Assert.Equal(5, managementToken?.Split('.').Length);
 
@@ -539,7 +516,9 @@ public class TokenIntrospectionEndpointTests
             EncryptionRequired,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         using var keyResponse = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/resource-servers/{OrdersResourceServerId}/secrets",
             new
@@ -584,7 +563,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId
@@ -651,7 +632,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId,
@@ -769,7 +752,9 @@ public class TokenIntrospectionEndpointTests
             BillingAudience,
             BillingScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
             OrdersResourceServerId
@@ -812,7 +797,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
             OrdersResourceServerId
@@ -888,7 +875,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
             OrdersResourceServerId
@@ -920,7 +909,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
             OrdersResourceServerId
@@ -959,7 +950,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
             OrdersResourceServerId
@@ -993,7 +986,9 @@ public class TokenIntrospectionEndpointTests
             OrdersAudience,
             OrdersScope
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var initialAccessToken = await MintInitialAccessTokenAsync(
             administrator,
             OrdersResourceServerId
@@ -1045,7 +1040,9 @@ public class TokenIntrospectionEndpointTests
     public async Task PostInitialAccessToken_WhenTheResourceServerDoesNotExist_ReturnsBadRequest()
     {
         using var factory = await CreateFactoryAsync(NoSettings);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/grants/initial-access-tokens",
@@ -1060,7 +1057,9 @@ public class TokenIntrospectionEndpointTests
     public async Task PostInitialAccessToken_WithoutALifetime_ExpiresAfterOneDay()
     {
         using var factory = await CreateFactoryAsync(NoSettings);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/grants/initial-access-tokens",
@@ -1079,7 +1078,9 @@ public class TokenIntrospectionEndpointTests
     public async Task PostInitialAccessToken_WhenTheLifetimeExceedsThirtyDays_ReturnsBadRequest()
     {
         using var factory = await CreateFactoryAsync(NoSettings);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/grants/initial-access-tokens",

@@ -2,13 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -26,13 +24,9 @@ public class LocalAccountLifecycleTests
     private const string Password = "lifecycle-password";
     private const string NewPassword = "lifecycle-password-changed";
     private const string RedirectUri = "https://client.example/callback";
-    private const string ManagementScope = "read:clients";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     #region Scaffolding
-
-    private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
-        factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(
@@ -42,43 +36,6 @@ public class LocalAccountLifecycleTests
                 HandleCookies = false,
             }
         );
-
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    )
-    {
-        var client = CreateHttpClient(factory);
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = ManagementScope,
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(tokenRequest);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        var jsonElement = JsonElement.Parse(body);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            jsonElement.GetProperty("access_token").GetString()
-        );
-        return client;
-    }
 
     private static async Task<string> GetCodeAsync(
         HttpClient client,
@@ -307,7 +264,9 @@ public class LocalAccountLifecycleTests
         await factory.SeedPublicClientAsync(clientId, RedirectUri);
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsync(
             $"{TenantApiPath}/local-accounts/{localAccountId}/disable",
@@ -329,7 +288,9 @@ public class LocalAccountLifecycleTests
         await factory.SeedPublicClientAsync(clientId, RedirectUri);
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsync(
             $"{TenantApiPath}/local-accounts/{localAccountId}/password",
@@ -351,7 +312,9 @@ public class LocalAccountLifecycleTests
         await factory.SeedPublicClientAsync(clientId, RedirectUri);
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.DeleteAsync(
             $"{TenantApiPath}/local-accounts/{localAccountId}"
@@ -474,7 +437,9 @@ public class LocalAccountLifecycleTests
         var client = CreateClient(factory);
         var (_, userCode) = await StartDeviceAuthorizationAsync(client, clientId);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsync(
             $"{TenantApiPath}/local-accounts/{localAccountId}/disable",
@@ -497,7 +462,9 @@ public class LocalAccountLifecycleTests
         var client = CreateClient(factory);
         var refreshToken = await IssueRefreshTokenAsync(client, clientId);
         var principalId = await GetPrincipalIdAsync(factory, localAccountId);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsync(
             $"{TenantApiPath}/principals/{principalId}/block",
@@ -542,7 +509,9 @@ public class LocalAccountLifecycleTests
         const string userName = "policy-user";
         const string password = "policy-user-password";
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsync(
             $"{TenantApiPath}/local-accounts",
@@ -559,7 +528,9 @@ public class LocalAccountLifecycleTests
     public async Task Create_WhenThePolicyRefusesThePassword_AnswersBadRequest()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsync(
             $"{TenantApiPath}/local-accounts",
@@ -576,7 +547,9 @@ public class LocalAccountLifecycleTests
     {
         using var factory = new BootstrapAdminApplicationFactory();
         var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsync(
             $"{TenantApiPath}/local-accounts/{localAccountId}/password",
@@ -659,7 +632,9 @@ public class LocalAccountLifecycleTests
         );
         Assert.Null(InteractiveLogin.ReadSessionCookie(limitedResponse));
 
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         using var resetResponse = await administrator.PostAsync(
             $"{TenantApiPath}/local-accounts/{localAccountId}/password",
             JsonContent.Create(new { password = resetPassword })
@@ -682,7 +657,9 @@ public class LocalAccountLifecycleTests
         var client = CreateClient(factory);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var principalId = await GetPrincipalIdAsync(factory, localAccountId);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var blockResponse = await administrator.PostAsync(
             $"{TenantApiPath}/principals/{principalId}/block",

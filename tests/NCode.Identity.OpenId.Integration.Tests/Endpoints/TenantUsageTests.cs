@@ -3,12 +3,10 @@
 
 using System.Globalization;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -31,8 +29,8 @@ public class TenantUsageTests
         BootstrapAdminApplicationFactory host
     ) =>
         host.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services.Configure<TenantUsageOptions>(options =>
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection.Configure<TenantUsageOptions>(options =>
                     options.FlushInterval = TimeSpan.FromMilliseconds(50)
                 )
             )
@@ -72,43 +70,6 @@ public class TenantUsageTests
     private static HttpClient CreateClient(WebApplicationFactory<HostApiMarker> factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        WebApplicationFactory<HostApiMarker> factory
-    )
-    {
-        var client = CreateClient(factory);
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = "read:clients",
-                }
-            ),
-        };
-        using var tokenResponse = await client.SendAsync(tokenRequest);
-        var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
-        Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
-
-        var token = JsonElement.Parse(tokenBody);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            token.GetProperty("access_token").GetString()
-        );
-        return client;
-    }
-
     // An anonymous token request is metered: the endpoint rejects it, but no rate limit or quota refuses it.
     private static async Task<HttpStatusCode> PostAnonymousTokenRequestAsync(HttpClient client)
     {
@@ -138,7 +99,11 @@ public class TenantUsageTests
     {
         using var host = CreateHost();
         using var factory = CreateFactory(host);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator =
+            await BootstrapAdminApplicationFactory.TokenRequest.CreateClientAsync(
+                factory,
+                CancellationToken.None
+            );
         var client = CreateClient(factory);
 
         for (var i = 0; i < 3; ++i)
@@ -187,7 +152,11 @@ public class TenantUsageTests
             }
         );
         using var factory = CreateFactory(host);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator =
+            await BootstrapAdminApplicationFactory.TokenRequest.CreateClientAsync(
+                factory,
+                CancellationToken.None
+            );
         var client = CreateClient(factory);
 
         // The administrator's token request spent the first of the two requests the quota allows; the first anonymous
@@ -218,29 +187,14 @@ public class TenantUsageTests
             new Dictionary<string, string?> { [OpenIdSettingNames.RateLimitClientPerMinute] = "1" }
         );
         using var factory = CreateFactory(host);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator =
+            await BootstrapAdminApplicationFactory.TokenRequest.CreateClientAsync(
+                factory,
+                CancellationToken.None
+            );
         var client = CreateClient(factory);
 
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var refusedRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = "read:clients",
-                }
-            ),
-        };
+        using var refusedRequest = BootstrapAdminApplicationFactory.TokenRequest.CreateMessage();
         using (var refused = await client.SendAsync(refusedRequest))
             Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
         Assert.NotEqual(
@@ -262,7 +216,11 @@ public class TenantUsageTests
     {
         using var host = CreateHost();
         using var factory = CreateFactory(host);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator =
+            await BootstrapAdminApplicationFactory.TokenRequest.CreateClientAsync(
+                factory,
+                CancellationToken.None
+            );
 
         using var response = await administrator.GetAsync(
             $"{UsagePath}?from=2026-01-02&to=2026-01-01"

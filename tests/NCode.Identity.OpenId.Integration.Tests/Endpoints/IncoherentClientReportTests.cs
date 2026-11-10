@@ -36,9 +36,8 @@ public class IncoherentClientReportTests
             },
             RedirectUri
         );
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");
@@ -81,9 +80,8 @@ public class IncoherentClientReportTests
             },
             RedirectUri
         );
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");
@@ -112,9 +110,8 @@ public class IncoherentClientReportTests
     public async Task GetIncoherentClients_WhenEveryClientIsCoherent_ListsNoClient()
     {
         using var factory = CreateFactory();
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
 
         using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");

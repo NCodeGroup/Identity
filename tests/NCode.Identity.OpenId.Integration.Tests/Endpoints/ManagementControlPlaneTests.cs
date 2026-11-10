@@ -2,10 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
 
@@ -52,46 +50,6 @@ public class ManagementControlPlaneTests
             }
         );
 
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory,
-        string tokenPath
-    )
-    {
-        var client = factory.CreateClient();
-
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, tokenPath)
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = "read:clients",
-                }
-            ),
-        };
-        using var tokenResponse = await client.SendAsync(tokenRequest);
-        var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
-        Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
-
-        var token = JsonElement.Parse(tokenBody);
-        var accessToken = token.GetProperty("access_token").GetString();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
-        );
-        return client;
-    }
-
     private static async Task<JsonElement> CreateTenantAsync(
         HttpClient client,
         string tenantId,
@@ -132,7 +90,7 @@ public class ManagementControlPlaneTests
     public async Task CreateTenant_WhenReachedOnAHostThatIsNoTenants_AuthenticatesAgainstTheRootTenant()
     {
         using var factory = CreateHostFactory();
-        using var client = await CreateAdministratorClientAsync(factory, "/oauth2/token");
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         var created = await CreateTenantAsync(client, "acme", host: "manage.auth.test");
 
@@ -143,7 +101,7 @@ public class ManagementControlPlaneTests
     public async Task ListClients_WhenReachedOnAnotherTenantsHost_AuthenticatesAgainstTheRootTenant()
     {
         using var factory = CreateHostFactory();
-        using var client = await CreateAdministratorClientAsync(factory, "/oauth2/token");
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTenantAsync(client, "acme");
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants/acme/clients");
@@ -162,7 +120,10 @@ public class ManagementControlPlaneTests
     public async Task CreateTenant_WhenTheStrategyIsByPath_AuthenticatesAgainstTheRootTenant()
     {
         using var factory = CreatePathFactory();
-        using var client = await CreateAdministratorClientAsync(factory, "/root/oauth2/token");
+        using var client = await factory.CreateAdministratorClientAsync(
+            "/root/oauth2/token",
+            CancellationToken.None
+        );
 
         var created = await CreateTenantAsync(client, "acme");
 
@@ -173,7 +134,10 @@ public class ManagementControlPlaneTests
     public async Task ListClients_WhenTheStrategyIsByPath_AuthenticatesAgainstTheRootTenant()
     {
         using var factory = CreatePathFactory();
-        using var client = await CreateAdministratorClientAsync(factory, "/root/oauth2/token");
+        using var client = await factory.CreateAdministratorClientAsync(
+            "/root/oauth2/token",
+            CancellationToken.None
+        );
         await CreateTenantAsync(client, "acme");
 
         using var response = await client.GetAsync("/api/tenants/acme/clients");

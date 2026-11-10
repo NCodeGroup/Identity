@@ -55,11 +55,11 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task AddCoseAlgorithm_DefaultDescriptor_IsRegisteredOnce()
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        var cose = services.AddSecretsLibrary().AddJoseLibrary().AddCoseLibrary();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        var cose = serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddCoseLibrary();
         cose.AddCoseAlgorithm(CoseAlgorithms.Es256);
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
 
         var descriptors = provider.GetServices<CoseAlgorithm>().ToList();
 
@@ -81,8 +81,8 @@ public class DefaultRegistrationTests
     [Fact]
     public void AddCoseAlgorithm_NullAlgorithm_Throws()
     {
-        var services = new ServiceCollection();
-        var cose = services.AddSecretsLibrary().AddJoseLibrary().AddCoseLibrary();
+        var serviceCollection = new ServiceCollection();
+        var cose = serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddCoseLibrary();
 
         Assert.Throws<ArgumentNullException>(() => cose.AddCoseAlgorithm(null!));
     }

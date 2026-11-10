@@ -52,32 +52,36 @@ public class TokenClientDPoPEndToEndTests
         ECDsa keyB
     )
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary().AddOpenIdClientLibrary();
-        services
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddJoseLibrary()
+            .AddJwtLibrary()
+            .AddOpenIdClientLibrary();
+        serviceCollection
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler())
             .AddHttpMessageHandler(() => new RecordingHttpMessageHandler(exchanges));
 
         AddRing(
-            services,
+            serviceCollection,
             SecretKeyRing,
             keyFactory =>
                 [keyFactory.CreateSymmetric(new KeyMetadata { KeyId = "s" }, ClientSecret.AsSpan())]
         );
         AddRing(
-            services,
+            serviceCollection,
             KeyRingA,
             keyFactory => [keyFactory.CreateEcc(new KeyMetadata { KeyId = $"{KeyRingA}-a" }, keyA)]
         );
         AddRing(
-            services,
+            serviceCollection,
             KeyRingB,
             keyFactory => [keyFactory.CreateEcc(new KeyMetadata { KeyId = $"{KeyRingB}-b" }, keyB)]
         );
         AddRing(
-            services,
+            serviceCollection,
             RotatedKeyRing,
             keyFactory =>
                 [
@@ -85,15 +89,15 @@ public class TokenClientDPoPEndToEndTests
                     keyFactory.CreateEcc(new KeyMetadata { KeyId = $"{RotatedKeyRing}-a" }, keyA),
                 ]
         );
-        return services.BuildServiceProvider();
+        return serviceCollection.BuildServiceProvider();
     }
 
     private static void AddRing(
-        ServiceCollection services,
+        ServiceCollection serviceCollection,
         string name,
         Func<ISecretKeyFactory, SecretKey[]> createKeys
     ) =>
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             name,
             (serviceProvider, _) =>
                 serviceProvider

@@ -31,20 +31,22 @@ public class BffFrontendReloadEndToEndTests
     public async Task Login_FrontendAddedAndRemovedAtRunTime_FollowsTheConfiguration()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             BffTestHost.ClientId,
             BffTestHost.ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             NoSettings,
-            BffTestHost.CallbackUri
+            [BffTestHost.CallbackUri],
+            CancellationToken.None
         );
         await factory.SeedSharedSecretClientWithSettingsAsync(
             AdminClientId,
             BffTestHost.ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             NoSettings,
-            AdminCallbackUri
+            [AdminCallbackUri],
+            CancellationToken.None
         );
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         var reloadable = new BffReloadableConfiguration();
@@ -63,7 +65,12 @@ public class BffFrontendReloadEndToEndTests
                 HandleCookies = false,
             }
         );
-        var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var providerSession = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var csrf = (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue);
         const string adminLoginPath = "/admin/bff/login?returnUrl=%2Fadmin";
         const string adminUserPath = "/admin/bff/user";

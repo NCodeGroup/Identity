@@ -84,7 +84,7 @@ public class LogoutTokenValidatorEndToEndTests
             KeyRing = KeyRing,
         };
 
-    private static Task SeedClientAsync(
+    private static ValueTask SeedClientAsync(
         HostApplicationFactory factory,
         string clientId,
         IReadOnlyDictionary<string, object> settings
@@ -94,7 +94,8 @@ public class LogoutTokenValidatorEndToEndTests
             ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             settings,
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
     private static HttpClient CreateBrowser(HostApplicationFactory factory) =>
@@ -183,7 +184,8 @@ public class LogoutTokenValidatorEndToEndTests
         using var response = await InteractiveLogin.ConfirmEndSessionAsync(
             browser,
             EndSessionPath,
-            sessionCookie
+            sessionCookie,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -237,7 +239,7 @@ public class LogoutTokenValidatorEndToEndTests
 
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         using var factory = new HostApplicationFactory { BackChannelLogoutExchanges = exchanges };
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await SeedClientAsync(
             factory,
             clientId,
@@ -249,7 +251,12 @@ public class LogoutTokenValidatorEndToEndTests
         await using var provider = CreateClientProvider(factory);
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var idTokenPayload = await RequestIdTokenAsync(
             browser,
             sessionCookie,
@@ -279,7 +286,7 @@ public class LogoutTokenValidatorEndToEndTests
 
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         using var factory = new HostApplicationFactory { BackChannelLogoutExchanges = exchanges };
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await SeedClientAsync(factory, publicClientId, new Dictionary<string, object>());
         await SeedClientAsync(
             factory,
@@ -294,7 +301,12 @@ public class LogoutTokenValidatorEndToEndTests
         var publicRegistration = CreateRegistration(publicClientId);
         var pairwiseRegistration = CreateRegistration(pairwiseClientId);
         var browser = CreateBrowser(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var publicPayload = await RequestIdTokenAsync(
             browser,
             sessionCookie,
@@ -325,7 +337,7 @@ public class LogoutTokenValidatorEndToEndTests
 
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         using var factory = new HostApplicationFactory { BackChannelLogoutExchanges = exchanges };
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await SeedClientAsync(
             factory,
             clientId,
@@ -337,7 +349,12 @@ public class LogoutTokenValidatorEndToEndTests
         await using var provider = CreateClientProvider(factory);
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         await RequestIdTokenAsync(browser, sessionCookie, provider, registration);
 
         await EndSessionAsync(browser, sessionCookie);
@@ -356,7 +373,7 @@ public class LogoutTokenValidatorEndToEndTests
 
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         using var factory = new HostApplicationFactory { BackChannelLogoutExchanges = exchanges };
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await SeedClientAsync(
             factory,
             clientId,
@@ -368,7 +385,12 @@ public class LogoutTokenValidatorEndToEndTests
         await using var provider = CreateClientProvider(factory);
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         await RequestIdTokenAsync(browser, sessionCookie, provider, registration);
 
         await EndSessionAsync(browser, sessionCookie);

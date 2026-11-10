@@ -99,7 +99,7 @@ public class ManagementConsoleEndToEndTests
         using var provider = new ManagementConsoleSeedingHostApplicationFactory(
             CreateClientJwks(clientKey)
         );
-        await provider.SeedLocalAccountAsync(UserName, Password);
+        await provider.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
 
         using var providerBrowser = provider.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -130,7 +130,8 @@ public class ManagementConsoleEndToEndTests
         var providerSession = await InteractiveLogin.SignInAsync(
             providerBrowser,
             UserName,
-            Password
+            Password,
+            CancellationToken.None
         );
 
         using var login = await SendAsync(

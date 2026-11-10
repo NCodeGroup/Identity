@@ -1,3 +1,4 @@
+import { FAMILY_ICON_FILE_NAMES, FAMILY_ICON_LINKS } from '@ncode/test-support';
 import { describe, expect, it } from 'vitest';
 import indexHtml from '../index.html?raw';
 
@@ -13,20 +14,11 @@ describe('the family icon set', () => {
       link.getAttribute('sizes'),
       link.getAttribute('type'),
     ]);
-    expect(links).toEqual([
-      ['icon', './favicon/favicon.ico', '32x32', null],
-      ['icon', './favicon/favicon.svg', null, 'image/svg+xml'],
-      ['apple-touch-icon', './favicon/apple-touch-icon.png', null, null],
-    ]);
+    expect(links).toEqual(FAMILY_ICON_LINKS);
   });
 
   it('is carried beside the index', () => {
-    expect(new Set(Object.keys(carried))).toEqual(
-      new Set([
-        '../favicon/apple-touch-icon.png',
-        '../favicon/favicon.ico',
-        '../favicon/favicon.svg',
-      ]),
-    );
+    const carriedNames = Object.keys(carried).map((path) => path.slice('../favicon/'.length));
+    expect(new Set(carriedNames)).toEqual(new Set(FAMILY_ICON_FILE_NAMES));
   });
 });

@@ -24,17 +24,32 @@ than inlining the rationale.
 
 ## 1. Language & async
 
-- 👁 **Async methods return `ValueTask`, end in `Async` and take the `CancellationToken` last** — template
-  [Language and Async](csharp.instructions.md#language-and-async); a mediator handler whose contract returns `Task` is
-  a framework boundary too.
-- 👁 **Every async method of ours takes a `CancellationToken`, even when none of its awaited calls takes one** — such
+- ✅ **Async methods return `ValueTask`, end in `Async` and take the `CancellationToken` last** — template
+  [Language and Async](csharp.instructions.md#language-and-async); `NCID0002` reports a method that returns `Task` or
+  `Task<T>`
+  ([ADR-1495](../../docs/decisions/1495-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md)).
+  A mediator handler whose contract returns `Task` is a framework boundary too.
+- ✅ **Every async method of ours takes a `CancellationToken`, even when none of its awaited calls takes one** — such
   as one whose only asynchronous call is `IAuthorizationService.AuthorizeAsync`. The token is part of the method's
   contract, so a call added later honors it; a root call site with no token in hand passes `CancellationToken.None`.
-  The exception is a method whose whole work follows a committed change and runs on its own bounded token through
-  `PostCommitWork`, such as every `IManagementAuditRecorder` and `IPostCommitSecurityEffects` method: it takes no
-  `CancellationToken`, so no caller can pass one that drops the effect
-  ([ADR-1464](../../docs/decisions/1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md),
+  `NCID0003` reports an async method whose last parameter is not a `CancellationToken`
+  ([ADR-1495](../../docs/decisions/1495-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md)).
+  The first exception is a method whose whole work follows a committed change and runs on its own bounded token
+  through `PostCommitWork`, such as every `IManagementAuditRecorder` and `IPostCommitSecurityEffects` method: it takes
+  no `CancellationToken`, so no caller can pass one that drops the effect
+  ([ADR-1351](../../docs/decisions/1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md),
+  [ADR-1464](../../docs/decisions/1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md),
   [ADR-1468](../../docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
+  The second is a method an ADR makes uncancellable: its whole awaited work runs on `CancellationToken.None` because a
+  caller's abort must not drop it
+  ([ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
+  [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
+  [ADR-1308](../../docs/decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
+  It takes no token either, since a parameter it ignores would misstate its cancellation. Each such type or wrapper
+  carries a
+  `[SuppressMessage("Design", "NCID0003", Justification = "...")]` whose justification cites the ADR. The analyzer
+  skips, without a suppression, a method group handed to an ASP.NET Core API, an xUnit test method, a middleware
+  `Invoke`/`InvokeAsync`, an entry point, `DisposeAsyncCore` and an override or implementation of a foreign member.
 - ✅ **No sync-over-async** — template [Language and Async](csharp.instructions.md#language-and-async);
   [`build/BannedSymbols.txt`](../../build/BannedSymbols.txt) bans it in every project, tests included (`RS0030`).
 - 👁 **Fire-and-forget offloads use `Task.Run`, never `Task.Factory.StartNew` with an `async` delegate** — template

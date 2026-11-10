@@ -80,7 +80,7 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
                     pending.Dequeue();
 
                     // A message published before the subscription took effect never reached this replica.
-                    await HandleMissedMessagesAsync(channel);
+                    await HandleMissedMessagesAsync(channel, CancellationToken.None);
                 }
             }
             catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
@@ -103,7 +103,7 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
     // The connection restores every subscription, but a message published while it was down is lost. Any connection type
     // counts, because RESP3 carries pub/sub on the interactive connection.
     private void OnConnectionRestored(object? sender, ConnectionFailedEventArgs args) =>
-        _ = Task.Run(() => InvokeMissedMessagesAsync(Handlers));
+        _ = Task.Run(() => InvokeMissedMessagesAsync(Handlers, CancellationToken.None).AsTask());
 
     /// <inheritdoc />
     public override async Task StopAsync(CancellationToken cancellationToken)
@@ -120,7 +120,9 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
 
     private void OnMessage(string channel, RedisValue value)
     {
-        _ = Task.Run(() => DispatchAsync(channel, value.ToString()));
+        _ = Task.Run(() =>
+            DispatchAsync(channel, value.ToString(), CancellationToken.None).AsTask()
+        );
     }
 
     /// <summary>
@@ -129,8 +131,13 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
     /// </summary>
     /// <param name="channel">The channel the message was published on, without the key prefix.</param>
     /// <param name="message">The message that was published.</param>
-    /// <returns>A <see cref="Task"/> that completes once every handler of the channel has run.</returns>
-    internal async Task DispatchAsync(string channel, string message)
+    /// <param name="cancellationToken">The token that is passed to every handler.</param>
+    /// <returns>A <see cref="ValueTask"/> that completes once every handler of the channel has run.</returns>
+    internal async ValueTask DispatchAsync(
+        string channel,
+        string message,
+        CancellationToken cancellationToken
+    )
     {
         foreach (var handler in Handlers)
         {
@@ -139,7 +146,7 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
 
             try
             {
-                await handler.HandleAsync(message, CancellationToken.None);
+                await handler.HandleAsync(message, cancellationToken);
             }
             catch (Exception exception)
             {
@@ -153,21 +160,29 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
     /// remaining handlers are still told.
     /// </summary>
     /// <param name="channel">The channel that was subscribed, without the key prefix.</param>
-    /// <returns>A <see cref="Task"/> that completes once every handler of the channel has run.</returns>
-    internal Task HandleMissedMessagesAsync(string channel) =>
+    /// <param name="cancellationToken">The token that is passed to every handler.</param>
+    /// <returns>A <see cref="ValueTask"/> that completes once every handler of the channel has run.</returns>
+    internal ValueTask HandleMissedMessagesAsync(
+        string channel,
+        CancellationToken cancellationToken
+    ) =>
         InvokeMissedMessagesAsync(
             Handlers.Where(handler =>
                 string.Equals(handler.Channel, channel, StringComparison.Ordinal)
-            )
+            ),
+            cancellationToken
         );
 
-    private async Task InvokeMissedMessagesAsync(IEnumerable<IReplicaBroadcastHandler> handlers)
+    private async ValueTask InvokeMissedMessagesAsync(
+        IEnumerable<IReplicaBroadcastHandler> handlers,
+        CancellationToken cancellationToken
+    )
     {
         foreach (var handler in handlers)
         {
             try
             {
-                await handler.HandleMissedMessagesAsync(CancellationToken.None);
+                await handler.HandleMissedMessagesAsync(cancellationToken);
             }
             catch (Exception exception)
             {

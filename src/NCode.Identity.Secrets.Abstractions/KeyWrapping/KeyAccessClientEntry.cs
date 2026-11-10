@@ -44,9 +44,12 @@ internal sealed class KeyAccessClientEntry<TClient>(
     /// <summary>
     /// Gets the task that creates the client on its first request and is shared by every use.
     /// </summary>
-    /// <returns>The task that completes with the client.</returns>
-    public Task<TClient> GetClientAsync() =>
-        LazyInitializer.EnsureInitialized(ref _creation, ref _creationLock, CreateAsync);
+    public Task<TClient> Creation =>
+        LazyInitializer.EnsureInitialized(
+            ref _creation,
+            ref _creationLock,
+            () => CreateAsync(CancellationToken.None).AsTask()
+        );
 
     /// <summary>
     /// Registers a use of the entry.
@@ -117,10 +120,11 @@ internal sealed class KeyAccessClientEntry<TClient>(
     /// Creates the client without a caller's cancellation, so that the shared creation is never faulted by one caller,
     /// publishes it, and disposes it at once when the entry was released while it was being created.
     /// </summary>
+    /// <param name="cancellationToken">The token that is passed to the creation of the client.</param>
     /// <returns>The client.</returns>
-    private async Task<TClient> CreateAsync()
+    private async ValueTask<TClient> CreateAsync(CancellationToken cancellationToken)
     {
-        var client = await create(CancellationToken.None).ConfigureAwait(false);
+        var client = await create(cancellationToken).ConfigureAwait(false);
 
         // a full fence, so that this publication and a concurrent release can never both miss each other
         Interlocked.Exchange(ref _client, client);

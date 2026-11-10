@@ -105,13 +105,14 @@ internal class ValkeyExpiringValueSet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.ValueSetTryAddOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 return await database
                     .StringSetAsync(GetKey(key), stored, expiration, ValueCondition.NotExists)
                     .WaitAsync(cancellationToken);
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -122,13 +123,14 @@ internal class ValkeyExpiringValueSet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.ValueSetGetOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 var value = await database.StringGetAsync(GetKey(key)).WaitAsync(cancellationToken);
 
                 return value.IsNull ? (ExpiringValue?)null : Decode(ToBytes(value));
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -154,7 +156,7 @@ internal class ValkeyExpiringValueSet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.ValueSetTryReplaceOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 var result = await database
@@ -166,7 +168,8 @@ internal class ValkeyExpiringValueSet(
                     .WaitAsync(cancellationToken);
 
                 return (long)result == 1;
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -180,7 +183,7 @@ internal class ValkeyExpiringValueSet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.ValueSetTryTakeOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 var value = await database
@@ -188,7 +191,8 @@ internal class ValkeyExpiringValueSet(
                     .WaitAsync(cancellationToken);
 
                 return value.IsNull ? (ExpiringValue?)null : Decode(ToBytes(value));
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -207,7 +211,7 @@ internal class ValkeyExpiringValueSet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.ValueSetTryRemoveOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 var result = await database
@@ -215,7 +219,8 @@ internal class ValkeyExpiringValueSet(
                     .WaitAsync(cancellationToken);
 
                 return (long)result == 1;
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -226,11 +231,12 @@ internal class ValkeyExpiringValueSet(
 
         await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.ValueSetRemoveOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 await database.KeyDeleteAsync(GetKey(key)).WaitAsync(cancellationToken);
-            }
+            },
+            cancellationToken
         );
     }
 

@@ -42,13 +42,14 @@ internal sealed class ValkeyReplicaBroadcaster(
 
         await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.BroadcastPublishOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var subscriber = await Connection.GetSubscriberAsync(cancellationToken);
                 await subscriber
                     .PublishAsync(RedisChannel.Literal(KeyPrefix + channel), message)
                     .WaitAsync(cancellationToken);
-            }
+            },
+            cancellationToken
         );
     }
 }

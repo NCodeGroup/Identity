@@ -39,14 +39,14 @@ internal sealed class JobDispatchWorker(
         var consumers = new Task[OptionsAccessor.Value.MaxConcurrentJobs];
         for (var index = 0; index < consumers.Length; index++)
         {
-            consumers[index] = ConsumeAsync(stoppingToken);
+            consumers[index] = ConsumeAsync(stoppingToken).AsTask();
         }
 
         await Task.WhenAll(consumers);
     }
 
-    // A Task, not a ValueTask, because Task.WhenAll awaits the consumers together.
-    private async Task ConsumeAsync(CancellationToken stoppingToken)
+    // The consumers are tasks because Task.WhenAll awaits them together.
+    private async ValueTask ConsumeAsync(CancellationToken stoppingToken)
     {
         try
         {
@@ -155,7 +155,7 @@ internal sealed class JobDispatchWorker(
 
         var backoff = ComputeBackoff(item.Options, item.Attempt);
         var next = item with { Attempt = item.Attempt + 1 };
-        _ = Queue.EnqueueAfterAsync(next, backoff, stoppingToken);
+        _ = Queue.EnqueueAfterAsync(next, backoff, stoppingToken).AsTask();
     }
 
     private static TimeSpan ComputeBackoff(DispatchOptions options, int attempt)

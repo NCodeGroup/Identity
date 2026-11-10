@@ -63,7 +63,7 @@ public sealed class KeyAccessClientCache<TClient>(TimeProvider timeProvider, Tim
 
         try
         {
-            var clientTask = entry.GetClientAsync();
+            var clientTask = entry.Creation;
 
             TClient client;
             try

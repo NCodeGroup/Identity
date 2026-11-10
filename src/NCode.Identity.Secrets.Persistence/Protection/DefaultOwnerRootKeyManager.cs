@@ -717,6 +717,11 @@ internal sealed class DefaultOwnerRootKeyManager(
 
     // Completes a committed set on a bounded token of its own, so that the caller's cancellation cannot cut it short. A
     // completion that fails leaves the committed binding as it is, and the validation service finishes it.
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    )]
     private async ValueTask<(
         MasterKeyRotation? Rotation,
         MasterKeyRewrapResult Rewrap
@@ -743,6 +748,11 @@ internal sealed class DefaultOwnerRootKeyManager(
 
     // Completes a committed removal on a bounded token of its own, so that the caller's cancellation cannot cut it
     // short. A completion that fails leaves the committed binding as it is, and the validation service finishes it.
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    )]
     private async ValueTask<(
         OwnerRootKeyInfo? Remaining,
         MasterKeyRewrapResult Rewrap
@@ -771,6 +781,11 @@ internal sealed class DefaultOwnerRootKeyManager(
     }
 
     // Calls every observer on a bounded token of its own and swallows each failure, since the change is committed.
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    )]
     private async ValueTask NotifyAsync(SecretOwner key)
     {
         foreach (var observer in Observers)

@@ -42,7 +42,9 @@ internal sealed class DefaultInProcessJobDispatcher(
         if (resolvedOptions.Delay is { } delay && delay > TimeSpan.Zero)
         {
             // Fire-and-forget: the delayed enqueue is bounded by the application-stopping token.
-            _ = Queue.EnqueueAfterAsync(item, delay, ApplicationLifetime.ApplicationStopping);
+            _ = Queue
+                .EnqueueAfterAsync(item, delay, ApplicationLifetime.ApplicationStopping)
+                .AsTask();
         }
         else
         {

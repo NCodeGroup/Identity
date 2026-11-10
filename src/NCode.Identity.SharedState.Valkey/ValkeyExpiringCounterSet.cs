@@ -89,7 +89,7 @@ internal class ValkeyExpiringCounterSet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.CounterIncrementOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 var result = await database
@@ -97,7 +97,8 @@ internal class ValkeyExpiringCounterSet(
                     .WaitAsync(cancellationToken);
 
                 return (long)result;
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -133,7 +134,7 @@ internal class ValkeyExpiringCounterSet(
 
         var results = await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.CounterIncrementUntilExceededOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 var result = await database
@@ -141,7 +142,8 @@ internal class ValkeyExpiringCounterSet(
                     .WaitAsync(cancellationToken);
 
                 return (long[]?)result ?? [];
-            }
+            },
+            cancellationToken
         );
 
         var counts = new List<ExpiringCounterCount>(results.Length / 2);
@@ -158,13 +160,14 @@ internal class ValkeyExpiringCounterSet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.CounterGetOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 var value = await database.StringGetAsync(GetKey(key)).WaitAsync(cancellationToken);
 
                 return value.IsNull ? 0L : (long)value;
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -175,11 +178,12 @@ internal class ValkeyExpiringCounterSet(
 
         await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.CounterRemoveOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 await database.KeyDeleteAsync(GetKey(key)).WaitAsync(cancellationToken);
-            }
+            },
+            cancellationToken
         );
     }
 

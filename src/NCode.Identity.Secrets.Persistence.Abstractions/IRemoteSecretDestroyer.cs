@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.RemoteKeys;
@@ -14,6 +15,11 @@ namespace NCode.Identity.Secrets.Persistence;
 /// </summary>
 // See ADR-1468 and ADR-1471.
 [PublicAPI]
+[SuppressMessage(
+    "Design",
+    "NCID0003",
+    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+)]
 public interface IRemoteSecretDestroyer
 {
     /// <summary>

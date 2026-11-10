@@ -83,17 +83,19 @@ internal sealed class ValkeySharedStateMetrics
     /// </summary>
     /// <typeparam name="TResult">The type of the value the operation returns.</typeparam>
     /// <param name="operation">The bounded operation name, such as <c>counter.increment</c>.</param>
-    /// <param name="action">The operation to run and measure.</param>
+    /// <param name="action">The operation to run and measure; it receives <paramref name="cancellationToken"/>.</param>
+    /// <param name="cancellationToken">The token that is passed to the operation.</param>
     /// <returns>The value the operation returned. An exception the operation threw is rethrown.</returns>
     public async ValueTask<TResult> MeasureAsync<TResult>(
         string operation,
-        Func<ValueTask<TResult>> action
+        Func<CancellationToken, ValueTask<TResult>> action,
+        CancellationToken cancellationToken
     )
     {
         var startTimestamp = Stopwatch.GetTimestamp();
         try
         {
-            var result = await action();
+            var result = await action(cancellationToken);
 
             OperationCompleted(operation, startTimestamp, exception: null);
             return result;
@@ -109,14 +111,19 @@ internal sealed class ValkeySharedStateMetrics
     /// Runs an operation against the store and records its duration, tagged with the exception's type when it throws.
     /// </summary>
     /// <param name="operation">The bounded operation name, such as <c>broadcast.publish</c>.</param>
-    /// <param name="action">The operation to run and measure.</param>
+    /// <param name="action">The operation to run and measure; it receives <paramref name="cancellationToken"/>.</param>
+    /// <param name="cancellationToken">The token that is passed to the operation.</param>
     /// <returns>A task that completes when the operation has completed. An exception it threw is rethrown.</returns>
-    public async ValueTask MeasureAsync(string operation, Func<ValueTask> action)
+    public async ValueTask MeasureAsync(
+        string operation,
+        Func<CancellationToken, ValueTask> action,
+        CancellationToken cancellationToken
+    )
     {
         var startTimestamp = Stopwatch.GetTimestamp();
         try
         {
-            await action();
+            await action(cancellationToken);
 
             OperationCompleted(operation, startTimestamp, exception: null);
         }

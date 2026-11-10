@@ -57,7 +57,7 @@ internal sealed class InProcessJobQueue
     /// Enqueues a work item after the supplied delay, used for an initial scheduled delay and for retry back-off. A
     /// cancellation (process shutdown) silently abandons the pending enqueue; a full queue drops the job and logs it.
     /// </summary>
-    public async Task EnqueueAfterAsync(
+    public async ValueTask EnqueueAfterAsync(
         DispatchWorkItem item,
         TimeSpan delay,
         CancellationToken cancellationToken

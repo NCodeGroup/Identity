@@ -45,11 +45,12 @@ public class AuthorizationCodePkceTests
             }
         );
 
-    private static async Task<HttpResponseMessage> AuthorizeAsync(
+    private static async ValueTask<HttpResponseMessage> AuthorizeAsync(
         HttpClient client,
         string sessionCookie,
         string clientId,
-        string extraQuery
+        string extraQuery,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -63,17 +64,24 @@ public class AuthorizationCodePkceTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<string> GetCodeAsync(
+    private static async ValueTask<string> GetCodeAsync(
         HttpClient client,
         string sessionCookie,
         string clientId,
-        string extraQuery
+        string extraQuery,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await AuthorizeAsync(client, sessionCookie, clientId, extraQuery);
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            extraQuery,
+            cancellationToken
+        );
         var parameters = GetRedirectParameters(response);
 
         var code = parameters["code"];
@@ -90,11 +98,12 @@ public class AuthorizationCodePkceTests
         return HttpUtility.ParseQueryString(location.Query);
     }
 
-    private static async Task<(HttpStatusCode StatusCode, JsonElement Body)> RedeemAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, JsonElement Body)> RedeemAsync(
         HttpClient client,
         string code,
         Dictionary<string, string> clientParameters,
-        AuthenticationHeaderValue? authorization = null
+        AuthenticationHeaderValue? authorization,
+        CancellationToken cancellationToken
     )
     {
         var form = new Dictionary<string, string>(clientParameters)
@@ -107,15 +116,15 @@ public class AuthorizationCodePkceTests
         request.Headers.Authorization = authorization;
         request.Content = new FormUrlEncodedContent(form);
 
-        using var response = await client.SendAsync(request);
-        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.SendAsync(request, cancellationToken);
+        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         return (response.StatusCode, body);
     }
 
-    private static async Task<(
+    private static async ValueTask<(
         string ClientId,
         string ClientSecret
-    )> RegisterConfidentialClientAsync(HttpClient client)
+    )> RegisterConfidentialClientAsync(HttpClient client, CancellationToken cancellationToken)
     {
         using var response = await client.PostAsJsonAsync(
             "/oauth2/register",
@@ -125,9 +134,10 @@ public class AuthorizationCodePkceTests
                 ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
 
         var registration = JsonElement.Parse(body);
@@ -167,7 +177,13 @@ public class AuthorizationCodePkceTests
             CancellationToken.None
         );
 
-        var code = await GetCodeAsync(client, sessionCookie, clientId, TestPkce.QueryParameters);
+        var code = await GetCodeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            TestPkce.QueryParameters,
+            CancellationToken.None
+        );
         var (statusCode, body) = await RedeemAsync(
             client,
             code,
@@ -175,7 +191,9 @@ public class AuthorizationCodePkceTests
             {
                 ["client_id"] = clientId,
                 ["code_verifier"] = TestPkce.CodeVerifier,
-            }
+            },
+            authorization: null,
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.OK, body.ToString());
@@ -198,7 +216,13 @@ public class AuthorizationCodePkceTests
             CancellationToken.None
         );
 
-        var code = await GetCodeAsync(client, sessionCookie, clientId, TestPkce.QueryParameters);
+        var code = await GetCodeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            TestPkce.QueryParameters,
+            CancellationToken.None
+        );
         var (statusCode, body) = await RedeemAsync(
             client,
             code,
@@ -206,7 +230,9 @@ public class AuthorizationCodePkceTests
             {
                 ["client_id"] = clientId,
                 ["code_verifier"] = otherVerifier,
-            }
+            },
+            authorization: null,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, statusCode);
@@ -220,7 +246,7 @@ public class AuthorizationCodePkceTests
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var (clientId, _) = await RegisterConfidentialClientAsync(client);
+        var (clientId, _) = await RegisterConfidentialClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
@@ -232,7 +258,8 @@ public class AuthorizationCodePkceTests
             client,
             sessionCookie,
             clientId,
-            $"&nonce={Nonce}"
+            $"&nonce={Nonce}",
+            CancellationToken.None
         );
 
         Assert.Equal("invalid_request", GetRedirectParameters(response)["error"]);
@@ -248,7 +275,10 @@ public class AuthorizationCodePkceTests
         using var factory = new ConfiguredHostApplicationFactory(NonceExemptionConfiguration);
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var (clientId, clientSecret) = await RegisterConfidentialClientAsync(client);
+        var (clientId, clientSecret) = await RegisterConfidentialClientAsync(
+            client,
+            CancellationToken.None
+        );
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
@@ -256,12 +286,19 @@ public class AuthorizationCodePkceTests
             CancellationToken.None
         );
 
-        var code = await GetCodeAsync(client, sessionCookie, clientId, $"&nonce={Nonce}");
+        var code = await GetCodeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            $"&nonce={Nonce}",
+            CancellationToken.None
+        );
         var (statusCode, body) = await RedeemAsync(
             client,
             code,
             [],
-            CreateBasicAuthorization(clientId, clientSecret)
+            CreateBasicAuthorization(clientId, clientSecret),
+            CancellationToken.None
         );
 
         // The ID Token carries the nonce back, which is how the client detects an injected code.
@@ -275,7 +312,7 @@ public class AuthorizationCodePkceTests
         using var factory = new ConfiguredHostApplicationFactory(NonceExemptionConfiguration);
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var (clientId, _) = await RegisterConfidentialClientAsync(client);
+        var (clientId, _) = await RegisterConfidentialClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
@@ -283,11 +320,19 @@ public class AuthorizationCodePkceTests
             CancellationToken.None
         );
 
-        var code = await GetCodeAsync(client, sessionCookie, clientId, $"&nonce={Nonce}");
+        var code = await GetCodeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            $"&nonce={Nonce}",
+            CancellationToken.None
+        );
         var (statusCode, body) = await RedeemAsync(
             client,
             code,
-            new Dictionary<string, string> { ["client_id"] = clientId }
+            new Dictionary<string, string> { ["client_id"] = clientId },
+            authorization: null,
+            CancellationToken.None
         );
 
         // A confidential client authenticates only with its registered method, so a redemption that presents just the
@@ -304,7 +349,7 @@ public class AuthorizationCodePkceTests
         using var factory = new ConfiguredHostApplicationFactory(NonceExemptionConfiguration);
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var (clientId, _) = await RegisterConfidentialClientAsync(client);
+        var (clientId, _) = await RegisterConfidentialClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
@@ -312,7 +357,13 @@ public class AuthorizationCodePkceTests
             CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(client, sessionCookie, clientId, string.Empty);
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            string.Empty,
+            CancellationToken.None
+        );
 
         Assert.Equal("invalid_request", GetRedirectParameters(response)["error"]);
     }

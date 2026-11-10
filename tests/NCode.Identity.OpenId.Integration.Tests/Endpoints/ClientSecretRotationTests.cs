@@ -25,24 +25,44 @@ public class ClientSecretRotationTests
         );
         var client = CreateHttpClient(factory);
 
-        var clientId = await CreateClientAsync(administrator);
-        var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
-        var authenticationError = await AuthenticateAsync(client, clientId, secretMaterial);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
+        var (secretId, secretMaterial) = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
+        var authenticationError = await AuthenticateAsync(
+            client,
+            clientId,
+            secretMaterial,
+            CancellationToken.None
+        );
         Assert.Null(authenticationError);
 
         var (replacementId, replacementMaterial) = await RotateAsync(
             administrator,
             clientId,
             secretId,
-            DateTimeOffset.UtcNow.AddDays(7)
+            DateTimeOffset.UtcNow.AddDays(7),
+            CancellationToken.None
         );
         Assert.NotEqual(secretId, replacementId);
         Assert.False(string.IsNullOrEmpty(replacementMaterial));
 
         // Both authenticate while the holder switches.
-        var replacementError = await AuthenticateAsync(client, clientId, replacementMaterial);
+        var replacementError = await AuthenticateAsync(
+            client,
+            clientId,
+            replacementMaterial,
+            CancellationToken.None
+        );
         Assert.Null(replacementError);
-        var rotatedSecretError = await AuthenticateAsync(client, clientId, secretMaterial);
+        var rotatedSecretError = await AuthenticateAsync(
+            client,
+            clientId,
+            secretMaterial,
+            CancellationToken.None
+        );
         Assert.Null(rotatedSecretError);
 
         // Both are listed without their material.
@@ -62,9 +82,19 @@ public class ClientSecretRotationTests
         );
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        var deletedSecretError = await AuthenticateAsync(client, clientId, secretMaterial);
+        var deletedSecretError = await AuthenticateAsync(
+            client,
+            clientId,
+            secretMaterial,
+            CancellationToken.None
+        );
         Assert.Equal("invalid_client", deletedSecretError);
-        var retainedSecretError = await AuthenticateAsync(client, clientId, replacementMaterial);
+        var retainedSecretError = await AuthenticateAsync(
+            client,
+            clientId,
+            replacementMaterial,
+            CancellationToken.None
+        );
         Assert.Null(retainedSecretError);
     }
 
@@ -77,19 +107,34 @@ public class ClientSecretRotationTests
         );
         var client = CreateHttpClient(factory);
 
-        var clientId = await CreateClientAsync(administrator);
-        var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
+        var (secretId, secretMaterial) = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
 
         var (_, replacementMaterial) = await RotateAsync(
             administrator,
             clientId,
             secretId,
-            DateTimeOffset.UtcNow.AddMinutes(-1)
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            CancellationToken.None
         );
 
-        var expiredSecretError = await AuthenticateAsync(client, clientId, secretMaterial);
+        var expiredSecretError = await AuthenticateAsync(
+            client,
+            clientId,
+            secretMaterial,
+            CancellationToken.None
+        );
         Assert.Equal("invalid_client", expiredSecretError);
-        var replacementError = await AuthenticateAsync(client, clientId, replacementMaterial);
+        var replacementError = await AuthenticateAsync(
+            client,
+            clientId,
+            replacementMaterial,
+            CancellationToken.None
+        );
         Assert.Null(replacementError);
     }
 
@@ -100,7 +145,7 @@ public class ClientSecretRotationTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var clientId = await CreateClientAsync(administrator);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
 
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients/{clientId}/secrets/unknown-secret/rotate",
@@ -115,7 +160,10 @@ public class ClientSecretRotationTests
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<string> CreateClientAsync(HttpClient administrator)
+    private static async ValueTask<string> CreateClientAsync(
+        HttpClient administrator,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients",
@@ -128,17 +176,19 @@ public class ClientSecretRotationTests
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
         return GetRequiredString(jsonElement, "clientId");
     }
 
-    private static async Task<(string SecretId, string SecretMaterial)> CreateSecretAsync(
+    private static async ValueTask<(string SecretId, string SecretMaterial)> CreateSecretAsync(
         HttpClient administrator,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     )
     {
         using var response = await administrator.PostAsJsonAsync(
@@ -148,9 +198,10 @@ public class ClientSecretRotationTests
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
         var createdSecretId = GetRequiredString(jsonElement, "secretId");
@@ -159,18 +210,20 @@ public class ClientSecretRotationTests
     }
 
     // Rotates the secret, giving the replacement a year and the rotated secret the specified grace expiry.
-    private static async Task<(string SecretId, string SecretMaterial)> RotateAsync(
+    private static async ValueTask<(string SecretId, string SecretMaterial)> RotateAsync(
         HttpClient administrator,
         string clientId,
         string secretId,
-        DateTimeOffset rotatedExpiresWhen
+        DateTimeOffset rotatedExpiresWhen,
+        CancellationToken cancellationToken
     )
     {
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients/{clientId}/secrets/{secretId}/rotate",
-            new { expiresWhen = DateTimeOffset.UtcNow.AddYears(1), rotatedExpiresWhen }
+            new { expiresWhen = DateTimeOffset.UtcNow.AddYears(1), rotatedExpiresWhen },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
         Assert.Equal("symmetric", jsonElement.GetProperty("secretType").GetString());
@@ -189,10 +242,11 @@ public class ClientSecretRotationTests
 
     // Revoking an unknown token is a no-op once the client authenticates (RFC 7009 §2.2), so the response reports only
     // whether the client secret was accepted: no error, or the error the endpoint returned.
-    private static async Task<string?> AuthenticateAsync(
+    private static async ValueTask<string?> AuthenticateAsync(
         HttpClient client,
         string clientId,
-        string clientSecret
+        string clientSecret,
+        CancellationToken cancellationToken
     )
     {
         using var content = new FormUrlEncodedContent(
@@ -203,13 +257,15 @@ public class ClientSecretRotationTests
                 ["token"] = "not-a-real-token",
             }
         );
-        using var response = await client.PostAsync("/oauth2/revoke", content);
+        using var response = await client.PostAsync("/oauth2/revoke", content, cancellationToken);
         if (response.StatusCode == HttpStatusCode.OK)
         {
             return null;
         }
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
         return jsonElement.GetProperty("error").GetString();
     }
 

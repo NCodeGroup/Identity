@@ -27,11 +27,12 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
 
     #region Scaffolding
 
-    private async Task<HttpResponseMessage> AuthorizeAsync(
+    private async ValueTask<HttpResponseMessage> AuthorizeAsync(
         string clientId,
         string redirectUri,
         string extraParameters,
-        string responseType = OpenIdProtocol.ResponseTypes.Code
+        string responseType,
+        CancellationToken cancellationToken
     )
     {
         var client = Factory.CreateClient(
@@ -47,7 +48,7 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             + TestPkce.QueryParameters
             + extraParameters;
 
-        return await client.GetAsync("/oauth2/authorize" + query);
+        return await client.GetAsync("/oauth2/authorize" + query, cancellationToken);
     }
 
     private static JsonElement DecodePayload(string? jwt)
@@ -86,7 +87,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             RedirectUri,
-            "&prompt=none&response_mode=jwt"
+            "&prompt=none&response_mode=jwt",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -110,7 +113,13 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(clientId, RedirectUri, "&prompt=none");
+        using var response = await AuthorizeAsync(
+            clientId,
+            RedirectUri,
+            "&prompt=none",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
@@ -137,7 +146,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             RedirectUri,
-            "&prompt=none&response_mode=jwt"
+            "&prompt=none&response_mode=jwt",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
@@ -165,7 +176,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             RedirectUri,
-            "&response_mode=query.jwt"
+            "&response_mode=query.jwt",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
@@ -195,7 +208,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             RedirectUri,
-            "&prompt=none&response_mode=query.jwt"
+            "&prompt=none&response_mode=query.jwt",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
@@ -227,7 +242,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             RedirectUri + "?injected=1",
-            "&prompt=none"
+            "&prompt=none",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -246,7 +263,13 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(clientId, redirectUri, "&prompt=none");
+        using var response = await AuthorizeAsync(
+            clientId,
+            redirectUri,
+            "&prompt=none",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
         var location = response.Headers.Location;
@@ -270,7 +293,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             "http://127.0.0.1:5555/callback",
-            "&prompt=none"
+            "&prompt=none",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -289,7 +314,13 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(clientId, requestedUri, "&prompt=none");
+        using var response = await AuthorizeAsync(
+            clientId,
+            requestedUri,
+            "&prompt=none",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
         var location = response.Headers.Location;
@@ -311,7 +342,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             "http://127.0.0.1:51234/callback",
-            "&prompt=none"
+            "&prompt=none",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -332,7 +365,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             "http://localhost:51234/callback",
-            "&prompt=none"
+            "&prompt=none",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -353,7 +388,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             RedirectUri,
-            "&redirect_uri=" + Uri.EscapeDataString("https://evil.example/cb") + "&prompt=none"
+            "&redirect_uri=" + Uri.EscapeDataString("https://evil.example/cb") + "&prompt=none",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -380,7 +417,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         using var response = await AuthorizeAsync(
             clientId,
             RedirectUri,
-            "&response_mode=query&response_mode=fragment&prompt=none"
+            "&response_mode=query&response_mode=fragment&prompt=none",
+            OpenIdProtocol.ResponseTypes.Code,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -412,7 +451,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             clientId,
             RedirectUri,
             "&nonce=n1&prompt=none&response_mode=query",
-            "code id_token"
+            "code id_token",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
@@ -438,7 +478,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             clientId,
             RedirectUri,
             "&nonce=n1&prompt=none&response_mode=query.jwt",
-            "code id_token"
+            "code id_token",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
@@ -467,7 +508,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             clientId,
             RedirectUri,
             "&nonce=n1&prompt=none&response_mode=fragment",
-            "code id_token"
+            "code id_token",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);

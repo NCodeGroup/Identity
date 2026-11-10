@@ -49,11 +49,14 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             }
         );
 
-    private async Task<string> RegisterClientAsync(HttpClient client) =>
-        (await RegisterClientWithSecretAsync(client)).ClientId;
+    private async ValueTask<string> RegisterClientAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    ) => (await RegisterClientWithSecretAsync(client, cancellationToken)).ClientId;
 
-    private async Task<(string ClientId, string ClientSecret)> RegisterClientWithSecretAsync(
-        HttpClient client
+    private async ValueTask<(string ClientId, string ClientSecret)> RegisterClientWithSecretAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
     )
     {
         var parameters = ClientRsa.ExportParameters(includePrivateParameters: false);
@@ -80,10 +83,11 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
                         },
                     },
                 },
-            }
+            },
+            cancellationToken
         );
 
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
 
         var registration = JsonElement.Parse(body);
@@ -94,21 +98,30 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         );
     }
 
-    private static async Task<string> GetIssuerAsync(HttpClient client)
+    private static async ValueTask<string> GetIssuerAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.GetAsync(
+            "/.well-known/openid-configuration",
+            cancellationToken
+        );
+        var jsonElement = JsonElement.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
         return jsonElement.GetProperty("issuer").GetString()!;
     }
 
-    private async Task<string> CreateRequestObjectAsync(
+    private async ValueTask<string> CreateRequestObjectAsync(
         HostApplicationFactory factory,
         string clientId,
         string algorithmCode,
         string? audience,
-        TimeSpan? lifetime = null,
-        string? responseMode = null,
-        string? redirectUri = RedirectUri
+        TimeSpan? lifetime,
+        string? responseMode,
+        string? redirectUri,
+        CancellationToken cancellationToken
     )
     {
         var now = DateTimeOffset.UtcNow;
@@ -148,16 +161,17 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
                 Expires = now + (lifetime ?? TimeSpan.FromMinutes(5)),
                 ExtraPayloadClaims = claims,
             },
-            CancellationToken.None
+            cancellationToken
         );
     }
 
-    private static async Task<HttpResponseMessage> AuthorizeAsync(
+    private static async ValueTask<HttpResponseMessage> AuthorizeAsync(
         HttpClient client,
         string sessionCookie,
         string clientId,
         string requestObject,
-        string outerParameters = ""
+        string outerParameters,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -170,16 +184,17 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     // RFC 9126 §3: the body carries only the request object; the client authenticates with client_secret_basic.
-    private static async Task<HttpResponseMessage> PushRequestObjectAsync(
+    private static async ValueTask<HttpResponseMessage> PushRequestObjectAsync(
         HttpClient client,
         string clientId,
         string clientSecret,
         string requestObject,
-        IEnumerable<KeyValuePair<string, string>>? outerParameters = null
+        IEnumerable<KeyValuePair<string, string>>? outerParameters,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/par");
@@ -192,14 +207,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             new("request", requestObject),
             .. outerParameters ?? [],
         ]);
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<HttpResponseMessage> AuthorizeWithRequestUriAsync(
+    private static async ValueTask<HttpResponseMessage> AuthorizeWithRequestUriAsync(
         HttpClient client,
         string sessionCookie,
         string clientId,
-        string requestUri
+        string requestUri,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -208,12 +224,13 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     // The authorization endpoint redirects an error to a validated redirect URI, or renders it when it cannot.
-    private static async Task<(string? Code, string? Error)> ReadResultAsync(
-        HttpResponseMessage response
+    private static async ValueTask<(string? Code, string? Error)> ReadResultAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
     )
     {
         if (response.Headers.Location is { } location)
@@ -222,7 +239,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             return (parameters["code"], parameters["error"]);
         }
 
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         return (null, body);
     }
 
@@ -236,19 +253,35 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var clientId = await RegisterClientAsync(client);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
-        var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
+        var requestObject = await CreateRequestObjectAsync(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            lifetime: null,
+            responseMode: null,
+            redirectUri: RedirectUri,
+            CancellationToken.None
+        );
 
-        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestObject,
+            outerParameters: "",
+            CancellationToken.None
+        );
 
-        var (code, error) = await ReadResultAsync(response);
+        var (code, error) = await ReadResultAsync(response, CancellationToken.None);
         Assert.True(!string.IsNullOrEmpty(code), $"error='{error}'");
     }
 
@@ -258,23 +291,33 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var clientId = await RegisterClientAsync(client);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
             issuer,
-            responseMode: OpenIdProtocol.ResponseModes.Jwt
+            lifetime: null,
+            responseMode: OpenIdProtocol.ResponseModes.Jwt,
+            redirectUri: RedirectUri,
+            CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestObject,
+            outerParameters: "",
+            CancellationToken.None
+        );
 
         // The 'jwt' shorthand resolves to 'query.jwt' for a code response (JARM §2.3.4).
         var location = response.Headers.Location;
@@ -290,15 +333,24 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var clientId = await RegisterClientAsync(client);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
-        var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
+        var requestObject = await CreateRequestObjectAsync(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            lifetime: null,
+            responseMode: null,
+            redirectUri: RedirectUri,
+            CancellationToken.None
+        );
 
         // The request object omits response_mode, so the unsigned outer 'fragment' must not apply (RFC 9101 §6.3).
         using var response = await AuthorizeAsync(
@@ -306,7 +358,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             sessionCookie,
             clientId,
             requestObject,
-            $"&response_mode={OpenIdProtocol.ResponseModes.Fragment}"
+            $"&response_mode={OpenIdProtocol.ResponseModes.Fragment}",
+            CancellationToken.None
         );
 
         var location = response.Headers.Location;
@@ -326,25 +379,35 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var clientId = await RegisterClientAsync(client);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
             issuer,
-            redirectUri: requestObjectRedirectUri
+            lifetime: null,
+            responseMode: null,
+            redirectUri: requestObjectRedirectUri,
+            CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestObject,
+            outerParameters: "",
+            CancellationToken.None
+        );
 
-        var (code, error) = await ReadResultAsync(response);
+        var (code, error) = await ReadResultAsync(response, CancellationToken.None);
         Assert.Null(code);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, error);
     }
@@ -355,22 +418,24 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var clientId = await RegisterClientAsync(client);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         // The object is verified but lacks its redirect_uri, so validation refuses it after verification.
         var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
             issuer,
+            lifetime: null,
             responseMode: OpenIdProtocol.ResponseModes.Fragment,
-            redirectUri: null
+            redirectUri: null,
+            CancellationToken.None
         );
 
         // Only the object's state and response mode apply to the error (RFC 9101 §6.3, RFC 6749 §4.1.2.1).
@@ -379,7 +444,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             sessionCookie,
             clientId,
             requestObject,
-            "&state=outer-state"
+            "&state=outer-state",
+            CancellationToken.None
         );
 
         var location = response.Headers.Location;
@@ -397,21 +463,23 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var clientId = await RegisterClientAsync(client);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
             issuer,
+            lifetime: null,
             responseMode: OpenIdProtocol.ResponseModes.Jwt,
-            redirectUri: null
+            redirectUri: null,
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -419,7 +487,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             sessionCookie,
             clientId,
             requestObject,
-            "&state=outer-state"
+            "&state=outer-state",
+            CancellationToken.None
         );
 
         // The 'jwt' shorthand resolves to 'query.jwt' for a code response (JARM §2.3.4), so the error is signed too.
@@ -446,19 +515,35 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var clientId = await RegisterClientAsync(client);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
-        var requestObject = await CreateRequestObjectAsync(factory, clientId, "PS256", issuer);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
+        var requestObject = await CreateRequestObjectAsync(
+            factory,
+            clientId,
+            "PS256",
+            issuer,
+            lifetime: null,
+            responseMode: null,
+            redirectUri: RedirectUri,
+            CancellationToken.None
+        );
 
-        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestObject,
+            outerParameters: "",
+            CancellationToken.None
+        );
 
-        var (code, error) = await ReadResultAsync(response);
+        var (code, error) = await ReadResultAsync(response, CancellationToken.None);
         Assert.True(string.IsNullOrEmpty(code));
         Assert.NotNull(error);
         Assert.Contains(
@@ -476,7 +561,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var clientId = await RegisterClientAsync(client);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
@@ -487,12 +572,23 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             factory,
             clientId,
             "RS256",
-            audience: null
+            audience: null,
+            lifetime: null,
+            responseMode: null,
+            redirectUri: RedirectUri,
+            CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestObject,
+            outerParameters: "",
+            CancellationToken.None
+        );
 
-        var (code, error) = await ReadResultAsync(response);
+        var (code, error) = await ReadResultAsync(response, CancellationToken.None);
         Assert.True(string.IsNullOrEmpty(code));
         Assert.NotNull(error);
         Assert.Contains(
@@ -510,25 +606,35 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var clientId = await RegisterClientAsync(client);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
             issuer,
-            lifetime: TimeSpan.FromMinutes(61)
+            lifetime: TimeSpan.FromMinutes(61),
+            responseMode: null,
+            redirectUri: RedirectUri,
+            CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestObject,
+            outerParameters: "",
+            CancellationToken.None
+        );
 
-        var (code, error) = await ReadResultAsync(response);
+        var (code, error) = await ReadResultAsync(response, CancellationToken.None);
         Assert.True(string.IsNullOrEmpty(code));
         Assert.NotNull(error);
         Assert.Contains(
@@ -548,21 +654,35 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
-        var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
+        var (clientId, clientSecret) = await RegisterClientWithSecretAsync(
+            client,
+            CancellationToken.None
+        );
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
-        var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
+        var requestObject = await CreateRequestObjectAsync(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            lifetime: null,
+            responseMode: null,
+            redirectUri: RedirectUri,
+            CancellationToken.None
+        );
 
         using var parResponse = await PushRequestObjectAsync(
             client,
             clientId,
             clientSecret,
-            requestObject
+            requestObject,
+            outerParameters: null,
+            CancellationToken.None
         );
         var parBody = await parResponse.Content.ReadAsStringAsync();
         Assert.True(parResponse.StatusCode == HttpStatusCode.Created, parBody);
@@ -573,7 +693,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             client,
             sessionCookie,
             clientId,
-            requestUri
+            requestUri,
+            CancellationToken.None
         );
 
         var location = response.Headers.Location;
@@ -589,21 +710,29 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = CreateClient(factory);
-        var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
-        var issuer = await GetIssuerAsync(client);
+        var (clientId, clientSecret) = await RegisterClientWithSecretAsync(
+            client,
+            CancellationToken.None
+        );
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
             "RS256",
             issuer,
-            redirectUri: "https://attacker.example/callback"
+            lifetime: null,
+            responseMode: null,
+            redirectUri: "https://attacker.example/callback",
+            CancellationToken.None
         );
 
         using var parResponse = await PushRequestObjectAsync(
             client,
             clientId,
             clientSecret,
-            requestObject
+            requestObject,
+            outerParameters: null,
+            CancellationToken.None
         );
 
         var parBody = await parResponse.Content.ReadAsStringAsync();
@@ -619,16 +748,29 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = CreateClient(factory);
-        var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
-        var issuer = await GetIssuerAsync(client);
-        var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
+        var (clientId, clientSecret) = await RegisterClientWithSecretAsync(
+            client,
+            CancellationToken.None
+        );
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
+        var requestObject = await CreateRequestObjectAsync(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            lifetime: null,
+            responseMode: null,
+            redirectUri: RedirectUri,
+            CancellationToken.None
+        );
 
         using var parResponse = await PushRequestObjectAsync(
             client,
             clientId,
             clientSecret,
             requestObject,
-            [new("redirect_uri", "https://client.example/other")]
+            [new("redirect_uri", "https://client.example/other")],
+            CancellationToken.None
         );
 
         var parBody = await parResponse.Content.ReadAsStringAsync();

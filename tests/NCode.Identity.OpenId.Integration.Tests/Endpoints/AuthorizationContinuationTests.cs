@@ -27,12 +27,13 @@ public class AuthorizationContinuationTests
 
     #region Scaffolding
 
-    private static async Task<(HttpClient Client, string SessionCookie)> SignInAsync(
-        HostApplicationFactory factory
+    private static async ValueTask<(HttpClient Client, string SessionCookie)> SignInAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
     )
     {
-        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
+        await factory.SeedLocalAccountAsync(UserName, Password, cancellationToken);
+        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], cancellationToken);
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
             {
@@ -44,15 +45,16 @@ public class AuthorizationContinuationTests
             client,
             UserName,
             Password,
-            CancellationToken.None
+            cancellationToken
         );
         return (client, sessionCookie);
     }
 
-    private static async Task<HttpResponseMessage> ContinueAsync(
+    private static async ValueTask<HttpResponseMessage> ContinueAsync(
         HttpClient client,
         string sessionCookie,
-        string responseMode
+        string responseMode,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -64,7 +66,10 @@ public class AuthorizationContinuationTests
             + $"&response_mode={Uri.EscapeDataString(responseMode)}"
             + TestPkce.QueryParameters;
 
-        using var authorizeResponse = await client.GetAsync("/oauth2/authorize" + query);
+        using var authorizeResponse = await client.GetAsync(
+            "/oauth2/authorize" + query,
+            cancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.Found, authorizeResponse.StatusCode);
         Assert.NotNull(client.BaseAddress);
@@ -75,7 +80,7 @@ public class AuthorizationContinuationTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, continueUrl);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        var continueResponse = await client.SendAsync(request);
+        var continueResponse = await client.SendAsync(request, cancellationToken);
 
         Assert.Equal(HttpStatusCode.SeeOther, continueResponse.StatusCode);
         return continueResponse;
@@ -103,12 +108,13 @@ public class AuthorizationContinuationTests
     public async Task Continue_AfterTheUserSignsIn_DeliversTheCodeAndStateInTheRequestedResponseMode()
     {
         using var factory = new HostApplicationFactory();
-        var (client, sessionCookie) = await SignInAsync(factory);
+        var (client, sessionCookie) = await SignInAsync(factory, CancellationToken.None);
 
         using var response = await ContinueAsync(
             client,
             sessionCookie,
-            OpenIdProtocol.ResponseModes.Fragment
+            OpenIdProtocol.ResponseModes.Fragment,
+            CancellationToken.None
         );
 
         var location = response.Headers.Location;
@@ -123,12 +129,13 @@ public class AuthorizationContinuationTests
     public async Task Continue_AfterTheUserSignsIn_DeliversAJwtSecuredResponse()
     {
         using var factory = new HostApplicationFactory();
-        var (client, sessionCookie) = await SignInAsync(factory);
+        var (client, sessionCookie) = await SignInAsync(factory, CancellationToken.None);
 
         using var response = await ContinueAsync(
             client,
             sessionCookie,
-            OpenIdProtocol.ResponseModes.QueryJwt
+            OpenIdProtocol.ResponseModes.QueryJwt,
+            CancellationToken.None
         );
 
         var location = response.Headers.Location;

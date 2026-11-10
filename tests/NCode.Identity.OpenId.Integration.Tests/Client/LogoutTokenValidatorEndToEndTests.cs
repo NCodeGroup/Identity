@@ -110,11 +110,12 @@ public class LogoutTokenValidatorEndToEndTests
 
     // Follows the authorization URL as the signed-in end-user's browser (prompt=none lets the session answer without an
     // interactive page), redeems the code with the client and returns the verified payload of the ID token.
-    private static async Task<JsonElement> RequestIdTokenAsync(
+    private static async ValueTask<JsonElement> RequestIdTokenAsync(
         HttpClient browser,
         string sessionCookie,
         ServiceProvider provider,
-        ClientRegistration registration
+        ClientRegistration registration,
+        CancellationToken cancellationToken
     )
     {
         var request = new AuthorizationRequest(RedirectUri, State, TestPkce.CodeVerifier)
@@ -128,7 +129,7 @@ public class LogoutTokenValidatorEndToEndTests
         };
         var authorizationResult = await provider
             .GetRequiredService<IAuthorizationRequestClient>()
-            .CreateAuthorizationUriAsync(registration, request, CancellationToken.None);
+            .CreateAuthorizationUriAsync(registration, request, cancellationToken);
         Assert.True(authorizationResult.IsSuccess, authorizationResult.Error?.ToString());
 
         using var authorizeRequest = new HttpRequestMessage(
@@ -139,7 +140,7 @@ public class LogoutTokenValidatorEndToEndTests
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={sessionCookie}"
         );
-        using var authorizeResponse = await browser.SendAsync(authorizeRequest);
+        using var authorizeResponse = await browser.SendAsync(authorizeRequest, cancellationToken);
 
         var location = authorizeResponse.Headers.Location;
         Assert.NotNull(location);
@@ -157,7 +158,7 @@ public class LogoutTokenValidatorEndToEndTests
             .RequestTokenAsync(
                 registration,
                 new AuthorizationCodeTokenRequest(code, RedirectUri, TestPkce.CodeVerifier),
-                CancellationToken.None
+                cancellationToken
             );
         Assert.True(tokenResult.IsSuccess, tokenResult.Error?.ToString());
         var idToken = tokenResult.Response.IdToken;
@@ -174,33 +175,38 @@ public class LogoutTokenValidatorEndToEndTests
                     AccessToken = tokenResult.Response.AccessToken,
                     AuthorizationCode = code,
                 },
-                CancellationToken.None
+                cancellationToken
             );
         Assert.True(validation.IsValid, validation.FailureReason);
         return validation.Payload;
     }
 
-    private static async Task EndSessionAsync(HttpClient browser, string sessionCookie)
+    private static async ValueTask EndSessionAsync(
+        HttpClient browser,
+        string sessionCookie,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await InteractiveLogin.ConfirmEndSessionAsync(
             browser,
             EndSessionPath,
             sessionCookie,
-            CancellationToken.None
+            cancellationToken
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     // The provider delivers the logout token on a background worker, so it arrives after the end-session response.
-    private static async Task<string> WaitForLogoutTokenAsync(
-        ConcurrentQueue<RecordedHttpExchange> exchanges
+    private static async ValueTask<string> WaitForLogoutTokenAsync(
+        ConcurrentQueue<RecordedHttpExchange> exchanges,
+        CancellationToken cancellationToken
     )
     {
         var stopwatch = Stopwatch.StartNew();
         while (exchanges.IsEmpty && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
         }
 
         var delivery = Assert.Single(exchanges);
@@ -213,17 +219,18 @@ public class LogoutTokenValidatorEndToEndTests
         return logoutToken;
     }
 
-    private static async Task<LogoutTokenValidationResult> ValidateLogoutTokenAsync(
+    private static async ValueTask<LogoutTokenValidationResult> ValidateLogoutTokenAsync(
         ServiceProvider provider,
         ClientRegistration registration,
-        string logoutToken
+        string logoutToken,
+        CancellationToken cancellationToken
     ) =>
         await provider
             .GetRequiredService<ILogoutTokenValidator>()
             .ValidateAsync(
                 registration,
                 new LogoutTokenValidationRequest { LogoutToken = logoutToken },
-                CancellationToken.None
+                cancellationToken
             );
 
     private static string? GetString(JsonElement payload, string claimName) =>
@@ -263,12 +270,18 @@ public class LogoutTokenValidatorEndToEndTests
             browser,
             sessionCookie,
             provider,
-            registration
+            registration,
+            CancellationToken.None
         );
 
-        await EndSessionAsync(browser, sessionCookie);
-        var logoutToken = await WaitForLogoutTokenAsync(exchanges);
-        var result = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+        await EndSessionAsync(browser, sessionCookie, CancellationToken.None);
+        var logoutToken = await WaitForLogoutTokenAsync(exchanges, CancellationToken.None);
+        var result = await ValidateLogoutTokenAsync(
+            provider,
+            registration,
+            logoutToken,
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid, result.FailureReason);
         Assert.Equal(HostApplicationFactory.TestServerIssuer, result.Issuer);
@@ -319,20 +332,27 @@ public class LogoutTokenValidatorEndToEndTests
             browser,
             sessionCookie,
             provider,
-            publicRegistration
+            publicRegistration,
+            CancellationToken.None
         );
         var pairwisePayload = await RequestIdTokenAsync(
             browser,
             sessionCookie,
             provider,
-            pairwiseRegistration
+            pairwiseRegistration,
+            CancellationToken.None
         );
         var pairwiseSubject = GetString(pairwisePayload, JoseClaimNames.Payload.Sub);
         Assert.NotEqual(GetString(publicPayload, JoseClaimNames.Payload.Sub), pairwiseSubject);
 
-        await EndSessionAsync(browser, sessionCookie);
-        var logoutToken = await WaitForLogoutTokenAsync(exchanges);
-        var result = await ValidateLogoutTokenAsync(provider, pairwiseRegistration, logoutToken);
+        await EndSessionAsync(browser, sessionCookie, CancellationToken.None);
+        var logoutToken = await WaitForLogoutTokenAsync(exchanges, CancellationToken.None);
+        var result = await ValidateLogoutTokenAsync(
+            provider,
+            pairwiseRegistration,
+            logoutToken,
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid, result.FailureReason);
         Assert.Equal(pairwiseSubject, result.Subject);
@@ -364,12 +384,28 @@ public class LogoutTokenValidatorEndToEndTests
             Password,
             CancellationToken.None
         );
-        await RequestIdTokenAsync(browser, sessionCookie, provider, registration);
+        await RequestIdTokenAsync(
+            browser,
+            sessionCookie,
+            provider,
+            registration,
+            CancellationToken.None
+        );
 
-        await EndSessionAsync(browser, sessionCookie);
-        var logoutToken = await WaitForLogoutTokenAsync(exchanges);
-        var first = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
-        var second = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+        await EndSessionAsync(browser, sessionCookie, CancellationToken.None);
+        var logoutToken = await WaitForLogoutTokenAsync(exchanges, CancellationToken.None);
+        var first = await ValidateLogoutTokenAsync(
+            provider,
+            registration,
+            logoutToken,
+            CancellationToken.None
+        );
+        var second = await ValidateLogoutTokenAsync(
+            provider,
+            registration,
+            logoutToken,
+            CancellationToken.None
+        );
 
         Assert.True(first.IsValid, first.FailureReason);
         Assert.True(second.IsValid, second.FailureReason);
@@ -401,12 +437,23 @@ public class LogoutTokenValidatorEndToEndTests
             Password,
             CancellationToken.None
         );
-        await RequestIdTokenAsync(browser, sessionCookie, provider, registration);
+        await RequestIdTokenAsync(
+            browser,
+            sessionCookie,
+            provider,
+            registration,
+            CancellationToken.None
+        );
 
-        await EndSessionAsync(browser, sessionCookie);
-        var logoutToken = await WaitForLogoutTokenAsync(exchanges);
+        await EndSessionAsync(browser, sessionCookie, CancellationToken.None);
+        var logoutToken = await WaitForLogoutTokenAsync(exchanges, CancellationToken.None);
         var validator = provider.GetRequiredService<ILogoutTokenValidator>();
-        var first = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+        var first = await ValidateLogoutTokenAsync(
+            provider,
+            registration,
+            logoutToken,
+            CancellationToken.None
+        );
         Assert.True(first.IsValid, first.FailureReason);
 
         var recorded = await validator.TryRecordHandledAsync(
@@ -414,7 +461,12 @@ public class LogoutTokenValidatorEndToEndTests
             first,
             CancellationToken.None
         );
-        var second = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+        var second = await ValidateLogoutTokenAsync(
+            provider,
+            registration,
+            logoutToken,
+            CancellationToken.None
+        );
         var recordedAgain = await validator.TryRecordHandledAsync(
             registration,
             first,

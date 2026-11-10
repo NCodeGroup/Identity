@@ -39,7 +39,12 @@ public class BackchannelAuthenticationEndpointTests
                 >(handler)
             )
         );
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
 
         var client = cibaFactory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

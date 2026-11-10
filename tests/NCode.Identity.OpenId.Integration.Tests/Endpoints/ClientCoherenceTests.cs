@@ -131,7 +131,8 @@ public class ClientCoherenceTests
             {
                 [OpenIdSettingNames.AccessTokenLifetime] = "01:00:00",
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         var (statusCode, body) = await PatchTenantSettingValueAsync(

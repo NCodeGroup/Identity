@@ -35,18 +35,26 @@ public class ClientSecretStorageTests
         );
         var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
 
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(clientId, CancellationToken.None)
+        );
         Assert.Equal(secretId, stored.SecretId);
         Assert.Equal(SecretEncodings.Verifier, stored.SecretEncoding);
         Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                secretMaterial,
+                CancellationToken.None
+            )
         );
         Assert.Equal(
             "invalid_client",
             await ClientAuthenticationProbe.RevokeWithSecretAsync(
                 client,
                 clientId,
-                secretMaterial + "x"
+                secretMaterial + "x",
+                CancellationToken.None
             )
         );
 
@@ -68,7 +76,7 @@ public class ClientSecretStorageTests
             CancellationToken.None
         );
         var client = CreateHttpClient(factory);
-        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
+        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client, CancellationToken.None);
 
         var clientId = await CreateClientAsync(
             administrator,
@@ -76,14 +84,17 @@ public class ClientSecretStorageTests
         );
         var (_, secretMaterial) = await CreateSecretAsync(administrator, clientId);
 
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(clientId, CancellationToken.None)
+        );
         Assert.Equal(SecretEncodings.SymmetricRaw, stored.SecretEncoding);
         Assert.Null(
             await ClientAuthenticationProbe.RevokeWithAssertionAsync(
                 client,
                 clientId,
                 secretMaterial,
-                issuer
+                issuer,
+                CancellationToken.None
             )
         );
     }
@@ -96,7 +107,7 @@ public class ClientSecretStorageTests
             CancellationToken.None
         );
         var client = CreateHttpClient(factory);
-        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
+        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client, CancellationToken.None);
 
         var clientId = await CreateClientAsync(
             administrator,
@@ -115,7 +126,9 @@ public class ClientSecretStorageTests
         Assert.NotNull(issued);
         var (issuedSecretId, issuedSecret) = issued.Value;
         Assert.NotEqual(verifiedSecretId, issuedSecretId);
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(clientId, CancellationToken.None)
+        );
         Assert.Equal(issuedSecretId, stored.SecretId);
         Assert.Equal(SecretEncodings.SymmetricRaw, stored.SecretEncoding);
         Assert.False(await IsVerifierAsync(administrator, clientId, issuedSecretId));
@@ -124,7 +137,8 @@ public class ClientSecretStorageTests
                 client,
                 clientId,
                 issuedSecret,
-                issuer
+                issuer,
+                CancellationToken.None
             )
         );
         Assert.Equal(
@@ -133,7 +147,8 @@ public class ClientSecretStorageTests
                 client,
                 clientId,
                 verifiedSecret,
-                issuer
+                issuer,
+                CancellationToken.None
             )
         );
     }
@@ -162,20 +177,28 @@ public class ClientSecretStorageTests
         // The client keeps its secret, which the server cannot read back: its octets are replaced by the
         // verifier that fits a generated secret, and a presented copy of it authenticates the client.
         Assert.Null(issued);
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(clientId, CancellationToken.None)
+        );
         Assert.NotEqual(secretId, stored.SecretId);
         Assert.Equal(SecretEncodings.Verifier, stored.SecretEncoding);
         Assert.Equal(SecretOrigins.Generated, stored.Origin);
         Assert.True(await IsVerifierAsync(administrator, clientId, stored.SecretId));
         Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                secretMaterial,
+                CancellationToken.None
+            )
         );
         Assert.Equal(
             "invalid_client",
             await ClientAuthenticationProbe.RevokeWithSecretAsync(
                 client,
                 clientId,
-                secretMaterial + "x"
+                secretMaterial + "x",
+                CancellationToken.None
             )
         );
     }
@@ -202,7 +225,7 @@ public class ClientSecretStorageTests
         );
 
         Assert.True(statusCode == HttpStatusCode.NoContent, body);
-        Assert.Empty(await factory.GetClientSecretsAsync(clientId));
+        Assert.Empty(await factory.GetClientSecretsAsync(clientId, CancellationToken.None));
     }
 
     [Fact]
@@ -243,7 +266,12 @@ public class ClientSecretStorageTests
 
         // The tenant's new method moves no stored client's method, so the client still authenticates with its verifier.
         Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                secretMaterial,
+                CancellationToken.None
+            )
         );
     }
 
@@ -289,7 +317,10 @@ public class ClientSecretStorageTests
         );
 
         var stored = Assert.Single(
-            await factory.GetClientSecretsAsync(BootstrapAdminApplicationFactory.ClientId)
+            await factory.GetClientSecretsAsync(
+                BootstrapAdminApplicationFactory.ClientId,
+                CancellationToken.None
+            )
         );
         Assert.Equal(SecretEncodings.Verifier, stored.SecretEncoding);
     }

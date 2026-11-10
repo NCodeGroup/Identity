@@ -69,7 +69,8 @@ public class ClientRegistrationEndpointTests
             clientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         // Authenticating the client loads its persisted settings (every registered metadata key included) through the
@@ -685,21 +686,24 @@ public class ClientRegistrationEndpointTests
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
+        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client, CancellationToken.None);
 
         var (clientId, clientSecret, _) = await RegisterSharedSecretClientAsync(
             client,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
         );
 
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(clientId, CancellationToken.None)
+        );
         Assert.Equal(NCode.Identity.Secrets.SecretEncodings.SymmetricRaw, stored.SecretEncoding);
         Assert.Null(
             await ClientAuthenticationProbe.RevokeWithAssertionAsync(
                 client,
                 clientId,
                 clientSecret,
-                issuer
+                issuer,
+                CancellationToken.None
             )
         );
     }
@@ -717,17 +721,25 @@ public class ClientRegistrationEndpointTests
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(clientId, CancellationToken.None)
+        );
         Assert.Equal(NCode.Identity.Secrets.SecretEncodings.Verifier, stored.SecretEncoding);
         Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                clientSecret,
+                CancellationToken.None
+            )
         );
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
             await ClientAuthenticationProbe.RevokeWithSecretAsync(
                 client,
                 clientId,
-                clientSecret + "x"
+                clientSecret + "x",
+                CancellationToken.None
             )
         );
     }
@@ -739,7 +751,7 @@ public class ClientRegistrationEndpointTests
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
+        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client, CancellationToken.None);
 
         var (clientId, verifiedSecret, registration) = await RegisterSharedSecretClientAsync(
             client,
@@ -759,14 +771,17 @@ public class ClientRegistrationEndpointTests
         Assert.NotEqual(verifiedSecret, newSecret);
         Assert.Equal(0, update.GetProperty("client_secret_expires_at").GetInt64());
 
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(clientId, CancellationToken.None)
+        );
         Assert.Equal(NCode.Identity.Secrets.SecretEncodings.SymmetricRaw, stored.SecretEncoding);
         Assert.Null(
             await ClientAuthenticationProbe.RevokeWithAssertionAsync(
                 client,
                 clientId,
                 newSecret,
-                issuer
+                issuer,
+                CancellationToken.None
             )
         );
         Assert.Equal(
@@ -775,7 +790,8 @@ public class ClientRegistrationEndpointTests
                 client,
                 clientId,
                 verifiedSecret,
-                issuer
+                issuer,
+                CancellationToken.None
             )
         );
     }
@@ -802,11 +818,18 @@ public class ClientRegistrationEndpointTests
         );
 
         Assert.False(update.TryGetProperty("client_secret", out _));
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(clientId, CancellationToken.None)
+        );
         Assert.Equal(NCode.Identity.Secrets.SecretEncodings.Verifier, stored.SecretEncoding);
         Assert.Equal(SecretOrigins.Generated, stored.Origin);
         Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                clientSecret,
+                CancellationToken.None
+            )
         );
     }
 
@@ -843,12 +866,17 @@ public class ClientRegistrationEndpointTests
         Assert.Equal(0, update.GetProperty("client_secret_expires_at").GetInt64());
         Assert.Equal(["client-key"], GetKeyIds(update));
 
-        var stored = await factory.GetClientSecretsAsync(clientId);
+        var stored = await factory.GetClientSecretsAsync(clientId, CancellationToken.None);
         Assert.Contains(stored, secret => secret.SecretType == SecretTypes.Rsa);
         var shared = Assert.Single(stored, secret => secret.SecretType == SecretTypes.Symmetric);
         Assert.Equal(NCode.Identity.Secrets.SecretEncodings.Verifier, shared.SecretEncoding);
         Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                clientSecret,
+                CancellationToken.None
+            )
         );
     }
 
@@ -923,7 +951,7 @@ public class ClientRegistrationEndpointTests
             client,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
-        await factory.ExpireClientSecretsAsync(clientId);
+        await factory.ExpireClientSecretsAsync(clientId, CancellationToken.None);
 
         var update = await UpdateAuthenticationMethodAsync(
             client,
@@ -934,14 +962,26 @@ public class ClientRegistrationEndpointTests
         var newSecret = update.GetProperty("client_secret").GetString();
         Assert.False(string.IsNullOrEmpty(newSecret));
         Assert.NotEqual(expiredSecret, newSecret);
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(
+            await factory.GetClientSecretsAsync(clientId, CancellationToken.None)
+        );
         Assert.True(stored.ExpiresWhen > DateTimeOffset.UtcNow);
         Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, newSecret)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                newSecret,
+                CancellationToken.None
+            )
         );
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, expiredSecret)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                expiredSecret,
+                CancellationToken.None
+            )
         );
     }
 
@@ -964,9 +1004,14 @@ public class ClientRegistrationEndpointTests
         );
 
         Assert.False(update.TryGetProperty("client_secret", out _));
-        Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.Single(await factory.GetClientSecretsAsync(clientId, CancellationToken.None));
         Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                clientSecret,
+                CancellationToken.None
+            )
         );
     }
 

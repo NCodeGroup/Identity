@@ -71,7 +71,9 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         await Factory.SeedConfidentialClientWithSecurityProfilesAsync(
             clientId,
             "fapi2-client-secret",
-            [OpenIdConstants.SecurityProfiles.Fapi2]
+            [OpenIdConstants.SecurityProfiles.Fapi2],
+            [],
+            CancellationToken.None
         );
         var client = CreateClient();
 

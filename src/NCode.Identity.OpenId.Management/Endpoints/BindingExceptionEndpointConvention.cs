@@ -24,7 +24,8 @@ internal static class BindingExceptionEndpointConvention
             builder.RequestDelegate
             ?? throw new InvalidOperationException("The endpoint has no request delegate to wrap.");
 
-        builder.RequestDelegate = context => InvokeAsync(next, context);
+        builder.RequestDelegate = context =>
+            InvokeAsync(next, context, context.RequestAborted).AsTask();
     }
 
     /// <summary>
@@ -33,8 +34,13 @@ internal static class BindingExceptionEndpointConvention
     /// </summary>
     /// <param name="next">The request delegate of the endpoint.</param>
     /// <param name="httpContext">The context of the request.</param>
-    /// <returns>A task that completes when the request is answered.</returns>
-    private static async Task InvokeAsync(RequestDelegate next, HttpContext httpContext)
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that completes when the request is answered.</returns>
+    private static async ValueTask InvokeAsync(
+        RequestDelegate next,
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         try
         {

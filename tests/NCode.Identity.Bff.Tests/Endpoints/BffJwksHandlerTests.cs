@@ -85,11 +85,14 @@ public sealed class BffJwksHandlerTests : BaseTests
     private static DefaultHttpContext CreateHttpContext() =>
         new() { Response = { Body = new MemoryStream() } };
 
-    private static async Task<JsonNode> ReadBodyAsync(HttpContext httpContext)
+    private static async ValueTask<JsonNode> ReadBodyAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         httpContext.Response.Body.Position = 0;
         using var reader = new StreamReader(httpContext.Response.Body, SecureEncoding.UTF8);
-        var body = await reader.ReadToEndAsync();
+        var body = await reader.ReadToEndAsync(cancellationToken);
         return JsonNode.Parse(body) ?? throw new InvalidOperationException("The body is empty.");
     }
 
@@ -102,14 +105,14 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
         var httpContext = CreateHttpContext();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
         Assert.Equal("application/json; charset=utf-8", httpContext.Response.ContentType);
         Assert.Contains("no-store", httpContext.Response.Headers.CacheControl.ToString());
 
         // A key set has no order, and the key ring does not promise one.
-        var keys = (await ReadBodyAsync(httpContext))["keys"]!
+        var keys = (await ReadBodyAsync(httpContext, CancellationToken.None))["keys"]!
             .AsArray()
             .Select(x => (Kid: x!["kid"]!.GetValue<string>(), Kty: x!["kty"]!.GetValue<string>()))
             .OrderBy(x => x.Kid, StringComparer.Ordinal);
@@ -123,9 +126,9 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
         var httpContext = CreateHttpContext();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
-        var keys = (await ReadBodyAsync(httpContext))["keys"]!.AsArray();
+        var keys = (await ReadBodyAsync(httpContext, CancellationToken.None))["keys"]!.AsArray();
         Assert.All(
             keys,
             key => Assert.DoesNotContain(key!.AsObject(), x => PrivateParameters.Contains(x.Key))
@@ -139,9 +142,9 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
         var httpContext = CreateHttpContext();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
-        var keys = (await ReadBodyAsync(httpContext))["keys"]!.AsArray();
+        var keys = (await ReadBodyAsync(httpContext, CancellationToken.None))["keys"]!.AsArray();
         var key = Assert.Single(keys);
         Assert.Equal("ec-1", key!["kid"]!.GetValue<string>());
     }
@@ -153,9 +156,9 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
         var httpContext = CreateHttpContext();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
-        var keys = (await ReadBodyAsync(httpContext))["keys"]!.AsArray();
+        var keys = (await ReadBodyAsync(httpContext, CancellationToken.None))["keys"]!.AsArray();
         Assert.Empty(keys);
     }
 
@@ -168,7 +171,7 @@ public sealed class BffJwksHandlerTests : BaseTests
         var handler = CreateHandler(mockKeyRingProvider.Object, keyRing);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            handler.HandleAsync(CreateHttpContext())
+            handler.HandleAsync(CreateHttpContext(), CancellationToken.None).AsTask()
         );
 
         Assert.Contains("Bff:Frontends:default:ClientAuthentication:KeyRing", exception.Message);
@@ -180,7 +183,9 @@ public sealed class BffJwksHandlerTests : BaseTests
         var mockKeyRingProvider = CreateStrictMock<IClientKeyRingProvider>();
         var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => handler.HandleAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            handler.HandleAsync(null!, CancellationToken.None).AsTask()
+        );
     }
 
     #endregion

@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
@@ -735,7 +736,8 @@ internal class ClientApiEndpointHandler(
                         cancellationToken
                     );
             },
-            ToClientResource
+            ToClientResource,
+            cancellationToken
         );
     }
 
@@ -834,7 +836,8 @@ internal class ClientApiEndpointHandler(
                     cancellationToken
                 );
             },
-            ToClientResource
+            ToClientResource,
+            cancellationToken
         );
     }
 
@@ -891,7 +894,8 @@ internal class ClientApiEndpointHandler(
                     cancellationToken
                 );
             },
-            client => ToIncoherentClientResource(tenantId, client)
+            client => ToIncoherentClientResource(tenantId, client),
+            cancellationToken
         );
     }
 
@@ -1798,6 +1802,11 @@ internal class ClientApiEndpointHandler(
             : TypedResults.NoContent();
     }
 
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    )]
     private async ValueTask RecordSecretChangesAsync(
         HttpContext httpContext,
         PersistedClient client,
@@ -2670,7 +2679,7 @@ internal class ClientApiEndpointHandler(
             CancellationToken token
         )
         {
-            if (!await HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation))
+            if (!await HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation, token))
             {
                 return false;
             }

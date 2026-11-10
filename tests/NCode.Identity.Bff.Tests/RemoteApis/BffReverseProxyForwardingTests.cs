@@ -181,10 +181,11 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
         return context;
     }
 
-    private static async Task<ForwarderError> ForwardAsync(
+    private static async ValueTask<ForwarderError> ForwardAsync(
         IEndpointRouteBuilder endpoints,
         string routeId,
-        HttpContext context
+        HttpContext context,
+        CancellationToken cancellationToken
     )
     {
         var route = GetEndpoint(endpoints, routeId).Metadata.GetRequiredMetadata<RouteModel>();
@@ -198,7 +199,8 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
             Destination,
             cluster.Model.HttpClient,
             ForwarderRequestConfig.Empty,
-            route.Transformer
+            route.Transformer,
+            cancellationToken
         );
     }
 
@@ -291,7 +293,7 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
             )
         );
 
-        var error = await ForwardAsync(endpoints, TokenRouteId, context);
+        var error = await ForwardAsync(endpoints, TokenRouteId, context, CancellationToken.None);
 
         Assert.Equal(ForwarderError.None, error);
         var recorded = Assert.Single(Upstream.Requests);
@@ -317,7 +319,7 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
             )
         );
 
-        await ForwardAsync(endpoints, TokenRouteId, context);
+        await ForwardAsync(endpoints, TokenRouteId, context, CancellationToken.None);
 
         Assert.Empty(Upstream.Requests);
         Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
@@ -332,7 +334,7 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
         var endpoints = CreateApp(OtherRoute);
         var context = CreateContext("/pages/home");
 
-        var error = await ForwardAsync(endpoints, OtherRouteId, context);
+        var error = await ForwardAsync(endpoints, OtherRouteId, context, CancellationToken.None);
 
         Assert.Equal(ForwarderError.None, error);
         var recorded = Assert.Single(Upstream.Requests);

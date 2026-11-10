@@ -26,16 +26,17 @@ public class DefaultAzureKeyVaultClientFactoryTests
     private static DefaultAzureKeyVaultClientFactory CreateFactory() => new(TimeProvider.System);
 
     // The client that the operation receives, which the factory hands out for the key and access.
-    private static async Task<CryptographyClient> GetClientAsync(
+    private static async ValueTask<CryptographyClient> GetClientAsync(
         DefaultAzureKeyVaultClientFactory factory,
         string keyId,
-        KeyAccess? access
+        KeyAccess? access,
+        CancellationToken cancellationToken
     ) =>
         await factory.ExecuteAsync(
             keyId,
             access,
             (client, _) => ValueTask.FromResult(client),
-            CancellationToken.None
+            cancellationToken
         );
 
     #region ExecuteAsync Tests
@@ -45,8 +46,18 @@ public class DefaultAzureKeyVaultClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetClientAsync(factory, KeyVersionId, access: null);
-        var second = await GetClientAsync(factory, KeyVersionId, access: null);
+        var first = await GetClientAsync(
+            factory,
+            KeyVersionId,
+            access: null,
+            CancellationToken.None
+        );
+        var second = await GetClientAsync(
+            factory,
+            KeyVersionId,
+            access: null,
+            CancellationToken.None
+        );
 
         Assert.Same(first, second);
     }
@@ -56,8 +67,8 @@ public class DefaultAzureKeyVaultClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetClientAsync(factory, KeyId, access: null);
-        var second = await GetClientAsync(factory, KeyId, access: null);
+        var first = await GetClientAsync(factory, KeyId, access: null, CancellationToken.None);
+        var second = await GetClientAsync(factory, KeyId, access: null, CancellationToken.None);
 
         Assert.NotSame(first, second);
     }
@@ -70,12 +81,14 @@ public class DefaultAzureKeyVaultClientFactoryTests
         var first = await GetClientAsync(
             factory,
             KeyVersionId,
-            new KeyAccess(DirectoryId, "tenant:acme")
+            new KeyAccess(DirectoryId, "tenant:acme"),
+            CancellationToken.None
         );
         var second = await GetClientAsync(
             factory,
             KeyVersionId,
-            new KeyAccess(DirectoryId, "tenant:other")
+            new KeyAccess(DirectoryId, "tenant:other"),
+            CancellationToken.None
         );
 
         Assert.Same(first, second);
@@ -89,14 +102,16 @@ public class DefaultAzureKeyVaultClientFactoryTests
         var first = await GetClientAsync(
             factory,
             KeyVersionId,
-            new KeyAccess(DirectoryId, "tenant:acme")
+            new KeyAccess(DirectoryId, "tenant:acme"),
+            CancellationToken.None
         );
         var second = await GetClientAsync(
             factory,
             KeyVersionId,
-            new KeyAccess(OtherDirectoryId, "tenant:acme")
+            new KeyAccess(OtherDirectoryId, "tenant:acme"),
+            CancellationToken.None
         );
-        var own = await GetClientAsync(factory, KeyVersionId, access: null);
+        var own = await GetClientAsync(factory, KeyVersionId, access: null, CancellationToken.None);
 
         Assert.NotSame(first, second);
         Assert.NotSame(first, own);
@@ -108,11 +123,17 @@ public class DefaultAzureKeyVaultClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetClientAsync(factory, KeyId, new KeyAccess(DirectoryId, "tenant:acme"));
+        var first = await GetClientAsync(
+            factory,
+            KeyId,
+            new KeyAccess(DirectoryId, "tenant:acme"),
+            CancellationToken.None
+        );
         var second = await GetClientAsync(
             factory,
             KeyId,
-            new KeyAccess(DirectoryId, "tenant:acme")
+            new KeyAccess(DirectoryId, "tenant:acme"),
+            CancellationToken.None
         );
 
         Assert.NotSame(first, second);
@@ -124,7 +145,7 @@ public class DefaultAzureKeyVaultClientFactoryTests
         using var factory = CreateFactory();
         var access = new KeyAccess(DirectoryId, "tenant:acme");
         var failure = new InvalidOperationException("The directory has not consented.");
-        var before = await GetClientAsync(factory, KeyVersionId, access);
+        var before = await GetClientAsync(factory, KeyVersionId, access, CancellationToken.None);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             factory
@@ -136,7 +157,7 @@ public class DefaultAzureKeyVaultClientFactoryTests
                 )
                 .AsTask()
         );
-        var after = await GetClientAsync(factory, KeyVersionId, access);
+        var after = await GetClientAsync(factory, KeyVersionId, access, CancellationToken.None);
 
         Assert.Same(failure, exception);
         Assert.Same(before, after);
@@ -163,14 +184,15 @@ public class DefaultAzureKeyVaultClientFactoryTests
 
     #region ExecuteKeyClientAsync Tests
 
-    private static async Task<KeyClient> GetKeyClientAsync(
+    private static async ValueTask<KeyClient> GetKeyClientAsync(
         DefaultAzureKeyVaultClientFactory factory,
-        Uri vaultUri
+        Uri vaultUri,
+        CancellationToken cancellationToken
     ) =>
         await factory.ExecuteKeyClientAsync(
             vaultUri,
             (client, _) => ValueTask.FromResult(client),
-            CancellationToken.None
+            cancellationToken
         );
 
     [Fact]
@@ -178,8 +200,8 @@ public class DefaultAzureKeyVaultClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetKeyClientAsync(factory, VaultUri);
-        var second = await GetKeyClientAsync(factory, VaultUri);
+        var first = await GetKeyClientAsync(factory, VaultUri, CancellationToken.None);
+        var second = await GetKeyClientAsync(factory, VaultUri, CancellationToken.None);
 
         Assert.Same(first, second);
         Assert.Equal(VaultUri, first.VaultUri);
@@ -190,8 +212,8 @@ public class DefaultAzureKeyVaultClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetKeyClientAsync(factory, VaultUri);
-        var second = await GetKeyClientAsync(factory, OtherVaultUri);
+        var first = await GetKeyClientAsync(factory, VaultUri, CancellationToken.None);
+        var second = await GetKeyClientAsync(factory, OtherVaultUri, CancellationToken.None);
 
         Assert.NotSame(first, second);
         Assert.Equal(OtherVaultUri, second.VaultUri);
@@ -241,14 +263,15 @@ public class DefaultAzureKeyVaultClientFactoryTests
 
     #region ExecuteKeyClientWithoutRetryAsync Tests
 
-    private static async Task<KeyClient> GetKeyClientWithoutRetryAsync(
+    private static async ValueTask<KeyClient> GetKeyClientWithoutRetryAsync(
         DefaultAzureKeyVaultClientFactory factory,
-        Uri vaultUri
+        Uri vaultUri,
+        CancellationToken cancellationToken
     ) =>
         await factory.ExecuteKeyClientWithoutRetryAsync(
             vaultUri,
             (client, _) => ValueTask.FromResult(client),
-            CancellationToken.None
+            cancellationToken
         );
 
     [Fact]
@@ -256,8 +279,8 @@ public class DefaultAzureKeyVaultClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetKeyClientWithoutRetryAsync(factory, VaultUri);
-        var second = await GetKeyClientWithoutRetryAsync(factory, VaultUri);
+        var first = await GetKeyClientWithoutRetryAsync(factory, VaultUri, CancellationToken.None);
+        var second = await GetKeyClientWithoutRetryAsync(factory, VaultUri, CancellationToken.None);
 
         Assert.Same(first, second);
         Assert.Equal(VaultUri, first.VaultUri);
@@ -268,8 +291,12 @@ public class DefaultAzureKeyVaultClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetKeyClientWithoutRetryAsync(factory, VaultUri);
-        var second = await GetKeyClientWithoutRetryAsync(factory, OtherVaultUri);
+        var first = await GetKeyClientWithoutRetryAsync(factory, VaultUri, CancellationToken.None);
+        var second = await GetKeyClientWithoutRetryAsync(
+            factory,
+            OtherVaultUri,
+            CancellationToken.None
+        );
 
         Assert.NotSame(first, second);
         Assert.Equal(OtherVaultUri, second.VaultUri);
@@ -280,8 +307,12 @@ public class DefaultAzureKeyVaultClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var withRetry = await GetKeyClientAsync(factory, VaultUri);
-        var withoutRetry = await GetKeyClientWithoutRetryAsync(factory, VaultUri);
+        var withRetry = await GetKeyClientAsync(factory, VaultUri, CancellationToken.None);
+        var withoutRetry = await GetKeyClientWithoutRetryAsync(
+            factory,
+            VaultUri,
+            CancellationToken.None
+        );
 
         Assert.NotSame(withRetry, withoutRetry);
     }

@@ -70,9 +70,9 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
             )
             .Verifiable();
 
-    private async Task AdvanceOnceAsync()
+    private async ValueTask AdvanceOnceAsync(CancellationToken cancellationToken)
     {
-        await Armed.Task.WaitAsync(Timeout);
+        await Armed.Task.WaitAsync(Timeout, cancellationToken);
         Armed = CreateSignal();
         TimeProvider.Advance(Interval);
     }
@@ -99,7 +99,7 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
             .WaitUntilEndedAsync(MockSession.Object, CancellationToken.None)
             .AsTask();
 
-        await AdvanceOnceAsync();
+        await AdvanceOnceAsync(CancellationToken.None);
 
         await task.WaitAsync(Timeout);
         Assert.Empty(Logger.Collector.GetSnapshot());
@@ -125,8 +125,8 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
         using var cancellation = new CancellationTokenSource();
         var task = Revalidator.WaitUntilEndedAsync(MockSession.Object, cancellation.Token).AsTask();
 
-        await AdvanceOnceAsync();
-        await AdvanceOnceAsync();
+        await AdvanceOnceAsync(CancellationToken.None);
+        await AdvanceOnceAsync(CancellationToken.None);
         await validated.Task.WaitAsync(Timeout);
 
         Assert.False(task.IsCompleted);
@@ -157,8 +157,8 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
         using var cancellation = new CancellationTokenSource();
         var task = Revalidator.WaitUntilEndedAsync(MockSession.Object, cancellation.Token).AsTask();
 
-        await AdvanceOnceAsync();
-        await AdvanceOnceAsync();
+        await AdvanceOnceAsync(CancellationToken.None);
+        await AdvanceOnceAsync(CancellationToken.None);
         await validated.Task.WaitAsync(Timeout);
 
         Assert.False(task.IsCompleted);
@@ -183,7 +183,7 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
             .WaitUntilEndedAsync(MockSession.Object, CancellationToken.None)
             .AsTask();
 
-        await AdvanceOnceAsync();
+        await AdvanceOnceAsync(CancellationToken.None);
 
         await task.WaitAsync(Timeout);
         var record = Assert.Single(Logger.Collector.GetSnapshot());

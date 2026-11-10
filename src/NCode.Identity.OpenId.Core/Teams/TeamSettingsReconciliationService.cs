@@ -119,7 +119,7 @@ internal sealed class TeamSettingsReconciliationService(
         }
     }
 
-    private async Task<(
+    private async ValueTask<(
         bool Triggered,
         TeamSettingsReconciliationRequest Request
     )> WaitForTriggerAsync(CancellationToken stoppingToken)
@@ -150,7 +150,7 @@ internal sealed class TeamSettingsReconciliationService(
         }
     }
 
-    private async Task ReconcileTriggeredAsync(
+    private async ValueTask ReconcileTriggeredAsync(
         TeamSettingsReconciliationRequest request,
         CancellationToken stoppingToken
     )
@@ -161,7 +161,7 @@ internal sealed class TeamSettingsReconciliationService(
             await ReconcileSubtreesAsync(request.TeamIds, stoppingToken);
     }
 
-    private async Task RetryAsync(CancellationToken stoppingToken)
+    private async ValueTask RetryAsync(CancellationToken stoppingToken)
     {
         // The deadline is cleared first, so a retry that leaves a team unsettled sets a fresh one.
         RetryDeadline = null;
@@ -185,7 +185,7 @@ internal sealed class TeamSettingsReconciliationService(
             RetryDeadline ??= TimeProvider.GetUtcNow() + Options.Team.ReconciliationLeaseDuration;
     }
 
-    private async Task ReconcileEveryTeamAsync(CancellationToken stoppingToken)
+    private async ValueTask ReconcileEveryTeamAsync(CancellationToken stoppingToken)
     {
         try
         {
@@ -221,7 +221,7 @@ internal sealed class TeamSettingsReconciliationService(
 
     // Reconciles each team and every team beneath it, each team once per pass. Only the requested teams are remembered,
     // so a pass holds no set of every team it reaches.
-    private async Task ReconcileSubtreesAsync(
+    private async ValueTask ReconcileSubtreesAsync(
         IReadOnlyCollection<string> teamIds,
         CancellationToken stoppingToken
     )
@@ -267,7 +267,7 @@ internal sealed class TeamSettingsReconciliationService(
         return true;
     }
 
-    private async Task ReconcileTeamAsync(string teamId, CancellationToken stoppingToken)
+    private async ValueTask ReconcileTeamAsync(string teamId, CancellationToken stoppingToken)
     {
         var settled = false;
         try

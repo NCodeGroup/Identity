@@ -119,14 +119,16 @@ public abstract class SecretProtectionTestBase : BaseTests
     /// </summary>
     /// <param name="services">The service provider that <see cref="CreateSecretServices"/> built.</param>
     /// <param name="owner">The owner whose protector is returned.</param>
+    /// <param name="cancellationToken">The token to observe.</param>
     /// <returns>The protector of the owner's master key.</returns>
-    protected static async Task<ISecretProtector> GetProtectorAsync(
+    protected static async ValueTask<ISecretProtector> GetProtectorAsync(
         ServiceProvider services,
-        SecretOwner owner
+        SecretOwner owner,
+        CancellationToken cancellationToken
     )
     {
         var provider = services.GetRequiredService<ISecretProtectorProvider>();
-        return await provider.GetProtectorAsync(owner, [], CancellationToken.None);
+        return await provider.GetProtectorAsync(owner, [], cancellationToken);
     }
 
     /// <summary>
@@ -139,19 +141,21 @@ public abstract class SecretProtectionTestBase : BaseTests
     /// <param name="secret">The stored secret to assert on.</param>
     /// <param name="expectedSecretId">The id that the secret is expected to carry.</param>
     /// <param name="expectedSecretText">The text whose UTF-8 bytes the secret is expected to hold.</param>
-    protected static async Task AssertSecretIsProtectedUnderTenantAsync(
+    /// <param name="cancellationToken">The token to observe.</param>
+    protected static async ValueTask AssertSecretIsProtectedUnderTenantAsync(
         ServiceProvider services,
         SecretOwner owner,
         PersistedSecret secret,
         string expectedSecretId,
-        string expectedSecretText
+        string expectedSecretText,
+        CancellationToken cancellationToken
     )
     {
         Assert.Equal(expectedSecretId, secret.SecretId);
         Assert.Equal(SecretEncodings.SymmetricRaw, secret.SecretEncoding);
         Assert.StartsWith("nce1.", secret.EncodedValue, StringComparison.Ordinal);
 
-        var protector = await GetProtectorAsync(services, owner);
+        var protector = await GetProtectorAsync(services, owner, cancellationToken);
         var serializer = services.GetRequiredService<ISecretSerializer>();
         var secretKey = serializer.DeserializeSecret(protector, secret);
 
@@ -174,20 +178,22 @@ public abstract class SecretProtectionTestBase : BaseTests
     /// <param name="secret">The stored secret to assert on.</param>
     /// <param name="expectedSecretId">The id that the secret is expected to carry.</param>
     /// <param name="expectedSecretText">The text whose UTF-8 bytes the verifier is expected to confirm.</param>
+    /// <param name="cancellationToken">The token to observe.</param>
     // See ADR-1391.
-    protected static async Task AssertSecretIsVerifierUnderTenantAsync(
+    protected static async ValueTask AssertSecretIsVerifierUnderTenantAsync(
         ServiceProvider services,
         SecretOwner owner,
         PersistedSecret secret,
         string expectedSecretId,
-        string expectedSecretText
+        string expectedSecretText,
+        CancellationToken cancellationToken
     )
     {
         Assert.Equal(expectedSecretId, secret.SecretId);
         Assert.Equal(SecretEncodings.Verifier, secret.SecretEncoding);
         Assert.StartsWith("nce1.", secret.EncodedValue, StringComparison.Ordinal);
 
-        var protector = await GetProtectorAsync(services, owner);
+        var protector = await GetProtectorAsync(services, owner, cancellationToken);
         var serializer = services.GetRequiredService<ISecretSerializer>();
         var verifier = Assert.Single(serializer.DeserializeVerifiers(protector, [secret]));
 
@@ -196,14 +202,14 @@ public abstract class SecretProtectionTestBase : BaseTests
             SecretVerificationResult.Success,
             await verifier.VerifyAsync(
                 SecureEncoding.UTF8.GetBytes(expectedSecretText),
-                CancellationToken.None
+                cancellationToken
             )
         );
         Assert.Equal(
             SecretVerificationResult.Failed,
             await verifier.VerifyAsync(
                 SecureEncoding.UTF8.GetBytes(expectedSecretText + "x"),
-                CancellationToken.None
+                cancellationToken
             )
         );
     }

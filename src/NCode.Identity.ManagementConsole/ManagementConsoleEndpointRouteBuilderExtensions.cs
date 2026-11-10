@@ -100,7 +100,7 @@ public static class ManagementConsoleEndpointRouteBuilderExtensions
                         static (HttpContext context) =>
                             context
                                 .RequestServices.GetRequiredService<ManagementConsolePageHandler>()
-                                .HandleAsync(context)
+                                .HandleAsync(context, context.RequestAborted)
                     )
                 )
                 .WithMetadata(new HttpMethodMetadata([HttpMethods.Get, HttpMethods.Head]))

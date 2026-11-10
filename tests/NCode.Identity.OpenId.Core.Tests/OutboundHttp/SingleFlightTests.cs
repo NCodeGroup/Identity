@@ -38,7 +38,7 @@ public sealed class SingleFlightTests : BaseTests
         var calls = 0;
         var singleFlight = CreateSingleFlight();
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        async Task<string> Retrieve()
+        async ValueTask<string> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
             await gate.Task;
@@ -60,7 +60,7 @@ public sealed class SingleFlightTests : BaseTests
         var calls = 0;
         var singleFlight = CreateSingleFlight();
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        async Task<string> Retrieve()
+        async ValueTask<string> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
             await gate.Task;
@@ -83,10 +83,10 @@ public sealed class SingleFlightTests : BaseTests
     {
         var calls = 0;
         var singleFlight = CreateSingleFlight();
-        Task<string> Retrieve()
+        ValueTask<string> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
-            return Task.FromResult(Value);
+            return ValueTask.FromResult(Value);
         }
 
         var first = await singleFlight.RunAsync(Key, Retrieve, CancellationToken.None);
@@ -102,12 +102,12 @@ public sealed class SingleFlightTests : BaseTests
     {
         var calls = 0;
         var singleFlight = CreateSingleFlight();
-        Task<string> Retrieve()
+        ValueTask<string> Retrieve(CancellationToken cancellationToken)
         {
             if (Interlocked.Increment(ref calls) == 1)
-                return Task.FromException<string>(new InvalidOperationException());
+                return ValueTask.FromException<string>(new InvalidOperationException());
 
-            return Task.FromResult(Value);
+            return ValueTask.FromResult(Value);
         }
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>

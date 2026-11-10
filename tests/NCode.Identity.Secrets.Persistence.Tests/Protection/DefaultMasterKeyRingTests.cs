@@ -239,21 +239,20 @@ public class DefaultMasterKeyRingTests : BaseTests
 
     // Creates a row that the ring can unwrap because it is wrapped by the same ephemeral root key. The row belongs to
     // the specified normalized owner, which is the owner of the tests by default, because the root key context binds it.
-    private async Task<PersistedMasterKey> CreateRowAsync(
-        int version = 1,
-        bool retired = false,
-        SecretOwner? normalizedOwner = null
+    private async ValueTask<PersistedMasterKey> CreateRowAsync(
+        MasterKeyRowOptions options,
+        CancellationToken cancellationToken
     )
     {
         var created = await Factory.CreateAsync(
-            normalizedOwner ?? NormalizedOwner,
-            version,
+            options.NormalizedOwner ?? NormalizedOwner,
+            options.Version,
             rootKey: null,
-            CancellationToken.None
+            cancellationToken
         );
         created.Key.Dispose();
 
-        if (retired)
+        if (options.Retired)
             created.Row.RetiredWhen = DateTimeOffset.UtcNow;
 
         return created.Row;
@@ -393,7 +392,10 @@ public class DefaultMasterKeyRingTests : BaseTests
         var oldRow = Assert.Single(added);
 
         // The owner rotated: a new active row exists, the old row is retired and then destroyed.
-        var newRow = await CreateRowAsync(version: 2);
+        var newRow = await CreateRowAsync(
+            new MasterKeyRowOptions { Version = 2 },
+            CancellationToken.None
+        );
         Time.Advance(TimeSpan.FromMinutes(6));
         var (store, _) = EnqueueStoreManager();
         SetupFindActive(store, newRow);
@@ -452,8 +454,14 @@ public class DefaultMasterKeyRingTests : BaseTests
     [Fact]
     public async Task GetProtector_RetiredKeyRequired_LoadsOnlyThatKey()
     {
-        var active = await CreateRowAsync(version: 2);
-        var retired = await CreateRowAsync(version: 1, retired: true);
+        var active = await CreateRowAsync(
+            new MasterKeyRowOptions { Version = 2 },
+            CancellationToken.None
+        );
+        var retired = await CreateRowAsync(
+            new MasterKeyRowOptions { Version = 1, Retired = true },
+            CancellationToken.None
+        );
 
         // The setup of the query matches only the retired key's identifier, so the active row is not queried twice.
         var (store, _) = EnqueueStoreManager();
@@ -481,7 +489,10 @@ public class DefaultMasterKeyRingTests : BaseTests
 
         // Unwrapping the row again would throw, so the ring must reuse the cached active key.
         active.RootWrappedKey = "corrupted";
-        var retired = await CreateRowAsync(version: 1, retired: true);
+        var retired = await CreateRowAsync(
+            new MasterKeyRowOptions { Version = 1, Retired = true },
+            CancellationToken.None
+        );
         var (store, _) = EnqueueStoreManager();
         SetupFindActive(store, active);
         SetupFindByKeyId(store, retired.KeyId, retired);
@@ -498,7 +509,7 @@ public class DefaultMasterKeyRingTests : BaseTests
     [Fact]
     public async Task GetProtector_SaveFailsAndWinnerExists_UsesWinner()
     {
-        var winner = await CreateRowAsync();
+        var winner = await CreateRowAsync(new MasterKeyRowOptions(), CancellationToken.None);
         ExpectCreateFailsToSave(new InvalidOperationException("The master key already exists."));
         ExpectFindActive(winner);
         using var ring = CreateRing();
@@ -551,7 +562,7 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task GetProtector_ConcurrentCallersSameOwner_LoadsOnce()
     {
         const int callerCount = 8;
-        var row = await CreateRowAsync();
+        var row = await CreateRowAsync(new MasterKeyRowOptions(), CancellationToken.None);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -584,8 +595,11 @@ public class DefaultMasterKeyRingTests : BaseTests
     [Fact]
     public async Task GetProtector_DifferentOwners_LoadInParallel()
     {
-        var row = await CreateRowAsync();
-        var otherRow = await CreateRowAsync(normalizedOwner: NormalizedOtherOwner);
+        var row = await CreateRowAsync(new MasterKeyRowOptions(), CancellationToken.None);
+        var otherRow = await CreateRowAsync(
+            new MasterKeyRowOptions { NormalizedOwner = NormalizedOtherOwner },
+            CancellationToken.None
+        );
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var otherStarted = new TaskCompletionSource(
             TaskCreationOptions.RunContinuationsAsynchronously
@@ -619,7 +633,7 @@ public class DefaultMasterKeyRingTests : BaseTests
     [Fact]
     public async Task GetProtector_LoadCancelled_NextCallerLoads()
     {
-        var row = await CreateRowAsync();
+        var row = await CreateRowAsync(new MasterKeyRowOptions(), CancellationToken.None);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // The read is never released, so only the cancellation of the caller ends it.
@@ -704,7 +718,7 @@ public class DefaultMasterKeyRingTests : BaseTests
     [Fact]
     public async Task Evict_DuringLoad_DoesNotCacheTheLoadedKeys()
     {
-        var row = await CreateRowAsync();
+        var row = await CreateRowAsync(new MasterKeyRowOptions(), CancellationToken.None);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         ExpectFindActiveBlocked(row, started, release);
@@ -732,7 +746,7 @@ public class DefaultMasterKeyRingTests : BaseTests
     [Fact]
     public async Task EvictAll_DuringLoad_DoesNotCacheTheLoadedKeys()
     {
-        var row = await CreateRowAsync();
+        var row = await CreateRowAsync(new MasterKeyRowOptions(), CancellationToken.None);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         ExpectFindActiveBlocked(row, started, release);
@@ -806,18 +820,20 @@ public class DefaultMasterKeyRingTests : BaseTests
             StateChangedWhen = Time.GetUtcNow(),
         };
 
-    private async Task<PersistedMasterKey> CreateOwnerRootedRowAsync(
+    private async ValueTask<PersistedMasterKey> CreateOwnerRootedRowAsync(
         MasterKeyFactory factory,
-        int version = 1,
-        string keyReference = RootKeyReference,
-        string? accessIdentity = null
+        OwnerRootedRowOptions options,
+        CancellationToken cancellationToken
     )
     {
         var created = await factory.CreateAsync(
             NormalizedOwner,
-            version,
-            CreateRootKey(keyReference: keyReference, accessIdentity: accessIdentity),
-            CancellationToken.None
+            options.Version,
+            CreateRootKey(
+                keyReference: options.KeyReference ?? RootKeyReference,
+                accessIdentity: options.AccessIdentity
+            ),
+            cancellationToken
         );
         created.Key.Dispose();
         return created.Row;
@@ -889,7 +905,11 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task GetProtector_OwnerRootedEntry_IsReusedWithinTheValidationIntervalAndUnwrappedAgainAfterIt()
     {
         var factory = CreateOwnerRootFactory();
-        var row = await CreateOwnerRootedRowAsync(factory);
+        var row = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions(),
+            CancellationToken.None
+        );
         var rootKey = CreateRootKey();
         ExpectLoad(row, rootKey);
         using var ring = CreateOwnerRootRing(factory);
@@ -929,7 +949,11 @@ public class DefaultMasterKeyRingTests : BaseTests
     )
     {
         var factory = CreateOwnerRootFactory();
-        var row = await CreateOwnerRootedRowAsync(factory);
+        var row = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions(),
+            CancellationToken.None
+        );
         ExpectLoad(row, CreateRootKey(state));
         using var ring = CreateOwnerRootRing(factory);
 
@@ -955,7 +979,11 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task GetProtector_OwnerRootedKeyFailsToUnwrap_ThrowsUnavailableWrappingTheFailure()
     {
         var factory = CreateOwnerRootFactory();
-        var row = await CreateOwnerRootedRowAsync(factory);
+        var row = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions(),
+            CancellationToken.None
+        );
         Referenced.Revoke(RootKeyReference);
         ExpectLoad(row, CreateRootKey());
         using var ring = CreateOwnerRootRing(factory);
@@ -972,7 +1000,11 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task GetProtector_OwnerRootedAndARequiredKeyIdHasNoRow_ThrowsOnlyForThatCallAndKeepsTheEntry()
     {
         var factory = CreateOwnerRootFactory();
-        var row = await CreateOwnerRootedRowAsync(factory);
+        var row = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions(),
+            CancellationToken.None
+        );
         var unknownKeyId = Guid.NewGuid();
         var (store, manager) = EnqueueStoreManager();
         SetupFindActive(store, row);
@@ -1003,7 +1035,11 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task GetProtector_ARevokedKeyAfterTheValidationInterval_FailsClosedEvenWhenTheStateIsActive()
     {
         var factory = CreateOwnerRootFactory();
-        var row = await CreateOwnerRootedRowAsync(factory);
+        var row = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions(),
+            CancellationToken.None
+        );
         ExpectLoad(row, CreateRootKey());
         using var ring = CreateOwnerRootRing(factory);
         await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
@@ -1021,9 +1057,21 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task GetProtector_DueValidationWithThreeRowsUnderOneReference_UnwrapsOnceAndServesAllThree()
     {
         var factory = CreateOwnerRootFactory();
-        var row1 = await CreateOwnerRootedRowAsync(factory, version: 1);
-        var row2 = await CreateOwnerRootedRowAsync(factory, version: 2);
-        var row3 = await CreateOwnerRootedRowAsync(factory, version: 3);
+        var row1 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 1 },
+            CancellationToken.None
+        );
+        var row2 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 2 },
+            CancellationToken.None
+        );
+        var row3 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 3 },
+            CancellationToken.None
+        );
         string[] protectedValues = [CreateEnvelopeFor(row1.KeyId), CreateEnvelopeFor(row2.KeyId)];
         ExpectLoadWithRows(row3, CreateRootKey(), row1, row2);
         using var ring = CreateOwnerRootRing(factory);
@@ -1051,10 +1099,26 @@ public class DefaultMasterKeyRingTests : BaseTests
     {
         const string otherReference = "kms://tenant-a/other";
         var factory = CreateOwnerRootFactory();
-        var row1 = await CreateOwnerRootedRowAsync(factory, version: 1, otherReference);
-        var row2 = await CreateOwnerRootedRowAsync(factory, version: 2, otherReference);
-        var row3 = await CreateOwnerRootedRowAsync(factory, version: 3);
-        var row4 = await CreateOwnerRootedRowAsync(factory, version: 4);
+        var row1 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 1, KeyReference = otherReference },
+            CancellationToken.None
+        );
+        var row2 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 2, KeyReference = otherReference },
+            CancellationToken.None
+        );
+        var row3 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 3 },
+            CancellationToken.None
+        );
+        var row4 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 4 },
+            CancellationToken.None
+        );
         string[] protectedValues =
         [
             CreateEnvelopeFor(row1.KeyId),
@@ -1091,9 +1155,21 @@ public class DefaultMasterKeyRingTests : BaseTests
         const string identityB = "test-identity-b";
         var wrapper = new IdentityRecordingKeyWrapper(Referenced);
         var factory = CreateOwnerRootFactory(wrapper);
-        var row1 = await CreateOwnerRootedRowAsync(factory, version: 1, accessIdentity: identityA);
-        var row2 = await CreateOwnerRootedRowAsync(factory, version: 2, accessIdentity: identityB);
-        var row3 = await CreateOwnerRootedRowAsync(factory, version: 3, accessIdentity: identityA);
+        var row1 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 1, AccessIdentity = identityA },
+            CancellationToken.None
+        );
+        var row2 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 2, AccessIdentity = identityB },
+            CancellationToken.None
+        );
+        var row3 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 3, AccessIdentity = identityA },
+            CancellationToken.None
+        );
         string[] protectedValues = [CreateEnvelopeFor(row1.KeyId), CreateEnvelopeFor(row2.KeyId)];
         ExpectLoadWithRows(row3, CreateRootKey(accessIdentity: identityA), row1, row2);
         using var ring = CreateOwnerRootRing(factory);
@@ -1124,8 +1200,16 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task GetProtector_DueValidationOfAKeyWhoseRowExists_LogsNoDroppedKey()
     {
         var factory = CreateOwnerRootFactory();
-        var row1 = await CreateOwnerRootedRowAsync(factory, version: 1);
-        var row2 = await CreateOwnerRootedRowAsync(factory, version: 2);
+        var row1 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 1 },
+            CancellationToken.None
+        );
+        var row2 = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions { Version = 2 },
+            CancellationToken.None
+        );
         var logger = new RecordingLogger();
         ExpectLoadWithRows(row2, CreateRootKey(), row1);
         using var ring = CreateOwnerRootRing(factory, logger);
@@ -1146,7 +1230,11 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task GetProtector_OwnerRootedLoadFailsAfterAnEviction_RecordsNoRefusal()
     {
         var factory = CreateOwnerRootFactory();
-        var row = await CreateOwnerRootedRowAsync(factory);
+        var row = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions(),
+            CancellationToken.None
+        );
         Referenced.Revoke(RootKeyReference);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1186,7 +1274,11 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task Evict_AfterAFailure_ClearsTheRefusal()
     {
         var factory = CreateOwnerRootFactory();
-        var row = await CreateOwnerRootedRowAsync(factory);
+        var row = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions(),
+            CancellationToken.None
+        );
         ExpectLoad(row, CreateRootKey(OwnerRootKeyStates.Unavailable));
         using var ring = CreateOwnerRootRing(factory);
         await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
@@ -1203,7 +1295,11 @@ public class DefaultMasterKeyRingTests : BaseTests
     public async Task EvictAll_AfterAFailure_ClearsTheRefusal()
     {
         var factory = CreateOwnerRootFactory();
-        var row = await CreateOwnerRootedRowAsync(factory);
+        var row = await CreateOwnerRootedRowAsync(
+            factory,
+            new OwnerRootedRowOptions(),
+            CancellationToken.None
+        );
         ExpectLoad(row, CreateRootKey(OwnerRootKeyStates.Unavailable));
         using var ring = CreateOwnerRootRing(factory);
         await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>

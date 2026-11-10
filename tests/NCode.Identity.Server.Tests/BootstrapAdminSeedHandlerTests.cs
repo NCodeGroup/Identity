@@ -260,7 +260,8 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             owner,
             secret,
             GeneratedSecretId,
-            SecretText
+            SecretText,
+            CancellationToken.None
         );
     }
 
@@ -360,7 +361,8 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
                 owner,
                 addedSecret,
                 GeneratedSecretId,
-                SecretText
+                SecretText,
+                CancellationToken.None
             );
         }
         else
@@ -370,7 +372,8 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
                 owner,
                 addedSecret,
                 GeneratedSecretId,
-                SecretText
+                SecretText,
+                CancellationToken.None
             );
         }
     }

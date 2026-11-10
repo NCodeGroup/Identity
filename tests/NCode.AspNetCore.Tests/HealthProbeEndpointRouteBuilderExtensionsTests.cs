@@ -43,9 +43,17 @@ public class HealthProbeEndpointRouteBuilderExtensionsTests : BaseTests
                 x.Metadata.GetMetadata<EndpointNameMetadata>()?.EndpointName == endpointName
             );
 
-    private static async Task<int> InvokeAsync(WebApplication app, RouteEndpoint endpoint)
+    private static async ValueTask<int> InvokeAsync(
+        WebApplication app,
+        RouteEndpoint endpoint,
+        CancellationToken cancellationToken
+    )
     {
-        var httpContext = new DefaultHttpContext { RequestServices = app.Services };
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = app.Services,
+            RequestAborted = cancellationToken,
+        };
 
         var requestDelegate = Assert.IsType<RequestDelegate>(endpoint.RequestDelegate);
 
@@ -81,14 +89,11 @@ public class HealthProbeEndpointRouteBuilderExtensionsTests : BaseTests
 
         ((IEndpointRouteBuilder)app).MapHealthProbes();
 
-        var readyStatusCode = await InvokeAsync(
-            app,
-            FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName)
-        );
-        var liveStatusCode = await InvokeAsync(
-            app,
-            FindEndpoint(app, HealthProbeDefaults.LivenessEndpointName)
-        );
+        var readiness = FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName);
+        var liveness = FindEndpoint(app, HealthProbeDefaults.LivenessEndpointName);
+
+        var readyStatusCode = await InvokeAsync(app, readiness, CancellationToken.None);
+        var liveStatusCode = await InvokeAsync(app, liveness, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, readyStatusCode);
         Assert.Equal(StatusCodes.Status200OK, liveStatusCode);
@@ -101,10 +106,9 @@ public class HealthProbeEndpointRouteBuilderExtensionsTests : BaseTests
 
         ((IEndpointRouteBuilder)app).MapHealthProbes();
 
-        var readyStatusCode = await InvokeAsync(
-            app,
-            FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName)
-        );
+        var readiness = FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName);
+
+        var readyStatusCode = await InvokeAsync(app, readiness, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, readyStatusCode);
     }

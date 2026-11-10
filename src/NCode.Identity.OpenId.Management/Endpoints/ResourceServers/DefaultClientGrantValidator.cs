@@ -29,7 +29,8 @@ internal class DefaultClientGrantValidator(IAuthorizationService authorizationSe
             TenantScopeResource.For(tenantId),
             Operations.Create,
             "The caller is not authorized to create this client grant.",
-            "Authentication is required to create this client grant."
+            "Authentication is required to create this client grant.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -43,7 +44,8 @@ internal class DefaultClientGrantValidator(IAuthorizationService authorizationSe
             TenantScopeResource.For(tenantId),
             Operations.Update,
             "The caller is not authorized to update this client grant.",
-            "Authentication is required to update this client grant."
+            "Authentication is required to update this client grant.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -57,7 +59,8 @@ internal class DefaultClientGrantValidator(IAuthorizationService authorizationSe
             TenantScopeResource.For(tenantId),
             Operations.Delete,
             "The caller is not authorized to delete this client grant.",
-            "Authentication is required to delete this client grant."
+            "Authentication is required to delete this client grant.",
+            cancellationToken
         );
 
     /// <inheritdoc />

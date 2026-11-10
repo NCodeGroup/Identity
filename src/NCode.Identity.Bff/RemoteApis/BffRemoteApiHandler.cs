@@ -26,8 +26,13 @@ internal sealed class BffRemoteApiHandler(
     /// </summary>
     /// <param name="context">The current request.</param>
     /// <param name="api">The remote API that the request was routed to.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A task that completes when the response is written.</returns>
-    public async Task HandleAsync(HttpContext context, BffRemoteApi api)
+    public async ValueTask HandleAsync(
+        HttpContext context,
+        BffRemoteApi api,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(api);
@@ -39,7 +44,8 @@ internal sealed class BffRemoteApiHandler(
                 context,
                 StatusCodes.Status405MethodNotAllowed,
                 BffProblemTypes.MethodNotAllowed,
-                "The remote API does not accept this method."
+                "The remote API does not accept this method.",
+                cancellationToken
             );
             return;
         }
@@ -50,16 +56,13 @@ internal sealed class BffRemoteApiHandler(
                 context,
                 StatusCodes.Status400BadRequest,
                 BffProblemTypes.InvalidRequest,
-                "The request path cannot be forwarded."
+                "The request path cannot be forwarded.",
+                cancellationToken
             );
             return;
         }
 
-        var token = await tokens.GetAccessTokenAsync(
-            context,
-            api.TokenRequest,
-            context.RequestAborted
-        );
+        var token = await tokens.GetAccessTokenAsync(context, api.TokenRequest, cancellationToken);
         if (!token.IsSuccess)
             throw new BffTokenUnavailableException(token.StatusCode, token.Reason);
 
@@ -74,10 +77,11 @@ internal sealed class BffRemoteApiHandler(
             api.Destination,
             api.Invoker,
             api.RequestConfig,
-            transformer
+            transformer,
+            cancellationToken
         );
 
-        if (error != ForwarderError.None && !context.RequestAborted.IsCancellationRequested)
+        if (error != ForwarderError.None && !cancellationToken.IsCancellationRequested)
         {
             var exception = context.GetForwarderErrorFeature()?.Exception;
             logger.RemoteApiForwardFailed(api.Path, error.ToString(), exception);

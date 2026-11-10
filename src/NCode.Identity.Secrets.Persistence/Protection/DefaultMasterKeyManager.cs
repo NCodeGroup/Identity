@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -324,6 +325,11 @@ internal sealed class DefaultMasterKeyManager(
         return destroyed;
     }
 
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    )]
     private async ValueTask AnnounceDestroyedAsync(SecretOwner owner, List<MasterKeyInfo> destroyed)
     {
         if (destroyed.Count == 0)
@@ -364,6 +370,11 @@ internal sealed class DefaultMasterKeyManager(
     }
 
     // Calls every observer on a bounded token of its own and swallows each failure, since the change is committed.
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    )]
     private async ValueTask NotifyAsync(
         SecretOwner owner,
         Func<IMasterKeyChangeObserver, CancellationToken, ValueTask> notify

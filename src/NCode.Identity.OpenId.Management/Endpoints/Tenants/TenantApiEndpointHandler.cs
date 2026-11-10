@@ -632,7 +632,8 @@ internal class TenantApiEndpointHandler(
                 );
                 return page;
             },
-            tenant => toTenantResource(tenant)
+            tenant => toTenantResource(tenant),
+            cancellationToken
         );
     }
 
@@ -677,7 +678,8 @@ internal class TenantApiEndpointHandler(
                 );
                 return page;
             },
-            tenant => toTenantResource(tenant)
+            tenant => toTenantResource(tenant),
+            cancellationToken
         );
     }
 
@@ -2218,7 +2220,8 @@ internal class TenantApiEndpointHandler(
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
             roleList,
-            (_, _) => HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation),
+            (_, token) =>
+                HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation, token),
             cancellationToken
         );
     }
@@ -2286,7 +2289,8 @@ internal class TenantApiEndpointHandler(
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
             roleList,
-            (_, _) => HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation),
+            (_, token) =>
+                HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation, token),
             cancellationToken
         );
     }

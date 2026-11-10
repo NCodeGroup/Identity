@@ -18,7 +18,13 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task UseStrictTransportSecurity_OverHttpsOutsideDevelopment_SendsTheDefaultPolicy()
     {
-        var header = await SendAsync([], Environments.Production, "https", "id.example.com");
+        var header = await SendAsync(
+            [],
+            Environments.Production,
+            "https",
+            "id.example.com",
+            CancellationToken.None
+        );
 
         Assert.Equal("max-age=31536000; includeSubDomains", header);
     }
@@ -34,7 +40,8 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
             },
             Environments.Production,
             "https",
-            "id.example.com"
+            "id.example.com",
+            CancellationToken.None
         );
 
         Assert.Equal("max-age=63072000; includeSubDomains; preload", header);
@@ -50,7 +57,8 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
             },
             Environments.Production,
             "https",
-            "id.example.com"
+            "id.example.com",
+            CancellationToken.None
         );
 
         Assert.Equal("max-age=31536000", header);
@@ -59,7 +67,13 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task UseStrictTransportSecurity_InDevelopment_SendsNothing()
     {
-        var header = await SendAsync([], Environments.Development, "https", "id.example.com");
+        var header = await SendAsync(
+            [],
+            Environments.Development,
+            "https",
+            "id.example.com",
+            CancellationToken.None
+        );
 
         Assert.Null(header);
     }
@@ -71,7 +85,8 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
             new Dictionary<string, string?> { ["StrictTransportSecurity:Enabled"] = "false" },
             Environments.Production,
             "https",
-            "id.example.com"
+            "id.example.com",
+            CancellationToken.None
         );
 
         Assert.Null(header);
@@ -80,7 +95,13 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task UseStrictTransportSecurity_OverHttp_SendsNothing()
     {
-        var header = await SendAsync([], Environments.Production, "http", "id.example.com");
+        var header = await SendAsync(
+            [],
+            Environments.Production,
+            "http",
+            "id.example.com",
+            CancellationToken.None
+        );
 
         Assert.Null(header);
     }
@@ -91,7 +112,13 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
     [InlineData("[::1]")]
     public async Task UseStrictTransportSecurity_ToALoopbackHost_SendsNothing(string host)
     {
-        var header = await SendAsync([], Environments.Production, "https", host);
+        var header = await SendAsync(
+            [],
+            Environments.Production,
+            "https",
+            host,
+            CancellationToken.None
+        );
 
         Assert.Null(header);
     }
@@ -106,7 +133,8 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
             },
             Environments.Production,
             "https",
-            "internal.example.com"
+            "internal.example.com",
+            CancellationToken.None
         );
 
         Assert.Null(header);
@@ -121,14 +149,16 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
     {
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
             SendAsync(
-                new Dictionary<string, string?>
-                {
-                    ["StrictTransportSecurity:MaxAge"] = "-00:00:01",
-                },
-                Environments.Production,
-                "https",
-                "id.example.com"
-            )
+                    new Dictionary<string, string?>
+                    {
+                        ["StrictTransportSecurity:MaxAge"] = "-00:00:01",
+                    },
+                    Environments.Production,
+                    "https",
+                    "id.example.com",
+                    CancellationToken.None
+                )
+                .AsTask()
         );
 
         Assert.Contains(
@@ -143,14 +173,16 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
     {
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             SendAsync(
-                new Dictionary<string, string?>
-                {
-                    ["StrictTransportSecurity:MaxAgeSeconds"] = "10",
-                },
-                Environments.Production,
-                "https",
-                "id.example.com"
-            )
+                    new Dictionary<string, string?>
+                    {
+                        ["StrictTransportSecurity:MaxAgeSeconds"] = "10",
+                    },
+                    Environments.Production,
+                    "https",
+                    "id.example.com",
+                    CancellationToken.None
+                )
+                .AsTask()
         );
 
         Assert.Contains("'StrictTransportSecurity'", exception.Message, StringComparison.Ordinal);
@@ -159,11 +191,12 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
 
     #endregion
 
-    private async Task<string?> SendAsync(
+    private async ValueTask<string?> SendAsync(
         Dictionary<string, string?> configurationData,
         string environmentName,
         string scheme,
-        string host
+        string host,
+        CancellationToken cancellationToken
     )
     {
         var configuration = new ConfigurationBuilder()

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Bff.Auditing;
@@ -85,6 +86,11 @@ internal class DefaultBffUserTokenService(
         return await RefreshAsync(scope, state, request, cancellationToken);
     }
 
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work must complete whatever the caller does, so it runs on its own token and takes none (ADR-1308)."
+    )]
     private async ValueTask<BffTokenResult> EndRefreshFailedAsync(
         IBffSessionScope scope,
         BffSessionState state
@@ -293,6 +299,11 @@ internal class DefaultBffUserTokenService(
     /// <param name="lease">The refresh lease to release.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     // See ADR-1308.
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work must complete whatever the caller does, so it runs on its own token and takes none (ADR-1308)."
+    )]
     private async ValueTask ReleaseLeaseAsync(BffRefreshLease lease)
     {
         try
@@ -365,6 +376,11 @@ internal class DefaultBffUserTokenService(
         }
     }
 
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work must complete whatever the caller does, so it runs on its own token and takes none (ADR-1291)."
+    )]
     private async ValueTask<BffTokenResult> RequestAndStoreAsync(
         IBffSessionScope scope,
         BffSessionState current,

@@ -54,10 +54,10 @@ public class RevocationRetrievalCacheTests : BaseTests
     {
         var calls = 0;
         var cache = CreateCache();
-        Task<RevocationRetrieval<string>> Retrieve()
+        ValueTask<RevocationRetrieval<string>> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
-            return Task.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
+            return ValueTask.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
         }
 
         var first = await cache.GetAsync<string>(
@@ -85,10 +85,10 @@ public class RevocationRetrievalCacheTests : BaseTests
     {
         var calls = 0;
         var cache = CreateCache();
-        Task<RevocationRetrieval<string>> Retrieve()
+        ValueTask<RevocationRetrieval<string>> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
-            return Task.FromResult(new RevocationRetrieval<string>(Value, null));
+            return ValueTask.FromResult(new RevocationRetrieval<string>(Value, null));
         }
 
         var first = await cache.GetAsync<string>(
@@ -116,10 +116,10 @@ public class RevocationRetrievalCacheTests : BaseTests
     {
         var calls = 0;
         var cache = CreateCache();
-        Task<RevocationRetrieval<string>> Retrieve()
+        ValueTask<RevocationRetrieval<string>> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
-            return Task.FromResult(default(RevocationRetrieval<string>));
+            return ValueTask.FromResult(default(RevocationRetrieval<string>));
         }
 
         var first = await cache.GetAsync<string>(
@@ -149,7 +149,7 @@ public class RevocationRetrievalCacheTests : BaseTests
         var calls = 0;
         var cache = CreateCache();
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        async Task<RevocationRetrieval<string>> Retrieve()
+        async ValueTask<RevocationRetrieval<string>> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
             await gate.Task;
@@ -175,7 +175,7 @@ public class RevocationRetrievalCacheTests : BaseTests
         var calls = 0;
         var cache = CreateCache();
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        async Task<RevocationRetrieval<string>> Retrieve()
+        async ValueTask<RevocationRetrieval<string>> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
             await gate.Task;
@@ -215,10 +215,10 @@ public class RevocationRetrievalCacheTests : BaseTests
             .Returns(() => Interlocked.Increment(ref unavailableChecks) > 1)
             .Verifiable();
         var cache = CreateCacheOver(mockMemoryCache.Object);
-        Task<RevocationRetrieval<string>> Retrieve()
+        ValueTask<RevocationRetrieval<string>> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
-            return Task.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
+            return ValueTask.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
         }
 
         var result = await cache.GetAsync<string>(
@@ -256,10 +256,10 @@ public class RevocationRetrievalCacheTests : BaseTests
             .Returns(false)
             .Verifiable();
         var cache = CreateCacheOver(mockMemoryCache.Object);
-        Task<RevocationRetrieval<string>> Retrieve()
+        ValueTask<RevocationRetrieval<string>> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
-            return Task.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
+            return ValueTask.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
         }
 
         var result = await cache.GetAsync<string>(
@@ -284,10 +284,10 @@ public class RevocationRetrievalCacheTests : BaseTests
     {
         var calls = 0;
         var cache = CreateCache();
-        Task<RevocationRetrieval<string>> Retrieve()
+        ValueTask<RevocationRetrieval<string>> Retrieve(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref calls);
-            return Task.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
+            return ValueTask.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
         }
         Assert.False(cache.IsUnavailable(Key));
 

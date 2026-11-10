@@ -67,27 +67,31 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
             EncodedValue = "encoded-value",
         }.Build();
 
-    private async Task SeedTenantAsync(string tenantId, params PersistedSecret[] secrets)
+    private async ValueTask SeedTenantAsync(
+        string tenantId,
+        PersistedSecret[] secrets,
+        CancellationToken cancellationToken
+    )
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
         var tenant = new PersistedTenantBuilder { TenantId = tenantId, Secrets = secrets }.Build();
 
-        await Store.AddAsync(tenant, CancellationToken.None);
+        await Store.AddAsync(tenant, cancellationToken);
     }
 
-    private async Task SeedAsync()
+    private async ValueTask SeedAsync(CancellationToken cancellationToken)
     {
-        await SeedTenantAsync(TenantA);
-        await SeedTenantAsync(TenantB, CreateSecret(SecretB));
-        await DbContext.SaveChangesAsync();
+        await SeedTenantAsync(TenantA, [], cancellationToken);
+        await SeedTenantAsync(TenantB, [CreateSecret(SecretB)], cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
     public async Task GetSecretOrDefaultAsync_WhenScopedToOtherTenant_ReturnsNull()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         AmbientTenantAccessor.TenantId = TenantA;
 
@@ -103,7 +107,7 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
     [Fact]
     public async Task GetSecretOrDefaultAsync_WhenUnscoped_ReturnsSecret()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         var secret = await Store.GetSecretOrDefaultAsync(TenantB, SecretB, CancellationToken.None);
 
@@ -114,7 +118,7 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
     [Fact]
     public async Task GetOrDefaultAsync_WhenScopedToOtherTenant_LoadsTenantButFiltersItsSecrets()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         AmbientTenantAccessor.TenantId = TenantA;
 

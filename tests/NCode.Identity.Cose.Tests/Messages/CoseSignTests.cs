@@ -19,7 +19,8 @@ public class CoseSignTests
     ) => new() { ValidAlgorithms = algorithms, Keys = keys };
 
     private static async ValueTask<(byte[] Encoded, SecretKey[] Keys)> EncodeTwoSignaturesAsync(
-        CoseTestHost host
+        CoseTestHost host,
+        CancellationToken cancellationToken
     )
     {
         var first = host.KeyFactory.CreateEcc(
@@ -37,7 +38,7 @@ public class CoseSignTests
                 new CoseSigner(new CoseCredentials(second, CoseAlgorithms.Es256)),
             ],
             new CoseEncodingOptions(),
-            CancellationToken.None
+            cancellationToken
         );
         return (encoded, [first, second]);
     }
@@ -139,7 +140,7 @@ public class CoseSignTests
     public async Task Verify_MoreSignaturesThanTheLimit_ThrowsLimitExceeded()
     {
         await using var encoder = new CoseTestHost();
-        var (encoded, keys) = await EncodeTwoSignaturesAsync(encoder);
+        var (encoded, keys) = await EncodeTwoSignaturesAsync(encoder, CancellationToken.None);
         await using var host = new CoseTestHost(options => options.MaxSignatures = 1);
 
         Assert.Equal(
@@ -158,7 +159,7 @@ public class CoseSignTests
     public async Task Verify_SignaturesAtTheLimit_Verifies()
     {
         await using var encoder = new CoseTestHost();
-        var (encoded, keys) = await EncodeTwoSignaturesAsync(encoder);
+        var (encoded, keys) = await EncodeTwoSignaturesAsync(encoder, CancellationToken.None);
         await using var host = new CoseTestHost(options => options.MaxSignatures = 2);
 
         var verified = host.Serializer.Verify(

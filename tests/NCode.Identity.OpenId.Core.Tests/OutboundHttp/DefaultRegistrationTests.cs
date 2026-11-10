@@ -68,8 +68,8 @@ public sealed class DefaultRegistrationTests
             .CreateClient(GuardedHttpClient.Name);
     }
 
-    private static Task<HttpResponseMessage> ServiceUnavailable(CancellationToken _) =>
-        Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+    private static Func<CancellationToken, Task<HttpResponseMessage>> ServiceUnavailable { get; } =
+        _ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
 
     #region AddOutboundHttpServices Tests
 

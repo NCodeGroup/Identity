@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Events.Audit;
@@ -13,6 +14,11 @@ namespace NCode.Identity.OpenId.Accounts.Management;
 /// Records the local-account management audit event through the generic management audit seam; the local-account audit
 /// shape is owned by the accounts capability.
 /// </summary>
+[SuppressMessage(
+    "Design",
+    "NCID0003",
+    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+)]
 internal static class ManagementAuditRecorderExtensions
 {
     /// <summary>

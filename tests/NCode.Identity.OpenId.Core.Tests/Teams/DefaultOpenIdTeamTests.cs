@@ -14,7 +14,9 @@ namespace NCode.Identity.OpenId.Core.Teams;
 
 public sealed class DefaultOpenIdTeamTests : BaseTests
 {
-    private static async ValueTask<(DefaultOpenIdTeam Team, Func<int> Releases)> CreateTeamAsync()
+    private static async ValueTask<(DefaultOpenIdTeam Team, Func<int> Releases)> CreateTeamAsync(
+        CancellationToken cancellationToken
+    )
     {
         var releases = 0;
         var provider = Mock.Of<IReadOnlySettingCollectionProvider>();
@@ -78,7 +80,7 @@ public sealed class DefaultOpenIdTeamTests : BaseTests
     [Fact]
     public async Task Parent_WithoutAParentReference_IsNull()
     {
-        var (team, _) = await CreateTeamAsync();
+        var (team, _) = await CreateTeamAsync(CancellationToken.None);
 
         Assert.Null(team.Parent);
         Assert.Equal("/acme/", team.Path);
@@ -92,7 +94,7 @@ public sealed class DefaultOpenIdTeamTests : BaseTests
     [Fact]
     public async Task DisposeAsync_ReleasesTheSettingsLeaseOnce()
     {
-        var (team, releases) = await CreateTeamAsync();
+        var (team, releases) = await CreateTeamAsync(CancellationToken.None);
         Assert.Equal(0, releases());
 
         await team.DisposeAsync();
@@ -103,7 +105,7 @@ public sealed class DefaultOpenIdTeamTests : BaseTests
     [Fact]
     public async Task DisposeAsync_WhenCalledTwice_ReleasesTheSettingsLeaseOnce()
     {
-        var (team, releases) = await CreateTeamAsync();
+        var (team, releases) = await CreateTeamAsync(CancellationToken.None);
 
         await team.DisposeAsync();
         await team.DisposeAsync();

@@ -135,7 +135,7 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         httpContext.Request.Headers.Origin = "https://localhost:5173";
 
         await pipeline(httpContext);
-        await responseFeature.StartAsync();
+        await responseFeature.StartAsync(CancellationToken.None);
 
         Assert.Equal(
             expectsAllowOrigin,
@@ -173,7 +173,7 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         }
 
         await pipeline(httpContext);
-        await responseFeature.StartAsync();
+        await responseFeature.StartAsync(CancellationToken.None);
 
         // A preflight that selects no endpoint may target a front-channel path for a method it does not map.
         Assert.Equal(
@@ -192,7 +192,7 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         public override void OnStarting(Func<object, Task> callback, object state) =>
             Callbacks.Add((callback, state));
 
-        public async Task StartAsync()
+        public async ValueTask StartAsync(CancellationToken cancellationToken)
         {
             foreach (var (callback, state) in Callbacks)
                 await callback(state);

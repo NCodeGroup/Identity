@@ -79,7 +79,7 @@ public class BffLoginHandlerTests : BaseTests
     {
         var httpContext = CreateHttpContext("?returnUrl=/other");
 
-        await CreateHandler().HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
         Assert.Equal(
@@ -93,7 +93,7 @@ public class BffLoginHandlerTests : BaseTests
     {
         var httpContext = CreateHttpContext("?returnUrl=/app&prompt=login&prompt=consent");
 
-        await CreateHandler().HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -104,7 +104,7 @@ public class BffLoginHandlerTests : BaseTests
         var httpContext = CreateHttpContext("?returnUrl=/app&max_age=-5");
 
         await CreateHandler(x => x.LoginParameters = [OpenIdProtocol.Parameters.MaxAge])
-            .HandleAsync(httpContext);
+            .HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -144,7 +144,7 @@ public class BffLoginHandlerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await CreateHandler().HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal(
@@ -207,7 +207,8 @@ public class BffLoginHandlerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await CreateHandler(x => x.Scopes = [.. configuredScopes]).HandleAsync(httpContext);
+        await CreateHandler(x => x.Scopes = [.. configuredScopes])
+            .HandleAsync(httpContext, CancellationToken.None);
 
         Assert.NotNull(captured);
         Assert.Equal(expectedScope, captured.Scope);
@@ -238,7 +239,7 @@ public class BffLoginHandlerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await CreateHandler().HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal(
@@ -285,7 +286,8 @@ public class BffLoginHandlerTests : BaseTests
             )
             .Verifiable();
 
-        await CreateHandler(transactionService: transactionService).HandleAsync(httpContext);
+        await CreateHandler(transactionService: transactionService)
+            .HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal(

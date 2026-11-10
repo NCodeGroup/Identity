@@ -19,10 +19,13 @@ public sealed class SessionCookieTests(EndToEndEnvironment environment)
     )
     {
         var bff = environment.StrictBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
 
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
 
         var cookies = await context.CookiesAsync([bff.Origin]);
         var cookie = Assert.Single(cookies, x => x.Name == BffApplication.SessionCookieName);
@@ -42,10 +45,13 @@ public sealed class SessionCookieTests(EndToEndEnvironment environment)
     public async Task Login_WithLaxSession_SetsLaxCookie(string browserName)
     {
         var bff = environment.LaxBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
 
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
 
         var cookies = await context.CookiesAsync([bff.Origin]);
         var cookie = Assert.Single(cookies, x => x.Name == BffApplication.SessionCookieName);
@@ -59,11 +65,24 @@ public sealed class SessionCookieTests(EndToEndEnvironment environment)
     [Theory, MemberData(nameof(BrowserNames.All), MemberType = typeof(BrowserNames))]
     public async Task UserEndpoint_SameOriginFetchWithHeader_ReturnsTheUser(string browserName)
     {
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, environment.StrictBff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(
+            page,
+            environment.StrictBff,
+            environment.Keycloak,
+            CancellationToken.None
+        );
 
-        var outcome = await BrowserFlows.FetchAsync(page, "/bff/user", true);
+        var outcome = await BrowserFlows.FetchAsync(
+            page,
+            "/bff/user",
+            true,
+            CancellationToken.None
+        );
 
         Assert.False(outcome.Blocked);
         Assert.Equal(StatusCodes.Status200OK, outcome.Status);
@@ -73,11 +92,24 @@ public sealed class SessionCookieTests(EndToEndEnvironment environment)
     [Theory, MemberData(nameof(BrowserNames.All), MemberType = typeof(BrowserNames))]
     public async Task UserEndpoint_SameOriginFetchWithoutHeader_IsRefused(string browserName)
     {
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, environment.StrictBff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(
+            page,
+            environment.StrictBff,
+            environment.Keycloak,
+            CancellationToken.None
+        );
 
-        var outcome = await BrowserFlows.FetchAsync(page, "/bff/user", false);
+        var outcome = await BrowserFlows.FetchAsync(
+            page,
+            "/bff/user",
+            false,
+            CancellationToken.None
+        );
 
         Assert.False(outcome.Blocked);
         Assert.Equal(StatusCodes.Status403Forbidden, outcome.Status);

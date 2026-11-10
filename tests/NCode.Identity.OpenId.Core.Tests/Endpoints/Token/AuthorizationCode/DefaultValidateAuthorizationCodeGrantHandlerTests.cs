@@ -207,10 +207,13 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         scaffold.AuthRequest.SetupGet(x => x.Nonce).Returns(Nonce).Verifiable();
     }
 
-    private async Task AssertInvalidGrantAsync(Scaffold scaffold)
+    private async ValueTask AssertInvalidGrantAsync(
+        Scaffold scaffold,
+        CancellationToken cancellationToken
+    )
     {
         await Assert.ThrowsAsync<OpenIdException>(async () =>
-            await Handler.HandleAsync(scaffold.Command, CancellationToken.None)
+            await Handler.HandleAsync(scaffold.Command, cancellationToken)
         );
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, scaffold.CapturedErrorCode());
     }
@@ -352,7 +355,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         SetupBoundCode(scaffold, otherVerifier);
         SetupS256Method(scaffold);
 
-        await AssertInvalidGrantAsync(scaffold);
+        await AssertInvalidGrantAsync(scaffold, CancellationToken.None);
     }
 
     [Fact]
@@ -361,7 +364,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         var scaffold = CreatePkceScaffold(["api"]);
         SetupBoundCode(scaffold, codeVerifier: null);
 
-        await AssertInvalidGrantAsync(scaffold);
+        await AssertInvalidGrantAsync(scaffold, CancellationToken.None);
     }
 
     [Theory]
@@ -374,7 +377,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         var scaffold = CreatePkceScaffold(["api"]);
         SetupBoundCode(scaffold, codeVerifier);
 
-        await AssertInvalidGrantAsync(scaffold);
+        await AssertInvalidGrantAsync(scaffold, CancellationToken.None);
     }
 
     [Fact]
@@ -389,7 +392,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
             .Returns(false)
             .Verifiable();
 
-        await AssertInvalidGrantAsync(scaffold);
+        await AssertInvalidGrantAsync(scaffold, CancellationToken.None);
     }
 
     [Fact]
@@ -399,7 +402,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         var scaffold = CreatePkceScaffold(["api"]);
         SetupUnboundCode(scaffold, CodeVerifier);
 
-        await AssertInvalidGrantAsync(scaffold);
+        await AssertInvalidGrantAsync(scaffold, CancellationToken.None);
     }
 
     [Fact]
@@ -414,7 +417,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
             .Settings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireCodeChallenge))
             .Returns(true);
 
-        await AssertInvalidGrantAsync(scaffold);
+        await AssertInvalidGrantAsync(scaffold, CancellationToken.None);
     }
 
     [Fact]
@@ -435,7 +438,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         SetupUnboundCode(scaffold);
         SetupNonceExemption(scaffold, isConfidential: false);
 
-        await AssertInvalidGrantAsync(scaffold);
+        await AssertInvalidGrantAsync(scaffold, CancellationToken.None);
     }
 
     [Fact]
@@ -449,7 +452,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         SetupUnboundCode(scaffold);
         SetupNonceExemption(scaffold, isConfidential: true);
 
-        await AssertInvalidGrantAsync(scaffold);
+        await AssertInvalidGrantAsync(scaffold, CancellationToken.None);
     }
 
     #endregion

@@ -55,10 +55,16 @@ public class BffRemoteApiHandlerTests : BaseTests
         return context;
     }
 
-    private static async Task<JsonElement> ReadProblemAsync(HttpContext context)
+    private static async ValueTask<JsonElement> ReadProblemAsync(
+        HttpContext context,
+        CancellationToken cancellationToken
+    )
     {
         context.Response.Body.Position = 0;
-        return await JsonSerializer.DeserializeAsync<JsonElement>(context.Response.Body);
+        return await JsonSerializer.DeserializeAsync<JsonElement>(
+            context.Response.Body,
+            cancellationToken: cancellationToken
+        );
     }
 
     private void SetupToken(HttpContext context, BffTokenResult result) =>
@@ -80,7 +86,8 @@ public class BffRemoteApiHandlerTests : BaseTests
                     Destination,
                     Api.Invoker,
                     Api.RequestConfig,
-                    It.IsAny<BffRemoteApiTransformer>()
+                    It.IsAny<BffRemoteApiTransformer>(),
+                    It.IsAny<CancellationToken>()
                 )
             )
             .Returns(new ValueTask<ForwarderError>(error))
@@ -93,11 +100,11 @@ public class BffRemoteApiHandlerTests : BaseTests
     {
         var context = CreateContext(HttpMethods.Delete, "/api/orders/1");
 
-        await CreateHandler().HandleAsync(context, Api);
+        await CreateHandler().HandleAsync(context, Api, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status405MethodNotAllowed, context.Response.StatusCode);
         Assert.Equal("GET, POST", context.Response.Headers.Allow.ToString());
-        var problem = await ReadProblemAsync(context);
+        var problem = await ReadProblemAsync(context, CancellationToken.None);
         Assert.Equal(BffProblemTypes.MethodNotAllowed, problem.GetProperty("type").GetString());
     }
 
@@ -106,10 +113,10 @@ public class BffRemoteApiHandlerTests : BaseTests
     {
         var context = CreateContext(HttpMethods.Get, "/api/orders/../admin");
 
-        await CreateHandler().HandleAsync(context, Api);
+        await CreateHandler().HandleAsync(context, Api, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
-        var problem = await ReadProblemAsync(context);
+        var problem = await ReadProblemAsync(context, CancellationToken.None);
         Assert.Equal(BffProblemTypes.InvalidRequest, problem.GetProperty("type").GetString());
     }
 
@@ -126,7 +133,7 @@ public class BffRemoteApiHandlerTests : BaseTests
         );
 
         var exception = await Assert.ThrowsAsync<BffTokenUnavailableException>(() =>
-            CreateHandler().HandleAsync(context, Api)
+            CreateHandler().HandleAsync(context, Api, CancellationToken.None).AsTask()
         );
 
         Assert.Equal(StatusCodes.Status401Unauthorized, exception.StatusCode);
@@ -140,7 +147,7 @@ public class BffRemoteApiHandlerTests : BaseTests
         SetupToken(context, BearerToken);
         SetupForwarder(context, ForwarderError.None);
 
-        await CreateHandler().HandleAsync(context, Api);
+        await CreateHandler().HandleAsync(context, Api, CancellationToken.None);
 
         Assert.Equal(0, Logger.Collector.Count);
     }
@@ -156,7 +163,7 @@ public class BffRemoteApiHandlerTests : BaseTests
         SetupToken(context, BearerToken);
         SetupForwarder(context, ForwarderError.Request);
 
-        await CreateHandler().HandleAsync(context, Api);
+        await CreateHandler().HandleAsync(context, Api, CancellationToken.None);
 
         var record = Assert.Single(Logger.Collector.GetSnapshot());
         Assert.Equal(LogLevel.Warning, record.Level);
@@ -175,7 +182,7 @@ public class BffRemoteApiHandlerTests : BaseTests
         SetupToken(context, BearerToken);
         SetupForwarder(context, ForwarderError.RequestCanceled);
 
-        await CreateHandler().HandleAsync(context, Api);
+        await CreateHandler().HandleAsync(context, Api, context.RequestAborted);
 
         Assert.Equal(0, Logger.Collector.Count);
     }

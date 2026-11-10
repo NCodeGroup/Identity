@@ -25,14 +25,20 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.CreateOperation,
-            () => Inner.TryCreateAsync(record, cancellationToken)
+            token => Inner.TryCreateAsync(record, token),
+            cancellationToken
         );
 
     /// <inheritdoc />
     public ValueTask<BffSessionRecord?> GetAsync(
         string storeKey,
         CancellationToken cancellationToken
-    ) => MeasureAsync(BffMetrics.GetOperation, () => Inner.GetAsync(storeKey, cancellationToken));
+    ) =>
+        MeasureAsync(
+            BffMetrics.GetOperation,
+            token => Inner.GetAsync(storeKey, token),
+            cancellationToken
+        );
 
     /// <inheritdoc />
     public ValueTask<bool> TryReplaceAsync(
@@ -42,7 +48,8 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.ReplaceOperation,
-            () => Inner.TryReplaceAsync(record, expectedVersion, cancellationToken)
+            token => Inner.TryReplaceAsync(record, expectedVersion, token),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -53,7 +60,8 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.RemoveOperation,
-            () => Inner.RemoveAsync(storeKey, metadata, cancellationToken)
+            token => Inner.RemoveAsync(storeKey, metadata, token),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -64,7 +72,8 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.FindBySessionIdOperation,
-            () => Inner.FindBySessionIdAsync(issuer, sessionId, cancellationToken)
+            token => Inner.FindBySessionIdAsync(issuer, sessionId, token),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -75,7 +84,8 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.FindBySubjectOperation,
-            () => Inner.FindBySubjectAsync(issuer, subject, cancellationToken)
+            token => Inner.FindBySubjectAsync(issuer, subject, token),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -84,7 +94,8 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.FindClientsOperation,
-            () => Inner.FindClientsAsync(cancellationToken)
+            token => Inner.FindClientsAsync(token),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -94,7 +105,8 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.FindByClientOperation,
-            () => Inner.FindByClientAsync(client, cancellationToken)
+            token => Inner.FindByClientAsync(client, token),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -106,13 +118,14 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.AddTransactionOperation,
-            () =>
+            token =>
                 Inner.TryAddTransactionAsync(
                     transactionKey,
                     protectedTransaction,
                     expiresWhen,
-                    cancellationToken
-                )
+                    token
+                ),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -122,7 +135,8 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.TakeTransactionOperation,
-            () => Inner.TryTakeTransactionAsync(transactionKey, cancellationToken)
+            token => Inner.TryTakeTransactionAsync(transactionKey, token),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -133,7 +147,8 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.AcquireRefreshLeaseOperation,
-            () => Inner.TryAcquireRefreshLeaseAsync(leaseKey, expiresWhen, cancellationToken)
+            token => Inner.TryAcquireRefreshLeaseAsync(leaseKey, expiresWhen, token),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -143,7 +158,8 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.IsRefreshLeaseHeldOperation,
-            () => Inner.IsRefreshLeaseHeldAsync(leaseKey, cancellationToken)
+            token => Inner.IsRefreshLeaseHeldAsync(leaseKey, token),
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -153,19 +169,21 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     ) =>
         MeasureAsync(
             BffMetrics.ReleaseRefreshLeaseOperation,
-            () => Inner.ReleaseRefreshLeaseAsync(lease, cancellationToken)
+            token => Inner.ReleaseRefreshLeaseAsync(lease, token),
+            cancellationToken
         );
 
     private async ValueTask<TResult> MeasureAsync<TResult>(
         string operation,
-        Func<ValueTask<TResult>> action
+        Func<CancellationToken, ValueTask<TResult>> action,
+        CancellationToken cancellationToken
     )
     {
         using var activity = StartActivity(operation);
         var startTimestamp = Stopwatch.GetTimestamp();
         try
         {
-            var result = await action();
+            var result = await action(cancellationToken);
             Metrics.SessionStoreOperationCompleted(operation, startTimestamp, exception: null);
             return result;
         }
@@ -176,13 +194,17 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
         }
     }
 
-    private async ValueTask MeasureAsync(string operation, Func<ValueTask> action)
+    private async ValueTask MeasureAsync(
+        string operation,
+        Func<CancellationToken, ValueTask> action,
+        CancellationToken cancellationToken
+    )
     {
         using var activity = StartActivity(operation);
         var startTimestamp = Stopwatch.GetTimestamp();
         try
         {
-            await action();
+            await action(cancellationToken);
             Metrics.SessionStoreOperationCompleted(operation, startTimestamp, exception: null);
         }
         catch (Exception exception)

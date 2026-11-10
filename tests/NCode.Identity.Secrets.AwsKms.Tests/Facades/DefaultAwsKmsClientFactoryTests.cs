@@ -16,26 +16,28 @@ public class DefaultAwsKmsClientFactoryTests
     private static DefaultAwsKmsClientFactory CreateFactory() => new(TimeProvider.System);
 
     // The client that the operation receives, which the factory hands out for the region.
-    private static async Task<IAmazonKeyManagementService> GetClientAsync(
+    private static async ValueTask<IAmazonKeyManagementService> GetClientAsync(
         DefaultAwsKmsClientFactory factory,
-        string region
+        string region,
+        CancellationToken cancellationToken
     ) =>
         await factory.ExecuteAsync(
             region,
             access: null,
             (client, _) => ValueTask.FromResult(client),
-            CancellationToken.None
+            cancellationToken
         );
 
     // The client that the operation receives, which the factory hands out for a call that is never retried.
-    private static async Task<IAmazonKeyManagementService> GetClientWithoutRetryAsync(
+    private static async ValueTask<IAmazonKeyManagementService> GetClientWithoutRetryAsync(
         DefaultAwsKmsClientFactory factory,
-        string region
+        string region,
+        CancellationToken cancellationToken
     ) =>
         await factory.ExecuteWithoutRetryAsync(
             region,
             (client, _) => ValueTask.FromResult(client),
-            CancellationToken.None
+            cancellationToken
         );
 
     #region ExecuteAsync Tests
@@ -45,8 +47,8 @@ public class DefaultAwsKmsClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetClientAsync(factory, Region);
-        var second = await GetClientAsync(factory, Region);
+        var first = await GetClientAsync(factory, Region, CancellationToken.None);
+        var second = await GetClientAsync(factory, Region, CancellationToken.None);
 
         Assert.Same(first, second);
     }
@@ -56,7 +58,7 @@ public class DefaultAwsKmsClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var client = await GetClientAsync(factory, Region);
+        var client = await GetClientAsync(factory, Region, CancellationToken.None);
 
         Assert.Equal(AwsKmsClientConfiguration.MaxErrorRetry, client.Config.MaxErrorRetry);
         Assert.Equal(Region, client.Config.RegionEndpoint.SystemName);
@@ -81,7 +83,7 @@ public class DefaultAwsKmsClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var client = await GetClientWithoutRetryAsync(factory, Region);
+        var client = await GetClientWithoutRetryAsync(factory, Region, CancellationToken.None);
 
         Assert.Equal(0, client.Config.MaxErrorRetry);
         Assert.Equal(Region, client.Config.RegionEndpoint.SystemName);
@@ -92,8 +94,8 @@ public class DefaultAwsKmsClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetClientWithoutRetryAsync(factory, Region);
-        var second = await GetClientWithoutRetryAsync(factory, Region);
+        var first = await GetClientWithoutRetryAsync(factory, Region, CancellationToken.None);
+        var second = await GetClientWithoutRetryAsync(factory, Region, CancellationToken.None);
 
         Assert.Same(first, second);
     }
@@ -103,8 +105,8 @@ public class DefaultAwsKmsClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var first = await GetClientWithoutRetryAsync(factory, Region);
-        var second = await GetClientWithoutRetryAsync(factory, OtherRegion);
+        var first = await GetClientWithoutRetryAsync(factory, Region, CancellationToken.None);
+        var second = await GetClientWithoutRetryAsync(factory, OtherRegion, CancellationToken.None);
 
         Assert.NotSame(first, second);
         Assert.Equal(OtherRegion, second.Config.RegionEndpoint.SystemName);
@@ -115,8 +117,12 @@ public class DefaultAwsKmsClientFactoryTests
     {
         using var factory = CreateFactory();
 
-        var retrying = await GetClientAsync(factory, Region);
-        var withoutRetry = await GetClientWithoutRetryAsync(factory, Region);
+        var retrying = await GetClientAsync(factory, Region, CancellationToken.None);
+        var withoutRetry = await GetClientWithoutRetryAsync(
+            factory,
+            Region,
+            CancellationToken.None
+        );
 
         Assert.NotSame(retrying, withoutRetry);
     }

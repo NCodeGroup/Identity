@@ -896,7 +896,12 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
-        var holds = await handler.HoldsAuthorityAsync(CreateHttpContext(), node, Operations.Update);
+        var holds = await handler.HoldsAuthorityAsync(
+            CreateHttpContext(),
+            node,
+            Operations.Update,
+            CancellationToken.None
+        );
 
         Assert.True(holds);
     }
@@ -910,7 +915,12 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
-        var holds = await handler.HoldsAuthorityAsync(CreateHttpContext(), node, Operations.Update);
+        var holds = await handler.HoldsAuthorityAsync(
+            CreateHttpContext(),
+            node,
+            Operations.Update,
+            CancellationToken.None
+        );
 
         Assert.False(holds);
     }

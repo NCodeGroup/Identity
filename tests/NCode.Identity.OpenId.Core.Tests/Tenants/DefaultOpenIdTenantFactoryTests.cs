@@ -754,7 +754,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
         var issuer = await factory.InvokeGetTenantIssuerAsync(
             CreateHttpContext(),
-            CreatePersistedTenant("https://op.example/acme")
+            CreatePersistedTenant("https://op.example/acme"),
+            CancellationToken.None
         );
 
         Assert.Equal("https://op.example/acme", issuer);
@@ -770,7 +771,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await factory.InvokeGetTenantIssuerAsync(
                 CreateHttpContext(),
-                CreatePersistedTenant(issuer: null)
+                CreatePersistedTenant(issuer: null),
+                CancellationToken.None
             )
         );
 
@@ -793,7 +795,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var baseAddress = await factory.InvokeGetTenantBaseAddressAsync(
             CreateHttpContext(),
             CreatePersistedTenant("https://op.example/acme"),
-            "https://op.example/acme"
+            "https://op.example/acme",
+            CancellationToken.None
         );
 
         Assert.Equal("https", baseAddress.Scheme);
@@ -813,7 +816,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var baseAddress = await factory.InvokeGetTenantBaseAddressAsync(
             CreateHttpContext(),
             CreatePersistedTenant("https://op.example:8443/acme"),
-            "https://op.example:8443/acme"
+            "https://op.example:8443/acme",
+            CancellationToken.None
         );
 
         Assert.Equal("https://op.example:8443/acme", baseAddress.ToString());
@@ -854,7 +858,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
         );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await factory.InvokeGetTenantSecretsAsync(persistedTenant)
+            await factory.InvokeGetTenantSecretsAsync(persistedTenant, CancellationToken.None)
         );
 
         Assert.Contains("tenant with id 'acme'", exception.Message, StringComparison.Ordinal);
@@ -886,7 +890,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
         );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await factory.InvokeGetTenantSecretsAsync(persistedTenant)
+            await factory.InvokeGetTenantSecretsAsync(persistedTenant, CancellationToken.None)
         );
 
         Assert.Contains("tenant with id 'acme'", exception.Message, StringComparison.Ordinal);
@@ -923,7 +927,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var lease = await factory.InvokeGetTenantSettingsAsync(
             Mock.Of<OpenIdEnvironment>(),
             openIdTeam.Object,
-            persistedTenant
+            persistedTenant,
+            CancellationToken.None
         );
 
         Assert.Equal(2, dataSources.Count);
@@ -957,7 +962,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var lease = await factory.InvokeGetTenantSettingsAsync(
             Mock.Of<OpenIdEnvironment>(),
             openIdTeam.Object,
-            persistedTenant
+            persistedTenant,
+            CancellationToken.None
         );
 
         Assert.Equal(2, dataSources.Count);
@@ -1133,7 +1139,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
         > InvokeGetTenantSettingsAsync(
             OpenIdEnvironment openIdEnvironment,
             OpenIdTeam openIdTeam,
-            PersistedTenant persistedTenant
+            PersistedTenant persistedTenant,
+            CancellationToken cancellationToken
         ) =>
             GetTenantSettingsAsync(
                 CreateHttpContext(),
@@ -1141,12 +1148,15 @@ public sealed class DefaultOpenIdTenantFactoryTests
                 openIdTeam,
                 persistedTenant,
                 Mock.Of<IPropertyBag>(),
-                CancellationToken.None
+                cancellationToken
             );
 
         public ValueTask<
             AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
-        > InvokeGetTenantSecretsAsync(PersistedTenant persistedTenant) =>
+        > InvokeGetTenantSecretsAsync(
+            PersistedTenant persistedTenant,
+            CancellationToken cancellationToken
+        ) =>
             GetTenantSecretsAsync(
                 CreateHttpContext(),
                 persistedTenant,
@@ -1154,25 +1164,27 @@ public sealed class DefaultOpenIdTenantFactoryTests
                 default,
                 default,
                 Mock.Of<IPropertyBag>(),
-                CancellationToken.None
+                cancellationToken
             );
 
         public ValueTask<string> InvokeGetTenantIssuerAsync(
             HttpContext httpContext,
-            PersistedTenant persistedTenant
+            PersistedTenant persistedTenant,
+            CancellationToken cancellationToken
         ) =>
             GetTenantIssuerAsync(
                 httpContext,
                 persistedTenant,
                 default,
                 Mock.Of<IPropertyBag>(),
-                CancellationToken.None
+                cancellationToken
             );
 
         public ValueTask<UriDescriptor> InvokeGetTenantBaseAddressAsync(
             HttpContext httpContext,
             PersistedTenant persistedTenant,
-            string tenantIssuer
+            string tenantIssuer,
+            CancellationToken cancellationToken
         ) =>
             GetTenantBaseAddressAsync(
                 httpContext,
@@ -1180,7 +1192,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
                 tenantIssuer,
                 default,
                 Mock.Of<IPropertyBag>(),
-                CancellationToken.None
+                cancellationToken
             );
     }
 }

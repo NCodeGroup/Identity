@@ -128,10 +128,13 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
     private ServiceProvider BuildProvider(params string[] pemFiles) =>
         BuildProvider(new BffKeyRingOptions { PemFiles = [.. pemFiles] });
 
-    private static async Task<ISecretKeyCollectionProvider> LoadAsync(ServiceProvider provider)
+    private static async ValueTask<ISecretKeyCollectionProvider> LoadAsync(
+        ServiceProvider provider,
+        CancellationToken cancellationToken
+    )
     {
         var loader = provider.GetRequiredService<BffKeyRingLoader>();
-        await loader.StartingAsync(CancellationToken.None);
+        await loader.StartingAsync(cancellationToken);
         return provider.GetRequiredService<BffKeyRings>().Get(RingName);
     }
 
@@ -143,7 +146,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
         var path = WriteEcPem("signing-1.pem");
         var provider = BuildProvider(path);
 
-        var keyRing = await LoadAsync(provider);
+        var keyRing = await LoadAsync(provider, CancellationToken.None);
 
         var key = Assert.Single(keyRing.Collection);
         Assert.Equal("signing-1", key.KeyId);
@@ -156,7 +159,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
         var path = WriteRsaPem("signing-2.key");
         var provider = BuildProvider(path);
 
-        var keyRing = await LoadAsync(provider);
+        var keyRing = await LoadAsync(provider, CancellationToken.None);
 
         var key = Assert.Single(keyRing.Collection);
         Assert.Equal("signing-2", key.KeyId);
@@ -170,7 +173,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
         var path = WritePem("sec1.pem", ecdsa.ExportECPrivateKeyPem());
         var provider = BuildProvider(path);
 
-        var keyRing = await LoadAsync(provider);
+        var keyRing = await LoadAsync(provider, CancellationToken.None);
 
         var key = Assert.Single(keyRing.Collection);
         Assert.Equal("sec1", key.KeyId);
@@ -183,7 +186,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
         WriteEcPem("relative.pem");
         var provider = BuildProvider("relative.pem");
 
-        var keyRing = await LoadAsync(provider);
+        var keyRing = await LoadAsync(provider, CancellationToken.None);
 
         var key = Assert.Single(keyRing.Collection);
         Assert.Equal("relative", key.KeyId);
@@ -200,7 +203,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
             File.WriteAllText(absolute, ecdsa.ExportPkcs8PrivateKeyPem(), SecureEncoding.UTF8);
             var provider = BuildProvider(absolute);
 
-            var keyRing = await LoadAsync(provider);
+            var keyRing = await LoadAsync(provider, CancellationToken.None);
 
             var key = Assert.Single(keyRing.Collection);
             Assert.Equal("absolute", key.KeyId);
@@ -216,7 +219,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
     {
         var provider = BuildProvider(WriteEcPem("first.pem"), WriteRsaPem("second.pem"));
 
-        var keyRing = await LoadAsync(provider);
+        var keyRing = await LoadAsync(provider, CancellationToken.None);
 
         Assert.Equal(2, keyRing.Collection.Count);
         Assert.True(keyRing.Collection.TryGetByKeyId("first", out _));
@@ -230,7 +233,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
         var provider = BuildProvider(path);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await LoadAsync(provider)
+            await LoadAsync(provider, CancellationToken.None)
         );
 
         Assert.Equal(
@@ -246,7 +249,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
             new BffKeyRingOptions { RemoteKeys = { ["client-sig"] = CreateSigningOptions() } }
         );
 
-        var keyRing = await LoadAsync(provider);
+        var keyRing = await LoadAsync(provider, CancellationToken.None);
 
         var key = Assert.Single(keyRing.Collection);
         Assert.Equal("client-sig", key.KeyId);
@@ -266,7 +269,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
             }
         );
 
-        var keyRing = await LoadAsync(provider);
+        var keyRing = await LoadAsync(provider, CancellationToken.None);
 
         Assert.Equal(2, keyRing.Collection.Count);
         Assert.True(keyRing.Collection.TryGetByKeyId("local", out var local));
@@ -285,7 +288,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
         );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await LoadAsync(provider)
+            await LoadAsync(provider, CancellationToken.None)
         );
 
         Assert.Contains("'client-sig'", exception.Message);
@@ -304,7 +307,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
             }
         );
 
-        var keyRing = await LoadAsync(provider);
+        var keyRing = await LoadAsync(provider, CancellationToken.None);
 
         var key = Assert.Single(keyRing.Collection);
         Assert.Equal("client-sig", key.KeyId);
@@ -318,7 +321,7 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
             new BffKeyRingOptions { PemFiles = [WriteEcPem("local.pem")], RemoteKeys = null! }
         );
 
-        var keyRing = await LoadAsync(provider);
+        var keyRing = await LoadAsync(provider, CancellationToken.None);
 
         var key = Assert.Single(keyRing.Collection);
         Assert.Equal("local", key.KeyId);
@@ -383,7 +386,9 @@ public sealed class BffKeyRingLoaderTests : BaseTests, IAsyncLifetime
             }
         );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await LoadAsync(provider));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await LoadAsync(provider, CancellationToken.None)
+        );
 
         Assert.True(readKey.IsDisposed);
         Assert.Throws<InvalidOperationException>(() =>

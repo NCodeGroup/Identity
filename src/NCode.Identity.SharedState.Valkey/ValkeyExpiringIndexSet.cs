@@ -72,7 +72,7 @@ internal class ValkeyExpiringIndexSet(
 
         await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.IndexSetAddMemberOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 await database
@@ -83,7 +83,8 @@ internal class ValkeyExpiringIndexSet(
                         CommandFlags.None
                     )
                     .WaitAsync(cancellationToken);
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -99,7 +100,7 @@ internal class ValkeyExpiringIndexSet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.IndexSetGetMembersOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 var values = await database
@@ -122,7 +123,8 @@ internal class ValkeyExpiringIndexSet(
                         ?? throw new InvalidOperationException("A stored member is absent.");
 
                 return (IReadOnlyList<string>)members;
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -138,13 +140,14 @@ internal class ValkeyExpiringIndexSet(
 
         await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.IndexSetRemoveMemberOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 await database
                     .SortedSetRemoveAsync(GetKey(indexKey), member, CommandFlags.None)
                     .WaitAsync(cancellationToken);
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -155,13 +158,14 @@ internal class ValkeyExpiringIndexSet(
 
         await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.IndexSetRemoveOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 await database
                     .KeyDeleteAsync(GetKey(indexKey), CommandFlags.None)
                     .WaitAsync(cancellationToken);
-            }
+            },
+            cancellationToken
         );
     }
 

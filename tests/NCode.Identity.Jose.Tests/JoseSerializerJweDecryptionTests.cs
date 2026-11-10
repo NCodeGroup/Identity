@@ -86,7 +86,11 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
             }
         );
 
-    private ValueTask<string> EncryptAsync(SecretKey secretKey, string keyManagementCode)
+    private ValueTask<string> EncryptAsync(
+        SecretKey secretKey,
+        string keyManagementCode,
+        CancellationToken cancellationToken
+    )
     {
         Assert.True(
             Algorithms.TryGetKeyManagementAlgorithm(keyManagementCode, out var keyManagement)
@@ -105,7 +109,7 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         );
         return JoseSerializer
             .CreateEncoder(new JoseEncryptionOptions(credentials))
-            .EncodeAsync(Payload, CancellationToken.None);
+            .EncodeAsync(Payload, cancellationToken);
     }
 
     // Replaces one segment of a compact JWE: 1 is the encrypted key, 4 the authentication tag.
@@ -124,10 +128,14 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
         return copy;
     }
 
-    private async Task AssertUniformFailureAsync(string token, SecretKey secretKey)
+    private async ValueTask AssertUniformFailureAsync(
+        string token,
+        SecretKey secretKey,
+        CancellationToken cancellationToken
+    )
     {
         var exception = await Assert.ThrowsAsync<JoseEncryptionException>(async () =>
-            await JoseSerializer.DecodeAsync(token, secretKey, CancellationToken.None)
+            await JoseSerializer.DecodeAsync(token, secretKey, cancellationToken)
         );
 
         Assert.Equal("Failed to decrypt the JWE.", exception.Message);
@@ -142,7 +150,11 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
     public async Task Decode_WhenTheJweIsIntact_ReturnsThePayload()
     {
         var secretKey = CreateRsaKey();
-        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncryptAsync(
+            secretKey,
+            AlgorithmCodes.KeyManagement.RsaOaep256,
+            CancellationToken.None
+        );
 
         Assert.Equal(
             Payload,
@@ -154,36 +166,72 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
     public async Task Decode_WhenTheRsaEncryptedKeyIsTampered_FailsLikeATamperedTag()
     {
         var secretKey = CreateRsaKey();
-        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncryptAsync(
+            secretKey,
+            AlgorithmCodes.KeyManagement.RsaOaep256,
+            CancellationToken.None
+        );
 
-        await AssertUniformFailureAsync(ReplaceSegment(token, 1, FlipFirstBit), secretKey);
-        await AssertUniformFailureAsync(ReplaceSegment(token, 4, FlipFirstBit), secretKey);
+        await AssertUniformFailureAsync(
+            ReplaceSegment(token, 1, FlipFirstBit),
+            secretKey,
+            CancellationToken.None
+        );
+        await AssertUniformFailureAsync(
+            ReplaceSegment(token, 4, FlipFirstBit),
+            secretKey,
+            CancellationToken.None
+        );
     }
 
     [Fact]
     public async Task Decode_WhenTheAesWrappedKeyFailsItsIntegrityCheck_FailsLikeATamperedTag()
     {
         var secretKey = CreateSymmetricKey(128);
-        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.Aes128);
+        var token = await EncryptAsync(
+            secretKey,
+            AlgorithmCodes.KeyManagement.Aes128,
+            CancellationToken.None
+        );
 
-        await AssertUniformFailureAsync(ReplaceSegment(token, 1, FlipFirstBit), secretKey);
-        await AssertUniformFailureAsync(ReplaceSegment(token, 4, FlipFirstBit), secretKey);
+        await AssertUniformFailureAsync(
+            ReplaceSegment(token, 1, FlipFirstBit),
+            secretKey,
+            CancellationToken.None
+        );
+        await AssertUniformFailureAsync(
+            ReplaceSegment(token, 4, FlipFirstBit),
+            secretKey,
+            CancellationToken.None
+        );
     }
 
     [Fact]
     public async Task Decode_WhenTheEncryptedKeyHasTheWrongLength_FailsLikeATamperedTag()
     {
         var secretKey = CreateSymmetricKey(128);
-        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.Aes128);
+        var token = await EncryptAsync(
+            secretKey,
+            AlgorithmCodes.KeyManagement.Aes128,
+            CancellationToken.None
+        );
 
-        await AssertUniformFailureAsync(ReplaceSegment(token, 1, bytes => bytes[..^8]), secretKey);
+        await AssertUniformFailureAsync(
+            ReplaceSegment(token, 1, bytes => bytes[..^8]),
+            secretKey,
+            CancellationToken.None
+        );
     }
 
     [Fact]
     public async Task Decode_WhenTheKeyDoesNotFitTheAlgorithm_ReportsTheConfigurationError()
     {
         var secretKey = CreateRsaKey();
-        var token = await EncryptAsync(secretKey, AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncryptAsync(
+            secretKey,
+            AlgorithmCodes.KeyManagement.RsaOaep256,
+            CancellationToken.None
+        );
 
         await Assert.ThrowsAsync<ArgumentException>(async () =>
             await JoseSerializer.DecodeAsync(token, CreateSymmetricKey(128), CancellationToken.None)
@@ -204,7 +252,11 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
             )
             .Returns(() => ValueTask.FromException<int>(new IOException("x")))
             .Verifiable();
-        var token = await EncryptAsync(CreateRsaKey(), AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncryptAsync(
+            CreateRsaKey(),
+            AlgorithmCodes.KeyManagement.RsaOaep256,
+            CancellationToken.None
+        );
 
         await Assert.ThrowsAsync<IOException>(async () =>
             await JoseSerializer.DecodeAsync(
@@ -229,7 +281,11 @@ public sealed class JoseSerializerJweDecryptionTests : IAsyncLifetime, IDisposab
             )
             .Returns(() => ValueTask.FromException<int>(new CryptographicException("x")))
             .Verifiable();
-        var token = await EncryptAsync(CreateRsaKey(), AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncryptAsync(
+            CreateRsaKey(),
+            AlgorithmCodes.KeyManagement.RsaOaep256,
+            CancellationToken.None
+        );
 
         var exception = await Assert.ThrowsAsync<JoseEncryptionException>(async () =>
             await JoseSerializer.DecodeAsync(

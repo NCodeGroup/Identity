@@ -835,7 +835,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
                 owner,
                 secret,
                 GeneratedSecretId,
-                SecretText
+                SecretText,
+                CancellationToken.None
             );
         }
         else
@@ -845,7 +846,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
                 owner,
                 secret,
                 GeneratedSecretId,
-                SecretText
+                SecretText,
+                CancellationToken.None
             );
         }
     }

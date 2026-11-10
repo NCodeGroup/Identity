@@ -22,12 +22,19 @@ public abstract class DefaultResourceValidator(IAuthorizationService authorizati
     /// Authorizes the caller against the specified resource and operation, returning a <see cref="ManagementError"/>
     /// (<c>403</c> when authenticated, <c>401</c> otherwise) on failure, or <c>null</c> on success.
     /// </summary>
+    /// <param name="user">The authenticated or anonymous caller.</param>
+    /// <param name="resource">The resource to authorize the caller against.</param>
+    /// <param name="operation">The operation the caller requests on the resource.</param>
+    /// <param name="forbiddenDetail">The error detail when an authenticated caller is not authorized.</param>
+    /// <param name="unauthenticatedDetail">The error detail when the caller is not authenticated.</param>
+    /// <param name="cancellationToken">The token to observe; the authorization call it awaits takes none.</param>
     protected async ValueTask<ManagementError?> AuthorizeAsync(
         ClaimsPrincipal user,
         object resource,
         IAuthorizationRequirement operation,
         string forbiddenDetail,
-        string unauthenticatedDetail
+        string unauthenticatedDetail,
+        CancellationToken cancellationToken
     )
     {
         var authorizationResult = await AuthorizationService.AuthorizeAsync(

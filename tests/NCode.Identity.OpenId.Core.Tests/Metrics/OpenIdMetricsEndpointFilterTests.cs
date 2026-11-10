@@ -31,12 +31,16 @@ public sealed class OpenIdMetricsEndpointFilterTests : BaseTests
     private static ValueTask<object?> InvokeAsync(
         OpenIdMetricsEndpointFilter filter,
         HttpContext httpContext,
-        object? result
-    ) =>
-        filter.InvokeAsync(
+        object? result,
+        CancellationToken cancellationToken
+    )
+    {
+        httpContext.RequestAborted = cancellationToken;
+        return filter.InvokeAsync(
             new DefaultEndpointFilterInvocationContext(httpContext),
             _ => ValueTask.FromResult(result)
         );
+    }
 
     #endregion
 
@@ -50,7 +54,7 @@ public sealed class OpenIdMetricsEndpointFilterTests : BaseTests
         httpContext.Features.Set<IHttpMetricsTagsFeature>(tagsFeature);
         var expectedResult = new object();
 
-        var result = await InvokeAsync(Filter, httpContext, expectedResult);
+        var result = await InvokeAsync(Filter, httpContext, expectedResult, CancellationToken.None);
 
         Assert.Same(expectedResult, result);
         var tag = Assert.Single(tagsFeature.Tags);
@@ -65,7 +69,7 @@ public sealed class OpenIdMetricsEndpointFilterTests : BaseTests
         var tagsFeature = new TestHttpMetricsTagsFeature();
         httpContext.Features.Set<IHttpMetricsTagsFeature>(tagsFeature);
 
-        await InvokeAsync(Filter, httpContext, result: null);
+        await InvokeAsync(Filter, httpContext, result: null, CancellationToken.None);
 
         Assert.Empty(tagsFeature.Tags);
     }
@@ -76,7 +80,7 @@ public sealed class OpenIdMetricsEndpointFilterTests : BaseTests
         var httpContext = CreateHttpContext(EndpointName);
         var expectedResult = new object();
 
-        var result = await InvokeAsync(Filter, httpContext, expectedResult);
+        var result = await InvokeAsync(Filter, httpContext, expectedResult, CancellationToken.None);
 
         Assert.Same(expectedResult, result);
     }

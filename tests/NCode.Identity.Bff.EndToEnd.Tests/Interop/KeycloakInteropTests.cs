@@ -77,12 +77,20 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
     [Fact]
     public async Task Login_AgainstKeycloak_EstablishesTheSession()
     {
-        await using var context = await environment.NewContextAsync(BrowserType.Chromium);
+        await using var context = await environment.NewContextAsync(
+            BrowserType.Chromium,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
 
-        await BrowserFlows.LoginAsync(page, environment.StrictBff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(
+            page,
+            environment.StrictBff,
+            environment.Keycloak,
+            CancellationToken.None
+        );
 
-        var outcome = await BrowserFlows.FetchAsync(page, UserPath, true);
+        var outcome = await BrowserFlows.FetchAsync(page, UserPath, true, CancellationToken.None);
         Assert.Equal(StatusCodes.Status200OK, outcome.Status);
         var user = Deserialize<UserResponse>(outcome.Body);
         Assert.Equal(KeycloakProvider.UserEmail, user.Claims.Email);
@@ -95,12 +103,25 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
     [Fact]
     public async Task AccessToken_AgainstKeycloak_IsDPoPBoundAndRotatesOnRefresh()
     {
-        await using var context = await environment.NewContextAsync(BrowserType.Chromium);
+        await using var context = await environment.NewContextAsync(
+            BrowserType.Chromium,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, environment.StrictBff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(
+            page,
+            environment.StrictBff,
+            environment.Keycloak,
+            CancellationToken.None
+        );
 
-        var first = await BrowserFlows.FetchAsync(page, "/api/token", true);
-        var second = await BrowserFlows.FetchAsync(page, "/api/token", true);
+        var first = await BrowserFlows.FetchAsync(page, "/api/token", true, CancellationToken.None);
+        var second = await BrowserFlows.FetchAsync(
+            page,
+            "/api/token",
+            true,
+            CancellationToken.None
+        );
 
         Assert.Equal(StatusCodes.Status200OK, first.Status);
         Assert.Equal(StatusCodes.Status200OK, second.Status);
@@ -119,20 +140,29 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
     public async Task Logout_AgainstKeycloak_EndsTheBffAndProviderSessions()
     {
         var bff = environment.StrictBff;
-        await using var context = await environment.NewContextAsync(BrowserType.Chromium);
+        await using var context = await environment.NewContextAsync(
+            BrowserType.Chromium,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
-        var userOutcome = await BrowserFlows.FetchAsync(page, UserPath, true);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
+        var userOutcome = await BrowserFlows.FetchAsync(
+            page,
+            UserPath,
+            true,
+            CancellationToken.None
+        );
         var user = Deserialize<UserResponse>(userOutcome.Body);
 
         await BrowserFlows.SubmitFormAndWaitForUrlAsync(
             page,
             bff.Origin + user.LogoutUrl,
             new Dictionary<string, string> { ["sid"] = user.LogoutSid },
-            url => new Uri(url).GetLeftPart(UriPartial.Path) == $"{bff.Origin}/"
+            url => new Uri(url).GetLeftPart(UriPartial.Path) == $"{bff.Origin}/",
+            CancellationToken.None
         );
 
-        var outcome = await BrowserFlows.FetchAsync(page, UserPath, true);
+        var outcome = await BrowserFlows.FetchAsync(page, UserPath, true, CancellationToken.None);
         Assert.Equal(StatusCodes.Status401Unauthorized, outcome.Status);
 
         await page.GotoAsync($"{bff.Origin}/bff/login?returnUrl=%2F");
@@ -143,23 +173,31 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
     [Fact]
     public async Task BackChannelLogout_FromKeycloak_EndsTheBffSession()
     {
-        await using var context = await environment.NewContextAsync(BrowserType.Chromium);
+        await using var context = await environment.NewContextAsync(
+            BrowserType.Chromium,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, environment.StrictBff, environment.Keycloak);
-        var before = await BrowserFlows.FetchAsync(page, UserPath, true);
+        await BrowserFlows.LoginAsync(
+            page,
+            environment.StrictBff,
+            environment.Keycloak,
+            CancellationToken.None
+        );
+        var before = await BrowserFlows.FetchAsync(page, UserPath, true, CancellationToken.None);
         Assert.Equal(StatusCodes.Status200OK, before.Status);
 
-        await environment.Keycloak.LogOutUserAsync();
+        await environment.Keycloak.LogOutUserAsync(CancellationToken.None);
 
         var deadline = TimeProvider.System.GetUtcNow().AddSeconds(15);
-        var outcome = await BrowserFlows.FetchAsync(page, UserPath, true);
+        var outcome = await BrowserFlows.FetchAsync(page, UserPath, true, CancellationToken.None);
         while (
             outcome.Status != StatusCodes.Status401Unauthorized
             && TimeProvider.System.GetUtcNow() < deadline
         )
         {
             await Task.Delay(TimeSpan.FromMilliseconds(250));
-            outcome = await BrowserFlows.FetchAsync(page, UserPath, true);
+            outcome = await BrowserFlows.FetchAsync(page, UserPath, true, CancellationToken.None);
         }
 
         Assert.Equal(StatusCodes.Status401Unauthorized, outcome.Status);

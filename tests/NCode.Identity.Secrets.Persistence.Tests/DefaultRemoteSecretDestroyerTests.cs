@@ -61,7 +61,7 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
             EncodedValue = encodedValue,
         };
 
-    private static async ValueTask FailAsync()
+    private static async ValueTask FailAsync(CancellationToken cancellationToken)
     {
         await Task.Yield();
         throw new InvalidOperationException("kms is down");
@@ -151,7 +151,9 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     {
         Provider
             .Setup(x => x.DestroyKeyAsync("key-a", It.IsAny<CancellationToken>()))
-            .Returns(() => FailAsync())
+            .Returns(
+                (string _, CancellationToken cancellationToken) => FailAsync(cancellationToken)
+            )
             .Verifiable(Times.Once());
         Provider
             .Setup(x => x.DestroyKeyAsync("key-b", It.IsAny<CancellationToken>()))
@@ -250,7 +252,9 @@ public class DefaultRemoteSecretDestroyerTests : BaseTests
     {
         Provider
             .Setup(x => x.DestroyKeyAsync("key-a", It.IsAny<CancellationToken>()))
-            .Returns(() => FailAsync())
+            .Returns(
+                (string _, CancellationToken cancellationToken) => FailAsync(cancellationToken)
+            )
             .Verifiable(Times.Once());
         ExpectErrorLog(EventIds.RemoteKeyOrphanDestroyFailed, typeof(InvalidOperationException));
 

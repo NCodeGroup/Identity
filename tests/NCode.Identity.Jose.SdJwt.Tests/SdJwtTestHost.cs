@@ -109,25 +109,31 @@ public sealed class SdJwtTestHost : IAsyncDisposable
     /// </summary>
     public ValueTask<string> SignIssuerJwtAsync(
         string payloadJson,
-        string tokenType = JoseTokenTypes.Jwt
-    ) => SignJwtAsync(IssuerCredentials, payloadJson, tokenType);
+        string tokenType,
+        CancellationToken cancellationToken
+    ) => SignJwtAsync(IssuerCredentials, payloadJson, tokenType, cancellationToken);
 
     public ValueTask<string> SignJwtAsync(
         JoseSigningCredentials credentials,
         string payloadJson,
-        string tokenType
+        string tokenType,
+        CancellationToken cancellationToken
     )
     {
         var signature = new JoseSignatureOptions(credentials) { TokenType = tokenType };
         var encoder = JoseSerializer.CreateEncoder(new JoseSigningOptions(signature));
-        return encoder.EncodeAsync(payloadJson, CancellationToken.None);
+        return encoder.EncodeAsync(payloadJson, cancellationToken);
     }
 
     /// <summary>
     /// Encloses a compact JWS in a JWE to the specified elliptic-curve key, with <c>cty</c> <c>JWT</c>, as a Nested
     /// JWT (RFC 7519 §5.2).
     /// </summary>
-    public ValueTask<string> EncloseInJweAsync(string jws, SecretKey recipientKey)
+    public ValueTask<string> EncloseInJweAsync(
+        string jws,
+        SecretKey recipientKey,
+        CancellationToken cancellationToken
+    )
     {
         if (
             !Algorithms.TryGetKeyManagementAlgorithm(
@@ -159,14 +165,17 @@ public sealed class SdJwtTestHost : IAsyncDisposable
                 [JoseClaimNames.Header.Cty] = JoseTokenTypes.Jwt,
             },
         };
-        return JoseSerializer.CreateEncoder(options).EncodeAsync(jws, CancellationToken.None);
+        return JoseSerializer.CreateEncoder(options).EncodeAsync(jws, cancellationToken);
     }
 
     /// <summary>
     /// Decodes a JWT with the specified key, which verifies its signature.
     /// </summary>
-    public ValueTask<JsonElement> DecodePayloadAsync(string jwt, SecretKey secretKey) =>
-        JoseSerializer.DeserializeAsync<JsonElement>(jwt, secretKey, CancellationToken.None);
+    public ValueTask<JsonElement> DecodePayloadAsync(
+        string jwt,
+        SecretKey secretKey,
+        CancellationToken cancellationToken
+    ) => JoseSerializer.DeserializeAsync<JsonElement>(jwt, secretKey, cancellationToken);
 
     public async ValueTask DisposeAsync() => await ServiceProvider.DisposeAsync();
 

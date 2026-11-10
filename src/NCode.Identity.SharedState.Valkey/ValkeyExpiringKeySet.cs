@@ -53,13 +53,14 @@ internal class ValkeyExpiringKeySet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.KeySetTryAddOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 return await database
                     .StringSetAsync(GetKey(key), Marker, expiration, ValueCondition.NotExists)
                     .WaitAsync(cancellationToken);
-            }
+            },
+            cancellationToken
         );
     }
 
@@ -70,11 +71,12 @@ internal class ValkeyExpiringKeySet(
 
         return await Metrics.MeasureAsync(
             ValkeySharedStateMetrics.KeySetContainsOperation,
-            async () =>
+            async cancellationToken =>
             {
                 var database = await Connection.GetDatabaseAsync(cancellationToken);
                 return await database.KeyExistsAsync(GetKey(key)).WaitAsync(cancellationToken);
-            }
+            },
+            cancellationToken
         );
     }
 

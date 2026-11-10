@@ -160,7 +160,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext(form: false);
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -178,7 +178,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         );
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -190,7 +190,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext(form: true, token: null);
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -204,7 +204,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext(form: true);
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -226,7 +226,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext(form: true);
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -254,7 +254,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext(form: true);
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
     }
@@ -275,7 +275,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext(form: true);
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
     }
@@ -298,7 +298,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext(form: true);
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
     }
@@ -317,7 +317,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext(form: true);
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }

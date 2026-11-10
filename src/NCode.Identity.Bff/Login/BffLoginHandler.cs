@@ -45,10 +45,10 @@ internal class BffLoginHandler(
     /// Handles the login request.
     /// </summary>
     /// <param name="httpContext">The current HTTP context.</param>
-    public async Task HandleAsync(HttpContext httpContext)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public async ValueTask HandleAsync(HttpContext httpContext, CancellationToken cancellationToken)
     {
         var request = httpContext.Request;
-        var cancellationToken = httpContext.RequestAborted;
         var frontend = Frontends.GetRequired(httpContext);
         var options = frontend.Options;
 
@@ -59,7 +59,8 @@ internal class BffLoginHandler(
         {
             await WriteInvalidRequestAsync(
                 httpContext,
-                "The returnUrl parameter must appear once."
+                "The returnUrl parameter must appear once.",
+                cancellationToken
             );
             return;
         }
@@ -67,7 +68,11 @@ internal class BffLoginHandler(
         var returnUrl = returnUrlValues.Count == 0 ? DefaultReturnUrl : returnUrlValues[0];
         if (returnUrl is null || !BffReturnUrls.IsLocalUrl(returnUrl, options.ReturnUrls))
         {
-            await WriteInvalidRequestAsync(httpContext, "The returnUrl parameter is not allowed.");
+            await WriteInvalidRequestAsync(
+                httpContext,
+                "The returnUrl parameter is not allowed.",
+                cancellationToken
+            );
             return;
         }
 
@@ -83,7 +88,8 @@ internal class BffLoginHandler(
             {
                 await WriteInvalidRequestAsync(
                     httpContext,
-                    $"The {name} parameter must appear once."
+                    $"The {name} parameter must appear once.",
+                    cancellationToken
                 );
                 return;
             }
@@ -106,7 +112,8 @@ internal class BffLoginHandler(
             {
                 await WriteInvalidRequestAsync(
                     httpContext,
-                    "The max_age parameter must be a non-negative integer."
+                    "The max_age parameter must be a non-negative integer.",
+                    cancellationToken
                 );
                 return;
             }
@@ -147,7 +154,12 @@ internal class BffLoginHandler(
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, options, BffLoginFailureReasons.ProviderUnavailable);
+            await FailAsync(
+                httpContext,
+                options,
+                BffLoginFailureReasons.ProviderUnavailable,
+                cancellationToken
+            );
             return;
         }
 
@@ -156,7 +168,8 @@ internal class BffLoginHandler(
             await FailAsync(
                 httpContext,
                 options,
-                BffLoginFailureReasons.AuthorizationRequestFailed
+                BffLoginFailureReasons.AuthorizationRequestFailed,
+                cancellationToken
             );
             return;
         }
@@ -189,19 +202,25 @@ internal class BffLoginHandler(
     private async ValueTask FailAsync(
         HttpContext httpContext,
         BffFrontendOptions options,
-        string reason
+        string reason,
+        CancellationToken cancellationToken
     )
     {
-        await AuditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
+        await AuditRecorder.LoginFailedAsync(httpContext, reason, cancellationToken);
         var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, options, reason);
         httpContext.Response.Redirect(errorUrl);
     }
 
-    private static Task WriteInvalidRequestAsync(HttpContext httpContext, string title) =>
+    private static ValueTask WriteInvalidRequestAsync(
+        HttpContext httpContext,
+        string title,
+        CancellationToken cancellationToken
+    ) =>
         BffResponses.WriteProblemAsync(
             httpContext,
             StatusCodes.Status400BadRequest,
             BffProblemTypes.InvalidRequest,
-            title
+            title,
+            cancellationToken
         );
 }

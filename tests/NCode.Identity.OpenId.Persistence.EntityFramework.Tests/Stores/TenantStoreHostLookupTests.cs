@@ -47,17 +47,18 @@ public sealed class TenantStoreHostLookupTests : IDisposable
             MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,
         }.Build();
 
-    private async Task SeedTenantAsync(
+    private async ValueTask SeedTenantAsync(
         string tenantId,
         string? issuer,
-        string? mtlsEndpointAliasAuthority
+        string? mtlsEndpointAliasAuthority,
+        CancellationToken cancellationToken
     )
     {
         await Store.AddAsync(
             CreateTenant(tenantId, issuer, mtlsEndpointAliasAuthority),
-            CancellationToken.None
+            cancellationToken
         );
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -66,7 +67,12 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     [Fact]
     public async Task GetOrDefaultByHostAsync_WhenTheIssuerHostMatches_ReturnsTheTenant()
     {
-        await SeedTenantAsync("acme", "https://acme.auth.example", "https://acme.mtls.example");
+        await SeedTenantAsync(
+            "acme",
+            "https://acme.auth.example",
+            "https://acme.mtls.example",
+            CancellationToken.None
+        );
 
         var tenant = await Store.GetOrDefaultByHostAsync(
             "ACME.auth.example",
@@ -81,7 +87,12 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     [Fact]
     public async Task GetOrDefaultByHostAsync_WhenTheAliasHostMatches_ReturnsTheTenant()
     {
-        await SeedTenantAsync("acme", "https://acme.auth.example", "https://acme.mtls.example");
+        await SeedTenantAsync(
+            "acme",
+            "https://acme.auth.example",
+            "https://acme.mtls.example",
+            CancellationToken.None
+        );
 
         var tenant = await Store.GetOrDefaultByHostAsync(
             "acme.mtls.example",
@@ -95,7 +106,7 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     [Fact]
     public async Task GetOrDefaultByHostAsync_WhenNoTenantHoldsTheHost_ReturnsNull()
     {
-        await SeedTenantAsync("acme", "https://acme.auth.example", null);
+        await SeedTenantAsync("acme", "https://acme.auth.example", null, CancellationToken.None);
 
         var tenant = await Store.GetOrDefaultByHostAsync(
             "acme.mtls.example",
@@ -108,8 +119,13 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     [Fact]
     public async Task GetOrDefaultByHostAsync_WhenTwoTenantsHoldTheHost_ReturnsNull()
     {
-        await SeedTenantAsync("acme", "https://acme.auth.example", "https://shared.example");
-        await SeedTenantAsync("globex", "https://shared.example", null);
+        await SeedTenantAsync(
+            "acme",
+            "https://acme.auth.example",
+            "https://shared.example",
+            CancellationToken.None
+        );
+        await SeedTenantAsync("globex", "https://shared.example", null, CancellationToken.None);
 
         var tenant = await Store.GetOrDefaultByHostAsync("shared.example", CancellationToken.None);
 
@@ -119,9 +135,19 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     [Fact]
     public async Task ListTenantIdsByHostAsync_WhenTwoTenantsHoldTheHost_ReturnsBoth()
     {
-        await SeedTenantAsync("acme", "https://acme.auth.example", "https://shared.example");
-        await SeedTenantAsync("globex", "https://shared.example", null);
-        await SeedTenantAsync("initech", "https://initech.auth.example", null);
+        await SeedTenantAsync(
+            "acme",
+            "https://acme.auth.example",
+            "https://shared.example",
+            CancellationToken.None
+        );
+        await SeedTenantAsync("globex", "https://shared.example", null, CancellationToken.None);
+        await SeedTenantAsync(
+            "initech",
+            "https://initech.auth.example",
+            null,
+            CancellationToken.None
+        );
 
         var tenantIds = await Store.ListTenantIdsByHostAsync(
             "SHARED.example",
@@ -134,7 +160,12 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     [Fact]
     public async Task UpdateAsync_WhenTheAliasIsCleared_TheAliasHostNoLongerRoutes()
     {
-        await SeedTenantAsync("acme", "https://acme.auth.example", "https://acme.mtls.example");
+        await SeedTenantAsync(
+            "acme",
+            "https://acme.auth.example",
+            "https://acme.mtls.example",
+            CancellationToken.None
+        );
         var tenant = await Store.GetOrDefaultAsync("acme", CancellationToken.None);
         Assert.NotNull(tenant);
 

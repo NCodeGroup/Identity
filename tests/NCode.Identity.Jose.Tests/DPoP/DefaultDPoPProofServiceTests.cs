@@ -63,20 +63,19 @@ public class DefaultDPoPProofServiceTests : BaseTests
 
     private ValueTask<string> CreateProofAsync(
         JoseSigningCredentials credentials,
-        string httpUri = HttpUri,
-        string? accessToken = null,
-        string? nonce = null
+        DPoPProofTestOptions options,
+        CancellationToken cancellationToken
     ) =>
         ProofService.CreateProofAsync(
             new DPoPProofCreationOptions
             {
                 SigningCredentials = credentials,
                 HttpMethod = HttpMethod,
-                HttpUri = httpUri,
-                AccessToken = accessToken,
-                Nonce = nonce,
+                HttpUri = options.HttpUri ?? HttpUri,
+                AccessToken = options.AccessToken,
+                Nonce = options.Nonce,
             },
-            CancellationToken.None
+            cancellationToken
         );
 
     private static DPoPProofValidationParameters CreateParameters(
@@ -160,7 +159,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     {
         var credentials = CreateCredentials(algorithmCode);
 
-        var proof = await CreateProofAsync(credentials, nonce: "server-nonce");
+        var proof = await CreateProofAsync(
+            credentials,
+            new DPoPProofTestOptions { Nonce = "server-nonce" },
+            CancellationToken.None
+        );
 
         Assert.True(
             ProofService.TryValidateProof(proof, CreateParameters(), out var result, out var error),
@@ -181,8 +184,12 @@ public class DefaultDPoPProofServiceTests : BaseTests
     {
         var proof = await CreateProofAsync(
             CreateCredentials("ES256"),
-            httpUri: "https://op.test/token?x=1#frag",
-            accessToken: "access-token"
+            new DPoPProofTestOptions
+            {
+                HttpUri = "https://op.test/token?x=1#frag",
+                AccessToken = "access-token",
+            },
+            CancellationToken.None
         );
 
         var header = DecodeSegment(proof, 0);
@@ -206,12 +213,19 @@ public class DefaultDPoPProofServiceTests : BaseTests
     {
         var credentials = CreateCredentials("ES256");
 
-        var first = DecodeSegment(await CreateProofAsync(credentials), 1)
-            .GetProperty("jti")
-            .GetString();
-        var second = DecodeSegment(await CreateProofAsync(credentials), 1)
-            .GetProperty("jti")
-            .GetString();
+        var firstProof = await CreateProofAsync(
+            credentials,
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
+        var secondProof = await CreateProofAsync(
+            credentials,
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
+
+        var first = DecodeSegment(firstProof, 1).GetProperty("jti").GetString();
+        var second = DecodeSegment(secondProof, 1).GetProperty("jti").GetString();
 
         Assert.NotEqual(first, second);
     }
@@ -226,7 +240,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
         );
 
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await CreateProofAsync(new JoseSigningCredentials(secretKey, algorithm))
+            await CreateProofAsync(
+                new JoseSigningCredentials(secretKey, algorithm),
+                new DPoPProofTestOptions(),
+                CancellationToken.None
+            )
         );
     }
 
@@ -234,7 +252,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     public async Task CreateProofAsync_WhenRelativeUri_Throws()
     {
         await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await CreateProofAsync(CreateCredentials("ES256"), httpUri: "/token")
+            await CreateProofAsync(
+                CreateCredentials("ES256"),
+                new DPoPProofTestOptions { HttpUri = "/token" },
+                CancellationToken.None
+            )
         );
     }
 
@@ -242,7 +264,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     public async Task CreateProofAsync_WhenAccessTokenIsNotAscii_Throws()
     {
         await Assert.ThrowsAnyAsync<ArgumentException>(async () =>
-            await CreateProofAsync(CreateCredentials("ES256"), accessToken: "accéss-token")
+            await CreateProofAsync(
+                CreateCredentials("ES256"),
+                new DPoPProofTestOptions { AccessToken = "accéss-token" },
+                CancellationToken.None
+            )
         );
     }
 
@@ -253,7 +279,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [Fact]
     public async Task TryValidateProof_WhenAccessTokenMatches_Succeeds()
     {
-        var proof = await CreateProofAsync(CreateCredentials("ES256"), accessToken: "access-token");
+        var proof = await CreateProofAsync(
+            CreateCredentials("ES256"),
+            new DPoPProofTestOptions { AccessToken = "access-token" },
+            CancellationToken.None
+        );
 
         Assert.True(
             ProofService.TryValidateProof(
@@ -269,7 +299,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [Fact]
     public async Task TryValidateProof_WhenAccessTokenDiffers_Fails()
     {
-        var proof = await CreateProofAsync(CreateCredentials("ES256"), accessToken: "access-token");
+        var proof = await CreateProofAsync(
+            CreateCredentials("ES256"),
+            new DPoPProofTestOptions { AccessToken = "access-token" },
+            CancellationToken.None
+        );
 
         AssertRejected(proof, CreateParameters(accessToken: "other-token"), "'ath'");
     }
@@ -277,7 +311,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [Fact]
     public async Task TryValidateProof_WhenAccessTokenIsNotAscii_Fails()
     {
-        var proof = await CreateProofAsync(CreateCredentials("ES256"), accessToken: "acc?ss-token");
+        var proof = await CreateProofAsync(
+            CreateCredentials("ES256"),
+            new DPoPProofTestOptions { AccessToken = "acc?ss-token" },
+            CancellationToken.None
+        );
 
         AssertRejected(proof, CreateParameters(accessToken: "accéss-token"), "'ath'");
     }
@@ -285,7 +323,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [Fact]
     public async Task TryValidateProof_WhenRequestUriHasQuery_IgnoresIt()
     {
-        var proof = await CreateProofAsync(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(
+            CreateCredentials("ES256"),
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
 
         Assert.True(
             ProofService.TryValidateProof(
@@ -301,7 +343,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [Fact]
     public async Task TryValidateProof_WhenMethodDiffers_Fails()
     {
-        var proof = await CreateProofAsync(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(
+            CreateCredentials("ES256"),
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
 
         AssertRejected(proof, CreateParameters(httpMethod: "GET"), "'htm'");
     }
@@ -309,7 +355,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [Fact]
     public async Task TryValidateProof_WhenUriDiffers_Fails()
     {
-        var proof = await CreateProofAsync(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(
+            CreateCredentials("ES256"),
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
 
         AssertRejected(proof, CreateParameters(httpUri: "https://op.test/other"), "'htu'");
     }
@@ -317,7 +367,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [Fact]
     public async Task TryValidateProof_WhenAlgorithmNotAllowed_Fails()
     {
-        var proof = await CreateProofAsync(CreateCredentials("PS256"));
+        var proof = await CreateProofAsync(
+            CreateCredentials("PS256"),
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
 
         AssertRejected(proof, CreateParameters(allowedAlgorithms: "ES256"), "'alg'");
     }
@@ -343,7 +397,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [Fact]
     public async Task TryValidateProof_WhenSignatureTampered_Fails()
     {
-        var proof = await CreateProofAsync(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(
+            CreateCredentials("ES256"),
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
         var lastDot = proof.LastIndexOf('.');
         var signature = proof[(lastDot + 1)..];
         var tampered = proof[..(lastDot + 1)] + (signature[0] == 'A' ? 'B' : 'A') + signature[1..];
@@ -359,7 +417,11 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [InlineData("AA==")]
     public async Task TryValidateProof_WhenSignatureIsNotBase64Url_Fails(string signature)
     {
-        var proof = await CreateProofAsync(CreateCredentials("ES256"));
+        var proof = await CreateProofAsync(
+            CreateCredentials("ES256"),
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
         var lastDot = proof.LastIndexOf('.');
 
         AssertRejected(proof[..(lastDot + 1)] + signature, CreateParameters(), "signature");

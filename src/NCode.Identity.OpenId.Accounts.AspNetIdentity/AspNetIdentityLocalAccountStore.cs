@@ -93,7 +93,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
 
         if (!account.IsEnabled)
         {
-            await DisableAsync(userManager, user);
+            await DisableAsync(userManager, user, cancellationToken);
         }
     }
 
@@ -106,7 +106,11 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         await using var scope = ServiceScopeFactory.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<TUser>>();
 
-        var user = await GetRequiredUserAsync(userManager, account.LocalAccountId);
+        var user = await GetRequiredUserAsync(
+            userManager,
+            account.LocalAccountId,
+            cancellationToken
+        );
 
         // SetUserNameAsync/SetEmailAsync also refresh the normalized lookup columns; setting the properties directly
         // would leave those stale. SetEmailAsync resets the confirmed flag, so the confirmation is applied after it.
@@ -119,11 +123,11 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
 
         if (account.IsEnabled)
         {
-            await EnableAsync(userManager, user);
+            await EnableAsync(userManager, user, cancellationToken);
         }
         else
         {
-            await DisableAsync(userManager, user);
+            await DisableAsync(userManager, user, cancellationToken);
         }
 
         ThrowIfFailed(await userManager.UpdateAsync(user), "update the local account");
@@ -141,7 +145,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         var passwordStore = GetPasswordStore(scope.ServiceProvider);
         var passwordHasher = GetPasswordHasher(userManager);
 
-        var user = await GetRequiredUserAsync(userManager, localAccountId);
+        var user = await GetRequiredUserAsync(userManager, localAccountId, cancellationToken);
 
         var submitted = DecodePassword(password);
         await SetPasswordHashAsync(
@@ -224,7 +228,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
             _ = await userManager.UpdateAsync(user);
         }
 
-        var account = await MapAsync(userManager, user);
+        var account = await MapAsync(userManager, user, cancellationToken);
         return new LocalAccountVerificationResult { UserName = countedUserName, Account = account };
     }
 
@@ -238,7 +242,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<TUser>>();
 
         var user = await userManager.FindByIdAsync(localAccountId);
-        return user is null ? null : await MapAsync(userManager, user);
+        return user is null ? null : await MapAsync(userManager, user, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -251,7 +255,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<TUser>>();
 
         var user = await userManager.FindByNameAsync(userName);
-        return user is null ? null : await MapAsync(userManager, user);
+        return user is null ? null : await MapAsync(userManager, user, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -290,7 +294,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         var items = new List<PersistedLocalAccount>(Math.Min(users.Count, limit));
         for (var index = 0; index < users.Count && index < limit; index++)
         {
-            items.Add(await MapAsync(userManager, users[index]));
+            items.Add(await MapAsync(userManager, users[index], cancellationToken));
         }
 
         var nextCursor = hasMore ? items[^1].LocalAccountId : null;
@@ -322,7 +326,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         await using var scope = ServiceScopeFactory.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<TUser>>();
 
-        var user = await GetRequiredUserAsync(userManager, localAccountId);
+        var user = await GetRequiredUserAsync(userManager, localAccountId, cancellationToken);
 
         var existing = await userManager.GetClaimsAsync(user);
         if (existing.Count > 0)
@@ -347,7 +351,8 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
 
     private static async ValueTask<PersistedLocalAccount> MapAsync(
         UserManager<TUser> userManager,
-        TUser user
+        TUser user,
+        CancellationToken cancellationToken
     )
     {
         var claims = await userManager.GetClaimsAsync(user);
@@ -375,7 +380,11 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         };
     }
 
-    private static async ValueTask EnableAsync(UserManager<TUser> userManager, TUser user)
+    private static async ValueTask EnableAsync(
+        UserManager<TUser> userManager,
+        TUser user,
+        CancellationToken cancellationToken
+    )
     {
         if (userManager.SupportsUserLockout)
         {
@@ -386,7 +395,11 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         }
     }
 
-    private static async ValueTask DisableAsync(UserManager<TUser> userManager, TUser user)
+    private static async ValueTask DisableAsync(
+        UserManager<TUser> userManager,
+        TUser user,
+        CancellationToken cancellationToken
+    )
     {
         if (!userManager.SupportsUserLockout)
         {
@@ -407,7 +420,8 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
 
     private static async ValueTask<TUser> GetRequiredUserAsync(
         UserManager<TUser> userManager,
-        string localAccountId
+        string localAccountId,
+        CancellationToken cancellationToken
     ) =>
         await userManager.FindByIdAsync(localAccountId)
         ?? throw new InvalidOperationException(

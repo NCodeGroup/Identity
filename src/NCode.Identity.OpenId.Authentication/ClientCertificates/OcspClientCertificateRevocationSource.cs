@@ -81,7 +81,15 @@ internal sealed class OcspClientCertificateRevocationSource(
                 $"{CacheKeyPrefix}{uri}:{issuerKey}:{serialHex}",
                 uri,
                 subject,
-                () => RetrieveAsync(uri, locationKey, subject, issuerData, certificateId),
+                (retrievalToken) =>
+                    RetrieveAsync(
+                        uri,
+                        locationKey,
+                        subject,
+                        issuerData,
+                        certificateId,
+                        retrievalToken
+                    ),
                 cancellationToken
             );
             if (status is null)
@@ -166,12 +174,13 @@ internal sealed class OcspClientCertificateRevocationSource(
         return status == ClientCertificateRevocationStatus.Good;
     }
 
-    private async Task<RevocationRetrieval<OcspVerifiedStatus>> RetrieveAsync(
+    private async ValueTask<RevocationRetrieval<OcspVerifiedStatus>> RetrieveAsync(
         string uri,
         string locationKey,
         string subject,
         byte[] issuerData,
-        OcspCertificateId certificateId
+        OcspCertificateId certificateId,
+        CancellationToken cancellationToken
     )
     {
         using var issuer = X509CertificateLoader.LoadCertificate(issuerData);
@@ -182,13 +191,13 @@ internal sealed class OcspClientCertificateRevocationSource(
             + Uri.EscapeDataString(Convert.ToBase64String(request));
         var encoded =
             getUri.Length <= MaxGetRequestLength
-                ? await Fetcher.GetAsync(getUri, uri, subject, CancellationToken.None)
+                ? await Fetcher.GetAsync(getUri, uri, subject, cancellationToken)
                 : await Fetcher.PostAsync(
                     uri,
                     subject,
                     request,
                     OcspRequest.ContentType,
-                    CancellationToken.None
+                    cancellationToken
                 );
         if (encoded is null)
         {

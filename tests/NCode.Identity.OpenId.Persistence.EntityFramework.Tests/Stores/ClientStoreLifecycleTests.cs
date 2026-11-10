@@ -80,7 +80,7 @@ public sealed class ClientStoreLifecycleTests : IDisposable
             ConcurrencyToken = string.Empty,
         };
 
-    private async Task SeedTenantAsync()
+    private async ValueTask SeedTenantAsync(CancellationToken cancellationToken)
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenantBuilder
@@ -89,22 +89,25 @@ public sealed class ClientStoreLifecycleTests : IDisposable
             DisplayName = "Tenant One",
         }.Build();
 
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(tenant, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task SeedClientAsync(params PersistedSecret[] secrets)
+    private async ValueTask SeedClientAsync(
+        PersistedSecret[] secrets,
+        CancellationToken cancellationToken
+    )
     {
-        await SeedTenantAsync();
-        await Store.AddAsync(CreateClient(secrets), CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await SeedTenantAsync(cancellationToken);
+        await Store.AddAsync(CreateClient(secrets), cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
     [Fact]
     public async Task AddAsync_AssignsRowConcurrencyToken()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         var client = CreateClient();
 
         await Store.AddAsync(client, CancellationToken.None);
@@ -115,7 +118,7 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     [Fact]
     public async Task AddAsync_AssignsAServerGeneratedPrincipalId()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         var client = CreateClient();
         client.PrincipalId = "caller-chosen";
 
@@ -133,7 +136,7 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     [Fact]
     public async Task AddAsync_WithAnOwningNode_ReadsItBack()
     {
-        await SeedTenantAsync();
+        await SeedTenantAsync(CancellationToken.None);
         var client = new PersistedClientBuilder
         {
             TenantId = TenantId,
@@ -155,7 +158,7 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenNoSecrets_RemovesAndReturnsTrue()
     {
-        await SeedClientAsync();
+        await SeedClientAsync([], CancellationToken.None);
 
         var removed = await Store.RemoveAsync(ClientId, CancellationToken.None);
         await DbContext.SaveChangesAsync();
@@ -168,7 +171,7 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenHasSecrets_RemovesThemWithIt()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         var removed = await Store.RemoveAsync(ClientId, CancellationToken.None);
         await DbContext.SaveChangesAsync();
@@ -181,7 +184,7 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenSecretsRemovedInSameUnitOfWork_RemovesAndReturnsTrue()
     {
-        await SeedClientAsync(CreateSecret("secret-1"));
+        await SeedClientAsync([CreateSecret("secret-1")], CancellationToken.None);
 
         await Store.RemoveSecretAsync(ClientId, "secret-1", CancellationToken.None);
         var removed = await Store.RemoveAsync(ClientId, CancellationToken.None);
@@ -195,7 +198,7 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_RemovesTheRoleAssignmentsAtTheClientsNode()
     {
-        await SeedClientAsync();
+        await SeedClientAsync([], CancellationToken.None);
         var roleAssignmentStore = new RoleAssignmentStore(
             Mock.Of<IStoreProvider>(),
             Provider.GetRequiredService<IIdGenerator<long>>(),
@@ -232,7 +235,7 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     [Fact]
     public async Task RemoveAsync_RemovesTheRoleAssignmentsTheClientsPrincipalHolds()
     {
-        await SeedClientAsync();
+        await SeedClientAsync([], CancellationToken.None);
         var client = await Store.GetOrDefaultAsync(ClientId, CancellationToken.None);
         Assert.NotNull(client);
         var principalId = client.PrincipalId;

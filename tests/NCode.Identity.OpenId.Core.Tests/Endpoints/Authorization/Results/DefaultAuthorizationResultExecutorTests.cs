@@ -98,20 +98,21 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         );
     }
 
-    private static async Task<string> ExecuteFormPostAsync(
+    private static async ValueTask<string> ExecuteFormPostAsync(
         DefaultAuthorizationResultExecutor executor,
-        AuthorizationResult result
+        AuthorizationResult result,
+        CancellationToken cancellationToken
     )
     {
         var httpContext = new DefaultHttpContext();
         using var body = new MemoryStream();
         httpContext.Response.Body = body;
 
-        await executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+        await executor.ExecuteAsync(httpContext, result, cancellationToken);
 
         Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
         body.Position = 0;
-        return await new StreamReader(body, SecureEncoding.UTF8).ReadToEndAsync();
+        return await new StreamReader(body, SecureEncoding.UTF8).ReadToEndAsync(cancellationToken);
     }
 
     #endregion
@@ -268,7 +269,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
             normalValue: value
         );
 
-        var html = await ExecuteFormPostAsync(Executor, result);
+        var html = await ExecuteFormPostAsync(Executor, result, CancellationToken.None);
 
         Assert.Contains(
             $"<input type='hidden' name='{NormalName}' value='{HtmlEncoder.Default.Encode(value)}'/>",
@@ -288,7 +289,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
             redirectUri: redirectUri
         );
 
-        var html = await ExecuteFormPostAsync(Executor, result);
+        var html = await ExecuteFormPostAsync(Executor, result, CancellationToken.None);
 
         Assert.Contains(
             $"action='{HtmlEncoder.Default.Encode(redirectUri)}'>",
@@ -357,7 +358,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
             redirectUri: "myapp://callback"
         );
 
-        var html = await ExecuteFormPostAsync(Executor, result);
+        var html = await ExecuteFormPostAsync(Executor, result, CancellationToken.None);
 
         Assert.Contains("action='myapp://callback'>", html, StringComparison.Ordinal);
     }

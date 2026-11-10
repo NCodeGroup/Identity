@@ -37,7 +37,7 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
         try
         {
             var result = await next(context);
-            await TryPublishErrorAsync(httpContext, result);
+            await TryPublishErrorAsync(httpContext, result, httpContext.RequestAborted);
             return result;
         }
         catch (OperationCanceledException) when (httpContext.RequestAborted.IsCancellationRequested)
@@ -75,7 +75,12 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
             // A protocol exception already carries its error; audit it before rendering so the record
             // survives even if the handler throws. The sentinel de-dupes the disposition publish below.
             if (exception is OpenIdException openIdException)
-                await PublishErrorAsync(httpContext, openIdContext, openIdException.Error);
+                await PublishErrorAsync(
+                    httpContext,
+                    openIdContext,
+                    openIdException.Error,
+                    cancellationToken
+                );
 
             var handler = await GetExceptionHandlerAsync(
                 httpContext,
@@ -91,7 +96,7 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
                 cancellationToken
             );
 
-            await TryPublishErrorAsync(httpContext, disposition.HttpResult);
+            await TryPublishErrorAsync(httpContext, disposition.HttpResult, cancellationToken);
 
             return disposition.HttpResult;
         }
@@ -99,7 +104,11 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
 
     // Audits an OpenID error response from the single funnel, covering both the direct-return and thrown
     // paths. Error-ness of an OpenIdResult is a property of its wrapped response value, not its type.
-    private static ValueTask TryPublishErrorAsync(HttpContext httpContext, object? result)
+    private static ValueTask TryPublishErrorAsync(
+        HttpContext httpContext,
+        object? result,
+        CancellationToken cancellationToken
+    )
     {
         var error = result switch
         {
@@ -114,13 +123,14 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
         if (feature is null)
             return ValueTask.CompletedTask;
 
-        return PublishErrorAsync(httpContext, feature.OpenIdContext, error);
+        return PublishErrorAsync(httpContext, feature.OpenIdContext, error, cancellationToken);
     }
 
     private static async ValueTask PublishErrorAsync(
         HttpContext httpContext,
         OpenIdContext openIdContext,
-        IOpenIdError error
+        IOpenIdError error,
+        CancellationToken cancellationToken
     )
     {
         if (!httpContext.Items.TryAdd(ErrorPublishedKey, true))
@@ -132,7 +142,7 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
         try
         {
             var recorder = httpContext.RequestServices.GetRequiredService<IAuditEventRecorder>();
-            await recorder.RecordOpenIdErrorAsync(openIdContext, error, httpContext.RequestAborted);
+            await recorder.RecordOpenIdErrorAsync(openIdContext, error, cancellationToken);
         }
         catch (Exception exception)
         {

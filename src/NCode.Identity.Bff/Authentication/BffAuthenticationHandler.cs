@@ -90,12 +90,15 @@ internal class BffAuthenticationHandler(
             BffGuardedEndpoints.RequiresAntiforgery(endpoint) || BffGuardedEndpoints.IsHub(endpoint)
         )
         {
-            return BffResponses.WriteProblemAsync(
-                Context,
-                StatusCodes.Status401Unauthorized,
-                BffProblemTypes.SessionRequired,
-                "A BFF session is required."
-            );
+            return BffResponses
+                .WriteProblemAsync(
+                    Context,
+                    StatusCodes.Status401Unauthorized,
+                    BffProblemTypes.SessionRequired,
+                    "A BFF session is required.",
+                    Context.RequestAborted
+                )
+                .AsTask();
         }
 
         if (!BffGuardedEndpoints.IsPage(endpoint))
@@ -108,12 +111,15 @@ internal class BffAuthenticationHandler(
         var frontend = Frontends.Resolve(Context);
         if (frontend is null)
         {
-            return BffResponses.WriteProblemAsync(
-                Context,
-                StatusCodes.Status401Unauthorized,
-                BffProblemTypes.SessionRequired,
-                "A BFF session is required."
-            );
+            return BffResponses
+                .WriteProblemAsync(
+                    Context,
+                    StatusCodes.Status401Unauthorized,
+                    BffProblemTypes.SessionRequired,
+                    "A BFF session is required.",
+                    Context.RequestAborted
+                )
+                .AsTask();
         }
 
         var request = Request;
@@ -164,11 +170,14 @@ internal class BffAuthenticationHandler(
         )
             return base.HandleForbiddenAsync(properties);
 
-        return BffResponses.WriteProblemAsync(
-            Context,
-            StatusCodes.Status403Forbidden,
-            BffProblemTypes.Forbidden,
-            "Access to this resource is forbidden."
-        );
+        return BffResponses
+            .WriteProblemAsync(
+                Context,
+                StatusCodes.Status403Forbidden,
+                BffProblemTypes.Forbidden,
+                "Access to this resource is forbidden.",
+                Context.RequestAborted
+            )
+            .AsTask();
     }
 }

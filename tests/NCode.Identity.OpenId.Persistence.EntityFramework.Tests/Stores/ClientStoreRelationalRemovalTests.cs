@@ -140,41 +140,48 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
             ProtectedPayload = "protected-payload",
         };
 
-    private async Task SeedAsync(bool withSecrets)
+    private async ValueTask SeedAsync(bool withSecrets, CancellationToken cancellationToken)
     {
-        await TenantStore.AddAsync(CreateTenant(), CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await TenantStore.AddAsync(CreateTenant(), cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
 
-        await ResourceServerStore.AddAsync(CreateResourceServer(), CancellationToken.None);
-        await DbContext.SaveChangesAsync();
+        await ResourceServerStore.AddAsync(CreateResourceServer(), cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
 
         foreach (var clientId in new[] { ClientOneId, ClientTwoId })
         {
-            await ClientStore.AddAsync(CreateClient(clientId, withSecrets), CancellationToken.None);
-            await DbContext.SaveChangesAsync();
+            await ClientStore.AddAsync(CreateClient(clientId, withSecrets), cancellationToken);
+            await DbContext.SaveChangesAsync(cancellationToken);
 
-            await ClientGrantStore.AddAsync(CreateClientGrant(clientId), CancellationToken.None);
-            await DbContext.SaveChangesAsync();
+            await ClientGrantStore.AddAsync(CreateClientGrant(clientId), cancellationToken);
+            await DbContext.SaveChangesAsync(cancellationToken);
 
-            await ConsentStore.SaveAsync(CreateConsent(clientId), CancellationToken.None);
-            await DbContext.SaveChangesAsync();
+            await ConsentStore.SaveAsync(CreateConsent(clientId), cancellationToken);
+            await DbContext.SaveChangesAsync(cancellationToken);
 
-            await GrantStore.AddAsync(CreateGrant(clientId), CancellationToken.None);
-            await DbContext.SaveChangesAsync();
+            await GrantStore.AddAsync(CreateGrant(clientId), cancellationToken);
+            await DbContext.SaveChangesAsync(cancellationToken);
         }
 
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task AssertOnlyClientTwoRemainsAsync(bool withSecrets)
+    private async ValueTask AssertOnlyClientTwoRemainsAsync(
+        bool withSecrets,
+        CancellationToken cancellationToken
+    )
     {
         DbContext.ChangeTracker.Clear();
 
-        var client = Assert.Single(await DbContext.Clients.IgnoreQueryFilters().ToListAsync());
+        var client = Assert.Single(
+            await DbContext.Clients.IgnoreQueryFilters().ToListAsync(cancellationToken)
+        );
         Assert.Equal(ClientTwoId, client.ClientId);
 
-        var clientSecrets = await DbContext.ClientSecrets.IgnoreQueryFilters().ToListAsync();
-        var secrets = await DbContext.Secrets.IgnoreQueryFilters().ToListAsync();
+        var clientSecrets = await DbContext
+            .ClientSecrets.IgnoreQueryFilters()
+            .ToListAsync(cancellationToken);
+        var secrets = await DbContext.Secrets.IgnoreQueryFilters().ToListAsync(cancellationToken);
         if (withSecrets)
         {
             var clientSecret = Assert.Single(clientSecrets);
@@ -190,14 +197,18 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
         }
 
         var clientGrant = Assert.Single(
-            await DbContext.ClientGrants.IgnoreQueryFilters().ToListAsync()
+            await DbContext.ClientGrants.IgnoreQueryFilters().ToListAsync(cancellationToken)
         );
         Assert.Equal(client.Id, clientGrant.ClientId);
 
-        var consent = Assert.Single(await DbContext.Consents.IgnoreQueryFilters().ToListAsync());
+        var consent = Assert.Single(
+            await DbContext.Consents.IgnoreQueryFilters().ToListAsync(cancellationToken)
+        );
         Assert.Equal(client.Id, consent.ClientId);
 
-        var grant = Assert.Single(await DbContext.Grants.IgnoreQueryFilters().ToListAsync());
+        var grant = Assert.Single(
+            await DbContext.Grants.IgnoreQueryFilters().ToListAsync(cancellationToken)
+        );
         Assert.Equal(client.Id, grant.ClientId);
         Assert.Equal($"{ClientTwoId}-grant", grant.GrantId);
     }
@@ -209,25 +220,25 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
     [Fact]
     public async Task RemoveAsync_OnARelationalProvider_RemovesTheClientWithEverythingItOwns()
     {
-        await SeedAsync(withSecrets: true);
+        await SeedAsync(withSecrets: true, CancellationToken.None);
 
         var removed = await ClientStore.RemoveAsync(ClientOneId, CancellationToken.None);
         await DbContext.SaveChangesAsync();
 
         Assert.True(removed);
-        await AssertOnlyClientTwoRemainsAsync(withSecrets: true);
+        await AssertOnlyClientTwoRemainsAsync(withSecrets: true, CancellationToken.None);
     }
 
     [Fact]
     public async Task RemoveAsync_OnARelationalProvider_WhenTheClientHasNoSecrets_RemovesItsGrantsAndConsents()
     {
-        await SeedAsync(withSecrets: false);
+        await SeedAsync(withSecrets: false, CancellationToken.None);
 
         var removed = await ClientStore.RemoveAsync(ClientOneId, CancellationToken.None);
         await DbContext.SaveChangesAsync();
 
         Assert.True(removed);
-        await AssertOnlyClientTwoRemainsAsync(withSecrets: false);
+        await AssertOnlyClientTwoRemainsAsync(withSecrets: false, CancellationToken.None);
     }
 
     #endregion

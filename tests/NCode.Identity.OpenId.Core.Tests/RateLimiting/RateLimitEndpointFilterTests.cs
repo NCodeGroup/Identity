@@ -74,8 +74,14 @@ public sealed class RateLimitEndpointFilterTests : BaseTests
             .ReturnsAsync(decision)
             .Verifiable();
 
-    private ValueTask<object?> InvokeAsync(EndpointFilterDelegate next) =>
-        Filter.InvokeAsync(new DefaultEndpointFilterInvocationContext(HttpContext), next);
+    private ValueTask<object?> InvokeAsync(
+        EndpointFilterDelegate next,
+        CancellationToken cancellationToken
+    )
+    {
+        HttpContext.RequestAborted = cancellationToken;
+        return Filter.InvokeAsync(new DefaultEndpointFilterInvocationContext(HttpContext), next);
+    }
 
     #endregion
 
@@ -87,11 +93,14 @@ public sealed class RateLimitEndpointFilterTests : BaseTests
         var expected = new object();
         var endpointRan = false;
 
-        var result = await InvokeAsync(_ =>
-        {
-            endpointRan = true;
-            return ValueTask.FromResult<object?>(expected);
-        });
+        var result = await InvokeAsync(
+            _ =>
+            {
+                endpointRan = true;
+                return ValueTask.FromResult<object?>(expected);
+            },
+            CancellationToken.None
+        );
 
         Assert.True(endpointRan);
         Assert.Same(expected, result);
@@ -112,11 +121,14 @@ public sealed class RateLimitEndpointFilterTests : BaseTests
         MockContext.Setup(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
         var endpointRan = false;
 
-        var result = await InvokeAsync(_ =>
-        {
-            endpointRan = true;
-            return ValueTask.FromResult<object?>(null);
-        });
+        var result = await InvokeAsync(
+            _ =>
+            {
+                endpointRan = true;
+                return ValueTask.FromResult<object?>(null);
+            },
+            CancellationToken.None
+        );
 
         Assert.False(endpointRan);
         Assert.IsAssignableFrom<IResult>(result);
@@ -137,14 +149,17 @@ public sealed class RateLimitEndpointFilterTests : BaseTests
             .Verifiable();
         var expected = new object();
 
-        var result = await InvokeAsync(_ =>
-        {
-            // A stage inside the endpoint adds its meters to the same request state.
-            RateLimitRequestState
-                .Get(HttpContext)
-                .UsageMeters.Add(TenantUsageMeters.TokenRequests);
-            return ValueTask.FromResult<object?>(expected);
-        });
+        var result = await InvokeAsync(
+            _ =>
+            {
+                // A stage inside the endpoint adds its meters to the same request state.
+                RateLimitRequestState
+                    .Get(HttpContext)
+                    .UsageMeters.Add(TenantUsageMeters.TokenRequests);
+                return ValueTask.FromResult<object?>(expected);
+            },
+            CancellationToken.None
+        );
 
         Assert.Same(expected, result);
     }
@@ -156,12 +171,15 @@ public sealed class RateLimitEndpointFilterTests : BaseTests
         SetupRequestStage(RateLimitDecision.Admitted, TenantUsageMeters.Requests);
         var expected = new object();
 
-        var result = await InvokeAsync(_ =>
-        {
-            // A stage inside the endpoint refused the request, so it is not the tenant's usage.
-            RateLimitRequestState.Get(HttpContext).IsRefused = true;
-            return ValueTask.FromResult<object?>(expected);
-        });
+        var result = await InvokeAsync(
+            _ =>
+            {
+                // A stage inside the endpoint refused the request, so it is not the tenant's usage.
+                RateLimitRequestState.Get(HttpContext).IsRefused = true;
+                return ValueTask.FromResult<object?>(expected);
+            },
+            CancellationToken.None
+        );
 
         Assert.Same(expected, result);
     }

@@ -35,7 +35,10 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
         );
     }
 
-    private async Task<PersistedResourceServer?> SeedAsync(TenantPlane plane)
+    private async ValueTask<PersistedResourceServer?> SeedAsync(
+        TenantPlane plane,
+        CancellationToken cancellationToken
+    )
     {
         var manager = MockRepository.Create<IStoreManager>();
         var store = MockRepository.Create<IResourceServerStore>();
@@ -63,7 +66,7 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
             .Verifiable();
 
         var handler = new ManagementResourceServerSeedHandler(crypto.Object);
-        await handler.HandleAsync(CreateCommand(manager.Object, plane), CancellationToken.None);
+        await handler.HandleAsync(CreateCommand(manager.Object, plane), cancellationToken);
 
         return captured;
     }
@@ -71,7 +74,7 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
     [Fact]
     public async Task HandleAsync_WhenWorkloadPlane_SeedsTenantScopesOnly()
     {
-        var captured = await SeedAsync(TenantPlane.Workload);
+        var captured = await SeedAsync(TenantPlane.Workload, CancellationToken.None);
 
         Assert.NotNull(captured);
         var values = captured.Scopes.Select(scope => scope.Value).ToList();
@@ -87,7 +90,7 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
     [Fact]
     public async Task HandleAsync_WhenRootPlane_SeedsPlatformAndTeamFamilies()
     {
-        var captured = await SeedAsync(TenantPlane.Root);
+        var captured = await SeedAsync(TenantPlane.Root, CancellationToken.None);
 
         Assert.NotNull(captured);
         var values = captured.Scopes.Select(scope => scope.Value).ToList();

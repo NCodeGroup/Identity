@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -16,6 +17,11 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <see cref="PostCommitWork"/>, and a failure is logged with the secret identifier and the provider name only.
 /// </summary>
 // See ADR-1468 and ADR-1471.
+[SuppressMessage(
+    "Design",
+    "NCID0003",
+    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+)]
 internal class DefaultRemoteSecretDestroyer(
     IRemoteKeyProviderCatalog remoteKeyProviderCatalog,
     TimeProvider timeProvider,

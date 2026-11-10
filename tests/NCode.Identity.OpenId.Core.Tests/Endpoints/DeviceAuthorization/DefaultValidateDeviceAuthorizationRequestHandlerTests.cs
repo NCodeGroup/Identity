@@ -59,7 +59,8 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
     private ValueTask InvokeAsync(
         Mock<OpenIdContext> context,
         Mock<OpenIdClient> client,
-        Mock<IDeviceAuthorizationRequest> request
+        Mock<IDeviceAuthorizationRequest> request,
+        CancellationToken cancellationToken
     ) =>
         Handler.HandleAsync(
             new ValidateDeviceAuthorizationRequestCommand(
@@ -67,7 +68,7 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
                 client.Object,
                 request.Object
             ),
-            CancellationToken.None
+            cancellationToken
         );
 
     [Fact]
@@ -75,7 +76,7 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
     {
         var (context, client, request) = CreateScaffold();
 
-        await InvokeAsync(context, client, request);
+        await InvokeAsync(context, client, request, CancellationToken.None);
     }
 
     [Fact]
@@ -83,7 +84,7 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
     {
         var (context, client, request) = CreateScaffold(grantTypesSupportedPresent: false);
 
-        await InvokeAsync(context, client, request);
+        await InvokeAsync(context, client, request, CancellationToken.None);
     }
 
     [Fact]
@@ -94,7 +95,7 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            InvokeAsync(context, client, request).AsTask()
+            InvokeAsync(context, client, request, CancellationToken.None).AsTask()
         );
         Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
     }

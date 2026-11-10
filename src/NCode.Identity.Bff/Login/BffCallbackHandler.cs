@@ -56,10 +56,10 @@ internal class BffCallbackHandler(
     /// Handles the callback request.
     /// </summary>
     /// <param name="httpContext">The current HTTP context.</param>
-    public async Task HandleAsync(HttpContext httpContext)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public async ValueTask HandleAsync(HttpContext httpContext, CancellationToken cancellationToken)
     {
         var request = httpContext.Request;
-        var cancellationToken = httpContext.RequestAborted;
 
         var frontend = Frontends.GetRequired(httpContext);
 
@@ -75,20 +75,31 @@ internal class BffCallbackHandler(
             await FailAsync(
                 httpContext,
                 frontend,
-                taken.FailureReason ?? BffLoginFailureReasons.UnknownState
+                taken.FailureReason ?? BffLoginFailureReasons.UnknownState,
+                cancellationToken
             );
             return;
         }
 
         if (!string.Equals(transaction.Frontend, frontend.Name, StringComparison.Ordinal))
         {
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.FrontendMismatch);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.FrontendMismatch,
+                cancellationToken
+            );
             return;
         }
 
         if (request.Query.ContainsKey(OpenIdProtocol.Parameters.ErrorCode))
         {
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.AuthorizationError);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.AuthorizationError,
+                cancellationToken
+            );
             return;
         }
 
@@ -103,7 +114,12 @@ internal class BffCallbackHandler(
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.ProviderUnavailable);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.ProviderUnavailable,
+                cancellationToken
+            );
             return;
         }
 
@@ -117,7 +133,12 @@ internal class BffCallbackHandler(
             );
         if (issMismatch || (issMissing && metadata.AuthorizationResponseIssParameterSupported))
         {
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.IssuerMismatch);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.IssuerMismatch,
+                cancellationToken
+            );
             return;
         }
 
@@ -125,7 +146,12 @@ internal class BffCallbackHandler(
         var code = codeValues.Count == 1 ? codeValues[0] : null;
         if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
         {
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.InvalidResponse);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.InvalidResponse,
+                cancellationToken
+            );
             return;
         }
 
@@ -151,13 +177,23 @@ internal class BffCallbackHandler(
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.ProviderUnavailable);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.ProviderUnavailable,
+                cancellationToken
+            );
             return;
         }
 
         if (tokenResult.Response is not { IdToken: { } idToken, AccessToken: { } accessToken })
         {
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.TokenError);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.TokenError,
+                cancellationToken
+            );
             return;
         }
 
@@ -184,7 +220,12 @@ internal class BffCallbackHandler(
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.ProviderUnavailable);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.ProviderUnavailable,
+                cancellationToken
+            );
             return;
         }
 
@@ -197,14 +238,19 @@ internal class BffCallbackHandler(
             )
                 ? BffLoginFailureReasons.NonceMismatch
                 : BffLoginFailureReasons.IdTokenInvalid;
-            await FailAsync(httpContext, frontend, reason);
+            await FailAsync(httpContext, frontend, reason, cancellationToken);
             return;
         }
 
         var subject = identity.FindFirst(JoseClaimNames.Payload.Sub)?.Value;
         if (string.IsNullOrEmpty(subject))
         {
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.IdTokenInvalid);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.IdTokenInvalid,
+                cancellationToken
+            );
             return;
         }
 
@@ -230,13 +276,23 @@ internal class BffCallbackHandler(
             catch (Exception exception)
                 when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
             {
-                await FailAsync(httpContext, frontend, BffLoginFailureReasons.ProviderUnavailable);
+                await FailAsync(
+                    httpContext,
+                    frontend,
+                    BffLoginFailureReasons.ProviderUnavailable,
+                    cancellationToken
+                );
                 return;
             }
 
             if (!userInfo.IsSuccess)
             {
-                await FailAsync(httpContext, frontend, BffLoginFailureReasons.UserInfoFailed);
+                await FailAsync(
+                    httpContext,
+                    frontend,
+                    BffLoginFailureReasons.UserInfoFailed,
+                    cancellationToken
+                );
                 return;
             }
 
@@ -265,7 +321,12 @@ internal class BffCallbackHandler(
             if (allowed)
                 continue;
 
-            await FailAsync(httpContext, frontend, BffLoginFailureReasons.RejectedByGate);
+            await FailAsync(
+                httpContext,
+                frontend,
+                BffLoginFailureReasons.RejectedByGate,
+                cancellationToken
+            );
             return;
         }
 
@@ -347,10 +408,15 @@ internal class BffCallbackHandler(
         httpContext.Response.Redirect(returnUrl);
     }
 
-    private async ValueTask FailAsync(HttpContext httpContext, BffFrontend frontend, string reason)
+    private async ValueTask FailAsync(
+        HttpContext httpContext,
+        BffFrontend frontend,
+        string reason,
+        CancellationToken cancellationToken
+    )
     {
         Logger.LoginFailed(reason);
-        await AuditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
+        await AuditRecorder.LoginFailedAsync(httpContext, reason, cancellationToken);
         var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, frontend.Options, reason);
         httpContext.Response.Redirect(errorUrl);
     }

@@ -65,7 +65,8 @@ internal class BffMiddleware(
                     context,
                     refused.StatusCode,
                     refused.Type,
-                    refused.Title
+                    refused.Title,
+                    context.RequestAborted
                 );
                 return;
             }
@@ -78,12 +79,17 @@ internal class BffMiddleware(
                 context,
                 StatusCodes.Status503ServiceUnavailable,
                 BffProblemTypes.StoreUnavailable,
-                "The BFF session store is unavailable."
+                "The BFF session store is unavailable.",
+                context.RequestAborted
             );
         }
         catch (BffTokenUnavailableException exception) when (!context.Response.HasStarted)
         {
-            await BffResponses.WriteTokenUnavailableAsync(context, exception.StatusCode);
+            await BffResponses.WriteTokenUnavailableAsync(
+                context,
+                exception.StatusCode,
+                context.RequestAborted
+            );
         }
     }
 

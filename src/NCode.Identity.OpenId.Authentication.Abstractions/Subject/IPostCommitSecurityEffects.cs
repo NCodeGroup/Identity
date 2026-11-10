@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Contexts;
 
@@ -14,6 +15,11 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// </summary>
 // See ADR-1468.
 [PublicAPI]
+[SuppressMessage(
+    "Design",
+    "NCID0003",
+    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+)]
 public interface IPostCommitSecurityEffects
 {
     /// <summary>

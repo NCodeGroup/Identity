@@ -53,7 +53,11 @@ public class BffClientSessionTests : BaseTests
         );
     }
 
-    private async Task AssertProbeKeepsUserAsync(Func<HttpResponseMessage> answer, int eventId)
+    private async ValueTask AssertProbeKeepsUserAsync(
+        Func<HttpResponseMessage> answer,
+        int eventId,
+        CancellationToken cancellationToken
+    )
     {
         using var requested = new SemaphoreSlim(0);
         var handler = new StubHttpMessageHandler(
@@ -68,14 +72,20 @@ public class BffClientSessionTests : BaseTests
         session.Seed(ReadUser(UserDocument));
         var changes = 0;
         session.Changed += _ => Interlocked.Increment(ref changes);
-        await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
+        await session
+            .GetAuthenticationStateAsync(cancellationToken)
+            .AsTask()
+            .WaitAsync(Timeout, cancellationToken);
 
         time.Advance(TimeSpan.FromMinutes(1));
-        await requested.WaitAsync(Timeout);
+        await requested.WaitAsync(Timeout, cancellationToken);
         session.Invalidate();
-        await requested.WaitAsync(Timeout);
+        await requested.WaitAsync(Timeout, cancellationToken);
 
-        var state = await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
+        var state = await session
+            .GetAuthenticationStateAsync(cancellationToken)
+            .AsTask()
+            .WaitAsync(Timeout, cancellationToken);
         Assert.True(state.User.Identity?.IsAuthenticated);
         Assert.Equal(0, changes);
         Assert.Contains(Logger.Collector.GetSnapshot(), record => record.Id.Id == eventId);
@@ -129,7 +139,10 @@ public class BffClientSessionTests : BaseTests
         var handler = new StubHttpMessageHandler((_, _) => Task.FromResult(UserResponse()));
         using var session = CreateSession(handler, new FakeTimeProvider(Start));
 
-        var state = await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
+        var state = await session
+            .GetAuthenticationStateAsync(CancellationToken.None)
+            .AsTask()
+            .WaitAsync(Timeout);
 
         Assert.True(state.User.Identity?.IsAuthenticated);
         Assert.Equal("user-1", state.User.FindFirst("sub")?.Value);
@@ -152,7 +165,10 @@ public class BffClientSessionTests : BaseTests
         );
         session.Changed += task => changed.TrySetResult(task);
 
-        var seeded = await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
+        var seeded = await session
+            .GetAuthenticationStateAsync(CancellationToken.None)
+            .AsTask()
+            .WaitAsync(Timeout);
 
         Assert.True(seeded.User.Identity?.IsAuthenticated);
         Assert.Empty(handler.Requests);
@@ -167,31 +183,37 @@ public class BffClientSessionTests : BaseTests
     [Fact]
     public Task GetAuthenticationStateAsync_ProbeAnswers500_KeepsUser() =>
         AssertProbeKeepsUserAsync(
-            () => new HttpResponseMessage(HttpStatusCode.InternalServerError),
-            EventIds.ProbeStatusUnexpected
-        );
+                () => new HttpResponseMessage(HttpStatusCode.InternalServerError),
+                EventIds.ProbeStatusUnexpected,
+                CancellationToken.None
+            )
+            .AsTask();
 
     [Fact]
     public Task GetAuthenticationStateAsync_ProbeAnswersMalformedJson_KeepsUser() =>
         AssertProbeKeepsUserAsync(
-            () =>
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new ByteArrayContent("{"u8.ToArray()),
-                },
-            EventIds.ProbeDocumentUnreadable
-        );
+                () =>
+                    new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new ByteArrayContent("{"u8.ToArray()),
+                    },
+                EventIds.ProbeDocumentUnreadable,
+                CancellationToken.None
+            )
+            .AsTask();
 
     [Fact]
     public Task GetAuthenticationStateAsync_ProbeAnswersDocumentWithoutSub_KeepsUser() =>
         AssertProbeKeepsUserAsync(
-            () =>
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new ByteArrayContent("""{"name":"x"}"""u8.ToArray()),
-                },
-            EventIds.ProbeDocumentUnreadable
-        );
+                () =>
+                    new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new ByteArrayContent("""{"name":"x"}"""u8.ToArray()),
+                    },
+                EventIds.ProbeDocumentUnreadable,
+                CancellationToken.None
+            )
+            .AsTask();
 
     #endregion
 
@@ -207,7 +229,10 @@ public class BffClientSessionTests : BaseTests
             TaskCreationOptions.RunContinuationsAsynchronously
         );
         session.Changed += task => changed.TrySetResult(task);
-        await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
+        await session
+            .GetAuthenticationStateAsync(CancellationToken.None)
+            .AsTask()
+            .WaitAsync(Timeout);
 
         session.Invalidate();
 
@@ -236,14 +261,20 @@ public class BffClientSessionTests : BaseTests
         session.Seed(ReadUser(UserDocument));
         var changes = 0;
         session.Changed += _ => Interlocked.Increment(ref changes);
-        await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
+        await session
+            .GetAuthenticationStateAsync(CancellationToken.None)
+            .AsTask()
+            .WaitAsync(Timeout);
 
         time.Advance(TimeSpan.FromMinutes(1));
         await requested.WaitAsync(Timeout);
         session.Invalidate();
         await requested.WaitAsync(Timeout);
 
-        var state = await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
+        var state = await session
+            .GetAuthenticationStateAsync(CancellationToken.None)
+            .AsTask()
+            .WaitAsync(Timeout);
         Assert.True(state.User.Identity?.IsAuthenticated);
         Assert.Equal(0, changes);
     }

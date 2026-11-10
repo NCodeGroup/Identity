@@ -160,7 +160,8 @@ internal class AuditRecordApiEndpointHandler(
                     cancellationToken
                 );
             },
-            ToAuditRecordResource
+            ToAuditRecordResource,
+            cancellationToken
         );
     }
 

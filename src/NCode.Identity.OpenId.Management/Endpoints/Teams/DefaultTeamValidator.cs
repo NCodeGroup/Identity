@@ -54,7 +54,8 @@ internal class DefaultTeamValidator(
             node,
             Operations.Create,
             "The caller is not authorized to create this team.",
-            "Authentication is required to create this team."
+            "Authentication is required to create this team.",
+            cancellationToken
         );
     }
 
@@ -70,7 +71,8 @@ internal class DefaultTeamValidator(
             ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, teamId),
             Operations.Update,
             "The caller is not authorized to update this team.",
-            "Authentication is required to update this team."
+            "Authentication is required to update this team.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -85,7 +87,8 @@ internal class DefaultTeamValidator(
             ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, teamId),
             Operations.Delete,
             "The caller is not authorized to delete this team.",
-            "Authentication is required to delete this team."
+            "Authentication is required to delete this team.",
+            cancellationToken
         );
 
     /// <inheritdoc />
@@ -179,7 +182,8 @@ internal class DefaultTeamValidator(
                 lifecycleNode,
                 Operations.Update,
                 "The caller is not authorized to disable or enable this team.",
-                "Authentication is required to disable or enable this team."
+                "Authentication is required to disable or enable this team.",
+                cancellationToken
             );
             if (error is not null)
             {
@@ -235,7 +239,8 @@ internal class DefaultTeamValidator(
             lifecycleNode,
             Operations.Delete,
             "The caller is not authorized to delete this team.",
-            "Authentication is required to delete this team."
+            "Authentication is required to delete this team.",
+            cancellationToken
         );
         if (authorizationError is not null)
         {

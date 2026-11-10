@@ -32,8 +32,12 @@ internal class BffJwksHandler(
     /// Writes the public keys of the client-authentication key ring.
     /// </summary>
     /// <param name="httpContext">The current request.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="InvalidOperationException">No client-authentication key ring is configured.</exception>
-    public virtual Task HandleAsync(HttpContext httpContext)
+    public virtual ValueTask HandleAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
@@ -62,6 +66,6 @@ internal class BffJwksHandler(
         response.SetNoStore();
         response.StatusCode = StatusCodes.Status200OK;
         response.ContentType = JsonContentType;
-        return response.WriteAsync(json, SecureEncoding.UTF8, httpContext.RequestAborted);
+        return new ValueTask(response.WriteAsync(json, SecureEncoding.UTF8, cancellationToken));
     }
 }

@@ -13,13 +13,14 @@ public class BffRefreshLocksTests : BaseTests
 
     private const string Purpose = BffRefreshLocks.UserPurpose;
 
-    private static async Task<IDisposable> EnterAsync(
+    private static async ValueTask<IDisposable> EnterAsync(
         BffRefreshLocks locks,
         string key,
-        string purpose = Purpose
+        string purpose,
+        CancellationToken cancellationToken
     )
     {
-        var lease = await locks.TryEnterAsync(purpose, key, WaitTimeout, CancellationToken.None);
+        var lease = await locks.TryEnterAsync(purpose, key, WaitTimeout, cancellationToken);
         return Assert.IsAssignableFrom<IDisposable>(lease);
     }
 
@@ -29,7 +30,7 @@ public class BffRefreshLocksTests : BaseTests
     public async Task TryEnterAsync_SameKeyWhileHeld_WaitsUntilReleased()
     {
         var locks = new BffRefreshLocks();
-        var first = await EnterAsync(locks, "session");
+        var first = await EnterAsync(locks, "session", Purpose, CancellationToken.None);
 
         var pending = locks
             .TryEnterAsync(Purpose, "session", WaitTimeout, CancellationToken.None)
@@ -50,8 +51,8 @@ public class BffRefreshLocksTests : BaseTests
     {
         var locks = new BffRefreshLocks();
 
-        using var first = await EnterAsync(locks, "session-a");
-        using var second = await EnterAsync(locks, "session-b");
+        using var first = await EnterAsync(locks, "session-a", Purpose, CancellationToken.None);
+        using var second = await EnterAsync(locks, "session-b", Purpose, CancellationToken.None);
 
         Assert.Equal(2, locks.Count);
     }
@@ -62,8 +63,18 @@ public class BffRefreshLocksTests : BaseTests
         var locks = new BffRefreshLocks();
 
         // the exchange service holds its lock on a session while the user token service takes its own
-        using var exchange = await EnterAsync(locks, "session", BffRefreshLocks.ExchangePurpose);
-        using var user = await EnterAsync(locks, "session", BffRefreshLocks.UserPurpose);
+        using var exchange = await EnterAsync(
+            locks,
+            "session",
+            BffRefreshLocks.ExchangePurpose,
+            CancellationToken.None
+        );
+        using var user = await EnterAsync(
+            locks,
+            "session",
+            BffRefreshLocks.UserPurpose,
+            CancellationToken.None
+        );
 
         Assert.Equal(2, locks.Count);
     }
@@ -72,7 +83,7 @@ public class BffRefreshLocksTests : BaseTests
     public async Task TryEnterAsync_TimeoutWhileHeld_ReturnsNull()
     {
         var locks = new BffRefreshLocks();
-        using var first = await EnterAsync(locks, "session");
+        using var first = await EnterAsync(locks, "session", Purpose, CancellationToken.None);
 
         var second = await locks.TryEnterAsync(
             Purpose,
@@ -89,7 +100,7 @@ public class BffRefreshLocksTests : BaseTests
     public async Task TryEnterAsync_AfterEveryHolderLeaves_RemovesTheEntry()
     {
         var locks = new BffRefreshLocks();
-        var first = await EnterAsync(locks, "session");
+        var first = await EnterAsync(locks, "session", Purpose, CancellationToken.None);
         var pending = locks
             .TryEnterAsync(Purpose, "session", WaitTimeout, CancellationToken.None)
             .AsTask();
@@ -112,7 +123,7 @@ public class BffRefreshLocksTests : BaseTests
     public async Task Dispose_Twice_ReleasesOnce()
     {
         var locks = new BffRefreshLocks();
-        var first = await EnterAsync(locks, "session");
+        var first = await EnterAsync(locks, "session", Purpose, CancellationToken.None);
         var pending = locks
             .TryEnterAsync(Purpose, "session", WaitTimeout, CancellationToken.None)
             .AsTask();

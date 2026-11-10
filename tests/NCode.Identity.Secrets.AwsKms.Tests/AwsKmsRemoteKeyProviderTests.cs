@@ -1528,16 +1528,16 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
 
     private static DateTime CreationDate { get; } = new(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
 
-    private static async Task<List<RemoteKeyListing>> ListAsync(
+    private static async ValueTask<List<RemoteKeyListing>> ListAsync(
         AwsKmsRemoteKeyProvider provider,
-        string deployment = "deployment-1"
+        CancellationToken cancellationToken
     )
     {
         var listings = new List<RemoteKeyListing>();
         await foreach (
             var listing in provider.ListKeysAsync(
-                new RemoteKeyListRequest { Deployment = deployment },
-                CancellationToken.None
+                new RemoteKeyListRequest { Deployment = "deployment-1" },
+                cancellationToken
             )
         )
         {
@@ -1621,7 +1621,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         SetupDescribe(KeyArn, KeyManagerType.CUSTOMER, KeyState.Enabled);
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         var listing = Assert.Single(listings);
         Assert.Equal(KeyArn, listing.KeyId);
@@ -1644,7 +1644,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         );
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1662,7 +1662,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         );
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1676,7 +1676,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         SetupListTags(KeyArn);
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1696,7 +1696,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         SetupDescribe(KeyArn, KeyManagerType.CUSTOMER, KeyState.PendingDeletion);
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1716,7 +1716,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         SetupDescribe(KeyArn, KeyManagerType.AWS, KeyState.Enabled);
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1743,7 +1743,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             .Verifiable();
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1765,7 +1765,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             .Verifiable();
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1789,7 +1789,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         }
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Equal([KeyArn, OtherKeyArn], listings.Select(x => x.KeyId));
     }
@@ -1801,7 +1801,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         SetupListKeys(null, new ListKeysResponse { Keys = null, Truncated = null });
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1811,7 +1811,9 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
     {
         var provider = CreateProvider(region: null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => ListAsync(provider));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            ListAsync(provider, CancellationToken.None).AsTask()
+        );
     }
 
     #endregion

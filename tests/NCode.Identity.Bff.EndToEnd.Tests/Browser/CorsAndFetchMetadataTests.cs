@@ -16,14 +16,26 @@ public sealed class CorsAndFetchMetadataTests(EndToEndEnvironment environment)
     public async Task Fetch_FromOriginCorsRefuses_DiesAtThePreflight(string browserName)
     {
         var bff = environment.StrictBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
-        var originPage = await BrowserFlows.OpenOriginAsync(context, environment.CrossSiteDenied);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
+        var originPage = await BrowserFlows.OpenOriginAsync(
+            context,
+            environment.CrossSiteDenied,
+            CancellationToken.None
+        );
         var apiCalls = bff.ApiCalls;
         var preflightRequests = bff.PreflightRequests;
 
-        var outcome = await BrowserFlows.FetchAsync(originPage, $"{bff.Origin}/api/me", true);
+        var outcome = await BrowserFlows.FetchAsync(
+            originPage,
+            $"{bff.Origin}/api/me",
+            true,
+            CancellationToken.None
+        );
 
         Assert.True(outcome.Blocked);
         Assert.True(bff.PreflightRequests > preflightRequests);
@@ -38,13 +50,25 @@ public sealed class CorsAndFetchMetadataTests(EndToEndEnvironment environment)
     public async Task Fetch_FromUntrustedSameSiteOrigin_IsRefusedAsCrossSite(string browserName)
     {
         var bff = environment.StrictBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
-        var originPage = await BrowserFlows.OpenOriginAsync(context, environment.SameSiteUntrusted);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
+        var originPage = await BrowserFlows.OpenOriginAsync(
+            context,
+            environment.SameSiteUntrusted,
+            CancellationToken.None
+        );
         var apiCalls = bff.ApiCalls;
 
-        var outcome = await BrowserFlows.FetchAsync(originPage, $"{bff.Origin}/api/me", true);
+        var outcome = await BrowserFlows.FetchAsync(
+            originPage,
+            $"{bff.Origin}/api/me",
+            true,
+            CancellationToken.None
+        );
 
         Assert.Equal(StatusCodes.Status403Forbidden, outcome.Status);
         Assert.Contains(BffProblemTypes.CrossSiteRequest, outcome.Body);
@@ -55,13 +79,25 @@ public sealed class CorsAndFetchMetadataTests(EndToEndEnvironment environment)
     public async Task Fetch_FromCrossSiteOriginCorsAdmits_IsRefusedAsCrossSite(string browserName)
     {
         var bff = environment.StrictBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
-        var originPage = await BrowserFlows.OpenOriginAsync(context, environment.CrossSiteAdmitted);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
+        var originPage = await BrowserFlows.OpenOriginAsync(
+            context,
+            environment.CrossSiteAdmitted,
+            CancellationToken.None
+        );
         var apiCalls = bff.ApiCalls;
 
-        var outcome = await BrowserFlows.FetchAsync(originPage, $"{bff.Origin}/api/me", true);
+        var outcome = await BrowserFlows.FetchAsync(
+            originPage,
+            $"{bff.Origin}/api/me",
+            true,
+            CancellationToken.None
+        );
 
         Assert.Equal(StatusCodes.Status403Forbidden, outcome.Status);
         Assert.Contains(BffProblemTypes.CrossSiteRequest, outcome.Body);
@@ -72,13 +108,25 @@ public sealed class CorsAndFetchMetadataTests(EndToEndEnvironment environment)
     public async Task Fetch_FromTrustedSameSiteOrigin_ReachesTheApi(string browserName)
     {
         var bff = environment.StrictBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
-        var originPage = await BrowserFlows.OpenOriginAsync(context, environment.SameSiteTrusted);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
+        var originPage = await BrowserFlows.OpenOriginAsync(
+            context,
+            environment.SameSiteTrusted,
+            CancellationToken.None
+        );
         var apiCalls = bff.ApiCalls;
 
-        var outcome = await BrowserFlows.FetchAsync(originPage, $"{bff.Origin}/api/me", true);
+        var outcome = await BrowserFlows.FetchAsync(
+            originPage,
+            $"{bff.Origin}/api/me",
+            true,
+            CancellationToken.None
+        );
 
         Assert.Equal(StatusCodes.Status200OK, outcome.Status);
         Assert.Equal(apiCalls + 1, bff.ApiCalls);

@@ -21,11 +21,13 @@ internal static class BffResponses
     /// <param name="status">The HTTP status code.</param>
     /// <param name="type">The problem type URN.</param>
     /// <param name="title">The short summary of the problem.</param>
-    public static Task WriteProblemAsync(
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public static ValueTask WriteProblemAsync(
         HttpContext httpContext,
         int status,
         string type,
-        string title
+        string title,
+        CancellationToken cancellationToken
     )
     {
         var response = httpContext.Response;
@@ -33,11 +35,13 @@ internal static class BffResponses
         response.StatusCode = status;
 
         var problem = new BffProblem(type, title, status);
-        return response.WriteAsJsonAsync(
-            problem,
-            BffJsonContext.Default.BffProblem,
-            ProblemContentType,
-            httpContext.RequestAborted
+        return new ValueTask(
+            response.WriteAsJsonAsync(
+                problem,
+                BffJsonContext.Default.BffProblem,
+                ProblemContentType,
+                cancellationToken
+            )
         );
     }
 
@@ -47,13 +51,24 @@ internal static class BffResponses
     /// </summary>
     /// <param name="httpContext">The current HTTP context.</param>
     /// <param name="status">The HTTP status code of the failure.</param>
-    public static Task WriteTokenUnavailableAsync(HttpContext httpContext, int status)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public static ValueTask WriteTokenUnavailableAsync(
+        HttpContext httpContext,
+        int status,
+        CancellationToken cancellationToken
+    )
     {
         var type =
             status == StatusCodes.Status401Unauthorized
                 ? BffProblemTypes.SessionRequired
                 : BffProblemTypes.TokenUnavailable;
 
-        return WriteProblemAsync(httpContext, status, type, "An access token is unavailable.");
+        return WriteProblemAsync(
+            httpContext,
+            status,
+            type,
+            "An access token is unavailable.",
+            cancellationToken
+        );
     }
 }

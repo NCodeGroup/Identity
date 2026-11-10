@@ -135,12 +135,19 @@ public class RemoteKeyJweTests : BaseTests
             null
         );
 
-    private ValueTask<string> EncodeCompactAsync(SecretKey secretKey, string code) =>
+    private ValueTask<string> EncodeCompactAsync(
+        SecretKey secretKey,
+        string code,
+        CancellationToken cancellationToken
+    ) =>
         JoseSerializer
             .CreateEncoder(new JoseEncryptionOptions(CreateCredentials(secretKey, code)))
-            .EncodeAsync(Payload, CancellationToken.None);
+            .EncodeAsync(Payload, cancellationToken);
 
-    private ValueTask<string> EncodeFlattenedJsonAsync(SecretKey remoteKey)
+    private ValueTask<string> EncodeFlattenedJsonAsync(
+        SecretKey remoteKey,
+        CancellationToken cancellationToken
+    )
     {
         var options = new JoseEncryptionOptions(
             GetAuthenticatedEncryptionAlgorithm(AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm)
@@ -157,7 +164,7 @@ public class RemoteKeyJweTests : BaseTests
                 ),
             ],
         };
-        return JoseSerializer.CreateEncoder(options).EncodeAsync(Payload, CancellationToken.None);
+        return JoseSerializer.CreateEncoder(options).EncodeAsync(Payload, cancellationToken);
     }
 
     private void SetupDecrypt() =>
@@ -217,7 +224,11 @@ public class RemoteKeyJweTests : BaseTests
     {
         SetupDecrypt();
         var remoteKey = CreateRemoteRsaKey();
-        var token = await EncodeCompactAsync(remoteKey, AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncodeCompactAsync(
+            remoteKey,
+            AlgorithmCodes.KeyManagement.RsaOaep256,
+            CancellationToken.None
+        );
 
         var decoded = await JoseSerializer.DecodeAsync(token, remoteKey, CancellationToken.None);
 
@@ -229,7 +240,11 @@ public class RemoteKeyJweTests : BaseTests
     {
         SetupDeriveSharedSecret();
         var remoteKey = CreateRemoteEccKey();
-        var token = await EncodeCompactAsync(remoteKey, AlgorithmCodes.KeyManagement.EcdhEsAes256);
+        var token = await EncodeCompactAsync(
+            remoteKey,
+            AlgorithmCodes.KeyManagement.EcdhEsAes256,
+            CancellationToken.None
+        );
 
         var decoded = await JoseSerializer.DecodeAsync(token, remoteKey, CancellationToken.None);
 
@@ -250,7 +265,11 @@ public class RemoteKeyJweTests : BaseTests
             .Returns(() => ValueTask.FromException<int>(new CryptographicException("refused")))
             .Verifiable();
         var remoteKey = CreateRemoteRsaKey();
-        var token = await EncodeCompactAsync(remoteKey, AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncodeCompactAsync(
+            remoteKey,
+            AlgorithmCodes.KeyManagement.RsaOaep256,
+            CancellationToken.None
+        );
 
         await Assert.ThrowsAsync<JoseEncryptionException>(async () =>
             await JoseSerializer.DecodeAsync(token, remoteKey, CancellationToken.None)
@@ -262,7 +281,7 @@ public class RemoteKeyJweTests : BaseTests
     {
         SetupDecrypt();
         var remoteKey = CreateRemoteRsaKey();
-        var token = await EncodeFlattenedJsonAsync(remoteKey);
+        var token = await EncodeFlattenedJsonAsync(remoteKey, CancellationToken.None);
 
         var decoded = await JoseSerializer.DecodeAsync(token, remoteKey, CancellationToken.None);
 
@@ -273,7 +292,11 @@ public class RemoteKeyJweTests : BaseTests
     public async Task DecodeAsync_RsaOaep256EncryptedKeyNotTheModulusSize_FailsAtTheTagWithoutCallingTheService()
     {
         var remoteKey = CreateRemoteRsaKey();
-        var token = await EncodeCompactAsync(remoteKey, AlgorithmCodes.KeyManagement.RsaOaep256);
+        var token = await EncodeCompactAsync(
+            remoteKey,
+            AlgorithmCodes.KeyManagement.RsaOaep256,
+            CancellationToken.None
+        );
         var segments = token.Split('.');
         segments[1] = System.Buffers.Text.Base64Url.EncodeToString(new byte[255]);
         var tampered = string.Join('.', segments);
@@ -297,7 +320,7 @@ public class RemoteKeyJweTests : BaseTests
             .Returns(() => ValueTask.FromException<int>(new IOException("unreachable")))
             .Verifiable(Times.Once());
         var remoteKey = CreateRemoteRsaKey();
-        var token = await EncodeFlattenedJsonAsync(remoteKey);
+        var token = await EncodeFlattenedJsonAsync(remoteKey, CancellationToken.None);
 
         await Assert.ThrowsAsync<IOException>(async () =>
             await JoseSerializer.DecodeAsync(token, remoteKey, CancellationToken.None)

@@ -84,29 +84,29 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
             Secrets = secrets,
         }.Build();
 
-    private async Task SeedTenantAsync(string tenantId)
+    private async ValueTask SeedTenantAsync(string tenantId, CancellationToken cancellationToken)
     {
         DbContext.SeedTeam(Provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
         var tenant = new PersistedTenantBuilder { TenantId = tenantId }.Build();
 
-        await TenantStore.AddAsync(tenant, CancellationToken.None);
+        await TenantStore.AddAsync(tenant, cancellationToken);
     }
 
     // Seeds two tenants, each owning one client (tenant-b's client also has a secret), then detaches everything so
     // subsequent reads hit the database query where the tenant-scoping global filter applies.
-    private async Task SeedAsync()
+    private async ValueTask SeedAsync(CancellationToken cancellationToken)
     {
-        await SeedTenantAsync(TenantA);
-        await SeedTenantAsync(TenantB);
-        await DbContext.SaveChangesAsync();
+        await SeedTenantAsync(TenantA, cancellationToken);
+        await SeedTenantAsync(TenantB, cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
 
-        await Store.AddAsync(CreateClient(TenantA, ClientA), CancellationToken.None);
+        await Store.AddAsync(CreateClient(TenantA, ClientA), cancellationToken);
         await Store.AddAsync(
             CreateClient(TenantB, ClientB, CreateSecret(SecretB)),
-            CancellationToken.None
+            cancellationToken
         );
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
@@ -115,7 +115,7 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     [Fact]
     public async Task GetOrDefaultAsync_WhenScopedToOtherTenant_ReturnsNull()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         AmbientTenantAccessor.TenantId = TenantA;
 
@@ -129,7 +129,7 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     [Fact]
     public async Task GetOrDefaultAsync_WhenAnotherTenantsClientIsTracked_ReturnsNull()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         AmbientTenantAccessor.TenantId = TenantA;
         var tracked = await Store.GetOrDefaultAsync(ClientA, CancellationToken.None);
@@ -144,7 +144,7 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     [Fact]
     public async Task GetSecretOrDefaultAsync_WhenScopedToOtherTenant_ReturnsNull()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         AmbientTenantAccessor.TenantId = TenantA;
 
@@ -160,7 +160,7 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     [Fact]
     public async Task GetOrDefaultAsync_WhenUnscoped_ReturnsAllTenants()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         var tenantA = await Store.GetOrDefaultAsync(ClientA, CancellationToken.None);
         var tenantB = await Store.GetOrDefaultAsync(ClientB, CancellationToken.None);
@@ -172,7 +172,7 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     [Fact]
     public async Task GetPageAsync_WhenScopedToTenant_ReturnsOnlyThatTenant()
     {
-        await SeedAsync();
+        await SeedAsync(CancellationToken.None);
 
         AmbientTenantAccessor.TenantId = TenantA;
 

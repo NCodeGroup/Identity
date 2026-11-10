@@ -25,10 +25,11 @@ public static class EndpointProblemMetadata
     /// given HTTP method and pattern declares through <c>ProducesProblem</c> or <c>ProducesValidationProblem</c>. It
     /// counts validation problems too.
     /// </summary>
-    public static async Task<IReadOnlyList<int>> ReadStatusCodesAsync(
+    public static async ValueTask<IReadOnlyList<int>> ReadStatusCodesAsync(
         IEndpointProvider provider,
         string httpMethod,
-        string routePattern
+        string routePattern,
+        CancellationToken cancellationToken
     )
     {
         ArgumentNullException.ThrowIfNull(provider);
@@ -49,10 +50,11 @@ public static class EndpointProblemMetadata
     /// appends to a handler that binds a body or a non-string parameter, and it leaves out the statuses that the
     /// handler method documents with a <c>response</c> element.
     /// </summary>
-    public static async Task<IReadOnlyList<int>> ReadUndescribedStatusCodesAsync(
+    public static async ValueTask<IReadOnlyList<int>> ReadUndescribedStatusCodesAsync(
         IEndpointProvider provider,
         string httpMethod,
-        string routePattern
+        string routePattern,
+        CancellationToken cancellationToken
     )
     {
         ArgumentNullException.ThrowIfNull(provider);

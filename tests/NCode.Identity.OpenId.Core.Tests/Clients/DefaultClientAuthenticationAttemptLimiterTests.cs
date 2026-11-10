@@ -92,13 +92,18 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
         return mockContext.Object;
     }
 
-    private async Task RecordFailuresAsync(string remoteAddress, string? clientId, int count)
+    private async ValueTask RecordFailuresAsync(
+        string remoteAddress,
+        string? clientId,
+        int count,
+        CancellationToken cancellationToken
+    )
     {
         for (var i = 0; i < count; i++)
             await Limiter.RecordFailureAsync(
                 CreateContext(remoteAddress),
                 clientId,
-                CancellationToken.None
+                cancellationToken
             );
     }
 
@@ -166,7 +171,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     [Fact]
     public async Task CheckAsync_WhenTheAddressAndClientReachedTheLimit_RefusesUntilTheWindowEnds()
     {
-        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit);
+        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit, CancellationToken.None);
 
         var decision = await Limiter.CheckAsync(
             CreateContext("203.0.113.5"),
@@ -181,7 +186,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     [Fact]
     public async Task CheckAsync_WhenBelowTheClientLimit_Admits()
     {
-        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit - 1);
+        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit - 1, CancellationToken.None);
 
         var decision = await Limiter.CheckAsync(
             CreateContext("203.0.113.5"),
@@ -195,7 +200,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     [Fact]
     public async Task CheckAsync_WhenTheClientReachedTheLimitFromAnotherAddress_Admits()
     {
-        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit);
+        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit, CancellationToken.None);
 
         var decision = await Limiter.CheckAsync(
             CreateContext("198.51.100.7"),
@@ -209,7 +214,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     [Fact]
     public async Task CheckAsync_WhenTheAddressReachedTheLimitForAnotherClient_AdmitsThisClient()
     {
-        await RecordFailuresAsync("203.0.113.5", "client-2", ClientLimit);
+        await RecordFailuresAsync("203.0.113.5", "client-2", ClientLimit, CancellationToken.None);
 
         var decision = await Limiter.CheckAsync(
             CreateContext("203.0.113.5"),
@@ -224,7 +229,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     public async Task CheckAsync_WhenTheAddressReachedItsLimitAcrossClients_RefusesEveryClient()
     {
         for (var i = 0; i < AddressLimit; i++)
-            await RecordFailuresAsync("203.0.113.5", $"guessed-{i}", 1);
+            await RecordFailuresAsync("203.0.113.5", $"guessed-{i}", 1, CancellationToken.None);
 
         var decision = await Limiter.CheckAsync(
             CreateContext("203.0.113.5"),
@@ -238,7 +243,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     [Fact]
     public async Task CheckAsync_WhenTheAddressReachedItsLimit_RefusesARequestThatNamesNoClient()
     {
-        await RecordFailuresAsync("203.0.113.5", null, AddressLimit);
+        await RecordFailuresAsync("203.0.113.5", null, AddressLimit, CancellationToken.None);
 
         var decision = await Limiter.CheckAsync(
             CreateContext("203.0.113.5"),
@@ -252,7 +257,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     [Fact]
     public async Task CheckAsync_WhenAnIPv6AddressOfTheSameSlash64ReachedTheLimit_Refuses()
     {
-        await RecordFailuresAsync("2001:db8:1:2::1", ClientId, ClientLimit);
+        await RecordFailuresAsync("2001:db8:1:2::1", ClientId, ClientLimit, CancellationToken.None);
 
         var decision = await Limiter.CheckAsync(
             CreateContext("2001:db8:1:2::ffff"),
@@ -266,7 +271,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     [Fact]
     public async Task CheckAsync_AfterTheWindowEnds_Admits()
     {
-        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit);
+        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit, CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromMinutes(10));
 
         var decision = await Limiter.CheckAsync(
@@ -281,7 +286,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     [Fact]
     public async Task CheckAsync_WhenRefused_MarksTheRequestRefusedAndLogsThePartition()
     {
-        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit);
+        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit, CancellationToken.None);
         var context = CreateContext("203.0.113.5");
 
         await Limiter.CheckAsync(context, ClientId, CancellationToken.None);
@@ -300,7 +305,7 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
     [Fact]
     public async Task CheckAsync_AskedTwiceInOneRequest_ReadsEachCounterOnce()
     {
-        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit - 1);
+        await RecordFailuresAsync("203.0.113.5", ClientId, ClientLimit - 1, CancellationToken.None);
         var context = CreateContext("203.0.113.5");
 
         await Limiter.CheckAsync(context, ClientId, CancellationToken.None);

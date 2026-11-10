@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -23,6 +24,11 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 /// from the current request and publishes through the event seam. The whole record, resolving the tenant's
 /// environment type included, runs on its own bounded token and never takes the request's cancellation.
 /// </summary>
+[SuppressMessage(
+    "Design",
+    "NCID0003",
+    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+)]
 internal class DefaultManagementAuditRecorder(
     IEventPublisher eventPublisher,
     IOpenIdEnvironmentProvider environmentProvider,

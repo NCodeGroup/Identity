@@ -73,7 +73,7 @@ public class BffSecurityHeadersMiddlewareTests : BaseTests
         });
 
         await middleware.InvokeAsync(httpContext);
-        await ResponseFeature.StartAsync();
+        await ResponseFeature.StartAsync(CancellationToken.None);
 
         var headers = httpContext.Response.Headers;
         Assert.True(nextCalled);
@@ -109,7 +109,7 @@ public class BffSecurityHeadersMiddlewareTests : BaseTests
         );
 
         await middleware.InvokeAsync(httpContext);
-        await ResponseFeature.StartAsync();
+        await ResponseFeature.StartAsync(CancellationToken.None);
 
         var headers = httpContext.Response.Headers;
         Assert.Equal(
@@ -142,7 +142,7 @@ public class BffSecurityHeadersMiddlewareTests : BaseTests
         var httpContext = CreateContext(host);
 
         await middleware.InvokeAsync(httpContext);
-        await ResponseFeature.StartAsync();
+        await ResponseFeature.StartAsync(CancellationToken.None);
 
         Assert.Equal(
             expectedContentSecurityPolicy,
@@ -169,7 +169,7 @@ public class BffSecurityHeadersMiddlewareTests : BaseTests
         var httpContext = CreateContext("other.example.com");
 
         await middleware.InvokeAsync(httpContext);
-        await ResponseFeature.StartAsync();
+        await ResponseFeature.StartAsync(CancellationToken.None);
 
         var headers = httpContext.Response.Headers;
         Assert.Equal(DefaultContentSecurityPolicy, headers.ContentSecurityPolicy.ToString());
@@ -188,7 +188,7 @@ public class BffSecurityHeadersMiddlewareTests : BaseTests
         });
 
         await middleware.InvokeAsync(httpContext);
-        await ResponseFeature.StartAsync();
+        await ResponseFeature.StartAsync(CancellationToken.None);
 
         var headers = httpContext.Response.Headers;
         Assert.Equal(PagePolicy, headers.ContentSecurityPolicy.ToString());
@@ -208,7 +208,7 @@ public class BffSecurityHeadersMiddlewareTests : BaseTests
         });
 
         await middleware.InvokeAsync(httpContext);
-        await ResponseFeature.StartAsync();
+        await ResponseFeature.StartAsync(CancellationToken.None);
 
         var headers = httpContext.Response.Headers;
         Assert.False(headers.ContainsKey("X-Before-Clear"));

@@ -340,7 +340,7 @@ public sealed class ValkeyReplicaBroadcastSubscriberTests : BaseTests
             mockHealthy.Object
         );
 
-        await subscriber.DispatchAsync(Channel, "acme");
+        await subscriber.DispatchAsync(Channel, "acme", CancellationToken.None);
 
         mockOther.Verify(
             x => x.HandleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),

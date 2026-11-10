@@ -52,18 +52,24 @@ public sealed class OwnerRootKeyStoreDueTests : IDisposable
             Failure = failedWhen is null ? null : "AccessDenied: revoked",
         };
 
-    private async Task AddAsync(params PersistedOwnerRootKey[] rootKeys)
+    private async ValueTask AddAsync(
+        PersistedOwnerRootKey[] rootKeys,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = CreateStore(context);
         foreach (var rootKey in rootKeys)
-            await store.AddAsync(rootKey, CancellationToken.None);
+            await store.AddAsync(rootKey, cancellationToken);
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<IReadOnlyList<string>> GetDueOwnersAsync(int limit = 100)
+    private async ValueTask<IReadOnlyList<string>> GetDueOwnersAsync(
+        int limit,
+        CancellationToken cancellationToken
+    )
     {
         var owners = new List<string>();
         string? cursor = null;
@@ -76,7 +82,7 @@ public sealed class OwnerRootKeyStoreDueTests : IDisposable
                     Now.AddHours(-1),
                     Now.AddMinutes(-1),
                     new PageRequest { Limit = limit, Cursor = cursor },
-                    CancellationToken.None
+                    cancellationToken
                 );
             owners.AddRange(page.Items.Select(item => item.OwnerId));
             cursor = page.NextCursor;
@@ -89,30 +95,33 @@ public sealed class OwnerRootKeyStoreDueTests : IDisposable
     public async Task GetDuePage_SelectsActiveKeysValidatedBeforeTheCutoffAndKeysToRetry()
     {
         await AddAsync(
-            CreateRootKey("never-validated"),
-            CreateRootKey("validated-recently", validatedWhen: Now.AddMinutes(-10)),
-            CreateRootKey("validated-long-ago", validatedWhen: Now.AddHours(-2)),
-            CreateRootKey("unavailable-never-failed", OwnerRootKeyStates.Unavailable),
-            CreateRootKey(
-                "unavailable-just-failed",
-                OwnerRootKeyStates.Unavailable,
-                failedWhen: Now.AddSeconds(-10)
-            ),
-            CreateRootKey(
-                "unavailable-failed-earlier",
-                OwnerRootKeyStates.Unavailable,
-                failedWhen: Now.AddMinutes(-5)
-            ),
-            CreateRootKey("removing-never-failed", OwnerRootKeyStates.Removing),
-            CreateRootKey(
-                "removing-just-failed",
-                OwnerRootKeyStates.Removing,
-                failedWhen: Now.AddSeconds(-10)
-            ),
-            CreateRootKey("unknown-state", "unknown")
+            [
+                CreateRootKey("never-validated"),
+                CreateRootKey("validated-recently", validatedWhen: Now.AddMinutes(-10)),
+                CreateRootKey("validated-long-ago", validatedWhen: Now.AddHours(-2)),
+                CreateRootKey("unavailable-never-failed", OwnerRootKeyStates.Unavailable),
+                CreateRootKey(
+                    "unavailable-just-failed",
+                    OwnerRootKeyStates.Unavailable,
+                    failedWhen: Now.AddSeconds(-10)
+                ),
+                CreateRootKey(
+                    "unavailable-failed-earlier",
+                    OwnerRootKeyStates.Unavailable,
+                    failedWhen: Now.AddMinutes(-5)
+                ),
+                CreateRootKey("removing-never-failed", OwnerRootKeyStates.Removing),
+                CreateRootKey(
+                    "removing-just-failed",
+                    OwnerRootKeyStates.Removing,
+                    failedWhen: Now.AddSeconds(-10)
+                ),
+                CreateRootKey("unknown-state", "unknown"),
+            ],
+            CancellationToken.None
         );
 
-        var due = await GetDueOwnersAsync();
+        var due = await GetDueOwnersAsync(limit: 100, CancellationToken.None);
 
         Assert.Equal(
             [
@@ -131,14 +140,17 @@ public sealed class OwnerRootKeyStoreDueTests : IDisposable
     public async Task GetDuePage_PagesByRowIdentifier()
     {
         await AddAsync(
-            CreateRootKey("a"),
-            CreateRootKey("b"),
-            CreateRootKey("c"),
-            CreateRootKey("d"),
-            CreateRootKey("e")
+            [
+                CreateRootKey("a"),
+                CreateRootKey("b"),
+                CreateRootKey("c"),
+                CreateRootKey("d"),
+                CreateRootKey("e"),
+            ],
+            CancellationToken.None
         );
 
-        var due = await GetDueOwnersAsync(limit: 2);
+        var due = await GetDueOwnersAsync(limit: 2, CancellationToken.None);
 
         Assert.Equal(["a", "b", "c", "d", "e"], due.Order());
         Assert.Equal(5, due.Count);

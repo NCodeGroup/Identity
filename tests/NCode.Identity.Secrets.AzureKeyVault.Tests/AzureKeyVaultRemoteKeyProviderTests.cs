@@ -1140,16 +1140,16 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
 
     private static DateTimeOffset CreatedOn { get; } = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
 
-    private static async Task<List<RemoteKeyListing>> ListAsync(
+    private static async ValueTask<List<RemoteKeyListing>> ListAsync(
         AzureKeyVaultRemoteKeyProvider provider,
-        string deployment = "deployment-1"
+        CancellationToken cancellationToken
     )
     {
         var listings = new List<RemoteKeyListing>();
         await foreach (
             var listing in provider.ListKeysAsync(
-                new RemoteKeyListRequest { Deployment = deployment },
-                CancellationToken.None
+                new RemoteKeyListRequest { Deployment = "deployment-1" },
+                cancellationToken
             )
         )
         {
@@ -1229,7 +1229,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         SetupGetPropertiesOfKeyVersions("ncid-group-1-h", CreateProperties("ncid-group-1-h"));
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         var listing = Assert.Single(listings);
         Assert.Equal($"{VaultUri}/keys/ncid-group-1-h/{Version}", listing.KeyId);
@@ -1251,7 +1251,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         );
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1268,7 +1268,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         );
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1280,7 +1280,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         SetupGetPropertiesOfKeys("other-key");
         var provider = CreateProvider();
 
-        var listings = await ListAsync(provider);
+        var listings = await ListAsync(provider, CancellationToken.None);
 
         Assert.Empty(listings);
     }
@@ -1290,7 +1290,9 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     {
         var provider = CreateProvider(vaultUri: null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => ListAsync(provider));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            ListAsync(provider, CancellationToken.None).AsTask()
+        );
     }
 
     #endregion

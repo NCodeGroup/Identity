@@ -49,18 +49,19 @@ public class DefaultGrantPayloadProtectorTests : BaseTests
             .Returns(new ValueTask<ISecretProtector>(Fake))
             .Verifiable();
 
-    private ValueTask<string> ProtectAsync() =>
+    private ValueTask<string> ProtectAsync(CancellationToken cancellationToken) =>
         Protector.ProtectAsync(
             TenantId,
             HashedKey,
             CreatePayload(),
             JsonOptions,
-            CancellationToken.None
+            cancellationToken
         );
 
     private ValueTask<GrantPayload<Dictionary<string, string>>?> UnprotectAsync(
         string hashedKey,
-        string protectedPayload
+        string protectedPayload,
+        CancellationToken cancellationToken
     ) =>
         Protector.UnprotectOrDefaultAsync<Dictionary<string, string>>(
             TenantId,
@@ -68,7 +69,7 @@ public class DefaultGrantPayloadProtectorTests : BaseTests
             hashedKey,
             protectedPayload,
             JsonOptions,
-            CancellationToken.None
+            cancellationToken
         );
 
     #region ProtectAsync Tests
@@ -78,7 +79,7 @@ public class DefaultGrantPayloadProtectorTests : BaseTests
     {
         SetupProvider();
 
-        var result = await ProtectAsync();
+        var result = await ProtectAsync(CancellationToken.None);
 
         Assert.DoesNotContain(Secret, result);
         Assert.StartsWith("fake.", result);
@@ -93,9 +94,9 @@ public class DefaultGrantPayloadProtectorTests : BaseTests
     public async Task UnprotectOrDefaultAsync_RoundTripsThePayload()
     {
         SetupProvider();
-        var protectedPayload = await ProtectAsync();
+        var protectedPayload = await ProtectAsync(CancellationToken.None);
 
-        var result = await UnprotectAsync(HashedKey, protectedPayload);
+        var result = await UnprotectAsync(HashedKey, protectedPayload, CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal(Secret, result.Value["token"]);
@@ -105,9 +106,9 @@ public class DefaultGrantPayloadProtectorTests : BaseTests
     public async Task UnprotectOrDefaultAsync_WhenTheHashedKeyDiffers_ReturnsNull()
     {
         SetupProvider();
-        var protectedPayload = await ProtectAsync();
+        var protectedPayload = await ProtectAsync(CancellationToken.None);
 
-        var result = await UnprotectAsync("hashed-2", protectedPayload);
+        var result = await UnprotectAsync("hashed-2", protectedPayload, CancellationToken.None);
 
         Assert.Null(result);
     }
@@ -126,7 +127,7 @@ public class DefaultGrantPayloadProtectorTests : BaseTests
             .ThrowsAsync(new CryptographicException("no key"))
             .Verifiable();
 
-        var result = await UnprotectAsync(HashedKey, "fake.AAAA");
+        var result = await UnprotectAsync(HashedKey, "fake.AAAA", CancellationToken.None);
 
         Assert.Null(result);
     }

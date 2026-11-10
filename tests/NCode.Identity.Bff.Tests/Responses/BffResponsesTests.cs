@@ -23,7 +23,8 @@ public class BffResponsesTests : BaseTests
             httpContext,
             401,
             BffProblemTypes.SessionRequired,
-            "Unauthenticated"
+            "Unauthenticated",
+            CancellationToken.None
         );
 
         Assert.Equal(401, httpContext.Response.StatusCode);

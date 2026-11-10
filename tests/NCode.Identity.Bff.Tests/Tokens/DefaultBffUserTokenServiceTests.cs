@@ -792,7 +792,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 CreateScope(httpContext),
                 UserRequest,
                 CancellationToken.None
-            )
+            ),
+            CancellationToken.None
         );
 
         Assert.True(result.IsSuccess);
@@ -886,7 +887,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 CreateScope(httpContext),
                 UserRequest,
                 CancellationToken.None
-            )
+            ),
+            CancellationToken.None
         );
 
         Assert.True(result.IsSuccess);
@@ -915,7 +917,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 CreateScope(httpContext),
                 UserRequest,
                 CancellationToken.None
-            )
+            ),
+            CancellationToken.None
         );
 
         Assert.False(result.IsSuccess);
@@ -988,15 +991,24 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
     [Fact]
     public async Task GetAccessTokenAsync_HttpRequestException_ReturnsProviderUnavailable() =>
-        await AssertProviderUnavailableAsync(new HttpRequestException("down"));
+        await AssertProviderUnavailableAsync(
+            new HttpRequestException("down"),
+            CancellationToken.None
+        );
 
     [Fact]
     public async Task GetAccessTokenAsync_OpenIdProviderException_ReturnsProviderUnavailable() =>
-        await AssertProviderUnavailableAsync(new OpenIdProviderException("bad metadata"));
+        await AssertProviderUnavailableAsync(
+            new OpenIdProviderException("bad metadata"),
+            CancellationToken.None
+        );
 
     [Fact]
     public async Task GetAccessTokenAsync_TimeoutWithoutCallerCancellation_ReturnsProviderUnavailable() =>
-        await AssertProviderUnavailableAsync(new TaskCanceledException("timed out"));
+        await AssertProviderUnavailableAsync(
+            new TaskCanceledException("timed out"),
+            CancellationToken.None
+        );
 
     [Fact]
     public async Task GetAccessTokenAsync_SuccessWithoutAccessToken_ReturnsProviderError()
@@ -1042,7 +1054,10 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         Assert.Equal(BffTokenFailureReasons.ProviderError, result.Reason);
     }
 
-    private async Task AssertProviderUnavailableAsync(Exception exception)
+    private async ValueTask AssertProviderUnavailableAsync(
+        Exception exception,
+        CancellationToken cancellationToken
+    )
     {
         var state = CreateState("refresh-token");
         var httpContext = CreateHttpContext(state);
@@ -1077,7 +1092,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         var result = await Service.GetAccessTokenAsync(
             CreateScope(httpContext),
             UserRequest,
-            CancellationToken.None
+            cancellationToken
         );
 
         Assert.False(result.IsSuccess);
@@ -1129,12 +1144,17 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     // The backoff waits on the fake clock: advance it in small steps until the call completes. The
     // continuations run on the thread pool, so a step count says nothing about progress; a wall-clock
     // deadline turns a call that never completes into a failure instead of a hung test run.
-    private async Task<BffTokenResult> AdvanceUntilCompletedAsync(ValueTask<BffTokenResult> call)
+    private async ValueTask<BffTokenResult> AdvanceUntilCompletedAsync(
+        ValueTask<BffTokenResult> call,
+        CancellationToken cancellationToken
+    )
     {
         var task = call.AsTask();
         var started = Stopwatch.GetTimestamp();
         while (!task.IsCompleted)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (Stopwatch.GetElapsedTime(started) > AdvanceDeadline)
                 Assert.Fail($"The call did not complete within {AdvanceDeadline}.");
 

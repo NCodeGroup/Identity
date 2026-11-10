@@ -27,8 +27,8 @@ namespace NCode.Identity.OpenId.Client.Tests.Tokens;
 
 public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 {
-    private const string Issuer = "https://op.example.test";
-    private const string ClientId = "client-1";
+    internal const string Issuer = "https://op.example.test";
+    internal const string ClientId = "client-1";
     private const string KeyRingName = "client-ring";
     private const string SignatureFailure =
         "The ID token signature could not be verified with the provider's signing keys.";
@@ -197,34 +197,24 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     }
 
     private async ValueTask<string> CreateIdTokenAsync(
-        string alg = "PS256",
-        string issuer = Issuer,
-        string audience = ClientId,
-        TimeSpan? expiresIn = null,
-        TimeSpan? issuedOffset = null,
-        string tokenType = JoseTokenTypes.Jwt,
-        bool includeSub = true,
-        IReadOnlyDictionary<string, object>? extraClaims = null,
-        SecretKey? signingKey = null,
-        IReadOnlyDictionary<string, object>? extraHeaderClaims = null,
-        JoseEncryptionCredentials? encryptionCredentials = null,
-        IReadOnlyDictionary<string, object>? extraEncryptionHeaderClaims = null
+        IdTokenTestOptions options,
+        CancellationToken cancellationToken
     )
     {
-        var issuedAt = DateTimeOffset.UtcNow + (issuedOffset ?? TimeSpan.Zero);
+        var issuedAt = DateTimeOffset.UtcNow + (options.IssuedOffset ?? TimeSpan.Zero);
         var claims = new Dictionary<string, object>();
-        if (includeSub)
+        if (options.IncludeSub)
             claims[JoseClaimNames.Payload.Sub] = "user-1";
-        if (extraClaims is not null)
+        if (options.ExtraClaims is not null)
         {
-            foreach (var (name, value) in extraClaims)
+            foreach (var (name, value) in options.ExtraClaims)
                 claims[name] = value;
         }
 
         Assert.True(
             ServiceProvider
                 .GetRequiredService<IAlgorithmCollectionProvider>()
-                .Collection.TryGetSignatureAlgorithm(alg, out var algorithm)
+                .Collection.TryGetSignatureAlgorithm(options.Alg, out var algorithm)
         );
 
         return await ServiceProvider
@@ -233,22 +223,22 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
                 new JwtEncodingParameters
                 {
                     SigningCredentials = new JoseSigningCredentials(
-                        signingKey ?? RsaKey,
+                        options.SigningKey ?? RsaKey,
                         algorithm
                     ),
                     EnsureTokenLifetime = false,
-                    TokenType = tokenType,
-                    Issuer = issuer,
-                    Audience = new StringValues(audience),
+                    TokenType = options.TokenType,
+                    Issuer = options.Issuer,
+                    Audience = new StringValues(options.Audience),
                     IssuedAt = issuedAt,
                     NotBefore = issuedAt,
-                    Expires = issuedAt + (expiresIn ?? TimeSpan.FromMinutes(5)),
+                    Expires = issuedAt + (options.ExpiresIn ?? TimeSpan.FromMinutes(5)),
                     ExtraPayloadClaims = claims,
-                    ExtraSignatureHeaderClaims = extraHeaderClaims,
-                    EncryptionCredentials = encryptionCredentials,
-                    ExtraEncryptionHeaderClaims = extraEncryptionHeaderClaims,
+                    ExtraSignatureHeaderClaims = options.ExtraHeaderClaims,
+                    EncryptionCredentials = options.EncryptionCredentials,
+                    ExtraEncryptionHeaderClaims = options.ExtraEncryptionHeaderClaims,
                 },
-                CancellationToken.None
+                cancellationToken
             );
     }
 
@@ -278,27 +268,22 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     private async ValueTask<IdTokenValidationResult> ValidateAsync(
         DefaultIdTokenValidator validator,
         string idToken,
-        string? nonce = null,
-        TimeSpan? maxAge = null,
-        string? subject = null,
-        string? accessToken = null,
-        string? authorizationCode = null,
-        string? state = null,
-        ClientRegistration? registration = null
+        IdTokenValidateOptions options,
+        CancellationToken cancellationToken
     ) =>
         await validator.ValidateAsync(
-            registration ?? Registration,
+            options.Registration ?? Registration,
             new IdTokenValidationRequest
             {
                 IdToken = idToken,
-                Nonce = nonce,
-                MaxAge = maxAge,
-                Subject = subject,
-                AccessToken = accessToken,
-                AuthorizationCode = authorizationCode,
-                State = state,
+                Nonce = options.Nonce,
+                MaxAge = options.MaxAge,
+                Subject = options.Subject,
+                AccessToken = options.AccessToken,
+                AuthorizationCode = options.AuthorizationCode,
+                State = options.State,
             },
-            CancellationToken.None
+            cancellationToken
         );
 
     #region ValidateAsync Tests
@@ -307,8 +292,14 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenValid_ReturnsPayload()
     {
         var validator = CreateValidator(CreateKeySetMock());
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
-        var result = await ValidateAsync(validator, await CreateIdTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
         Assert.Null(result.FailureCode);
@@ -319,8 +310,14 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenValid_ReturnsTheIdentity()
     {
         var validator = CreateValidator(CreateKeySetMock());
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
-        var result = await ValidateAsync(validator, await CreateIdTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
         Assert.NotNull(result.Identity);
@@ -331,10 +328,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenIssuerDiffers_Fails()
     {
         var validator = CreateValidator(CreateKeySetMock());
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { Issuer = "https://evil.example.test" },
+            CancellationToken.None
+        );
 
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(issuer: "https://evil.example.test")
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -346,9 +349,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { Audience = "other-client" },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(audience: "other-client")
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -360,9 +370,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { IssuedOffset = TimeSpan.FromMinutes(-30) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(issuedOffset: TimeSpan.FromMinutes(-30))
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -374,9 +391,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { IssuedOffset = TimeSpan.FromHours(1) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(issuedOffset: TimeSpan.FromHours(1))
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -388,9 +412,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { TokenType = JoseTokenTypes.LogoutJwt },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(tokenType: JoseTokenTypes.LogoutJwt)
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -402,7 +433,17 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
-        var result = await ValidateAsync(validator, await CreateIdTokenAsync(includeSub: false));
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { IncludeSub = false },
+            CancellationToken.None
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
@@ -413,7 +454,14 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
-        var result = await ValidateAsync(validator, await CreateIdTokenAsync(), subject: "user-2");
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions { Subject = "user-2" },
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.SubjectMismatch, result.FailureCode);
@@ -424,9 +472,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("azp", "other-client") },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("azp", "other-client"))
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -438,7 +493,14 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
-        var result = await ValidateAsync(validator, await CreateIdTokenAsync(), nonce: "n-1");
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions { Nonce = "n-1" },
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.NonceMismatch, result.FailureCode);
@@ -449,10 +511,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("nonce", "n-2") },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("nonce", "n-2")),
-            nonce: "n-1"
+            idToken,
+            new IdTokenValidateOptions { Nonce = "n-1" },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -464,10 +532,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("nonce", "n-1") },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("nonce", "n-1")),
-            nonce: "n-1"
+            idToken,
+            new IdTokenValidateOptions { Nonce = "n-1" },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -479,10 +553,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var validator = CreateValidator(CreateKeySetMock());
         var authTime = DateTimeOffset.UtcNow.AddHours(-1).ToUnixTimeSeconds();
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("auth_time", authTime) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("auth_time", authTime)),
-            maxAge: TimeSpan.FromMinutes(1)
+            idToken,
+            new IdTokenValidateOptions { MaxAge = TimeSpan.FromMinutes(1) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -495,10 +575,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var validator = CreateValidator(CreateKeySetMock());
         var authTime = DateTimeOffset.UtcNow.AddMinutes(-10).ToUnixTimeSeconds();
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("auth_time", authTime) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("auth_time", authTime)),
-            maxAge: TimeSpan.FromHours(1)
+            idToken,
+            new IdTokenValidateOptions { MaxAge = TimeSpan.FromHours(1) },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid, result.FailureReason);
@@ -509,10 +595,13 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(),
-            maxAge: TimeSpan.FromMinutes(1)
+            idToken,
+            new IdTokenValidateOptions { MaxAge = TimeSpan.FromMinutes(1) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -524,10 +613,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("auth_time", 1e300) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("auth_time", 1e300)),
-            maxAge: TimeSpan.FromMinutes(1)
+            idToken,
+            new IdTokenValidateOptions { MaxAge = TimeSpan.FromMinutes(1) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -543,10 +638,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             .UtcNow.ToUnixTimeSeconds()
             .ToString(CultureInfo.InvariantCulture);
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("auth_time", authTime) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("auth_time", authTime)),
-            maxAge: TimeSpan.FromHours(1)
+            idToken,
+            new IdTokenValidateOptions { MaxAge = TimeSpan.FromHours(1) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -559,10 +660,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var validator = CreateValidator(CreateKeySetMock());
         var authTime = DateTimeOffset.UtcNow.AddMinutes(-10).ToUnixTimeSeconds() + 0.5;
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("auth_time", authTime) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("auth_time", authTime)),
-            maxAge: TimeSpan.FromHours(1)
+            idToken,
+            new IdTokenValidateOptions { MaxAge = TimeSpan.FromHours(1) },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid, result.FailureReason);
@@ -574,10 +681,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var validator = CreateValidator(CreateKeySetMock());
         var authTime = DateTimeOffset.MaxValue.ToUnixTimeSeconds();
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("auth_time", authTime) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("auth_time", authTime)),
-            maxAge: TimeSpan.FromHours(1)
+            idToken,
+            new IdTokenValidateOptions { MaxAge = TimeSpan.FromHours(1) },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid, result.FailureReason);
@@ -598,12 +711,26 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             ["s_hash"] = ExpectedHash(alg, "state-1"),
         };
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions
+            {
+                Alg = alg,
+                ExtraClaims = claims,
+                SigningKey = key,
+            },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(alg: alg, extraClaims: claims, signingKey: key),
-            accessToken: "access-token",
-            authorizationCode: "auth-code",
-            state: "state-1"
+            idToken,
+            new IdTokenValidateOptions
+            {
+                AccessToken = "access-token",
+                AuthorizationCode = "auth-code",
+                State = "state-1",
+            },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid, result.FailureReason);
@@ -617,15 +744,23 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var key = GetKey(alg);
         var validator = CreateValidator(CreateKeySetMock(key));
+        var claims = Claims("at_hash", ExpectedHash(alg, "other"));
+
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions
+            {
+                Alg = alg,
+                ExtraClaims = claims,
+                SigningKey = key,
+            },
+            CancellationToken.None
+        );
 
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(
-                alg: alg,
-                extraClaims: Claims("at_hash", ExpectedHash(alg, "other")),
-                signingKey: key
-            ),
-            accessToken: "access-token"
+            idToken,
+            new IdTokenValidateOptions { AccessToken = "access-token" },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -641,15 +776,23 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var key = GetKey(alg);
         var validator = CreateValidator(CreateKeySetMock(key));
+        var claims = Claims("c_hash", ExpectedHash(alg, "other"));
+
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions
+            {
+                Alg = alg,
+                ExtraClaims = claims,
+                SigningKey = key,
+            },
+            CancellationToken.None
+        );
 
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(
-                alg: alg,
-                extraClaims: Claims("c_hash", ExpectedHash(alg, "other")),
-                signingKey: key
-            ),
-            authorizationCode: "auth-code"
+            idToken,
+            new IdTokenValidateOptions { AuthorizationCode = "auth-code" },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -665,15 +808,23 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var key = GetKey(alg);
         var validator = CreateValidator(CreateKeySetMock(key));
+        var claims = Claims("s_hash", ExpectedHash(alg, "other"));
+
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions
+            {
+                Alg = alg,
+                ExtraClaims = claims,
+                SigningKey = key,
+            },
+            CancellationToken.None
+        );
 
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(
-                alg: alg,
-                extraClaims: Claims("s_hash", ExpectedHash(alg, "other")),
-                signingKey: key
-            ),
-            state: "state-1"
+            idToken,
+            new IdTokenValidateOptions { State = "state-1" },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -686,10 +837,13 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(),
-            accessToken: "access-token"
+            idToken,
+            new IdTokenValidateOptions { AccessToken = "access-token" },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -700,10 +854,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("at_hash", 42) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("at_hash", 42)),
-            accessToken: "access-token"
+            idToken,
+            new IdTokenValidateOptions { AccessToken = "access-token" },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -715,8 +875,14 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenProviderAdvertisesOnlyAnotherAlgorithm_Fails()
     {
         var validator = CreateValidator(null, advertised: ["ES256"]);
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
-        var result = await ValidateAsync(validator, await CreateIdTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
@@ -726,8 +892,14 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenProviderAdvertisesOnlySymmetricAlgorithm_Fails()
     {
         var validator = CreateValidator(null, advertised: ["HS256"]);
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
-        var result = await ValidateAsync(validator, await CreateIdTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
@@ -738,11 +910,13 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenRegistrationPermitsOnlyAnotherAlgorithm_Fails()
     {
         var validator = CreateValidator(null);
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(),
-            registration: CreateRegistration(["RS256"])
+            idToken,
+            new IdTokenValidateOptions { Registration = CreateRegistration(["RS256"]) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -754,10 +928,13 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(),
-            registration: CreateRegistration(["PS256"])
+            idToken,
+            new IdTokenValidateOptions { Registration = CreateRegistration(["PS256"]) },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -776,8 +953,14 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             .ReturnsAsync(CreateKeys(RsaKey))
             .Verifiable();
         var validator = CreateValidator(mockKeySet);
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
-        var result = await ValidateAsync(validator, await CreateIdTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
     }
@@ -795,8 +978,14 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             .ReturnsAsync(CreateKeys())
             .Verifiable();
         var validator = CreateValidator(mockKeySet);
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
-        var result = await ValidateAsync(validator, await CreateIdTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
@@ -807,13 +996,18 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenSignatureIsTampered_FailsWithoutTokenText()
     {
         var validator = CreateValidator(CreateKeySetMock());
-        var token = await CreateIdTokenAsync();
+        var token = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
         var segments = token.Split('.');
         var signature = segments[2];
         segments[2] = (signature[0] == 'A' ? 'B' : 'A') + signature[1..];
         var tampered = string.Join('.', segments);
 
-        var result = await ValidateAsync(validator, tampered);
+        var result = await ValidateAsync(
+            validator,
+            tampered,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
@@ -831,9 +1025,15 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             .ThrowsAsync(new OperationCanceledException())
             .Verifiable();
         var validator = CreateValidator(mockKeySet);
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await ValidateAsync(validator, await CreateIdTokenAsync())
+            await ValidateAsync(
+                validator,
+                idToken,
+                new IdTokenValidateOptions(),
+                CancellationToken.None
+            )
         );
     }
 
@@ -846,9 +1046,15 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             .Throws(new OpenIdProviderException("jwks unavailable"))
             .Verifiable();
         var validator = CreateValidator(mockKeySet);
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
         await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
-            await ValidateAsync(validator, await CreateIdTokenAsync())
+            await ValidateAsync(
+                validator,
+                idToken,
+                new IdTokenValidateOptions(),
+                CancellationToken.None
+            )
         );
     }
 
@@ -865,7 +1071,12 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             )
         );
 
-        var result = await ValidateAsync(validator, string.Empty);
+        var result = await ValidateAsync(
+            validator,
+            string.Empty,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.InvalidToken, result.FailureCode);
@@ -890,9 +1101,15 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
                 CreateStrictMock<IClientKeyRingProvider>().Object
             )
         );
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
         await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
-            await ValidateAsync(validator, await CreateIdTokenAsync())
+            await ValidateAsync(
+                validator,
+                idToken,
+                new IdTokenValidateOptions(),
+                CancellationToken.None
+            )
         );
     }
 
@@ -901,9 +1118,16 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { ExtraClaims = Claims("azp", 42) },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(extraClaims: Claims("azp", 42))
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -919,9 +1143,17 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(CreateKeySetMock());
 
+        var headerClaims = Claims("typ", 42);
+        var idToken = await CreateIdTokenAsync(
+            new IdTokenTestOptions { TokenType = string.Empty, ExtraHeaderClaims = headerClaims },
+            CancellationToken.None
+        );
+
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(tokenType: string.Empty, extraHeaderClaims: Claims("typ", 42))
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -936,14 +1168,17 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             CreateKeySetMock(),
             keyRingMock: CreateKeyRingMock(EncryptionKey)
         );
+        var credentials = CreateEncryptionCredentials(EncryptionKey);
         var idToken = await CreateIdTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new IdTokenTestOptions { EncryptionCredentials = credentials },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             idToken,
-            registration: CreateEncryptingRegistration()
+            new IdTokenValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -958,11 +1193,13 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             CreateKeySetMock(),
             keyRingMock: CreateKeyRingMock(EncryptionKey)
         );
+        var idToken = await CreateIdTokenAsync(new IdTokenTestOptions(), CancellationToken.None);
 
         var result = await ValidateAsync(
             validator,
-            await CreateIdTokenAsync(),
-            registration: CreateEncryptingRegistration()
+            idToken,
+            new IdTokenValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -977,11 +1214,18 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenEncryptedAndNoEncryptionIsRegistered_FailsWithAlgorithmNotPermitted()
     {
         var validator = CreateValidator(null);
+        var credentials = CreateEncryptionCredentials(EncryptionKey);
         var idToken = await CreateIdTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new IdTokenTestOptions { EncryptionCredentials = credentials },
+            CancellationToken.None
         );
 
-        var result = await ValidateAsync(validator, idToken);
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            new IdTokenValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
@@ -997,14 +1241,17 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
                 OtherRsa
             );
         var validator = CreateValidator(null, keyRingMock: CreateKeyRingMock(otherKey));
+        var credentials = CreateEncryptionCredentials(EncryptionKey);
         var idToken = await CreateIdTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new IdTokenTestOptions { EncryptionCredentials = credentials },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             idToken,
-            registration: CreateEncryptingRegistration()
+            new IdTokenValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -1026,14 +1273,17 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
                 EncryptionRsa
             );
         var validator = CreateValidator(null, keyRingMock: CreateKeyRingMock(signatureOnlyKey));
+        var credentials = CreateEncryptionCredentials(EncryptionKey);
         var idToken = await CreateIdTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new IdTokenTestOptions { EncryptionCredentials = credentials },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             idToken,
-            registration: CreateEncryptingRegistration()
+            new IdTokenValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -1050,15 +1300,21 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             CreateKeySetMock(),
             keyRingMock: CreateKeyRingMock(EncryptionKey)
         );
+        var credentials = CreateEncryptionCredentials(EncryptionKey);
         var idToken = await CreateIdTokenAsync(
-            signingKey: otherSigningKey,
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new IdTokenTestOptions
+            {
+                SigningKey = otherSigningKey,
+                EncryptionCredentials = credentials,
+            },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             idToken,
-            registration: CreateEncryptingRegistration()
+            new IdTokenValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -1070,17 +1326,17 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenContentEncryptionIsNotRegistered_FailsWithAlgorithmNotPermitted()
     {
         var validator = CreateValidator(null, keyRingMock: CreateKeyRingMock(EncryptionKey));
+        var credentials = CreateEncryptionCredentials(EncryptionKey, contentEncryption: "A256GCM");
         var idToken = await CreateIdTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(
-                EncryptionKey,
-                contentEncryption: "A256GCM"
-            )
+            new IdTokenTestOptions { EncryptionCredentials = credentials },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             idToken,
-            registration: CreateEncryptingRegistration()
+            new IdTokenValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -1094,15 +1350,22 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             CreateKeySetMock(),
             keyRingMock: CreateKeyRingMock(EncryptionKey)
         );
+        var credentials = CreateEncryptionCredentials(EncryptionKey);
+        var headerClaims = Claims("iss", "https://evil.example.test");
         var idToken = await CreateIdTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
-            extraEncryptionHeaderClaims: Claims("iss", "https://evil.example.test")
+            new IdTokenTestOptions
+            {
+                EncryptionCredentials = credentials,
+                ExtraEncryptionHeaderClaims = headerClaims,
+            },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             idToken,
-            registration: CreateEncryptingRegistration()
+            new IdTokenValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -1120,15 +1383,22 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             CreateKeySetMock(),
             keyRingMock: CreateKeyRingMock(EncryptionKey)
         );
+        var credentials = CreateEncryptionCredentials(EncryptionKey);
+        var headerClaims = Claims("iss", Issuer);
         var idToken = await CreateIdTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
-            extraEncryptionHeaderClaims: Claims("iss", Issuer)
+            new IdTokenTestOptions
+            {
+                EncryptionCredentials = credentials,
+                ExtraEncryptionHeaderClaims = headerClaims,
+            },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             idToken,
-            registration: CreateEncryptingRegistration()
+            new IdTokenValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid);
@@ -1139,15 +1409,19 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenEncryptionIsRegisteredWithoutKeyRing_ThrowsInvalidOperationException()
     {
         var validator = CreateValidator(null);
+        var credentials = CreateEncryptionCredentials(EncryptionKey);
         var idToken = await CreateIdTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new IdTokenTestOptions { EncryptionCredentials = credentials },
+            CancellationToken.None
         );
+        var registration = CreateEncryptingRegistration(keyRing: null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await ValidateAsync(
                 validator,
                 idToken,
-                registration: CreateEncryptingRegistration(keyRing: null)
+                new IdTokenValidateOptions { Registration = registration },
+                CancellationToken.None
             )
         );
     }
@@ -1156,14 +1430,18 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenNoRegisteredEncryptionAlgorithmIsPermitted_FailsWithAlgorithmNotPermitted()
     {
         var validator = CreateValidator(null);
+        var credentials = CreateEncryptionCredentials(EncryptionKey);
         var idToken = await CreateIdTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new IdTokenTestOptions { EncryptionCredentials = credentials },
+            CancellationToken.None
         );
+        var registration = CreateEncryptingRegistration(keyManagementAlgorithms: ["RSA1_5"]);
 
         var result = await ValidateAsync(
             validator,
             idToken,
-            registration: CreateEncryptingRegistration(keyManagementAlgorithms: ["RSA1_5"])
+            new IdTokenValidateOptions { Registration = registration },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);

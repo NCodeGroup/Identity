@@ -129,9 +129,13 @@ public class BffCallbackHandlerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-    private async Task AssertFailsAsync(DefaultHttpContext httpContext, string reason)
+    private async ValueTask AssertFailsAsync(
+        DefaultHttpContext httpContext,
+        string reason,
+        CancellationToken cancellationToken
+    )
     {
-        await CreateHandler().HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext, cancellationToken);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal($"/?error={reason}", httpContext.Response.Headers.Location.ToString());
@@ -145,7 +149,11 @@ public class BffCallbackHandlerTests : BaseTests
         SetupTake(null, new BffLoginTransactionResult(null, BffLoginFailureReasons.UnknownState));
         SetupAudit(BffLoginFailureReasons.UnknownState);
 
-        await AssertFailsAsync(CreateHttpContext("?code=abc"), BffLoginFailureReasons.UnknownState);
+        await AssertFailsAsync(
+            CreateHttpContext("?code=abc"),
+            BffLoginFailureReasons.UnknownState,
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -156,7 +164,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.UnknownState
+            BffLoginFailureReasons.UnknownState,
+            CancellationToken.None
         );
     }
 
@@ -171,7 +180,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.InitiatorMismatch
+            BffLoginFailureReasons.InitiatorMismatch,
+            CancellationToken.None
         );
     }
 
@@ -184,7 +194,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.FrontendMismatch
+            BffLoginFailureReasons.FrontendMismatch,
+            CancellationToken.None
         );
     }
 
@@ -202,7 +213,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&error=access_denied"),
-            BffLoginFailureReasons.AuthorizationError
+            BffLoginFailureReasons.AuthorizationError,
+            CancellationToken.None
         );
     }
 
@@ -214,7 +226,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc&iss=https%3A%2F%2Fevil.example.com"),
-            BffLoginFailureReasons.IssuerMismatch
+            BffLoginFailureReasons.IssuerMismatch,
+            CancellationToken.None
         );
     }
 
@@ -226,7 +239,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.IssuerMismatch
+            BffLoginFailureReasons.IssuerMismatch,
+            CancellationToken.None
         );
     }
 
@@ -238,7 +252,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}"),
-            BffLoginFailureReasons.InvalidResponse
+            BffLoginFailureReasons.InvalidResponse,
+            CancellationToken.None
         );
     }
 
@@ -251,7 +266,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.TokenError
+            BffLoginFailureReasons.TokenError,
+            CancellationToken.None
         );
     }
 
@@ -273,7 +289,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.ProviderUnavailable
+            BffLoginFailureReasons.ProviderUnavailable,
+            CancellationToken.None
         );
     }
 
@@ -295,7 +312,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.ProviderUnavailable
+            BffLoginFailureReasons.ProviderUnavailable,
+            CancellationToken.None
         );
     }
 
@@ -316,7 +334,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.ProviderUnavailable
+            BffLoginFailureReasons.ProviderUnavailable,
+            CancellationToken.None
         );
     }
 
@@ -339,7 +358,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.ProviderUnavailable
+            BffLoginFailureReasons.ProviderUnavailable,
+            CancellationToken.None
         );
     }
 
@@ -352,7 +372,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.TokenError
+            BffLoginFailureReasons.TokenError,
+            CancellationToken.None
         );
     }
 
@@ -371,7 +392,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.NonceMismatch
+            BffLoginFailureReasons.NonceMismatch,
+            CancellationToken.None
         );
     }
 
@@ -390,7 +412,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.IdTokenInvalid
+            BffLoginFailureReasons.IdTokenInvalid,
+            CancellationToken.None
         );
     }
 
@@ -412,7 +435,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.RejectedByGate
+            BffLoginFailureReasons.RejectedByGate,
+            CancellationToken.None
         );
     }
 
@@ -478,7 +502,7 @@ public class BffCallbackHandlerTests : BaseTests
         SetupSuccess(response);
         var httpContext = CreateHttpContext($"?state={State}&code=abc");
 
-        await CreateHandler().HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext, CancellationToken.None);
 
         var now = TimeProvider.GetUtcNow();
         var metadata = Assert.IsType<BffSessionMetadata>(CreatedMetadata);
@@ -512,7 +536,8 @@ public class BffCallbackHandlerTests : BaseTests
     {
         SetupSuccess(new TokenResponse { AccessToken = "at", IdToken = "idt" });
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+        await CreateHandler()
+            .HandleAsync(CreateHttpContext($"?state={State}&code=abc"), CancellationToken.None);
 
         var metadata = Assert.IsType<BffSessionMetadata>(CreatedMetadata);
         Assert.Equal(BffTestFrontends.Authority, metadata.Authority);
@@ -533,7 +558,8 @@ public class BffCallbackHandlerTests : BaseTests
         };
         SetupSuccess(response);
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+        await CreateHandler()
+            .HandleAsync(CreateHttpContext($"?state={State}&code=abc"), CancellationToken.None);
 
         var metadata = Assert.IsType<BffSessionMetadata>(CreatedMetadata);
         var expected = TimeProvider.GetUtcNow() + TimeSpan.FromSeconds(600);
@@ -566,7 +592,11 @@ public class BffCallbackHandlerTests : BaseTests
             .ReturnsAsync(true)
             .Verifiable();
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc", oldHandle));
+        await CreateHandler()
+            .HandleAsync(
+                CreateHttpContext($"?state={State}&code=abc", oldHandle),
+                CancellationToken.None
+            );
     }
 
     #endregion
@@ -670,7 +700,8 @@ public class BffCallbackHandlerTests : BaseTests
             )
         );
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+        await CreateHandler()
+            .HandleAsync(CreateHttpContext($"?state={State}&code=abc"), CancellationToken.None);
 
         var payload = Assert.IsType<BffSessionPayload>(CreatedPayload);
         Assert.Equal(
@@ -698,7 +729,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.UserInfoFailed
+            BffLoginFailureReasons.UserInfoFailed,
+            CancellationToken.None
         );
     }
 
@@ -712,7 +744,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.ProviderUnavailable
+            BffLoginFailureReasons.ProviderUnavailable,
+            CancellationToken.None
         );
     }
 
@@ -757,7 +790,8 @@ public class BffCallbackHandlerTests : BaseTests
         ClaimContributors.Add(first.Object);
         ClaimContributors.Add(second.Object);
 
-        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+        await CreateHandler()
+            .HandleAsync(CreateHttpContext($"?state={State}&code=abc"), CancellationToken.None);
 
         var payload = Assert.IsType<BffSessionPayload>(CreatedPayload);
         Assert.Equal(
@@ -801,7 +835,8 @@ public class BffCallbackHandlerTests : BaseTests
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.RejectedByGate
+            BffLoginFailureReasons.RejectedByGate,
+            CancellationToken.None
         );
     }
 

@@ -62,7 +62,7 @@ public class DefaultBffConnectionSessionAccessorTests : BaseTests
 
         using (accessor.Use(session))
         {
-            var seen = await ReadCurrentAsync(accessor);
+            var seen = await ReadCurrentAsync(accessor, CancellationToken.None);
 
             Assert.Same(session, seen);
         }
@@ -80,8 +80,9 @@ public class DefaultBffConnectionSessionAccessorTests : BaseTests
 
     #endregion
 
-    private static async Task<IBffConnectionSession?> ReadCurrentAsync(
-        IBffConnectionSessionAccessor accessor
+    private static async ValueTask<IBffConnectionSession?> ReadCurrentAsync(
+        IBffConnectionSessionAccessor accessor,
+        CancellationToken cancellationToken
     )
     {
         await Task.Yield();

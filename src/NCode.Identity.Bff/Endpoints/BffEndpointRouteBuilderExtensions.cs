@@ -143,7 +143,7 @@ public static class BffEndpointRouteBuilderExtensions
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffLoginHandler>()
-                        .HandleAsync(context)
+                        .HandleAsync(context, context.RequestAborted)
             )
             .WithName($"Bff.{frontend.Name}.Login");
 
@@ -153,7 +153,7 @@ public static class BffEndpointRouteBuilderExtensions
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffCallbackHandler>()
-                        .HandleAsync(context)
+                        .HandleAsync(context, context.RequestAborted)
             )
             .WithName($"Bff.{frontend.Name}.Callback");
 
@@ -163,7 +163,7 @@ public static class BffEndpointRouteBuilderExtensions
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffUserHandler>()
-                        .HandleAsync(context)
+                        .HandleAsync(context, context.RequestAborted)
             )
             .WithName($"Bff.{frontend.Name}.User")
             .WithMetadata(BffUserEndpointMetadata.Instance);
@@ -174,7 +174,7 @@ public static class BffEndpointRouteBuilderExtensions
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffLogoutHandler>()
-                        .HandleAsync(context)
+                        .HandleAsync(context, context.RequestAborted)
             )
             .WithName($"Bff.{frontend.Name}.Logout");
 
@@ -184,7 +184,7 @@ public static class BffEndpointRouteBuilderExtensions
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffBackChannelLogoutHandler>()
-                        .HandleAsync(context)
+                        .HandleAsync(context, context.RequestAborted)
             )
             .WithName($"Bff.{frontend.Name}.BackchannelLogout");
 
@@ -196,7 +196,7 @@ public static class BffEndpointRouteBuilderExtensions
                     static (HttpContext context) =>
                         context
                             .RequestServices.GetRequiredService<BffJwksHandler>()
-                            .HandleAsync(context)
+                            .HandleAsync(context, context.RequestAborted)
                 )
                 .WithName($"Bff.{frontend.Name}.Jwks");
         }

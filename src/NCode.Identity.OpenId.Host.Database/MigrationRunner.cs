@@ -29,7 +29,7 @@ public static class MigrationRunner
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <exception cref="InvalidOperationException">A context's migrations history records a migration this assembly
     /// does not hold.</exception>
-    public static async Task MigrateAllAsync(
+    public static async ValueTask MigrateAllAsync(
         IServiceProvider serviceProvider,
         string connectionString,
         CancellationToken cancellationToken
@@ -59,7 +59,7 @@ public static class MigrationRunner
         await dataProtectionContext.Database.MigrateAsync(cancellationToken);
     }
 
-    private static async Task ThrowIfUnknownMigrationsAppliedAsync(
+    private static async ValueTask ThrowIfUnknownMigrationsAppliedAsync(
         DbContext context,
         CancellationToken cancellationToken
     )

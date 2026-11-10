@@ -53,7 +53,10 @@ public sealed class BlazorBffApplication : WebApplicationFactory<App>
     /// <summary>
     /// Builds and starts the Blazor BFF application.
     /// </summary>
-    public static async Task<BlazorBffApplication> StartAsync(BffApplicationSettings settings)
+    public static async ValueTask<BlazorBffApplication> StartAsync(
+        BffApplicationSettings settings,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(settings);
 

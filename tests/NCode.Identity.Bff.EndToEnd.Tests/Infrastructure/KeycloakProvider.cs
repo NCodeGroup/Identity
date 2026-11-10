@@ -80,9 +80,10 @@ public sealed class KeycloakProvider : IAsyncDisposable
     /// <summary>
     /// Builds the image and starts a container that imports the realm.
     /// </summary>
-    public static async Task<KeycloakProvider> StartAsync(
+    public static async ValueTask<KeycloakProvider> StartAsync(
         TestCertificate certificate,
-        IReadOnlyDictionary<string, string> realmVariables
+        IReadOnlyDictionary<string, string> realmVariables,
+        CancellationToken cancellationToken
     )
     {
         var userPassword = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(24));
@@ -96,7 +97,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
             .WithDeleteIfExists(true)
             .Build();
 
-        await image.CreateAsync();
+        await image.CreateAsync(cancellationToken);
 
         var builder = new ContainerBuilder(image)
             .WithCommand("start-dev", "--import-realm")
@@ -143,7 +144,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
 
         try
         {
-            await container.StartAsync();
+            await container.StartAsync(cancellationToken);
         }
         catch
         {
@@ -170,7 +171,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
     /// <summary>
     /// Ends every session of the test user, which makes Keycloak send the back-channel logout requests.
     /// </summary>
-    public async Task LogOutUserAsync()
+    public async ValueTask LogOutUserAsync(CancellationToken cancellationToken)
     {
         using var client = CreateHttpClient();
         var adminBase = $"https://127.0.0.1:{Port}/admin/realms/{RealmName}";
@@ -195,10 +196,11 @@ public sealed class KeycloakProvider : IAsyncDisposable
             Convert.ToBase64String(SecureEncoding.UTF8.GetBytes($"{AdminClientId}:{AdminSecret}"))
         );
 
-        using var tokenResponse = await client.SendAsync(tokenRequest);
-        await EnsureSuccessAsync(tokenResponse, accessToken: null);
+        using var tokenResponse = await client.SendAsync(tokenRequest, cancellationToken);
+        await EnsureSuccessAsync(tokenResponse, accessToken: null, cancellationToken);
         var token = await tokenResponse.Content.ReadFromJsonAsync<TokenResponse>(
-            JsonSerializerOptions.Web
+            JsonSerializerOptions.Web,
+            cancellationToken
         );
         if (token is null)
             throw new InvalidOperationException("The token response was empty.");
@@ -212,10 +214,11 @@ public sealed class KeycloakProvider : IAsyncDisposable
             token.AccessToken
         );
 
-        using var usersResponse = await client.SendAsync(usersRequest);
-        await EnsureSuccessAsync(usersResponse, token.AccessToken);
+        using var usersResponse = await client.SendAsync(usersRequest, cancellationToken);
+        await EnsureSuccessAsync(usersResponse, token.AccessToken, cancellationToken);
         var users = await usersResponse.Content.ReadFromJsonAsync<List<UserRepresentation>>(
-            JsonSerializerOptions.Web
+            JsonSerializerOptions.Web,
+            cancellationToken
         );
         if (users is not [var user])
             throw new InvalidOperationException($"Expected exactly one user named '{UserName}'.");
@@ -229,8 +232,8 @@ public sealed class KeycloakProvider : IAsyncDisposable
             token.AccessToken
         );
 
-        using var logoutResponse = await client.SendAsync(logoutRequest);
-        await EnsureSuccessAsync(logoutResponse, token.AccessToken);
+        using var logoutResponse = await client.SendAsync(logoutRequest, cancellationToken);
+        await EnsureSuccessAsync(logoutResponse, token.AccessToken, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -242,13 +245,20 @@ public sealed class KeycloakProvider : IAsyncDisposable
 
     // Keycloak's answer to a refused call names no reason, so the failure carries the token's claims and the end of
     // Keycloak's log, which does.
-    private async Task EnsureSuccessAsync(HttpResponseMessage response, string? accessToken)
+    private async ValueTask EnsureSuccessAsync(
+        HttpResponseMessage response,
+        string? accessToken,
+        CancellationToken cancellationToken
+    )
     {
         if (response.IsSuccessStatusCode)
             return;
 
-        var body = await response.Content.ReadAsStringAsync();
-        var (stdout, stderr) = await Container.GetLogsAsync(timestampsEnabled: false);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var (stdout, stderr) = await Container.GetLogsAsync(
+            timestampsEnabled: false,
+            ct: cancellationToken
+        );
         var log = string.Join('\n', $"{stdout}{stderr}".Split('\n').TakeLast(LogLinesOnFailure));
         var request = response.RequestMessage;
         throw new HttpRequestException(

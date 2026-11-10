@@ -135,7 +135,7 @@ internal sealed class DefaultClientKeyResolver(
         // break it for the others. See ADR-1335 and ADR-1350.
         return await Fetches.RunAsync(
             fetchKey,
-            () => RunFetchAsync(fetchKey, openIdClient, uri),
+            retrievalToken => RunFetchAsync(fetchKey, openIdClient, uri, retrievalToken),
             cancellationToken
         );
     }
@@ -169,11 +169,11 @@ internal sealed class DefaultClientKeyResolver(
         return [];
     }
 
-    // A Task, not a ValueTask, because every caller sharing the fetch awaits it.
-    private async Task<IReadOnlyList<SecretKey>> RunFetchAsync(
+    private async ValueTask<IReadOnlyList<SecretKey>> RunFetchAsync(
         string fetchKey,
         OpenIdClient openIdClient,
-        Uri uri
+        Uri uri,
+        CancellationToken cancellationToken
     )
     {
         // A caller that checked the cache just before a previous fetch recorded its result and left the in-flight
@@ -182,7 +182,7 @@ internal sealed class DefaultClientKeyResolver(
         if (remembered is not null)
             return remembered;
 
-        var keys = await FetchAndImportAsync(openIdClient, uri);
+        var keys = await FetchAndImportAsync(openIdClient, uri, cancellationToken);
 
         if (keys.Count == 0)
         {
@@ -206,13 +206,19 @@ internal sealed class DefaultClientKeyResolver(
         return keys;
     }
 
-    private async ValueTask<List<SecretKey>> FetchAndImportAsync(OpenIdClient openIdClient, Uri uri)
+    private async ValueTask<List<SecretKey>> FetchAndImportAsync(
+        OpenIdClient openIdClient,
+        Uri uri,
+        CancellationToken cancellationToken
+    )
     {
         var settings = openIdClient.Settings;
         var timeout = settings.GetValue(OpenIdSettingKeys.JwksUriFetchTimeout);
         var maxSizeBytes = settings.GetValue(OpenIdSettingKeys.JwksUriMaxSizeBytes);
 
-        using var timeoutSource = new CancellationTokenSource();
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken
+        );
         if (timeout > TimeSpan.Zero)
             timeoutSource.CancelAfter(timeout);
 

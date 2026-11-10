@@ -42,20 +42,21 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
 
     #region Helpers
 
-    private static async Task<(DefaultHttpContext HttpContext, string Body)> HandleAsync(
-        ManagementConsolePageHandler handler
+    private static async ValueTask<(DefaultHttpContext HttpContext, string Body)> HandleAsync(
+        ManagementConsolePageHandler handler,
+        CancellationToken cancellationToken
     )
     {
         var serviceProvider = new ServiceCollection().AddLogging().BuildServiceProvider();
         var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
         httpContext.Response.Body = new MemoryStream();
 
-        var result = await handler.HandleAsync(httpContext);
+        var result = await handler.HandleAsync(httpContext, cancellationToken);
         await result.ExecuteAsync(httpContext);
 
         httpContext.Response.Body.Position = 0;
         using var streamReader = new StreamReader(httpContext.Response.Body, SecureEncoding.UTF8);
-        return (httpContext, await streamReader.ReadToEndAsync());
+        return (httpContext, await streamReader.ReadToEndAsync(cancellationToken));
     }
 
     private ManagementConsolePageHandler CreateHandler(
@@ -101,7 +102,7 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         var handler = CreateHandler(out var reader);
         using var _ = reader;
 
-        var (httpContext, body) = await HandleAsync(handler);
+        var (httpContext, body) = await HandleAsync(handler, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, httpContext.Response.StatusCode);
         Assert.Equal(
@@ -124,7 +125,7 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         var handler = CreateHandler(out var reader);
         using var _ = reader;
 
-        var (httpContext, body) = await HandleAsync(handler);
+        var (httpContext, body) = await HandleAsync(handler, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
         Assert.StartsWith("text/html", httpContext.Response.ContentType, StringComparison.Ordinal);
@@ -154,7 +155,7 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         var handler = CreateHandler(out var reader, "https://cdn.example/tab.ico");
         using var _ = reader;
 
-        var (httpContext, body) = await HandleAsync(handler);
+        var (httpContext, body) = await HandleAsync(handler, CancellationToken.None);
 
         Assert.Contains(
             "<link rel=\"icon\" href=\"https://cdn.example/tab.ico\" />",
@@ -183,7 +184,7 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         var handler = CreateHandler(out var reader);
         using var _ = reader;
 
-        var (_, body) = await HandleAsync(handler);
+        var (_, body) = await HandleAsync(handler, CancellationToken.None);
 
         Assert.Contains("favicon-ab12", body, StringComparison.Ordinal);
     }

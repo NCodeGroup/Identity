@@ -126,7 +126,8 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     private ValueTask InvokeAsync(
         Mock<OpenIdContext> context,
         Mock<OpenIdClient> client,
-        Mock<IBackchannelAuthenticationRequest> request
+        Mock<IBackchannelAuthenticationRequest> request,
+        CancellationToken cancellationToken
     ) =>
         Handler.HandleAsync(
             new ValidateBackchannelAuthenticationRequestCommand(
@@ -134,7 +135,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
                 client.Object,
                 request.Object
             ),
-            CancellationToken.None
+            cancellationToken
         );
 
     [Fact]
@@ -142,7 +143,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     {
         var (context, client, _, request) = CreateScaffold();
 
-        await InvokeAsync(context, client, request);
+        await InvokeAsync(context, client, request, CancellationToken.None);
     }
 
     [Fact]
@@ -154,7 +155,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            InvokeAsync(context, client, request).AsTask()
+            InvokeAsync(context, client, request, CancellationToken.None).AsTask()
         );
         Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
     }
@@ -168,7 +169,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            InvokeAsync(context, client, request).AsTask()
+            InvokeAsync(context, client, request, CancellationToken.None).AsTask()
         );
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
@@ -183,7 +184,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            InvokeAsync(context, client, request).AsTask()
+            InvokeAsync(context, client, request, CancellationToken.None).AsTask()
         );
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
@@ -197,7 +198,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            InvokeAsync(context, client, request).AsTask()
+            InvokeAsync(context, client, request, CancellationToken.None).AsTask()
         );
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
@@ -212,7 +213,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            InvokeAsync(context, client, request).AsTask()
+            InvokeAsync(context, client, request, CancellationToken.None).AsTask()
         );
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
@@ -227,7 +228,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            InvokeAsync(context, client, request).AsTask()
+            InvokeAsync(context, client, request, CancellationToken.None).AsTask()
         );
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
@@ -241,7 +242,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
             clientNotificationEndpoint: "https://client.test/ciba"
         );
 
-        await InvokeAsync(context, client, request);
+        await InvokeAsync(context, client, request, CancellationToken.None);
     }
 
     [Fact]
@@ -259,6 +260,6 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
             clientNotificationEndpoint: "https://client.test/ciba"
         );
 
-        await InvokeAsync(context, client, request);
+        await InvokeAsync(context, client, request, CancellationToken.None);
     }
 }

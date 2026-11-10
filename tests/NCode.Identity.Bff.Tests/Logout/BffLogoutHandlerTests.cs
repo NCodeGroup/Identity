@@ -106,7 +106,7 @@ public class BffLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext("returnUrl=https%3A%2F%2Fevil.example%2F");
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -118,7 +118,7 @@ public class BffLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext("returnUrl=%2Fhome");
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal("/home", httpContext.Response.Headers.Location.ToString());
@@ -132,7 +132,7 @@ public class BffLogoutHandlerTests : BaseTests
         httpContext.Response.Body = new MemoryStream();
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -144,7 +144,7 @@ public class BffLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext($"{formKey}=value");
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -159,7 +159,7 @@ public class BffLogoutHandlerTests : BaseTests
         var httpContext = CreateHttpContext(form);
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -172,7 +172,7 @@ public class BffLogoutHandlerTests : BaseTests
         httpContext.Request.QueryString = new QueryString("?sid=guard-value");
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
         LogoutService.Verify(
@@ -209,7 +209,7 @@ public class BffLogoutHandlerTests : BaseTests
             .Verifiable();
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         var location = new Uri(httpContext.Response.Headers.Location.ToString());
@@ -237,7 +237,7 @@ public class BffLogoutHandlerTests : BaseTests
             .Verifiable();
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal("/", httpContext.Response.Headers.Location.ToString());
@@ -256,7 +256,7 @@ public class BffLogoutHandlerTests : BaseTests
             .Verifiable();
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal("/", httpContext.Response.Headers.Location.ToString());
@@ -275,7 +275,7 @@ public class BffLogoutHandlerTests : BaseTests
             .Verifiable();
         var handler = CreateHandler();
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal("/", httpContext.Response.Headers.Location.ToString());

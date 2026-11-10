@@ -169,14 +169,17 @@ public sealed class BffApplication : IAsyncDisposable
     /// <summary>
     /// Builds and starts a BFF application.
     /// </summary>
-    public static async Task<BffApplication> StartAsync(BffApplicationSettings settings)
+    public static async ValueTask<BffApplication> StartAsync(
+        BffApplicationSettings settings,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(settings);
 
         var application = new BffApplication(settings);
         try
         {
-            await application.App.StartAsync();
+            await application.App.StartAsync(cancellationToken);
             return application;
         }
         catch

@@ -375,7 +375,8 @@ internal class LocalAccountApiEndpointHandler(
                     cancellationToken
                 );
             },
-            ToLocalAccountResource
+            ToLocalAccountResource,
+            cancellationToken
         );
     }
 

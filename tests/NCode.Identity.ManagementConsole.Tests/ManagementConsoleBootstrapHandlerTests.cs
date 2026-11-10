@@ -39,9 +39,13 @@ public class ManagementConsoleBootstrapHandlerTests : BaseTests
             new StubBffOptionsAccessor(bffOptions)
         );
 
-    private static async Task<(DefaultHttpContext HttpContext, JsonElement Document)> HandleAsync(
+    private static async ValueTask<(
+        DefaultHttpContext HttpContext,
+        JsonElement Document
+    )> HandleAsync(
         ManagementConsoleBootstrapHandler handler,
-        string pathBase = ""
+        string pathBase,
+        CancellationToken cancellationToken
     )
     {
         var services = new ServiceCollection().AddLogging().BuildServiceProvider();
@@ -53,7 +57,8 @@ public class ManagementConsoleBootstrapHandlerTests : BaseTests
 
         httpContext.Response.Body.Position = 0;
         var document = await JsonSerializer.DeserializeAsync<JsonElement>(
-            httpContext.Response.Body
+            httpContext.Response.Body,
+            cancellationToken: cancellationToken
         );
         return (httpContext, document);
     }
@@ -191,7 +196,7 @@ public class ManagementConsoleBootstrapHandlerTests : BaseTests
     {
         var handler = CreateHandler(new ManagementConsoleOptions(), CreateBffOptions());
 
-        var (httpContext, _) = await HandleAsync(handler);
+        var (httpContext, _) = await HandleAsync(handler, "", CancellationToken.None);
 
         Assert.Equal(
             "no-store, no-cache, max-age=0",
@@ -204,7 +209,7 @@ public class ManagementConsoleBootstrapHandlerTests : BaseTests
     {
         var handler = CreateHandler(new ManagementConsoleOptions(), CreateBffOptions());
 
-        var (_, document) = await HandleAsync(handler);
+        var (_, document) = await HandleAsync(handler, "", CancellationToken.None);
 
         Assert.Equal("/management", document.GetProperty("apiBaseUrl").GetString());
         var bff = document.GetProperty("bff");
@@ -226,7 +231,7 @@ public class ManagementConsoleBootstrapHandlerTests : BaseTests
         };
         var handler = CreateHandler(options, CreateBffOptions());
 
-        var (_, document) = await HandleAsync(handler, "/console");
+        var (_, document) = await HandleAsync(handler, "/console", CancellationToken.None);
 
         Assert.Equal("/console/management", document.GetProperty("apiBaseUrl").GetString());
         Assert.True(document.GetProperty("features").GetProperty("audit").GetBoolean());

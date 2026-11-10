@@ -173,7 +173,8 @@ internal class GrantApiEndpointHandler(
                     cancellationToken
                 );
             },
-            ToGrantResource
+            ToGrantResource,
+            cancellationToken
         );
     }
 

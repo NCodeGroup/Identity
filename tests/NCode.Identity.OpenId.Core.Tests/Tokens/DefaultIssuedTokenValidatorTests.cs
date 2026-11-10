@@ -160,14 +160,15 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
             new Dictionary<string, object> { [JoseClaimNames.Payload.Sid] = SessionId }
         );
 
-    private async Task<JwtValidationResult> ValidateAccessTokenAsync(
-        AccessTokenValidationOptions? options = null
+    private async ValueTask<JwtValidationResult> ValidateAccessTokenAsync(
+        AccessTokenValidationOptions? options,
+        CancellationToken cancellationToken
     ) =>
         await Validator.ValidateAccessTokenAsync(
             MockContext.Object,
             Token,
             options ?? new AccessTokenValidationOptions(),
-            CancellationToken.None
+            cancellationToken
         );
 
     private JwtValidationParameters AssertCaptured() =>
@@ -195,7 +196,7 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
         SetupAccessTokenAlgorithms();
         SetupJwtValidation(TestJwtValidationResults.Valid(new Dictionary<string, object>()));
 
-        var result = await ValidateAccessTokenAsync();
+        var result = await ValidateAccessTokenAsync(options: null, CancellationToken.None);
 
         Assert.True(result.IsValid);
         var parameters = AssertCaptured();
@@ -237,7 +238,8 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
             {
                 RequiredAudiences = ["urn:api"],
                 AdditionalDecryptionKeys = [ReaderKey],
-            }
+            },
+            CancellationToken.None
         );
 
         var parameters = AssertCaptured();
@@ -255,7 +257,7 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
         SetupAccessTokenAlgorithms();
         SetupJwtValidation(TestJwtValidationResults.Invalid(Token));
 
-        var result = await ValidateAccessTokenAsync();
+        var result = await ValidateAccessTokenAsync(options: null, CancellationToken.None);
 
         Assert.False(result.IsValid);
     }
@@ -275,7 +277,7 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
             .ThrowsAsync(new JwtDecodeException("malformed"))
             .Verifiable();
 
-        var result = await ValidateAccessTokenAsync();
+        var result = await ValidateAccessTokenAsync(options: null, CancellationToken.None);
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtDecodeException>(result.Exception);
@@ -296,7 +298,9 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
             .ThrowsAsync(new OperationCanceledException())
             .Verifiable();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() => ValidateAccessTokenAsync());
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            ValidateAccessTokenAsync(options: null, CancellationToken.None).AsTask()
+        );
     }
 
     [Fact]
@@ -306,7 +310,7 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
         SetupJwtValidation(ValidWithSession());
         SetupSession(PersistedGrantStatus.Revoked);
 
-        var result = await ValidateAccessTokenAsync();
+        var result = await ValidateAccessTokenAsync(options: null, CancellationToken.None);
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtValidationException>(result.Exception);
@@ -319,7 +323,7 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
         SetupJwtValidation(ValidWithSession());
         SetupSession(PersistedGrantStatus.Active);
 
-        var result = await ValidateAccessTokenAsync();
+        var result = await ValidateAccessTokenAsync(options: null, CancellationToken.None);
 
         Assert.True(result.IsValid);
     }
@@ -331,7 +335,7 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
         SetupJwtValidation(ValidWithSession());
         SetupSession(status: null);
 
-        var result = await ValidateAccessTokenAsync();
+        var result = await ValidateAccessTokenAsync(options: null, CancellationToken.None);
 
         Assert.True(result.IsValid);
     }

@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -45,6 +46,11 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
     // See ADR-1449.
+    [SuppressMessage(
+        "Design",
+        "NCID0003",
+        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    )]
     protected internal virtual ValueTask RecordRoleAssignmentChangedAsync(
         HttpContext httpContext,
         PersistedRoleAssignment assignment,
@@ -88,6 +94,9 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
     /// <param name="node">The resource node the operation applies to.</param>
     /// <param name="operation">The operation to authorize.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is <c>true</c> when the caller holds the operation at the
     /// node; otherwise, <c>false</c>.
@@ -96,7 +105,8 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     protected internal virtual async ValueTask<bool> HoldsAuthorityAsync(
         HttpContext httpContext,
         ResourceNode node,
-        IAuthorizationRequirement operation
+        IAuthorizationRequirement operation,
+        CancellationToken cancellationToken
     )
     {
         var authorizationResult = await AuthorizationService.AuthorizeAsync(

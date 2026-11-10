@@ -38,7 +38,7 @@ public sealed class TenantUsageStoreInMemoryTests : IDisposable
     private TenantUsageStore CreateStore(OpenIdDbContext context) =>
         new(Mock.Of<IStoreProvider>(), Provider.GetRequiredService<IIdGenerator<long>>(), context);
 
-    private async Task AddAsync(DateOnly day)
+    private async ValueTask AddAsync(DateOnly day, CancellationToken cancellationToken)
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
@@ -56,9 +56,9 @@ public sealed class TenantUsageStoreInMemoryTests : IDisposable
                         Count = 1,
                     },
                 ],
-                CancellationToken.None
+                cancellationToken
             );
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     #region RemoveBeforeAsync Tests
@@ -66,8 +66,8 @@ public sealed class TenantUsageStoreInMemoryTests : IDisposable
     [Fact]
     public async Task RemoveBeforeAsync_OnAProviderWithoutSetBasedDeletes_RemovesTheEarlierDays()
     {
-        await AddAsync(Day.AddDays(-1));
-        await AddAsync(Day);
+        await AddAsync(Day.AddDays(-1), CancellationToken.None);
+        await AddAsync(Day, CancellationToken.None);
 
         using (var scope = Provider.CreateScope())
         {

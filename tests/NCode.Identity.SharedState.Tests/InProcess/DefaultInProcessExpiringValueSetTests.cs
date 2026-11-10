@@ -15,7 +15,10 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
 
     private DefaultInProcessExpiringValueSet CreateValueSet() => new(TimeProvider);
 
-    private static async Task<bool[]> RunConcurrentlyAsync(Func<Task<bool>> operation)
+    private static async ValueTask<bool[]> RunConcurrentlyAsync(
+        Func<Task<bool>> operation,
+        CancellationToken cancellationToken
+    )
     {
         const int Concurrency = 32;
         var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -23,11 +26,14 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
         var attempts = Enumerable
             .Range(0, Concurrency)
             .Select(_ =>
-                Task.Run(async () =>
-                {
-                    await start.Task;
-                    return await operation();
-                })
+                Task.Run(
+                    async () =>
+                    {
+                        await start.Task;
+                        return await operation();
+                    },
+                    cancellationToken
+                )
             )
             .ToList();
         start.SetResult();
@@ -140,13 +146,15 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
     {
         var valueSet = CreateValueSet();
 
-        var results = await RunConcurrentlyAsync(async () =>
-            await valueSet.TryAddAsync(
-                "key",
-                new byte[] { 1 },
-                Start.AddMinutes(1),
-                CancellationToken.None
-            )
+        var results = await RunConcurrentlyAsync(
+            async () =>
+                await valueSet.TryAddAsync(
+                    "key",
+                    new byte[] { 1 },
+                    Start.AddMinutes(1),
+                    CancellationToken.None
+                ),
+            CancellationToken.None
         );
 
         Assert.Single(results, added => added);
@@ -362,14 +370,16 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             CancellationToken.None
         );
 
-        var results = await RunConcurrentlyAsync(async () =>
-            await valueSet.TryReplaceAsync(
-                "key",
-                1,
-                new byte[] { 2 },
-                Start.AddMinutes(1),
-                CancellationToken.None
-            )
+        var results = await RunConcurrentlyAsync(
+            async () =>
+                await valueSet.TryReplaceAsync(
+                    "key",
+                    1,
+                    new byte[] { 2 },
+                    Start.AddMinutes(1),
+                    CancellationToken.None
+                ),
+            CancellationToken.None
         );
 
         Assert.Single(results, replaced => replaced);
@@ -439,8 +449,9 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             CancellationToken.None
         );
 
-        var results = await RunConcurrentlyAsync(async () =>
-            await valueSet.TryTakeAsync("key", CancellationToken.None) is not null
+        var results = await RunConcurrentlyAsync(
+            async () => await valueSet.TryTakeAsync("key", CancellationToken.None) is not null,
+            CancellationToken.None
         );
 
         Assert.Single(results, taken => taken);
@@ -549,8 +560,10 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             CancellationToken.None
         );
 
-        var results = await RunConcurrentlyAsync(async () =>
-            await valueSet.TryRemoveAsync("key", new byte[] { 1 }, CancellationToken.None)
+        var results = await RunConcurrentlyAsync(
+            async () =>
+                await valueSet.TryRemoveAsync("key", new byte[] { 1 }, CancellationToken.None),
+            CancellationToken.None
         );
 
         Assert.Single(results, removed => removed);

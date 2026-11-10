@@ -73,46 +73,59 @@ public sealed class MasterKeyStoreTests : IDisposable
             KeyCheck = $"key-check-{version}",
         };
 
-    private async Task AddAsync(params PersistedMasterKey[] masterKeys)
+    private async ValueTask AddAsync(
+        PersistedMasterKey[] masterKeys,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = CreateStore(context);
         foreach (var masterKey in masterKeys)
-            await store.AddAsync(masterKey, CancellationToken.None);
+            await store.AddAsync(masterKey, cancellationToken);
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<IReadOnlyList<PersistedMasterKey>> ListAsync(SecretOwner owner)
-    {
-        using var scope = Provider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        return await CreateStore(context).ListAsync(owner, CancellationToken.None);
-    }
-
-    private async Task<PersistedMasterKey?> FindActiveAsync(SecretOwner owner)
-    {
-        using var scope = Provider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        return await CreateStore(context).FindActiveAsync(owner, CancellationToken.None);
-    }
-
-    private async Task<IReadOnlyList<PersistedMasterKey>> FindByKeyIdsAsync(
+    private async ValueTask<IReadOnlyList<PersistedMasterKey>> ListAsync(
         SecretOwner owner,
-        params Guid[] keyIds
+        CancellationToken cancellationToken
     )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        return await CreateStore(context).FindByKeyIdsAsync(owner, keyIds, CancellationToken.None);
+        return await CreateStore(context).ListAsync(owner, cancellationToken);
     }
 
-    private async Task<int> GetLatestVersionAsync(SecretOwner owner)
+    private async ValueTask<PersistedMasterKey?> FindActiveAsync(
+        SecretOwner owner,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        return await CreateStore(context).GetLatestVersionAsync(owner, CancellationToken.None);
+        return await CreateStore(context).FindActiveAsync(owner, cancellationToken);
+    }
+
+    private async ValueTask<IReadOnlyList<PersistedMasterKey>> FindByKeyIdsAsync(
+        SecretOwner owner,
+        Guid[] keyIds,
+        CancellationToken cancellationToken
+    )
+    {
+        using var scope = Provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+        return await CreateStore(context).FindByKeyIdsAsync(owner, keyIds, cancellationToken);
+    }
+
+    private async ValueTask<int> GetLatestVersionAsync(
+        SecretOwner owner,
+        CancellationToken cancellationToken
+    )
+    {
+        using var scope = Provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+        return await CreateStore(context).GetLatestVersionAsync(owner, cancellationToken);
     }
 
     #endregion
@@ -125,9 +138,12 @@ public sealed class MasterKeyStoreTests : IDisposable
         var version1 = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true);
         var version2 = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true);
         var version3 = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 3);
-        await AddAsync(version2, version1, version3);
+        await AddAsync([version2, version1, version3], CancellationToken.None);
 
-        var masterKeys = await ListAsync(SecretOwner.ForTenant(TenantOneId));
+        var masterKeys = await ListAsync(
+            SecretOwner.ForTenant(TenantOneId),
+            CancellationToken.None
+        );
 
         Assert.Equal(
             [version3.KeyId, version2.KeyId, version1.KeyId],
@@ -140,9 +156,11 @@ public sealed class MasterKeyStoreTests : IDisposable
     public async Task AddThenList_RoundTripsEveryMember()
     {
         var expected = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2);
-        await AddAsync(expected);
+        await AddAsync([expected], CancellationToken.None);
 
-        var actual = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        var actual = Assert.Single(
+            await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
         Assert.NotNull(actual.RootKeyReference);
         Assert.NotNull(actual.RootKeyAccessIdentity);
 
@@ -166,9 +184,11 @@ public sealed class MasterKeyStoreTests : IDisposable
     public async Task AddAsync_SetsConcurrencyTokenOnItemAndEntity()
     {
         var masterKey = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1);
-        await AddAsync(masterKey);
+        await AddAsync([masterKey], CancellationToken.None);
 
-        var actual = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        var actual = Assert.Single(
+            await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
 
         Assert.NotEmpty(masterKey.ConcurrencyToken);
         Assert.Equal(masterKey.ConcurrencyToken, actual.ConcurrencyToken);
@@ -177,7 +197,10 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task Add_DuplicateVersion_SaveChangesThrows()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true)],
+            CancellationToken.None
+        );
 
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
@@ -193,7 +216,10 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task Add_SecondActiveKeyForOwner_SaveChangesThrows()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
 
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
@@ -210,8 +236,11 @@ public sealed class MasterKeyStoreTests : IDisposable
     public async Task Add_ActiveKeyAfterRetiringPrevious_Succeeds()
     {
         var owner = SecretOwner.ForTenant(TenantOneId);
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
-        var previous = Assert.Single(await ListAsync(owner));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
+        var previous = Assert.Single(await ListAsync(owner, CancellationToken.None));
         previous.RetiredWhen = CreatedWhen.AddDays(30);
         using (var scope = Provider.CreateScope())
         {
@@ -221,12 +250,12 @@ public sealed class MasterKeyStoreTests : IDisposable
         }
         var next = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2);
 
-        await AddAsync(next);
+        await AddAsync([next], CancellationToken.None);
 
-        var active = await FindActiveAsync(owner);
+        var active = await FindActiveAsync(owner, CancellationToken.None);
         Assert.NotNull(active);
         Assert.Equal(next.KeyId, active.KeyId);
-        Assert.Equal(2, (await ListAsync(owner)).Count);
+        Assert.Equal(2, (await ListAsync(owner, CancellationToken.None)).Count);
     }
 
     #endregion
@@ -236,9 +265,14 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task Update_SetsRetiredWhen()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
         var retiredWhen = CreatedWhen.AddDays(30);
-        var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        var masterKey = Assert.Single(
+            await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
         masterKey.RetiredWhen = retiredWhen;
 
         using (var scope = Provider.CreateScope())
@@ -248,15 +282,22 @@ public sealed class MasterKeyStoreTests : IDisposable
             await context.SaveChangesAsync();
         }
 
-        var actual = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        var actual = Assert.Single(
+            await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
         Assert.Equal(retiredWhen, actual.RetiredWhen);
     }
 
     [Fact]
     public async Task Update_CopiesTheMutableMembersAndChangesTheConcurrencyToken()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
-        var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
+        var masterKey = Assert.Single(
+            await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
         var originalToken = masterKey.ConcurrencyToken;
         masterKey.RootKeyProvider = KeyWrapperNames.AwsKms;
         masterKey.RootKeyId = "new-root-key";
@@ -271,7 +312,9 @@ public sealed class MasterKeyStoreTests : IDisposable
             await context.SaveChangesAsync();
         }
 
-        var actual = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        var actual = Assert.Single(
+            await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
         Assert.Equal(KeyWrapperNames.AwsKms, actual.RootKeyProvider);
         Assert.Equal("new-root-key", actual.RootKeyId);
         Assert.Equal("new-root-wrapped-key", actual.RootWrappedKey);
@@ -297,8 +340,13 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task Update_WhenTheConcurrencyTokenDiffers_Throws()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
-        var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
+        var masterKey = Assert.Single(
+            await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
         masterKey.ConcurrencyToken = "stale";
 
         using var scope = Provider.CreateScope();
@@ -314,11 +362,14 @@ public sealed class MasterKeyStoreTests : IDisposable
 
     #region GetPageAsync Tests
 
-    private async Task<PagedResult<PersistedMasterKey>> GetPageAsync(PageRequest page)
+    private async ValueTask<PagedResult<PersistedMasterKey>> GetPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        return await CreateStore(context).GetPageAsync(page, CancellationToken.None);
+        return await CreateStore(context).GetPageAsync(page, cancellationToken);
     }
 
     [Fact]
@@ -331,14 +382,17 @@ public sealed class MasterKeyStoreTests : IDisposable
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1),
             CreateMasterKey(SecretOwnerTypes.Platform, SecretOwner.PlatformOwnerId, 1),
         };
-        await AddAsync(keys);
+        await AddAsync(keys, CancellationToken.None);
 
         var seen = new List<Guid>();
         string? cursor = null;
         var pages = 0;
         do
         {
-            var result = await GetPageAsync(new PageRequest { Limit = 3, Cursor = cursor });
+            var result = await GetPageAsync(
+                new PageRequest { Limit = 3, Cursor = cursor },
+                CancellationToken.None
+            );
             seen.AddRange(result.Items.Select(item => item.KeyId));
             cursor = result.NextCursor;
             pages++;
@@ -351,9 +405,15 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task GetPage_MalformedCursor_StartsAtTheBeginning()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
 
-        var result = await GetPageAsync(new PageRequest { Limit = 10, Cursor = "!!" });
+        var result = await GetPageAsync(
+            new PageRequest { Limit = 10, Cursor = "!!" },
+            CancellationToken.None
+        );
 
         Assert.Single(result.Items);
         Assert.Null(result.NextCursor);
@@ -363,7 +423,10 @@ public sealed class MasterKeyStoreTests : IDisposable
 
     #region GetRetiredOwnerPageAsync Tests
 
-    private async Task<List<SecretOwner>> ReadRetiredOwnersAsync(int limit)
+    private async ValueTask<List<SecretOwner>> ReadRetiredOwnersAsync(
+        int limit,
+        CancellationToken cancellationToken
+    )
     {
         var owners = new List<SecretOwner>();
         string? cursor = null;
@@ -374,7 +437,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             var page = await CreateStore(context)
                 .GetRetiredOwnerPageAsync(
                     new PageRequest { Limit = limit, Cursor = cursor },
-                    CancellationToken.None
+                    cancellationToken
                 );
             owners.AddRange(page.Items);
             cursor = page.NextCursor;
@@ -387,19 +450,22 @@ public sealed class MasterKeyStoreTests : IDisposable
     public async Task GetRetiredOwnerPage_RetiredRowsOfSeveralOwners_ReturnsEachOwnerAcrossPages()
     {
         await AddAsync(
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true),
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 3),
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1, retired: true),
-            CreateMasterKey(
-                SecretOwnerTypes.Platform,
-                SecretOwner.PlatformOwnerId,
-                1,
-                retired: true
-            )
+            [
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true),
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 3),
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1, retired: true),
+                CreateMasterKey(
+                    SecretOwnerTypes.Platform,
+                    SecretOwner.PlatformOwnerId,
+                    1,
+                    retired: true
+                ),
+            ],
+            CancellationToken.None
         );
 
-        var owners = await ReadRetiredOwnersAsync(limit: 1);
+        var owners = await ReadRetiredOwnersAsync(limit: 1, CancellationToken.None);
 
         // An owner with two retired keys appears on two pages, so the caller handles each owner once.
         Assert.Equal(
@@ -416,20 +482,26 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task GetRetiredOwnerPage_OnlyActiveRows_ReturnsNoOwners()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
 
-        Assert.Empty(await ReadRetiredOwnersAsync(limit: 10));
+        Assert.Empty(await ReadRetiredOwnersAsync(limit: 10, CancellationToken.None));
     }
 
     [Fact]
     public async Task GetRetiredOwnerPage_TwoRetiredRowsOfOneOwnerOnOnePage_ReturnsTheOwnerOnce()
     {
         await AddAsync(
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true)
+            [
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true),
+            ],
+            CancellationToken.None
         );
 
-        var owner = Assert.Single(await ReadRetiredOwnersAsync(limit: 10));
+        var owner = Assert.Single(await ReadRetiredOwnersAsync(limit: 10, CancellationToken.None));
 
         Assert.Equal(SecretOwner.ForTenant(TenantOneId), owner);
     }
@@ -441,8 +513,13 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task Remove_DeletesTheRow()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true));
-        var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true)],
+            CancellationToken.None
+        );
+        var masterKey = Assert.Single(
+            await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
 
         using (var scope = Provider.CreateScope())
         {
@@ -451,7 +528,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             await context.SaveChangesAsync();
         }
 
-        Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None));
     }
 
     [Fact]
@@ -472,8 +549,13 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task Remove_WhenTheConcurrencyTokenDiffers_Throws()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true));
-        var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true)],
+            CancellationToken.None
+        );
+        var masterKey = Assert.Single(
+            await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
         masterKey.ConcurrencyToken = "stale";
 
         using var scope = Provider.CreateScope();
@@ -491,20 +573,29 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task List_OtherOwner_ReturnsEmpty()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
 
-        Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Empty(await ListAsync(new SecretOwner(SecretOwnerTypes.Platform, TenantOneId)));
+        Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantTwoId), CancellationToken.None));
+        Assert.Empty(
+            await ListAsync(
+                new SecretOwner(SecretOwnerTypes.Platform, TenantOneId),
+                CancellationToken.None
+            )
+        );
     }
 
     [Fact]
     public async Task List_OwnerIdDifferentCase_Finds()
     {
         var masterKey = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1);
-        await AddAsync(masterKey);
+        await AddAsync([masterKey], CancellationToken.None);
 
         var masterKeys = await ListAsync(
-            new SecretOwner(SecretOwnerTypes.Tenant.ToUpperInvariant(), "TENANT-ONE")
+            new SecretOwner(SecretOwnerTypes.Tenant.ToUpperInvariant(), "TENANT-ONE"),
+            CancellationToken.None
         );
 
         var actual = Assert.Single(masterKeys);
@@ -521,10 +612,11 @@ public sealed class MasterKeyStoreTests : IDisposable
     {
         var retired = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true);
         var active = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2);
-        await AddAsync(retired, active);
+        await AddAsync([retired, active], CancellationToken.None);
 
         var actual = await FindActiveAsync(
-            new SecretOwner(SecretOwnerTypes.Tenant.ToUpperInvariant(), "TENANT-ONE")
+            new SecretOwner(SecretOwnerTypes.Tenant.ToUpperInvariant(), "TENANT-ONE"),
+            CancellationToken.None
         );
 
         Assert.NotNull(actual);
@@ -536,16 +628,28 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task FindActive_NoKeys_ReturnsNull()
     {
-        Assert.Null(await FindActiveAsync(SecretOwner.ForTenant(TenantOneId)));
+        Assert.Null(
+            await FindActiveAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None)
+        );
     }
 
     [Fact]
     public async Task FindActive_OtherOwner_ReturnsNull()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
 
-        Assert.Null(await FindActiveAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Null(await FindActiveAsync(new SecretOwner(SecretOwnerTypes.Platform, TenantOneId)));
+        Assert.Null(
+            await FindActiveAsync(SecretOwner.ForTenant(TenantTwoId), CancellationToken.None)
+        );
+        Assert.Null(
+            await FindActiveAsync(
+                new SecretOwner(SecretOwnerTypes.Platform, TenantOneId),
+                CancellationToken.None
+            )
+        );
     }
 
     #endregion
@@ -559,14 +663,12 @@ public sealed class MasterKeyStoreTests : IDisposable
         var active = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2);
         var unrequested = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 3, retired: true);
         var otherOwner = CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1);
-        await AddAsync(retired, active, unrequested, otherOwner);
+        await AddAsync([retired, active, unrequested, otherOwner], CancellationToken.None);
 
         var masterKeys = await FindByKeyIdsAsync(
             SecretOwner.ForTenant(TenantOneId.ToUpperInvariant()),
-            retired.KeyId,
-            active.KeyId,
-            otherOwner.KeyId,
-            Guid.NewGuid()
+            [retired.KeyId, active.KeyId, otherOwner.KeyId, Guid.NewGuid()],
+            CancellationToken.None
         );
 
         Guid[] expected = [retired.KeyId, active.KeyId];
@@ -576,9 +678,16 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task FindByKeyIds_EmptySet_ReturnsEmpty()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1)],
+            CancellationToken.None
+        );
 
-        var masterKeys = await FindByKeyIdsAsync(SecretOwner.ForTenant(TenantOneId));
+        var masterKeys = await FindByKeyIdsAsync(
+            SecretOwner.ForTenant(TenantOneId),
+            [],
+            CancellationToken.None
+        );
 
         Assert.Empty(masterKeys);
     }
@@ -591,13 +700,17 @@ public sealed class MasterKeyStoreTests : IDisposable
     public async Task GetLatestVersion_ReturnsMaxIncludingRetired()
     {
         await AddAsync(
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true),
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 5)
+            [
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true),
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 5),
+            ],
+            CancellationToken.None
         );
 
         var latestVersion = await GetLatestVersionAsync(
-            SecretOwner.ForTenant(TenantOneId.ToUpperInvariant())
+            SecretOwner.ForTenant(TenantOneId.ToUpperInvariant()),
+            CancellationToken.None
         );
 
         Assert.Equal(2, latestVersion);
@@ -606,9 +719,15 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task GetLatestVersion_NoKeys_ReturnsZero()
     {
-        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 5));
+        await AddAsync(
+            [CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 5)],
+            CancellationToken.None
+        );
 
-        var latestVersion = await GetLatestVersionAsync(SecretOwner.ForTenant(TenantOneId));
+        var latestVersion = await GetLatestVersionAsync(
+            SecretOwner.ForTenant(TenantOneId),
+            CancellationToken.None
+        );
 
         Assert.Equal(0, latestVersion);
     }
@@ -621,10 +740,13 @@ public sealed class MasterKeyStoreTests : IDisposable
     public async Task RemoveAll_RemovesOnlyThatOwner()
     {
         await AddAsync(
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2),
-            CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1),
-            CreateMasterKey(SecretOwnerTypes.Platform, SecretOwner.PlatformOwnerId, 1)
+            [
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2),
+                CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1),
+                CreateMasterKey(SecretOwnerTypes.Platform, SecretOwner.PlatformOwnerId, 1),
+            ],
+            CancellationToken.None
         );
 
         int removed;
@@ -640,9 +762,9 @@ public sealed class MasterKeyStoreTests : IDisposable
         }
 
         Assert.Equal(2, removed);
-        Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
-        Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Single(await ListAsync(SecretOwner.Platform));
+        Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantOneId), CancellationToken.None));
+        Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantTwoId), CancellationToken.None));
+        Assert.Single(await ListAsync(SecretOwner.Platform, CancellationToken.None));
     }
 
     #endregion

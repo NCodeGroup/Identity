@@ -68,10 +68,16 @@ public sealed class BffTokenRequestTransformTests : BaseTests
             .Returns(new ValueTask<BffTokenResult>(result))
             .Verifiable();
 
-    private static async Task<string?> ReadProblemTypeAsync(HttpContext httpContext)
+    private static async ValueTask<string?> ReadProblemTypeAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         httpContext.Response.Body.Position = 0;
-        var problem = await JsonSerializer.DeserializeAsync<JsonElement>(httpContext.Response.Body);
+        var problem = await JsonSerializer.DeserializeAsync<JsonElement>(
+            httpContext.Response.Body,
+            cancellationToken: cancellationToken
+        );
         return problem.GetProperty("type").GetString();
     }
 
@@ -134,7 +140,7 @@ public sealed class BffTokenRequestTransformTests : BaseTests
         Assert.Equal("no-store, no-cache, max-age=0", response.Headers.CacheControl.ToString());
         Assert.Equal(
             BffProblemTypes.SessionRequired,
-            await ReadProblemTypeAsync(context.HttpContext)
+            await ReadProblemTypeAsync(context.HttpContext, CancellationToken.None)
         );
         Assert.False(
             context.ProxyRequest.Options.TryGetValue(BffAccessTokenHandler.ResolvedTokenKey, out _)
@@ -161,7 +167,7 @@ public sealed class BffTokenRequestTransformTests : BaseTests
         );
         Assert.Equal(
             BffProblemTypes.TokenUnavailable,
-            await ReadProblemTypeAsync(context.HttpContext)
+            await ReadProblemTypeAsync(context.HttpContext, CancellationToken.None)
         );
     }
 

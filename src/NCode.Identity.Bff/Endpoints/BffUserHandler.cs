@@ -20,14 +20,17 @@ internal class BffUserHandler(IBffUserDocumentFactory documentFactory)
     /// Writes the signed-in user, or a <c>401</c> problem when the request has no session.
     /// </summary>
     /// <param name="httpContext">The current request.</param>
-    public virtual async Task HandleAsync(HttpContext httpContext)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public virtual async ValueTask HandleAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
         var response = httpContext.Response;
         response.SetNoStore();
 
-        var cancellationToken = httpContext.RequestAborted;
         var document = await documentFactory.CreateAsync(httpContext, cancellationToken);
         if (document is null)
         {
@@ -35,7 +38,8 @@ internal class BffUserHandler(IBffUserDocumentFactory documentFactory)
                 httpContext,
                 StatusCodes.Status401Unauthorized,
                 BffProblemTypes.SessionRequired,
-                "A BFF session is required."
+                "A BFF session is required.",
+                cancellationToken
             );
             return;
         }

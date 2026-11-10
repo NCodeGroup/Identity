@@ -20,10 +20,16 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
 
     #region Helpers
 
-    private async Task<PlatformSecretProtectorHolder> CreateLoadedHolderAsync() =>
+    private async ValueTask<PlatformSecretProtectorHolder> CreateLoadedHolderAsync(
+        CancellationToken cancellationToken
+    ) =>
         new()
         {
-            Protector = await GetProtectorAsync(CreateSecretServices(PlatformOwner), PlatformOwner),
+            Protector = await GetProtectorAsync(
+                CreateSecretServices(PlatformOwner),
+                PlatformOwner,
+                cancellationToken
+            ),
         };
 
     private ServiceProvider CreateDecryptorServices(PlatformSecretProtectorHolder holder)
@@ -85,7 +91,7 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
     [Fact]
     public async Task Encrypt_WhenProtectorIsLoaded_ReturnsElementThatNamesOwnerAndHoldsProtectedValue()
     {
-        var holder = await CreateLoadedHolderAsync();
+        var holder = await CreateLoadedHolderAsync(CancellationToken.None);
         var encryptor = new MasterKeyXmlEncryptor(holder);
 
         var info = encryptor.Encrypt(CreateKeyElement());
@@ -116,7 +122,7 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
     [Fact]
     public async Task EncryptThenDecrypt_RoundTripsElement()
     {
-        var holder = await CreateLoadedHolderAsync();
+        var holder = await CreateLoadedHolderAsync(CancellationToken.None);
         var encryptor = new MasterKeyXmlEncryptor(holder);
         var decryptor = new MasterKeyXmlDecryptor(CreateDecryptorServices(holder));
         var element = CreateKeyElement();
@@ -130,7 +136,7 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
     [Fact]
     public async Task Decrypt_TamperedValue_Throws()
     {
-        var holder = await CreateLoadedHolderAsync();
+        var holder = await CreateLoadedHolderAsync(CancellationToken.None);
         var encryptor = new MasterKeyXmlEncryptor(holder);
         var decryptor = new MasterKeyXmlDecryptor(CreateDecryptorServices(holder));
         var info = encryptor.Encrypt(CreateKeyElement());
@@ -148,7 +154,7 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
     [Fact]
     public async Task Decrypt_ElementWithoutValue_Throws()
     {
-        var holder = await CreateLoadedHolderAsync();
+        var holder = await CreateLoadedHolderAsync(CancellationToken.None);
         var decryptor = new MasterKeyXmlDecryptor(CreateDecryptorServices(holder));
         var element = new XElement(MasterKeyXmlFormat.EncryptedSecretName);
 
@@ -175,7 +181,7 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
     {
         const string purpose = "master-key-xml-encryptor-tests";
         const string plaintext = "data protected by the first provider";
-        var holder = await CreateLoadedHolderAsync();
+        var holder = await CreateLoadedHolderAsync(CancellationToken.None);
         var elements = new List<XElement>();
         var repository = CreateRepository(elements);
         var first = CreateDataProtectionServices(repository, holder);

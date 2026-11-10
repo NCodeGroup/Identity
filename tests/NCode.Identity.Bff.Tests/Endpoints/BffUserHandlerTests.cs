@@ -22,11 +22,14 @@ public class BffUserHandlerTests : BaseTests
         return new BffUserHandler(factory.Object);
     }
 
-    private static async Task<string> ReadBodyAsync(HttpContext httpContext)
+    private static async ValueTask<string> ReadBodyAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         httpContext.Response.Body.Position = 0;
         using var reader = new StreamReader(httpContext.Response.Body, SecureEncoding.UTF8);
-        return await reader.ReadToEndAsync();
+        return await reader.ReadToEndAsync(cancellationToken);
     }
 
     #region HandleAsync Tests
@@ -38,14 +41,14 @@ public class BffUserHandlerTests : BaseTests
         httpContext.Response.Body = new MemoryStream();
         var handler = CreateHandler(httpContext, null);
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status401Unauthorized, httpContext.Response.StatusCode);
         Assert.Equal(
             "no-store, no-cache, max-age=0",
             httpContext.Response.Headers.CacheControl.ToString()
         );
-        var body = await ReadBodyAsync(httpContext);
+        var body = await ReadBodyAsync(httpContext, CancellationToken.None);
         Assert.Contains(BffProblemTypes.SessionRequired, body);
     }
 
@@ -57,7 +60,7 @@ public class BffUserHandlerTests : BaseTests
         var document = JsonElement.Parse("""{"sub":"sub-1","claims":{"role":["admin","user"]}}""");
         var handler = CreateHandler(httpContext, document);
 
-        await handler.HandleAsync(httpContext);
+        await handler.HandleAsync(httpContext, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
         Assert.Equal("application/json; charset=utf-8", httpContext.Response.ContentType);
@@ -65,7 +68,7 @@ public class BffUserHandlerTests : BaseTests
             "no-store, no-cache, max-age=0",
             httpContext.Response.Headers.CacheControl.ToString()
         );
-        var body = await ReadBodyAsync(httpContext);
+        var body = await ReadBodyAsync(httpContext, CancellationToken.None);
         Assert.Equal(document.GetRawText(), JsonElement.Parse(body).GetRawText());
     }
 

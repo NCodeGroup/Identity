@@ -359,16 +359,17 @@ internal sealed class CrlClientCertificateRevocationSource(
             CacheKeyPrefix + uri,
             uri,
             subject,
-            () => RetrieveAsync(uri, subject),
+            (retrievalToken) => RetrieveAsync(uri, subject, retrievalToken),
             cancellationToken
         );
 
-    private async Task<RevocationRetrieval<CertificateRevocationList>> RetrieveAsync(
+    private async ValueTask<RevocationRetrieval<CertificateRevocationList>> RetrieveAsync(
         string uri,
-        string subject
+        string subject,
+        CancellationToken cancellationToken
     )
     {
-        var encoded = await Fetcher.GetAsync(uri, uri, subject, CancellationToken.None);
+        var encoded = await Fetcher.GetAsync(uri, uri, subject, cancellationToken);
         if (encoded is null)
             return default;
 

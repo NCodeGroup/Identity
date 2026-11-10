@@ -87,11 +87,11 @@ internal sealed class TenantUsageFlushService(
         // disposes the services under it.
         lock (StopGate)
         {
-            return StopTask ??= StopOnceAsync(cancellationToken);
+            return StopTask ??= StopOnceAsync(cancellationToken).AsTask();
         }
     }
 
-    private async Task StopOnceAsync(CancellationToken cancellationToken)
+    private async ValueTask StopOnceAsync(CancellationToken cancellationToken)
     {
         await base.StopAsync(cancellationToken);
 

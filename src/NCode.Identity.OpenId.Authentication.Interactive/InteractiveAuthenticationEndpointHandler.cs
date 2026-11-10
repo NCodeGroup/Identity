@@ -144,7 +144,12 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var query = httpContext.Request.Query;
         var branding = ReadBranding(httpContext);
         var security = InteractivePageSecurity.Create(branding);
-        var frame = await CreatePageFrameAsync(httpContext, branding, security);
+        var frame = await CreatePageFrameAsync(
+            httpContext,
+            branding,
+            security,
+            httpContext.RequestAborted
+        );
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             html,
@@ -170,7 +175,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var appName = "An application";
         IReadOnlyList<InteractiveAuthenticationPageRenderer.ScopeView> scopes = [];
 
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (authenticateResult.Succeeded && !string.IsNullOrEmpty(rawReturnUrl))
         {
             var openIdContext = httpContext.GetOpenIdContext();
@@ -205,9 +213,15 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var branding = ReadBranding(httpContext);
         var security = InteractivePageSecurity.Create(branding);
         var html = InteractiveHtmlResult.CreateBuffer();
+        var frame = await CreatePageFrameAsync(
+            httpContext,
+            branding,
+            security,
+            httpContext.RequestAborted
+        );
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             html,
-            await CreatePageFrameAsync(httpContext, branding, security),
+            frame,
             rawReturnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
@@ -223,13 +237,16 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetAccountPageAsync(HttpContext httpContext)
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.AccountPath);
         }
 
-        return await ServeBundleAsync(httpContext);
+        return await ServeBundleAsync(httpContext, httpContext.RequestAborted);
     }
 
     /// <summary>
@@ -238,7 +255,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetMeAsync(HttpContext httpContext)
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Unauthorized();
@@ -350,7 +370,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 openIdContext,
                 safeReturnUrl,
                 languageTag,
-                standing.Error
+                standing.Error,
+                httpContext.RequestAborted
             );
         }
 
@@ -371,14 +392,15 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         OpenIdContext openIdContext,
         string safeReturnUrl,
         string? languageTag,
-        IOpenIdError error
+        IOpenIdError error,
+        CancellationToken cancellationToken
     )
     {
         var refusal = await ContinueRefusalService.RefuseAsync(
             openIdContext,
             safeReturnUrl,
             error,
-            httpContext.RequestAborted
+            cancellationToken
         );
         if (refusal.HasHttpResult)
         {
@@ -520,7 +542,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         [FromQuery(Name = "ReturnUrl")] string? returnUrl
     )
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Unauthorized();
@@ -599,7 +624,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             return refusal.HasHttpResult ? refusal.HttpResult : TypedResults.Redirect("/");
         }
 
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Redirect(
@@ -697,7 +725,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
             html,
-            await CreatePageFrameAsync(httpContext, branding, security),
+            await CreatePageFrameAsync(httpContext, branding, security, httpContext.RequestAborted),
             returnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty
@@ -759,13 +787,16 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetApplicationsPageAsync(HttpContext httpContext)
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.ApplicationsPath);
         }
 
-        return await ServeBundleAsync(httpContext);
+        return await ServeBundleAsync(httpContext, httpContext.RequestAborted);
     }
 
     /// <summary>
@@ -774,7 +805,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetApplicationsAsync(HttpContext httpContext)
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Unauthorized();
@@ -820,7 +854,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         [FromForm(Name = "client_id")] string? clientId
     )
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.ApplicationsPath);
@@ -852,13 +889,16 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetSessionsPageAsync(HttpContext httpContext)
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.SessionsPath);
         }
 
-        return await ServeBundleAsync(httpContext);
+        return await ServeBundleAsync(httpContext, httpContext.RequestAborted);
     }
 
     /// <summary>
@@ -867,7 +907,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetSessionsAsync(HttpContext httpContext)
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Unauthorized();
@@ -923,7 +966,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         [FromForm(Name = "sid")] string? sessionId
     )
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.SessionsPath);
@@ -982,7 +1028,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         [FromForm(Name = "scope")] string? scope
     )
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.SessionsPath);
@@ -1046,13 +1095,16 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetPasswordPageAsync(HttpContext httpContext)
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.PasswordPath);
         }
 
-        return await ServeBundleAsync(httpContext);
+        return await ServeBundleAsync(httpContext, httpContext.RequestAborted);
     }
 
     /// <summary>
@@ -1071,7 +1123,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         [FromForm(Name = "confirm_password")] string? confirmPassword
     )
     {
-        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        var authenticateResult = await AuthenticateSessionAsync(
+            httpContext,
+            httpContext.RequestAborted
+        );
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.PasswordPath);
@@ -1133,7 +1188,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// ended or been revoked serves nothing. A cookie without an active session is cleared and reported as no result.
     /// </summary>
     // See ADR-1229.
-    private async ValueTask<AuthenticateResult> AuthenticateSessionAsync(HttpContext httpContext)
+    private async ValueTask<AuthenticateResult> AuthenticateSessionAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         var authenticateResult = await httpContext.AuthenticateAsync(
             InteractiveAuthenticationDefaults.CookieSchemeName
@@ -1151,7 +1209,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             || !await SessionService.ValidateAndTouchAsync(
                 httpContext.GetOpenIdContext(),
                 sessionId,
-                httpContext.RequestAborted
+                cancellationToken
             )
         )
         {
@@ -1162,11 +1220,14 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         return authenticateResult;
     }
 
-    private async ValueTask<IResult> ServeBundleAsync(HttpContext httpContext)
+    private async ValueTask<IResult> ServeBundleAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         IssueAntiforgeryTokens(httpContext);
 
-        var shell = await Bundle.TryReadIndexAsync(httpContext.RequestAborted);
+        var shell = await Bundle.TryReadIndexAsync(cancellationToken);
         if (shell is null)
         {
             return BundleMissingResult();
@@ -1187,11 +1248,12 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private async ValueTask<InteractivePageFrame> CreatePageFrameAsync(
         HttpContext httpContext,
         InteractiveBranding branding,
-        InteractivePageSecurity security
+        InteractivePageSecurity security,
+        CancellationToken cancellationToken
     ) =>
         CreatePageFrame(
             httpContext,
-            await Bundle.TryReadIndexAsync(httpContext.RequestAborted),
+            await Bundle.TryReadIndexAsync(cancellationToken),
             branding,
             security
         );

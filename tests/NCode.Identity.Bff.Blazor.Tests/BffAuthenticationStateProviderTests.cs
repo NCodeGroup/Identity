@@ -66,13 +66,17 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
             )
         );
 
-    private static Task<AuthenticationState> SignedIn(IBffConnectionSession session) =>
-        Task.FromResult(CreateConnectionState(session));
+    private static ValueTask<AuthenticationState> SignedInAsync(
+        IBffConnectionSession session,
+        CancellationToken cancellationToken
+    ) => ValueTask.FromResult(CreateConnectionState(session));
 
     private static TaskCompletionSource CreateSignal() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private async Task<IReadOnlyDictionary<string, byte[]>> PersistAsync()
+    private async ValueTask<IReadOnlyDictionary<string, byte[]>> PersistAsync(
+        CancellationToken cancellationToken
+    )
     {
         var store = new TestPersistentComponentStateStore();
         using var renderer = new TestRenderer();
@@ -104,8 +108,9 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
             .Setup(x => x.WaitUntilEndedAsync(MockSession.Object, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+        var signedIn = SignedInAsync(MockSession.Object, CancellationToken.None).AsTask();
 
-        Provider.SetAuthenticationState(SignedIn(MockSession.Object));
+        Provider.SetAuthenticationState(signedIn);
 
         var current = await Provider.GetAuthenticationStateAsync();
         Assert.False(current.User.Identity?.IsAuthenticated);
@@ -131,7 +136,8 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
             )
             .Verifiable();
         var changes = 0;
-        Provider.SetAuthenticationState(SignedIn(MockSession.Object));
+        var signedIn = SignedInAsync(MockSession.Object, CancellationToken.None).AsTask();
+        Provider.SetAuthenticationState(signedIn);
         Provider.AuthenticationStateChanged += _ => Interlocked.Increment(ref changes);
 
         await started.Task.WaitAsync(Timeout);
@@ -155,8 +161,9 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
             .Setup(x => x.WaitUntilEndedAsync(MockSession.Object, It.IsAny<CancellationToken>()))
             .Returns(() => ValueTask.FromException(new InvalidOperationException("watch failed")))
             .Verifiable();
+        var signedIn = SignedInAsync(MockSession.Object, CancellationToken.None).AsTask();
 
-        Provider.SetAuthenticationState(SignedIn(MockSession.Object));
+        Provider.SetAuthenticationState(signedIn);
 
         var current = await Provider.GetAuthenticationStateAsync();
         Assert.False(current.User.Identity?.IsAuthenticated);
@@ -192,7 +199,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
             .ReturnsAsync((JsonElement?)document)
             .Verifiable();
 
-        var persisted = await PersistAsync();
+        var persisted = await PersistAsync(CancellationToken.None);
 
         var bytes = Assert.Contains(BffUserDocumentNames.PersistedStateKey, persisted);
         var user = JsonElement.Parse(bytes);
@@ -205,7 +212,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
     {
         MockHttpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null).Verifiable();
 
-        var persisted = await PersistAsync();
+        var persisted = await PersistAsync(CancellationToken.None);
 
         Assert.Empty(persisted);
     }

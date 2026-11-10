@@ -65,8 +65,14 @@ public class OpenIdEnvironmentEndpointFilterTests : BaseTests
             .ThrowsAsync(exception)
             .Verifiable();
 
-    private ValueTask<object?> InvokeAsync(EndpointFilterDelegate next) =>
-        Filter.InvokeAsync(new DefaultEndpointFilterInvocationContext(HttpContext), next);
+    private ValueTask<object?> InvokeAsync(
+        EndpointFilterDelegate next,
+        CancellationToken cancellationToken
+    )
+    {
+        HttpContext.RequestAborted = cancellationToken;
+        return Filter.InvokeAsync(new DefaultEndpointFilterInvocationContext(HttpContext), next);
+    }
 
     #endregion
 
@@ -89,11 +95,14 @@ public class OpenIdEnvironmentEndpointFilterTests : BaseTests
             .Verifiable();
         var endpointRan = false;
 
-        var result = await InvokeAsync(_ =>
-        {
-            endpointRan = true;
-            return ValueTask.FromResult<object?>(null);
-        });
+        var result = await InvokeAsync(
+            _ =>
+            {
+                endpointRan = true;
+                return ValueTask.FromResult<object?>(null);
+            },
+            CancellationToken.None
+        );
 
         Assert.False(endpointRan);
         var openIdResult = Assert.IsAssignableFrom<IOpenIdResult>(result);
@@ -115,11 +124,14 @@ public class OpenIdEnvironmentEndpointFilterTests : BaseTests
         var endpointRan = false;
 
         var thrown = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await InvokeAsync(_ =>
-            {
-                endpointRan = true;
-                return ValueTask.FromResult<object?>(null);
-            })
+            await InvokeAsync(
+                _ =>
+                {
+                    endpointRan = true;
+                    return ValueTask.FromResult<object?>(null);
+                },
+                CancellationToken.None
+            )
         );
 
         Assert.Same(exception, thrown);
@@ -151,7 +163,10 @@ public class OpenIdEnvironmentEndpointFilterTests : BaseTests
             .Returns(mockScope.Object)
             .Verifiable();
 
-        var result = await InvokeAsync(_ => ValueTask.FromResult<object?>(expected));
+        var result = await InvokeAsync(
+            _ => ValueTask.FromResult<object?>(expected),
+            CancellationToken.None
+        );
 
         Assert.Same(expected, result);
     }

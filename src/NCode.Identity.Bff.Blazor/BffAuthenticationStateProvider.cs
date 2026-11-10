@@ -75,8 +75,9 @@ internal sealed class BffAuthenticationStateProvider
         _ = RevalidateAsync(task, source.Token).AsTask();
     }
 
-    private static Task<AuthenticationState> SignedOut() =>
-        Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())));
+    private static ValueTask<AuthenticationState> SignedOutAsync(
+        CancellationToken cancellationToken
+    ) => ValueTask.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())));
 
     private void CancelRevalidation(CancellationTokenSource? replacement)
     {
@@ -111,7 +112,8 @@ internal sealed class BffAuthenticationStateProvider
             Logger.RevalidationFaulted(exception);
         }
 
-        SetAuthenticationState(SignedOut());
+        var signedOut = SignedOutAsync(cancellationToken).AsTask();
+        SetAuthenticationState(signedOut);
     }
 
     private async Task PersistUserAsync()

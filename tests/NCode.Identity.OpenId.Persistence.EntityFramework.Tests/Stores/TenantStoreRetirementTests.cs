@@ -47,25 +47,25 @@ public sealed class TenantStoreRetirementTests : IDisposable
             DisplayName = "Tenant One",
         }.Build();
 
-    private async Task SeedTenantAsync(string? issuer)
+    private async ValueTask SeedTenantAsync(string? issuer, CancellationToken cancellationToken)
     {
-        await Store.AddAsync(CreateTenant(issuer), CancellationToken.None);
-        await SaveAndClearAsync();
+        await Store.AddAsync(CreateTenant(issuer), cancellationToken);
+        await SaveAndClearAsync(cancellationToken);
     }
 
-    private async Task SaveAndClearAsync()
+    private async ValueTask SaveAndClearAsync(CancellationToken cancellationToken)
     {
-        await DbContext.SaveChangesAsync();
+        await DbContext.SaveChangesAsync(cancellationToken);
         DbContext.ChangeTracker.Clear();
     }
 
-    private async Task ChangeIssuerAsync(string? issuer)
+    private async ValueTask ChangeIssuerAsync(string? issuer, CancellationToken cancellationToken)
     {
-        var tenant = await Store.GetOrDefaultAsync(TenantId, CancellationToken.None);
+        var tenant = await Store.GetOrDefaultAsync(TenantId, cancellationToken);
         Assert.NotNull(tenant);
         tenant.Issuer = issuer;
-        await Store.UpdateAsync(tenant, CancellationToken.None);
-        await SaveAndClearAsync();
+        await Store.UpdateAsync(tenant, cancellationToken);
+        await SaveAndClearAsync(cancellationToken);
     }
 
     #region IsTenantIdRetiredAsync Tests
@@ -73,7 +73,7 @@ public sealed class TenantStoreRetirementTests : IDisposable
     [Fact]
     public async Task IsTenantIdRetiredAsync_WhenNothingIsRetired_ReturnsFalse()
     {
-        await SeedTenantAsync(Issuer);
+        await SeedTenantAsync(Issuer, CancellationToken.None);
 
         var isRetired = await Store.IsTenantIdRetiredAsync(TenantId, CancellationToken.None);
 
@@ -87,7 +87,7 @@ public sealed class TenantStoreRetirementTests : IDisposable
     [Fact]
     public async Task GetRetiredIssuerHolderOrDefaultAsync_WhenNothingIsRetired_ReturnsNull()
     {
-        await SeedTenantAsync(Issuer);
+        await SeedTenantAsync(Issuer, CancellationToken.None);
 
         var holder = await Store.GetRetiredIssuerHolderOrDefaultAsync(
             Issuer,
@@ -104,10 +104,10 @@ public sealed class TenantStoreRetirementTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenTenantHasAnIssuer_RetiresTheIdentifierAndTheIssuer()
     {
-        await SeedTenantAsync(Issuer);
+        await SeedTenantAsync(Issuer, CancellationToken.None);
 
         var removed = await Store.RemoveAsync(TenantId, CancellationToken.None);
-        await SaveAndClearAsync();
+        await SaveAndClearAsync(CancellationToken.None);
 
         Assert.True(removed);
         Assert.True(
@@ -125,10 +125,10 @@ public sealed class TenantStoreRetirementTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenTenantHasNoIssuer_RetiresOnlyTheIdentifier()
     {
-        await SeedTenantAsync(issuer: null);
+        await SeedTenantAsync(issuer: null, CancellationToken.None);
 
         await Store.RemoveAsync(TenantId, CancellationToken.None);
-        await SaveAndClearAsync();
+        await SaveAndClearAsync(CancellationToken.None);
 
         Assert.True(await Store.IsTenantIdRetiredAsync(TenantId, CancellationToken.None));
         Assert.Empty(await DbContext.RetiredIssuers.ToListAsync());
@@ -137,12 +137,12 @@ public sealed class TenantStoreRetirementTests : IDisposable
     [Fact]
     public async Task RemoveAsync_WhenTheIssuerIsAlreadyRetired_KeepsASingleRetiredIssuer()
     {
-        await SeedTenantAsync(Issuer);
-        await ChangeIssuerAsync(NewIssuer);
-        await ChangeIssuerAsync(Issuer);
+        await SeedTenantAsync(Issuer, CancellationToken.None);
+        await ChangeIssuerAsync(NewIssuer, CancellationToken.None);
+        await ChangeIssuerAsync(Issuer, CancellationToken.None);
 
         await Store.RemoveAsync(TenantId, CancellationToken.None);
-        await SaveAndClearAsync();
+        await SaveAndClearAsync(CancellationToken.None);
 
         var retiredIssuers = await DbContext
             .RetiredIssuers.OrderBy(entity => entity.Issuer)
@@ -158,9 +158,9 @@ public sealed class TenantStoreRetirementTests : IDisposable
     [Fact]
     public async Task UpdateAsync_WhenTheIssuerChanges_RetiresThePreviousIssuer()
     {
-        await SeedTenantAsync(Issuer);
+        await SeedTenantAsync(Issuer, CancellationToken.None);
 
-        await ChangeIssuerAsync(NewIssuer);
+        await ChangeIssuerAsync(NewIssuer, CancellationToken.None);
 
         Assert.Equal(
             TenantId,
@@ -175,9 +175,9 @@ public sealed class TenantStoreRetirementTests : IDisposable
     [Fact]
     public async Task UpdateAsync_WhenTheIssuerIsCleared_RetiresThePreviousIssuer()
     {
-        await SeedTenantAsync(Issuer);
+        await SeedTenantAsync(Issuer, CancellationToken.None);
 
-        await ChangeIssuerAsync(issuer: null);
+        await ChangeIssuerAsync(issuer: null, CancellationToken.None);
 
         Assert.Equal(
             TenantId,
@@ -188,9 +188,9 @@ public sealed class TenantStoreRetirementTests : IDisposable
     [Fact]
     public async Task UpdateAsync_WhenOnlyTheIssuerCaseChanges_RetiresNothing()
     {
-        await SeedTenantAsync(Issuer);
+        await SeedTenantAsync(Issuer, CancellationToken.None);
 
-        await ChangeIssuerAsync(Issuer.ToUpperInvariant());
+        await ChangeIssuerAsync(Issuer.ToUpperInvariant(), CancellationToken.None);
 
         Assert.Empty(await DbContext.RetiredIssuers.ToListAsync());
     }

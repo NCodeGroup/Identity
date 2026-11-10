@@ -293,6 +293,23 @@ public class SinglePageBundleTests : BaseTests
         );
     }
 
+    [Theory]
+    [InlineData("favicon-abc123.ico", "image/x-icon")]
+    [InlineData("favicon-abc123.svg", "image/svg+xml")]
+    [InlineData("apple-touch-icon-abc123.png", "image/png")]
+    public void ServeAsset_WhenTheAssetIsAnIcon_ServesItWithItsImageType(
+        string fileName,
+        string contentType
+    )
+    {
+        WriteAsset(fileName, "x");
+        using var bundle = CreateBundle();
+
+        var result = bundle.ServeAsset(new DefaultHttpContext().Response, fileName);
+
+        Assert.Equal(contentType, Assert.IsType<PhysicalFileHttpResult>(result).ContentType);
+    }
+
     [Fact]
     public void ServeAsset_WhenTheAssetIsMissing_AnswersNotFoundWithoutACacheLifetime()
     {

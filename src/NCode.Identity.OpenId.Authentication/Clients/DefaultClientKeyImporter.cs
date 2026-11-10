@@ -5,7 +5,6 @@ using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose.Algorithms;
@@ -36,6 +35,9 @@ internal class DefaultClientKeyImporter(
     IAlgorithmCollectionProvider algorithmCollectionProvider
 ) : IClientKeyImporter
 {
+    private const string KeyTypeMemberError =
+        "Every key in the JSON Web Key Set must be a JSON object with a 'kty' member.";
+
     // RFC 7517 §4.3: the key operations that belong to each public key use. An operation outside both is not judged.
     private static FrozenSet<string> SignatureOperations { get; } =
         new[] { JsonWebKeyOperations.Sign, JsonWebKeyOperations.Verify }.ToFrozenSet(
@@ -79,8 +81,7 @@ internal class DefaultClientKeyImporter(
         {
             if (!TryGetKey(element, out var key))
             {
-                error =
-                    "Every key in the JSON Web Key Set must be a JSON object with a 'kty' member.";
+                error = KeyTypeMemberError;
                 return false;
             }
 
@@ -273,61 +274,65 @@ internal class DefaultClientKeyImporter(
     }
 
     /// <summary>
-    /// Names a key of a registered set that declares no <c>kid</c> by its RFC 7638 thumbprint, which any holder of the
-    /// key computes. A key that declares a <c>kid</c>, or a <c>kid</c> of another JSON type, is returned unchanged.
+    /// Names a key of a registered set that declares no <c>kid</c> (absent, JSON <c>null</c> or empty) by its RFC 7638
+    /// thumbprint, which any holder of the key computes. A key that declares a <c>kid</c>, a <c>kid</c> of another JSON
+    /// type, or a <c>kty</c> the server has no rules for is returned unchanged, so the import reports it.
     /// </summary>
-    private bool TryNameKey(
+    private static bool TryNameKey(
         JsonWebKey key,
         [NotNullWhen(true)] out JsonWebKey? named,
         [NotNullWhen(false)] out string? error
     )
     {
-        var element = key.AsElement();
-        if (element.TryGetProperty(JsonWebKeyParameterNames.KeyId, out var kid))
+        named = key;
+        error = null;
+
+        if (key.KeyTypeDescriptor is null || DeclaresKeyId(key))
+            return true;
+
+        if (!TryComputeThumbprint(key, out var thumbprint, out error))
         {
-            var isNamed =
-                kid.ValueKind != JsonValueKind.String || kid.GetString() is { Length: > 0 };
-            if (isNamed)
-            {
-                named = key;
-                error = null;
-                return true;
-            }
+            named = null;
+            return false;
         }
 
-        string thumbprint;
+        named = key.WithKeyId(thumbprint);
+        return true;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the key declares a usable <c>kid</c>: a non-empty string, or a value of another
+    /// JSON type that the member validation reports. An absent member, JSON <c>null</c> and an empty string declare none.
+    /// </summary>
+    private static bool DeclaresKeyId(JsonWebKey key)
+    {
+        var element = key.AsElement();
+        if (element.TryGetPropertyValue<string>(JsonWebKeyParameterNames.KeyId, out var kid))
+            return kid.Length > 0;
+
+        return element.TryGetPropertyValue<JsonElement>(JsonWebKeyParameterNames.KeyId, out var raw)
+            && !raw.IsNullOrUndefined();
+    }
+
+    private static bool TryComputeThumbprint(
+        JsonWebKey key,
+        [NotNullWhen(true)] out string? thumbprint,
+        [NotNullWhen(false)] out string? error
+    )
+    {
         try
         {
             thumbprint = key.ComputeThumbprint();
+            error = null;
+            return true;
         }
         catch (Exception exception)
             when (exception is InvalidOperationException or ArgumentException)
         {
-            named = null;
+            thumbprint = null;
             error = $"The key could not be named: {exception.Message}";
             return false;
         }
-
-        var rawText = key.ToJsonString();
-        var members = JsonNode.Parse(rawText) as JsonObject;
-        if (members is null)
-        {
-            named = null;
-            error = "Every key in the JSON Web Key Set must be a JSON object with a 'kty' member.";
-            return false;
-        }
-
-        members[JsonWebKeyParameterNames.KeyId] = thumbprint;
-        var namedText = members.ToJsonString();
-        var namedElement = JsonElement.Parse(namedText);
-        if (!TryGetKey(namedElement, out named))
-        {
-            error = "Every key in the JSON Web Key Set must be a JSON object with a 'kty' member.";
-            return false;
-        }
-
-        error = null;
-        return true;
     }
 
     private bool TryParseKey(string keyMaterial, [NotNullWhen(true)] out JsonWebKey? key)

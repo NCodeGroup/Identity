@@ -5,6 +5,7 @@ using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose.Algorithms;
@@ -83,12 +84,15 @@ internal class DefaultClientKeyImporter(
                 return false;
             }
 
-            if (!TryImportSetKey(key, createdWhen, out var secret, out error))
+            if (!TryNameKey(key, out var named, out error))
                 return false;
 
-            if (!keyIds.Add(key.KeyId ?? string.Empty))
+            if (!TryImportSetKey(named, createdWhen, out var secret, out error))
+                return false;
+
+            if (!keyIds.Add(named.KeyId ?? string.Empty))
             {
-                error = DuplicateKeyIdError(key);
+                error = DuplicateKeyIdError(named);
                 return false;
             }
 
@@ -268,6 +272,64 @@ internal class DefaultClientKeyImporter(
         return false;
     }
 
+    /// <summary>
+    /// Names a key of a registered set that declares no <c>kid</c> by its RFC 7638 thumbprint, which any holder of the
+    /// key computes. A key that declares a <c>kid</c>, or a <c>kid</c> of another JSON type, is returned unchanged.
+    /// </summary>
+    private bool TryNameKey(
+        JsonWebKey key,
+        [NotNullWhen(true)] out JsonWebKey? named,
+        [NotNullWhen(false)] out string? error
+    )
+    {
+        var element = key.AsElement();
+        if (element.TryGetProperty(JsonWebKeyParameterNames.KeyId, out var kid))
+        {
+            var isNamed =
+                kid.ValueKind != JsonValueKind.String || kid.GetString() is { Length: > 0 };
+            if (isNamed)
+            {
+                named = key;
+                error = null;
+                return true;
+            }
+        }
+
+        string thumbprint;
+        try
+        {
+            thumbprint = key.ComputeThumbprint();
+        }
+        catch (Exception exception)
+            when (exception is InvalidOperationException or ArgumentException)
+        {
+            named = null;
+            error = $"The key could not be named: {exception.Message}";
+            return false;
+        }
+
+        var rawText = key.ToJsonString();
+        var members = JsonNode.Parse(rawText) as JsonObject;
+        if (members is null)
+        {
+            named = null;
+            error = "Every key in the JSON Web Key Set must be a JSON object with a 'kty' member.";
+            return false;
+        }
+
+        members[JsonWebKeyParameterNames.KeyId] = thumbprint;
+        var namedText = members.ToJsonString();
+        var namedElement = JsonElement.Parse(namedText);
+        if (!TryGetKey(namedElement, out named))
+        {
+            error = "Every key in the JSON Web Key Set must be a JSON object with a 'kty' member.";
+            return false;
+        }
+
+        error = null;
+        return true;
+    }
+
     private bool TryParseKey(string keyMaterial, [NotNullWhen(true)] out JsonWebKey? key)
     {
         JsonElement element;
@@ -309,7 +371,8 @@ internal class DefaultClientKeyImporter(
             return false;
         }
 
-        // Keys are selected by 'kid', which the client names its keys by; the server never invents one for it.
+        // Keys are selected by 'kid'. A registered set names an unnamed key by its thumbprint before this point, and a
+        // published set ignores a key without one.
         if (string.IsNullOrEmpty(key.KeyId))
         {
             error = "Every key in the JSON Web Key Set must have a 'kid'.";

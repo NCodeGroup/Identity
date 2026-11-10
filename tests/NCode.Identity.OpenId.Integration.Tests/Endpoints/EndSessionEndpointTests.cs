@@ -29,10 +29,15 @@ public class EndSessionEndpointTests
     public async Task GetEndSession_WhenSignedInWithoutAnIdTokenHint_RedirectsToTheConfirmationAndKeepsTheSession()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var request = new HttpRequestMessage(HttpMethod.Get, EndSessionPath);
         request.Headers.Add("Cookie", $"{InteractiveCookieName}={sessionCookie}");
@@ -56,15 +61,21 @@ public class EndSessionEndpointTests
     public async Task ConfirmEndSession_WhenTheEndUserConfirms_ClearsTheSessionCookieAndRendersLoggedOut()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var response = await InteractiveLogin.ConfirmEndSessionAsync(
             client,
             EndSessionPath,
-            sessionCookie
+            sessionCookie,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -81,16 +92,22 @@ public class EndSessionEndpointTests
     public async Task ConfirmEndSession_WhenTheEndUserCancels_KeepsTheSession()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var cancel = await InteractiveLogin.AnswerEndSessionConfirmationAsync(
             client,
             EndSessionPath,
             sessionCookie,
-            "cancel"
+            "cancel",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, cancel.StatusCode);
@@ -111,10 +128,15 @@ public class EndSessionEndpointTests
     )
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var challengeRequest = new HttpRequestMessage(HttpMethod.Get, EndSessionPath);
         challengeRequest.Headers.Add("Cookie", $"{InteractiveCookieName}={sessionCookie}");
@@ -162,11 +184,21 @@ public class EndSessionEndpointTests
     public async Task ContinueEndSession_WhenAnotherSessionIsSignedIn_RefusesTheLogout()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var cookieA = await InteractiveLogin.SignInAsync(client, UserName, Password);
-        var cookieB = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var cookieA = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+        var cookieB = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var challengeRequest = new HttpRequestMessage(HttpMethod.Get, EndSessionPath);
         challengeRequest.Headers.Add("Cookie", $"{InteractiveCookieName}={cookieA}");
@@ -203,7 +235,8 @@ public class EndSessionEndpointTests
                     "https://rp.example/apr\u00e8s-logout",
                 },
             },
-            "https://rp.example/callback"
+            ["https://rp.example/callback"],
+            CancellationToken.None
         );
 
         var client = factory.CreateClient(
@@ -236,7 +269,8 @@ public class EndSessionEndpointTests
             {
                 [OpenIdSettingNames.PostLogoutRedirectUris] = new[] { "myapp://logout" },
             },
-            "https://rp.example/callback"
+            ["https://rp.example/callback"],
+            CancellationToken.None
         );
 
         var client = factory.CreateClient(

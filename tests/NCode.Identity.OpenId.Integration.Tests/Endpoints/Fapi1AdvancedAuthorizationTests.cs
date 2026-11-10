@@ -73,7 +73,8 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
             {
                 ["security_profiles"] = new[] { OpenIdConstants.SecurityProfiles.Fapi1Advanced },
             },
-            redirectUri
+            [redirectUri],
+            CancellationToken.None
         );
     }
 
@@ -306,10 +307,15 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         const string clientId = "it-fapi1-authorize-jwt";
 
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await SeedFapiClientAsync(factory, clientId);
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         var requestObject = CreateRequestObject(clientId, issuer, responseMode: "jwt");
 
@@ -352,7 +358,8 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
             {
                 ["security_profiles"] = new[] { OpenIdConstants.SecurityProfiles.Fapi1Advanced },
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var client = CreateClient(factory);
         var query =

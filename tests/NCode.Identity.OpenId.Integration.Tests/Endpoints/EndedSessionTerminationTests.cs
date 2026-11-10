@@ -76,7 +76,12 @@ public class EndedSessionTerminationTests
     // Signs in, authorizes and redeems the code for the refresh token of the new session.
     private static async Task<string> IssueRefreshTokenAsync(HttpClient client, string clientId)
     {
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var code = await GetCodeAsync(client, sessionCookie, clientId);
         var (statusCode, body) = await PostTokenAsync(
@@ -143,8 +148,8 @@ public class EndedSessionTerminationTests
     {
         const string clientId = "it-ended-session";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         using var host = factory.WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(serviceCollection =>
                 serviceCollection.Configure<EndedSessionTerminationOptions>(options =>

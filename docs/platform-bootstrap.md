@@ -142,7 +142,7 @@ Manual because AWS accounts and the identity used to administer them must exist 
    if no IAM administrator exists yet; once IAM Identity Center is set up (item 4), stop using the root user.
 2. **Member account:** Organizations → *Add an AWS account* → *Create an AWS account*: name `nidentity-platform`, email
    a unique alias of `<recovery-email>` (for example a `+aws-platform` sub-address), IAM role name left as
-   `OrganizationAccountAccessRole`, tags `application` = `ncode-identity` and `owner_email` = `platform@<domain>`
+   `OrganizationAccountAccessRole`, tags `application` = `ncode-identity` and `owner_email` = `platform@<brand-domain>`
    ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)). Leave it directly under *Root* — one
    workload account needs no organizational units. It is billed to the management account — no new payment method.
    Record its account ID: it goes into `live/bootstrap/terraform.tfvars` as `aws_account_id`.
@@ -227,10 +227,11 @@ can't create it. Everything after it runs from GitHub Actions.
    then `tofu init`, `tofu plan -out bootstrap.tfplan`, review the plan (everything is an add, plus one import, and
    nothing changes or is destroyed), and `tofu apply bootstrap.tfplan`. The local state file and the plan are already
    encrypted with the passphrase. The apply creates the S3 state and backup buckets, the KMS keys, the GitHub OIDC
-   provider and roles, the Cloudflare zone, DNSSEC, and scoped tokens (stored as SSM SecureStrings), the budget alert,
-   and the repository's rulesets and `lab` / `production` environments — importing the repository from section 2
-   rather than creating it. If DNSSEC fails because the zone is still pending, continue and re-run `tofu apply` after
-   section 7.
+   provider and roles, one Cloudflare zone per platform domain with DNSSEC, the redirect rules (Cloudflare Single
+   Redirect rules on the proxied apex and `www` records of `<platform-domain>` and `<redirect-domains>`), and a scoped
+   token per zone (stored as SSM SecureStrings), the budget alert, and the repository's rulesets and `lab` /
+   `production` environments — importing the repository from section 2 rather than creating it. If DNSSEC fails
+   because a zone is still pending, continue and re-run `tofu apply` after section 7.
 5. **Move the state into the bucket it created:** delete `backend_override.tf`, run `tofu init -migrate-state`
    (answer `yes`), then delete the local `terraform.tfstate`, `terraform.tfstate.backup`, and `bootstrap.tfplan`.
 6. **Revoke** the Cloudflare bootstrap token and the GitHub token; let the AWS session expire.
@@ -244,31 +245,37 @@ expire 30 days after their scheduled rotation. Re-run it too whenever `live/boot
 limit such a re-run to what changed so the DNSSEC update stays out of it — for example
 `tofu plan '-target=module.github_oidc' '-out=bootstrap.tfplan'`; quote the argument, or PowerShell splits it at the dot.
 
-## 7. Delegate the domain
+## 7. Delegate the domains
 
 Manual because it is a registrar change (step 1). Order matters for DNSSEC: publish a DS record only once the zone it
 describes is the one answering, or validating resolvers reject the domain.
 
-1. In Porkbun → *Domain Management* → `<domain>` → *Details*: if a **DNSSEC** record is listed, delete it first (it
+Do items 1–4 for each of the platform's domains in turn, using that domain's zone `name_servers` and `dnssec_ds`
+bootstrap outputs.
+
+1. In Porkbun → *Domain Management* → the domain → *Details*: if a **DNSSEC** record is listed, delete it first (it
    describes the registrar's old zone).
 2. *Authoritative Nameservers* → *Edit* → replace them with the two Cloudflare name servers from the bootstrap outputs
-   (`name_servers`).
+   (`name_servers`) of that domain's zone.
 3. Wait until Cloudflare reports the zone **Active** (email, or the zone's *Overview*) **and** public resolvers have
    dropped the registrar's name servers from their caches — up to the old NS records' TTL, which is **24 hours** for
-   Porkbun (`(Resolve-DnsName <domain> -Type NS -Server 1.1.1.1).TTL` shows the time left). Cloudflare turns *Active*
-   as soon as the registry delegates to it, long before every cache agrees.
-4. *DNSSEC* → *Add* the DS record from the bootstrap output `dnssec_ds`: key tag, algorithm (`13`, ECDSA P-256 SHA-256),
-   digest type (`2`, SHA-256), and digest.
+   Porkbun (`(Resolve-DnsName <platform-domain> -Type NS -Server 1.1.1.1).TTL` shows the time left). Cloudflare turns
+   *Active* as soon as the registry delegates to it, long before every cache agrees.
+4. *DNSSEC* → *Add* the DS record from that zone's bootstrap output `dnssec_ds`: key tag, algorithm (`13`, ECDSA P-256
+   SHA-256), digest type (`2`, SHA-256), and digest.
 
-**Verify:** `Resolve-DnsName <domain> -Type NS -Server 1.1.1.1` returns the Cloudflare nameservers;
-`Resolve-DnsName <domain> -Type DS -Server 1.1.1.1` returns the DS record; [DNSViz](https://dnsviz.net/) shows a secure
-chain for `<domain>`.
+**Verify** for each domain: `Resolve-DnsName <platform-domain> -Type NS -Server 1.1.1.1` returns the Cloudflare
+nameservers; `Resolve-DnsName <platform-domain> -Type DS -Server 1.1.1.1` returns the DS record;
+[DNSViz](https://dnsviz.net/) shows a secure chain for `<platform-domain>`. Run all three with each of the platform's
+domains in place of `<platform-domain>`, for example
+`foreach ($d in 'ncodeid.net', 'ncodeid.com', 'ncodeidentity.com', 'ncodeidentity.net') { Resolve-DnsName $d -Type DS
+-Server 1.1.1.1 }`.
 
 ## 8. Confirm inbound email
 
 Inbound email routing (`security@`, `platform@`, `postmaster@`, `abuse@`, vendor aliases) is created by the CI-managed
-`live/global` root; until its first apply, mail to `@<domain>` — including the AWS budget alerts sent to `platform@` —
-bounces. Manual because the forwarding mailbox is personal data that never enters the repository, and because only its
+`live/global` root, on `<brand-domain>`; the other zones accept no mail. Until its first apply, mail to
+`@<brand-domain>` — including the AWS budget alerts sent to `platform@<brand-domain>` — bounces. Manual because the forwarding mailbox is personal data that never enters the repository, and because only its
 owner can confirm it.
 
 1. **Store the forwarding mailbox** for the two scopes that read it (the plan role reads `plan`, the production apply
@@ -289,14 +296,16 @@ owner can confirm it.
    is not verified`) — expected.
 3. Click the Cloudflare **destination verification** link sent to the forwarding mailbox, then on the failed run choose
    **Re-run all jobs** (so it plans again; the old plan is stale) and approve the new `production` deployment.
-4. In the mailbox, add a filter for mail to `*@<domain>`: never send to spam, apply a label.
+4. In the mailbox, add a filter for mail to `*@<brand-domain>`: never send to spam, apply a label.
 
-**Verify:** a test message to `security@<domain>` from a different account (Gmail hides a forwarded copy of your own
+**Verify:** a test message to `security@<brand-domain>` from a different account (Gmail hides a forwarded copy of your own
 message) arrives in the mailbox; one to an unlisted address is dropped. Senders whose resolver still caches the
 registrar's name servers (section 7) can't find the MX records until that cache expires.
 
 ## 9. Close out
 
+- [ ] `<platform-domain>` and `<brand-domain>` renewed to the registry's 10-year maximum; auto-renew on for every
+      domain.
 - [ ] Bootstrap tokens revoked; no credentials in shell history or files.
 - [ ] 2FA confirmed on Porkbun, GitHub, Cloudflare, and AWS (Identity Center) — and on OCI once section 5 is done.
 - [ ] Budget alert present on AWS (created by the bootstrap stack) — and on OCI once the lab's stack creates it.

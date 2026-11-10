@@ -54,20 +54,24 @@ public class BffFrontendsEndToEndTests
             keySet,
             valueSet,
             indexSet,
-            extraConfiguration: new Dictionary<string, string?>
+            new BffTestHostOptions
             {
-                [$"{AdminPrefix}:Selection:Rule"] = "path",
-                [$"{AdminPrefix}:Selection:Values:0"] = "/admin",
-                [$"{AdminPrefix}:Authority"] = HostApplicationFactory.TestServerIssuer,
-                [$"{AdminPrefix}:PublicOrigin"] = "https://bff.example",
-                [$"{AdminPrefix}:ClientId"] = AdminClientId,
-                [$"{AdminPrefix}:ClientAuthentication:Method"] = OpenIdProtocol
-                    .ClientAuthenticationMethods
-                    .ClientSecretBasic,
-                [$"{AdminPrefix}:ClientAuthentication:KeyRing"] = BffTestHost.KeyRing,
-                [$"{AdminPrefix}:ReturnUrls:0"] = "/admin",
-                [$"{AdminPrefix}:PathPrefix"] = "/admin/bff",
-            }
+                ExtraConfiguration = new Dictionary<string, string?>
+                {
+                    [$"{AdminPrefix}:Selection:Rule"] = "path",
+                    [$"{AdminPrefix}:Selection:Values:0"] = "/admin",
+                    [$"{AdminPrefix}:Authority"] = HostApplicationFactory.TestServerIssuer,
+                    [$"{AdminPrefix}:PublicOrigin"] = "https://bff.example",
+                    [$"{AdminPrefix}:ClientId"] = AdminClientId,
+                    [$"{AdminPrefix}:ClientAuthentication:Method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretBasic,
+                    [$"{AdminPrefix}:ClientAuthentication:KeyRing"] = BffTestHost.KeyRing,
+                    [$"{AdminPrefix}:ReturnUrls:0"] = "/admin",
+                    [$"{AdminPrefix}:PathPrefix"] = "/admin/bff",
+                },
+            },
+            CancellationToken.None
         );
 
         var browser = factory.CreateClient(
@@ -87,20 +91,54 @@ public class BffFrontendsEndToEndTests
         const string webUserPath = "/bff/user";
         const string adminUserPath = "/admin/bff/user";
 
-        await LoginAsync(browser, providerSession, host, "/bff/login?returnUrl=%2F");
-        var webUserStatus = await GetStatusAsync(host, webUserPath, csrf);
+        await LoginAsync(
+            browser,
+            providerSession,
+            host,
+            "/bff/login?returnUrl=%2F",
+            CancellationToken.None
+        );
+        var webUserStatus = await GetStatusAsync(host, webUserPath, csrf, CancellationToken.None);
         Assert.Equal(HttpStatusCode.OK, webUserStatus);
-        var unauthenticatedAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        var unauthenticatedAdminUserStatus = await GetStatusAsync(
+            host,
+            adminUserPath,
+            csrf,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Unauthorized, unauthenticatedAdminUserStatus);
 
-        await LoginAsync(browser, providerSession, host, "/admin/bff/login?returnUrl=%2Fadmin");
-        var adminSessionWebUserStatus = await GetStatusAsync(host, webUserPath, csrf);
+        await LoginAsync(
+            browser,
+            providerSession,
+            host,
+            "/admin/bff/login?returnUrl=%2Fadmin",
+            CancellationToken.None
+        );
+        var adminSessionWebUserStatus = await GetStatusAsync(
+            host,
+            webUserPath,
+            csrf,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, adminSessionWebUserStatus);
-        var adminSessionAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        var adminSessionAdminUserStatus = await GetStatusAsync(
+            host,
+            adminUserPath,
+            csrf,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, adminSessionAdminUserStatus);
 
         string logoutSid;
-        using (var user = await host.SendAsync(HttpMethod.Get, webUserPath, csrf))
+        using (
+            var user = await host.SendAsync(
+                HttpMethod.Get,
+                webUserPath,
+                [csrf],
+                CancellationToken.None
+            )
+        )
         {
             var body = JsonElement.Parse(await user.Content.ReadAsStringAsync());
             logoutSid = body.GetProperty("logoutSid").GetString() ?? string.Empty;
@@ -111,14 +149,32 @@ public class BffFrontendsEndToEndTests
         using var form = new FormUrlEncodedContent(
             new Dictionary<string, string> { ["sid"] = logoutSid, ["returnUrl"] = "/" }
         );
-        using (var logout = await host.SendAsync(HttpMethod.Post, "/bff/logout", form))
+        using (
+            var logout = await host.SendAsync(
+                HttpMethod.Post,
+                "/bff/logout",
+                form,
+                [],
+                CancellationToken.None
+            )
+        )
         {
             Assert.Equal(HttpStatusCode.Redirect, logout.StatusCode);
         }
 
-        var loggedOutWebUserStatus = await GetStatusAsync(host, webUserPath, csrf);
+        var loggedOutWebUserStatus = await GetStatusAsync(
+            host,
+            webUserPath,
+            csrf,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Unauthorized, loggedOutWebUserStatus);
-        var retainedAdminUserStatus = await GetStatusAsync(host, adminUserPath, csrf);
+        var retainedAdminUserStatus = await GetStatusAsync(
+            host,
+            adminUserPath,
+            csrf,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, retainedAdminUserStatus);
     }
 
@@ -126,16 +182,17 @@ public class BffFrontendsEndToEndTests
 
     #region Scaffolding
 
-    private static async Task LoginAsync(
+    private static async ValueTask LoginAsync(
         HttpClient browser,
         string providerSession,
         BffTestHost host,
-        string loginPath
+        string loginPath,
+        CancellationToken cancellationToken
     )
     {
         var pathAndQuery =
             $"{loginPath}&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
-        using var login = await host.SendAsync(HttpMethod.Get, pathAndQuery);
+        using var login = await host.SendAsync(HttpMethod.Get, pathAndQuery, [], cancellationToken);
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
         var authorizeUri = login.Headers.Location;
         Assert.NotNull(authorizeUri);
@@ -145,21 +202,27 @@ public class BffFrontendsEndToEndTests
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={providerSession}"
         );
-        using var authorize = await browser.SendAsync(authorizeRequest);
+        using var authorize = await browser.SendAsync(authorizeRequest, cancellationToken);
         var callbackUri = authorize.Headers.Location;
         Assert.NotNull(callbackUri);
 
-        using var callback = await host.SendAsync(HttpMethod.Get, callbackUri.PathAndQuery);
+        using var callback = await host.SendAsync(
+            HttpMethod.Get,
+            callbackUri.PathAndQuery,
+            [],
+            cancellationToken
+        );
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
     }
 
-    private static async Task<HttpStatusCode> GetStatusAsync(
+    private static async ValueTask<HttpStatusCode> GetStatusAsync(
         BffTestHost host,
         string path,
-        (string Name, string Value) csrf
+        (string Name, string Value) csrf,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await host.SendAsync(HttpMethod.Get, path, csrf);
+        using var response = await host.SendAsync(HttpMethod.Get, path, [csrf], cancellationToken);
         return response.StatusCode;
     }
 

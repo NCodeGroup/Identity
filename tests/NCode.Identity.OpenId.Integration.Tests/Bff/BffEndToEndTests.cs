@@ -28,19 +28,20 @@ public class BffEndToEndTests
 
     #region Login Tests
 
-    private static async Task SeedAsync(
+    private static async ValueTask SeedAsync(
         HostApplicationFactory factory,
-        IReadOnlyDictionary<string, object>? settings = null
+        IReadOnlyDictionary<string, object>? settings,
+        CancellationToken cancellationToken
     )
     {
-        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedLocalAccountAsync(UserName, Password, cancellationToken);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             BffTestHost.ClientId,
             BffTestHost.ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             settings ?? NoSettings,
             [BffTestHost.CallbackUri],
-            CancellationToken.None
+            cancellationToken
         );
     }
 
@@ -48,7 +49,7 @@ public class BffEndToEndTests
     public async Task Login_WithUserInfoLoad_CreatesTheSessionWithTheUserInfoClaims()
     {
         using var factory = new HostApplicationFactory();
-        await SeedAsync(factory);
+        await SeedAsync(factory, settings: null, CancellationToken.None);
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var host = await BffTestHost.StartAsync(
@@ -56,15 +57,19 @@ public class BffEndToEndTests
             keySet,
             valueSet,
             indexSet,
-            extraConfiguration: new Dictionary<string, string?>
+            new BffTestHostOptions
             {
-                [$"{BffTestHost.ConfigurationPrefix}:UserInfo:Load"] = "true",
+                ExtraConfiguration = new Dictionary<string, string?>
+                {
+                    [$"{BffTestHost.ConfigurationPrefix}:UserInfo:Load"] = "true",
+                },
+                Exchanges = exchanges,
             },
-            exchanges: exchanges
+            CancellationToken.None
         );
 
         // The callback requests UserInfo with the new access token; a failure would redirect with an error instead.
-        using var callback = await CompleteLoginAsync(factory, host);
+        using var callback = await CompleteLoginAsync(factory, host, CancellationToken.None);
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
         Assert.Equal("/", callback.Headers.Location?.OriginalString);
 
@@ -80,7 +85,8 @@ public class BffEndToEndTests
         using var user = await host.SendAsync(
             HttpMethod.Get,
             $"{BffDefaults.EndpointPrefix}/user",
-            csrf
+            [csrf],
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.OK, user.StatusCode);
     }
@@ -94,7 +100,8 @@ public class BffEndToEndTests
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.UserInfoSignedResponseAlg] = "RS256",
-            }
+            },
+            CancellationToken.None
         );
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
@@ -103,16 +110,20 @@ public class BffEndToEndTests
             keySet,
             valueSet,
             indexSet,
-            extraConfiguration: new Dictionary<string, string?>
+            new BffTestHostOptions
             {
-                [$"{BffTestHost.ConfigurationPrefix}:UserInfo:Load"] = "true",
-                [$"{BffTestHost.ConfigurationPrefix}:UserInfo:SigningAlgorithms:0"] = "RS256",
+                ExtraConfiguration = new Dictionary<string, string?>
+                {
+                    [$"{BffTestHost.ConfigurationPrefix}:UserInfo:Load"] = "true",
+                    [$"{BffTestHost.ConfigurationPrefix}:UserInfo:SigningAlgorithms:0"] = "RS256",
+                },
+                Exchanges = exchanges,
             },
-            exchanges: exchanges
+            CancellationToken.None
         );
 
         // A UserInfo response that failed its validation would redirect with userinfo_failed instead.
-        using var callback = await CompleteLoginAsync(factory, host);
+        using var callback = await CompleteLoginAsync(factory, host, CancellationToken.None);
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
         Assert.Equal("/", callback.Headers.Location?.OriginalString);
 
@@ -160,42 +171,46 @@ public class BffEndToEndTests
             keySet,
             valueSet,
             indexSet,
-            extraConfiguration: new Dictionary<string, string?>
+            new BffTestHostOptions
             {
-                [$"{prefix}:ClientAuthentication:Method"] = OpenIdProtocol
-                    .ClientAuthenticationMethods
-                    .PrivateKeyJwt,
-                [$"{prefix}:ClientAuthentication:KeyRing"] = clientRing,
-                [$"{prefix}:DPoP:KeyRing"] = dpopRing,
-                [$"{prefix}:Jwks:Enabled"] = "true",
-                [$"{prefix}:IdToken:KeyManagementAlgorithms:0"] = "RSA-OAEP-256",
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:Provider"] =
-                    TestRemoteKeyProvider.ProviderName,
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:KeyId"] = clientSignKmsKeyId,
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:Algorithm"] = "ES256",
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:SecretType"] = "ecc",
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:KeySizeBits"] = "256",
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:Curve"] = "P-256",
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:Provider"] =
-                    TestRemoteKeyProvider.ProviderName,
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:KeyId"] = clientEncKmsKeyId,
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:Algorithm"] = "RSA-OAEP-256",
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:SecretType"] = "rsa",
-                [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:KeySizeBits"] = "3072",
-                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Provider"] =
-                    TestRemoteKeyProvider.ProviderName,
-                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:KeyId"] = dpopKmsKeyId,
-                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Algorithm"] = "ES256",
-                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:SecretType"] = "ecc",
-                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:KeySizeBits"] = "256",
-                [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Curve"] = "P-256",
+                ExtraConfiguration = new Dictionary<string, string?>
+                {
+                    [$"{prefix}:ClientAuthentication:Method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .PrivateKeyJwt,
+                    [$"{prefix}:ClientAuthentication:KeyRing"] = clientRing,
+                    [$"{prefix}:DPoP:KeyRing"] = dpopRing,
+                    [$"{prefix}:Jwks:Enabled"] = "true",
+                    [$"{prefix}:IdToken:KeyManagementAlgorithms:0"] = "RSA-OAEP-256",
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:Provider"] =
+                        TestRemoteKeyProvider.ProviderName,
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:KeyId"] = clientSignKmsKeyId,
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:Algorithm"] = "ES256",
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:SecretType"] = "ecc",
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:KeySizeBits"] = "256",
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-sig:Curve"] = "P-256",
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:Provider"] =
+                        TestRemoteKeyProvider.ProviderName,
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:KeyId"] = clientEncKmsKeyId,
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:Algorithm"] = "RSA-OAEP-256",
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:SecretType"] = "rsa",
+                    [$"Bff:KeyRings:{clientRing}:RemoteKeys:client-enc:KeySizeBits"] = "3072",
+                    [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Provider"] =
+                        TestRemoteKeyProvider.ProviderName,
+                    [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:KeyId"] = dpopKmsKeyId,
+                    [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Algorithm"] = "ES256",
+                    [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:SecretType"] = "ecc",
+                    [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:KeySizeBits"] = "256",
+                    [$"Bff:KeyRings:{dpopRing}:RemoteKeys:dpop-sig:Curve"] = "P-256",
+                },
+                Exchanges = exchanges,
+                ConfigureServices = serviceCollection =>
+                {
+                    serviceCollection.AddSingleton<IRemoteKeyProvider>(kms);
+                    serviceCollection.AddSingleton<IRemoteKeyDescriptorSource>(kms);
+                },
             },
-            exchanges: exchanges,
-            configureServices: serviceCollection =>
-            {
-                serviceCollection.AddSingleton<IRemoteKeyProvider>(kms);
-                serviceCollection.AddSingleton<IRemoteKeyDescriptorSource>(kms);
-            }
+            CancellationToken.None
         );
 
         // Each remote key is proved when the host starts: a signature for each signing key, a decryption for the other.
@@ -206,7 +221,9 @@ public class BffEndToEndTests
 
         using var jwksResponse = await host.SendAsync(
             HttpMethod.Get,
-            $"{BffDefaults.EndpointPrefix}/jwks"
+            $"{BffDefaults.EndpointPrefix}/jwks",
+            [],
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.OK, jwksResponse.StatusCode);
         var jwksBody = await jwksResponse.Content.ReadAsStringAsync();
@@ -215,7 +232,7 @@ public class BffEndToEndTests
         Assert.DoesNotContain("dpop-sig", jwksBody, StringComparison.Ordinal);
         jwks = jwksBody;
 
-        using var callback = await CompleteLoginAsync(factory, host);
+        using var callback = await CompleteLoginAsync(factory, host, CancellationToken.None);
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
         Assert.Equal("/", callback.Headers.Location?.OriginalString);
 
@@ -236,9 +253,10 @@ public class BffEndToEndTests
         Assert.Equal(1, kms.DecryptionCount - decryptionsAfterStart);
     }
 
-    private static async Task<HttpResponseMessage> CompleteLoginAsync(
+    private static async ValueTask<HttpResponseMessage> CompleteLoginAsync(
         HostApplicationFactory factory,
-        BffTestHost host
+        BffTestHost host,
+        CancellationToken cancellationToken
     )
     {
         var browser = factory.CreateClient(
@@ -252,12 +270,12 @@ public class BffEndToEndTests
             browser,
             UserName,
             Password,
-            CancellationToken.None
+            cancellationToken
         );
 
         var loginPath =
             $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
-        using var login = await host.SendAsync(HttpMethod.Get, loginPath);
+        using var login = await host.SendAsync(HttpMethod.Get, loginPath, [], cancellationToken);
         var authorizeUri = login.Headers.Location;
         Assert.NotNull(authorizeUri);
 
@@ -266,20 +284,32 @@ public class BffEndToEndTests
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={providerSession}"
         );
-        using var authorize = await browser.SendAsync(authorizeRequest);
+        using var authorize = await browser.SendAsync(authorizeRequest, cancellationToken);
         var callbackUri = authorize.Headers.Location;
         Assert.NotNull(callbackUri);
 
-        return await host.SendAsync(HttpMethod.Get, callbackUri.PathAndQuery);
+        return await host.SendAsync(
+            HttpMethod.Get,
+            callbackUri.PathAndQuery,
+            [],
+            cancellationToken
+        );
     }
 
     [Fact]
     public async Task Login_ThenUserAndApi_Succeed()
     {
         using var factory = new HostApplicationFactory();
-        await SeedAsync(factory);
+        await SeedAsync(factory, settings: null, CancellationToken.None);
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
-        await using var host = await BffTestHost.StartAsync(factory, keySet, valueSet, indexSet);
+        await using var host = await BffTestHost.StartAsync(
+            factory,
+            keySet,
+            valueSet,
+            indexSet,
+            new BffTestHostOptions(),
+            CancellationToken.None
+        );
 
         var browser = factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -297,7 +327,12 @@ public class BffEndToEndTests
 
         var loginPath =
             $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
-        using var login = await host.SendAsync(HttpMethod.Get, loginPath);
+        using var login = await host.SendAsync(
+            HttpMethod.Get,
+            loginPath,
+            [],
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
         var authorizeUri = login.Headers.Location;
         Assert.NotNull(authorizeUri);
@@ -316,28 +351,49 @@ public class BffEndToEndTests
             StringComparison.Ordinal
         );
 
-        using var callback = await host.SendAsync(HttpMethod.Get, callbackUri.PathAndQuery);
+        using var callback = await host.SendAsync(
+            HttpMethod.Get,
+            callbackUri.PathAndQuery,
+            [],
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
         Assert.Equal("/", callback.Headers.Location?.OriginalString);
 
         var csrf = (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue);
         var userPath = $"{BffDefaults.EndpointPrefix}/user";
-        using var user = await host.SendAsync(HttpMethod.Get, userPath, csrf);
+        using var user = await host.SendAsync(
+            HttpMethod.Get,
+            userPath,
+            [csrf],
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, user.StatusCode);
         var userBody = await user.Content.ReadAsStringAsync();
         Assert.Contains("\"sub\"", userBody, StringComparison.Ordinal);
 
-        using var userWithoutHeader = await host.SendAsync(HttpMethod.Get, userPath);
+        using var userWithoutHeader = await host.SendAsync(
+            HttpMethod.Get,
+            userPath,
+            [],
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Forbidden, userWithoutHeader.StatusCode);
 
-        using var api = await host.SendAsync(HttpMethod.Get, BffTestHost.ApiTokenPath, csrf);
+        using var api = await host.SendAsync(
+            HttpMethod.Get,
+            BffTestHost.ApiTokenPath,
+            [csrf],
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, api.StatusCode);
 
         host.ClearCookies();
         using var anonymousApi = await host.SendAsync(
             HttpMethod.Get,
             BffTestHost.ApiTokenPath,
-            csrf
+            [csrf],
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousApi.StatusCode);
     }
@@ -346,9 +402,16 @@ public class BffEndToEndTests
     public async Task Login_WithAForgedHost_RedirectsToTheConfiguredCallback()
     {
         using var factory = new HostApplicationFactory();
-        await SeedAsync(factory);
+        await SeedAsync(factory, settings: null, CancellationToken.None);
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
-        await using var host = await BffTestHost.StartAsync(factory, keySet, valueSet, indexSet);
+        await using var host = await BffTestHost.StartAsync(
+            factory,
+            keySet,
+            valueSet,
+            indexSet,
+            new BffTestHostOptions(),
+            CancellationToken.None
+        );
 
         var browser = factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -368,7 +431,12 @@ public class BffEndToEndTests
         // and sends the browser back to the registered callback.
         var loginUri =
             $"https://attacker.example{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
-        using var login = await host.SendAsync(HttpMethod.Get, loginUri);
+        using var login = await host.SendAsync(
+            HttpMethod.Get,
+            loginUri,
+            [],
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
         var authorizeUri = login.Headers.Location;
         Assert.NotNull(authorizeUri);
@@ -392,7 +460,12 @@ public class BffEndToEndTests
             StringComparison.Ordinal
         );
 
-        using var callback = await host.SendAsync(HttpMethod.Get, callbackUri.PathAndQuery);
+        using var callback = await host.SendAsync(
+            HttpMethod.Get,
+            callbackUri.PathAndQuery,
+            [],
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
         Assert.Equal("/", callback.Headers.Location?.OriginalString);
     }

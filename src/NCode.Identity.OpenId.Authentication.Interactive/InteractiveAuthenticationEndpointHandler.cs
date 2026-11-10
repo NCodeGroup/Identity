@@ -723,9 +723,15 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var branding = ReadBranding(httpContext);
         var security = InteractivePageSecurity.Create(branding);
         var html = InteractiveHtmlResult.CreateBuffer();
+        var frame = await CreatePageFrameAsync(
+            httpContext,
+            branding,
+            security,
+            httpContext.RequestAborted
+        );
         InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
             html,
-            await CreatePageFrameAsync(httpContext, branding, security, httpContext.RequestAborted),
+            frame,
             returnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty

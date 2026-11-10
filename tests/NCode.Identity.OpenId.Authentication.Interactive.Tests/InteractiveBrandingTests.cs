@@ -171,10 +171,6 @@ public sealed class InteractiveBrandingTests
         MockRepository.Verify();
     }
 
-    #endregion
-
-    #region Favicon Tests
-
     [Fact]
     public void FromSettings_WhenTheTenantSetsAFavicon_ReadsIt()
     {
@@ -206,6 +202,10 @@ public sealed class InteractiveBrandingTests
         MockRepository.Verify();
     }
 
+    #endregion
+
+    #region FaviconUri Property Tests
+
     [Theory]
     [InlineData("http://cdn.acme.example/tab.ico")]
     [InlineData("/tab.ico")]
@@ -215,6 +215,10 @@ public sealed class InteractiveBrandingTests
 
         Assert.Null(branding.FaviconUri);
     }
+
+    #endregion
+
+    #region Serialize Tests
 
     [Fact]
     public void Serialize_WhenTheTenantSetsAFavicon_OmitsIt()

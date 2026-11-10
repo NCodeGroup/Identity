@@ -31,9 +31,10 @@ family's icon and leaves a tenant's own tab icon to a branding setting of its ow
 `ManagementConsole:Branding:FaviconUrl`; each host links that icon in place of the family's.**
 
 1. **The names and the rule.** The tenant setting is `branding_favicon_uri` and the console option is `FaviconUrl`. They
-   sit beside `branding_logo_uri` and `LogoUrl` and copy their rule: an absolute `https` URI, and empty means none. The
-   host writes the link only when the value parses as an absolute `https` URI, the same condition under which the
-   policy admits its origin.
+   sit beside `branding_logo_uri` and `LogoUrl` and copy their rule: an absolute `https` URI. For the tenant setting an
+   empty value means none; the console option is unset when it is `null`, and an empty string fails startup, as it does
+   for `LogoUrl`. The host writes the link only when the value parses as an absolute `https` URI, the same condition
+   under which the policy admits its origin.
 2. **One tab icon is the page's whole icon set.** When a favicon is configured the host removes every `<link>` of the
    bundle's `index.html` whose `rel` tokens include `icon` or `apple-touch-icon`, and writes one
    `<link rel="icon" href="<url>" />`. A tab icon is never mixed with the family's. `HtmlIconLinks` of `NCode.AspNetCore`

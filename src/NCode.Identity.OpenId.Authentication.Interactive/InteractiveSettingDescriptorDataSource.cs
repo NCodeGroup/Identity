@@ -92,7 +92,7 @@ internal partial class InteractiveSettingDescriptorDataSource(INullChangeToken n
     private static SettingRule<string> AbsoluteHttpsUri() =>
         SettingRules.Must<string>(
             "an absolute https URI",
-            value => AbsoluteUri.TryParse(value, out var uri) && uri.Scheme == Uri.UriSchemeHttps
+            value => AbsoluteUri.TryParseHttps(value, out _)
         );
 
     private static SettingRule<string> HexColor() =>

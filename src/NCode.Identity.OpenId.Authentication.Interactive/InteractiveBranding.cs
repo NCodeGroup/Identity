@@ -42,10 +42,7 @@ internal sealed record InteractiveBranding(
     /// Gets the tab icon's absolute <c>https</c> URI, or <see langword="null"/> when <see cref="FaviconUrl"/> is not one.
     /// </summary>
     [JsonIgnore]
-    public Uri? FaviconUri =>
-        AbsoluteUri.TryParse(FaviconUrl, out var uri) && uri.Scheme == Uri.UriSchemeHttps
-            ? uri
-            : null;
+    public Uri? FaviconUri => AbsoluteUri.TryParseHttps(FaviconUrl, out var uri) ? uri : null;
 
     /// <summary>
     /// Reads the branding tokens from a tenant's effective <paramref name="settings"/>, and the environment when the

@@ -18,14 +18,14 @@ internal sealed record ManagementConsolePage(string Html)
     /// links it in place of the bundle's own icons.
     /// </summary>
     /// <param name="nonce">The nonce of the response's Content-Security-Policy.</param>
-    /// <param name="faviconUri">
-    /// The absolute <c>https</c> URI of the icon the browser shows in the console's tab, or <see langword="null"/>
-    /// to keep the bundle's own icons.
+    /// <param name="faviconUrl">
+    /// The absolute <c>https</c> URL of the icon the browser shows in the console's tab, written as given, or
+    /// <see langword="null"/> to keep the bundle's own icons.
     /// </param>
     /// <returns>The page that the response writes.</returns>
-    public string Render(string nonce, Uri? faviconUri)
+    public string Render(string nonce, string? faviconUrl)
     {
-        var html = faviconUri is null ? Html : WithIcon(faviconUri);
+        var html = faviconUrl is null ? Html : WithIcon(faviconUrl);
         return html.Replace(
             ManagementConsoleDefaults.NoncePlaceholder,
             nonce,
@@ -33,11 +33,16 @@ internal sealed record ManagementConsolePage(string Html)
         );
     }
 
-    private string WithIcon(Uri faviconUri)
+    // A page without a head has nowhere to link the icon, so it keeps the bundle's own icons.
+    private string WithIcon(string faviconUrl)
     {
         var index = HtmlWithoutIcons.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
-        return index < 0
-            ? HtmlWithoutIcons
-            : HtmlWithoutIcons.Insert(index, HtmlIconLinks.Create(faviconUri.AbsoluteUri));
+        if (index < 0)
+        {
+            return Html;
+        }
+
+        var iconLink = HtmlIconLinks.Create(faviconUrl);
+        return HtmlWithoutIcons.Insert(index, iconLink);
     }
 }

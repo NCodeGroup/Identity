@@ -148,6 +148,7 @@ public class ManagementConsoleOptionsValidatorTests : BaseTests
     }
 
     [Theory]
+    [InlineData("")]
     [InlineData("http://cdn.example/tab.ico")]
     [InlineData("/tab.ico")]
     [InlineData("javascript:alert(1)")]

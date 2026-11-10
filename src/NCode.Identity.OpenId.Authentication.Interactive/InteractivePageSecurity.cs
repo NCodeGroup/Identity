@@ -25,11 +25,11 @@ internal readonly record struct InteractivePageSecurity(string Nonce, HtmlPageSe
         var nonce = ContentSecurityPolicySources.CreateNonce();
 
         List<string> imageSources = [ContentSecurityPolicySources.Self];
-        AddImageSourceOrigin(
-            imageSources,
-            AbsoluteUri.TryParse(branding?.LogoUrl, out var logoUri) ? logoUri : null
-        );
-        AddImageSourceOrigin(imageSources, branding?.FaviconUri);
+        var logoUri = AbsoluteUri.TryParse(branding?.LogoUrl, out var parsedLogoUri)
+            ? parsedLogoUri
+            : null;
+        ContentSecurityPolicySources.AddOrigin(imageSources, logoUri);
+        ContentSecurityPolicySources.AddOrigin(imageSources, branding?.FaviconUri);
 
         var policy = new HtmlPageSecurityPolicy
         {
@@ -62,19 +62,5 @@ internal readonly record struct InteractivePageSecurity(string Nonce, HtmlPageSe
         };
 
         return new InteractivePageSecurity(nonce, policy);
-    }
-
-    private static void AddImageSourceOrigin(List<string> imageSources, Uri? uri)
-    {
-        if (uri is null)
-        {
-            return;
-        }
-
-        var origin = ContentSecurityPolicySources.Origin(uri);
-        if (!imageSources.Contains(origin))
-        {
-            imageSources.Add(origin);
-        }
     }
 }

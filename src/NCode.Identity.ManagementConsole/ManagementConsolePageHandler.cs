@@ -51,13 +51,10 @@ internal sealed class ManagementConsolePageHandler(
         );
 
         httpContext.Response.SetHtmlPageSecurity(security.Policy);
-        return TypedResults.Text(
-            page.Render(
-                security.Nonce,
-                AbsoluteUri.TryParse(branding.FaviconUrl, out var faviconUri) ? faviconUri : null
-            ),
-            "text/html",
-            contentEncoding: SecureEncoding.UTF8
-        );
+        var faviconUrl = AbsoluteUri.TryParseHttps(branding.FaviconUrl, out _)
+            ? branding.FaviconUrl
+            : null;
+        var html = page.Render(security.Nonce, faviconUrl);
+        return TypedResults.Text(html, "text/html", contentEncoding: SecureEncoding.UTF8);
     }
 }

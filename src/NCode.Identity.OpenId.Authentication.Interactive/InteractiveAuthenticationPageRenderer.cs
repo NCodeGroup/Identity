@@ -331,9 +331,10 @@ internal static class InteractiveAuthenticationPageRenderer
                 WriteBranding(writer, branding);
             }
 
-            if (frame.Branding?.FaviconUri is { } faviconUri)
+            if (frame.Branding is { FaviconUri: not null, FaviconUrl: { } faviconUrl })
             {
-                Write(writer, HtmlIconLinks.Create(faviconUri.AbsoluteUri));
+                var iconLink = HtmlIconLinks.Create(faviconUrl);
+                Write(writer, iconLink);
                 WriteShellSegment(writer, shell.HeadWithoutIcons.Span, frame);
             }
             else
@@ -348,9 +349,10 @@ internal static class InteractiveAuthenticationPageRenderer
         WriteEncoded(writer, frame.Locale.LanguageTag);
         Write(writer, StandaloneHeadAfterLanguage);
         WriteBase(writer, frame.SurfaceBase);
-        if (frame.Branding?.FaviconUri is { } standaloneFaviconUri)
+        if (frame.Branding is { FaviconUri: not null, FaviconUrl: { } standaloneFaviconUrl })
         {
-            Write(writer, HtmlIconLinks.Create(standaloneFaviconUri.AbsoluteUri));
+            var standaloneIconLink = HtmlIconLinks.Create(standaloneFaviconUrl);
+            Write(writer, standaloneIconLink);
         }
 
         Write(writer, StandaloneTitleStart);

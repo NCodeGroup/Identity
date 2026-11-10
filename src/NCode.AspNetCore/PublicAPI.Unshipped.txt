@@ -33,6 +33,7 @@ NCode.AspNetCore.ContentSecurityPolicySources
 const NCode.AspNetCore.ContentSecurityPolicySources.None = "'none'" -> string!
 const NCode.AspNetCore.ContentSecurityPolicySources.Self = "'self'" -> string!
 const NCode.AspNetCore.ContentSecurityPolicySources.StrictDynamic = "'strict-dynamic'" -> string!
+static NCode.AspNetCore.ContentSecurityPolicySources.AddOrigin(System.Collections.Generic.ICollection<string!>! sources, System.Uri? uri) -> void
 static NCode.AspNetCore.ContentSecurityPolicySources.CreateNonce() -> string!
 static NCode.AspNetCore.ContentSecurityPolicySources.Nonce(string! nonce) -> string!
 static NCode.AspNetCore.ContentSecurityPolicySources.Origin(System.Uri! uri) -> string!

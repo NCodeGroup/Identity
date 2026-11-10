@@ -320,6 +320,18 @@ public class InteractiveAuthenticationPageRendererTests
     }
 
     [Fact]
+    public void RenderLoginPage_WhenTheTenantSetsAFavicon_WritesTheConfiguredTextAsTheHref()
+    {
+        var html = RenderLoginPageHtml(null, "https://CDN.acme.example");
+
+        Assert.Contains(
+            "<link rel=\"icon\" href=\"https://CDN.acme.example\" />",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void RenderLoginPage_WhenBundleIsAbsentAndTheTenantSetsNoFavicon_LinksNoIcon()
     {
         var html = RenderLoginPageHtml(null, null);

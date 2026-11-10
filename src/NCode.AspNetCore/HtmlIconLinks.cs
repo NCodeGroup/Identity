@@ -47,14 +47,20 @@ public static partial class HtmlIconLinks
         if (!match.Success)
             return false;
 
-        var tokens = match
-            .Groups["value"]
-            .Value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var token in tokens)
+        ReadOnlySpan<char> value = match.Groups["value"].Value;
+        foreach (var range in value.SplitAny(" \t\r\n\f"))
         {
+            var token = value[range];
+            if (token.IsEmpty)
+                continue;
+
             if (
-                string.Equals(token, "icon", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(token, "apple-touch-icon", StringComparison.OrdinalIgnoreCase)
+                MemoryExtensions.Equals(token, "icon", StringComparison.OrdinalIgnoreCase)
+                || MemoryExtensions.Equals(
+                    token,
+                    "apple-touch-icon",
+                    StringComparison.OrdinalIgnoreCase
+                )
             )
                 return true;
         }

@@ -39,10 +39,7 @@ public class ManagementConsolePageTests : BaseTests
         const string html =
             "<html><head><link rel=\"icon\" href=\"./assets/favicon-ab12.ico\"><title>t</title></head><body></body></html>";
 
-        var rendered = new ManagementConsolePage(html).Render(
-            "abc",
-            new Uri("https://cdn.example/tab.ico")
-        );
+        var rendered = new ManagementConsolePage(html).Render("abc", "https://cdn.example/tab.ico");
 
         Assert.Contains(
             "<link rel=\"icon\" href=\"https://cdn.example/tab.ico\" /></head>",
@@ -51,6 +48,20 @@ public class ManagementConsolePageTests : BaseTests
         );
         Assert.Contains("<title>t</title>", rendered, StringComparison.Ordinal);
         Assert.DoesNotContain("favicon-ab12", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_WhenAFaviconIsGiven_WritesTheConfiguredTextAsTheHref()
+    {
+        const string html = "<html><head></head><body></body></html>";
+
+        var rendered = new ManagementConsolePage(html).Render("abc", "https://CDN.example");
+
+        Assert.Contains(
+            "<link rel=\"icon\" href=\"https://CDN.example\" />",
+            rendered,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -65,16 +76,13 @@ public class ManagementConsolePageTests : BaseTests
     }
 
     [Fact]
-    public void Render_WhenAFaviconIsGivenAndThePageHasNoHead_RemovesTheIconsAndAddsNone()
+    public void Render_WhenAFaviconIsGivenAndThePageHasNoHead_KeepsTheIcons()
     {
         const string html = "<link rel=\"icon\" href=\"./assets/favicon-ab12.ico\"><body></body>";
 
-        var rendered = new ManagementConsolePage(html).Render(
-            "abc",
-            new Uri("https://cdn.example/tab.ico")
-        );
+        var rendered = new ManagementConsolePage(html).Render("abc", "https://cdn.example/tab.ico");
 
-        Assert.Equal("<body></body>", rendered);
+        Assert.Equal(html, rendered);
     }
 
     [Fact]
@@ -83,10 +91,7 @@ public class ManagementConsolePageTests : BaseTests
         const string html =
             "<html><head><meta content=\"__NCODE_CSP_NONCE__\"><link rel=\"icon\" href=\"./a.ico\"></head></html>";
 
-        var rendered = new ManagementConsolePage(html).Render(
-            "abc",
-            new Uri("https://cdn.example/tab.ico")
-        );
+        var rendered = new ManagementConsolePage(html).Render("abc", "https://cdn.example/tab.ico");
 
         Assert.DoesNotContain("__NCODE_CSP_NONCE__", rendered, StringComparison.Ordinal);
         Assert.Contains("<meta content=\"abc\">", rendered, StringComparison.Ordinal);

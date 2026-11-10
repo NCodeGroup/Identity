@@ -48,28 +48,35 @@ internal sealed class SingleFlight<TResult>(IMemoryCache memoryCache, TimeSpan f
     /// for it.
     /// </summary>
     /// <param name="key">The key of the retrieval.</param>
-    /// <param name="retrieve">The retrieval to run when none is running for <paramref name="key"/>.</param>
+    /// <param name="retrieve">The retrieval to run when none is running for <paramref name="key"/>; it receives its own token, never a caller's.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to stop waiting for the retrieval.</param>
     /// <returns>The value that the retrieval yielded.</returns>
     public async ValueTask<TResult> RunAsync(
         string key,
-        Func<Task<TResult>> retrieve,
+        Func<CancellationToken, ValueTask<TResult>> retrieve,
         CancellationToken cancellationToken
     )
     {
+        // The in-flight entry stores a Task, because every caller sharing the retrieval awaits it. The retrieval runs on
+        // CancellationToken.None so that no caller's cancellation faults it for the others.
         var flight = InFlight.GetOrAdd(
             key,
-            _ => new Lazy<Task<TResult>>(() => RunAndLeaveAsync(key, retrieve))
+            _ => new Lazy<Task<TResult>>(() =>
+                RunAndLeaveAsync(key, retrieve, CancellationToken.None).AsTask()
+            )
         );
         return await flight.Value.WaitAsync(cancellationToken);
     }
 
-    // A Task, not a ValueTask, because every caller sharing the retrieval awaits it.
-    private async Task<TResult> RunAndLeaveAsync(string key, Func<Task<TResult>> retrieve)
+    private async ValueTask<TResult> RunAndLeaveAsync(
+        string key,
+        Func<CancellationToken, ValueTask<TResult>> retrieve,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            return await retrieve();
+            return await retrieve(cancellationToken);
         }
         finally
         {

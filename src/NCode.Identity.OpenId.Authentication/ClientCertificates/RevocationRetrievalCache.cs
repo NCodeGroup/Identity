@@ -47,7 +47,7 @@ internal sealed class RevocationRetrievalCache(
     /// <param name="key">The key of the retrieval.</param>
     /// <param name="location">The location that the log entries name.</param>
     /// <param name="subject">The subject of the certificate that the log entries name.</param>
-    /// <param name="retrieve">The retrieval to run when no value is cached and no failure is remembered.</param>
+    /// <param name="retrieve">The retrieval to run when no value is cached and no failure is remembered; it receives its own token, never a caller's.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to stop waiting for the retrieval.</param>
     /// <typeparam name="T">The type of the retrieved value.</typeparam>
     /// <returns>The value, or <see langword="null"/> when nothing usable is available.</returns>
@@ -55,7 +55,7 @@ internal sealed class RevocationRetrievalCache(
         string key,
         string location,
         string subject,
-        Func<Task<RevocationRetrieval<T>>> retrieve,
+        Func<CancellationToken, ValueTask<RevocationRetrieval<T>>> retrieve,
         CancellationToken cancellationToken
     )
         where T : class
@@ -80,7 +80,7 @@ internal sealed class RevocationRetrievalCache(
         // not break it for the others. See ADR-1252 and ADR-1350.
         var value = await Retrievals.RunAsync(
             key,
-            () => RetrieveAsync(key, retrieve),
+            retrievalToken => RetrieveAsync(key, retrieve, retrievalToken),
             cancellationToken
         );
         return value as T;
@@ -100,9 +100,10 @@ internal sealed class RevocationRetrievalCache(
         return IsUnavailable(key);
     }
 
-    private async Task<object?> RetrieveAsync<T>(
+    private async ValueTask<object?> RetrieveAsync<T>(
         string key,
-        Func<Task<RevocationRetrieval<T>>> retrieve
+        Func<CancellationToken, ValueTask<RevocationRetrieval<T>>> retrieve,
+        CancellationToken cancellationToken
     )
         where T : class
     {
@@ -111,7 +112,7 @@ internal sealed class RevocationRetrievalCache(
         if (TryGetRemembered(key, out T? remembered))
             return remembered;
 
-        var result = await retrieve();
+        var result = await retrieve(cancellationToken);
         if (result.Value is null)
         {
             MarkUnavailable(key);

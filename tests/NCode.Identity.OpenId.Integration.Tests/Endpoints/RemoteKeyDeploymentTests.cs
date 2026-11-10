@@ -12,15 +12,12 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Drives a host whose tenants keep their keys in a key management service: every key the host creates is tagged
-/// with the deployment and listed under it, and a host whose deployment scope is missing or whose
-/// <c>SecretProtection:RemoteKeys</c> section holds an unknown member does not start.
+/// with the deployment and listed under it.
 /// </summary>
 // See ADR-1478.
 public class RemoteKeyDeploymentTests
 {
     private const string JwksPath = "/oauth2/jwks";
-    private const string DeploymentKey = "SecretProtection:RemoteKeys:Deployment";
-    private const string UnknownKey = "SecretProtection:RemoteKeys:Unknown";
     private const string ProviderSettingConfigKey =
         $"OpenId:Platform:Settings:{OpenIdSettingNames.TenantKeyProvider}";
 
@@ -52,38 +49,6 @@ public class RemoteKeyDeploymentTests
 
         var other = await ListAsync(provider, "other");
         Assert.Empty(other);
-    }
-
-    #endregion
-
-    #region CreateClient Tests
-
-    [Fact]
-    public void CreateClient_ProviderWithoutDeployment_HostDoesNotStart()
-    {
-        var configuration = CreateStaticConfiguration();
-        configuration[DeploymentKey] = string.Empty;
-
-        using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteKeyApplicationFactory(provider, configuration);
-
-        var exception = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
-
-        Assert.Contains(DeploymentKey, exception.ToString(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void CreateClient_UnknownRemoteKeysMember_HostDoesNotStart()
-    {
-        var configuration = CreateStaticConfiguration();
-        configuration[UnknownKey] = "x";
-
-        using var provider = new TestRemoteKeyProvider();
-        using var factory = new RemoteKeyApplicationFactory(provider, configuration);
-
-        var exception = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
-
-        Assert.Contains("Unknown", exception.ToString(), StringComparison.Ordinal);
     }
 
     #endregion

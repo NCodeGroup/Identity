@@ -665,7 +665,7 @@ speed-test endpoint from the Denver network the users are on.
   key vault.
 - **Alerting:** Grafana Cloud alerts on token-endpoint error rate and p95 latency, certificate expiry, database
   connections and replication lag, and node/disk pressure; on-call via Grafana IRM's free tier; a public status page
-  (`status.nidentity.io`, UptimeRobot free).
+  (`status.ncodeid.com`, UptimeRobot free).
 - **Audit events** ([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)): decide retention and customer export —
   they contain PII.
 - **Cost guardrails:** billing alerts on every vendor, an Azure budget alert, and bandwidth-overage alerts.
@@ -680,8 +680,10 @@ speed-test endpoint from the Denver network the users are on.
 - **Management plane:** `manage.` behind an IP allow-list or operator mTLS in addition to OAuth.
 - **Accounts:** passkeys / hardware 2FA on every vendor account (Porkbun, Cloudflare, Akamai, OCI, AWS, GitHub, GitLab,
   npm, Spaceship, Azure, Grafana), least-privilege API tokens, recovery codes stored offline, and a second trusted admin.
-- **Web:** HSTS with `includeSubDomains` (HSTS preload for `nidentity.io` once stable) and an RFC 9116
-  `/.well-known/security.txt` pointing to [`SECURITY.md`](../SECURITY.md).
+- **Web:** HSTS with `includeSubDomains` on every domain. `ncodeid.net` is preloaded once every host serves HTTPS (its
+  apex redirect serves the preload header); `ncodeid.com` is not preloaded, because third-party hosts (the status page
+  and the site host) serve its subdomains. An RFC 9116 `/.well-known/security.txt` points to
+  [`SECURITY.md`](../SECURITY.md).
 
 **Business and legal (before onboarding customers):** privacy policy, terms, a DPA and subprocessor list (Akamai,
 Cloudflare, Grafana Labs, and the key-vault provider); data residency is US-only (Dallas) — EU customers will need a
@@ -690,7 +692,7 @@ single-datacenter platform supports (~99.9%); an incident-response runbook.
 
 **Outbound email (future):** verification, password reset, and email MFA need a sending provider — OCI Email Delivery
 (3,000 emails/month free) or Cloudflare Email Sending (Workers Paid, $5/month; its SMTP endpoint also lets the owner
-reply as `security@` from an existing mailbox). Send transactional mail from a subdomain to isolate its reputation, add
+reply as `security@` from an existing mailbox). Transactional mail sends only from `mail.ncodeid.net`, which isolates its reputation; add
 the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
 
 ## 14. Open decisions
@@ -706,4 +708,4 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
    issue [#132](https://github.com/NCodeGroup/Identity/issues/132)).
 5. **Server prerequisites before mTLS goes live:** done — [#86](https://github.com/NCodeGroup/Identity/issues/86) (route per-tenant mTLS alias hosts), [#82](https://github.com/NCodeGroup/Identity/issues/82) (in-app
    chain validation), [#83](https://github.com/NCodeGroup/Identity/issues/83) (Traefik header format), and [#117](https://github.com/NCodeGroup/Identity/issues/117) (each tenant's alias derived from a template).
-6. **Primary domain:** acquire `nidentity.com` ($250 offer pending) or stay on `nidentity.io` (§3).
+6. **Domains — decided** ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)): `ncodeid.net` carries every issuer, `ncodeid.com` the site, docs, status page and mail (§3).

@@ -86,7 +86,8 @@ public class BffRemoteApiHandlerTests : BaseTests
                     Destination,
                     Api.Invoker,
                     Api.RequestConfig,
-                    It.IsAny<BffRemoteApiTransformer>()
+                    It.IsAny<BffRemoteApiTransformer>(),
+                    It.IsAny<CancellationToken>()
                 )
             )
             .Returns(new ValueTask<ForwarderError>(error))

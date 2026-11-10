@@ -29,12 +29,12 @@ on every key of a registered or published set, so a registration whose key has n
 
 **A key of a registered key set that declares no `kid`, or an empty one, is named by its RFC 7638 thumbprint.**
 
-1. **The thumbprint is the name.** The server computes the SHA-256 thumbprint of the key's public members, base64url
-   encoded (RFC 7638), and stores it as the key's `KeyId`. Any holder of the key computes the same value, so the client
-   selects the key by a name it can derive. The registration response and the management API render the thumbprint as the
-   key's `kid`.
+1. **The thumbprint is the name.** A key is unnamed when its `kid` is absent, JSON `null` or an empty string. The server
+   computes the SHA-256 thumbprint of an unnamed key's public members, base64url encoded (RFC 7638), and stores it as
+   the key's `KeyId`. Any holder of the key computes the same value, so the client selects the key by a name it can
+   derive. The registration response and the management API render the thumbprint as the key's `kid`.
 2. **A key that declares a `kid` keeps it.** A `kid` that is not a string is left to the member validation, which
-   reports it.
+   reports it. A key of a `kty` the server has no rules for is refused as unsupported and never named.
 3. **The set stays all or nothing and its `kid`s stay unique.** Two keys that name the same `kid`, explicitly or by
    thumbprint (the same key twice, or a key and another key whose declared `kid` is its thumbprint), are refused with
    the duplicate-`kid` error, and one refused key refuses the set.

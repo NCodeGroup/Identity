@@ -32,11 +32,12 @@ public class MachineClientAuditTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator);
+        await CreateTeamAsync(administrator, CancellationToken.None);
         var (clientId, clientSecret, principalId) = await CreateTeamMachineClientAsync(
-            administrator
+            administrator,
+            CancellationToken.None
         );
-        using var grant = await PostAdminAsync(administrator, principalId);
+        using var grant = await PostAdminAsync(administrator, principalId, CancellationToken.None);
         Assert.Equal(HttpStatusCode.Created, grant.StatusCode);
         using var machine = await factory.CreateManagementClientAsync(
             clientId,
@@ -63,7 +64,10 @@ public class MachineClientAuditTests
 
     #region Scaffolding
 
-    private static async Task CreateTeamAsync(HttpClient client)
+    private static async ValueTask CreateTeamAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await client.PostAsJsonAsync(
             "/api/teams",
@@ -73,19 +77,20 @@ public class MachineClientAuditTests
                 displayName = TeamId,
                 isDisabled = false,
                 settings = new { },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
     // Creates a machine client of the team, which authenticates with HTTP Basic, and returns its credentials and the
     // principal that its tokens resolve to.
-    private static async Task<(
+    private static async ValueTask<(
         string ClientId,
         string ClientSecret,
         string PrincipalId
-    )> CreateTeamMachineClientAsync(HttpClient administrator)
+    )> CreateTeamMachineClientAsync(HttpClient administrator, CancellationToken cancellationToken)
     {
         using var created = await administrator.PostAsJsonAsync(
             $"/api/teams/{TeamId}/clients",
@@ -98,9 +103,10 @@ public class MachineClientAuditTests
                         .ClientAuthenticationMethods
                         .ClientSecretBasic,
                 },
-            }
+            },
+            cancellationToken
         );
-        var createdBody = await created.Content.ReadAsStringAsync();
+        var createdBody = await created.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
         var createdClient = JsonElement.Parse(createdBody);
         var clientId = createdClient.GetProperty("clientId").GetString();
@@ -115,19 +121,26 @@ public class MachineClientAuditTests
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
-        var secretBody = await secret.Content.ReadAsStringAsync();
+        var secretBody = await secret.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
         var material = JsonElement.Parse(secretBody).GetProperty("secretMaterial").GetString();
         Assert.NotNull(material);
         return (clientId, material, principalId);
     }
 
-    private static Task<HttpResponseMessage> PostAdminAsync(
+    private static async ValueTask<HttpResponseMessage> PostAdminAsync(
         HttpClient administrator,
-        string principalId
-    ) => administrator.PostAsJsonAsync($"/api/teams/{TeamId}/admins", new { principalId });
+        string principalId,
+        CancellationToken cancellationToken
+    ) =>
+        await administrator.PostAsJsonAsync(
+            $"/api/teams/{TeamId}/admins",
+            new { principalId },
+            cancellationToken
+        );
 
     /// <summary>
     /// A factory that selects the tenant by host, with the bootstrap administrator in the control-plane tenant and an

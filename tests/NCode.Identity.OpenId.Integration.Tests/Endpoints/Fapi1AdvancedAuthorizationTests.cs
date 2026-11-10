@@ -42,17 +42,26 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
             }
         );
 
-    private static async Task<string> GetIssuerAsync(HttpClient client)
+    private static async ValueTask<string> GetIssuerAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.GetAsync(
+            "/.well-known/openid-configuration",
+            cancellationToken
+        );
+        var jsonElement = JsonElement.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
         return jsonElement.GetProperty("issuer").GetString()!;
     }
 
-    private async Task SeedFapiClientAsync(
+    private async ValueTask SeedFapiClientAsync(
         HostApplicationFactory factory,
         string clientId,
-        string redirectUri = RedirectUri
+        string redirectUri,
+        CancellationToken cancellationToken
     )
     {
         var certificateRequest = new CertificateRequest(
@@ -74,7 +83,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
                 ["security_profiles"] = new[] { OpenIdConstants.SecurityProfiles.Fapi1Advanced },
             },
             [redirectUri],
-            CancellationToken.None
+            cancellationToken
         );
     }
 
@@ -152,11 +161,12 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
     }
 
     // RFC 9126 §2: the client authenticates with its assertion and pushes the request object.
-    private async Task<HttpResponseMessage> PushAsync(
+    private async ValueTask<HttpResponseMessage> PushAsync(
         HttpClient client,
         string clientId,
         string issuer,
-        string requestObject
+        string requestObject,
+        CancellationToken cancellationToken
     )
     {
         var clientAssertion = CreateClientAssertion(clientId, issuer);
@@ -168,14 +178,15 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
             new("client_assertion", clientAssertion),
             new("request", requestObject),
         ]);
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<HttpResponseMessage> AuthorizeWithRequestUriAsync(
+    private static async ValueTask<HttpResponseMessage> AuthorizeWithRequestUriAsync(
         HttpClient client,
         string sessionCookie,
         string clientId,
-        string requestUri
+        string requestUri,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -184,7 +195,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     private static JsonElement DecodeSegment(string jwt, int index)
@@ -204,12 +215,18 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         const string clientId = "it-fapi1-par-jwt";
 
         using var factory = new HostApplicationFactory();
-        await SeedFapiClientAsync(factory, clientId);
+        await SeedFapiClientAsync(factory, clientId, RedirectUri, CancellationToken.None);
         var client = CreateClient(factory);
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = CreateRequestObject(clientId, issuer, responseMode: "jwt");
 
-        using var response = await PushAsync(client, clientId, issuer, requestObject);
+        using var response = await PushAsync(
+            client,
+            clientId,
+            issuer,
+            requestObject,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
@@ -223,12 +240,18 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         const string clientId = "it-fapi1-par-plain";
 
         using var factory = new HostApplicationFactory();
-        await SeedFapiClientAsync(factory, clientId);
+        await SeedFapiClientAsync(factory, clientId, RedirectUri, CancellationToken.None);
         var client = CreateClient(factory);
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = CreateRequestObject(clientId, issuer, responseMode: null);
 
-        using var response = await PushAsync(client, clientId, issuer, requestObject);
+        using var response = await PushAsync(
+            client,
+            clientId,
+            issuer,
+            requestObject,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
@@ -245,9 +268,9 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         const string httpRedirectUri = "http://client.example/callback";
 
         using var factory = new HostApplicationFactory();
-        await SeedFapiClientAsync(factory, clientId, httpRedirectUri);
+        await SeedFapiClientAsync(factory, clientId, httpRedirectUri, CancellationToken.None);
         var client = CreateClient(factory);
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = CreateRequestObject(
             clientId,
             issuer,
@@ -255,7 +278,13 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
             redirectUri: httpRedirectUri
         );
 
-        using var response = await PushAsync(client, clientId, issuer, requestObject);
+        using var response = await PushAsync(
+            client,
+            clientId,
+            issuer,
+            requestObject,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
@@ -277,9 +306,9 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         const string clientId = "it-fapi1-par-no-nbf";
 
         using var factory = new HostApplicationFactory();
-        await SeedFapiClientAsync(factory, clientId);
+        await SeedFapiClientAsync(factory, clientId, RedirectUri, CancellationToken.None);
         var client = CreateClient(factory);
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = CreateRequestObject(
             clientId,
             issuer,
@@ -287,7 +316,13 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
             includeNotBefore: false
         );
 
-        using var response = await PushAsync(client, clientId, issuer, requestObject);
+        using var response = await PushAsync(
+            client,
+            clientId,
+            issuer,
+            requestObject,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
@@ -308,7 +343,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
 
         using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedFapiClientAsync(factory, clientId);
+        await SeedFapiClientAsync(factory, clientId, RedirectUri, CancellationToken.None);
         var client = CreateClient(factory);
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
@@ -316,10 +351,16 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
             Password,
             CancellationToken.None
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
         var requestObject = CreateRequestObject(clientId, issuer, responseMode: "jwt");
 
-        using var parResponse = await PushAsync(client, clientId, issuer, requestObject);
+        using var parResponse = await PushAsync(
+            client,
+            clientId,
+            issuer,
+            requestObject,
+            CancellationToken.None
+        );
         var parBody = await parResponse.Content.ReadAsStringAsync();
         Assert.True(parResponse.StatusCode == HttpStatusCode.Created, parBody);
         var requestUri = JsonElement.Parse(parBody).GetProperty("request_uri").GetString();
@@ -329,7 +370,8 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
             client,
             sessionCookie,
             clientId,
-            requestUri
+            requestUri,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);

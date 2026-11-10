@@ -47,31 +47,35 @@ public class GrantPruneTests
             ProtectedPayload = "protected-payload",
         };
 
-    private static async Task AddAsync(IServiceProvider services, params PersistedGrant[] grants)
+    private static async ValueTask AddAsync(
+        IServiceProvider services,
+        IReadOnlyList<PersistedGrant> grants,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
         foreach (var grant in grants)
         {
-            await store.AddAsync(grant, CancellationToken.None);
+            await store.AddAsync(grant, cancellationToken);
         }
 
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task<PersistedGrant?> FindAsync(IServiceProvider services, string grantId)
+    private static async ValueTask<PersistedGrant?> FindAsync(
+        IServiceProvider services,
+        string grantId,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
-        return await store.GetOrDefaultAsync(grantId, CancellationToken.None);
+        return await store.GetOrDefaultAsync(grantId, cancellationToken);
     }
 
     #endregion
@@ -101,17 +105,25 @@ public class GrantPruneTests
         var now = DateTimeOffset.UtcNow;
         await AddAsync(
             host.Services,
-            CreateGrant("expired", now.AddDays(-3), now.AddDays(-2), revokedWhen: null),
-            CreateGrant("revoked", now.AddDays(-3), now.AddDays(10), revokedWhen: now.AddDays(-2)),
-            CreateGrant("live", now.AddDays(-3), now.AddDays(1), revokedWhen: null)
+            [
+                CreateGrant("expired", now.AddDays(-3), now.AddDays(-2), revokedWhen: null),
+                CreateGrant(
+                    "revoked",
+                    now.AddDays(-3),
+                    now.AddDays(10),
+                    revokedWhen: now.AddDays(-2)
+                ),
+                CreateGrant("live", now.AddDays(-3), now.AddDays(1), revokedWhen: null),
+            ],
+            CancellationToken.None
         );
 
         var stopwatch = Stopwatch.StartNew();
         while (stopwatch.Elapsed < PollTimeout)
         {
             if (
-                await FindAsync(host.Services, "expired") is null
-                && await FindAsync(host.Services, "revoked") is null
+                await FindAsync(host.Services, "expired", CancellationToken.None) is null
+                && await FindAsync(host.Services, "revoked", CancellationToken.None) is null
             )
             {
                 break;
@@ -120,11 +132,11 @@ public class GrantPruneTests
             await Task.Delay(PollInterval);
         }
 
-        var expired = await FindAsync(host.Services, "expired");
+        var expired = await FindAsync(host.Services, "expired", CancellationToken.None);
         Assert.Null(expired);
-        var revoked = await FindAsync(host.Services, "revoked");
+        var revoked = await FindAsync(host.Services, "revoked", CancellationToken.None);
         Assert.Null(revoked);
-        var live = await FindAsync(host.Services, "live");
+        var live = await FindAsync(host.Services, "live", CancellationToken.None);
         Assert.NotNull(live);
     }
 

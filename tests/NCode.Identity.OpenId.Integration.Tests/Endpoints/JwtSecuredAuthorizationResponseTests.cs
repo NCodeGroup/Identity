@@ -33,12 +33,13 @@ public class JwtSecuredAuthorizationResponseTests
 
     #region Scaffolding
 
-    private static async Task<(HttpClient Client, string SessionCookie)> SignInAsync(
-        HostApplicationFactory factory
+    private static async ValueTask<(HttpClient Client, string SessionCookie)> SignInAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
     )
     {
-        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
+        await factory.SeedLocalAccountAsync(UserName, Password, cancellationToken);
+        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], cancellationToken);
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
             {
@@ -50,15 +51,16 @@ public class JwtSecuredAuthorizationResponseTests
             client,
             UserName,
             Password,
-            CancellationToken.None
+            cancellationToken
         );
         return (client, sessionCookie);
     }
 
-    private static async Task<HttpResponseMessage> AuthorizeAsync(
+    private static async ValueTask<HttpResponseMessage> AuthorizeAsync(
         HttpClient client,
         string? sessionCookie,
-        string responseMode
+        string responseMode,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -74,13 +76,14 @@ public class JwtSecuredAuthorizationResponseTests
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         if (sessionCookie is not null)
             request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<HttpResponseMessage> AuthorizeWithoutSessionAsync(
+    private static async ValueTask<HttpResponseMessage> AuthorizeWithoutSessionAsync(
         HttpClient client,
         string clientId,
-        string extraQuery
+        string extraQuery,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -92,7 +95,7 @@ public class JwtSecuredAuthorizationResponseTests
             + TestPkce.QueryParameters
             + extraQuery;
 
-        return await client.GetAsync("/oauth2/authorize" + query);
+        return await client.GetAsync("/oauth2/authorize" + query, cancellationToken);
     }
 
     private static (JsonElement Header, JsonElement Payload) DecodeJwt(string? jwt)
@@ -127,12 +130,13 @@ public class JwtSecuredAuthorizationResponseTests
     public async Task Authorize_WithQueryJwt_ReturnsTheResponseAsASignedJwtInTheQuery()
     {
         using var factory = new HostApplicationFactory();
-        var (client, sessionCookie) = await SignInAsync(factory);
+        var (client, sessionCookie) = await SignInAsync(factory, CancellationToken.None);
 
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdProtocol.ResponseModes.QueryJwt
+            OpenIdProtocol.ResponseModes.QueryJwt,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
@@ -153,12 +157,13 @@ public class JwtSecuredAuthorizationResponseTests
     public async Task Authorize_WithTheJwtShorthandForACode_ResolvesToQueryJwt()
     {
         using var factory = new HostApplicationFactory();
-        var (client, sessionCookie) = await SignInAsync(factory);
+        var (client, sessionCookie) = await SignInAsync(factory, CancellationToken.None);
 
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdProtocol.ResponseModes.Jwt
+            OpenIdProtocol.ResponseModes.Jwt,
+            CancellationToken.None
         );
 
         var location = response.Headers.Location;
@@ -173,12 +178,13 @@ public class JwtSecuredAuthorizationResponseTests
     public async Task Authorize_WithFragmentJwt_ReturnsTheResponseJwtInTheFragment()
     {
         using var factory = new HostApplicationFactory();
-        var (client, sessionCookie) = await SignInAsync(factory);
+        var (client, sessionCookie) = await SignInAsync(factory, CancellationToken.None);
 
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdProtocol.ResponseModes.FragmentJwt
+            OpenIdProtocol.ResponseModes.FragmentJwt,
+            CancellationToken.None
         );
 
         var location = response.Headers.Location;
@@ -193,12 +199,13 @@ public class JwtSecuredAuthorizationResponseTests
     public async Task Authorize_WithFormPostJwt_PostsTheResponseJwtAsTheOnlyField()
     {
         using var factory = new HostApplicationFactory();
-        var (client, sessionCookie) = await SignInAsync(factory);
+        var (client, sessionCookie) = await SignInAsync(factory, CancellationToken.None);
 
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdProtocol.ResponseModes.FormPostJwt
+            OpenIdProtocol.ResponseModes.FormPostJwt,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -211,12 +218,13 @@ public class JwtSecuredAuthorizationResponseTests
     public async Task Authorize_WhenTheRequestFailsWithQueryJwt_ReturnsTheErrorAsASignedJwt()
     {
         using var factory = new HostApplicationFactory();
-        var (client, _) = await SignInAsync(factory);
+        var (client, _) = await SignInAsync(factory, CancellationToken.None);
 
         using var response = await AuthorizeAsync(
             client,
             sessionCookie: null,
-            OpenIdProtocol.ResponseModes.QueryJwt
+            OpenIdProtocol.ResponseModes.QueryJwt,
+            CancellationToken.None
         );
 
         var location = response.Headers.Location;
@@ -236,9 +244,14 @@ public class JwtSecuredAuthorizationResponseTests
     public async Task Authorize_WithAResponseModeNoHandlerServes_IsRefusedWithoutARedirect()
     {
         using var factory = new HostApplicationFactory();
-        var (client, sessionCookie) = await SignInAsync(factory);
+        var (client, sessionCookie) = await SignInAsync(factory, CancellationToken.None);
 
-        using var response = await AuthorizeAsync(client, sessionCookie, "web_message");
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            "web_message",
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
@@ -276,7 +289,8 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeWithoutSessionAsync(
             client,
             clientId,
-            "&response_mode=query.jwt"
+            "&response_mode=query.jwt",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
@@ -315,7 +329,8 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeWithoutSessionAsync(
             client,
             clientId,
-            "&response_mode=query.jwt"
+            "&response_mode=query.jwt",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
@@ -376,7 +391,8 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeWithoutSessionAsync(
             client,
             clientId,
-            "&prompt=none&response_mode=query.jwt"
+            "&prompt=none&response_mode=query.jwt",
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);

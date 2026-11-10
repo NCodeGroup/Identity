@@ -1058,7 +1058,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var recorded = new List<RoleAssignmentChangedAuditEvent>();
         SetupRoleAssignmentChangedAuditCapture(recorded.Add);
 
-        await CreateClientAsync();
+        await CreateClientAsync(CancellationToken.None);
 
         var auditEvent = Assert.Single(recorded);
         Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
@@ -1075,12 +1075,12 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupCreatorAssignment();
         SetupClientChangedAudit();
 
-        var result = await CreateClientAsync();
+        var result = await CreateClientAsync(CancellationToken.None);
 
         Assert.IsType<Created<ClientResource>>(result);
     }
 
-    private async Task<IResult> CreateClientAsync()
+    private async ValueTask<IResult> CreateClientAsync(CancellationToken cancellationToken)
     {
         SetupValidSettings();
         SetupStore();
@@ -1111,7 +1111,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CreateHttpContext(authenticated: true),
             TenantId,
             new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() },
-            CancellationToken.None
+            cancellationToken
         );
     }
 
@@ -4799,7 +4799,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
         var grace = DateTimeOffset.UnixEpoch.AddMonths(1);
-        var httpContext = await RotateWithGraceAsync(grace);
+        var httpContext = await RotateWithGraceAsync(grace, CancellationToken.None);
 
         MockClientStore.Verify(
             x =>
@@ -4835,7 +4835,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // can hold, and its active window collapses with its expiry so the instants stay in order.
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
-        await RotateWithGraceAsync(DateTimeOffset.UnixEpoch.AddDays(-1));
+        await RotateWithGraceAsync(DateTimeOffset.UnixEpoch.AddDays(-1), CancellationToken.None);
 
         MockClientStore.Verify(
             x =>
@@ -4859,7 +4859,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
-        var httpContext = await RotateWithGraceAsync(DateTimeOffset.UnixEpoch.AddYears(5));
+        var httpContext = await RotateWithGraceAsync(
+            DateTimeOffset.UnixEpoch.AddYears(5),
+            CancellationToken.None
+        );
 
         MockClientStore.Verify(
             x =>
@@ -4901,7 +4904,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     // Rotates "secret-1" (expiring a year after the epoch) with the given grace expiry for the rotated secret.
-    private async Task<HttpContext> RotateWithGraceAsync(DateTimeOffset rotatedExpiresWhen)
+    private async ValueTask<HttpContext> RotateWithGraceAsync(
+        DateTimeOffset rotatedExpiresWhen,
+        CancellationToken cancellationToken
+    )
     {
         SetupStore();
         var rotated = CreatePersistedSecret("secret-1", "rotated-ct");
@@ -4963,7 +4969,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 RotatedExpiresWhen = rotatedExpiresWhen,
             },
             "rotated-ct",
-            CancellationToken.None
+            cancellationToken
         );
 
         Assert.IsType<Created<CreatedSecretResource>>(result);
@@ -5689,13 +5695,19 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         Assert.Equal(
             statusCodes,
-            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+            await EndpointProblemMetadata.ReadStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern,
+                CancellationToken.None
+            )
         );
         Assert.Empty(
             await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
                 Handler,
                 httpMethod,
-                routePattern
+                routePattern,
+                CancellationToken.None
             )
         );
     }
@@ -5718,13 +5730,19 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var provider = new MachineClientEndpointProvider(Handler);
         Assert.Equal(
             statusCodes,
-            await EndpointProblemMetadata.ReadStatusCodesAsync(provider, httpMethod, routePattern)
+            await EndpointProblemMetadata.ReadStatusCodesAsync(
+                provider,
+                httpMethod,
+                routePattern,
+                CancellationToken.None
+            )
         );
         Assert.Empty(
             await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
                 provider,
                 httpMethod,
-                routePattern
+                routePattern,
+                CancellationToken.None
             )
         );
     }

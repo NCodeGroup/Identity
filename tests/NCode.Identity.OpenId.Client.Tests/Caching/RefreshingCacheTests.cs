@@ -39,20 +39,20 @@ public class RefreshingCacheTests : BaseTests
         return ValueTask.FromResult($"value-{FetchCount}");
     }
 
-    private ValueTask<string> GetAsync() =>
-        Cache.GetAsync(Key, Policy, FetchAsync, CancellationToken.None);
+    private ValueTask<string> GetAsync(CancellationToken cancellationToken) =>
+        Cache.GetAsync(Key, Policy, FetchAsync, cancellationToken);
 
-    private ValueTask<string> RefreshAsync() =>
-        Cache.RefreshAsync(Key, Policy, FetchAsync, CancellationToken.None);
+    private ValueTask<string> RefreshAsync(CancellationToken cancellationToken) =>
+        Cache.RefreshAsync(Key, Policy, FetchAsync, cancellationToken);
 
     #region GetAsync Tests
 
     [Fact]
     public async Task GetAsync_WithinInterval_DoesNotFetch()
     {
-        var first = await GetAsync();
+        var first = await GetAsync(CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromMinutes(30));
-        var second = await GetAsync();
+        var second = await GetAsync(CancellationToken.None);
 
         Assert.Equal(1, FetchCount);
         Assert.Equal(first, second);
@@ -61,9 +61,9 @@ public class RefreshingCacheTests : BaseTests
     [Fact]
     public async Task GetAsync_AfterInterval_Fetches()
     {
-        await GetAsync();
+        await GetAsync(CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromHours(2));
-        var second = await GetAsync();
+        var second = await GetAsync(CancellationToken.None);
 
         Assert.Equal(2, FetchCount);
         Assert.Equal("value-2", second);
@@ -72,11 +72,11 @@ public class RefreshingCacheTests : BaseTests
     [Fact]
     public async Task GetAsync_FailedRefreshWithinStaleLifetime_ReturnsStaleValue()
     {
-        var first = await GetAsync();
+        var first = await GetAsync(CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromHours(2));
         ShouldFail = true;
 
-        var second = await GetAsync();
+        var second = await GetAsync(CancellationToken.None);
 
         Assert.Equal(2, FetchCount);
         Assert.Equal(first, second);
@@ -85,27 +85,29 @@ public class RefreshingCacheTests : BaseTests
     [Fact]
     public async Task GetAsync_FailedRefreshAfterStaleLifetime_Throws()
     {
-        await GetAsync();
+        await GetAsync(CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromHours(2));
         ShouldFail = true;
-        await GetAsync();
+        await GetAsync(CancellationToken.None);
 
         TimeProvider.Advance(TimeSpan.FromHours(25));
 
-        await Assert.ThrowsAsync<OpenIdProviderException>(async () => await GetAsync());
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await GetAsync(CancellationToken.None)
+        );
     }
 
     [Fact]
     public async Task GetAsync_AfterFailedRefreshWithinMinimumInterval_DoesNotFetch()
     {
-        await GetAsync();
+        await GetAsync(CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromHours(2));
         ShouldFail = true;
-        await GetAsync();
+        await GetAsync(CancellationToken.None);
         Assert.Equal(2, FetchCount);
 
         TimeProvider.Advance(TimeSpan.FromMinutes(1));
-        await GetAsync();
+        await GetAsync(CancellationToken.None);
 
         Assert.Equal(2, FetchCount);
     }
@@ -138,10 +140,12 @@ public class RefreshingCacheTests : BaseTests
     public async Task GetAsync_FirstFetchFails_ThrowsAndNextCallFetchesAgain()
     {
         ShouldFail = true;
-        await Assert.ThrowsAsync<OpenIdProviderException>(async () => await GetAsync());
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await GetAsync(CancellationToken.None)
+        );
 
         ShouldFail = false;
-        var value = await GetAsync();
+        var value = await GetAsync(CancellationToken.None);
 
         Assert.Equal(2, FetchCount);
         Assert.Equal("value-2", value);
@@ -154,10 +158,10 @@ public class RefreshingCacheTests : BaseTests
     [Fact]
     public async Task RefreshAsync_WithinMinimumInterval_DoesNotFetch()
     {
-        await GetAsync();
+        await GetAsync(CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromMinutes(1));
 
-        await RefreshAsync();
+        await RefreshAsync(CancellationToken.None);
 
         Assert.Equal(1, FetchCount);
     }
@@ -165,10 +169,10 @@ public class RefreshingCacheTests : BaseTests
     [Fact]
     public async Task RefreshAsync_AfterMinimumInterval_Fetches()
     {
-        await GetAsync();
+        await GetAsync(CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromMinutes(6));
 
-        var value = await RefreshAsync();
+        var value = await RefreshAsync(CancellationToken.None);
 
         Assert.Equal(2, FetchCount);
         Assert.Equal("value-2", value);

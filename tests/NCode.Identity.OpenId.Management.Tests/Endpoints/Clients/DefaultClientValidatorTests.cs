@@ -514,11 +514,13 @@ public sealed class DefaultClientValidatorTests : IDisposable
             .Verifiable();
     }
 
-    private async Task<ManagementError?> ValidateBoundCreateAsync() =>
+    private async ValueTask<ManagementError?> ValidateBoundCreateAsync(
+        CancellationToken cancellationToken
+    ) =>
         await Validator.ValidateCreateAsync(
             CreateClient(resourceServerId: ResourceServerId),
             MockStoreManager.Object,
-            CancellationToken.None
+            cancellationToken
         );
 
     [Fact]
@@ -526,7 +528,7 @@ public sealed class DefaultClientValidatorTests : IDisposable
     {
         SetupBoundClientCreate(resourceServer: null);
 
-        var error = await ValidateBoundCreateAsync();
+        var error = await ValidateBoundCreateAsync(CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -537,7 +539,7 @@ public sealed class DefaultClientValidatorTests : IDisposable
     {
         SetupBoundClientCreate(CreateResourceServer(tenantId: "tenant-2"));
 
-        var error = await ValidateBoundCreateAsync();
+        var error = await ValidateBoundCreateAsync(CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -548,7 +550,7 @@ public sealed class DefaultClientValidatorTests : IDisposable
     {
         SetupBoundClientCreate(CreateResourceServer(isSystem: true));
 
-        var error = await ValidateBoundCreateAsync();
+        var error = await ValidateBoundCreateAsync(CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -559,7 +561,7 @@ public sealed class DefaultClientValidatorTests : IDisposable
     {
         SetupBoundClientCreate(CreateResourceServer());
 
-        var error = await ValidateBoundCreateAsync();
+        var error = await ValidateBoundCreateAsync(CancellationToken.None);
 
         Assert.Null(error);
     }

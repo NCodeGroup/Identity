@@ -871,13 +871,19 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     {
         Assert.Equal(
             statusCodes,
-            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+            await EndpointProblemMetadata.ReadStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern,
+                CancellationToken.None
+            )
         );
         Assert.Empty(
             await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
                 Handler,
                 httpMethod,
-                routePattern
+                routePattern,
+                CancellationToken.None
             )
         );
     }

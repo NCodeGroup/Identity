@@ -233,16 +233,14 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
             .Verifiable();
     }
 
-    private Task<IReadOnlyList<SettingError>> FindAsync() =>
-        Checker
-            .FindIntroducedViolationsAsync(
-                MockStoreManager.Object,
-                TeamId,
-                MockCurrentSettings.Object,
-                MockNewSettings.Object,
-                CancellationToken.None
-            )
-            .AsTask();
+    private ValueTask<IReadOnlyList<SettingError>> FindAsync(CancellationToken cancellationToken) =>
+        Checker.FindIntroducedViolationsAsync(
+            MockStoreManager.Object,
+            TeamId,
+            MockCurrentSettings.Object,
+            MockNewSettings.Object,
+            cancellationToken
+        );
 
     #endregion
 
@@ -276,7 +274,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
             CreateFinding("client-1")
         );
 
-        var errors = await FindAsync();
+        var errors = await FindAsync(CancellationToken.None);
 
         var error = Assert.Single(errors);
         Assert.Equal(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, error.SettingName);
@@ -331,7 +329,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
             CreateFinding("client-2")
         );
 
-        var errors = await FindAsync();
+        var errors = await FindAsync(CancellationToken.None);
 
         var error = Assert.Single(errors);
         Assert.Contains("client 'client-2' of tenant 'tenant-2'", error.Message);
@@ -400,7 +398,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         );
         SetupTenantCheck("tenant-3", mockTenantCurrent.Object, mockTenantNew.Object);
 
-        var errors = await FindAsync();
+        var errors = await FindAsync(CancellationToken.None);
 
         Assert.Empty(errors);
     }
@@ -484,7 +482,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
             CreateFinding("client-4")
         );
 
-        var errors = await FindAsync();
+        var errors = await FindAsync(CancellationToken.None);
 
         var error = Assert.Single(errors);
         Assert.Contains("client 'client-4' of tenant 'tenant-4'", error.Message);
@@ -502,7 +500,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         SetupResolveThrows(MockCurrentSettings.Object, OpenIdSettingScopes.Team, "child");
         SetupSettingsUnreadableWarning(EventIds.TeamSettingsUnreadable);
 
-        var errors = await FindAsync();
+        var errors = await FindAsync(CancellationToken.None);
 
         Assert.Empty(errors);
     }
@@ -541,7 +539,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         );
         SetupSettingsUnreadableWarning(EventIds.TenantSettingsUnreadable);
 
-        var errors = await FindAsync();
+        var errors = await FindAsync(CancellationToken.None);
 
         Assert.Single(errors);
     }

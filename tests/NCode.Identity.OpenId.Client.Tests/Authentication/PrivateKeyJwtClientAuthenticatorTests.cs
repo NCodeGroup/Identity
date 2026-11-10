@@ -116,7 +116,10 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
             parameters
         );
 
-    private async Task AssertAssertionValidatesAsync(List<KeyValuePair<string, string>> parameters)
+    private async ValueTask AssertAssertionValidatesAsync(
+        List<KeyValuePair<string, string>> parameters,
+        CancellationToken cancellationToken
+    )
     {
         Assert.Contains(
             new KeyValuePair<string, string>(
@@ -136,7 +139,7 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
                 .ValidateIssuer(ClientId)
                 .ValidateAudience(Issuer)
                 .ValidateTokenLifeTime(),
-            CancellationToken.None
+            cancellationToken
         );
         Assert.True(result.IsValid);
 
@@ -179,7 +182,7 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
 
         await authenticator.AuthenticateAsync(context, CancellationToken.None);
 
-        await AssertAssertionValidatesAsync(parameters);
+        await AssertAssertionValidatesAsync(parameters, CancellationToken.None);
     }
 
     [Fact]
@@ -191,7 +194,7 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
 
         await authenticator.AuthenticateAsync(context, CancellationToken.None);
 
-        await AssertAssertionValidatesAsync(parameters);
+        await AssertAssertionValidatesAsync(parameters, CancellationToken.None);
         Assert.Equal("PS256", GetAssertionAlgorithm(parameters));
     }
 

@@ -25,13 +25,16 @@ public class DPoPKeyResolverTests : IAsyncLifetime
     private static OpenIdProviderMetadata CreateMetadata(params string[] supported) =>
         new() { DPoPSigningAlgValuesSupported = supported.Length == 0 ? null : [.. supported] };
 
-    private static async ValueTask<string> AlgorithmOfAsync(DPoPProofKey key)
+    private static async ValueTask<string> AlgorithmOfAsync(
+        DPoPProofKey key,
+        CancellationToken cancellationToken
+    )
     {
         var proof = await key.CreateProofAsync(
             HttpMethod.Post,
             new Uri(Authority + "/token"),
             null,
-            CancellationToken.None
+            cancellationToken
         );
         return DPoPTestContext.DecodeHeader(proof).GetProperty("alg").GetString()!;
     }
@@ -106,7 +109,7 @@ public class DPoPKeyResolverTests : IAsyncLifetime
         var result = resolver.Resolve(CreateRegistration(), CreateMetadata("PS256", "ES256"), null);
 
         Assert.NotNull(result);
-        Assert.Equal("ES256", await AlgorithmOfAsync(result));
+        Assert.Equal("ES256", await AlgorithmOfAsync(result, CancellationToken.None));
         Assert.Equal(DPoPContext.Thumbprint(DPoPContext.EcKey), result.JwkThumbprint);
     }
 
@@ -118,7 +121,7 @@ public class DPoPKeyResolverTests : IAsyncLifetime
         var result = resolver.Resolve(CreateRegistration(), CreateMetadata("PS256", "ES256"), null);
 
         Assert.NotNull(result);
-        Assert.Equal("PS256", await AlgorithmOfAsync(result));
+        Assert.Equal("PS256", await AlgorithmOfAsync(result, CancellationToken.None));
         Assert.Equal(DPoPContext.Thumbprint(DPoPContext.RsaKey), result.JwkThumbprint);
     }
 
@@ -155,7 +158,7 @@ public class DPoPKeyResolverTests : IAsyncLifetime
         );
 
         Assert.NotNull(result);
-        Assert.Equal("PS256", await AlgorithmOfAsync(result));
+        Assert.Equal("PS256", await AlgorithmOfAsync(result, CancellationToken.None));
         Assert.Equal(pinned, result.JwkThumbprint);
     }
 

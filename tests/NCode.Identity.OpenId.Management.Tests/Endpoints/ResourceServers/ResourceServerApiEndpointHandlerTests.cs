@@ -465,7 +465,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         var recorded = new List<RoleAssignmentChangedAuditEvent>();
         SetupRoleAssignmentChangedAuditCapture(recorded.Add);
 
-        await CreateResourceServerAsync();
+        await CreateResourceServerAsync(CancellationToken.None);
 
         var auditEvent = Assert.Single(recorded);
         Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
@@ -482,12 +482,12 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         SetupCreatorAssignment();
         SetupResourceServerChangedAudit();
 
-        var result = await CreateResourceServerAsync();
+        var result = await CreateResourceServerAsync(CancellationToken.None);
 
         Assert.IsType<Created<ResourceServerResource>>(result);
     }
 
-    private async Task<IResult> CreateResourceServerAsync()
+    private async ValueTask<IResult> CreateResourceServerAsync(CancellationToken cancellationToken)
     {
         SetupValidSettings();
         MockCryptoService
@@ -527,7 +527,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                 IsDisabled = false,
                 Settings = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
-            CancellationToken.None
+            cancellationToken
         );
     }
 
@@ -2737,13 +2737,19 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     {
         Assert.Equal(
             statusCodes,
-            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+            await EndpointProblemMetadata.ReadStatusCodesAsync(
+                Handler,
+                httpMethod,
+                routePattern,
+                CancellationToken.None
+            )
         );
         Assert.Empty(
             await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
                 Handler,
                 httpMethod,
-                routePattern
+                routePattern,
+                CancellationToken.None
             )
         );
     }

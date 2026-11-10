@@ -157,39 +157,45 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         return new JoseEncryptionCredentials(key, management, authenticatedEncryption);
     }
 
+    private sealed class LogoutTokenOptions
+    {
+        public string Issuer { get; init; } = DefaultLogoutTokenValidatorTests.Issuer;
+        public string Audience { get; init; } = ClientId;
+        public TimeSpan? IssuedOffset { get; init; }
+        public TimeSpan? Lifetime { get; init; }
+        public string TokenType { get; init; } = JoseTokenTypes.LogoutJwt;
+        public bool IncludeSub { get; init; } = true;
+        public bool IncludeSid { get; init; } = true;
+        public bool IncludeJti { get; init; } = true;
+        public bool IncludeEvents { get; init; } = true;
+        public IReadOnlyDictionary<string, object>? ExtraClaims { get; init; }
+        public string Jti { get; init; } = "jti-1";
+        public SecretKey? SigningKey { get; init; }
+        public JoseEncryptionCredentials? EncryptionCredentials { get; init; }
+        public IReadOnlyDictionary<string, object>? ExtraEncryptionHeaderClaims { get; init; }
+    }
+
     private async ValueTask<string> CreateLogoutTokenAsync(
-        string issuer = Issuer,
-        string audience = ClientId,
-        TimeSpan? issuedOffset = null,
-        TimeSpan? lifetime = null,
-        string tokenType = JoseTokenTypes.LogoutJwt,
-        bool includeSub = true,
-        bool includeSid = true,
-        bool includeJti = true,
-        bool includeEvents = true,
-        IReadOnlyDictionary<string, object>? extraClaims = null,
-        string jti = "jti-1",
-        SecretKey? signingKey = null,
-        JoseEncryptionCredentials? encryptionCredentials = null,
-        IReadOnlyDictionary<string, object>? extraEncryptionHeaderClaims = null
+        LogoutTokenOptions options,
+        CancellationToken cancellationToken
     )
     {
-        var issuedAt = DateTimeOffset.UtcNow + (issuedOffset ?? TimeSpan.Zero);
+        var issuedAt = DateTimeOffset.UtcNow + (options.IssuedOffset ?? TimeSpan.Zero);
         var claims = new Dictionary<string, object>();
-        if (includeSub)
+        if (options.IncludeSub)
             claims["sub"] = "user-1";
-        if (includeSid)
+        if (options.IncludeSid)
             claims["sid"] = "sid-1";
-        if (includeJti)
-            claims["jti"] = jti;
-        if (includeEvents)
+        if (options.IncludeJti)
+            claims["jti"] = options.Jti;
+        if (options.IncludeEvents)
             claims["events"] = new Dictionary<string, object>
             {
                 [LogoutEvent] = new Dictionary<string, object>(),
             };
-        if (extraClaims is not null)
+        if (options.ExtraClaims is not null)
         {
-            foreach (var (name, value) in extraClaims)
+            foreach (var (name, value) in options.ExtraClaims)
                 claims[name] = value;
         }
 
@@ -205,24 +211,24 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
                 new JwtEncodingParameters
                 {
                     SigningCredentials = new JoseSigningCredentials(
-                        signingKey ?? RsaKey,
+                        options.SigningKey ?? RsaKey,
                         algorithm
                     ),
                     EnsureTokenLifetime = false,
-                    TokenType = tokenType,
-                    Issuer = issuer,
-                    Audience = new StringValues(audience),
+                    TokenType = options.TokenType,
+                    Issuer = options.Issuer,
+                    Audience = new StringValues(options.Audience),
                     IssuedAt = issuedAt,
                     NotBefore = issuedAt,
                     Expires =
-                        extraClaims is not null && extraClaims.ContainsKey("exp")
+                        options.ExtraClaims is not null && options.ExtraClaims.ContainsKey("exp")
                             ? null
-                            : issuedAt + (lifetime ?? TimeSpan.FromMinutes(2)),
+                            : issuedAt + (options.Lifetime ?? TimeSpan.FromMinutes(2)),
                     ExtraPayloadClaims = claims,
-                    EncryptionCredentials = encryptionCredentials,
-                    ExtraEncryptionHeaderClaims = extraEncryptionHeaderClaims,
+                    EncryptionCredentials = options.EncryptionCredentials,
+                    ExtraEncryptionHeaderClaims = options.ExtraEncryptionHeaderClaims,
                 },
-                CancellationToken.None
+                cancellationToken
             );
     }
 
@@ -246,15 +252,21 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             IdTokenSigningAlgorithms = idTokenSigningAlgorithms,
         };
 
+    private sealed class ValidateOptions
+    {
+        public ClientRegistration? Registration { get; init; }
+    }
+
     private async ValueTask<LogoutTokenValidationResult> ValidateAsync(
         DefaultLogoutTokenValidator validator,
         string logoutToken,
-        ClientRegistration? registration = null
+        ValidateOptions options,
+        CancellationToken cancellationToken
     ) =>
         await validator.ValidateAsync(
-            registration ?? Registration,
+            options.Registration ?? Registration,
             new LogoutTokenValidationRequest { LogoutToken = logoutToken },
-            CancellationToken.None
+            cancellationToken
         );
 
     #region ValidateAsync Tests
@@ -265,7 +277,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var validator = CreateValidator(CreateKeySetMock(), CreateAcceptingKeySet());
         var expected = DateTimeOffset.UtcNow.AddMinutes(2);
 
-        var result = await ValidateAsync(validator, await CreateLogoutTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+            new ValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid, result.FailureReason);
         Assert.Null(result.FailureCode);
@@ -285,13 +302,18 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             keyRingMock: CreateKeyRingMock(EncryptionKey)
         );
         var logoutToken = await CreateLogoutTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new LogoutTokenOptions
+            {
+                EncryptionCredentials = CreateEncryptionCredentials(EncryptionKey),
+            },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             logoutToken,
-            registration: CreateEncryptingRegistration()
+            new ValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid, result.FailureReason);
@@ -311,8 +333,9 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(),
-            registration: CreateEncryptingRegistration()
+            await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+            new ValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -328,10 +351,19 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(null);
         var logoutToken = await CreateLogoutTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new LogoutTokenOptions
+            {
+                EncryptionCredentials = CreateEncryptionCredentials(EncryptionKey),
+            },
+            CancellationToken.None
         );
 
-        var result = await ValidateAsync(validator, logoutToken);
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            new ValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
@@ -348,13 +380,18 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             );
         var validator = CreateValidator(null, keyRingMock: CreateKeyRingMock(otherKey));
         var logoutToken = await CreateLogoutTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new LogoutTokenOptions
+            {
+                EncryptionCredentials = CreateEncryptionCredentials(EncryptionKey),
+            },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             logoutToken,
-            registration: CreateEncryptingRegistration()
+            new ValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -377,14 +414,19 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             keyRingMock: CreateKeyRingMock(EncryptionKey)
         );
         var logoutToken = await CreateLogoutTokenAsync(
-            signingKey: otherSigningKey,
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+            new LogoutTokenOptions
+            {
+                SigningKey = otherSigningKey,
+                EncryptionCredentials = CreateEncryptionCredentials(EncryptionKey),
+            },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             logoutToken,
-            registration: CreateEncryptingRegistration()
+            new ValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -400,17 +442,22 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             keyRingMock: CreateKeyRingMock(EncryptionKey)
         );
         var logoutToken = await CreateLogoutTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
-            extraEncryptionHeaderClaims: new Dictionary<string, object>
+            new LogoutTokenOptions
             {
-                ["iss"] = "https://evil.example.test",
-            }
+                EncryptionCredentials = CreateEncryptionCredentials(EncryptionKey),
+                ExtraEncryptionHeaderClaims = new Dictionary<string, object>
+                {
+                    ["iss"] = "https://evil.example.test",
+                },
+            },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             logoutToken,
-            registration: CreateEncryptingRegistration()
+            new ValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -430,14 +477,19 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             keyRingMock: CreateKeyRingMock(EncryptionKey)
         );
         var logoutToken = await CreateLogoutTokenAsync(
-            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
-            extraEncryptionHeaderClaims: new Dictionary<string, object> { ["iss"] = Issuer }
+            new LogoutTokenOptions
+            {
+                EncryptionCredentials = CreateEncryptionCredentials(EncryptionKey),
+                ExtraEncryptionHeaderClaims = new Dictionary<string, object> { ["iss"] = Issuer },
+            },
+            CancellationToken.None
         );
 
         var result = await ValidateAsync(
             validator,
             logoutToken,
-            registration: CreateEncryptingRegistration()
+            new ValidateOptions { Registration = CreateEncryptingRegistration() },
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid, result.FailureReason);
@@ -452,7 +504,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(issuer: "https://evil.example.test")
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { Issuer = "https://evil.example.test" },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -466,7 +523,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(audience: "other-client")
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { Audience = "other-client" },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -480,7 +542,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(issuedOffset: TimeSpan.FromMinutes(-20))
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { IssuedOffset = TimeSpan.FromMinutes(-20) },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -494,7 +561,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(issuedOffset: TimeSpan.FromHours(1))
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { IssuedOffset = TimeSpan.FromHours(1) },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -508,7 +580,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(lifetime: TimeSpan.FromMinutes(30))
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { Lifetime = TimeSpan.FromMinutes(30) },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -523,8 +600,14 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(
             validator,
             await CreateLogoutTokenAsync(
-                extraClaims: new Dictionary<string, object> { ["exp"] = 1e300 }
-            )
+                new LogoutTokenOptions
+                {
+                    ExtraClaims = new Dictionary<string, object> { ["exp"] = 1e300 },
+                },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -538,7 +621,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(tokenType: JoseTokenTypes.Jwt)
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { TokenType = JoseTokenTypes.Jwt },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -556,7 +644,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(tokenType: string.Empty)
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { TokenType = string.Empty },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid, result.FailureReason);
@@ -567,7 +660,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var validator = CreateValidator(null, advertised: ["HS256"]);
 
-        var result = await ValidateAsync(validator, await CreateLogoutTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+            new ValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
@@ -581,8 +679,9 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(),
-            CreateRegistration(["RS256"])
+            await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+            new ValidateOptions { Registration = CreateRegistration(["RS256"]) },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -593,13 +692,18 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenSignatureIsTampered_FailsWithoutTokenText()
     {
         var validator = CreateValidator(CreateKeySetMock());
-        var token = await CreateLogoutTokenAsync();
+        var token = await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None);
         var segments = token.Split('.');
         var signature = segments[2];
         segments[2] = (signature[0] == 'A' ? 'B' : 'A') + signature[1..];
         var tampered = string.Join('.', segments);
 
-        var result = await ValidateAsync(validator, tampered);
+        var result = await ValidateAsync(
+            validator,
+            tampered,
+            new ValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
@@ -620,7 +724,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             CreateStrictMock<IExpiringKeySet>().Object
         );
 
-        var result = await ValidateAsync(validator, string.Empty);
+        var result = await ValidateAsync(
+            validator,
+            string.Empty,
+            new ValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.InvalidToken, result.FailureCode);
@@ -634,7 +743,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(includeSub: false, includeSid: false)
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { IncludeSub = false, IncludeSid = false },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -652,7 +766,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(includeSub: false)
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { IncludeSub = false },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid, result.FailureReason);
@@ -667,7 +786,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(includeSid: false)
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { IncludeSid = false },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.True(result.IsValid, result.FailureReason);
@@ -690,8 +814,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(includeSid: false),
-            registration
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { IncludeSid = false },
+                CancellationToken.None
+            ),
+            new ValidateOptions { Registration = registration },
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -710,8 +838,14 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(
             validator,
             await CreateLogoutTokenAsync(
-                extraClaims: new Dictionary<string, object> { ["sid"] = 42 }
-            )
+                new LogoutTokenOptions
+                {
+                    ExtraClaims = new Dictionary<string, object> { ["sid"] = 42 },
+                },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -730,8 +864,14 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(
             validator,
             await CreateLogoutTokenAsync(
-                extraClaims: new Dictionary<string, object> { ["sub"] = 42 }
-            )
+                new LogoutTokenOptions
+                {
+                    ExtraClaims = new Dictionary<string, object> { ["sub"] = 42 },
+                },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -752,7 +892,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(includeEvents: false)
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { IncludeEvents = false },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -768,14 +913,20 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(
             validator,
             await CreateLogoutTokenAsync(
-                extraClaims: new Dictionary<string, object>
+                new LogoutTokenOptions
                 {
-                    ["events"] = new Dictionary<string, object>
+                    ExtraClaims = new Dictionary<string, object>
                     {
-                        ["other"] = new Dictionary<string, object>(),
+                        ["events"] = new Dictionary<string, object>
+                        {
+                            ["other"] = new Dictionary<string, object>(),
+                        },
                     },
-                }
-            )
+                },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -791,11 +942,17 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(
             validator,
             await CreateLogoutTokenAsync(
-                extraClaims: new Dictionary<string, object>
+                new LogoutTokenOptions
                 {
-                    ["events"] = new Dictionary<string, object> { [LogoutEvent] = "x" },
-                }
-            )
+                    ExtraClaims = new Dictionary<string, object>
+                    {
+                        ["events"] = new Dictionary<string, object> { [LogoutEvent] = "x" },
+                    },
+                },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -811,8 +968,14 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(
             validator,
             await CreateLogoutTokenAsync(
-                extraClaims: new Dictionary<string, object> { ["nonce"] = "n" }
-            )
+                new LogoutTokenOptions
+                {
+                    ExtraClaims = new Dictionary<string, object> { ["nonce"] = "n" },
+                },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -827,7 +990,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            await CreateLogoutTokenAsync(includeJti: false)
+            await CreateLogoutTokenAsync(
+                new LogoutTokenOptions { IncludeJti = false },
+                CancellationToken.None
+            ),
+            new ValidateOptions(),
+            CancellationToken.None
         );
 
         Assert.False(result.IsValid);
@@ -846,7 +1014,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var keySetMock = CreateKeySetMock();
         var validator = CreateValidator(keySetMock, keySet);
 
-        var result = await ValidateAsync(validator, await CreateLogoutTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+            new ValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.TokenReplayed, result.FailureCode);
@@ -907,7 +1080,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var keySetMock = CreateKeySetMock();
         var validator = CreateValidator(keySetMock, keySet);
 
-        var result = await ValidateAsync(validator, await CreateLogoutTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+            new ValidateOptions(),
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid, result.FailureReason);
         var lookup = Assert.Single(lookups);
@@ -926,7 +1104,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var validator = CreateValidator(mockKeySet);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await ValidateAsync(validator, await CreateLogoutTokenAsync())
+            await ValidateAsync(
+                validator,
+                await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+                new ValidateOptions(),
+                CancellationToken.None
+            )
         );
     }
 
@@ -941,7 +1124,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var validator = CreateValidator(mockKeySet);
 
         await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
-            await ValidateAsync(validator, await CreateLogoutTokenAsync())
+            await ValidateAsync(
+                validator,
+                await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+                new ValidateOptions(),
+                CancellationToken.None
+            )
         );
     }
 
@@ -959,7 +1147,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         SetupRecords(keySet, records);
         var keySetMock = CreateKeySetMock();
         var validator = CreateValidator(keySetMock, keySet);
-        var result = await ValidateAsync(validator, await CreateLogoutTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+            new ValidateOptions(),
+            CancellationToken.None
+        );
         Assert.True(result.IsValid, result.FailureReason);
 
         var recorded = await validator.TryRecordHandledAsync(
@@ -984,7 +1177,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         SetupRecords(keySet, records, added: false);
         var keySetMock = CreateKeySetMock();
         var validator = CreateValidator(keySetMock, keySet);
-        var result = await ValidateAsync(validator, await CreateLogoutTokenAsync());
+        var result = await ValidateAsync(
+            validator,
+            await CreateLogoutTokenAsync(new LogoutTokenOptions(), CancellationToken.None),
+            new ValidateOptions(),
+            CancellationToken.None
+        );
         Assert.True(result.IsValid, result.FailureReason);
 
         var recorded = await validator.TryRecordHandledAsync(

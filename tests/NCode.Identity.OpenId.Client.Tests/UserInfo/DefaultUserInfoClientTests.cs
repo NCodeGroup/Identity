@@ -179,24 +179,37 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
         return mock;
     }
 
+    private sealed class UserInfoJwtOptions
+    {
+        public string Issuer { get; init; } = Authority;
+
+        public string Audience { get; init; } = ClientId;
+
+        public string Subject { get; init; } = "user-1";
+
+        public string Alg { get; init; } = "PS256";
+
+        public string TokenType { get; init; } = JoseTokenTypes.Jwt;
+
+        public SecretKey? SigningKey { get; init; }
+
+        public DateTimeOffset? Expires { get; init; }
+
+        public bool Encrypted { get; init; }
+    }
+
     // A UserInfo response the provider signs as OpenID Connect Core 1.0 §5.3.2 requires: its issuer, an audience naming
     // the client, and the end-user's claims; encrypted to the client when encryption credentials are given.
     private async ValueTask<string> CreateUserInfoJwtAsync(
-        string issuer = Authority,
-        string audience = ClientId,
-        string subject = "user-1",
-        string alg = "PS256",
-        string tokenType = JoseTokenTypes.Jwt,
-        SecretKey? signingKey = null,
-        DateTimeOffset? expires = null,
-        bool encrypted = false
+        UserInfoJwtOptions options,
+        CancellationToken cancellationToken
     )
     {
         var algorithms = JwtProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection;
-        Assert.True(algorithms.TryGetSignatureAlgorithm(alg, out var signatureAlgorithm));
+        Assert.True(algorithms.TryGetSignatureAlgorithm(options.Alg, out var signatureAlgorithm));
 
         JoseEncryptionCredentials? encryptionCredentials = null;
-        if (encrypted)
+        if (options.Encrypted)
         {
             Assert.True(
                 algorithms.TryGetKeyManagementAlgorithm("RSA-OAEP-256", out var management)
@@ -220,22 +233,22 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
                 new JwtEncodingParameters
                 {
                     SigningCredentials = new JoseSigningCredentials(
-                        signingKey ?? ProviderKey,
+                        options.SigningKey ?? ProviderKey,
                         signatureAlgorithm
                     ),
                     EncryptionCredentials = encryptionCredentials,
                     EnsureTokenLifetime = false,
-                    TokenType = tokenType,
-                    Issuer = issuer,
-                    Audience = new StringValues(audience),
-                    Expires = expires,
+                    TokenType = options.TokenType,
+                    Issuer = options.Issuer,
+                    Audience = new StringValues(options.Audience),
+                    Expires = options.Expires,
                     ExtraPayloadClaims = new Dictionary<string, object>
                     {
-                        [JoseClaimNames.Payload.Sub] = subject,
+                        [JoseClaimNames.Payload.Sub] = options.Subject,
                         ["email"] = "ada@example.com",
                     },
                 },
-                CancellationToken.None
+                cancellationToken
             );
     }
 
@@ -506,7 +519,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(),
+            await CreateUserInfoJwtAsync(new UserInfoJwtOptions(), CancellationToken.None),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -547,7 +560,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(issuer: "https://attacker.example.test"),
+            await CreateUserInfoJwtAsync(
+                new UserInfoJwtOptions { Issuer = "https://attacker.example.test" },
+                CancellationToken.None
+            ),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -566,7 +582,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(audience: "client-2"),
+            await CreateUserInfoJwtAsync(
+                new UserInfoJwtOptions { Audience = "client-2" },
+                CancellationToken.None
+            ),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -585,7 +604,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(signingKey: OtherKey),
+            await CreateUserInfoJwtAsync(
+                new UserInfoJwtOptions { SigningKey = OtherKey },
+                CancellationToken.None
+            ),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -608,7 +630,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(alg: "RS256"),
+            await CreateUserInfoJwtAsync(
+                new UserInfoJwtOptions { Alg = "RS256" },
+                CancellationToken.None
+            ),
             "application/jwt"
         );
         var client = CreateClient(handler);
@@ -627,7 +652,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(),
+            await CreateUserInfoJwtAsync(new UserInfoJwtOptions(), CancellationToken.None),
             "application/jwt"
         );
         var client = CreateClient(handler, advertisedSigningAlgorithms: ["ES256"]);
@@ -650,7 +675,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(tokenType: "at+jwt"),
+            await CreateUserInfoJwtAsync(
+                new UserInfoJwtOptions { TokenType = "at+jwt" },
+                CancellationToken.None
+            ),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -669,7 +697,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(expires: DateTimeOffset.UtcNow.AddHours(-1)),
+            await CreateUserInfoJwtAsync(
+                new UserInfoJwtOptions { Expires = DateTimeOffset.UtcNow.AddHours(-1) },
+                CancellationToken.None
+            ),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -688,7 +719,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(subject: "someone-else"),
+            await CreateUserInfoJwtAsync(
+                new UserInfoJwtOptions { Subject = "someone-else" },
+                CancellationToken.None
+            ),
             "application/jwt"
         );
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
@@ -707,7 +741,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(encrypted: true),
+            await CreateUserInfoJwtAsync(
+                new UserInfoJwtOptions { Encrypted = true },
+                CancellationToken.None
+            ),
             "application/jwt"
         );
         var client = CreateClient(
@@ -731,7 +768,7 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(),
+            await CreateUserInfoJwtAsync(new UserInfoJwtOptions(), CancellationToken.None),
             "application/jwt"
         );
         var client = CreateClient(

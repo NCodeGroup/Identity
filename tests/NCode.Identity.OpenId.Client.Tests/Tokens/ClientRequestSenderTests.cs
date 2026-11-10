@@ -208,7 +208,8 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
 
     private ValueTask<ProviderHttpResponse> PostWithDPoPAsync(
         ClientRequestSender sender,
-        bool withKey
+        bool withKey,
+        CancellationToken cancellationToken
     ) =>
         sender.PostFormAsync(
             CreateRegistration(),
@@ -217,7 +218,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
             [new KeyValuePair<string, string>("a", "b")],
             includeClientId: false,
             withKey ? DPoPContext.CreateProofKey(DPoPContext.EcKey) : null,
-            CancellationToken.None
+            cancellationToken
         );
 
     [Fact]
@@ -228,7 +229,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         SetupHttpClient(handler);
         var sender = CreateSender(mockAuthenticator.Object);
 
-        await PostWithDPoPAsync(sender, withKey: true);
+        await PostWithDPoPAsync(sender, withKey: true, CancellationToken.None);
 
         var request = Assert.Single(handler.Requests);
         Assert.NotNull(request.DPoP);
@@ -246,7 +247,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         SetupHttpClient(handler);
         var sender = CreateSender(mockAuthenticator.Object);
 
-        await PostWithDPoPAsync(sender, withKey: false);
+        await PostWithDPoPAsync(sender, withKey: false, CancellationToken.None);
 
         var request = Assert.Single(handler.Requests);
         Assert.Null(request.DPoP);
@@ -267,7 +268,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         SetupHttpClient(handler);
         var sender = CreateSender(mockAuthenticator.Object);
 
-        var response = await PostWithDPoPAsync(sender, withKey: true);
+        var response = await PostWithDPoPAsync(sender, withKey: true, CancellationToken.None);
 
         Assert.Equal(200, response.StatusCode);
         Assert.Equal(2, handler.Requests.Count);
@@ -306,7 +307,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         SetupHttpClient(handler);
         var sender = CreateSender(mockAuthenticator.Object);
 
-        var response = await PostWithDPoPAsync(sender, withKey: true);
+        var response = await PostWithDPoPAsync(sender, withKey: true, CancellationToken.None);
 
         Assert.Equal(400, response.StatusCode);
         Assert.Equal(2, handler.Requests.Count);
@@ -325,7 +326,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         SetupHttpClient(handler);
         var sender = CreateSender(mockAuthenticator.Object);
 
-        var response = await PostWithDPoPAsync(sender, withKey: true);
+        var response = await PostWithDPoPAsync(sender, withKey: true, CancellationToken.None);
 
         Assert.Equal(400, response.StatusCode);
         Assert.Single(handler.Requests);
@@ -341,7 +342,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         SetupHttpClient(handler);
         var sender = CreateSender(mockAuthenticator.Object);
 
-        await PostWithDPoPAsync(sender, withKey: true);
+        await PostWithDPoPAsync(sender, withKey: true, CancellationToken.None);
 
         Assert.Equal("n-2", DPoPContext.NonceCache.Get(new Uri(Endpoint.Url)));
     }

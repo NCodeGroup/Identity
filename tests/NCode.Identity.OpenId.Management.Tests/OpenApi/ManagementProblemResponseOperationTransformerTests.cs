@@ -18,7 +18,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     {
         var operation = CreateOperation(("401", "Unauthorized"));
 
-        await TransformAsync(operation, new ApiDescription());
+        await TransformAsync(operation, new ApiDescription(), CancellationToken.None);
 
         Assert.Equal(
             ManagementProblemResponseOperationTransformer.UnauthorizedDescription,
@@ -31,7 +31,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     {
         var operation = CreateOperation(("403", "The caller is not the owner."));
 
-        await TransformAsync(operation, new ApiDescription());
+        await TransformAsync(operation, new ApiDescription(), CancellationToken.None);
 
         Assert.Equal("The caller is not the owner.", DescriptionOf(operation, "403"));
     }
@@ -41,7 +41,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     {
         var operation = CreateOperation(("409", "Conflict"));
 
-        await TransformAsync(operation, new ApiDescription());
+        await TransformAsync(operation, new ApiDescription(), CancellationToken.None);
 
         Assert.Equal(
             ManagementProblemResponseOperationTransformer.StoredSettingsConflictDescription,
@@ -54,7 +54,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     {
         var operation = CreateOperation(("409", "The tenant already exists."));
 
-        await TransformAsync(operation, new ApiDescription());
+        await TransformAsync(operation, new ApiDescription(), CancellationToken.None);
 
         Assert.Equal(
             "The tenant already exists. "
@@ -68,7 +68,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     {
         var operation = CreateOperation(("503", "Service Unavailable"));
 
-        await TransformAsync(operation, new ApiDescription());
+        await TransformAsync(operation, new ApiDescription(), CancellationToken.None);
 
         Assert.Equal(
             ManagementProblemResponseOperationTransformer.RootKeyUnavailableDescription,
@@ -85,7 +85,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
             new ApiParameterDescription { Source = BindingSource.Body, Type = typeof(object) }
         );
 
-        await TransformAsync(operation, description);
+        await TransformAsync(operation, description, CancellationToken.None);
 
         Assert.Equal(
             "The settings are invalid. "
@@ -117,7 +117,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
             }
         );
 
-        await TransformAsync(operation, description);
+        await TransformAsync(operation, description, CancellationToken.None);
 
         Assert.Equal(
             "The settings are invalid. "
@@ -148,7 +148,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
             }
         );
 
-        await TransformAsync(operation, description);
+        await TransformAsync(operation, description, CancellationToken.None);
 
         Assert.Equal("The settings are invalid.", DescriptionOf(operation, "400"));
     }
@@ -158,7 +158,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     {
         var operation = CreateOperation(("403", "Forbidden"));
 
-        await TransformAsync(operation, new ApiDescription());
+        await TransformAsync(operation, new ApiDescription(), CancellationToken.None);
 
         Assert.Equal(
             ManagementProblemResponseOperationTransformer.ForbiddenDescription,
@@ -171,7 +171,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     {
         var operation = CreateOperation(("412", "Precondition Failed"));
 
-        await TransformAsync(operation, new ApiDescription());
+        await TransformAsync(operation, new ApiDescription(), CancellationToken.None);
 
         Assert.Equal(
             ManagementProblemResponseOperationTransformer.PreconditionFailedDescription,
@@ -184,7 +184,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     {
         var operation = CreateOperation(("415", "Unsupported Media Type"));
 
-        await TransformAsync(operation, new ApiDescription());
+        await TransformAsync(operation, new ApiDescription(), CancellationToken.None);
 
         Assert.Equal(
             ManagementProblemResponseOperationTransformer.UnsupportedMediaTypeDescription,
@@ -197,7 +197,7 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     {
         var operation = CreateOperation(("200", "OK"));
 
-        await TransformAsync(operation, new ApiDescription());
+        await TransformAsync(operation, new ApiDescription(), CancellationToken.None);
 
         Assert.Equal("OK", DescriptionOf(operation, "200"));
     }
@@ -230,7 +230,11 @@ public sealed class ManagementProblemResponseOperationTransformerTests
     private static string? DescriptionOf(OpenApiOperation operation, string code) =>
         operation.Responses?[code].Description;
 
-    private static Task TransformAsync(OpenApiOperation operation, ApiDescription description)
+    private static async ValueTask TransformAsync(
+        OpenApiOperation operation,
+        ApiDescription description,
+        CancellationToken cancellationToken
+    )
     {
         var context = new OpenApiOperationTransformerContext
         {
@@ -239,10 +243,10 @@ public sealed class ManagementProblemResponseOperationTransformerTests
             ApplicationServices = new ServiceCollection().BuildServiceProvider(),
         };
 
-        return new ManagementProblemResponseOperationTransformer().TransformAsync(
+        await new ManagementProblemResponseOperationTransformer().TransformAsync(
             operation,
             context,
-            CancellationToken.None
+            cancellationToken
         );
     }
 }

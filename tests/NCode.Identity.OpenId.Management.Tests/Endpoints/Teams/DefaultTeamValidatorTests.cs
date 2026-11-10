@@ -125,41 +125,51 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             .Verifiable();
     }
 
-    private ValueTask<ManagementError?> AuthorizeCreate(
+    private ValueTask<ManagementError?> AuthorizeCreateAsync(
         bool authenticated,
-        string? parentTeamId = null
+        string? parentTeamId,
+        CancellationToken cancellationToken
     ) =>
         Validator.AuthorizeCreateAsync(
             CreateUser(authenticated),
             ControlPlaneTenantId,
             parentTeamId,
-            CancellationToken.None
+            cancellationToken
         );
 
-    private ValueTask<ManagementError?> AuthorizeUpdate(bool authenticated) =>
+    private ValueTask<ManagementError?> AuthorizeUpdateAsync(
+        bool authenticated,
+        CancellationToken cancellationToken
+    ) =>
         Validator.AuthorizeUpdateAsync(
             CreateUser(authenticated),
             ControlPlaneTenantId,
             TeamId,
-            CancellationToken.None
+            cancellationToken
         );
 
-    private ValueTask<ManagementError?> AuthorizeDelete(bool authenticated) =>
+    private ValueTask<ManagementError?> AuthorizeDeleteAsync(
+        bool authenticated,
+        CancellationToken cancellationToken
+    ) =>
         Validator.AuthorizeDeleteAsync(
             CreateUser(authenticated),
             ControlPlaneTenantId,
             TeamId,
-            CancellationToken.None
+            cancellationToken
         );
 
-    private ValueTask<ManagementError?> Create(PersistedTeam team) =>
-        Validator.ValidateCreateAsync(team, MockStoreManager.Object, CancellationToken.None);
+    private ValueTask<ManagementError?> CreateAsync(
+        PersistedTeam team,
+        CancellationToken cancellationToken
+    ) => Validator.ValidateCreateAsync(team, MockStoreManager.Object, cancellationToken);
 
-    private ValueTask<ManagementError?> Update(
+    private ValueTask<ManagementError?> UpdateAsync(
         PersistedTeam team,
         UpdateTeamRequest model,
-        string? ifMatch = null,
-        bool authenticated = true
+        string? ifMatch,
+        bool authenticated,
+        CancellationToken cancellationToken
     ) =>
         Validator.ValidateUpdateAsync(
             CreateUser(authenticated),
@@ -168,16 +178,20 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             model,
             ifMatch,
             MockStoreManager.Object,
-            CancellationToken.None
+            cancellationToken
         );
 
-    private ValueTask<ManagementError?> Delete(PersistedTeam team, bool authenticated = true) =>
+    private ValueTask<ManagementError?> DeleteAsync(
+        PersistedTeam team,
+        bool authenticated,
+        CancellationToken cancellationToken
+    ) =>
         Validator.ValidateDeleteAsync(
             CreateUser(authenticated),
             ControlPlaneTenantId,
             team,
             MockStoreManager.Object,
-            CancellationToken.None
+            cancellationToken
         );
 
     #endregion
@@ -189,7 +203,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
 
-        var error = await AuthorizeCreate(authenticated: true);
+        var error = await AuthorizeCreateAsync(
+            authenticated: true,
+            parentTeamId: null,
+            CancellationToken.None
+        );
 
         Assert.Null(error);
     }
@@ -199,7 +217,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await AuthorizeCreate(authenticated: true);
+        var error = await AuthorizeCreateAsync(
+            authenticated: true,
+            parentTeamId: null,
+            CancellationToken.None
+        );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
@@ -211,7 +233,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await AuthorizeCreate(authenticated: false);
+        var error = await AuthorizeCreateAsync(
+            authenticated: false,
+            parentTeamId: null,
+            CancellationToken.None
+        );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
@@ -228,7 +254,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             Operations.Create
         );
 
-        var error = await AuthorizeCreate(authenticated: true);
+        var error = await AuthorizeCreateAsync(
+            authenticated: true,
+            parentTeamId: null,
+            CancellationToken.None
+        );
 
         Assert.Null(error);
     }
@@ -243,7 +273,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             Operations.Create
         );
 
-        var error = await AuthorizeCreate(authenticated: true, parentTeamId: "acme");
+        var error = await AuthorizeCreateAsync(
+            authenticated: true,
+            parentTeamId: "acme",
+            CancellationToken.None
+        );
 
         Assert.Null(error);
     }
@@ -257,7 +291,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
 
-        var error = await AuthorizeUpdate(authenticated: true);
+        var error = await AuthorizeUpdateAsync(authenticated: true, CancellationToken.None);
 
         Assert.Null(error);
     }
@@ -267,7 +301,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await AuthorizeUpdate(authenticated: true);
+        var error = await AuthorizeUpdateAsync(authenticated: true, CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
@@ -279,7 +313,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await AuthorizeUpdate(authenticated: false);
+        var error = await AuthorizeUpdateAsync(authenticated: false, CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
@@ -296,7 +330,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             Operations.Update
         );
 
-        var error = await AuthorizeUpdate(authenticated: true);
+        var error = await AuthorizeUpdateAsync(authenticated: true, CancellationToken.None);
 
         Assert.Null(error);
     }
@@ -310,7 +344,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
 
-        var error = await AuthorizeDelete(authenticated: true);
+        var error = await AuthorizeDeleteAsync(authenticated: true, CancellationToken.None);
 
         Assert.Null(error);
     }
@@ -320,7 +354,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await AuthorizeDelete(authenticated: true);
+        var error = await AuthorizeDeleteAsync(authenticated: true, CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
@@ -332,7 +366,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await AuthorizeDelete(authenticated: false);
+        var error = await AuthorizeDeleteAsync(authenticated: false, CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
@@ -349,7 +383,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             Operations.Delete
         );
 
-        var error = await AuthorizeDelete(authenticated: true);
+        var error = await AuthorizeDeleteAsync(authenticated: true, CancellationToken.None);
 
         Assert.Null(error);
     }
@@ -361,7 +395,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     [Fact]
     public async Task ValidateCreateAsync_WhenTeamIdIsInvalid_Returns400()
     {
-        var error = await Create(CreateTeam(teamId: "-Bad_Id"));
+        var error = await CreateAsync(CreateTeam(teamId: "-Bad_Id"), CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -374,7 +408,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         string displayName
     )
     {
-        var error = await Create(CreateTeam(displayName: displayName));
+        var error = await CreateAsync(CreateTeam(displayName: displayName), CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -387,7 +421,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         SetupTeamStore();
         SetupExisting(TeamId, CreateTeam());
 
-        var error = await Create(CreateTeam());
+        var error = await CreateAsync(CreateTeam(), CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
@@ -404,7 +438,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             .ReturnsAsync(true)
             .Verifiable();
 
-        var error = await Create(CreateTeam());
+        var error = await CreateAsync(CreateTeam(), CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
@@ -419,7 +453,10 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupTeamStore();
 
-        var error = await Create(CreateTeam(parentTeamId: RootTenantOptions.DefaultTeamId));
+        var error = await CreateAsync(
+            CreateTeam(parentTeamId: RootTenantOptions.DefaultTeamId),
+            CancellationToken.None
+        );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
@@ -431,8 +468,9 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupTeamStore();
 
-        var error = await Create(
-            CreateTeam(parentTeamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant())
+        var error = await CreateAsync(
+            CreateTeam(parentTeamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant()),
+            CancellationToken.None
         );
 
         Assert.NotNull(error);
@@ -446,7 +484,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         SetupTeamStore();
         SetupExisting("acme", null);
 
-        var error = await Create(CreateTeam(parentTeamId: "acme"));
+        var error = await CreateAsync(CreateTeam(parentTeamId: "acme"), CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status404NotFound, error.StatusCode);
@@ -464,7 +502,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             .ReturnsAsync(false)
             .Verifiable();
 
-        var error = await Create(CreateTeam(parentTeamId: "acme"));
+        var error = await CreateAsync(CreateTeam(parentTeamId: "acme"), CancellationToken.None);
 
         Assert.Null(error);
     }
@@ -479,7 +517,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             .ReturnsAsync(false)
             .Verifiable();
 
-        var error = await Create(CreateTeam());
+        var error = await CreateAsync(CreateTeam(), CancellationToken.None);
 
         Assert.Null(error);
     }
@@ -491,10 +529,12 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenIfMatchMismatch_Returns412()
     {
-        var error = await Update(
+        var error = await UpdateAsync(
             CreateTeam(),
             new UpdateTeamRequest { DisplayName = "New" },
-            ifMatch: "stale-token"
+            ifMatch: "stale-token",
+            authenticated: true,
+            CancellationToken.None
         );
 
         Assert.NotNull(error);
@@ -504,7 +544,13 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenDisplayNameBlank_Returns400()
     {
-        var error = await Update(CreateTeam(), new UpdateTeamRequest { DisplayName = " " });
+        var error = await UpdateAsync(
+            CreateTeam(),
+            new UpdateTeamRequest { DisplayName = " " },
+            ifMatch: null,
+            authenticated: true,
+            CancellationToken.None
+        );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -516,9 +562,12 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
 
-        var error = await Update(
+        var error = await UpdateAsync(
             CreateTeam(teamId: RootTenantOptions.DefaultTeamId),
-            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true },
+            ifMatch: null,
+            authenticated: true,
+            CancellationToken.None
         );
 
         Assert.NotNull(error);
@@ -531,9 +580,12 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
 
-        var error = await Update(
+        var error = await UpdateAsync(
             CreateTeam(teamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant()),
-            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true },
+            ifMatch: null,
+            authenticated: true,
+            CancellationToken.None
         );
 
         Assert.NotNull(error);
@@ -550,9 +602,12 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             AuthorizationResult.Failed()
         );
 
-        var error = await Update(
+        var error = await UpdateAsync(
             CreateTeam(),
-            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true },
+            ifMatch: null,
+            authenticated: true,
+            CancellationToken.None
         );
 
         Assert.NotNull(error);
@@ -565,10 +620,12 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await Update(
+        var error = await UpdateAsync(
             CreateTeam(),
             new UpdateTeamRequest { DisplayName = "New", IsDisabled = true },
-            authenticated: false
+            ifMatch: null,
+            authenticated: false,
+            CancellationToken.None
         );
 
         Assert.NotNull(error);
@@ -584,9 +641,12 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             AuthorizationResult.Success()
         );
 
-        var error = await Update(
+        var error = await UpdateAsync(
             CreateTeam(),
-            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true },
+            ifMatch: null,
+            authenticated: true,
+            CancellationToken.None
         );
 
         Assert.Null(error);
@@ -602,9 +662,12 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             Operations.Update
         );
 
-        var error = await Update(
+        var error = await UpdateAsync(
             CreateTeam(parentTeamId: "acme"),
-            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true },
+            ifMatch: null,
+            authenticated: true,
+            CancellationToken.None
         );
 
         Assert.Null(error);
@@ -613,9 +676,12 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenIsDisabledIsUnchanged_DoesNotAuthorizeAnyNode()
     {
-        var error = await Update(
+        var error = await UpdateAsync(
             CreateTeam(),
-            new UpdateTeamRequest { DisplayName = "New", IsDisabled = false }
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = false },
+            ifMatch: null,
+            authenticated: true,
+            CancellationToken.None
         );
 
         Assert.Null(error);
@@ -626,10 +692,12 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
 
-        var error = await Update(
+        var error = await UpdateAsync(
             CreateTeam(),
             new UpdateTeamRequest { DisplayName = "New", IsDisabled = true },
-            ifMatch: "team-ct"
+            ifMatch: "team-ct",
+            authenticated: true,
+            CancellationToken.None
         );
 
         Assert.Null(error);
@@ -649,7 +717,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             Operations.Delete
         );
 
-        var error = await Delete(CreateTeam());
+        var error = await DeleteAsync(CreateTeam(), authenticated: true, CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
@@ -661,7 +729,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await Delete(CreateTeam(), authenticated: false);
+        var error = await DeleteAsync(CreateTeam(), authenticated: false, CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
@@ -683,7 +751,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             .ReturnsAsync(false)
             .Verifiable();
 
-        var error = await Delete(CreateTeam(parentTeamId: "acme"));
+        var error = await DeleteAsync(
+            CreateTeam(parentTeamId: "acme"),
+            authenticated: true,
+            CancellationToken.None
+        );
 
         Assert.Null(error);
     }
@@ -703,7 +775,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             .ReturnsAsync(false)
             .Verifiable();
 
-        var error = await Delete(CreateTeam());
+        var error = await DeleteAsync(CreateTeam(), authenticated: true, CancellationToken.None);
 
         Assert.Null(error);
     }
@@ -713,7 +785,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
 
-        var error = await Delete(CreateTeam(teamId: RootTenantOptions.DefaultTeamId));
+        var error = await DeleteAsync(
+            CreateTeam(teamId: RootTenantOptions.DefaultTeamId),
+            authenticated: true,
+            CancellationToken.None
+        );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
@@ -725,8 +801,10 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
 
-        var error = await Delete(
-            CreateTeam(teamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant())
+        var error = await DeleteAsync(
+            CreateTeam(teamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant()),
+            authenticated: true,
+            CancellationToken.None
         );
 
         Assert.NotNull(error);
@@ -744,7 +822,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             .ReturnsAsync(true)
             .Verifiable();
 
-        var error = await Delete(CreateTeam());
+        var error = await DeleteAsync(CreateTeam(), authenticated: true, CancellationToken.None);
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
@@ -764,7 +842,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             .ReturnsAsync(false)
             .Verifiable();
 
-        var error = await Delete(CreateTeam());
+        var error = await DeleteAsync(CreateTeam(), authenticated: true, CancellationToken.None);
 
         Assert.Null(error);
     }

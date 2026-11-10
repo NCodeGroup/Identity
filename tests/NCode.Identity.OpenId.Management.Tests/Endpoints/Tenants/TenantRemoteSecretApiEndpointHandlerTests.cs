@@ -937,14 +937,16 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             await EndpointProblemMetadata.ReadStatusCodesAsync(
                 CreateHandler(),
                 httpMethod,
-                routePattern
+                routePattern,
+                CancellationToken.None
             )
         );
         Assert.Empty(
             await EndpointProblemMetadata.ReadUndescribedStatusCodesAsync(
                 CreateHandler(),
                 httpMethod,
-                routePattern
+                routePattern,
+                CancellationToken.None
             )
         );
     }

@@ -18,10 +18,16 @@ public class ManagementProblemResponseMiddlewareTests
             Response = { Body = new MemoryStream() },
         };
 
-    private static async Task<int> ReadStatusAsync(HttpContext httpContext)
+    private static async ValueTask<int> ReadStatusAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         httpContext.Response.Body.Position = 0;
-        var root = await JsonSerializer.DeserializeAsync<JsonElement>(httpContext.Response.Body);
+        var root = await JsonSerializer.DeserializeAsync<JsonElement>(
+            httpContext.Response.Body,
+            cancellationToken: cancellationToken
+        );
         return root.GetProperty("status").GetInt32();
     }
 
@@ -41,7 +47,10 @@ public class ManagementProblemResponseMiddlewareTests
 
         Assert.Equal(StatusCodes.Status415UnsupportedMediaType, httpContext.Response.StatusCode);
         Assert.StartsWith("application/problem+json", httpContext.Response.ContentType);
-        Assert.Equal(StatusCodes.Status415UnsupportedMediaType, await ReadStatusAsync(httpContext));
+        Assert.Equal(
+            StatusCodes.Status415UnsupportedMediaType,
+            await ReadStatusAsync(httpContext, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -60,7 +69,10 @@ public class ManagementProblemResponseMiddlewareTests
         Assert.Equal(StatusCodes.Status405MethodNotAllowed, httpContext.Response.StatusCode);
         Assert.StartsWith("application/problem+json", httpContext.Response.ContentType);
         Assert.Equal("GET", httpContext.Response.Headers.Allow.ToString());
-        Assert.Equal(StatusCodes.Status405MethodNotAllowed, await ReadStatusAsync(httpContext));
+        Assert.Equal(
+            StatusCodes.Status405MethodNotAllowed,
+            await ReadStatusAsync(httpContext, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -193,7 +205,10 @@ public class ManagementProblemResponseMiddlewareTests
 
         Assert.Equal(StatusCodes.Status404NotFound, httpContext.Response.StatusCode);
         Assert.StartsWith("application/problem+json", httpContext.Response.ContentType);
-        Assert.Equal(StatusCodes.Status404NotFound, await ReadStatusAsync(httpContext));
+        Assert.Equal(
+            StatusCodes.Status404NotFound,
+            await ReadStatusAsync(httpContext, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -212,7 +227,10 @@ public class ManagementProblemResponseMiddlewareTests
 
         Assert.Equal(StatusCodes.Status404NotFound, httpContext.Response.StatusCode);
         Assert.StartsWith("application/problem+json", httpContext.Response.ContentType);
-        Assert.Equal(StatusCodes.Status404NotFound, await ReadStatusAsync(httpContext));
+        Assert.Equal(
+            StatusCodes.Status404NotFound,
+            await ReadStatusAsync(httpContext, CancellationToken.None)
+        );
     }
 
     #endregion

@@ -10,7 +10,7 @@ namespace NCode.Identity.Analyzers;
 /// <param name="lacksTrailingToken">
 /// Whether the method is asynchronous and does not take a <c>CancellationToken</c> as its last parameter.
 /// </param>
-// See ADR-1495.
+// See ADR-1496.
 internal readonly struct MethodShape(bool returnsTask, bool lacksTrailingToken)
 {
     /// <summary>

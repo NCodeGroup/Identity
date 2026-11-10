@@ -1,4 +1,4 @@
-# 1495. An analyzer reports an own async method that returns Task or takes no trailing cancellation token
+# 1496. An analyzer reports an own async method that returns Task or takes no trailing cancellation token
 
 - **Status:** Accepted
 - **Refines:** [ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md) (the same analyzer project)

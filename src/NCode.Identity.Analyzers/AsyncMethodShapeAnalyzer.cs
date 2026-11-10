@@ -13,7 +13,7 @@ namespace NCode.Identity.Analyzers;
 /// Reports an own method that returns <c>Task</c> or <c>Task&lt;T&gt;</c>, and an own asynchronous method whose last
 /// parameter is not a <c>CancellationToken</c>, unless a framework contract fixes the method's shape.
 /// </summary>
-// See ADR-1495.
+// See ADR-1496.
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class AsyncMethodShapeAnalyzer : DiagnosticAnalyzer
 {
@@ -29,7 +29,7 @@ public sealed class AsyncMethodShapeAnalyzer : DiagnosticAnalyzer
     public const string CancellationTokenDiagnosticId = "NCID0003";
 
     private const string HelpLinkUri =
-        "https://github.com/NCodeGroup/Identity/blob/main/docs/decisions/1495-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md";
+        "https://github.com/NCodeGroup/Identity/blob/main/docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md";
 
     private static DiagnosticDescriptor TaskReturnRule { get; } =
         new(

@@ -8,7 +8,7 @@ namespace NCode.Identity.Analyzers;
 /// <summary>
 /// The task types and the cancellation token type of a compilation, and what they say about a method's shape.
 /// </summary>
-// See ADR-1495.
+// See ADR-1496.
 internal sealed class AsyncTypes
 {
     private INamedTypeSymbol Task { get; }

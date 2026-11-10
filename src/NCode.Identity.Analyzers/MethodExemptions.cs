@@ -10,7 +10,7 @@ namespace NCode.Identity.Analyzers;
 /// Identifies the methods whose shape a framework contract fixes, so the family's own rule for async methods does not
 /// apply to them.
 /// </summary>
-// See ADR-1495.
+// See ADR-1496.
 internal static class MethodExemptions
 {
     private const string FactAttributeName = "Xunit.FactAttribute";

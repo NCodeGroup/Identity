@@ -21,6 +21,8 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 public class TenantRootKeyTests
 {
     private const string ControlPlaneTenantId = "root";
+
+    private const string ControlPlaneTokenPath = $"/{ControlPlaneTenantId}/oauth2/token";
     private const string TenantId = "acme";
     private const string TenantApiPath = $"/api/tenants/{TenantId}";
     private const string RootKeyPath = $"{TenantApiPath}/encryption-keys/root-key";
@@ -33,7 +35,7 @@ public class TenantRootKeyTests
         var recorder = new RecordingAuditEventHandler();
         using var factory = new TenantRootKeyHostApplicationFactory(wrapper, recorder);
         using var administrator = await factory.CreateAdministratorClientAsync(
-            $"/{ControlPlaneTenantId}/oauth2/token",
+            ControlPlaneTokenPath,
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
@@ -181,7 +183,7 @@ public class TenantRootKeyTests
             new RecordingAuditEventHandler()
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
-            $"/{ControlPlaneTenantId}/oauth2/token",
+            ControlPlaneTokenPath,
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
@@ -227,7 +229,7 @@ public class TenantRootKeyTests
             new RecordingAuditEventHandler()
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
-            $"/{ControlPlaneTenantId}/oauth2/token",
+            ControlPlaneTokenPath,
             CancellationToken.None
         );
         await CreateTenantAsync(administrator);
@@ -252,7 +254,7 @@ public class TenantRootKeyTests
             new RecordingAuditEventHandler()
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
-            $"/{ControlPlaneTenantId}/oauth2/token",
+            ControlPlaneTokenPath,
             CancellationToken.None
         );
         await CreateTenantAsync(administrator);
@@ -280,7 +282,7 @@ public class TenantRootKeyTests
             new RecordingAuditEventHandler()
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
-            $"/{ControlPlaneTenantId}/oauth2/token",
+            ControlPlaneTokenPath,
             CancellationToken.None
         );
         await CreateTenantAsync(administrator);
@@ -316,7 +318,7 @@ public class TenantRootKeyTests
             new RecordingAuditEventHandler()
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
-            $"/{ControlPlaneTenantId}/oauth2/token",
+            ControlPlaneTokenPath,
             CancellationToken.None
         );
         var controlPlaneRootKeyPath =

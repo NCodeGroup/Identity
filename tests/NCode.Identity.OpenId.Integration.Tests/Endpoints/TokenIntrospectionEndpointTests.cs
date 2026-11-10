@@ -31,7 +31,7 @@ public class TokenIntrospectionEndpointTests
     private const string BillingScope = "billing:read";
     private const string JwtResponseMediaType = "application/token-introspection+jwt";
     private const string IntrospectPath = "/oauth2/introspect";
-    private const string TokenPath = "/oauth2/token";
+    private const string TokenPath = ManagementTokenRequest.DefaultTokenPath;
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     private static IReadOnlyDictionary<string, object> NoSettings { get; } =

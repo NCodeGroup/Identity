@@ -4,7 +4,9 @@
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): `manage.<apex>`
   serves the management console's BFF host, and routes `/api` to the management API; amended by
   [ADR-1488](1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md):
-  the management API is served at the root tenant's issuer host, and `manage.<apex>` serves only the console)
+  the management API is served at the root tenant's issuer host, and `manage.<apex>` serves only the console; amended by
+  [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md): the platform's hosts live under
+  `ncodeid.net`, and `ncodeid.com` serves the project site and docs)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

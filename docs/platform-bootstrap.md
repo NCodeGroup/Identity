@@ -11,14 +11,19 @@
 Each step says **what** to do, **why** it is manual, and how to **verify** it. Placeholders are in angle brackets; the
 values used by the NCode hosted platform are listed once here.
 
-| Placeholder        | Meaning                                         | NCode value                          |
-| ------------------ | ----------------------------------------------- | ------------------------------------ |
-| `<domain>`         | Apex domain for the platform                    | `nidentity.io`                       |
-| `<github-org>`     | GitHub organization                             | `NCodeGroup`                         |
-| `<infra-repo>`     | Public infrastructure repository                | `identity-platform`                  |
-| `<aws-region>`     | Home region of the platform's AWS account       | `us-west-2` (Oregon)                 |
-| `<oci-region>`     | Home region of the lab's OCI tenancy            | `us-phoenix-1` (Phoenix)             |
-| `<recovery-email>` | An **off-domain** mailbox you control           | the owner's personal mailbox         |
+| Placeholder            | Meaning                                         | NCode value                              |
+| ---------------------- | ----------------------------------------------- | ---------------------------------------- |
+| `<platform-domain>`    | Domain of every issuer-bearing host             | `ncodeid.net`                            |
+| `<brand-domain>`       | Domain of the site, docs, status page and mail  | `ncodeid.com`                            |
+| `<redirect-domains>`   | Domains that only redirect to `<brand-domain>`  | `ncodeidentity.com`, `ncodeidentity.net` |
+| `<github-org>`         | GitHub organization                             | `NCodeGroup`                             |
+| `<infra-repo>`         | Public infrastructure repository                | `identity-platform`                      |
+| `<aws-region>`         | Home region of the platform's AWS account       | `us-west-2` (Oregon)                     |
+| `<oci-region>`         | Home region of the lab's OCI tenancy            | `us-phoenix-1` (Phoenix)                 |
+| `<recovery-email>`     | An **off-domain** mailbox you control           | the owner's personal mailbox             |
+
+"The platform's domains" means all four
+([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)).
 
 **Region choice.** The AWS account holds only state and backups, so `us-west-2` puts them in a different geography from
 the Dallas production cluster — a regional outage can't take both. OCI has no Oregon region; Phoenix is the closest OCI
@@ -29,8 +34,8 @@ region to Denver and has three availability domains to spread the lab's nodes ac
 - **Accounts security baseline** (applies to every step): a password manager, a passkey or hardware security key for
   every account that supports one, and recovery codes stored offline.
 - **Recovery email rule:** the registrar, DNS, cloud, and GitHub owner accounts use `<recovery-email>` — **never** an
-  address at `<domain>`. If the domain or its DNS breaks, those are the accounts you need to fix it. Other vendor
-  accounts may use per-purpose `@<domain>` routing addresses.
+  address at any of the platform's domains. If a domain or its DNS breaks, those are the accounts you need to fix it.
+  Other vendor accounts may use per-purpose `@<brand-domain>` routing addresses.
 - **Local tools:** `git`; OpenTofu through [tenv](https://github.com/tofuutils/tenv) (`scoop install tenv` /
   `brew install tenv`), which picks the version in the infrastructure repository's `.opentofu-version` (`tenv tofu
   install` in the repository) and verifies its signature; AWS CLI v2;
@@ -42,14 +47,19 @@ region to Denver and has three availability domains to spread the lab's nodes ac
 
 Manual because a registrar credential can hand over the whole domain; it is never automated.
 
-1. Turn on account 2FA (passkey / hardware key), **auto-renew**, and **registrar lock** for `<domain>`.
-2. Leave **API access off** for the domain, keep the **Cloudflare integration disconnected** (it would store a standing
-   Cloudflare credential at the registrar), and turn **off** "Allow Afternic fast transfer opt-ins" so third-party
-   attempts to list the domain for sale are rejected automatically.
-3. Do **not** change nameservers yet — that is step 7, after the bootstrap stack has created the zone.
+Every item applies to each of the platform's domains: `<platform-domain>`, `<brand-domain>` and each of
+`<redirect-domains>`.
 
-**Verify:** RDAP for `<domain>` shows `client transfer prohibited`
-(`Invoke-RestMethod https://rdap.org/domain/<domain> | Select-Object -ExpandProperty status`).
+1. Turn on account 2FA (passkey / hardware key), **auto-renew**, and **registrar lock** for each domain, and renew
+   `<platform-domain>` and `<brand-domain>` to the registry's 10-year maximum.
+2. Leave **API access off** for each domain, keep the **Cloudflare integration disconnected** (it would store a standing
+   Cloudflare credential at the registrar), and turn **off** "Allow Afternic fast transfer opt-ins" so third-party
+   attempts to list a domain for sale are rejected automatically.
+3. Do **not** change nameservers yet — that is step 7, after the bootstrap stack has created the zones.
+
+**Verify:** RDAP for each domain shows `client transfer prohibited`
+(`foreach ($d in 'ncodeid.net', 'ncodeid.com', 'ncodeidentity.com', 'ncodeidentity.net') { Invoke-RestMethod
+https://rdap.org/domain/$d | Select-Object -ExpandProperty status }`).
 
 ## 2. GitHub organization and repository
 
@@ -67,7 +77,7 @@ settings declaratively.
 2. **Create the repository:** New repository → owner `<github-org>`, name `<infra-repo>`, **Public**, description
    "Public infrastructure as code for the NCode.Identity hosted platform: reusable OpenTofu and Kubernetes components,
    opinionated stacks, and the live configuration we run.", and **no** README, `.gitignore`, license, or Copilot starter
-   prompt — the first commit adds the files. The website (`https://<domain>`) and topics are managed by the bootstrap
+   prompt — the first commit adds the files. The website (`https://<brand-domain>`) and topics are managed by the bootstrap
    stack (an empty repository has no About panel to set them in).
 3. **Harden it before the first push** (the bootstrap stack takes these over afterwards):
    - Settings → Actions → General:
@@ -106,9 +116,9 @@ Manual because account creation and the first API token can't be created by an A
    API Tokens → *Create Custom Token*, named `<infra-repo>-bootstrap-<yyyy-mm-dd>`:
    - Permissions: Account → *Account API Tokens* → Edit (to mint the scoped CI tokens); Account → *Email Routing
      Addresses* → Edit; Zone → *Zone* → Edit; Zone → *DNS* → Edit; Zone → *Zone Settings* → Edit; Zone → *SSL and
-     Certificates* → Edit (to turn Universal SSL off, so the zone's CAA records are the only CAs that can issue for
-     it); Zone → *Email Routing Rules* → Edit. _(Cloudflare renames permission groups occasionally — match by
-     meaning.)_
+     Certificates* → Edit (to turn Universal SSL off in every zone except the two `<redirect-domains>` zones, so those
+     zones' CAA records are the only CAs that can issue for them); Zone → *Email Routing Rules* → Edit. _(Cloudflare
+     renames permission groups occasionally — match by meaning.)_
    - Account resources: only your account. Zone resources: *All zones from an account* → your account (not *All
      zones*, which spans every account you can access).
    - Client IP filtering: your current public IPv4 **and** IPv6 address, if you have one
@@ -132,7 +142,7 @@ Manual because AWS accounts and the identity used to administer them must exist 
    if no IAM administrator exists yet; once IAM Identity Center is set up (item 4), stop using the root user.
 2. **Member account:** Organizations → *Add an AWS account* → *Create an AWS account*: name `nidentity-platform`, email
    a unique alias of `<recovery-email>` (for example a `+aws-platform` sub-address), IAM role name left as
-   `OrganizationAccountAccessRole`, tags `application` = `ncode-identity` and `owner_email` = `platform@<domain>`
+   `OrganizationAccountAccessRole`, tags `application` = `ncode-identity` and `owner_email` = `platform@<brand-domain>`
    ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)). Leave it directly under *Root* — one
    workload account needs no organizational units. It is billed to the management account — no new payment method.
    Record its account ID: it goes into `live/bootstrap/terraform.tfvars` as `aws_account_id`.
@@ -217,10 +227,12 @@ can't create it. Everything after it runs from GitHub Actions.
    then `tofu init`, `tofu plan -out bootstrap.tfplan`, review the plan (everything is an add, plus one import, and
    nothing changes or is destroyed), and `tofu apply bootstrap.tfplan`. The local state file and the plan are already
    encrypted with the passphrase. The apply creates the S3 state and backup buckets, the KMS keys, the GitHub OIDC
-   provider and roles, the Cloudflare zone, DNSSEC, and scoped tokens (stored as SSM SecureStrings), the budget alert,
-   and the repository's rulesets and `lab` / `production` environments — importing the repository from section 2
-   rather than creating it. If DNSSEC fails because the zone is still pending, continue and re-run `tofu apply` after
-   section 7.
+   provider and roles, one Cloudflare zone per platform domain with DNSSEC, the redirect rules of `<redirect-domains>`
+   (Cloudflare Single Redirect rules on proxied apex and `www` records, with Universal SSL on in those two zones), and
+   a scoped token per zone (stored as SSM SecureStrings), the budget alert, and the repository's rulesets and `lab` /
+   `production` environments — importing the repository from section 2 rather than creating it. The apex and `www.` of
+   `<platform-domain>` are DNS-only records to the platform's ingress, which serves their redirect. If DNSSEC fails
+   because a zone is still pending, continue and re-run `tofu apply` after section 7.
 5. **Move the state into the bucket it created:** delete `backend_override.tf`, run `tofu init -migrate-state`
    (answer `yes`), then delete the local `terraform.tfstate`, `terraform.tfstate.backup`, and `bootstrap.tfplan`.
 6. **Revoke** the Cloudflare bootstrap token and the GitHub token; let the AWS session expire.
@@ -234,31 +246,37 @@ expire 30 days after their scheduled rotation. Re-run it too whenever `live/boot
 limit such a re-run to what changed so the DNSSEC update stays out of it — for example
 `tofu plan '-target=module.github_oidc' '-out=bootstrap.tfplan'`; quote the argument, or PowerShell splits it at the dot.
 
-## 7. Delegate the domain
+## 7. Delegate the domains
 
 Manual because it is a registrar change (step 1). Order matters for DNSSEC: publish a DS record only once the zone it
 describes is the one answering, or validating resolvers reject the domain.
 
-1. In Porkbun → *Domain Management* → `<domain>` → *Details*: if a **DNSSEC** record is listed, delete it first (it
+Do items 1–4 for each of the platform's domains in turn, using that domain's zone `name_servers` and `dnssec_ds`
+bootstrap outputs.
+
+1. In Porkbun → *Domain Management* → the domain → *Details*: if a **DNSSEC** record is listed, delete it first (it
    describes the registrar's old zone).
 2. *Authoritative Nameservers* → *Edit* → replace them with the two Cloudflare name servers from the bootstrap outputs
-   (`name_servers`).
+   (`name_servers`) of that domain's zone.
 3. Wait until Cloudflare reports the zone **Active** (email, or the zone's *Overview*) **and** public resolvers have
    dropped the registrar's name servers from their caches — up to the old NS records' TTL, which is **24 hours** for
-   Porkbun (`(Resolve-DnsName <domain> -Type NS -Server 1.1.1.1).TTL` shows the time left). Cloudflare turns *Active*
-   as soon as the registry delegates to it, long before every cache agrees.
-4. *DNSSEC* → *Add* the DS record from the bootstrap output `dnssec_ds`: key tag, algorithm (`13`, ECDSA P-256 SHA-256),
-   digest type (`2`, SHA-256), and digest.
+   Porkbun (`(Resolve-DnsName <platform-domain> -Type NS -Server 1.1.1.1).TTL` shows the time left). Cloudflare turns
+   *Active* as soon as the registry delegates to it, long before every cache agrees.
+4. *DNSSEC* → *Add* the DS record from that zone's bootstrap output `dnssec_ds`: key tag, algorithm (`13`, ECDSA P-256
+   SHA-256), digest type (`2`, SHA-256), and digest.
 
-**Verify:** `Resolve-DnsName <domain> -Type NS -Server 1.1.1.1` returns the Cloudflare nameservers;
-`Resolve-DnsName <domain> -Type DS -Server 1.1.1.1` returns the DS record; [DNSViz](https://dnsviz.net/) shows a secure
-chain for `<domain>`.
+**Verify** for each domain: `Resolve-DnsName <platform-domain> -Type NS -Server 1.1.1.1` returns the Cloudflare
+nameservers; `Resolve-DnsName <platform-domain> -Type DS -Server 1.1.1.1` returns the DS record;
+[DNSViz](https://dnsviz.net/) shows a secure chain for `<platform-domain>`. Run all three with each of the platform's
+domains in place of `<platform-domain>`, for example
+`foreach ($d in 'ncodeid.net', 'ncodeid.com', 'ncodeidentity.com', 'ncodeidentity.net') { Resolve-DnsName $d -Type DS
+-Server 1.1.1.1 }`.
 
 ## 8. Confirm inbound email
 
 Inbound email routing (`security@`, `platform@`, `postmaster@`, `abuse@`, vendor aliases) is created by the CI-managed
-`live/global` root; until its first apply, mail to `@<domain>` — including the AWS budget alerts sent to `platform@` —
-bounces. Manual because the forwarding mailbox is personal data that never enters the repository, and because only its
+`live/global` root, on `<brand-domain>`; the other zones accept no mail. Until its first apply, mail to
+`@<brand-domain>` — including the AWS budget alerts sent to `platform@<brand-domain>` — bounces. Manual because the forwarding mailbox is personal data that never enters the repository, and because only its
 owner can confirm it.
 
 1. **Store the forwarding mailbox** for the two scopes that read it (the plan role reads `plan`, the production apply
@@ -279,14 +297,16 @@ owner can confirm it.
    is not verified`) — expected.
 3. Click the Cloudflare **destination verification** link sent to the forwarding mailbox, then on the failed run choose
    **Re-run all jobs** (so it plans again; the old plan is stale) and approve the new `production` deployment.
-4. In the mailbox, add a filter for mail to `*@<domain>`: never send to spam, apply a label.
+4. In the mailbox, add a filter for mail to `*@<brand-domain>`: never send to spam, apply a label.
 
-**Verify:** a test message to `security@<domain>` from a different account (Gmail hides a forwarded copy of your own
+**Verify:** a test message to `security@<brand-domain>` from a different account (Gmail hides a forwarded copy of your own
 message) arrives in the mailbox; one to an unlisted address is dropped. Senders whose resolver still caches the
 registrar's name servers (section 7) can't find the MX records until that cache expires.
 
 ## 9. Close out
 
+- [ ] `<platform-domain>` and `<brand-domain>` renewed to the registry's 10-year maximum; auto-renew on for every
+      domain.
 - [ ] Bootstrap tokens revoked; no credentials in shell history or files.
 - [ ] 2FA confirmed on Porkbun, GitHub, Cloudflare, and AWS (Identity Center) — and on OCI once section 5 is done.
 - [ ] Budget alert present on AWS (created by the bootstrap stack) — and on OCI once the lab's stack creates it.

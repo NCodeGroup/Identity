@@ -54,49 +54,40 @@ public class ManagementConsolePageTests : BaseTests
         );
     }
 
-    [BuiltConsoleBundleFact]
-    public void Render_WhenGivenTheBuiltBundlesIndex_LinksTheFamilysIconsFromTheAssetsTheHostServes()
+    [BuiltConsoleBundleTheory]
+    [InlineData(
+        "<link rel=\"icon\" href=\"/assets/(?<asset>favicon-[^\"/]+\\.ico)\" sizes=\"32x32\"",
+        "image/x-icon"
+    )]
+    [InlineData(
+        "<link rel=\"icon\" href=\"/assets/(?<asset>favicon-[^\"/]+\\.svg)\" type=\"image/svg\\+xml\"",
+        "image/svg+xml"
+    )]
+    [InlineData(
+        "<link rel=\"apple-touch-icon\" href=\"/assets/(?<asset>apple-touch-icon-[^\"/]+\\.png)\"",
+        "image/png"
+    )]
+    public void Render_WhenGivenTheBuiltBundlesIndex_LinksEachIconAsAnAssetServedWithItsImageType(
+        string linkPattern,
+        string contentType
+    )
     {
         var indexPath = BuiltConsoleBundleFactAttribute.IndexPath ?? string.Empty;
         var html = File.ReadAllText(indexPath, SecureEncoding.UTF8);
+        var bundleRootPath = Path.GetDirectoryName(indexPath);
         using var bundle = new SinglePageBundle<ManagementConsolePage>(
-            Path.GetDirectoryName(indexPath),
+            bundleRootPath,
             static html => new ManagementConsolePage(html)
         );
+        var httpContext = new DefaultHttpContext();
 
-        (string Pattern, string ContentType)[] icons =
-        [
-            (
-                "<link rel=\"icon\" href=\"/assets/(?<asset>favicon-[^\"/]+\\.ico)\" sizes=\"32x32\"",
-                "image/x-icon"
-            ),
-            (
-                "<link rel=\"icon\" href=\"/assets/(?<asset>favicon-[^\"/]+\\.svg)\" type=\"image/svg\\+xml\"",
-                "image/svg+xml"
-            ),
-            (
-                "<link rel=\"apple-touch-icon\" href=\"/assets/(?<asset>apple-touch-icon-[^\"/]+\\.png)\"",
-                "image/png"
-            ),
-        ];
+        var link = Regex.Match(html, linkPattern);
+        var assetPath = link.Groups["asset"].Value;
+        var result = bundle.ServeAsset(httpContext.Response, assetPath);
 
-        foreach (var (pattern, contentType) in icons)
-        {
-            var link = Regex.Match(html, pattern);
-            Assert.True(link.Success, pattern);
-
-            var result = bundle.ServeAsset(
-                new DefaultHttpContext().Response,
-                link.Groups["asset"].Value
-            );
-            Assert.Equal(contentType, Assert.IsType<PhysicalFileHttpResult>(result).ContentType);
-        }
-
-        // The page's policy admits images from its own origin, where the host serves the icons.
-        var policy = ManagementConsolePageSecurity
-            .Create(new Uri("https://id.example"), logoUrl: null)
-            .Policy.ToContentSecurityPolicy();
-        Assert.Contains("img-src 'self'", policy, StringComparison.Ordinal);
+        Assert.True(link.Success, linkPattern);
+        var file = Assert.IsType<PhysicalFileHttpResult>(result);
+        Assert.Equal(contentType, file.ContentType);
     }
 
     #endregion

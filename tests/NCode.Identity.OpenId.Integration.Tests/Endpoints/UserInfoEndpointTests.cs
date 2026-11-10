@@ -40,9 +40,10 @@ public class UserInfoEndpointTests
 
     // Registers a confidential password-grant client through dynamic client registration, so the response-protection
     // metadata travels the same path a relying party's registration does.
-    private static async Task<(string ClientId, string ClientSecret)> RegisterClientAsync(
+    private static async ValueTask<(string ClientId, string ClientSecret)> RegisterClientAsync(
         HttpClient client,
-        IReadOnlyDictionary<string, object> metadata
+        IReadOnlyDictionary<string, object> metadata,
+        CancellationToken cancellationToken
     )
     {
         var registration = new Dictionary<string, object>(metadata)
@@ -53,8 +54,12 @@ public class UserInfoEndpointTests
                 .ClientSecretPost,
         };
 
-        using var response = await client.PostAsJsonAsync("/oauth2/register", registration);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            registration,
+            cancellationToken
+        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
 
         var jsonElement = JsonElement.Parse(body);
@@ -65,10 +70,11 @@ public class UserInfoEndpointTests
         );
     }
 
-    private static async Task<string> RequestAccessTokenAsync(
+    private static async ValueTask<string> RequestAccessTokenAsync(
         HttpClient client,
         string clientId,
-        string clientSecret
+        string clientSecret,
+        CancellationToken cancellationToken
     )
     {
         using var content = new FormUrlEncodedContent(
@@ -83,29 +89,34 @@ public class UserInfoEndpointTests
             }
         );
 
-        using var response = await client.PostAsync("/oauth2/token", content);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.PostAsync("/oauth2/token", content, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
         var jsonElement = JsonElement.Parse(body);
         return jsonElement.GetProperty("access_token").GetString() ?? string.Empty;
     }
 
-    private static async Task<HttpResponseMessage> GetUserInfoAsync(
+    private static async ValueTask<HttpResponseMessage> GetUserInfoAsync(
         HttpClient client,
-        string accessToken
+        string accessToken,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, UserInfoPath);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     private static JsonElement DecodeSegment(string segment) =>
         JsonElement.Parse(SecureEncoding.UTF8.GetString(Base64Url.DecodeFromChars(segment)));
 
     // Verifies an RS256 JWS against the tenant's published JWKS and returns its payload.
-    private static async Task<JsonElement> VerifyWithTenantJwksAsync(HttpClient client, string jws)
+    private static async ValueTask<JsonElement> VerifyWithTenantJwksAsync(
+        HttpClient client,
+        string jws,
+        CancellationToken cancellationToken
+    )
     {
         var segments = jws.Split('.');
         Assert.Equal(3, segments.Length);
@@ -113,8 +124,9 @@ public class UserInfoEndpointTests
         Assert.Equal("RS256", header.GetProperty("alg").GetString());
         var keyId = header.GetProperty("kid").GetString();
 
-        using var jwksResponse = await client.GetAsync("/oauth2/jwks");
-        var jwks = JsonElement.Parse(await jwksResponse.Content.ReadAsStringAsync());
+        using var jwksResponse = await client.GetAsync("/oauth2/jwks", cancellationToken);
+        var body = await jwksResponse.Content.ReadAsStringAsync(cancellationToken);
+        var jwks = JsonElement.Parse(body);
         var jwk = jwks.GetProperty("keys")
             .EnumerateArray()
             .Single(key => key.GetProperty("kid").GetString() == keyId);
@@ -214,11 +226,17 @@ public class UserInfoEndpointTests
         );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
-            new Dictionary<string, object>()
+            new Dictionary<string, object>(),
+            CancellationToken.None
         );
-        var accessToken = await RequestAccessTokenAsync(client, clientId, clientSecret);
+        var accessToken = await RequestAccessTokenAsync(
+            client,
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
-        using var response = await GetUserInfoAsync(client, accessToken);
+        using var response = await GetUserInfoAsync(client, accessToken, CancellationToken.None);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -258,11 +276,17 @@ public class UserInfoEndpointTests
         );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
-            new Dictionary<string, object>()
+            new Dictionary<string, object>(),
+            CancellationToken.None
         );
-        var accessToken = await RequestAccessTokenAsync(client, clientId, clientSecret);
+        var accessToken = await RequestAccessTokenAsync(
+            client,
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
-        using var response = await GetUserInfoAsync(client, accessToken);
+        using var response = await GetUserInfoAsync(client, accessToken, CancellationToken.None);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -296,11 +320,17 @@ public class UserInfoEndpointTests
         );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
-            new Dictionary<string, object>()
+            new Dictionary<string, object>(),
+            CancellationToken.None
         );
-        var accessToken = await RequestAccessTokenAsync(client, clientId, clientSecret);
+        var accessToken = await RequestAccessTokenAsync(
+            client,
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
-        using var response = await GetUserInfoAsync(client, accessToken);
+        using var response = await GetUserInfoAsync(client, accessToken, CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Empty(recorder.Events.OfType<UserInfoAccessedAuditEvent>());
@@ -320,9 +350,15 @@ public class UserInfoEndpointTests
         );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
-            new Dictionary<string, object>()
+            new Dictionary<string, object>(),
+            CancellationToken.None
         );
-        var accessToken = await RequestAccessTokenAsync(client, clientId, clientSecret);
+        var accessToken = await RequestAccessTokenAsync(
+            client,
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string> { ["access_token"] = accessToken }
@@ -348,18 +384,24 @@ public class UserInfoEndpointTests
         );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
-            new Dictionary<string, object> { ["userinfo_signed_response_alg"] = "RS256" }
+            new Dictionary<string, object> { ["userinfo_signed_response_alg"] = "RS256" },
+            CancellationToken.None
         );
-        var accessToken = await RequestAccessTokenAsync(client, clientId, clientSecret);
+        var accessToken = await RequestAccessTokenAsync(
+            client,
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
-        using var response = await GetUserInfoAsync(client, accessToken);
+        using var response = await GetUserInfoAsync(client, accessToken, CancellationToken.None);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         Assert.Equal("application/jwt", response.Content.Headers.ContentType?.MediaType);
 
         // OpenID Connect Core 1.0 §5.3.2: a signed UserInfo response carries the issuer and the client as audience.
-        var payload = await VerifyWithTenantJwksAsync(client, body);
+        var payload = await VerifyWithTenantJwksAsync(client, body, CancellationToken.None);
         Assert.Equal(clientId, payload.GetProperty("aud").GetString());
         Assert.False(string.IsNullOrEmpty(payload.GetProperty("iss").GetString()));
         Assert.False(string.IsNullOrEmpty(payload.GetProperty("sub").GetString()));
@@ -387,11 +429,17 @@ public class UserInfoEndpointTests
                 ["userinfo_signed_response_alg"] = "RS256",
                 ["userinfo_encrypted_response_alg"] = "RSA-OAEP-256",
                 ["userinfo_encrypted_response_enc"] = "A256GCM",
-            }
+            },
+            CancellationToken.None
         );
-        var accessToken = await RequestAccessTokenAsync(client, clientId, clientSecret);
+        var accessToken = await RequestAccessTokenAsync(
+            client,
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
-        using var response = await GetUserInfoAsync(client, accessToken);
+        using var response = await GetUserInfoAsync(client, accessToken, CancellationToken.None);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -412,7 +460,7 @@ public class UserInfoEndpointTests
         Assert.False(encrypted.Header.TryGetProperty("zip", out _));
 
         var signed = await joseSerializer.DecodeAsync(encrypted, clientKey, CancellationToken.None);
-        var payload = await VerifyWithTenantJwksAsync(client, signed);
+        var payload = await VerifyWithTenantJwksAsync(client, signed, CancellationToken.None);
         Assert.Equal(clientId, payload.GetProperty("aud").GetString());
         Assert.Equal(Email, payload.GetProperty("email").GetString());
     }

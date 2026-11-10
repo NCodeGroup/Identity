@@ -45,6 +45,9 @@ public class EncryptedTokenEndToEndTests
     private const string State = "encrypted-e2e-state";
     private const string Nonce = "encrypted-e2e-nonce";
 
+    private static IReadOnlyDictionary<string, object> NoSettings { get; } =
+        new Dictionary<string, object>();
+
     #region Scaffolding
 
     private static string BuildEncryptionJwks(RSA rsa)
@@ -159,7 +162,7 @@ public class EncryptedTokenEndToEndTests
     private static ValueTask SeedClientAsync(
         HostApplicationFactory factory,
         string clientId,
-        IReadOnlyDictionary<string, object>? extraSettings,
+        IReadOnlyDictionary<string, object> extraSettings,
         CancellationToken cancellationToken
     )
     {
@@ -169,7 +172,7 @@ public class EncryptedTokenEndToEndTests
             [OpenIdSettingNames.JwksUri] = JwksUri,
             [OpenIdSettingNames.IdTokenEncryptedResponseAlg] = "RSA-OAEP-256",
         };
-        foreach (var (name, value) in extraSettings ?? new Dictionary<string, object>())
+        foreach (var (name, value) in extraSettings)
             settings[name] = value;
 
         return factory.SeedSharedSecretClientWithSettingsAsync(
@@ -193,7 +196,7 @@ public class EncryptedTokenEndToEndTests
 
     // Follows the authorization URL as the signed-in end-user's browser (prompt=none lets the session answer without an
     // interactive page), redeems the code with the client and returns the raw ID token with its verified payload.
-    private static async Task<(
+    private static async ValueTask<(
         string IdToken,
         JsonElement Payload,
         string AccessToken
@@ -201,7 +204,8 @@ public class EncryptedTokenEndToEndTests
         HttpClient browser,
         string sessionCookie,
         ServiceProvider provider,
-        ClientRegistration registration
+        ClientRegistration registration,
+        CancellationToken cancellationToken
     )
     {
         var request = new AuthorizationRequest(RedirectUri, State, TestPkce.CodeVerifier)
@@ -215,7 +219,7 @@ public class EncryptedTokenEndToEndTests
         };
         var authorizationResult = await provider
             .GetRequiredService<IAuthorizationRequestClient>()
-            .CreateAuthorizationUriAsync(registration, request, CancellationToken.None);
+            .CreateAuthorizationUriAsync(registration, request, cancellationToken);
         Assert.True(authorizationResult.IsSuccess, authorizationResult.Error?.ToString());
 
         using var authorizeRequest = new HttpRequestMessage(
@@ -226,7 +230,7 @@ public class EncryptedTokenEndToEndTests
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={sessionCookie}"
         );
-        using var authorizeResponse = await browser.SendAsync(authorizeRequest);
+        using var authorizeResponse = await browser.SendAsync(authorizeRequest, cancellationToken);
 
         var location = authorizeResponse.Headers.Location;
         Assert.NotNull(location);
@@ -244,7 +248,7 @@ public class EncryptedTokenEndToEndTests
             .RequestTokenAsync(
                 registration,
                 new AuthorizationCodeTokenRequest(code, RedirectUri, TestPkce.CodeVerifier),
-                CancellationToken.None
+                cancellationToken
             );
         Assert.True(tokenResult.IsSuccess, tokenResult.Error?.ToString());
         var idToken = tokenResult.Response.IdToken;
@@ -261,7 +265,7 @@ public class EncryptedTokenEndToEndTests
                     AccessToken = tokenResult.Response.AccessToken,
                     AuthorizationCode = code,
                 },
-                CancellationToken.None
+                cancellationToken
             );
         Assert.True(validation.IsValid, validation.FailureReason);
         var accessToken = tokenResult.Response.AccessToken;
@@ -277,27 +281,32 @@ public class EncryptedTokenEndToEndTests
         return header;
     }
 
-    private static async Task EndSessionAsync(HttpClient browser, string sessionCookie)
+    private static async ValueTask EndSessionAsync(
+        HttpClient browser,
+        string sessionCookie,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await InteractiveLogin.ConfirmEndSessionAsync(
             browser,
             EndSessionPath,
             sessionCookie,
-            CancellationToken.None
+            cancellationToken
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     // The provider delivers the logout token on a background worker, so it arrives after the end-session response.
-    private static async Task<string> WaitForLogoutTokenAsync(
-        ConcurrentQueue<RecordedHttpExchange> exchanges
+    private static async ValueTask<string> WaitForLogoutTokenAsync(
+        ConcurrentQueue<RecordedHttpExchange> exchanges,
+        CancellationToken cancellationToken
     )
     {
         var stopwatch = Stopwatch.StartNew();
         while (exchanges.IsEmpty && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
         }
 
         var delivery = Assert.Single(exchanges);
@@ -310,17 +319,18 @@ public class EncryptedTokenEndToEndTests
         return logoutToken;
     }
 
-    private static async Task<LogoutTokenValidationResult> ValidateLogoutTokenAsync(
+    private static async ValueTask<LogoutTokenValidationResult> ValidateLogoutTokenAsync(
         ServiceProvider provider,
         ClientRegistration registration,
-        string logoutToken
+        string logoutToken,
+        CancellationToken cancellationToken
     ) =>
         await provider
             .GetRequiredService<ILogoutTokenValidator>()
             .ValidateAsync(
                 registration,
                 new LogoutTokenValidationRequest { LogoutToken = logoutToken },
-                CancellationToken.None
+                cancellationToken
             );
 
     #endregion
@@ -375,7 +385,8 @@ public class EncryptedTokenEndToEndTests
             browser,
             sessionCookie,
             provider,
-            registration
+            registration,
+            CancellationToken.None
         );
         var subject = idTokenPayload.GetProperty("sub").GetString()!;
 
@@ -414,7 +425,7 @@ public class EncryptedTokenEndToEndTests
             ClientJwksResponder = _ => jwks,
         };
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedClientAsync(factory, clientId, null, CancellationToken.None);
+        await SeedClientAsync(factory, clientId, NoSettings, CancellationToken.None);
         await using var provider = CreateClientProvider(factory, clientRsa);
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);
@@ -429,7 +440,8 @@ public class EncryptedTokenEndToEndTests
             browser,
             sessionCookie,
             provider,
-            registration
+            registration,
+            CancellationToken.None
         );
 
         var header = ReadEncryptionHeader(idToken);
@@ -458,7 +470,7 @@ public class EncryptedTokenEndToEndTests
             ClientJwksResponder = _ => jwks,
         };
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedClientAsync(factory, clientId, null, CancellationToken.None);
+        await SeedClientAsync(factory, clientId, NoSettings, CancellationToken.None);
 
         SecretKey? remoteKey = null;
         await using var provider = CreateRemoteClientProvider(
@@ -500,7 +512,8 @@ public class EncryptedTokenEndToEndTests
             browser,
             sessionCookie,
             provider,
-            registration
+            registration,
+            CancellationToken.None
         );
 
         var header = ReadEncryptionHeader(idToken);
@@ -526,7 +539,7 @@ public class EncryptedTokenEndToEndTests
             ClientJwksResponder = _ => jwks,
         };
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedClientAsync(factory, clientId, null, CancellationToken.None);
+        await SeedClientAsync(factory, clientId, NoSettings, CancellationToken.None);
         await using var provider = CreateClientProvider(factory, clientRsa);
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);
@@ -540,11 +553,12 @@ public class EncryptedTokenEndToEndTests
             browser,
             sessionCookie,
             provider,
-            registration
+            registration,
+            CancellationToken.None
         );
 
-        await EndSessionAsync(browser, sessionCookie);
-        var logoutToken = await WaitForLogoutTokenAsync(exchanges);
+        await EndSessionAsync(browser, sessionCookie, CancellationToken.None);
+        var logoutToken = await WaitForLogoutTokenAsync(exchanges, CancellationToken.None);
 
         var header = ReadEncryptionHeader(logoutToken);
         Assert.Equal("RSA-OAEP-256", header.GetProperty(JoseClaimNames.Header.Alg).GetString());
@@ -556,7 +570,12 @@ public class EncryptedTokenEndToEndTests
             header.GetProperty("iss").GetString()
         );
 
-        var result = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+        var result = await ValidateLogoutTokenAsync(
+            provider,
+            registration,
+            logoutToken,
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid, result.FailureReason);
         Assert.Equal(HostApplicationFactory.TestServerIssuer, result.Issuer);

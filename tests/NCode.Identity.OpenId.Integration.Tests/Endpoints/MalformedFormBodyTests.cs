@@ -28,9 +28,10 @@ public class MalformedFormBodyTests(HostApplicationFactory factory)
             }
         );
 
-    private async Task<HttpResponseMessage> PostMalformedFormAsync(
+    private async ValueTask<HttpResponseMessage> PostMalformedFormAsync(
         string path,
-        string? sessionCookie = null
+        string? sessionCookie,
+        CancellationToken cancellationToken
     )
     {
         var client = CreateClient();
@@ -48,87 +49,126 @@ public class MalformedFormBodyTests(HostApplicationFactory factory)
             request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
         }
 
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task AssertInvalidRequestAsync(HttpResponseMessage response)
+    private static async ValueTask AssertInvalidRequestAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
+    )
     {
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.Equal("invalid_request", JsonElement.Parse(body).GetProperty("error").GetString());
     }
 
     [Fact]
     public async Task PostToken_WithAMalformedForm_AnswersInvalidRequest()
     {
-        using var response = await PostMalformedFormAsync("/oauth2/token");
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/token",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostRevocation_WithAMalformedForm_AnswersInvalidRequest()
     {
-        using var response = await PostMalformedFormAsync("/oauth2/revoke");
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/revoke",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostIntrospection_WithAMalformedForm_AnswersInvalidRequest()
     {
-        using var response = await PostMalformedFormAsync("/oauth2/introspect");
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/introspect",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostPushedAuthorization_WithAMalformedForm_AnswersInvalidRequest()
     {
-        using var response = await PostMalformedFormAsync("/oauth2/par");
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/par",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostDeviceAuthorization_WithAMalformedForm_AnswersInvalidRequest()
     {
-        using var response = await PostMalformedFormAsync("/oauth2/device_authorization");
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/device_authorization",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostBackchannelAuthentication_WithAMalformedForm_AnswersInvalidRequest()
     {
-        using var response = await PostMalformedFormAsync("/oauth2/bc-authorize");
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/bc-authorize",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostAuthorization_WithAMalformedForm_AnswersInvalidRequest()
     {
-        using var response = await PostMalformedFormAsync("/oauth2/authorize");
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/authorize",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostEndSession_WithAMalformedForm_AnswersInvalidRequest()
     {
-        using var response = await PostMalformedFormAsync("/oauth2/end_session");
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/end_session",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
     public async Task PostUserInfo_WithAMalformedForm_AnswersInvalidRequest()
     {
         // Without an Authorization header, the access token may come in the form body (RFC 6750 §2.2).
-        using var response = await PostMalformedFormAsync("/oauth2/userinfo");
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/userinfo",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
@@ -144,9 +184,13 @@ public class MalformedFormBodyTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await PostMalformedFormAsync("/oauth2/device", sessionCookie);
+        using var response = await PostMalformedFormAsync(
+            "/oauth2/device",
+            sessionCookie,
+            CancellationToken.None
+        );
 
-        await AssertInvalidRequestAsync(response);
+        await AssertInvalidRequestAsync(response, CancellationToken.None);
     }
 
     [Fact]
@@ -154,7 +198,11 @@ public class MalformedFormBodyTests(HostApplicationFactory factory)
     {
         // This pins existing behavior: the framework reads the login form (its antiforgery check and minimal-API form
         // binding) and answers 400 before the handler runs, so there is no OpenID error body to assert.
-        using var response = await PostMalformedFormAsync("/account/login");
+        using var response = await PostMalformedFormAsync(
+            "/account/login",
+            sessionCookie: null,
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }

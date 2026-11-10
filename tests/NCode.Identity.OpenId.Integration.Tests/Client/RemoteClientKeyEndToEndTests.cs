@@ -70,10 +70,11 @@ public class RemoteClientKeyEndToEndTests
                     .CreateStatic([key()])
         );
 
-    private static async Task<SecretKey> ReadAndProveAsync(
+    private static async ValueTask<SecretKey> ReadAndProveAsync(
         ServiceProvider provider,
         string kmsKeyId,
-        string keyId
+        string keyId,
+        CancellationToken cancellationToken
     )
     {
         var resolver = provider.GetRequiredService<IRemoteKeyResolver>();
@@ -90,11 +91,9 @@ public class RemoteClientKeyEndToEndTests
         var key = await resolver.ReadKeyAsync(
             resolution.Bind(kmsKeyId),
             new KeyMetadata { KeyId = keyId },
-            CancellationToken.None
+            cancellationToken
         );
-        await provider
-            .GetRequiredService<IRemoteKeyProver>()
-            .ProveAsync(key, CancellationToken.None);
+        await provider.GetRequiredService<IRemoteKeyProver>().ProveAsync(key, cancellationToken);
         return key;
     }
 
@@ -164,8 +163,18 @@ public class RemoteClientKeyEndToEndTests
             () => clientKey ?? throw new InvalidOperationException("The client key is not read."),
             () => dpopKey ?? throw new InvalidOperationException("The DPoP key is not read.")
         );
-        clientKey = await ReadAndProveAsync(provider, clientKmsKeyId, "client-kms");
-        dpopKey = await ReadAndProveAsync(provider, dpopKmsKeyId, "dpop-kms");
+        clientKey = await ReadAndProveAsync(
+            provider,
+            clientKmsKeyId,
+            "client-kms",
+            CancellationToken.None
+        );
+        dpopKey = await ReadAndProveAsync(
+            provider,
+            dpopKmsKeyId,
+            "dpop-kms",
+            CancellationToken.None
+        );
         jwks = ExportJwks(provider, clientKey);
 
         var signaturesBefore = kms.SignatureCount;

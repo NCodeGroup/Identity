@@ -23,7 +23,11 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
     #region Scaffolding
 
-    private async Task<HttpResponseMessage> AuthorizeAsync(string clientId, string redirectUri)
+    private async ValueTask<HttpResponseMessage> AuthorizeAsync(
+        string clientId,
+        string redirectUri,
+        CancellationToken cancellationToken
+    )
     {
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -38,10 +42,14 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             + TestPkce.QueryParameters
             + "&prompt=none";
 
-        return await client.GetAsync("/oauth2/authorize" + query);
+        return await client.GetAsync("/oauth2/authorize" + query, cancellationToken);
     }
 
-    private async Task<HttpResponseMessage> PushAsync(string clientId, string redirectUri)
+    private async ValueTask<HttpResponseMessage> PushAsync(
+        string clientId,
+        string redirectUri,
+        CancellationToken cancellationToken
+    )
     {
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -58,7 +66,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         values.AddRange(TestPkce.FormFields);
 
         using var form = new FormUrlEncodedContent(values);
-        return await client.PostAsync("/oauth2/par", form);
+        return await client.PostAsync("/oauth2/par", form, cancellationToken);
     }
 
     private ValueTask SeedClientAsync(
@@ -77,8 +85,9 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             cancellationToken
         );
 
-    private static async Task<HttpClient> CreateHttpsOnlyRegistrationClientAsync(
-        AnonymousRegistrationApplicationFactory registrationFactory
+    private static async ValueTask<HttpClient> CreateHttpsOnlyRegistrationClientAsync(
+        AnonymousRegistrationApplicationFactory registrationFactory,
+        CancellationToken cancellationToken
     )
     {
         await registrationFactory.SeedTenantSettingsAsync(
@@ -89,7 +98,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
                     OpenIdConstants.RedirectUriKinds.Https,
                 },
             },
-            CancellationToken.None
+            cancellationToken
         );
 
         return registrationFactory.CreateClient(
@@ -97,8 +106,12 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         );
     }
 
-    private static Task<HttpResponseMessage> RegisterAsync(HttpClient client, string redirectUri) =>
-        client.PostAsJsonAsync(
+    private static async ValueTask<HttpResponseMessage> RegisterAsync(
+        HttpClient client,
+        string redirectUri,
+        CancellationToken cancellationToken
+    ) =>
+        await client.PostAsJsonAsync(
             "/oauth2/register",
             new Dictionary<string, object>
             {
@@ -106,7 +119,8 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
                 ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
-            }
+            },
+            cancellationToken
         );
 
     #endregion
@@ -125,12 +139,13 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(clientId, redirectUri);
+        using var response = await AuthorizeAsync(clientId, redirectUri, CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
             jsonElement.GetProperty("error").GetString()
@@ -149,7 +164,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(clientId, redirectUri);
+        using var response = await AuthorizeAsync(clientId, redirectUri, CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
     }
@@ -167,7 +182,11 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(clientId, requestedRedirectUri);
+        using var response = await AuthorizeAsync(
+            clientId,
+            requestedRedirectUri,
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
         var location = response.Headers.Location;
@@ -187,7 +206,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(clientId, redirectUri);
+        using var response = await AuthorizeAsync(clientId, redirectUri, CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
@@ -200,12 +219,13 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         const string redirectUri = "myapp://callback";
         await Factory.SeedPublicClientAsync(clientId, [redirectUri], CancellationToken.None);
 
-        using var response = await AuthorizeAsync(clientId, redirectUri);
+        using var response = await AuthorizeAsync(clientId, redirectUri, CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
             jsonElement.GetProperty("error").GetString()
@@ -228,7 +248,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await AuthorizeAsync(clientId, redirectUri);
+        using var response = await AuthorizeAsync(clientId, redirectUri, CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
         var location = response.Headers.Location;
@@ -252,11 +272,12 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             CancellationToken.None
         );
 
-        using var response = await PushAsync(clientId, redirectUri);
+        using var response = await PushAsync(clientId, redirectUri, CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
             jsonElement.GetProperty("error").GetString()
@@ -271,9 +292,16 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
     public async Task Register_WhenTheTenantPermitsOnlyHttps_RefusesAnHttpRedirectUri()
     {
         using var registrationFactory = new AnonymousRegistrationApplicationFactory();
-        var client = await CreateHttpsOnlyRegistrationClientAsync(registrationFactory);
+        var client = await CreateHttpsOnlyRegistrationClientAsync(
+            registrationFactory,
+            CancellationToken.None
+        );
 
-        using var response = await RegisterAsync(client, "http://client.example/callback");
+        using var response = await RegisterAsync(
+            client,
+            "http://client.example/callback",
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
@@ -289,9 +317,16 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
     public async Task Register_WhenTheTenantPermitsOnlyHttps_RegistersAnHttpsRedirectUri()
     {
         using var registrationFactory = new AnonymousRegistrationApplicationFactory();
-        var client = await CreateHttpsOnlyRegistrationClientAsync(registrationFactory);
+        var client = await CreateHttpsOnlyRegistrationClientAsync(
+            registrationFactory,
+            CancellationToken.None
+        );
 
-        using var response = await RegisterAsync(client, "https://client.example/callback");
+        using var response = await RegisterAsync(
+            client,
+            "https://client.example/callback",
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
@@ -305,7 +340,11 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        using var response = await RegisterAsync(client, "myapp://callback");
+        using var response = await RegisterAsync(
+            client,
+            "myapp://callback",
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);

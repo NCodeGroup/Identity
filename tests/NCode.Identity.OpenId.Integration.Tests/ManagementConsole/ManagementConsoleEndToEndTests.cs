@@ -36,12 +36,13 @@ public class ManagementConsoleEndToEndTests
         return $$"""{"keys":[{"kty":"EC","crv":"P-256","x":"{{x}}","y":"{{y}}","kid":"mgmt-client","use":"sig","alg":"ES256"}]}""";
     }
 
-    private static async Task<HttpResponseMessage> SendAsync(
+    private static async ValueTask<HttpResponseMessage> SendAsync(
         HttpClient client,
         Dictionary<string, string> cookies,
         HttpMethod method,
         string pathAndQuery,
-        params (string Name, string Value)[] headers
+        IReadOnlyList<(string Name, string Value)> headers,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(method, pathAndQuery);
@@ -58,7 +59,7 @@ public class ManagementConsoleEndToEndTests
             request.Headers.Add(name, value);
         }
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, cancellationToken);
         StoreCookies(cookies, response);
         return response;
     }
@@ -138,7 +139,9 @@ public class ManagementConsoleEndToEndTests
             consoleBrowser,
             consoleCookies,
             HttpMethod.Get,
-            $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2Fteams"
+            $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2Fteams",
+            [],
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
         var authorizeUri = login.Headers.Location;
@@ -159,7 +162,9 @@ public class ManagementConsoleEndToEndTests
             consoleBrowser,
             consoleCookies,
             HttpMethod.Get,
-            callbackUri.PathAndQuery
+            callbackUri.PathAndQuery,
+            [],
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
         Assert.Equal("/teams", callback.Headers.Location?.OriginalString);
@@ -170,10 +175,12 @@ public class ManagementConsoleEndToEndTests
             consoleCookies,
             HttpMethod.Get,
             $"{BffDefaults.EndpointPrefix}/user",
-            (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue)
+            [(BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue)],
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.OK, user.StatusCode);
-        var body = JsonElement.Parse(await user.Content.ReadAsStringAsync());
+        var userBody = await user.Content.ReadAsStringAsync();
+        var body = JsonElement.Parse(userBody);
         Assert.True(body.TryGetProperty("sub", out _));
         Assert.True(body.TryGetProperty("logoutSid", out _));
 
@@ -182,10 +189,12 @@ public class ManagementConsoleEndToEndTests
             consoleCookies,
             HttpMethod.Get,
             $"{ManagementConsoleDefaults.ApiPath}/me",
-            (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue)
+            [(BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue)],
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.OK, management.StatusCode);
-        var caller = JsonElement.Parse(await management.Content.ReadAsStringAsync());
+        var managementBody = await management.Content.ReadAsStringAsync();
+        var caller = JsonElement.Parse(managementBody);
         Assert.Equal(JsonValueKind.Object, caller.ValueKind);
 
         // The provider requires no DPoP nonce, so the console's one management request reaches it once.

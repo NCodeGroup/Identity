@@ -82,7 +82,8 @@ public class CertificateBoundAccessTokenTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.True(jsonElement.GetProperty(DiscoveryMember).GetBoolean());
     }
 
@@ -95,7 +96,8 @@ public class CertificateBoundAccessTokenTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         Assert.False(jsonElement.GetProperty(DiscoveryMember).GetBoolean());
     }
 }

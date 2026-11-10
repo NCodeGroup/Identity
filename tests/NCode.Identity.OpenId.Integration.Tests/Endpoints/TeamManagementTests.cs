@@ -55,7 +55,12 @@ public class TeamManagementTests
             RootTenantId
         );
 
-    private static async Task CreateTeamAsync(HttpClient client, string teamId, object settings)
+    private static async ValueTask CreateTeamAsync(
+        HttpClient client,
+        string teamId,
+        object settings,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await client.PostAsJsonAsync(
             "/api/teams",
@@ -65,17 +70,19 @@ public class TeamManagementTests
                 displayName = teamId,
                 isDisabled = false,
                 settings,
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
-    private static async Task<HttpResponseMessage> PostChildTeamAsync(
+    private static async ValueTask<HttpResponseMessage> PostChildTeamAsync(
         HttpClient client,
         string parentTeamId,
         string teamId,
-        object settings
+        object settings,
+        CancellationToken cancellationToken
     ) =>
         await client.PostAsJsonAsync(
             $"/api/teams/{parentTeamId}/teams",
@@ -85,25 +92,34 @@ public class TeamManagementTests
                 displayName = teamId,
                 isDisabled = false,
                 settings,
-            }
+            },
+            cancellationToken
         );
 
-    private static async Task CreateChildTeamAsync(
+    private static async ValueTask CreateChildTeamAsync(
         HttpClient client,
         string parentTeamId,
         string teamId,
-        object settings
+        object settings,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await PostChildTeamAsync(client, parentTeamId, teamId, settings);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await PostChildTeamAsync(
+            client,
+            parentTeamId,
+            teamId,
+            settings,
+            cancellationToken
+        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
-    private static async Task<HttpResponseMessage> PostTenantAsync(
+    private static async ValueTask<HttpResponseMessage> PostTenantAsync(
         HttpClient client,
         string teamId,
-        string tenantId
+        string tenantId,
+        CancellationToken cancellationToken
     ) =>
         await client.PostAsJsonAsync(
             $"/api/teams/{teamId}/tenants",
@@ -113,27 +129,39 @@ public class TeamManagementTests
                 displayName = tenantId,
                 isDisabled = false,
                 settings = new { },
-            }
+            },
+            cancellationToken
         );
 
-    private static async Task CreateTenantAsync(HttpClient client, string teamId, string tenantId)
+    private static async ValueTask CreateTenantAsync(
+        HttpClient client,
+        string teamId,
+        string tenantId,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await PostTenantAsync(client, teamId, tenantId);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await PostTenantAsync(client, teamId, tenantId, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
-    private static async Task<HttpResponseMessage> GetDiscoveryAsync(
+    private static async ValueTask<HttpResponseMessage> GetDiscoveryAsync(
         HttpClient client,
-        string tenantId
+        string tenantId,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, DiscoveryPath);
         request.Headers.Host = $"{tenantId}.auth.test";
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task PatchAsync(HttpClient client, string path, object operations)
+    private static async ValueTask PatchAsync(
+        HttpClient client,
+        string path,
+        object operations,
+        CancellationToken cancellationToken
+    )
     {
         using var request = new HttpRequestMessage(HttpMethod.Patch, path)
         {
@@ -143,12 +171,17 @@ public class TeamManagementTests
                 "application/json-patch+json"
             ),
         };
-        using var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
     }
 
-    private static Task SetTeamDisabledAsync(HttpClient client, string teamId, bool isDisabled) =>
+    private static ValueTask SetTeamDisabledAsync(
+        HttpClient client,
+        string teamId,
+        bool isDisabled,
+        CancellationToken cancellationToken
+    ) =>
         PatchAsync(
             client,
             $"/api/teams/{teamId}",
@@ -160,16 +193,18 @@ public class TeamManagementTests
                     path = "/isDisabled",
                     value = isDisabled,
                 },
-            }
+            },
+            cancellationToken
         );
 
-    private static async Task<List<string>> GetIdTokenSigningAlgorithmsAsync(
+    private static async ValueTask<List<string>> GetIdTokenSigningAlgorithmsAsync(
         HttpClient client,
-        string tenantId
+        string tenantId,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await GetDiscoveryAsync(client, tenantId);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await GetDiscoveryAsync(client, tenantId, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
         return JsonElement
@@ -193,20 +228,22 @@ public class TeamManagementTests
     // Seeds an end-user of the root tenant (a local account with a password, its principal and its self-issued identity)
     // and the public console client, grants the user the role at the team, and returns a client that calls the
     // management API with the user's access token.
-    private static async Task<HttpClient> CreateTeamUserClientAsync(
+    private static async ValueTask<HttpClient> CreateTeamUserClientAsync(
         HostApplicationFactory factory,
         HttpClient administrator,
         string teamId,
-        string grantPath
+        string grantPath,
+        CancellationToken cancellationToken
     )
     {
-        var principalId = await SeedConsoleUserAsync(factory);
+        var principalId = await SeedConsoleUserAsync(factory, cancellationToken);
 
         using var grant = await administrator.PostAsJsonAsync(
             $"/api/teams/{teamId}/{grantPath}",
-            new { principalId }
+            new { principalId },
+            cancellationToken
         );
-        var body = await grant.Content.ReadAsStringAsync();
+        var body = await grant.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(grant.StatusCode == HttpStatusCode.Created, body);
 
         return await factory.CreateManagementUserClientAsync(
@@ -215,23 +252,28 @@ public class TeamManagementTests
             UserName,
             Password,
             "openid read:clients",
-            CancellationToken.None
+            cancellationToken
         );
     }
 
     // Seeds the same end-user and console client, grants the user the role by posting its principal to the full grant
     // path (such as /api/tenants/acme-dev/admins), and returns a client that calls the management API with the user's
     // access token.
-    private static async Task<HttpClient> CreateGrantedUserClientAsync(
+    private static async ValueTask<HttpClient> CreateGrantedUserClientAsync(
         HostApplicationFactory factory,
         HttpClient administrator,
-        string grantPath
+        string grantPath,
+        CancellationToken cancellationToken
     )
     {
-        var principalId = await SeedConsoleUserAsync(factory);
+        var principalId = await SeedConsoleUserAsync(factory, cancellationToken);
 
-        using var grant = await administrator.PostAsJsonAsync(grantPath, new { principalId });
-        var body = await grant.Content.ReadAsStringAsync();
+        using var grant = await administrator.PostAsJsonAsync(
+            grantPath,
+            new { principalId },
+            cancellationToken
+        );
+        var body = await grant.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(grant.StatusCode == HttpStatusCode.Created, body);
 
         return await factory.CreateManagementUserClientAsync(
@@ -240,11 +282,14 @@ public class TeamManagementTests
             UserName,
             Password,
             "openid read:clients",
-            CancellationToken.None
+            cancellationToken
         );
     }
 
-    private static async Task<string> SeedConsoleUserAsync(HostApplicationFactory factory)
+    private static async ValueTask<string> SeedConsoleUserAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
+    )
     {
         var localAccountId = Guid.NewGuid().ToString("N");
         var principalId = $"pid-{Guid.NewGuid():N}";
@@ -256,7 +301,7 @@ public class TeamManagementTests
             .BeginScope(RootTenantId);
         await using var storeManager = await services
             .GetRequiredService<IStoreManagerFactory>()
-            .CreateAsync(CancellationToken.None);
+            .CreateAsync(cancellationToken);
 
         await storeManager
             .GetStore<ILocalAccountStore>()
@@ -273,7 +318,7 @@ public class TeamManagementTests
                     ConcurrencyToken = string.Empty,
                 },
                 SecureEncoding.UTF8.GetBytes(Password),
-                CancellationToken.None
+                cancellationToken
             );
         await storeManager
             .GetStore<IFederatedPrincipalStore>()
@@ -284,7 +329,7 @@ public class TeamManagementTests
                     PrincipalId = principalId,
                     ConcurrencyToken = string.Empty,
                 },
-                CancellationToken.None
+                cancellationToken
             );
         await storeManager
             .GetStore<IFederatedIdentityStore>()
@@ -299,7 +344,7 @@ public class TeamManagementTests
                     JoinKey = null,
                     ConcurrencyToken = string.Empty,
                 },
-                CancellationToken.None
+                cancellationToken
             );
         var consoleSettings = JsonSerializer.SerializeToElement(
             new Dictionary<string, object>
@@ -314,23 +359,24 @@ public class TeamManagementTests
             ClientId = ConsoleClientId,
             Settings = consoleSettings,
         }.Build();
-        await storeManager.GetStore<IClientStore>().AddAsync(consoleClient, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.GetStore<IClientStore>().AddAsync(consoleClient, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
 
         return principalId;
     }
 
     // Grants the principal the role at the platform node, whose authority reaches every team and tenant.
-    private static async Task GrantPlatformRoleAsync(
+    private static async ValueTask GrantPlatformRoleAsync(
         HostApplicationFactory factory,
         string principalId,
-        string roleName
+        string roleName,
+        CancellationToken cancellationToken
     )
     {
         using var scope = factory.Services.CreateScope();
         await using var storeManager = await scope
             .ServiceProvider.GetRequiredService<IStoreManagerFactory>()
-            .CreateAsync(CancellationToken.None);
+            .CreateAsync(cancellationToken);
 
         await storeManager
             .GetStore<IRoleAssignmentStore>()
@@ -345,26 +391,28 @@ public class TeamManagementTests
                     ResourceId = OpenIdResourceIds.Platform,
                     ConcurrencyToken = string.Empty,
                 },
-                CancellationToken.None
+                cancellationToken
             );
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task AssertGetStatusAsync(
+    private static async ValueTask AssertGetStatusAsync(
         HttpClient client,
         string path,
-        HttpStatusCode expected
+        HttpStatusCode expected,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await client.GetAsync(path);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.GetAsync(path, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == expected, $"{path}: {body}");
     }
 
-    private static async Task<HttpResponseMessage> SendPatchAsync(
+    private static async ValueTask<HttpResponseMessage> SendPatchAsync(
         HttpClient client,
         string path,
-        object operations
+        object operations,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Patch, path)
@@ -375,13 +423,14 @@ public class TeamManagementTests
                 "application/json-patch+json"
             ),
         };
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     // Creates a client that authenticates with a client secret in the tenant and returns its credentials.
-    private static async Task<(string ClientId, string ClientSecret)> CreateSecretClientAsync(
+    private static async ValueTask<(string ClientId, string ClientSecret)> CreateSecretClientAsync(
         HttpClient client,
-        string tenantId
+        string tenantId,
+        CancellationToken cancellationToken
     )
     {
         using var created = await client.PostAsJsonAsync(
@@ -395,9 +444,10 @@ public class TeamManagementTests
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },
-            }
+            },
+            cancellationToken
         );
-        var createdBody = await created.Content.ReadAsStringAsync();
+        var createdBody = await created.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
         var clientId = JsonElement.Parse(createdBody).GetProperty("clientId").GetString();
         Assert.NotNull(clientId);
@@ -409,9 +459,10 @@ public class TeamManagementTests
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
-        var secretBody = await secret.Content.ReadAsStringAsync();
+        var secretBody = await secret.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
         var material = JsonElement.Parse(secretBody).GetProperty("secretMaterial").GetString();
         Assert.NotNull(material);
@@ -420,11 +471,15 @@ public class TeamManagementTests
 
     // Creates a machine client of the platform, or of the node that ownerPath names, that authenticates with HTTP Basic
     // and returns its credentials and the principal that its tokens resolve to.
-    private static async Task<(
+    private static async ValueTask<(
         string ClientId,
         string ClientSecret,
         string PrincipalId
-    )> CreateMachineClientAsync(HttpClient caller, string ownerPath = "/api/platform/clients")
+    )> CreateMachineClientAsync(
+        HttpClient caller,
+        string ownerPath,
+        CancellationToken cancellationToken
+    )
     {
         using var created = await caller.PostAsJsonAsync(
             ownerPath,
@@ -437,9 +492,10 @@ public class TeamManagementTests
                         .ClientAuthenticationMethods
                         .ClientSecretBasic,
                 },
-            }
+            },
+            cancellationToken
         );
-        var createdBody = await created.Content.ReadAsStringAsync();
+        var createdBody = await created.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
         var createdClient = JsonElement.Parse(createdBody);
         var clientId = createdClient.GetProperty("clientId").GetString();
@@ -454,49 +510,55 @@ public class TeamManagementTests
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
-        var secretBody = await secret.Content.ReadAsStringAsync();
+        var secretBody = await secret.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
         var material = JsonElement.Parse(secretBody).GetProperty("secretMaterial").GetString();
         Assert.NotNull(material);
         return (clientId, material, principalId);
     }
 
-    private static async Task GrantTeamAdminAsync(
+    private static async ValueTask GrantTeamAdminAsync(
         HttpClient administrator,
         string teamId,
-        string principalId
+        string principalId,
+        CancellationToken cancellationToken
     )
     {
         using var grant = await administrator.PostAsJsonAsync(
             $"/api/teams/{teamId}/admins",
-            new { principalId }
+            new { principalId },
+            cancellationToken
         );
-        var body = await grant.Content.ReadAsStringAsync();
+        var body = await grant.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(grant.StatusCode == HttpStatusCode.Created, body);
     }
 
     // Creates a client secret for a client of the control-plane tenant and returns the response.
-    private static Task<HttpResponseMessage> PostClientSecretAsync(
+    private static async ValueTask<HttpResponseMessage> PostClientSecretAsync(
         HttpClient client,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     ) =>
-        client.PostAsJsonAsync(
+        await client.PostAsJsonAsync(
             $"/api/tenants/{RootTenantId}/clients/{clientId}/secrets",
             new
             {
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
 
-    private static async Task<HttpStatusCode> RequestClientCredentialsTokenAsync(
+    private static async ValueTask<HttpStatusCode> RequestClientCredentialsTokenAsync(
         HostApplicationFactory factory,
         string tenantId,
         string clientId,
-        string clientSecret
+        string clientSecret,
+        CancellationToken cancellationToken
     )
     {
         using var client = factory.CreateClient();
@@ -512,21 +574,21 @@ public class TeamManagementTests
             ),
         };
         request.Headers.Host = $"{tenantId}.auth.test";
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, cancellationToken);
         return response.StatusCode;
     }
 
     // Creates team acme with tenants acme-dev and acme-prod and fills acme-dev with a development environment, a
     // resource server with a scope, a client with a secret and a grant of the client to the resource server; returns
     // the client's id and the resource server's id.
-    private static async Task<(
+    private static async ValueTask<(
         string ClientId,
         string ResourceServerId
-    )> ArrangePromotionSourceAsync(HttpClient administrator)
+    )> ArrangePromotionSourceAsync(HttpClient administrator, CancellationToken cancellationToken)
     {
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
-        await CreateTenantAsync(administrator, "acme", "acme-prod");
+        await CreateTeamAsync(administrator, "acme", new { }, cancellationToken);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", cancellationToken);
+        await CreateTenantAsync(administrator, "acme", "acme-prod", cancellationToken);
         await PatchAsync(
             administrator,
             "/api/tenants/acme-dev/settings",
@@ -550,7 +612,8 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.EnvironmentName}",
                     value = (object)"sandbox",
                 },
-            }
+            },
+            cancellationToken
         );
 
         using var resourceServer = await administrator.PostAsJsonAsync(
@@ -561,9 +624,10 @@ public class TeamManagementTests
                 name = "Acme API",
                 isDisabled = false,
                 settings = new { },
-            }
+            },
+            cancellationToken
         );
-        var resourceServerBody = await resourceServer.Content.ReadAsStringAsync();
+        var resourceServerBody = await resourceServer.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(resourceServer.StatusCode == HttpStatusCode.Created, resourceServerBody);
         var resourceServerId = JsonElement
             .Parse(resourceServerBody)
@@ -573,9 +637,10 @@ public class TeamManagementTests
 
         using var scope = await administrator.PostAsJsonAsync(
             $"/api/tenants/acme-dev/resource-servers/{resourceServerId}/scopes",
-            new { value = "read:things", description = (string?)null }
+            new { value = "read:things", description = (string?)null },
+            cancellationToken
         );
-        var scopeBody = await scope.Content.ReadAsStringAsync();
+        var scopeBody = await scope.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(scope.StatusCode == HttpStatusCode.Created, scopeBody);
 
         using var created = await administrator.PostAsJsonAsync(
@@ -591,9 +656,10 @@ public class TeamManagementTests
                     [OpenIdSettingNames.ClientName] = "Acme Web",
                     [OpenIdSettingNames.RedirectUris] = new[] { "https://dev.acme.test/cb" },
                 },
-            }
+            },
+            cancellationToken
         );
-        var createdBody = await created.Content.ReadAsStringAsync();
+        var createdBody = await created.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
         var clientId = JsonElement.Parse(createdBody).GetProperty("clientId").GetString();
         Assert.NotNull(clientId);
@@ -605,45 +671,50 @@ public class TeamManagementTests
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
-        var secretBody = await secret.Content.ReadAsStringAsync();
+        var secretBody = await secret.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
 
         using var grant = await administrator.PostAsJsonAsync(
             $"/api/tenants/acme-dev/clients/{clientId}/grants",
-            new { resourceServerId, scopes = new[] { "read:things" } }
+            new { resourceServerId, scopes = new[] { "read:things" } },
+            cancellationToken
         );
-        var grantBody = await grant.Content.ReadAsStringAsync();
+        var grantBody = await grant.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(grant.StatusCode == HttpStatusCode.Created, grantBody);
 
         return (clientId, resourceServerId);
     }
 
-    private static Task<HttpResponseMessage> PostPromotionAsync(
+    private static async ValueTask<HttpResponseMessage> PostPromotionAsync(
         HttpClient client,
         string teamId,
         string route,
         string sourceTenantId,
         string targetTenantId,
-        object? environmentSettings = null
+        object? environmentSettings,
+        CancellationToken cancellationToken
     ) =>
-        client.PostAsJsonAsync(
+        await client.PostAsJsonAsync(
             $"/api/teams/{teamId}/promotions{route}",
             new
             {
                 sourceTenantId,
                 targetTenantId,
                 environmentSettings = environmentSettings ?? Array.Empty<object>(),
-            }
+            },
+            cancellationToken
         );
 
-    private static async Task<JsonElement> ReadPromotionAsync(
+    private static async ValueTask<JsonElement> ReadPromotionAsync(
         HttpResponseMessage response,
-        HttpStatusCode expected
+        HttpStatusCode expected,
+        CancellationToken cancellationToken
     )
     {
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == expected, body);
         return JsonElement.Parse(body);
     }
@@ -684,10 +755,14 @@ public class TeamManagementTests
                 )
             );
 
-    private static async Task<JsonElement> GetJsonAsync(HttpClient client, string path)
+    private static async ValueTask<JsonElement> GetJsonAsync(
+        HttpClient client,
+        string path,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync(path);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.GetAsync(path, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, $"{path}: {body}");
         return JsonElement.Parse(body);
     }
@@ -702,8 +777,13 @@ public class TeamManagementTests
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
-        await CreateTeamAsync(client, "acme", new { environment_type = "development" });
-        await CreateTenantAsync(client, "acme", "acme-dev");
+        await CreateTeamAsync(
+            client,
+            "acme",
+            new { environment_type = "development" },
+            CancellationToken.None
+        );
+        await CreateTenantAsync(client, "acme", "acme-dev", CancellationToken.None);
 
         using var response = await client.GetAsync("/api/tenants/acme-dev/effective-settings");
         var body = await response.Content.ReadAsStringAsync();
@@ -727,15 +807,16 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
-        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev", CancellationToken.None);
 
         using var created = await teamAdmin.PostAsJsonAsync(
             "/api/tenants/acme-dev/clients",
@@ -768,7 +849,8 @@ public class TeamManagementTests
                     path = "/environment_type",
                     value = "development",
                 },
-            }
+            },
+            CancellationToken.None
         );
     }
 
@@ -779,8 +861,8 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        var principalId = await SeedConsoleUserAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        var principalId = await SeedConsoleUserAsync(factory, CancellationToken.None);
         using var grant = await administrator.PostAsJsonAsync(
             "/api/teams/acme/admins",
             new { principalId }
@@ -794,7 +876,7 @@ public class TeamManagementTests
             "openid read:clients",
             CancellationToken.None
         );
-        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev", CancellationToken.None);
 
         var clientIds = new List<string>();
         for (var i = 0; i < 2; i++)
@@ -856,16 +938,22 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
-        using var response = await PostTenantAsync(teamAdmin, "globex", "globex-dev");
+        using var response = await PostTenantAsync(
+            teamAdmin,
+            "globex",
+            "globex-dev",
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
@@ -878,12 +966,13 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         using var read = await teamAdmin.GetAsync("/api/platform/settings");
@@ -901,7 +990,8 @@ public class TeamManagementTests
                     path = "/environment_type",
                     value = "development",
                 },
-            }
+            },
+            CancellationToken.None
         );
         var writeBody = await write.Content.ReadAsStringAsync();
         Assert.True(write.StatusCode == HttpStatusCode.Forbidden, writeBody);
@@ -927,10 +1017,16 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        using var owner = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "owners",
+            CancellationToken.None
+        );
 
-        using var tenant = await PostTenantAsync(owner, "acme", "acme-dev");
+        using var tenant = await PostTenantAsync(owner, "acme", "acme-dev", CancellationToken.None);
         var tenantBody = await tenant.Content.ReadAsStringAsync();
         Assert.True(tenant.StatusCode == HttpStatusCode.Forbidden, tenantBody);
 
@@ -949,10 +1045,15 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
-        var principalId = await SeedConsoleUserAsync(factory);
-        await GrantPlatformRoleAsync(factory, principalId, BuiltInRoles.TeamAdmin);
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
+        var principalId = await SeedConsoleUserAsync(factory, CancellationToken.None);
+        await GrantPlatformRoleAsync(
+            factory,
+            principalId,
+            BuiltInRoles.TeamAdmin,
+            CancellationToken.None
+        );
         using var user = await factory.CreateManagementUserClientAsync(
             ConsoleClientId,
             ConsoleRedirectUri,
@@ -978,14 +1079,15 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
-        await SetTeamDisabledAsync(administrator, "acme", isDisabled: true);
+        await SetTeamDisabledAsync(administrator, "acme", isDisabled: true, CancellationToken.None);
 
         using var response = await SendPatchAsync(
             teamAdmin,
@@ -998,7 +1100,8 @@ public class TeamManagementTests
                     path = "/isDisabled",
                     value = false,
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -1012,35 +1115,47 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
-        var (clientId, clientSecret) = await CreateSecretClientAsync(administrator, "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
+        var (clientId, clientSecret) = await CreateSecretClientAsync(
+            administrator,
+            "acme-dev",
+            CancellationToken.None
+        );
 
         var tokenStatusCode = await RequestClientCredentialsTokenAsync(
             factory,
             "acme-dev",
             clientId,
-            clientSecret
+            clientSecret,
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.OK, tokenStatusCode);
 
-        await SetTeamDisabledAsync(administrator, "acme", isDisabled: true);
+        await SetTeamDisabledAsync(administrator, "acme", isDisabled: true, CancellationToken.None);
 
         var disabledStatusCode = await RequestClientCredentialsTokenAsync(
             factory,
             "acme-dev",
             clientId,
-            clientSecret
+            clientSecret,
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.NotFound, disabledStatusCode);
 
-        await SetTeamDisabledAsync(administrator, "acme", isDisabled: false);
+        await SetTeamDisabledAsync(
+            administrator,
+            "acme",
+            isDisabled: false,
+            CancellationToken.None
+        );
 
         var reenabledStatusCode = await RequestClientCredentialsTokenAsync(
             factory,
             "acme-dev",
             clientId,
-            clientSecret
+            clientSecret,
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.OK, reenabledStatusCode);
     }
@@ -1056,19 +1171,28 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
-        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(administrator);
-        await GrantTeamAdminAsync(administrator, "acme", principalId);
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(
+            administrator,
+            ownerPath: "/api/platform/clients",
+            CancellationToken.None
+        );
+        await GrantTeamAdminAsync(administrator, "acme", principalId, CancellationToken.None);
         using var machine = await factory.CreateManagementClientAsync(
             clientId,
             clientSecret,
             CancellationToken.None
         );
 
-        await CreateTenantAsync(machine, "acme", "acme-dev");
+        await CreateTenantAsync(machine, "acme", "acme-dev", CancellationToken.None);
 
-        using var forbidden = await PostTenantAsync(machine, "globex", "globex-dev");
+        using var forbidden = await PostTenantAsync(
+            machine,
+            "globex",
+            "globex-dev",
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
 
         using var owners = await machine.GetAsync("/api/tenants/acme-dev/owners");
@@ -1087,15 +1211,24 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        var (clientId, clientSecret, _) = await CreateMachineClientAsync(administrator);
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        var (clientId, clientSecret, _) = await CreateMachineClientAsync(
+            administrator,
+            ownerPath: "/api/platform/clients",
+            CancellationToken.None
+        );
         using var machine = await factory.CreateManagementClientAsync(
             clientId,
             clientSecret,
             CancellationToken.None
         );
 
-        using var response = await PostTenantAsync(machine, "acme", "acme-dev");
+        using var response = await PostTenantAsync(
+            machine,
+            "acme",
+            "acme-dev",
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -1107,9 +1240,13 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(administrator);
-        await GrantTeamAdminAsync(administrator, "acme", principalId);
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(
+            administrator,
+            ownerPath: "/api/platform/clients",
+            CancellationToken.None
+        );
+        await GrantTeamAdminAsync(administrator, "acme", principalId, CancellationToken.None);
         using var machine = await factory.CreateManagementClientAsync(
             clientId,
             clientSecret,
@@ -1127,10 +1264,16 @@ public class TeamManagementTests
                     path = "/isDisabled",
                     value = true,
                 },
-            }
+            },
+            CancellationToken.None
         );
 
-        using var response = await PostTenantAsync(machine, "acme", "acme-dev");
+        using var response = await PostTenantAsync(
+            machine,
+            "acme",
+            "acme-dev",
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
@@ -1141,24 +1284,35 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         var (acmeClientId, _, _) = await CreateMachineClientAsync(
             administrator,
-            "/api/teams/acme/clients"
+            "/api/teams/acme/clients",
+            CancellationToken.None
         );
         var (managerClientId, managerSecret, managerPrincipalId) = await CreateMachineClientAsync(
             administrator,
-            "/api/teams/globex/clients"
+            "/api/teams/globex/clients",
+            CancellationToken.None
         );
-        await GrantTeamAdminAsync(administrator, "globex", managerPrincipalId);
+        await GrantTeamAdminAsync(
+            administrator,
+            "globex",
+            managerPrincipalId,
+            CancellationToken.None
+        );
         using var manager = await factory.CreateManagementClientAsync(
             managerClientId,
             managerSecret,
             CancellationToken.None
         );
 
-        using var response = await PostClientSecretAsync(manager, acmeClientId);
+        using var response = await PostClientSecretAsync(
+            manager,
+            acmeClientId,
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -1170,20 +1324,34 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         var (teamClientId, _, _) = await CreateMachineClientAsync(
             administrator,
-            "/api/teams/acme/clients"
+            "/api/teams/acme/clients",
+            CancellationToken.None
         );
-        var (platformClientId, _, _) = await CreateMachineClientAsync(administrator);
+        var (platformClientId, _, _) = await CreateMachineClientAsync(
+            administrator,
+            ownerPath: "/api/platform/clients",
+            CancellationToken.None
+        );
         using var tenantAdmin = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            $"/api/tenants/{RootTenantId}/admins"
+            $"/api/tenants/{RootTenantId}/admins",
+            CancellationToken.None
         );
 
-        using var teamResponse = await PostClientSecretAsync(tenantAdmin, teamClientId);
-        using var platformResponse = await PostClientSecretAsync(tenantAdmin, platformClientId);
+        using var teamResponse = await PostClientSecretAsync(
+            tenantAdmin,
+            teamClientId,
+            CancellationToken.None
+        );
+        using var platformResponse = await PostClientSecretAsync(
+            tenantAdmin,
+            platformClientId,
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.Forbidden, teamResponse.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, platformResponse.StatusCode);
@@ -1196,20 +1364,26 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         var (teamClientId, _, teamPrincipalId) = await CreateMachineClientAsync(
             administrator,
-            "/api/teams/acme/clients"
+            "/api/teams/acme/clients",
+            CancellationToken.None
         );
-        await GrantTeamAdminAsync(administrator, "acme", teamPrincipalId);
+        await GrantTeamAdminAsync(administrator, "acme", teamPrincipalId, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
-        using var response = await PostClientSecretAsync(teamAdmin, teamClientId);
+        using var response = await PostClientSecretAsync(
+            teamAdmin,
+            teamClientId,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
@@ -1222,11 +1396,19 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        var (teamClientId, _, teamPrincipalId) = await CreateMachineClientAsync(administrator);
-        await GrantTeamAdminAsync(administrator, "acme", teamPrincipalId);
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        var (teamClientId, _, teamPrincipalId) = await CreateMachineClientAsync(
+            administrator,
+            ownerPath: "/api/platform/clients",
+            CancellationToken.None
+        );
+        await GrantTeamAdminAsync(administrator, "acme", teamPrincipalId, CancellationToken.None);
 
-        using var response = await PostClientSecretAsync(administrator, teamClientId);
+        using var response = await PostClientSecretAsync(
+            administrator,
+            teamClientId,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
@@ -1239,7 +1421,7 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         using var created = await administrator.PostAsJsonAsync(
             $"/api/tenants/{RootTenantId}/clients",
             new { isDisabled = false, settings = new { } }
@@ -1265,11 +1447,12 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         var (_, _, globexPrincipalId) = await CreateMachineClientAsync(
             administrator,
-            "/api/teams/globex/clients"
+            "/api/teams/globex/clients",
+            CancellationToken.None
         );
 
         using var response = await administrator.PostAsJsonAsync(
@@ -1288,11 +1471,12 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
         var (_, _, acmePrincipalId) = await CreateMachineClientAsync(
             administrator,
-            "/api/teams/acme/clients"
+            "/api/teams/acme/clients",
+            CancellationToken.None
         );
 
         using var response = await administrator.PostAsJsonAsync(
@@ -1311,8 +1495,12 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        var (_, _, platformPrincipalId) = await CreateMachineClientAsync(administrator);
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        var (_, _, platformPrincipalId) = await CreateMachineClientAsync(
+            administrator,
+            ownerPath: "/api/platform/clients",
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsJsonAsync(
             "/api/teams/acme/admins",
@@ -1330,13 +1518,20 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
-        using var user = await CreateTeamUserClientAsync(factory, administrator, "acme", "admins");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        using var user = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins",
+            CancellationToken.None
+        );
 
         var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(
             user,
-            "/api/teams/acme/clients"
+            "/api/teams/acme/clients",
+            CancellationToken.None
         );
 
         using var read = await user.GetAsync($"/api/tenants/{RootTenantId}/clients/{clientId}");
@@ -1346,16 +1541,21 @@ public class TeamManagementTests
         Assert.Equal("team", readJson.GetProperty("owningNodeType").GetString());
         Assert.Equal("acme", readJson.GetProperty("owningNodeId").GetString());
 
-        await GrantTeamAdminAsync(user, "acme", principalId);
+        await GrantTeamAdminAsync(user, "acme", principalId, CancellationToken.None);
         using var machine = await factory.CreateManagementClientAsync(
             clientId,
             clientSecret,
             CancellationToken.None
         );
 
-        await CreateTenantAsync(machine, "acme", "acme-dev");
+        await CreateTenantAsync(machine, "acme", "acme-dev", CancellationToken.None);
 
-        using var forbidden = await PostTenantAsync(machine, "globex", "globex-dev");
+        using var forbidden = await PostTenantAsync(
+            machine,
+            "globex",
+            "globex-dev",
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
     }
 
@@ -1366,15 +1566,17 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         var (acmeClientId, _, _) = await CreateMachineClientAsync(
             administrator,
-            "/api/teams/acme/clients"
+            "/api/teams/acme/clients",
+            CancellationToken.None
         );
         var (globexClientId, _, _) = await CreateMachineClientAsync(
             administrator,
-            "/api/teams/globex/clients"
+            "/api/teams/globex/clients",
+            CancellationToken.None
         );
 
         using var response = await administrator.GetAsync("/api/teams/acme/clients");
@@ -1428,13 +1630,14 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         foreach (var path in new[] { "/api/teams/globex/clients", "/api/platform/clients" })
@@ -1446,7 +1649,12 @@ public class TeamManagementTests
             var createdBody = await created.Content.ReadAsStringAsync();
             Assert.True(created.StatusCode == HttpStatusCode.Forbidden, $"{path}: {createdBody}");
 
-            await AssertGetStatusAsync(teamAdmin, path, HttpStatusCode.Forbidden);
+            await AssertGetStatusAsync(
+                teamAdmin,
+                path,
+                HttpStatusCode.Forbidden,
+                CancellationToken.None
+            );
         }
     }
 
@@ -1457,7 +1665,7 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
 
         using var response = await administrator.PostAsJsonAsync(
             "/api/teams/acme/clients",
@@ -1499,10 +1707,11 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         var (clientId, _, _) = await CreateMachineClientAsync(
             administrator,
-            "/api/teams/acme/clients"
+            "/api/teams/acme/clients",
+            CancellationToken.None
         );
 
         using var response = await SendPatchAsync(
@@ -1516,7 +1725,8 @@ public class TeamManagementTests
                     path = "/grant_types_supported",
                     value = new[] { "authorization_code", "client_credentials" },
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -1530,8 +1740,12 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateMachineClientAsync(administrator, "/api/teams/acme/clients");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/acme/clients",
+            CancellationToken.None
+        );
 
         using var response = await administrator.DeleteAsync("/api/teams/acme");
 
@@ -1565,13 +1779,14 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         using var caller = await teamAdmin.GetAsync("/api/me");
@@ -1596,13 +1811,14 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         using var teams = await teamAdmin.GetAsync("/api/me/teams");
@@ -1627,12 +1843,13 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         using var allTeams = await teamAdmin.GetAsync("/api/teams");
@@ -1647,9 +1864,9 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
-        var principalId = await SeedConsoleUserAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
+        var principalId = await SeedConsoleUserAsync(factory, CancellationToken.None);
         using var grant = await administrator.PostAsJsonAsync(
             "/api/tenants/acme-dev/owners",
             new { principalId }
@@ -1691,7 +1908,11 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(administrator);
+        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(
+            administrator,
+            ownerPath: "/api/platform/clients",
+            CancellationToken.None
+        );
         using var machine = await factory.CreateManagementClientAsync(
             clientId,
             clientSecret,
@@ -1716,12 +1937,13 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
         using var tenantAdmin = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            "/api/tenants/acme-dev/admins"
+            "/api/tenants/acme-dev/admins",
+            CancellationToken.None
         );
 
         using var created = await tenantAdmin.PostAsJsonAsync(
@@ -1749,19 +1971,25 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
         using var tenantAdmin = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            "/api/tenants/acme-dev/admins"
+            "/api/tenants/acme-dev/admins",
+            CancellationToken.None
         );
 
         using var team = await tenantAdmin.GetAsync("/api/teams/acme");
         var teamBody = await team.Content.ReadAsStringAsync();
         Assert.True(team.StatusCode == HttpStatusCode.Forbidden, teamBody);
 
-        using var tenant = await PostTenantAsync(tenantAdmin, "acme", "acme-test");
+        using var tenant = await PostTenantAsync(
+            tenantAdmin,
+            "acme",
+            "acme-test",
+            CancellationToken.None
+        );
         var tenantBody = await tenant.Content.ReadAsStringAsync();
         Assert.True(tenant.StatusCode == HttpStatusCode.Forbidden, tenantBody);
     }
@@ -1776,7 +2004,8 @@ public class TeamManagementTests
         using var user = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            $"/api/tenants/{RootTenantId}/admins"
+            $"/api/tenants/{RootTenantId}/admins",
+            CancellationToken.None
         );
 
         using var clients = await user.GetAsync($"/api/tenants/{RootTenantId}/clients");
@@ -1791,7 +2020,12 @@ public class TeamManagementTests
         var teamsBody = await teams.Content.ReadAsStringAsync();
         Assert.True(teams.StatusCode == HttpStatusCode.Forbidden, teamsBody);
 
-        using var intruder = await PostTenantAsync(user, "platform", "intruder");
+        using var intruder = await PostTenantAsync(
+            user,
+            "platform",
+            "intruder",
+            CancellationToken.None
+        );
         var intruderBody = await intruder.Content.ReadAsStringAsync();
         Assert.True(intruder.StatusCode == HttpStatusCode.Forbidden, intruderBody);
     }
@@ -1806,7 +2040,8 @@ public class TeamManagementTests
         using var user = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            $"/api/tenants/{RootTenantId}/admins"
+            $"/api/tenants/{RootTenantId}/admins",
+            CancellationToken.None
         );
 
         foreach (var caller in new[] { user, administrator })
@@ -1834,7 +2069,8 @@ public class TeamManagementTests
                         path = "/redirect_uris",
                         value = new[] { "https://attacker.test/callback" },
                     },
-                }
+                },
+                CancellationToken.None
             );
             var settingsBody = await settings.Content.ReadAsStringAsync();
             Assert.True(settings.StatusCode == HttpStatusCode.Conflict, settingsBody);
@@ -1852,18 +2088,34 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
-        await AssertGetStatusAsync(teamAdmin, "/api/teams/globex", HttpStatusCode.Forbidden);
-        await AssertGetStatusAsync(teamAdmin, "/api/teams/nope", HttpStatusCode.Forbidden);
-        await AssertGetStatusAsync(teamAdmin, "/api/teams/nope/settings", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/teams/globex",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/teams/nope",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/teams/nope/settings",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
 
         using var patch = await SendPatchAsync(
             teamAdmin,
@@ -1876,16 +2128,27 @@ public class TeamManagementTests
                     path = "/environment_type",
                     value = "development",
                 },
-            }
+            },
+            CancellationToken.None
         );
         var patchBody = await patch.Content.ReadAsStringAsync();
         Assert.True(patch.StatusCode == HttpStatusCode.Forbidden, patchBody);
 
-        using var create = await PostTenantAsync(teamAdmin, "nope", "nope-dev");
+        using var create = await PostTenantAsync(
+            teamAdmin,
+            "nope",
+            "nope-dev",
+            CancellationToken.None
+        );
         var createBody = await create.Content.ReadAsStringAsync();
         Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
 
-        await AssertGetStatusAsync(teamAdmin, "/api/teams/nope/admins", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/teams/nope/admins",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -1895,38 +2158,58 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateTenantAsync(administrator, "globex", "globex-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "globex", "globex-dev", CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
-        await AssertGetStatusAsync(teamAdmin, "/api/tenants/globex-dev", HttpStatusCode.Forbidden);
-        await AssertGetStatusAsync(teamAdmin, "/api/tenants/nope", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/globex-dev",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/nope",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
         await AssertGetStatusAsync(
             teamAdmin,
             "/api/tenants/nope/settings",
-            HttpStatusCode.Forbidden
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
         );
         await AssertGetStatusAsync(
             teamAdmin,
             "/api/tenants/nope/secrets",
-            HttpStatusCode.Forbidden
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
         );
         await AssertGetStatusAsync(
             teamAdmin,
             "/api/tenants/nope/encryption-keys",
-            HttpStatusCode.Forbidden
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
         );
-        await AssertGetStatusAsync(teamAdmin, "/api/tenants/nope/admins", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/nope/admins",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
         await AssertGetStatusAsync(
             teamAdmin,
             "/api/tenants/globex-dev/owners",
-            HttpStatusCode.Forbidden
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
         );
     }
 
@@ -1937,14 +2220,15 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateTenantAsync(administrator, "globex", "globex-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "globex", "globex-dev", CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         using var patchClient = await SendPatchAsync(
@@ -1958,7 +2242,8 @@ public class TeamManagementTests
                     path = "/isDisabled",
                     value = true,
                 },
-            }
+            },
+            CancellationToken.None
         );
         var patchClientBody = await patchClient.Content.ReadAsStringAsync();
         Assert.True(patchClient.StatusCode == HttpStatusCode.Forbidden, patchClientBody);
@@ -1980,7 +2265,8 @@ public class TeamManagementTests
                     path = "/client_name",
                     value = "x",
                 },
-            }
+            },
+            CancellationToken.None
         );
         var patchSettingsBody = await patchSettings.Content.ReadAsStringAsync();
         Assert.True(patchSettings.StatusCode == HttpStatusCode.Forbidden, patchSettingsBody);
@@ -2014,7 +2300,8 @@ public class TeamManagementTests
                     path = "/name",
                     value = "x",
                 },
-            }
+            },
+            CancellationToken.None
         );
         var patchResourceServerBody = await patchResourceServer.Content.ReadAsStringAsync();
         Assert.True(
@@ -2048,18 +2335,24 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
-        var (clientId, _) = await CreateSecretClientAsync(administrator, "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
+        var (clientId, _) = await CreateSecretClientAsync(
+            administrator,
+            "acme-dev",
+            CancellationToken.None
+        );
         using var owner = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            $"/api/tenants/acme-dev/clients/{clientId}/owners"
+            $"/api/tenants/acme-dev/clients/{clientId}/owners",
+            CancellationToken.None
         );
 
         var secrets = await GetJsonAsync(
             owner,
-            $"/api/tenants/acme-dev/clients/{clientId}/secrets"
+            $"/api/tenants/acme-dev/clients/{clientId}/secrets",
+            CancellationToken.None
         );
         var secretId = secrets.GetProperty("secrets")[0].GetProperty("secretId").GetString();
         Assert.NotNull(secretId);
@@ -2096,21 +2389,33 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
-        await CreateTenantAsync(administrator, "acme", "acme-prod");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-prod", CancellationToken.None);
         using var tenantAdmin = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            "/api/tenants/acme-dev/admins"
+            "/api/tenants/acme-dev/admins",
+            CancellationToken.None
         );
 
-        await AssertGetStatusAsync(tenantAdmin, "/api/tenants/acme-prod", HttpStatusCode.Forbidden);
-        await AssertGetStatusAsync(tenantAdmin, "/api/tenants/nope", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            tenantAdmin,
+            "/api/tenants/acme-prod",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
+        await AssertGetStatusAsync(
+            tenantAdmin,
+            "/api/tenants/nope",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
         await AssertGetStatusAsync(
             tenantAdmin,
             "/api/tenants/nope/admins",
-            HttpStatusCode.Forbidden
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
         );
 
         using var grant = await tenantAdmin.PostAsJsonAsync(
@@ -2129,12 +2434,23 @@ public class TeamManagementTests
             CancellationToken.None
         );
 
-        await AssertGetStatusAsync(administrator, "/api/teams/nope", HttpStatusCode.NotFound);
-        await AssertGetStatusAsync(administrator, "/api/tenants/nope", HttpStatusCode.NotFound);
+        await AssertGetStatusAsync(
+            administrator,
+            "/api/teams/nope",
+            HttpStatusCode.NotFound,
+            CancellationToken.None
+        );
+        await AssertGetStatusAsync(
+            administrator,
+            "/api/tenants/nope",
+            HttpStatusCode.NotFound,
+            CancellationToken.None
+        );
         await AssertGetStatusAsync(
             administrator,
             "/api/tenants/nope/admins",
-            HttpStatusCode.NotFound
+            HttpStatusCode.NotFound,
+            CancellationToken.None
         );
     }
 
@@ -2149,12 +2465,18 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+        await CreateTeamAsync(
+            administrator,
+            "acme",
+            new { max_tenants = 2 },
+            CancellationToken.None
+        );
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         using var replaced = await SendPatchAsync(
@@ -2168,7 +2490,8 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.MaxTenants}",
                     value = 5,
                 },
-            }
+            },
+            CancellationToken.None
         );
         var replacedBody = await replaced.Content.ReadAsStringAsync();
         Assert.True(replaced.StatusCode == HttpStatusCode.Forbidden, replacedBody);
@@ -2177,7 +2500,8 @@ public class TeamManagementTests
         using var removed = await SendPatchAsync(
             teamAdmin,
             "/api/teams/acme/settings",
-            new[] { new { op = "remove", path = $"/{OpenIdSettingNames.MaxTenants}" } }
+            new[] { new { op = "remove", path = $"/{OpenIdSettingNames.MaxTenants}" } },
+            CancellationToken.None
         );
         var removedBody = await removed.Content.ReadAsStringAsync();
         Assert.True(removed.StatusCode == HttpStatusCode.Forbidden, removedBody);
@@ -2193,7 +2517,8 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
                     value = new[] { "RS256" },
                 },
-            }
+            },
+            CancellationToken.None
         );
     }
 
@@ -2204,7 +2529,12 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+        await CreateTeamAsync(
+            administrator,
+            "acme",
+            new { max_tenants = 2 },
+            CancellationToken.None
+        );
 
         await PatchAsync(
             administrator,
@@ -2217,7 +2547,8 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.MaxTenants}",
                     value = 5,
                 },
-            }
+            },
+            CancellationToken.None
         );
     }
 
@@ -2228,14 +2559,15 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
-        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev", CancellationToken.None);
 
         await PatchAsync(
             teamAdmin,
@@ -2248,7 +2580,8 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.RateLimitTenantPerMinute}",
                     value = 100,
                 },
-            }
+            },
+            CancellationToken.None
         );
     }
 
@@ -2259,12 +2592,13 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
         using var owner = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            "/api/tenants/acme-dev/owners"
+            "/api/tenants/acme-dev/owners",
+            CancellationToken.None
         );
 
         using var response = await SendPatchAsync(
@@ -2278,7 +2612,8 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.RateLimitTenantPerMinute}",
                     value = 100,
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -2301,15 +2636,25 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+        await CreateTeamAsync(
+            administrator,
+            "acme",
+            new { max_tenants = 2 },
+            CancellationToken.None
+        );
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
-        var limits = await GetJsonAsync(teamAdmin, "/api/teams/acme/settings/limits");
+        var limits = await GetJsonAsync(
+            teamAdmin,
+            "/api/teams/acme/settings/limits",
+            CancellationToken.None
+        );
 
         Assert.Contains(OpenIdSettingNames.MaxTenants, GetLimitNames(limits));
         Assert.False(limits.GetProperty("canChange").GetBoolean());
@@ -2322,16 +2667,21 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
-        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev", CancellationToken.None);
 
-        var limits = await GetJsonAsync(teamAdmin, "/api/tenants/acme-dev/settings/limits");
+        var limits = await GetJsonAsync(
+            teamAdmin,
+            "/api/tenants/acme-dev/settings/limits",
+            CancellationToken.None
+        );
 
         Assert.Contains(OpenIdSettingNames.RateLimitTenantPerMinute, GetLimitNames(limits));
         Assert.True(limits.GetProperty("canChange").GetBoolean());
@@ -2344,15 +2694,20 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
         using var owner = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            "/api/tenants/acme-dev/owners"
+            "/api/tenants/acme-dev/owners",
+            CancellationToken.None
         );
 
-        var limits = await GetJsonAsync(owner, "/api/tenants/acme-dev/settings/limits");
+        var limits = await GetJsonAsync(
+            owner,
+            "/api/tenants/acme-dev/settings/limits",
+            CancellationToken.None
+        );
 
         Assert.Contains(OpenIdSettingNames.RateLimitTenantPerMinute, GetLimitNames(limits));
         Assert.False(limits.GetProperty("canChange").GetBoolean());
@@ -2365,9 +2720,18 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+        await CreateTeamAsync(
+            administrator,
+            "acme",
+            new { max_tenants = 2 },
+            CancellationToken.None
+        );
 
-        var limits = await GetJsonAsync(administrator, "/api/teams/acme/settings/limits");
+        var limits = await GetJsonAsync(
+            administrator,
+            "/api/teams/acme/settings/limits",
+            CancellationToken.None
+        );
 
         Assert.Contains(OpenIdSettingNames.MaxTenants, GetLimitNames(limits));
         Assert.True(limits.GetProperty("canChange").GetBoolean());
@@ -2394,15 +2758,20 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
         using var owner = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            "/api/tenants/acme-dev/owners"
+            "/api/tenants/acme-dev/owners",
+            CancellationToken.None
         );
 
-        var owners = await GetJsonAsync(owner, "/api/tenants/acme-dev/owners");
+        var owners = await GetJsonAsync(
+            owner,
+            "/api/tenants/acme-dev/owners",
+            CancellationToken.None
+        );
 
         Assert.True(owners.GetProperty("canChange").GetBoolean());
         Assert.NotEmpty(owners.GetProperty("items").EnumerateArray());
@@ -2415,15 +2784,20 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
         using var owner = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            "/api/tenants/acme-dev/owners"
+            "/api/tenants/acme-dev/owners",
+            CancellationToken.None
         );
 
-        var admins = await GetJsonAsync(owner, "/api/tenants/acme-dev/admins");
+        var admins = await GetJsonAsync(
+            owner,
+            "/api/tenants/acme-dev/admins",
+            CancellationToken.None
+        );
 
         Assert.False(admins.GetProperty("canChange").GetBoolean());
     }
@@ -2435,16 +2809,21 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
-        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev", CancellationToken.None);
 
-        var admins = await GetJsonAsync(teamAdmin, "/api/tenants/acme-dev/admins");
+        var admins = await GetJsonAsync(
+            teamAdmin,
+            "/api/tenants/acme-dev/admins",
+            CancellationToken.None
+        );
 
         Assert.True(admins.GetProperty("canChange").GetBoolean());
     }
@@ -2456,15 +2835,20 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
-        var admins = await GetJsonAsync(teamAdmin, "/api/teams/acme/admins");
+        var admins = await GetJsonAsync(
+            teamAdmin,
+            "/api/teams/acme/admins",
+            CancellationToken.None
+        );
 
         Assert.True(admins.GetProperty("canChange").GetBoolean());
     }
@@ -2476,10 +2860,16 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        using var owner = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "owners",
+            CancellationToken.None
+        );
 
-        var owners = await GetJsonAsync(owner, "/api/teams/acme/owners");
+        var owners = await GetJsonAsync(owner, "/api/teams/acme/owners", CancellationToken.None);
 
         Assert.True(owners.GetProperty("canChange").GetBoolean());
     }
@@ -2491,13 +2881,18 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
-        var clientId = await CreateClientForRoleListAsync(administrator, "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
+        var clientId = await CreateClientForRoleListAsync(
+            administrator,
+            "acme-dev",
+            CancellationToken.None
+        );
 
         var owners = await GetJsonAsync(
             administrator,
-            $"/api/tenants/acme-dev/clients/{clientId}/owners"
+            $"/api/tenants/acme-dev/clients/{clientId}/owners",
+            CancellationToken.None
         );
 
         Assert.True(owners.GetProperty("canChange").GetBoolean());
@@ -2510,24 +2905,27 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "acme", "acme-dev", CancellationToken.None);
         var resourceServerId = await CreateResourceServerForRoleListAsync(
             administrator,
-            "acme-dev"
+            "acme-dev",
+            CancellationToken.None
         );
 
         var owners = await GetJsonAsync(
             administrator,
-            $"/api/tenants/acme-dev/resource-servers/{resourceServerId}/owners"
+            $"/api/tenants/acme-dev/resource-servers/{resourceServerId}/owners",
+            CancellationToken.None
         );
 
         Assert.True(owners.GetProperty("canChange").GetBoolean());
     }
 
-    private static async Task<string> CreateClientForRoleListAsync(
+    private static async ValueTask<string> CreateClientForRoleListAsync(
         HttpClient client,
-        string tenantId
+        string tenantId,
+        CancellationToken cancellationToken
     )
     {
         using var response = await client.PostAsJsonAsync(
@@ -2541,18 +2939,20 @@ public class TeamManagementTests
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var clientId = JsonElement.Parse(body).GetProperty("clientId").GetString();
         Assert.NotNull(clientId);
         return clientId;
     }
 
-    private static async Task<string> CreateResourceServerForRoleListAsync(
+    private static async ValueTask<string> CreateResourceServerForRoleListAsync(
         HttpClient client,
-        string tenantId
+        string tenantId,
+        CancellationToken cancellationToken
     )
     {
         using var response = await client.PostAsJsonAsync(
@@ -2563,9 +2963,10 @@ public class TeamManagementTests
                 name = "Acme API",
                 isDisabled = false,
                 settings = new { },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var resourceServerId = JsonElement.Parse(body).GetProperty("resourceServerId").GetString();
         Assert.NotNull(resourceServerId);
@@ -2581,10 +2982,14 @@ public class TeamManagementTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTeamAsync(client, "globex", new { });
-        await CreateTenantAsync(client, "globex", "globex-dev");
+        await CreateTeamAsync(client, "globex", new { }, CancellationToken.None);
+        await CreateTenantAsync(client, "globex", "globex-dev", CancellationToken.None);
 
-        var before = await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev");
+        var before = await GetIdTokenSigningAlgorithmsAsync(
+            client,
+            "globex-dev",
+            CancellationToken.None
+        );
         Assert.Contains("PS256", before);
 
         await PatchAsync(
@@ -2598,11 +3003,16 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
                     value = new[] { "RS256" },
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         // No polling: the change is served as soon as the write returns.
-        var after = await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev");
+        var after = await GetIdTokenSigningAlgorithmsAsync(
+            client,
+            "globex-dev",
+            CancellationToken.None
+        );
         Assert.Equal<string>(["RS256"], after);
     }
 
@@ -2611,14 +3021,22 @@ public class TeamManagementTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTeamAsync(client, "globex", new { });
-        await CreateTenantAsync(client, "globex", "globex-dev");
-        await CreateTeamAsync(client, "hooli", new { });
-        await CreateTenantAsync(client, "hooli", "hooli-dev");
+        await CreateTeamAsync(client, "globex", new { }, CancellationToken.None);
+        await CreateTenantAsync(client, "globex", "globex-dev", CancellationToken.None);
+        await CreateTeamAsync(client, "hooli", new { }, CancellationToken.None);
+        await CreateTenantAsync(client, "hooli", "hooli-dev", CancellationToken.None);
 
-        var globexAlgorithmsBefore = await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev");
+        var globexAlgorithmsBefore = await GetIdTokenSigningAlgorithmsAsync(
+            client,
+            "globex-dev",
+            CancellationToken.None
+        );
         Assert.Contains("PS256", globexAlgorithmsBefore);
-        var hooliAlgorithmsBefore = await GetIdTokenSigningAlgorithmsAsync(client, "hooli-dev");
+        var hooliAlgorithmsBefore = await GetIdTokenSigningAlgorithmsAsync(
+            client,
+            "hooli-dev",
+            CancellationToken.None
+        );
         Assert.Contains("PS256", hooliAlgorithmsBefore);
 
         await PatchAsync(
@@ -2632,13 +3050,22 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
                     value = new[] { "RS256" },
                 },
-            }
+            },
+            CancellationToken.None
         );
 
-        var globexAlgorithmsAfter = await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev");
+        var globexAlgorithmsAfter = await GetIdTokenSigningAlgorithmsAsync(
+            client,
+            "globex-dev",
+            CancellationToken.None
+        );
         Assert.Equal<string>(["RS256"], globexAlgorithmsAfter);
 
-        var other = await GetIdTokenSigningAlgorithmsAsync(client, "hooli-dev");
+        var other = await GetIdTokenSigningAlgorithmsAsync(
+            client,
+            "hooli-dev",
+            CancellationToken.None
+        );
         Assert.Contains("PS256", other);
         Assert.NotEqual<string>(["RS256"], other);
     }
@@ -2652,21 +3079,21 @@ public class TeamManagementTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTeamAsync(client, "initech", new { });
-        await CreateTenantAsync(client, "initech", "initech-dev");
+        await CreateTeamAsync(client, "initech", new { }, CancellationToken.None);
+        await CreateTenantAsync(client, "initech", "initech-dev", CancellationToken.None);
 
-        using (var served = await GetDiscoveryAsync(client, "initech-dev"))
-            Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+        using var served = await GetDiscoveryAsync(client, "initech-dev", CancellationToken.None);
+        Assert.Equal(HttpStatusCode.OK, served.StatusCode);
 
-        await SetTeamDisabledAsync(client, "initech", isDisabled: true);
+        await SetTeamDisabledAsync(client, "initech", isDisabled: true, CancellationToken.None);
 
-        using (var silenced = await GetDiscoveryAsync(client, "initech-dev"))
-            Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
+        using var silenced = await GetDiscoveryAsync(client, "initech-dev", CancellationToken.None);
+        Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
 
-        await SetTeamDisabledAsync(client, "initech", isDisabled: false);
+        await SetTeamDisabledAsync(client, "initech", isDisabled: false, CancellationToken.None);
 
-        using (var restored = await GetDiscoveryAsync(client, "initech-dev"))
-            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+        using var restored = await GetDiscoveryAsync(client, "initech-dev", CancellationToken.None);
+        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
     }
 
     [Fact]
@@ -2674,37 +3101,41 @@ public class TeamManagementTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTeamAsync(client, "umbrella", new { });
-        await CreateTenantAsync(client, "umbrella", "umbrella-dev");
-        var (clientId, _) = await CreateSecretClientAsync(client, "umbrella-dev");
+        await CreateTeamAsync(client, "umbrella", new { }, CancellationToken.None);
+        await CreateTenantAsync(client, "umbrella", "umbrella-dev", CancellationToken.None);
+        var (clientId, _) = await CreateSecretClientAsync(
+            client,
+            "umbrella-dev",
+            CancellationToken.None
+        );
 
-        await SetTeamDisabledAsync(client, "umbrella", isDisabled: true);
+        await SetTeamDisabledAsync(client, "umbrella", isDisabled: true, CancellationToken.None);
 
-        using (var silenced = await GetDiscoveryAsync(client, "umbrella-dev"))
-            Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
+        using var silenced = await GetDiscoveryAsync(
+            client,
+            "umbrella-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
 
-        using (
-            var effective = await client.GetAsync("/api/tenants/umbrella-dev/effective-settings")
-        )
-            Assert.Equal(HttpStatusCode.OK, effective.StatusCode);
+        using var effective = await client.GetAsync("/api/tenants/umbrella-dev/effective-settings");
+        Assert.Equal(HttpStatusCode.OK, effective.StatusCode);
 
-        using (var clients = await client.GetAsync("/api/tenants/umbrella-dev/clients"))
-        {
-            var clientsBody = await clients.Content.ReadAsStringAsync();
-            Assert.True(clients.StatusCode == HttpStatusCode.OK, clientsBody);
-            var ids = JsonElement
-                .Parse(clientsBody)
-                .GetProperty("items")
-                .EnumerateArray()
-                .Select(item => item.GetProperty("clientId").GetString())
-                .ToList();
-            Assert.Contains(clientId, ids);
-        }
+        using var clients = await client.GetAsync("/api/tenants/umbrella-dev/clients");
+        var clientsBody = await clients.Content.ReadAsStringAsync();
+        Assert.True(clients.StatusCode == HttpStatusCode.OK, clientsBody);
+        var ids = JsonElement
+            .Parse(clientsBody)
+            .GetProperty("items")
+            .EnumerateArray()
+            .Select(item => item.GetProperty("clientId").GetString())
+            .ToList();
+        Assert.Contains(clientId, ids);
 
         // Revoking a session acts through the tenant's OpenID runtime, which a disabled team's tenant does not serve.
         // The runtime is materialized before the session is looked up, so an unknown session id answers 404 here.
-        using (var revoked = await client.DeleteAsync("/api/tenants/umbrella-dev/sessions/unknown"))
-            Assert.Equal(HttpStatusCode.NotFound, revoked.StatusCode);
+        using var revoked = await client.DeleteAsync("/api/tenants/umbrella-dev/sessions/unknown");
+        Assert.Equal(HttpStatusCode.NotFound, revoked.StatusCode);
 
         // PatchAsync asserts 204 No Content.
         await PatchAsync(
@@ -2718,21 +3149,24 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
                     value = new[] { "RS256" },
                 },
-            }
+            },
+            CancellationToken.None
         );
 
-        await SetTeamDisabledAsync(client, "umbrella", isDisabled: false);
+        await SetTeamDisabledAsync(client, "umbrella", isDisabled: false, CancellationToken.None);
 
-        using (var restored = await GetDiscoveryAsync(client, "umbrella-dev"))
-            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+        using var restored = await GetDiscoveryAsync(
+            client,
+            "umbrella-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
 
         // An unknown session is reported as revoked once the tenant is served again.
-        using (
-            var revokedAgain = await client.DeleteAsync(
-                "/api/tenants/umbrella-dev/sessions/unknown"
-            )
-        )
-            Assert.Equal(HttpStatusCode.NoContent, revokedAgain.StatusCode);
+        using var revokedAgain = await client.DeleteAsync(
+            "/api/tenants/umbrella-dev/sessions/unknown"
+        );
+        Assert.Equal(HttpStatusCode.NoContent, revokedAgain.StatusCode);
     }
 
     [Fact]
@@ -2740,62 +3174,51 @@ public class TeamManagementTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTeamAsync(client, "wonka", new { });
-        await CreateTenantAsync(client, "wonka", "wonka-dev");
+        await CreateTeamAsync(client, "wonka", new { }, CancellationToken.None);
+        await CreateTenantAsync(client, "wonka", "wonka-dev", CancellationToken.None);
 
-        string accountPath;
-        using (
-            var created = await client.PostAsJsonAsync(
-                "/api/tenants/wonka-dev/local-accounts",
-                new { userName = "wonka-user", password = "wonka-user-password-1" }
-            )
-        )
-        {
-            var createdBody = await created.Content.ReadAsStringAsync();
-            Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
-            var localAccountId = JsonElement
-                .Parse(createdBody)
-                .GetProperty("localAccountId")
-                .GetString();
-            accountPath = $"/api/tenants/wonka-dev/local-accounts/{localAccountId}";
-        }
+        using var created = await client.PostAsJsonAsync(
+            "/api/tenants/wonka-dev/local-accounts",
+            new { userName = "wonka-user", password = "wonka-user-password-1" }
+        );
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+        var localAccountId = JsonElement
+            .Parse(createdBody)
+            .GetProperty("localAccountId")
+            .GetString();
+        var accountPath = $"/api/tenants/wonka-dev/local-accounts/{localAccountId}";
 
-        await SetTeamDisabledAsync(client, "wonka", isDisabled: true);
+        await SetTeamDisabledAsync(client, "wonka", isDisabled: true, CancellationToken.None);
 
         // A route that acts through the tenant's OpenID runtime materializes it before it writes, so a tenant that is
         // not served refuses the request and nothing is committed.
-        using (var disabled = await client.PostAsync($"{accountPath}/disable", content: null))
-            Assert.Equal(HttpStatusCode.NotFound, disabled.StatusCode);
+        using var disabled = await client.PostAsync($"{accountPath}/disable", content: null);
+        Assert.Equal(HttpStatusCode.NotFound, disabled.StatusCode);
 
-        using (
-            var reset = await client.PostAsJsonAsync(
-                $"{accountPath}/password",
-                new { password = "wonka-user-password-2" }
-            )
-        )
-            Assert.Equal(HttpStatusCode.NotFound, reset.StatusCode);
+        using var reset = await client.PostAsJsonAsync(
+            $"{accountPath}/password",
+            new { password = "wonka-user-password-2" }
+        );
+        Assert.Equal(HttpStatusCode.NotFound, reset.StatusCode);
 
         // Deleting the account is refused too, and the account survives it.
-        using (var deleted = await client.DeleteAsync(accountPath))
-            Assert.Equal(HttpStatusCode.NotFound, deleted.StatusCode);
+        using var deleted = await client.DeleteAsync(accountPath);
+        Assert.Equal(HttpStatusCode.NotFound, deleted.StatusCode);
 
-        await SetTeamDisabledAsync(client, "wonka", isDisabled: false);
+        await SetTeamDisabledAsync(client, "wonka", isDisabled: false, CancellationToken.None);
 
-        using (var account = await client.GetAsync(accountPath))
-        {
-            var accountBody = await account.Content.ReadAsStringAsync();
-            Assert.True(account.StatusCode == HttpStatusCode.OK, accountBody);
-            Assert.True(
-                JsonElement.Parse(accountBody).GetProperty("isEnabled").GetBoolean(),
-                accountBody
-            );
-        }
+        using var account = await client.GetAsync(accountPath);
+        var accountBody = await account.Content.ReadAsStringAsync();
+        Assert.True(account.StatusCode == HttpStatusCode.OK, accountBody);
+        Assert.True(
+            JsonElement.Parse(accountBody).GetProperty("isEnabled").GetBoolean(),
+            accountBody
+        );
 
-        using (var disabledAgain = await client.PostAsync($"{accountPath}/disable", content: null))
-        {
-            var disabledBody = await disabledAgain.Content.ReadAsStringAsync();
-            Assert.True(disabledAgain.StatusCode == HttpStatusCode.NoContent, disabledBody);
-        }
+        using var disabledAgain = await client.PostAsync($"{accountPath}/disable", content: null);
+        var disabledBody = await disabledAgain.Content.ReadAsStringAsync();
+        Assert.True(disabledAgain.StatusCode == HttpStatusCode.NoContent, disabledBody);
     }
 
     #endregion
@@ -2807,10 +3230,15 @@ public class TeamManagementTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTeamAsync(client, "hooli", new { max_tenants = 1 });
-        await CreateTenantAsync(client, "hooli", "hooli-one");
+        await CreateTeamAsync(client, "hooli", new { max_tenants = 1 }, CancellationToken.None);
+        await CreateTenantAsync(client, "hooli", "hooli-one", CancellationToken.None);
 
-        using var response = await PostTenantAsync(client, "hooli", "hooli-two");
+        using var response = await PostTenantAsync(
+            client,
+            "hooli",
+            "hooli-two",
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
@@ -2825,8 +3253,8 @@ public class TeamManagementTests
     {
         using var factory = CreateFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTeamAsync(client, "umbrella", new { });
-        await CreateTenantAsync(client, "umbrella", "umbrella-dev");
+        await CreateTeamAsync(client, "umbrella", new { }, CancellationToken.None);
+        await CreateTenantAsync(client, "umbrella", "umbrella-dev", CancellationToken.None);
 
         using var response = await client.DeleteAsync("/api/teams/umbrella");
 
@@ -2841,8 +3269,14 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        using var owner = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "owners",
+            CancellationToken.None
+        );
 
         using var forbidden = await owner.DeleteAsync("/api/teams/acme");
         var forbiddenBody = await forbidden.Content.ReadAsStringAsync();
@@ -2869,8 +3303,18 @@ public class TeamManagementTests
             )
         );
         using var administrator = await host.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTenantAsync(administrator, HostApplicationFactory.TeamId, "usage-one");
-        await CreateTenantAsync(administrator, HostApplicationFactory.TeamId, "usage-two");
+        await CreateTenantAsync(
+            administrator,
+            HostApplicationFactory.TeamId,
+            "usage-one",
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            administrator,
+            HostApplicationFactory.TeamId,
+            "usage-two",
+            CancellationToken.None
+        );
 
         var client = recordingHost.CreateClient();
         foreach (var tenantId in new[] { "usage-one", "usage-two" })
@@ -2927,16 +3371,25 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(administrator);
+        var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(
+            administrator,
+            CancellationToken.None
+        );
 
         using var previewResponse = await PostPromotionAsync(
             administrator,
             "acme",
             "/preview",
             "acme-dev",
-            "acme-prod"
+            "acme-prod",
+            environmentSettings: null,
+            CancellationToken.None
         );
-        var preview = await ReadPromotionAsync(previewResponse, HttpStatusCode.OK);
+        var preview = await ReadPromotionAsync(
+            previewResponse,
+            HttpStatusCode.OK,
+            CancellationToken.None
+        );
         Assert.False(preview.GetProperty("isApplied").GetBoolean());
         Assert.True(HasChange(preview, "client", clientId, "created"), preview.ToString());
         Assert.True(
@@ -2961,7 +3414,8 @@ public class TeamManagementTests
         await AssertGetStatusAsync(
             administrator,
             $"/api/tenants/acme-prod/clients/{clientId}",
-            HttpStatusCode.NotFound
+            HttpStatusCode.NotFound,
+            CancellationToken.None
         );
     }
 
@@ -2972,31 +3426,49 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(administrator);
+        var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(
+            administrator,
+            CancellationToken.None
+        );
 
         using var promoteResponse = await PostPromotionAsync(
             administrator,
             "acme",
             string.Empty,
             "acme-dev",
-            "acme-prod"
+            "acme-prod",
+            environmentSettings: null,
+            CancellationToken.None
         );
-        var promoted = await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK);
+        var promoted = await ReadPromotionAsync(
+            promoteResponse,
+            HttpStatusCode.OK,
+            CancellationToken.None
+        );
         Assert.True(promoted.GetProperty("isApplied").GetBoolean());
 
         var settings = (
-            await GetJsonAsync(administrator, "/api/tenants/acme-prod/settings")
+            await GetJsonAsync(
+                administrator,
+                "/api/tenants/acme-prod/settings",
+                CancellationToken.None
+            )
         ).GetProperty("settings");
         Assert.True(settings.GetProperty(OpenIdSettingNames.RequireConsent).GetBoolean());
         Assert.False(settings.TryGetProperty(OpenIdSettingNames.EnvironmentName, out _));
 
         var client = await GetJsonAsync(
             administrator,
-            $"/api/tenants/acme-prod/clients/{clientId}"
+            $"/api/tenants/acme-prod/clients/{clientId}",
+            CancellationToken.None
         );
         Assert.Equal(clientId, client.GetProperty("clientId").GetString());
         var clientSettings = (
-            await GetJsonAsync(administrator, $"/api/tenants/acme-prod/clients/{clientId}/settings")
+            await GetJsonAsync(
+                administrator,
+                $"/api/tenants/acme-prod/clients/{clientId}/settings",
+                CancellationToken.None
+            )
         ).GetProperty("settings");
         Assert.Equal(
             "Acme Web",
@@ -3006,13 +3478,15 @@ public class TeamManagementTests
 
         var secrets = await GetJsonAsync(
             administrator,
-            $"/api/tenants/acme-prod/clients/{clientId}/secrets"
+            $"/api/tenants/acme-prod/clients/{clientId}/secrets",
+            CancellationToken.None
         );
         Assert.Empty(secrets.GetProperty("secrets").EnumerateArray());
 
         var grant = await GetJsonAsync(
             administrator,
-            $"/api/tenants/acme-prod/clients/{clientId}/grants/{resourceServerId}"
+            $"/api/tenants/acme-prod/clients/{clientId}/grants/{resourceServerId}",
+            CancellationToken.None
         );
         Assert.Equal(
             ["read:things"],
@@ -3027,25 +3501,33 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await ArrangePromotionSourceAsync(administrator);
+        await ArrangePromotionSourceAsync(administrator, CancellationToken.None);
 
         using var promoteResponse = await PostPromotionAsync(
             administrator,
             "acme",
             string.Empty,
             "acme-dev",
-            "acme-prod"
+            "acme-prod",
+            environmentSettings: null,
+            CancellationToken.None
         );
-        await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK);
+        await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK, CancellationToken.None);
 
         using var againResponse = await PostPromotionAsync(
             administrator,
             "acme",
             string.Empty,
             "acme-dev",
-            "acme-prod"
+            "acme-prod",
+            environmentSettings: null,
+            CancellationToken.None
         );
-        var again = await ReadPromotionAsync(againResponse, HttpStatusCode.OK);
+        var again = await ReadPromotionAsync(
+            againResponse,
+            HttpStatusCode.OK,
+            CancellationToken.None
+        );
         var actions = again
             .GetProperty("changes")
             .EnumerateArray()
@@ -3062,7 +3544,10 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var (clientId, _) = await ArrangePromotionSourceAsync(administrator);
+        var (clientId, _) = await ArrangePromotionSourceAsync(
+            administrator,
+            CancellationToken.None
+        );
 
         using var promoteResponse = await PostPromotionAsync(
             administrator,
@@ -3081,12 +3566,17 @@ public class TeamManagementTests
                         [OpenIdSettingNames.RedirectUris] = new[] { "https://prod.acme.test/cb" },
                     },
                 },
-            }
+            },
+            CancellationToken.None
         );
-        await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK);
+        await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK, CancellationToken.None);
 
         var clientSettings = (
-            await GetJsonAsync(administrator, $"/api/tenants/acme-prod/clients/{clientId}/settings")
+            await GetJsonAsync(
+                administrator,
+                $"/api/tenants/acme-prod/clients/{clientId}/settings",
+                CancellationToken.None
+            )
         ).GetProperty("settings");
         Assert.Equal(
             ["https://prod.acme.test/cb"],
@@ -3104,8 +3594,14 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await ArrangePromotionSourceAsync(administrator);
-        using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
+        await ArrangePromotionSourceAsync(administrator, CancellationToken.None);
+        using var owner = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "owners",
+            CancellationToken.None
+        );
 
         foreach (var route in new[] { "/preview", string.Empty })
         {
@@ -3114,7 +3610,9 @@ public class TeamManagementTests
                 "acme",
                 route,
                 "acme-dev",
-                "acme-prod"
+                "acme-prod",
+                environmentSettings: null,
+                CancellationToken.None
             );
             var body = await response.Content.ReadAsStringAsync();
             Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
@@ -3128,16 +3626,18 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await ArrangePromotionSourceAsync(administrator);
-        await CreateTeamAsync(administrator, "beta", new { });
-        await CreateTenantAsync(administrator, "beta", "beta-prod");
+        await ArrangePromotionSourceAsync(administrator, CancellationToken.None);
+        await CreateTeamAsync(administrator, "beta", new { }, CancellationToken.None);
+        await CreateTenantAsync(administrator, "beta", "beta-prod", CancellationToken.None);
 
         using var response = await PostPromotionAsync(
             administrator,
             "acme",
             string.Empty,
             "acme-dev",
-            "beta-prod"
+            "beta-prod",
+            environmentSettings: null,
+            CancellationToken.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -3151,7 +3651,7 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await ArrangePromotionSourceAsync(administrator);
+        await ArrangePromotionSourceAsync(administrator, CancellationToken.None);
         await PatchAsync(
             administrator,
             "/api/tenants/acme-dev/settings",
@@ -3163,14 +3663,20 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.RateLimitTenantPerMinute}",
                     value = 100,
                 },
-            }
+            },
+            CancellationToken.None
         );
         using var tenantAdmin = await CreateGrantedUserClientAsync(
             factory,
             administrator,
-            "/api/tenants/acme-dev/admins"
+            "/api/tenants/acme-dev/admins",
+            CancellationToken.None
         );
-        var admins = await GetJsonAsync(administrator, "/api/tenants/acme-dev/admins");
+        var admins = await GetJsonAsync(
+            administrator,
+            "/api/tenants/acme-dev/admins",
+            CancellationToken.None
+        );
         var principalId = admins
             .GetProperty("items")
             .EnumerateArray()
@@ -3190,7 +3696,9 @@ public class TeamManagementTests
                 "acme",
                 route,
                 "acme-dev",
-                "acme-prod"
+                "acme-prod",
+                environmentSettings: null,
+                CancellationToken.None
             );
             var refusedBody = await refused.Content.ReadAsStringAsync();
             Assert.True(refused.StatusCode == HttpStatusCode.Forbidden, refusedBody);
@@ -3206,11 +3714,17 @@ public class TeamManagementTests
             "acme",
             string.Empty,
             "acme-dev",
-            "acme-prod"
+            "acme-prod",
+            environmentSettings: null,
+            CancellationToken.None
         );
-        await ReadPromotionAsync(allowed, HttpStatusCode.OK);
+        await ReadPromotionAsync(allowed, HttpStatusCode.OK, CancellationToken.None);
         var settings = (
-            await GetJsonAsync(administrator, "/api/tenants/acme-prod/settings")
+            await GetJsonAsync(
+                administrator,
+                "/api/tenants/acme-prod/settings",
+                CancellationToken.None
+            )
         ).GetProperty("settings");
         Assert.Equal(
             100,
@@ -3225,20 +3739,26 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var root = await GetJsonAsync(administrator, $"/api/tenants/{RootTenantId}");
+        var root = await GetJsonAsync(
+            administrator,
+            $"/api/tenants/{RootTenantId}",
+            CancellationToken.None
+        );
         var teamId = root.GetProperty("teamId").GetString();
         Assert.NotNull(teamId);
-        await CreateTenantAsync(administrator, teamId, "root-staging");
+        await CreateTenantAsync(administrator, teamId, "root-staging", CancellationToken.None);
 
         using var response = await PostPromotionAsync(
             administrator,
             teamId,
             "/preview",
             RootTenantId,
-            "root-staging"
+            "root-staging",
+            environmentSettings: null,
+            CancellationToken.None
         );
 
-        var preview = await ReadPromotionAsync(response, HttpStatusCode.OK);
+        var preview = await ReadPromotionAsync(response, HttpStatusCode.OK, CancellationToken.None);
         Assert.True(
             HasNote(preview, BootstrapAdminApplicationFactory.ClientId, "host_managed"),
             preview.ToString()
@@ -3265,14 +3785,27 @@ public class TeamManagementTests
         await CreateTeamAsync(
             administrator,
             "globex",
-            new { id_token_signing_alg_values_supported = new[] { "RS256" } }
+            new { id_token_signing_alg_values_supported = new[] { "RS256" } },
+            CancellationToken.None
         );
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
-        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            administrator,
+            "globex-web",
+            "globex-web-dev",
+            CancellationToken.None
+        );
 
         var signingAlgorithms = await GetIdTokenSigningAlgorithmsAsync(
             administrator,
-            "globex-web-dev"
+            "globex-web-dev",
+            CancellationToken.None
         );
         Assert.Equal<string>(["RS256"], signingAlgorithms);
     }
@@ -3284,11 +3817,26 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
-        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            administrator,
+            "globex-web",
+            "globex-web-dev",
+            CancellationToken.None
+        );
 
-        var before = await GetIdTokenSigningAlgorithmsAsync(administrator, "globex-web-dev");
+        var before = await GetIdTokenSigningAlgorithmsAsync(
+            administrator,
+            "globex-web-dev",
+            CancellationToken.None
+        );
         Assert.Contains("PS256", before);
 
         await PatchAsync(
@@ -3302,11 +3850,16 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
                     value = new[] { "RS256" },
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         // No polling: the change is served as soon as the write returns.
-        var after = await GetIdTokenSigningAlgorithmsAsync(administrator, "globex-web-dev");
+        var after = await GetIdTokenSigningAlgorithmsAsync(
+            administrator,
+            "globex-web-dev",
+            CancellationToken.None
+        );
         Assert.Equal<string>(["RS256"], after);
     }
 
@@ -3317,22 +3870,55 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
-        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            administrator,
+            "globex-web",
+            "globex-web-dev",
+            CancellationToken.None
+        );
 
-        using (var served = await GetDiscoveryAsync(administrator, "globex-web-dev"))
-            Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+        using var served = await GetDiscoveryAsync(
+            administrator,
+            "globex-web-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.OK, served.StatusCode);
 
-        await SetTeamDisabledAsync(administrator, "globex", isDisabled: true);
+        await SetTeamDisabledAsync(
+            administrator,
+            "globex",
+            isDisabled: true,
+            CancellationToken.None
+        );
 
-        using (var silenced = await GetDiscoveryAsync(administrator, "globex-web-dev"))
-            Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
+        using var silenced = await GetDiscoveryAsync(
+            administrator,
+            "globex-web-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
 
-        await SetTeamDisabledAsync(administrator, "globex", isDisabled: false);
+        await SetTeamDisabledAsync(
+            administrator,
+            "globex",
+            isDisabled: false,
+            CancellationToken.None
+        );
 
-        using (var restored = await GetDiscoveryAsync(administrator, "globex-web-dev"))
-            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+        using var restored = await GetDiscoveryAsync(
+            administrator,
+            "globex-web-dev",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
     }
 
     [Fact]
@@ -3342,8 +3928,14 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
 
         using var response = await administrator.DeleteAsync("/api/teams/globex");
 
@@ -3358,18 +3950,34 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         using var parentAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "globex",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
-        await CreateChildTeamAsync(parentAdmin, "globex", "globex-web", new { });
-        await CreateTenantAsync(parentAdmin, "globex-web", "globex-web-dev");
+        await CreateChildTeamAsync(
+            parentAdmin,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            parentAdmin,
+            "globex-web",
+            "globex-web-dev",
+            CancellationToken.None
+        );
 
-        using var served = await GetDiscoveryAsync(administrator, "globex-web-dev");
+        using var served = await GetDiscoveryAsync(
+            administrator,
+            "globex-web-dev",
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, served.StatusCode);
     }
 
@@ -3380,13 +3988,20 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { max_tenants = 2 });
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { max_tenants = 2 },
+            CancellationToken.None
+        );
         using var parentAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "globex",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         await PatchAsync(
@@ -3400,7 +4015,8 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.MaxTenants}",
                     value = 5,
                 },
-            }
+            },
+            CancellationToken.None
         );
     }
 
@@ -3411,13 +4027,20 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { max_tenants = 2 });
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { max_tenants = 2 },
+            CancellationToken.None
+        );
         using var childAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "globex-web",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         using var replaced = await SendPatchAsync(
@@ -3431,7 +4054,8 @@ public class TeamManagementTests
                     path = $"/{OpenIdSettingNames.MaxTenants}",
                     value = 5,
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         var body = await replaced.Content.ReadAsStringAsync();
@@ -3446,11 +4070,27 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { max_tenants = 1 });
-        await CreateTenantAsync(administrator, "globex", "globex-main");
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTeamAsync(
+            administrator,
+            "globex",
+            new { max_tenants = 1 },
+            CancellationToken.None
+        );
+        await CreateTenantAsync(administrator, "globex", "globex-main", CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
 
-        using var response = await PostTenantAsync(administrator, "globex-web", "globex-web-dev");
+        using var response = await PostTenantAsync(
+            administrator,
+            "globex-web",
+            "globex-web-dev",
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
@@ -3468,7 +4108,8 @@ public class TeamManagementTests
             administrator,
             HostApplicationFactory.TeamId,
             "under-platform",
-            new { }
+            new { },
+            CancellationToken.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -3482,30 +4123,39 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "acme", new { });
-        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTeamAsync(administrator, "acme", new { }, CancellationToken.None);
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
         using var stranger = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "acme",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         foreach (var teamId in new[] { "nope", "globex" })
         {
-            using var create = await PostChildTeamAsync(stranger, teamId, "stray", new { });
+            using var create = await PostChildTeamAsync(
+                stranger,
+                teamId,
+                "stray",
+                new { },
+                CancellationToken.None
+            );
             var createBody = await create.Content.ReadAsStringAsync();
             Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
 
             await AssertGetStatusAsync(
                 stranger,
                 $"/api/teams/{teamId}/teams",
-                HttpStatusCode.Forbidden
+                HttpStatusCode.Forbidden,
+                CancellationToken.None
             );
             await AssertGetStatusAsync(
                 stranger,
                 $"/api/teams/{teamId}/usage",
-                HttpStatusCode.Forbidden
+                HttpStatusCode.Forbidden,
+                CancellationToken.None
             );
         }
     }
@@ -3517,24 +4167,58 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-api", new { });
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-api",
+            new { },
+            CancellationToken.None
+        );
         using var childAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "globex-web",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
-        await AssertGetStatusAsync(childAdmin, "/api/teams/globex", HttpStatusCode.Forbidden);
-        await AssertGetStatusAsync(childAdmin, "/api/teams/globex-api", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            childAdmin,
+            "/api/teams/globex",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
+        await AssertGetStatusAsync(
+            childAdmin,
+            "/api/teams/globex-api",
+            HttpStatusCode.Forbidden,
+            CancellationToken.None
+        );
 
-        using var create = await PostChildTeamAsync(childAdmin, "globex", "stray", new { });
+        using var create = await PostChildTeamAsync(
+            childAdmin,
+            "globex",
+            "stray",
+            new { },
+            CancellationToken.None
+        );
         var createBody = await create.Content.ReadAsStringAsync();
         Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
 
-        await AssertGetStatusAsync(childAdmin, "/api/teams/globex-web", HttpStatusCode.OK);
+        await AssertGetStatusAsync(
+            childAdmin,
+            "/api/teams/globex-web",
+            HttpStatusCode.OK,
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -3544,13 +4228,20 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
         using var childAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "globex-web",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         using var disabled = await SendPatchAsync(
@@ -3564,7 +4255,8 @@ public class TeamManagementTests
                     path = "/isDisabled",
                     value = true,
                 },
-            }
+            },
+            CancellationToken.None
         );
         var disabledBody = await disabled.Content.ReadAsStringAsync();
         Assert.True(disabled.StatusCode == HttpStatusCode.Forbidden, disabledBody);
@@ -3573,7 +4265,11 @@ public class TeamManagementTests
         var deletedBody = await deleted.Content.ReadAsStringAsync();
         Assert.True(deleted.StatusCode == HttpStatusCode.Forbidden, deletedBody);
 
-        var team = await GetJsonAsync(administrator, "/api/teams/globex-web");
+        var team = await GetJsonAsync(
+            administrator,
+            "/api/teams/globex-web",
+            CancellationToken.None
+        );
         Assert.False(team.GetProperty("isDisabled").GetBoolean(), team.ToString());
     }
 
@@ -3584,18 +4280,35 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
         using var parentAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "globex",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         // SetTeamDisabledAsync asserts 204 No Content.
-        await SetTeamDisabledAsync(parentAdmin, "globex-web", isDisabled: true);
-        await SetTeamDisabledAsync(parentAdmin, "globex-web", isDisabled: false);
+        await SetTeamDisabledAsync(
+            parentAdmin,
+            "globex-web",
+            isDisabled: true,
+            CancellationToken.None
+        );
+        await SetTeamDisabledAsync(
+            parentAdmin,
+            "globex-web",
+            isDisabled: false,
+            CancellationToken.None
+        );
 
         using var deleted = await parentAdmin.DeleteAsync("/api/teams/globex-web");
         var deletedBody = await deleted.Content.ReadAsStringAsync();
@@ -3610,7 +4323,13 @@ public class TeamManagementTests
             CancellationToken.None
         );
 
-        using var response = await PostChildTeamAsync(administrator, "nope", "stray", new { });
+        using var response = await PostChildTeamAsync(
+            administrator,
+            "nope",
+            "stray",
+            new { },
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.NotFound, body);
@@ -3628,9 +4347,20 @@ public class TeamManagementTests
             )
         );
         using var administrator = await host.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
-        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            administrator,
+            "globex-web",
+            "globex-web-dev",
+            CancellationToken.None
+        );
 
         var client = recordingHost.CreateClient();
         for (var i = 0; i < 2; ++i)
@@ -3681,15 +4411,32 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
-        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
-        await CreateTenantAsync(administrator, "globex-web", "globex-web-prod");
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            administrator,
+            "globex-web",
+            "globex-web-dev",
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            administrator,
+            "globex-web",
+            "globex-web-prod",
+            CancellationToken.None
+        );
         using var parentAdmin = await CreateTeamUserClientAsync(
             factory,
             administrator,
             "globex",
-            "admins"
+            "admins",
+            CancellationToken.None
         );
 
         using var response = await PostPromotionAsync(
@@ -3697,10 +4444,12 @@ public class TeamManagementTests
             "globex-web",
             "/preview",
             "globex-web-dev",
-            "globex-web-prod"
+            "globex-web-prod",
+            environmentSettings: null,
+            CancellationToken.None
         );
 
-        await ReadPromotionAsync(response, HttpStatusCode.OK);
+        await ReadPromotionAsync(response, HttpStatusCode.OK, CancellationToken.None);
     }
 
     [Fact]
@@ -3710,17 +4459,35 @@ public class TeamManagementTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator, "globex", new { });
-        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
-        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
-        await CreateTenantAsync(administrator, "globex-web", "globex-web-prod");
+        await CreateTeamAsync(administrator, "globex", new { }, CancellationToken.None);
+        await CreateChildTeamAsync(
+            administrator,
+            "globex",
+            "globex-web",
+            new { },
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            administrator,
+            "globex-web",
+            "globex-web-dev",
+            CancellationToken.None
+        );
+        await CreateTenantAsync(
+            administrator,
+            "globex-web",
+            "globex-web-prod",
+            CancellationToken.None
+        );
 
         using var response = await PostPromotionAsync(
             administrator,
             "globex",
             "/preview",
             "globex-web-dev",
-            "globex-web-prod"
+            "globex-web-prod",
+            environmentSettings: null,
+            CancellationToken.None
         );
 
         var body = await response.Content.ReadAsStringAsync();

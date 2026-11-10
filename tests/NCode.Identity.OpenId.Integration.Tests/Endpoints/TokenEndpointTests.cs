@@ -20,9 +20,12 @@ public class TokenEndpointTests(HostApplicationFactory factory)
     private HttpClient CreateClient() =>
         Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<string> GetErrorCodeAsync(HttpResponseMessage response)
+    private static async ValueTask<string> GetErrorCodeAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
+    )
     {
-        var json = await response.Content.ReadAsStringAsync();
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
         var jsonElement = JsonElement.Parse(json);
         return jsonElement.GetProperty("error").GetString() ?? string.Empty;
     }
@@ -36,7 +39,7 @@ public class TokenEndpointTests(HostApplicationFactory factory)
         using var response = await client.PostAsync(TokenPath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, errorCode);
     }
 
@@ -55,7 +58,7 @@ public class TokenEndpointTests(HostApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Contains(
             errorCode,
             new[]

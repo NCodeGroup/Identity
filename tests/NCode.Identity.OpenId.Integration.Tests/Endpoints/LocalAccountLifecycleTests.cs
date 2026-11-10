@@ -37,10 +37,11 @@ public class LocalAccountLifecycleTests
             }
         );
 
-    private static async Task<string> GetCodeAsync(
+    private static async ValueTask<string> GetCodeAsync(
         HttpClient client,
         string sessionCookie,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -55,7 +56,7 @@ public class LocalAccountLifecycleTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, cancellationToken);
 
         var location = response.Headers.Location;
         Assert.NotNull(location);
@@ -66,26 +67,29 @@ public class LocalAccountLifecycleTests
         return code;
     }
 
-    private static async Task BlockInStoreAsync(HostApplicationFactory factory, string principalId)
+    private static async ValueTask BlockInStoreAsync(
+        HostApplicationFactory factory,
+        string principalId,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IFederatedPrincipalStore>();
-        var principal = await store.GetOrDefaultAsync(principalId, CancellationToken.None);
+        var principal = await store.GetOrDefaultAsync(principalId, cancellationToken);
         Assert.NotNull(principal);
         principal.IsBlocked = true;
-        await store.UpdateAsync(principal, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await store.UpdateAsync(principal, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     // Sends an interactive authorization request, with the session cookie when one is given.
-    private static async Task<HttpResponseMessage> SendAuthorizeAsync(
+    private static async ValueTask<HttpResponseMessage> SendAuthorizeAsync(
         HttpClient client,
         string? sessionCookie,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -103,12 +107,13 @@ public class LocalAccountLifecycleTests
             request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
         }
 
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<(HttpStatusCode StatusCode, JsonElement Body)> PostTokenAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, JsonElement Body)> PostTokenAsync(
         HttpClient client,
-        Dictionary<string, string> form
+        Dictionary<string, string> form,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
@@ -116,15 +121,17 @@ public class LocalAccountLifecycleTests
             Content = new FormUrlEncodedContent(form),
         };
 
-        using var response = await client.SendAsync(request);
-        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        var body = JsonElement.Parse(responseBody);
         return (response.StatusCode, body);
     }
 
-    private static Task<(HttpStatusCode StatusCode, JsonElement Body)> RefreshAsync(
+    private static ValueTask<(HttpStatusCode StatusCode, JsonElement Body)> RefreshAsync(
         HttpClient client,
         string clientId,
-        string refreshToken
+        string refreshToken,
+        CancellationToken cancellationToken
     ) =>
         PostTokenAsync(
             client,
@@ -133,20 +140,25 @@ public class LocalAccountLifecycleTests
                 ["grant_type"] = "refresh_token",
                 ["client_id"] = clientId,
                 ["refresh_token"] = refreshToken,
-            }
+            },
+            cancellationToken
         );
 
     // Signs in, authorizes and redeems the code for the refresh token of the new session.
-    private static async Task<string> IssueRefreshTokenAsync(HttpClient client, string clientId)
+    private static async ValueTask<string> IssueRefreshTokenAsync(
+        HttpClient client,
+        string clientId,
+        CancellationToken cancellationToken
+    )
     {
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
-            CancellationToken.None
+            cancellationToken
         );
 
-        var code = await GetCodeAsync(client, sessionCookie, clientId);
+        var code = await GetCodeAsync(client, sessionCookie, clientId, cancellationToken);
         var (statusCode, body) = await PostTokenAsync(
             client,
             new Dictionary<string, string>
@@ -156,7 +168,8 @@ public class LocalAccountLifecycleTests
                 ["code"] = code,
                 ["redirect_uri"] = RedirectUri,
                 ["code_verifier"] = TestPkce.CodeVerifier,
-            }
+            },
+            cancellationToken
         );
         Assert.True(statusCode == HttpStatusCode.OK, body.ToString());
 
@@ -171,48 +184,50 @@ public class LocalAccountLifecycleTests
         Assert.Equal(error, body.GetProperty("error").GetString());
     }
 
-    private static async Task DisableInStoreAsync(
+    private static async ValueTask DisableInStoreAsync(
         HostApplicationFactory factory,
-        string localAccountId
+        string localAccountId,
+        CancellationToken cancellationToken
     )
     {
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ILocalAccountStore>();
-        var account = await store.GetByIdOrDefaultAsync(localAccountId, CancellationToken.None);
+        var account = await store.GetByIdOrDefaultAsync(localAccountId, cancellationToken);
         Assert.NotNull(account);
         account.IsEnabled = false;
-        await store.UpdateAsync(account, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await store.UpdateAsync(account, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task<string> GetPrincipalIdAsync(
+    private static async ValueTask<string> GetPrincipalIdAsync(
         HostApplicationFactory factory,
-        string localAccountId
+        string localAccountId,
+        CancellationToken cancellationToken
     )
     {
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var identity = await storeManager
             .GetStore<IFederatedIdentityStore>()
             .GetByIssuerSubjectAsync(
                 AccountConstants.SelfIssuer,
                 localAccountId,
-                CancellationToken.None
+                cancellationToken
             );
         Assert.NotNull(identity);
         return identity.PrincipalId;
     }
 
-    private static async Task<(string DeviceCode, string UserCode)> StartDeviceAuthorizationAsync(
+    private static async ValueTask<(
+        string DeviceCode,
+        string UserCode
+    )> StartDeviceAuthorizationAsync(
         HttpClient client,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/device_authorization")
@@ -226,8 +241,8 @@ public class LocalAccountLifecycleTests
             ),
         };
 
-        using var response = await client.SendAsync(request);
-        var responseBody = await response.Content.ReadAsStringAsync();
+        using var response = await client.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, responseBody);
 
         var jsonElement = JsonElement.Parse(responseBody);
@@ -238,10 +253,11 @@ public class LocalAccountLifecycleTests
         return (deviceCode, userCode);
     }
 
-    private static async Task<HttpStatusCode> PostDeviceVerificationAsync(
+    private static async ValueTask<HttpStatusCode> PostDeviceVerificationAsync(
         HttpClient client,
         string sessionCookie,
-        string userCode
+        string userCode,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/device")
@@ -252,7 +268,7 @@ public class LocalAccountLifecycleTests
         };
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
 
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, cancellationToken);
         return response.StatusCode;
     }
 
@@ -272,7 +288,7 @@ public class LocalAccountLifecycleTests
         );
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var refreshToken = await IssueRefreshTokenAsync(client, clientId);
+        var refreshToken = await IssueRefreshTokenAsync(client, clientId, CancellationToken.None);
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -284,7 +300,12 @@ public class LocalAccountLifecycleTests
         var responseBody = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, responseBody);
 
-        var (statusCode, body) = await RefreshAsync(client, clientId, refreshToken);
+        var (statusCode, body) = await RefreshAsync(
+            client,
+            clientId,
+            refreshToken,
+            CancellationToken.None
+        );
         AssertRefused(statusCode, body, "invalid_grant");
     }
 
@@ -300,7 +321,7 @@ public class LocalAccountLifecycleTests
         );
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var refreshToken = await IssueRefreshTokenAsync(client, clientId);
+        var refreshToken = await IssueRefreshTokenAsync(client, clientId, CancellationToken.None);
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -312,7 +333,12 @@ public class LocalAccountLifecycleTests
         var responseBody = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, responseBody);
 
-        var (statusCode, body) = await RefreshAsync(client, clientId, refreshToken);
+        var (statusCode, body) = await RefreshAsync(
+            client,
+            clientId,
+            refreshToken,
+            CancellationToken.None
+        );
         AssertRefused(statusCode, body, "invalid_grant");
     }
 
@@ -328,7 +354,7 @@ public class LocalAccountLifecycleTests
         );
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var refreshToken = await IssueRefreshTokenAsync(client, clientId);
+        var refreshToken = await IssueRefreshTokenAsync(client, clientId, CancellationToken.None);
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -339,7 +365,12 @@ public class LocalAccountLifecycleTests
         var responseBody = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, responseBody);
 
-        var (statusCode, body) = await RefreshAsync(client, clientId, refreshToken);
+        var (statusCode, body) = await RefreshAsync(
+            client,
+            clientId,
+            refreshToken,
+            CancellationToken.None
+        );
         AssertRefused(statusCode, body, "invalid_grant");
     }
 
@@ -355,12 +386,17 @@ public class LocalAccountLifecycleTests
         );
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var refreshToken = await IssueRefreshTokenAsync(client, clientId);
+        var refreshToken = await IssueRefreshTokenAsync(client, clientId, CancellationToken.None);
 
         // The account is disabled behind the server's back, so its sessions and grants are still live.
-        await DisableInStoreAsync(factory, localAccountId);
+        await DisableInStoreAsync(factory, localAccountId, CancellationToken.None);
 
-        var (statusCode, body) = await RefreshAsync(client, clientId, refreshToken);
+        var (statusCode, body) = await RefreshAsync(
+            client,
+            clientId,
+            refreshToken,
+            CancellationToken.None
+        );
         AssertRefused(statusCode, body, "access_denied");
     }
 
@@ -372,14 +408,23 @@ public class LocalAccountLifecycleTests
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var (deviceCode, userCode) = await StartDeviceAuthorizationAsync(client, clientId);
+        var (deviceCode, userCode) = await StartDeviceAuthorizationAsync(
+            client,
+            clientId,
+            CancellationToken.None
+        );
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var approvalStatusCode = await PostDeviceVerificationAsync(client, sessionCookie, userCode);
+        var approvalStatusCode = await PostDeviceVerificationAsync(
+            client,
+            sessionCookie,
+            userCode,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, approvalStatusCode);
 
         var (statusCode, body) = await PostTokenAsync(
@@ -389,7 +434,8 @@ public class LocalAccountLifecycleTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.DeviceCode,
                 ["device_code"] = deviceCode,
                 ["client_id"] = clientId,
-            }
+            },
+            CancellationToken.None
         );
         Assert.True(statusCode == HttpStatusCode.OK, body.ToString());
         Assert.False(
@@ -408,14 +454,23 @@ public class LocalAccountLifecycleTests
         await factory.SeedPublicClientAsync(ownerClientId, [RedirectUri], CancellationToken.None);
         await factory.SeedPublicClientAsync(otherClientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var (deviceCode, userCode) = await StartDeviceAuthorizationAsync(client, ownerClientId);
+        var (deviceCode, userCode) = await StartDeviceAuthorizationAsync(
+            client,
+            ownerClientId,
+            CancellationToken.None
+        );
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var approvalStatusCode = await PostDeviceVerificationAsync(client, sessionCookie, userCode);
+        var approvalStatusCode = await PostDeviceVerificationAsync(
+            client,
+            sessionCookie,
+            userCode,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, approvalStatusCode);
 
         var (statusCode, body) = await PostTokenAsync(
@@ -425,7 +480,8 @@ public class LocalAccountLifecycleTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.DeviceCode,
                 ["device_code"] = deviceCode,
                 ["client_id"] = otherClientId,
-            }
+            },
+            CancellationToken.None
         );
         AssertRefused(statusCode, body, "invalid_grant");
     }
@@ -442,18 +498,27 @@ public class LocalAccountLifecycleTests
         );
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var (deviceCode, userCode) = await StartDeviceAuthorizationAsync(client, clientId);
+        var (deviceCode, userCode) = await StartDeviceAuthorizationAsync(
+            client,
+            clientId,
+            CancellationToken.None
+        );
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
             CancellationToken.None
         );
-        var approvalStatusCode = await PostDeviceVerificationAsync(client, sessionCookie, userCode);
+        var approvalStatusCode = await PostDeviceVerificationAsync(
+            client,
+            sessionCookie,
+            userCode,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, approvalStatusCode);
 
         // The account is disabled behind the server's back, so its sessions and grants are still live.
-        await DisableInStoreAsync(factory, localAccountId);
+        await DisableInStoreAsync(factory, localAccountId, CancellationToken.None);
 
         var (statusCode, body) = await PostTokenAsync(
             client,
@@ -462,7 +527,8 @@ public class LocalAccountLifecycleTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.DeviceCode,
                 ["device_code"] = deviceCode,
                 ["client_id"] = clientId,
-            }
+            },
+            CancellationToken.None
         );
         AssertRefused(statusCode, body, "access_denied");
     }
@@ -479,7 +545,11 @@ public class LocalAccountLifecycleTests
         );
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var (_, userCode) = await StartDeviceAuthorizationAsync(client, clientId);
+        var (_, userCode) = await StartDeviceAuthorizationAsync(
+            client,
+            clientId,
+            CancellationToken.None
+        );
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
@@ -497,7 +567,12 @@ public class LocalAccountLifecycleTests
         var responseBody = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, responseBody);
 
-        var statusCode = await PostDeviceVerificationAsync(client, sessionCookie, userCode);
+        var statusCode = await PostDeviceVerificationAsync(
+            client,
+            sessionCookie,
+            userCode,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Redirect, statusCode);
     }
 
@@ -513,8 +588,12 @@ public class LocalAccountLifecycleTests
         );
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var refreshToken = await IssueRefreshTokenAsync(client, clientId);
-        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
+        var refreshToken = await IssueRefreshTokenAsync(client, clientId, CancellationToken.None);
+        var principalId = await GetPrincipalIdAsync(
+            factory,
+            localAccountId,
+            CancellationToken.None
+        );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -534,7 +613,12 @@ public class LocalAccountLifecycleTests
         var jsonElement = JsonElement.Parse(getBody);
         Assert.True(jsonElement.GetProperty("isBlocked").GetBoolean(), getBody);
 
-        var (statusCode, body) = await RefreshAsync(client, clientId, refreshToken);
+        var (statusCode, body) = await RefreshAsync(
+            client,
+            clientId,
+            refreshToken,
+            CancellationToken.None
+        );
         AssertRefused(statusCode, body, "invalid_grant");
     }
 
@@ -550,13 +634,22 @@ public class LocalAccountLifecycleTests
         );
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var refreshToken = await IssueRefreshTokenAsync(client, clientId);
-        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
+        var refreshToken = await IssueRefreshTokenAsync(client, clientId, CancellationToken.None);
+        var principalId = await GetPrincipalIdAsync(
+            factory,
+            localAccountId,
+            CancellationToken.None
+        );
 
         // The principal is blocked behind the server's back, so its sessions and grants are still live.
-        await BlockInStoreAsync(factory, principalId);
+        await BlockInStoreAsync(factory, principalId, CancellationToken.None);
 
-        var (statusCode, body) = await RefreshAsync(client, clientId, refreshToken);
+        var (statusCode, body) = await RefreshAsync(
+            client,
+            clientId,
+            refreshToken,
+            CancellationToken.None
+        );
         AssertRefused(statusCode, body, "access_denied");
     }
 
@@ -764,7 +857,11 @@ public class LocalAccountLifecycleTests
             Password,
             CancellationToken.None
         );
-        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
+        var principalId = await GetPrincipalIdAsync(
+            factory,
+            localAccountId,
+            CancellationToken.None
+        );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
@@ -794,8 +891,12 @@ public class LocalAccountLifecycleTests
         );
         var client = CreateClient(factory);
         await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None);
-        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
-        await BlockInStoreAsync(factory, principalId);
+        var principalId = await GetPrincipalIdAsync(
+            factory,
+            localAccountId,
+            CancellationToken.None
+        );
+        await BlockInStoreAsync(factory, principalId, CancellationToken.None);
 
         using var response = await InteractiveLogin.SubmitLoginAsync(
             client,
@@ -825,10 +926,19 @@ public class LocalAccountLifecycleTests
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
         await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None);
-        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
-        await BlockInStoreAsync(factory, principalId);
+        var principalId = await GetPrincipalIdAsync(
+            factory,
+            localAccountId,
+            CancellationToken.None
+        );
+        await BlockInStoreAsync(factory, principalId, CancellationToken.None);
 
-        using var authorizeResponse = await SendAuthorizeAsync(client, null, clientId);
+        using var authorizeResponse = await SendAuthorizeAsync(
+            client,
+            null,
+            clientId,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.Found, authorizeResponse.StatusCode);
         Assert.NotNull(client.BaseAddress);
         Assert.NotNull(authorizeResponse.Headers.Location);
@@ -864,7 +974,7 @@ public class LocalAccountLifecycleTests
         );
         var client = CreateClient(factory);
         await InteractiveLogin.SignInAsync(client, UserName, Password, CancellationToken.None);
-        await DisableInStoreAsync(factory, localAccountId);
+        await DisableInStoreAsync(factory, localAccountId, CancellationToken.None);
 
         using var response = await InteractiveLogin.SubmitLoginAsync(
             client,
@@ -899,12 +1009,21 @@ public class LocalAccountLifecycleTests
             Password,
             CancellationToken.None
         );
-        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
+        var principalId = await GetPrincipalIdAsync(
+            factory,
+            localAccountId,
+            CancellationToken.None
+        );
 
         // The principal is blocked behind the server's back, so its session is still active.
-        await BlockInStoreAsync(factory, principalId);
+        await BlockInStoreAsync(factory, principalId, CancellationToken.None);
 
-        using var response = await SendAuthorizeAsync(client, sessionCookie, clientId);
+        using var response = await SendAuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            CancellationToken.None
+        );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
         var location = response.Headers.Location;
@@ -923,7 +1042,11 @@ public class LocalAccountLifecycleTests
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var otherRefreshToken = await IssueRefreshTokenAsync(client, clientId);
+        var otherRefreshToken = await IssueRefreshTokenAsync(
+            client,
+            clientId,
+            CancellationToken.None
+        );
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
@@ -950,7 +1073,12 @@ public class LocalAccountLifecycleTests
         Assert.NotNull(location);
         Assert.EndsWith("status=changed", location.OriginalString);
 
-        var (statusCode, body) = await RefreshAsync(client, clientId, otherRefreshToken);
+        var (statusCode, body) = await RefreshAsync(
+            client,
+            clientId,
+            otherRefreshToken,
+            CancellationToken.None
+        );
         AssertRefused(statusCode, body, "invalid_grant");
 
         using var meRequest = new HttpRequestMessage(HttpMethod.Get, "/account/me");
@@ -1032,7 +1160,8 @@ public class LocalAccountLifecycleTests
                 ["username"] = UserName,
                 ["password"] = Password,
                 ["scope"] = "openid offline_access",
-            }
+            },
+            CancellationToken.None
         );
         Assert.True(issueStatusCode == HttpStatusCode.OK, issueBody.ToString());
         var refreshToken = issueBody.GetProperty("refresh_token").GetString();
@@ -1071,7 +1200,8 @@ public class LocalAccountLifecycleTests
                 ["client_id"] = passwordClientId,
                 ["client_secret"] = passwordClientSecret,
                 ["refresh_token"] = refreshToken,
-            }
+            },
+            CancellationToken.None
         );
         AssertRefused(statusCode, body, "invalid_grant");
     }

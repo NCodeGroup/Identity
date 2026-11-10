@@ -19,9 +19,12 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
     private HttpClient CreateClient() =>
         Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<string> GetErrorCodeAsync(HttpResponseMessage response)
+    private static async ValueTask<string> GetErrorCodeAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken
+    )
     {
-        var json = await response.Content.ReadAsStringAsync();
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
         var jsonElement = JsonElement.Parse(json);
         return jsonElement.GetProperty("error").GetString() ?? string.Empty;
     }
@@ -34,7 +37,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.GetAsync(AuthorizePath);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, errorCode);
     }
 
@@ -48,7 +51,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, errorCode);
     }
 
@@ -61,7 +64,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.PostAsync(AuthorizePath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, errorCode);
     }
 
@@ -87,7 +90,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, errorCode);
     }
 
@@ -103,7 +106,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, errorCode);
     }
 
@@ -122,7 +125,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.PostAsync(AuthorizePath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, errorCode);
     }
 
@@ -171,7 +174,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, errorCode);
     }
 
@@ -190,7 +193,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
-        var errorCode = await GetErrorCodeAsync(response);
+        var errorCode = await GetErrorCodeAsync(response, CancellationToken.None);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, errorCode);
     }
 }

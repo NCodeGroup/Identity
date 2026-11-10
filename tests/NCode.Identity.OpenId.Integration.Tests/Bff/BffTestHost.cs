@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
@@ -76,18 +75,21 @@ internal sealed class BffTestHost : IAsyncDisposable
     /// <summary>
     /// Builds and starts a BFF host.
     /// </summary>
-    public static async Task<BffTestHost> StartAsync(
+    public static async ValueTask<BffTestHost> StartAsync(
         HostApplicationFactory factory,
         IExpiringKeySet keySet,
         IExpiringValueSet valueSet,
         IExpiringIndexSet indexSet,
-        IReadOnlyDictionary<string, string?>? extraConfiguration = null,
-        ConcurrentQueue<RecordedHttpExchange>? exchanges = null,
-        bool authenticateBeforeBff = false,
-        IConfigurationSource? reloadableConfiguration = null,
-        Action<IServiceCollection>? configureServices = null
+        BffTestHostOptions options,
+        CancellationToken cancellationToken
     )
     {
+        var extraConfiguration = options.ExtraConfiguration;
+        var exchanges = options.Exchanges;
+        var authenticateBeforeBff = options.AuthenticateBeforeBff;
+        var reloadableConfiguration = options.ReloadableConfiguration;
+        var configureServices = options.ConfigureServices;
+
         var builder = WebApplication.CreateBuilder(
             new WebApplicationOptions
             {
@@ -180,7 +182,7 @@ internal sealed class BffTestHost : IAsyncDisposable
             )
             .AsBffApi();
 
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         var server = app.GetTestServer();
         server.BaseAddress = BaseAddress;
         var client = server.CreateClient();
@@ -190,21 +192,23 @@ internal sealed class BffTestHost : IAsyncDisposable
     /// <summary>
     /// Sends a request with the cookies of the jar and stores the cookies that the response sets.
     /// </summary>
-    public Task<HttpResponseMessage> SendAsync(
+    public ValueTask<HttpResponseMessage> SendAsync(
         HttpMethod method,
         string pathAndQuery,
-        params (string Name, string Value)[] headers
-    ) => SendAsync(method, pathAndQuery, null, headers);
+        IReadOnlyList<(string Name, string Value)> headers,
+        CancellationToken cancellationToken
+    ) => SendAsync(method, pathAndQuery, content: null, headers, cancellationToken);
 
     /// <summary>
     /// Sends a request with a body and the cookies of the jar, as a browser that posts a form, and stores the cookies
     /// that the response sets.
     /// </summary>
-    public async Task<HttpResponseMessage> SendAsync(
+    public async ValueTask<HttpResponseMessage> SendAsync(
         HttpMethod method,
         string pathAndQuery,
         HttpContent? content,
-        params (string Name, string Value)[] headers
+        IReadOnlyList<(string Name, string Value)> headers,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(method, pathAndQuery) { Content = content };
@@ -219,7 +223,7 @@ internal sealed class BffTestHost : IAsyncDisposable
             request.Headers.Add(name, value);
         }
 
-        var response = await Client.SendAsync(request);
+        var response = await Client.SendAsync(request, cancellationToken);
         StoreCookies(response);
         return response;
     }
@@ -232,11 +236,15 @@ internal sealed class BffTestHost : IAsyncDisposable
     /// <summary>
     /// Posts a form without the cookies of the jar, as a server-to-server call from the provider.
     /// </summary>
-    public async Task<HttpResponseMessage> PostFormAsync(string path, HttpContent content)
+    public async ValueTask<HttpResponseMessage> PostFormAsync(
+        string path,
+        HttpContent content,
+        CancellationToken cancellationToken
+    )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, path);
         request.Content = content;
-        return await Client.SendAsync(request);
+        return await Client.SendAsync(request, cancellationToken);
     }
 
     /// <summary>

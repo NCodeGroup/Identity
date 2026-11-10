@@ -30,9 +30,10 @@ public class PasswordNormalizationTests
             }
         );
 
-    private static async Task<(HttpStatusCode StatusCode, string Body)> RequestTokenAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, string Body)> RequestTokenAsync(
         HttpClient client,
-        string password
+        string password,
+        CancellationToken cancellationToken
     )
     {
         using var content = new FormUrlEncodedContent(
@@ -47,8 +48,8 @@ public class PasswordNormalizationTests
             }
         );
 
-        using var response = await client.PostAsync("/oauth2/token", content);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.PostAsync("/oauth2/token", content, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         return (response.StatusCode, body);
     }
 
@@ -86,7 +87,11 @@ public class PasswordNormalizationTests
         await factory.SeedLocalAccountAsync(UserName, ComposedPassword, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var (statusCode, body) = await RequestTokenAsync(client, DecomposedPassword);
+        var (statusCode, body) = await RequestTokenAsync(
+            client,
+            DecomposedPassword,
+            CancellationToken.None
+        );
 
         Assert.True(statusCode == HttpStatusCode.OK, body);
     }

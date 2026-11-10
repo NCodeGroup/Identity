@@ -39,11 +39,15 @@ public class TenantRootKeyTests
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
-        await CreateTenantAsync(administrator);
-        var clientId = await CreateClientAsync(administrator);
-        var secretMaterial = await CreateSecretAsync(administrator, clientId);
+        await CreateTenantAsync(administrator, CancellationToken.None);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
+        var secretMaterial = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
 
-        var before = await GetKeysAsync(administrator);
+        var before = await GetKeysAsync(administrator, CancellationToken.None);
         Assert.Contains(
             TestReferencedKeyWrapper.WrapperName,
             before.GetProperty("rootKeyProviders").EnumerateArray().Select(e => e.GetString())
@@ -54,14 +58,19 @@ public class TenantRootKeyTests
         );
 
         // Setting the key wraps every master key under it, with no recovery copy.
-        using var set = await PutRootKeyAsync(administrator, KeyReference);
+        using var set = await PutRootKeyAsync(
+            administrator,
+            KeyReference,
+            accessIdentity: null,
+            CancellationToken.None
+        );
         var setBody = await set.Content.ReadAsStringAsync();
         Assert.True(set.StatusCode == HttpStatusCode.OK, setBody);
         var setResult = JsonElement.Parse(setBody);
         Assert.Equal("active", setResult.GetProperty("rootKey").GetProperty("state").GetString());
         Assert.Equal(0, setResult.GetProperty("failedKeys").GetInt32());
 
-        var underKey = await GetKeysAsync(administrator);
+        var underKey = await GetKeysAsync(administrator, CancellationToken.None);
         Assert.Equal("active", underKey.GetProperty("rootKey").GetProperty("state").GetString());
         Assert.Equal(
             KeyReference,
@@ -93,7 +102,8 @@ public class TenantRootKeyTests
         var authenticationErrorBeforeRevocation = await AuthenticateClientAsync(
             client,
             clientId,
-            secretMaterial
+            secretMaterial,
+            CancellationToken.None
         );
         Assert.Null(authenticationErrorBeforeRevocation);
 
@@ -114,14 +124,19 @@ public class TenantRootKeyTests
         );
 
         // A call that needs the tenant's protector is refused, and asks the caller to retry.
-        using var refused = await PostSecretAsync(administrator, clientId);
+        using var refused = await PostSecretAsync(administrator, clientId, CancellationToken.None);
         var refusedBody = await refused.Content.ReadAsStringAsync();
         Assert.True(refused.StatusCode == HttpStatusCode.ServiceUnavailable, refusedBody);
         Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
 
         // A protocol endpoint answers the tenant's outage with a retryable protocol error: the context cannot be
         // created while the key is unavailable.
-        using var revocation = await PostRevokeAsync(client, clientId, secretMaterial);
+        using var revocation = await PostRevokeAsync(
+            client,
+            clientId,
+            secretMaterial,
+            CancellationToken.None
+        );
         var revocationBody = await revocation.Content.ReadAsStringAsync();
         Assert.True(revocation.StatusCode == HttpStatusCode.ServiceUnavailable, revocationBody);
         Assert.Equal(
@@ -149,7 +164,8 @@ public class TenantRootKeyTests
         var authenticationErrorAfterRestore = await AuthenticateClientAsync(
             client,
             clientId,
-            secretMaterial
+            secretMaterial,
+            CancellationToken.None
         );
         Assert.Null(authenticationErrorAfterRestore);
 
@@ -157,7 +173,7 @@ public class TenantRootKeyTests
         using var removed = await administrator.DeleteAsync(RootKeyPath);
         Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
 
-        var afterRemoval = await GetKeysAsync(administrator);
+        var afterRemoval = await GetKeysAsync(administrator, CancellationToken.None);
         Assert.Null(GetOptionalObject(afterRemoval, "rootKey"));
         Assert.Equal(2, afterRemoval.GetProperty("keys").GetArrayLength());
         Assert.All(
@@ -178,7 +194,8 @@ public class TenantRootKeyTests
         var authenticationErrorAfterRemoval = await AuthenticateClientAsync(
             client,
             clientId,
-            secretMaterial
+            secretMaterial,
+            CancellationToken.None
         );
         Assert.Null(authenticationErrorAfterRemoval);
     }
@@ -200,14 +217,23 @@ public class TenantRootKeyTests
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
-        await CreateTenantAsync(administrator);
-        var clientId = await CreateClientAsync(administrator);
-        var secretMaterial = await CreateSecretAsync(administrator, clientId);
+        await CreateTenantAsync(administrator, CancellationToken.None);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
+        var secretMaterial = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
 
-        var before = await GetKeysAsync(administrator);
+        var before = await GetKeysAsync(administrator, CancellationToken.None);
         Assert.Equal("tenant:acme", GetString(before, "rootKeyAccessBinding"));
 
-        using var set = await PutRootKeyAsync(administrator, KeyReference, accessIdentity);
+        using var set = await PutRootKeyAsync(
+            administrator,
+            KeyReference,
+            accessIdentity,
+            CancellationToken.None
+        );
         var setBody = await set.Content.ReadAsStringAsync();
         Assert.True(set.StatusCode == HttpStatusCode.OK, setBody);
         var setResult = JsonElement.Parse(setBody);
@@ -216,7 +242,7 @@ public class TenantRootKeyTests
             setResult.GetProperty("rootKey").GetProperty("accessIdentity").GetString()
         );
 
-        var underKey = await GetKeysAsync(administrator);
+        var underKey = await GetKeysAsync(administrator, CancellationToken.None);
         var keys = underKey.GetProperty("keys").EnumerateArray().ToList();
         Assert.Equal(2, keys.Count);
         Assert.All(
@@ -228,7 +254,12 @@ public class TenantRootKeyTests
             }
         );
 
-        var authenticationError = await AuthenticateClientAsync(client, clientId, secretMaterial);
+        var authenticationError = await AuthenticateClientAsync(
+            client,
+            clientId,
+            secretMaterial,
+            CancellationToken.None
+        );
         Assert.Null(authenticationError);
 
         Assert.NotEmpty(wrapper.Bindings);
@@ -246,9 +277,14 @@ public class TenantRootKeyTests
             ControlPlaneTokenPath,
             CancellationToken.None
         );
-        await CreateTenantAsync(administrator);
+        await CreateTenantAsync(administrator, CancellationToken.None);
 
-        using var response = await PutRootKeyAsync(administrator, KeyReference, "bad");
+        using var response = await PutRootKeyAsync(
+            administrator,
+            KeyReference,
+            "bad",
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
@@ -256,7 +292,7 @@ public class TenantRootKeyTests
             JsonElement.Parse(body).GetProperty("errors").TryGetProperty("accessIdentity", out _)
         );
 
-        var keys = await GetKeysAsync(administrator);
+        var keys = await GetKeysAsync(administrator, CancellationToken.None);
         Assert.Null(GetOptionalObject(keys, "rootKey"));
     }
 
@@ -271,7 +307,7 @@ public class TenantRootKeyTests
             ControlPlaneTokenPath,
             CancellationToken.None
         );
-        await CreateTenantAsync(administrator);
+        await CreateTenantAsync(administrator, CancellationToken.None);
 
         using var response = await administrator.PutAsJsonAsync(
             RootKeyPath,
@@ -284,7 +320,7 @@ public class TenantRootKeyTests
             JsonElement.Parse(body).GetProperty("errors").TryGetProperty("provider", out _)
         );
 
-        var keys = await GetKeysAsync(administrator);
+        var keys = await GetKeysAsync(administrator, CancellationToken.None);
         Assert.Null(GetOptionalObject(keys, "rootKey"));
     }
 
@@ -299,9 +335,9 @@ public class TenantRootKeyTests
             ControlPlaneTokenPath,
             CancellationToken.None
         );
-        await CreateTenantAsync(administrator);
-        var clientId = await CreateClientAsync(administrator);
-        await CreateSecretAsync(administrator, clientId);
+        await CreateTenantAsync(administrator, CancellationToken.None);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
+        await CreateSecretAsync(administrator, clientId, CancellationToken.None);
 
         using var rekey = await administrator.PostAsync(
             $"{TenantApiPath}/encryption-keys/rekey",
@@ -310,13 +346,18 @@ public class TenantRootKeyTests
         var rekeyBody = await rekey.Content.ReadAsStringAsync();
         Assert.True(rekey.StatusCode == HttpStatusCode.OK, rekeyBody);
 
-        using var response = await PutRootKeyAsync(administrator, KeyReference);
+        using var response = await PutRootKeyAsync(
+            administrator,
+            KeyReference,
+            accessIdentity: null,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
         Assert.True(response.Headers.RetryAfter?.Delta > TimeSpan.Zero);
 
-        var keys = await GetKeysAsync(administrator);
+        var keys = await GetKeysAsync(administrator, CancellationToken.None);
         Assert.Null(GetOptionalObject(keys, "rootKey"));
         Assert.All(
             keys.GetProperty("keys").EnumerateArray(),
@@ -365,7 +406,10 @@ public class TenantRootKeyTests
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task CreateTenantAsync(HttpClient administrator)
+    private static async ValueTask CreateTenantAsync(
+        HttpClient administrator,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await administrator.PostAsJsonAsync(
             $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
@@ -375,19 +419,21 @@ public class TenantRootKeyTests
                 displayName = TenantId,
                 isDisabled = false,
                 settings = new { },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
-    private static Task<HttpResponseMessage> PostRevokeAsync(
+    private static async ValueTask<HttpResponseMessage> PostRevokeAsync(
         HttpClient client,
         string clientId,
-        string clientSecret
+        string clientSecret,
+        CancellationToken cancellationToken
     )
     {
-        var content = new FormUrlEncodedContent(
+        using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
                 ["client_id"] = clientId,
@@ -395,35 +441,29 @@ public class TenantRootKeyTests
                 ["token"] = "not-a-real-token",
             }
         );
-        return PostAndDisposeAsync(client, $"/{TenantId}/oauth2/revoke", content);
-    }
-
-    private static async Task<HttpResponseMessage> PostAndDisposeAsync(
-        HttpClient client,
-        string path,
-        HttpContent content
-    )
-    {
-        using (content)
-            return await client.PostAsync(path, content);
+        return await client.PostAsync($"/{TenantId}/oauth2/revoke", content, cancellationToken);
     }
 
     // Revokes an unknown token at the tenant's route: revocation is a no-op once the client authenticates, so the
     // response reports only whether the client was accepted.
-    private static async Task<string?> AuthenticateClientAsync(
+    private static async ValueTask<string?> AuthenticateClientAsync(
         HttpClient client,
         string clientId,
-        string clientSecret
+        string clientSecret,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await PostRevokeAsync(client, clientId, clientSecret);
+        using var response = await PostRevokeAsync(
+            client,
+            clientId,
+            clientSecret,
+            cancellationToken
+        );
         if (response.StatusCode == HttpStatusCode.OK)
             return null;
 
-        return JsonElement
-            .Parse(await response.Content.ReadAsStringAsync())
-            .GetProperty("error")
-            .GetString();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        return JsonElement.Parse(body).GetProperty("error").GetString();
     }
 
     private static string? GetString(JsonElement element, string name) =>
@@ -436,30 +476,41 @@ public class TenantRootKeyTests
             ? value
             : null;
 
-    private static async Task<JsonElement> GetKeysAsync(HttpClient administrator)
+    private static async ValueTask<JsonElement> GetKeysAsync(
+        HttpClient administrator,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await administrator.GetAsync($"{TenantApiPath}/encryption-keys");
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await administrator.GetAsync(
+            $"{TenantApiPath}/encryption-keys",
+            cancellationToken
+        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body);
     }
 
-    private static Task<HttpResponseMessage> PutRootKeyAsync(
+    private static async ValueTask<HttpResponseMessage> PutRootKeyAsync(
         HttpClient administrator,
         string keyReference,
-        string? accessIdentity = null
+        string? accessIdentity,
+        CancellationToken cancellationToken
     ) =>
-        administrator.PutAsJsonAsync(
+        await administrator.PutAsJsonAsync(
             RootKeyPath,
             new
             {
                 provider = TestReferencedKeyWrapper.WrapperName,
                 keyReference,
                 accessIdentity,
-            }
+            },
+            cancellationToken
         );
 
-    private static async Task<string> CreateClientAsync(HttpClient administrator)
+    private static async ValueTask<string> CreateClientAsync(
+        HttpClient administrator,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients",
@@ -472,32 +523,39 @@ public class TenantRootKeyTests
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         return JsonElement.Parse(body).GetProperty("clientId").GetString()
             ?? throw new InvalidOperationException("The response has no clientId.");
     }
 
-    private static Task<HttpResponseMessage> PostSecretAsync(
+    private static async ValueTask<HttpResponseMessage> PostSecretAsync(
         HttpClient administrator,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     ) =>
-        administrator.PostAsJsonAsync(
+        await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients/{clientId}/secrets",
             new
             {
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
 
-    private static async Task<string> CreateSecretAsync(HttpClient administrator, string clientId)
+    private static async ValueTask<string> CreateSecretAsync(
+        HttpClient administrator,
+        string clientId,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await PostSecretAsync(administrator, clientId);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await PostSecretAsync(administrator, clientId, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         return JsonElement.Parse(body).GetProperty("secretMaterial").GetString()
             ?? throw new InvalidOperationException("The response has no secretMaterial.");

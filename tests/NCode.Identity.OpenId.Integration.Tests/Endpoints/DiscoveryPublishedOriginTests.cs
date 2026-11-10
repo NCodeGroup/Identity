@@ -38,9 +38,10 @@ public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
         return request;
     }
 
-    private static async Task<string> GetDiscoveryAsync(
+    private static async ValueTask<string> GetDiscoveryAsync(
         WebApplicationFactory<HostApiMarker> applicationFactory,
-        string host
+        string host,
+        CancellationToken cancellationToken
     )
     {
         var client = applicationFactory.CreateClient(
@@ -48,11 +49,11 @@ public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
         );
 
         using var request = CreateDiscoveryRequest(host);
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, cancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        return await response.Content.ReadAsStringAsync();
+        return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 
     [Fact]
@@ -60,7 +61,7 @@ public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
     {
         using var pinned = new PinnedIssuerApplicationFactory();
 
-        var json = await GetDiscoveryAsync(pinned, "attacker.example");
+        var json = await GetDiscoveryAsync(pinned, "attacker.example", CancellationToken.None);
         var jsonElement = JsonElement.Parse(json);
         var root = jsonElement;
 
@@ -89,7 +90,7 @@ public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
         using var pinned = new PinnedIssuerApplicationFactory();
 
         // A blunt sweep of the whole document, so an endpoint added later cannot quietly reintroduce the defect.
-        var json = await GetDiscoveryAsync(pinned, "attacker.example");
+        var json = await GetDiscoveryAsync(pinned, "attacker.example", CancellationToken.None);
 
         Assert.DoesNotContain("attacker.example", json, StringComparison.Ordinal);
     }
@@ -99,7 +100,7 @@ public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
     {
         // Nothing derives an issuer from the request, so even the default test host — pinned to the TestServer's own
         // origin — ignores a foreign Host header. The pinned-issuer tests above are therefore not the only guard.
-        var json = await GetDiscoveryAsync(Factory, "attacker.example");
+        var json = await GetDiscoveryAsync(Factory, "attacker.example", CancellationToken.None);
         var jsonElement = JsonElement.Parse(json);
 
         Assert.Equal(

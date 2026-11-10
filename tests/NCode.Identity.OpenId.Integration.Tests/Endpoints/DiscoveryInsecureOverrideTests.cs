@@ -34,7 +34,8 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        var jsonElement = JsonElement.Parse(body);
         var root = jsonElement;
 
         // The implicit and hybrid response types the operator listed are advertised exactly as listed: discovery does

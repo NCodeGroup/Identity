@@ -118,24 +118,29 @@ public class TokenClientDPoPEndToEndTests
             DPoPKeyRing = dpopKeyRing,
         };
 
-    private static async Task SeedClientAsync(HostApplicationFactory factory, string clientId)
+    private static async ValueTask SeedClientAsync(
+        HostApplicationFactory factory,
+        string clientId,
+        CancellationToken cancellationToken
+    )
     {
-        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedLocalAccountAsync(UserName, Password, cancellationToken);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             clientId,
             ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             new Dictionary<string, object> { [OpenIdSettingNames.DPoPNonceRequired] = true },
             [RedirectUri],
-            CancellationToken.None
+            cancellationToken
         );
     }
 
     // prompt=none lets the signed-in end-user's session answer the request without an interactive page.
-    private static async Task<(AuthorizationRequestResult Result, string Code)> AuthorizeAsync(
+    private static async ValueTask<(AuthorizationRequestResult Result, string Code)> AuthorizeAsync(
         HostApplicationFactory factory,
         ServiceProvider provider,
-        ClientRegistration registration
+        ClientRegistration registration,
+        CancellationToken cancellationToken
     )
     {
         var request = new AuthorizationRequest(RedirectUri, State, TestPkce.CodeVerifier)
@@ -149,7 +154,7 @@ public class TokenClientDPoPEndToEndTests
         };
         var result = await provider
             .GetRequiredService<IAuthorizationRequestClient>()
-            .CreateAuthorizationUriAsync(registration, request, CancellationToken.None);
+            .CreateAuthorizationUriAsync(registration, request, cancellationToken);
         Assert.True(result.IsSuccess, result.Error?.ToString());
         Assert.NotNull(result.AuthorizationUri);
 
@@ -164,7 +169,7 @@ public class TokenClientDPoPEndToEndTests
             browser,
             UserName,
             Password,
-            CancellationToken.None
+            cancellationToken
         );
 
         using var authorizeRequest = new HttpRequestMessage(
@@ -175,7 +180,7 @@ public class TokenClientDPoPEndToEndTests
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={sessionCookie}"
         );
-        using var authorizeResponse = await browser.SendAsync(authorizeRequest);
+        using var authorizeResponse = await browser.SendAsync(authorizeRequest, cancellationToken);
 
         var location = authorizeResponse.Headers.Location;
         Assert.NotNull(location);
@@ -191,17 +196,18 @@ public class TokenClientDPoPEndToEndTests
         return (result, code);
     }
 
-    private static async Task<TokenResult> RedeemAsync(
+    private static async ValueTask<TokenResult> RedeemAsync(
         ServiceProvider provider,
         ClientRegistration registration,
-        string code
+        string code,
+        CancellationToken cancellationToken
     ) =>
         await provider
             .GetRequiredService<ITokenClient>()
             .RequestTokenAsync(
                 registration,
                 new AuthorizationCodeTokenRequest(code, RedirectUri, TestPkce.CodeVerifier),
-                CancellationToken.None
+                cancellationToken
             );
 
     // RFC 7638: the SHA-256 of the required members of the public key in lexicographic order.
@@ -236,7 +242,7 @@ public class TokenClientDPoPEndToEndTests
         using var keyA = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         using var keyB = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         using var factory = new HostApplicationFactory();
-        await SeedClientAsync(factory, clientId);
+        await SeedClientAsync(factory, clientId, CancellationToken.None);
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var provider = CreateClientProvider(factory, exchanges, keyA, keyB);
         var registration = CreateRegistration(clientId, KeyRingA);
@@ -247,7 +253,12 @@ public class TokenClientDPoPEndToEndTests
             .GetMetadataAsync(registration.Authority, CancellationToken.None);
         Assert.Contains("ES256", metadata.DPoPSigningAlgValuesSupported ?? []);
 
-        var (result, code) = await AuthorizeAsync(factory, provider, registration);
+        var (result, code) = await AuthorizeAsync(
+            factory,
+            provider,
+            registration,
+            CancellationToken.None
+        );
         Assert.Equal(thumbprint, result.DPoPJwkThumbprint);
 
         var push = Assert.Single(exchanges, exchange => exchange.Path == ParPath);
@@ -255,7 +266,7 @@ public class TokenClientDPoPEndToEndTests
         Assert.Equal(thumbprint, pushBody[OpenIdProtocol.Parameters.DPoPJwkThumbprint]);
         Assert.Null(push.DPoPProof);
 
-        var tokenResult = await RedeemAsync(provider, registration, code);
+        var tokenResult = await RedeemAsync(provider, registration, code, CancellationToken.None);
 
         Assert.True(tokenResult.IsSuccess, tokenResult.Error?.ToString());
         Assert.Equal(
@@ -309,16 +320,21 @@ public class TokenClientDPoPEndToEndTests
         using var keyA = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         using var keyB = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         using var factory = new HostApplicationFactory();
-        await SeedClientAsync(factory, clientId);
+        await SeedClientAsync(factory, clientId, CancellationToken.None);
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var provider = CreateClientProvider(factory, exchanges, keyA, keyB);
         var registrationA = CreateRegistration(clientId, KeyRingA);
         var registrationB = CreateRegistration(clientId, KeyRingB);
 
-        var (result, code) = await AuthorizeAsync(factory, provider, registrationA);
+        var (result, code) = await AuthorizeAsync(
+            factory,
+            provider,
+            registrationA,
+            CancellationToken.None
+        );
         Assert.Equal(ComputeThumbprint(keyA), result.DPoPJwkThumbprint);
 
-        var tokenResult = await RedeemAsync(provider, registrationB, code);
+        var tokenResult = await RedeemAsync(provider, registrationB, code, CancellationToken.None);
 
         Assert.False(tokenResult.IsSuccess);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidDPoPProof, tokenResult.Error?.Error);
@@ -362,7 +378,7 @@ public class TokenClientDPoPEndToEndTests
         using var keyA = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         using var keyB = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         using var factory = new HostApplicationFactory();
-        await SeedClientAsync(factory, clientId);
+        await SeedClientAsync(factory, clientId, CancellationToken.None);
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var provider = CreateClientProvider(factory, exchanges, keyA, keyB);
         var registrationA = CreateRegistration(clientId, KeyRingA);
@@ -370,8 +386,13 @@ public class TokenClientDPoPEndToEndTests
         var thumbprintA = ComputeThumbprint(keyA);
         var thumbprintB = ComputeThumbprint(keyB);
 
-        var (_, code) = await AuthorizeAsync(factory, provider, registrationA);
-        var redeemed = await RedeemAsync(provider, registrationA, code);
+        var (_, code) = await AuthorizeAsync(
+            factory,
+            provider,
+            registrationA,
+            CancellationToken.None
+        );
+        var redeemed = await RedeemAsync(provider, registrationA, code, CancellationToken.None);
 
         Assert.True(redeemed.IsSuccess, redeemed.Error?.ToString());
         var refreshToken = redeemed.Response.RefreshToken;

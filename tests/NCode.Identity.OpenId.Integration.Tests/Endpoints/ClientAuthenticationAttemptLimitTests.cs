@@ -47,10 +47,11 @@ public class ClientAuthenticationAttemptLimitTests
             )
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<HttpResponseMessage> PostTokenAsync(
+    private static async ValueTask<HttpResponseMessage> PostTokenAsync(
         HttpClient client,
         string remoteAddress,
-        string clientSecret
+        string clientSecret,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, TokenPath)
@@ -66,23 +67,21 @@ public class ClientAuthenticationAttemptLimitTests
             ),
         };
         request.Headers.Add(TestRemoteAddressStartupFilter.HeaderName, remoteAddress);
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task SeedAsync(HostApplicationFactory factory)
+    private static async ValueTask SeedAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
+    )
     {
-        await factory.SeedConfidentialClientAsync(
-            ClientId,
-            ClientSecret,
-            [],
-            CancellationToken.None
-        );
+        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret, [], cancellationToken);
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-attempt-rs-api",
             "https://api.attempt.integration.test",
             [TestPlatformSettingsProvider.ApiScope],
-            CancellationToken.None
+            cancellationToken
         );
     }
 
@@ -92,17 +91,27 @@ public class ClientAuthenticationAttemptLimitTests
     public async Task PostToken_WhenTheAddressReachedTheLimitForTheClient_RefusesTheRightSecretWithTooManyRequests()
     {
         using var factory = CreateFactory(limit: 2);
-        await SeedAsync(factory);
+        await SeedAsync(factory, CancellationToken.None);
         var client = CreateClient(factory);
 
         for (var i = 0; i < 2; ++i)
         {
-            using var failed = await PostTokenAsync(client, AttackerAddress, "guessed-secret");
+            using var failed = await PostTokenAsync(
+                client,
+                AttackerAddress,
+                "guessed-secret",
+                CancellationToken.None
+            );
             Assert.Equal(HttpStatusCode.BadRequest, failed.StatusCode);
         }
 
         // The right secret from the same address is refused before it is verified, until the window ends.
-        using var response = await PostTokenAsync(client, AttackerAddress, ClientSecret);
+        using var response = await PostTokenAsync(
+            client,
+            AttackerAddress,
+            ClientSecret,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.TooManyRequests, body);
@@ -121,16 +130,26 @@ public class ClientAuthenticationAttemptLimitTests
     {
         // Failures from one address never lock the client out from another: the limit is no lockout lever.
         using var factory = CreateFactory(limit: 2);
-        await SeedAsync(factory);
+        await SeedAsync(factory, CancellationToken.None);
         var client = CreateClient(factory);
 
         for (var i = 0; i < 3; ++i)
         {
-            using var failed = await PostTokenAsync(client, AttackerAddress, "guessed-secret");
+            using var failed = await PostTokenAsync(
+                client,
+                AttackerAddress,
+                "guessed-secret",
+                CancellationToken.None
+            );
             Assert.NotEqual(HttpStatusCode.OK, failed.StatusCode);
         }
 
-        using var response = await PostTokenAsync(client, ClientAddress, ClientSecret);
+        using var response = await PostTokenAsync(
+            client,
+            ClientAddress,
+            ClientSecret,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -140,13 +159,23 @@ public class ClientAuthenticationAttemptLimitTests
     public async Task PostToken_WhenBelowTheLimit_AuthenticatesTheRightSecret()
     {
         using var factory = CreateFactory(limit: 2);
-        await SeedAsync(factory);
+        await SeedAsync(factory, CancellationToken.None);
         var client = CreateClient(factory);
 
-        using (var failed = await PostTokenAsync(client, ClientAddress, "mistyped-secret"))
-            Assert.Equal(HttpStatusCode.BadRequest, failed.StatusCode);
+        using var failed = await PostTokenAsync(
+            client,
+            ClientAddress,
+            "mistyped-secret",
+            CancellationToken.None
+        );
+        Assert.Equal(HttpStatusCode.BadRequest, failed.StatusCode);
 
-        using var response = await PostTokenAsync(client, ClientAddress, ClientSecret);
+        using var response = await PostTokenAsync(
+            client,
+            ClientAddress,
+            ClientSecret,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);

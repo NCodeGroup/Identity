@@ -36,6 +36,9 @@ public class InteractiveTenantRouteTests
     private const string AntiforgeryFieldName = "__RequestVerificationToken";
     private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
 
+    private static IReadOnlyDictionary<string, object> NoSettings { get; } =
+        new Dictionary<string, object>();
+
     private static string AcmeSessionCookieName { get; } =
         $"{SessionCookieName}.{Base64Url.EncodeToString(SHA256.HashData(SecureEncoding.UTF8.GetBytes("/acme")))}";
 
@@ -92,7 +95,7 @@ public class InteractiveTenantRouteTests
     public async Task GetLogin_WhenTenantIsSelectedByPath_IsServedBeneathTheTenantRoute()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme");
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/acme/account/login?ReturnUrl=%2Facme%2Ffoo");
@@ -118,7 +121,7 @@ public class InteractiveTenantRouteTests
     public async Task GetAccount_WhenAnonymousUnderAPathTenant_RedirectsToThatTenantsLoginPage()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme");
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/acme/account");
@@ -134,7 +137,7 @@ public class InteractiveTenantRouteTests
     public async Task GetAccount_WhenRequestedWithATrailingSlash_IsServedAsTheAccountPage()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme");
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
         using var client = CreateClient(factory);
 
         // The bundle links to the account page as its base, `/acme/account/`.
@@ -159,7 +162,7 @@ public class InteractiveTenantRouteTests
         try
         {
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme");
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var response = await client.GetAsync("/acme/account/login");
@@ -185,7 +188,7 @@ public class InteractiveTenantRouteTests
         try
         {
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme");
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var response = await client.GetAsync("/acme/account/assets/app.js");
@@ -240,7 +243,7 @@ public class InteractiveTenantRouteTests
         try
         {
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme");
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var response = await client.GetAsync("/acme/account/assets/app.js");
@@ -273,7 +276,7 @@ public class InteractiveTenantRouteTests
             var iconPath = Path.Combine(bundleRoot.FullName, "assets", fileName);
             await File.WriteAllTextAsync(iconPath, "icon", SecureEncoding.UTF8);
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme");
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
             var requestPath = $"/acme/account/assets/{fileName}";
 
@@ -299,7 +302,7 @@ public class InteractiveTenantRouteTests
         try
         {
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme");
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var response = await client.GetAsync(path);
@@ -321,12 +324,12 @@ public class InteractiveTenantRouteTests
     public async Task PostLogin_WhenTenantIsSelectedByPath_NamesTheSessionForThatTenant()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme");
-        await SeedTenantAsync(factory, "beta");
-        await SeedLocalAccountAsync(factory, "acme");
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
+        await SeedTenantAsync(factory, "beta", settings: NoSettings, CancellationToken.None);
+        await SeedLocalAccountAsync(factory, "acme", CancellationToken.None);
         using var client = CreateClient(factory);
 
-        using var login = await SignInAsync(client, "/acme");
+        using var login = await SignInAsync(client, "/acme", CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.Found, login.StatusCode);
         Assert.Equal("/acme/foo", login.Headers.Location?.OriginalString);
@@ -336,9 +339,19 @@ public class InteractiveTenantRouteTests
         Assert.Contains("path=/", ReadAttributes(setCookie));
 
         var sessionCookie = setCookie.Split(';')[0];
-        using var acmeMe = await GetWithCookieAsync(client, "/acme/account/me", sessionCookie);
+        using var acmeMe = await GetWithCookieAsync(
+            client,
+            "/acme/account/me",
+            sessionCookie,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.OK, acmeMe.StatusCode);
-        using var betaMe = await GetWithCookieAsync(client, "/beta/account/me", sessionCookie);
+        using var betaMe = await GetWithCookieAsync(
+            client,
+            "/beta/account/me",
+            sessionCookie,
+            CancellationToken.None
+        );
         Assert.NotEqual(HttpStatusCode.OK, betaMe.StatusCode);
     }
 
@@ -346,17 +359,18 @@ public class InteractiveTenantRouteTests
     public async Task PostLogout_WhenTenantIsSelectedByPath_ClearsTheTenantsCookieAndReturnsToItsLoginPage()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme");
-        await SeedLocalAccountAsync(factory, "acme");
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
+        await SeedLocalAccountAsync(factory, "acme", CancellationToken.None);
         using var client = CreateClient(factory);
-        using var login = await SignInAsync(client, "/acme");
+        using var login = await SignInAsync(client, "/acme", CancellationToken.None);
         var sessionCookie = ReadSetCookie(login, SessionCookieName)!.Split(';')[0];
 
         // Mint antiforgery tokens bound to the authenticated session.
         using var loginPage = await GetWithCookieAsync(
             client,
             "/acme/account/login",
-            sessionCookie
+            sessionCookie,
+            CancellationToken.None
         );
         Assert.Equal(HttpStatusCode.OK, loginPage.StatusCode);
         var requestToken = ReadSetCookieValue(loginPage, AntiforgeryRequestCookieName);
@@ -398,9 +412,10 @@ public class InteractiveTenantRouteTests
                     [InteractiveSettingNames.BrandingDisplayName] = "Acme",
                     [InteractiveSettingNames.BrandingPrimaryColor] = "#1565c0",
                     [InteractiveSettingNames.BrandingColorMode] = "dark",
-                }
+                },
+                CancellationToken.None
             );
-            await SeedTenantAsync(factory, "beta");
+            await SeedTenantAsync(factory, "beta", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var acmeResponse = await client.GetAsync("/acme/account/login");
@@ -447,7 +462,8 @@ public class InteractiveTenantRouteTests
                 new Dictionary<string, object>
                 {
                     [InteractiveSettingNames.BrandingDisplayName] = "Acme",
-                }
+                },
+                CancellationToken.None
             );
             using var client = CreateClient(factory);
 
@@ -494,7 +510,8 @@ public class InteractiveTenantRouteTests
                         .TenantEnvironmentTypes
                         .Staging,
                     [OpenIdSettingNames.EnvironmentName] = "sandbox",
-                }
+                },
+                CancellationToken.None
             );
             await SeedTenantAsync(
                 factory,
@@ -504,7 +521,8 @@ public class InteractiveTenantRouteTests
                     [OpenIdSettingNames.EnvironmentType] = OpenIdConstants
                         .TenantEnvironmentTypes
                         .Production,
-                }
+                },
+                CancellationToken.None
             );
             using var client = CreateClient(factory);
 
@@ -535,13 +553,18 @@ public class InteractiveTenantRouteTests
 
     #endregion
 
-    private static async Task<HttpResponseMessage> SignInAsync(HttpClient client, string tenantPath)
+    private static async ValueTask<HttpResponseMessage> SignInAsync(
+        HttpClient client,
+        string tenantPath,
+        CancellationToken cancellationToken
+    )
     {
         var loginPath = $"{tenantPath}/account/login";
         var returnUrl = $"{tenantPath}/foo";
 
         using var loginPage = await client.GetAsync(
-            $"{loginPath}?ReturnUrl={Uri.EscapeDataString(returnUrl)}"
+            $"{loginPath}?ReturnUrl={Uri.EscapeDataString(returnUrl)}",
+            cancellationToken
         );
         Assert.Equal(HttpStatusCode.OK, loginPage.StatusCode);
         var requestToken = ReadSetCookieValue(loginPage, AntiforgeryRequestCookieName);
@@ -560,18 +583,19 @@ public class InteractiveTenantRouteTests
                 [AntiforgeryFieldName] = requestToken,
             }
         );
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<HttpResponseMessage> GetWithCookieAsync(
+    private static async ValueTask<HttpResponseMessage> GetWithCookieAsync(
         HttpClient client,
         string path,
-        string cookie
+        string cookie,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Add("Cookie", cookie);
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     private static string? ReadSetCookie(HttpResponseMessage response, string namePrefix) =>
@@ -590,38 +614,37 @@ public class InteractiveTenantRouteTests
         return firstPart is null ? null : Uri.UnescapeDataString(firstPart[(name.Length + 1)..]);
     }
 
-    private static async Task SeedTenantAsync(
+    private static async ValueTask SeedTenantAsync(
         HostApplicationFactory factory,
         string tenantId,
-        IReadOnlyDictionary<string, object>? settings = null
+        IReadOnlyDictionary<string, object> settings,
+        CancellationToken cancellationToken
     )
     {
-        await factory.EnsureTeamAsync(CancellationToken.None);
+        await factory.EnsureTeamAsync(cancellationToken);
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
 
         var tenant = new PersistedTenantBuilder
         {
             TenantId = tenantId,
             Issuer = $"http://localhost/{tenantId}",
-            Settings = settings is null
-                ? JsonSerializer.SerializeToElement(null, typeof(object))
-                : JsonSerializer.SerializeToElement(settings),
+            Settings = JsonSerializer.SerializeToElement(settings),
         }.Build();
-        await storeManager.GetStore<ITenantStore>().AddAsync(tenant, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.GetStore<ITenantStore>().AddAsync(tenant, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task SeedLocalAccountAsync(HostApplicationFactory factory, string tenantId)
+    private static async ValueTask SeedLocalAccountAsync(
+        HostApplicationFactory factory,
+        string tenantId,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
 
         // The store hashes the credential and generates the security stamp internally.
         await storeManager
@@ -639,8 +662,8 @@ public class InteractiveTenantRouteTests
                     ConcurrencyToken = string.Empty,
                 },
                 SecureEncoding.UTF8.GetBytes(Password),
-                CancellationToken.None
+                cancellationToken
             );
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 }

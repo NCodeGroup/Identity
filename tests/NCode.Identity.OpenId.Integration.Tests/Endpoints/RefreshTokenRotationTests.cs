@@ -34,10 +34,11 @@ public class RefreshTokenRotationTests
             }
         );
 
-    private static async Task<HttpResponseMessage> AuthorizeAsync(
+    private static async ValueTask<HttpResponseMessage> AuthorizeAsync(
         HttpClient client,
         string sessionCookie,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     )
     {
         var query =
@@ -52,16 +53,22 @@ public class RefreshTokenRotationTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
-    private static async Task<string> GetCodeAsync(
+    private static async ValueTask<string> GetCodeAsync(
         HttpClient client,
         string sessionCookie,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     )
     {
-        using var response = await AuthorizeAsync(client, sessionCookie, clientId);
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            cancellationToken
+        );
 
         var location = response.Headers.Location;
         Assert.NotNull(location);
@@ -72,9 +79,10 @@ public class RefreshTokenRotationTests
         return code;
     }
 
-    private static async Task<(HttpStatusCode StatusCode, JsonElement Body)> PostTokenAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, JsonElement Body)> PostTokenAsync(
         HttpClient client,
-        Dictionary<string, string> form
+        Dictionary<string, string> form,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
@@ -82,15 +90,17 @@ public class RefreshTokenRotationTests
             Content = new FormUrlEncodedContent(form),
         };
 
-        using var response = await client.SendAsync(request);
-        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        var body = JsonElement.Parse(responseBody);
         return (response.StatusCode, body);
     }
 
-    private static Task<(HttpStatusCode StatusCode, JsonElement Body)> RedeemAsync(
+    private static ValueTask<(HttpStatusCode StatusCode, JsonElement Body)> RedeemAsync(
         HttpClient client,
         string clientId,
-        string code
+        string code,
+        CancellationToken cancellationToken
     ) =>
         PostTokenAsync(
             client,
@@ -101,13 +111,15 @@ public class RefreshTokenRotationTests
                 ["code"] = code,
                 ["redirect_uri"] = RedirectUri,
                 ["code_verifier"] = TestPkce.CodeVerifier,
-            }
+            },
+            cancellationToken
         );
 
-    private static Task<(HttpStatusCode StatusCode, JsonElement Body)> RefreshAsync(
+    private static ValueTask<(HttpStatusCode StatusCode, JsonElement Body)> RefreshAsync(
         HttpClient client,
         string clientId,
-        string refreshToken
+        string refreshToken,
+        CancellationToken cancellationToken
     ) =>
         PostTokenAsync(
             client,
@@ -116,7 +128,8 @@ public class RefreshTokenRotationTests
                 ["grant_type"] = "refresh_token",
                 ["client_id"] = clientId,
                 ["refresh_token"] = refreshToken,
-            }
+            },
+            cancellationToken
         );
 
     private static string GetRefreshToken(HttpStatusCode statusCode, JsonElement body)
@@ -129,17 +142,21 @@ public class RefreshTokenRotationTests
     }
 
     // Signs in, authorizes and redeems the code for the first refresh token of a new rotation family.
-    private static async Task<string> IssueRefreshTokenAsync(HttpClient client, string clientId)
+    private static async ValueTask<string> IssueRefreshTokenAsync(
+        HttpClient client,
+        string clientId,
+        CancellationToken cancellationToken
+    )
     {
         var sessionCookie = await InteractiveLogin.SignInAsync(
             client,
             UserName,
             Password,
-            CancellationToken.None
+            cancellationToken
         );
 
-        var code = await GetCodeAsync(client, sessionCookie, clientId);
-        var (statusCode, body) = await RedeemAsync(client, clientId, code);
+        var code = await GetCodeAsync(client, sessionCookie, clientId, cancellationToken);
+        var (statusCode, body) = await RedeemAsync(client, clientId, code, cancellationToken);
         return GetRefreshToken(statusCode, body);
     }
 
@@ -162,17 +179,32 @@ public class RefreshTokenRotationTests
         await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
 
-        var first = await IssueRefreshTokenAsync(client, clientId);
+        var first = await IssueRefreshTokenAsync(client, clientId, CancellationToken.None);
 
-        var (rotatedStatus, rotatedBody) = await RefreshAsync(client, clientId, first);
+        var (rotatedStatus, rotatedBody) = await RefreshAsync(
+            client,
+            clientId,
+            first,
+            CancellationToken.None
+        );
         var second = GetRefreshToken(rotatedStatus, rotatedBody);
         Assert.NotEqual(first, second);
 
-        var (reuseStatus, reuseBody) = await RefreshAsync(client, clientId, first);
+        var (reuseStatus, reuseBody) = await RefreshAsync(
+            client,
+            clientId,
+            first,
+            CancellationToken.None
+        );
         AssertInvalidGrant(reuseStatus, reuseBody);
 
         // The reuse revoked the rotation family, so the successor is no longer valid either.
-        var (successorStatus, successorBody) = await RefreshAsync(client, clientId, second);
+        var (successorStatus, successorBody) = await RefreshAsync(
+            client,
+            clientId,
+            second,
+            CancellationToken.None
+        );
         AssertInvalidGrant(successorStatus, successorBody);
     }
 
@@ -191,14 +223,24 @@ public class RefreshTokenRotationTests
             Password,
             CancellationToken.None
         );
-        var code = await GetCodeAsync(client, sessionCookie, clientId);
-        var (redeemStatus, redeemBody) = await RedeemAsync(client, clientId, code);
+        var code = await GetCodeAsync(client, sessionCookie, clientId, CancellationToken.None);
+        var (redeemStatus, redeemBody) = await RedeemAsync(
+            client,
+            clientId,
+            code,
+            CancellationToken.None
+        );
         var first = GetRefreshToken(redeemStatus, redeemBody);
         var firstHorizon = redeemBody.GetProperty("refresh_token_expires_in").GetInt64();
         Assert.Equal((long)TimeSpan.FromDays(30).TotalSeconds, firstHorizon);
 
         // A rotation does not renew the family: its successor expires when the family does (ADR-1297).
-        var (rotatedStatus, rotatedBody) = await RefreshAsync(client, clientId, first);
+        var (rotatedStatus, rotatedBody) = await RefreshAsync(
+            client,
+            clientId,
+            first,
+            CancellationToken.None
+        );
         GetRefreshToken(rotatedStatus, rotatedBody);
         var rotatedHorizon = rotatedBody.GetProperty("refresh_token_expires_in").GetInt64();
         Assert.InRange(rotatedHorizon, 1, firstHorizon);
@@ -225,17 +267,32 @@ public class RefreshTokenRotationTests
         );
         var client = CreateClient(factory);
 
-        var original = await IssueRefreshTokenAsync(client, clientId);
+        var original = await IssueRefreshTokenAsync(client, clientId, CancellationToken.None);
 
-        var (firstStatus, firstBody) = await RefreshAsync(client, clientId, original);
+        var (firstStatus, firstBody) = await RefreshAsync(
+            client,
+            clientId,
+            original,
+            CancellationToken.None
+        );
         var first = GetRefreshToken(firstStatus, firstBody);
 
-        var (retryStatus, retryBody) = await RefreshAsync(client, clientId, original);
+        var (retryStatus, retryBody) = await RefreshAsync(
+            client,
+            clientId,
+            original,
+            CancellationToken.None
+        );
         var second = GetRefreshToken(retryStatus, retryBody);
         Assert.NotEqual(first, second);
 
         // The retry branched the rotation family: the first successor is still valid.
-        var (successorStatus, successorBody) = await RefreshAsync(client, clientId, first);
+        var (successorStatus, successorBody) = await RefreshAsync(
+            client,
+            clientId,
+            first,
+            CancellationToken.None
+        );
         GetRefreshToken(successorStatus, successorBody);
     }
 

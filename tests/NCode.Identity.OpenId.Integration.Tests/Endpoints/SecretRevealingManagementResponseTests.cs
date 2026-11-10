@@ -29,9 +29,13 @@ public class SecretRevealingManagementResponseTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var clientId = await CreateClientAsync(administrator);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
 
-        using var response = await PostClientSecretAsync(administrator, clientId);
+        using var response = await PostClientSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
@@ -49,8 +53,8 @@ public class SecretRevealingManagementResponseTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var clientId = await CreateClientAsync(administrator);
-        var secretId = await CreateSecretAsync(administrator, clientId);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
+        var secretId = await CreateSecretAsync(administrator, clientId, CancellationToken.None);
         var expiresWhen = DateTimeOffset.UtcNow.AddYears(1);
 
         using var response = await administrator.PostAsJsonAsync(
@@ -133,7 +137,10 @@ public class SecretRevealingManagementResponseTests
 
     private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
-    private static async Task<string> CreateClientAsync(HttpClient administrator)
+    private static async ValueTask<string> CreateClientAsync(
+        HttpClient administrator,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients",
@@ -146,35 +153,46 @@ public class SecretRevealingManagementResponseTests
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
         return GetRequiredString(jsonElement, "clientId");
     }
 
-    private static Task<HttpResponseMessage> PostClientSecretAsync(
+    private static async ValueTask<HttpResponseMessage> PostClientSecretAsync(
         HttpClient administrator,
-        string clientId
+        string clientId,
+        CancellationToken cancellationToken
     )
     {
         var expiresWhen = DateTimeOffset.UtcNow.AddYears(1);
-        return administrator.PostAsJsonAsync(
+        return await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients/{clientId}/secrets",
             new
             {
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen,
-            }
+            },
+            cancellationToken
         );
     }
 
-    private static async Task<string> CreateSecretAsync(HttpClient administrator, string clientId)
+    private static async ValueTask<string> CreateSecretAsync(
+        HttpClient administrator,
+        string clientId,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await PostClientSecretAsync(administrator, clientId);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await PostClientSecretAsync(
+            administrator,
+            clientId,
+            cancellationToken
+        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
         return GetRequiredString(jsonElement, "secretId");

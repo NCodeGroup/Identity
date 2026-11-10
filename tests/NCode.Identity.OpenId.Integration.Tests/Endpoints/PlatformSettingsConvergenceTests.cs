@@ -23,17 +23,18 @@ public class PlatformSettingsConvergenceTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var before = await GetIdTokenSigningAlgorithmsAsync(administrator);
+        var before = await GetIdTokenSigningAlgorithmsAsync(administrator, CancellationToken.None);
         Assert.Contains("PS256", before);
 
         await PatchPlatformSettingAsync(
             administrator,
             OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
-            ["RS256"]
+            ["RS256"],
+            CancellationToken.None
         );
 
         // No polling: the change is served as soon as the write returns.
-        var after = await GetIdTokenSigningAlgorithmsAsync(administrator);
+        var after = await GetIdTokenSigningAlgorithmsAsync(administrator, CancellationToken.None);
         Assert.Equal<string>(["RS256"], after);
     }
 
@@ -43,10 +44,16 @@ public class PlatformSettingsConvergenceTests
 
     private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
-    private static async Task<List<string>> GetIdTokenSigningAlgorithmsAsync(HttpClient client)
+    private static async ValueTask<List<string>> GetIdTokenSigningAlgorithmsAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.GetAsync(
+            "/.well-known/openid-configuration",
+            cancellationToken
+        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
         var jsonElement = JsonElement.Parse(body);
@@ -57,10 +64,11 @@ public class PlatformSettingsConvergenceTests
             .ToList();
     }
 
-    private static async Task PatchPlatformSettingAsync(
+    private static async ValueTask PatchPlatformSettingAsync(
         HttpClient administrator,
         string settingName,
-        string[] values
+        string[] values,
+        CancellationToken cancellationToken
     )
     {
         var operations = new[]
@@ -81,8 +89,8 @@ public class PlatformSettingsConvergenceTests
             ),
         };
 
-        using var response = await administrator.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await administrator.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
     }
 

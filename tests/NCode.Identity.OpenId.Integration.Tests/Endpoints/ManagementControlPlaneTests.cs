@@ -50,10 +50,11 @@ public class ManagementControlPlaneTests
             }
         );
 
-    private static async Task<JsonElement> CreateTenantAsync(
+    private static async ValueTask<JsonElement> CreateTenantAsync(
         HttpClient client,
         string tenantId,
-        string? host = null
+        string? host,
+        CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(
@@ -74,8 +75,8 @@ public class ManagementControlPlaneTests
         if (host is not null)
             request.Headers.Host = host;
 
-        using var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
 
         var jsonElement = JsonElement.Parse(body);
@@ -92,7 +93,12 @@ public class ManagementControlPlaneTests
         using var factory = CreateHostFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
-        var created = await CreateTenantAsync(client, "acme", host: "manage.auth.test");
+        var created = await CreateTenantAsync(
+            client,
+            "acme",
+            host: "manage.auth.test",
+            CancellationToken.None
+        );
 
         Assert.Equal("https://acme.auth.test", created.GetProperty("issuer").GetString());
     }
@@ -102,7 +108,7 @@ public class ManagementControlPlaneTests
     {
         using var factory = CreateHostFactory();
         using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
-        await CreateTenantAsync(client, "acme");
+        await CreateTenantAsync(client, "acme", host: null, CancellationToken.None);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants/acme/clients");
         request.Headers.Host = "acme.auth.test";
@@ -125,7 +131,7 @@ public class ManagementControlPlaneTests
             CancellationToken.None
         );
 
-        var created = await CreateTenantAsync(client, "acme");
+        var created = await CreateTenantAsync(client, "acme", host: null, CancellationToken.None);
 
         Assert.Equal("http://localhost/acme", created.GetProperty("issuer").GetString());
     }
@@ -138,7 +144,7 @@ public class ManagementControlPlaneTests
             "/root/oauth2/token",
             CancellationToken.None
         );
-        await CreateTenantAsync(client, "acme");
+        await CreateTenantAsync(client, "acme", host: null, CancellationToken.None);
 
         using var response = await client.GetAsync("/api/tenants/acme/clients");
         var body = await response.Content.ReadAsStringAsync();

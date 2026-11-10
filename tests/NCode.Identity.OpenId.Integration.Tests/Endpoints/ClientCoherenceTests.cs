@@ -28,12 +28,13 @@ public class ClientCoherenceTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var clientId = await CreateClientAsync(administrator);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
 
         var (statusCode, body) = await PatchTenantSettingAsync(
             administrator,
             OpenIdSettingNames.RedirectUriKindsSupported,
-            [OpenIdConstants.RedirectUriKinds.Https, OpenIdConstants.RedirectUriKinds.Loopback]
+            [OpenIdConstants.RedirectUriKinds.Https, OpenIdConstants.RedirectUriKinds.Loopback],
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body);
@@ -48,7 +49,7 @@ public class ClientCoherenceTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateClientAsync(administrator);
+        await CreateClientAsync(administrator, CancellationToken.None);
 
         var (statusCode, body) = await PatchTenantSettingAsync(
             administrator,
@@ -58,7 +59,8 @@ public class ClientCoherenceTests
                 OpenIdConstants.RedirectUriKinds.Loopback,
                 OpenIdConstants.RedirectUriKinds.Http,
                 OpenIdConstants.RedirectUriKinds.PrivateUse,
-            ]
+            ],
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.NoContent, body);
@@ -71,12 +73,13 @@ public class ClientCoherenceTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var clientId = await CreateClientAsync(administrator);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
 
         var (statusCode, body) = await PatchTenantSettingAsync(
             administrator,
             OpenIdSettingNames.SecurityProfiles,
-            [OpenIdConstants.SecurityProfiles.Fapi1Advanced]
+            [OpenIdConstants.SecurityProfiles.Fapi1Advanced],
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body);
@@ -93,14 +96,19 @@ public class ClientCoherenceTests
         );
         var (createStatusCode, createBody) = await PostClientWithSettingsAsync(
             administrator,
-            new Dictionary<string, object> { [OpenIdSettingNames.AccessTokenLifetime] = "00:04:00" }
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.AccessTokenLifetime] = "00:04:00",
+            },
+            CancellationToken.None
         );
         Assert.True(createStatusCode == HttpStatusCode.Created, createBody);
 
         var (statusCode, body) = await PatchTenantSettingValueAsync(
             administrator,
             OpenIdSettingNames.AccessTokenLifetime,
-            "00:03:00"
+            "00:03:00",
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body);
@@ -119,7 +127,8 @@ public class ClientCoherenceTests
         var (lowerStatusCode, lowerBody) = await PatchTenantSettingValueAsync(
             administrator,
             OpenIdSettingNames.AccessTokenLifetime,
-            "00:03:00"
+            "00:03:00",
+            CancellationToken.None
         );
         Assert.True(lowerStatusCode == HttpStatusCode.NoContent, lowerBody);
 
@@ -138,7 +147,8 @@ public class ClientCoherenceTests
         var (statusCode, body) = await PatchTenantSettingValueAsync(
             administrator,
             OpenIdSettingNames.AccessTokenLifetime,
-            "00:04:00"
+            "00:04:00",
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.NoContent, body);
@@ -158,7 +168,8 @@ public class ClientCoherenceTests
 
         var (statusCode, body) = await PostClientAsync(
             administrator,
-            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit],
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body);
@@ -176,7 +187,11 @@ public class ClientCoherenceTests
 
         var (statusCode, body) = await PostClientWithSettingsAsync(
             administrator,
-            new Dictionary<string, object> { [OpenIdSettingNames.AccessTokenLifetime] = "01:00:00" }
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.AccessTokenLifetime] = "01:00:00",
+            },
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body);
@@ -194,7 +209,8 @@ public class ClientCoherenceTests
 
         var (statusCode, body) = await PostClientAsync(
             administrator,
-            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.RefreshToken]
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.RefreshToken],
+            CancellationToken.None
         );
 
         Assert.True(statusCode == HttpStatusCode.Created, body);
@@ -206,7 +222,10 @@ public class ClientCoherenceTests
 
     private static BootstrapAdminApplicationFactory CreateFactory() => new();
 
-    private static async Task<string> CreateClientAsync(HttpClient administrator)
+    private static async ValueTask<string> CreateClientAsync(
+        HttpClient administrator,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients",
@@ -220,26 +239,33 @@ public class ClientCoherenceTests
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
         return jsonElement.GetProperty("clientId").GetString()!;
     }
 
-    private static Task<(HttpStatusCode StatusCode, string Body)> PostClientAsync(
+    private static ValueTask<(HttpStatusCode StatusCode, string Body)> PostClientAsync(
         HttpClient administrator,
-        string[] grantTypes
+        string[] grantTypes,
+        CancellationToken cancellationToken
     ) =>
         PostClientWithSettingsAsync(
             administrator,
-            new Dictionary<string, object> { ["grant_types_supported"] = grantTypes }
+            new Dictionary<string, object> { ["grant_types_supported"] = grantTypes },
+            cancellationToken
         );
 
-    private static async Task<(HttpStatusCode StatusCode, string Body)> PostClientWithSettingsAsync(
+    private static async ValueTask<(
+        HttpStatusCode StatusCode,
+        string Body
+    )> PostClientWithSettingsAsync(
         HttpClient administrator,
-        Dictionary<string, object> settings
+        Dictionary<string, object> settings,
+        CancellationToken cancellationToken
     )
     {
         var clientSettings = new Dictionary<string, object>(settings)
@@ -252,21 +278,28 @@ public class ClientCoherenceTests
 
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients",
-            new { isDisabled = false, settings = clientSettings }
+            new { isDisabled = false, settings = clientSettings },
+            cancellationToken
         );
-        return (response.StatusCode, await response.Content.ReadAsStringAsync());
+        return (response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
     }
 
-    private static Task<(HttpStatusCode StatusCode, string Body)> PatchTenantSettingAsync(
+    private static ValueTask<(HttpStatusCode StatusCode, string Body)> PatchTenantSettingAsync(
         HttpClient administrator,
         string settingName,
-        string[] values
-    ) => PatchTenantSettingValueAsync(administrator, settingName, values);
+        string[] values,
+        CancellationToken cancellationToken
+    ) => PatchTenantSettingValueAsync(administrator, settingName, values, cancellationToken);
 
-    private static async Task<(
+    private static async ValueTask<(
         HttpStatusCode StatusCode,
         string Body
-    )> PatchTenantSettingValueAsync(HttpClient administrator, string settingName, object value)
+    )> PatchTenantSettingValueAsync(
+        HttpClient administrator,
+        string settingName,
+        object value,
+        CancellationToken cancellationToken
+    )
     {
         var operations = new[]
         {
@@ -286,8 +319,8 @@ public class ClientCoherenceTests
             ),
         };
 
-        using var response = await administrator.SendAsync(request);
-        return (response.StatusCode, await response.Content.ReadAsStringAsync());
+        using var response = await administrator.SendAsync(request, cancellationToken);
+        return (response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
     }
 
     private static bool HasError(string body, string settingName)

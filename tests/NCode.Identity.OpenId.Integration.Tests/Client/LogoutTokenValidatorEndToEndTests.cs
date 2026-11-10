@@ -45,15 +45,19 @@ public class LogoutTokenValidatorEndToEndTests
 
     private static ServiceProvider CreateClientProvider(HostApplicationFactory factory)
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary().AddOpenIdClientLibrary();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddJoseLibrary()
+            .AddJwtLibrary()
+            .AddOpenIdClientLibrary();
         // AddOpenIdClientLibrary registers no IExpiringKeySet for the logout-token validator.
-        services.AddSharedStateServices().AddInProcessExpiringKeySet();
-        services
+        serviceCollection.AddSharedStateServices().AddInProcessExpiringKeySet();
+        serviceCollection
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             KeyRing,
             (serviceProvider, _) =>
                 serviceProvider
@@ -67,7 +71,7 @@ public class LogoutTokenValidatorEndToEndTests
                             ),
                     ])
         );
-        return services.BuildServiceProvider();
+        return serviceCollection.BuildServiceProvider();
     }
 
     private static ClientRegistration CreateRegistration(string clientId) =>

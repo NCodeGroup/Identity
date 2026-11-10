@@ -29,8 +29,8 @@ public class TenantUsageTests
         BootstrapAdminApplicationFactory host
     ) =>
         host.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services.Configure<TenantUsageOptions>(options =>
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection.Configure<TenantUsageOptions>(options =>
                     options.FlushInterval = TimeSpan.FromMilliseconds(50)
                 )
             )

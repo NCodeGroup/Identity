@@ -53,8 +53,8 @@ public sealed class ManagementConsoleHealthEndpointTests
     {
         await using var factory = new ManagementConsoleApplicationFactory();
         await using var failingFactory = factory.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection
                     .AddHealthChecks()
                     .AddCheck(
                         "dependency",

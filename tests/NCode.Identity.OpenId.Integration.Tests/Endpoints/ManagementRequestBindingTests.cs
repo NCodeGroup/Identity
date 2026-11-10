@@ -118,8 +118,8 @@ public class ManagementRequestBindingTests
     {
         using var factory = new HostApplicationFactory();
         using var host = factory.WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services =>
-                services.PostConfigure<RouteHandlerOptions>(options =>
+            builder.ConfigureServices(serviceCollection =>
+                serviceCollection.PostConfigure<RouteHandlerOptions>(options =>
                     options.ThrowOnBadRequest = false
                 )
             )

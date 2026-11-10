@@ -152,8 +152,8 @@ public class MachineClientAuditTests
         {
             base.ConfigureWebHost(builder);
 
-            builder.ConfigureServices(services =>
-                services.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
+            builder.ConfigureServices(serviceCollection =>
+                serviceCollection.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
             );
         }
     }

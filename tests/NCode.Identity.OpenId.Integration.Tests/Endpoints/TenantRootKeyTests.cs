@@ -514,10 +514,10 @@ public class TenantRootKeyTests
         {
             base.ConfigureWebHost(builder);
 
-            builder.ConfigureServices(services =>
+            builder.ConfigureServices(serviceCollection =>
             {
-                services.AddSingleton<IKeyWrapper>(wrapper);
-                services.AddSingleton<IEventHandler<IAuditEvent>>(recorder);
+                serviceCollection.AddSingleton<IKeyWrapper>(wrapper);
+                serviceCollection.AddSingleton<IEventHandler<IAuditEvent>>(recorder);
             });
         }
     }

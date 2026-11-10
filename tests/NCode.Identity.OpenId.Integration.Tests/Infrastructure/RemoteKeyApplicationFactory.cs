@@ -34,10 +34,10 @@ public sealed class RemoteKeyApplicationFactory(
         builder.ConfigureAppConfiguration(configurationBuilder =>
             configurationBuilder.AddInMemoryCollection(overlay)
         );
-        builder.ConfigureServices(services =>
+        builder.ConfigureServices(serviceCollection =>
         {
-            services.AddSingleton<IRemoteKeyProvider>(provider);
-            services.AddSingleton<IRemoteKeyDescriptorSource>(provider);
+            serviceCollection.AddSingleton<IRemoteKeyProvider>(provider);
+            serviceCollection.AddSingleton<IRemoteKeyDescriptorSource>(provider);
         });
     }
 }

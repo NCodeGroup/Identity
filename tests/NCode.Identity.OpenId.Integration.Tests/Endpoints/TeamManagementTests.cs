@@ -2848,8 +2848,8 @@ public class TeamManagementTests
     {
         using var host = CreateFactory();
         using var recordingHost = host.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services.Configure<TenantUsageOptions>(options =>
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection.Configure<TenantUsageOptions>(options =>
                     options.FlushInterval = TimeSpan.FromMilliseconds(50)
                 )
             )
@@ -3606,8 +3606,8 @@ public class TeamManagementTests
     {
         using var host = CreateFactory();
         using var recordingHost = host.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services.Configure<TenantUsageOptions>(options =>
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection.Configure<TenantUsageOptions>(options =>
                     options.FlushInterval = TimeSpan.FromMilliseconds(50)
                 )
             )

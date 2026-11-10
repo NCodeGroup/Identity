@@ -116,9 +116,9 @@ Manual because account creation and the first API token can't be created by an A
    API Tokens → *Create Custom Token*, named `<infra-repo>-bootstrap-<yyyy-mm-dd>`:
    - Permissions: Account → *Account API Tokens* → Edit (to mint the scoped CI tokens); Account → *Email Routing
      Addresses* → Edit; Zone → *Zone* → Edit; Zone → *DNS* → Edit; Zone → *Zone Settings* → Edit; Zone → *SSL and
-     Certificates* → Edit (to turn Universal SSL off, so the zone's CAA records are the only CAs that can issue for
-     it); Zone → *Email Routing Rules* → Edit. _(Cloudflare renames permission groups occasionally — match by
-     meaning.)_
+     Certificates* → Edit (to turn Universal SSL off in every zone except the two `<redirect-domains>` zones, so those
+     zones' CAA records are the only CAs that can issue for them); Zone → *Email Routing Rules* → Edit. _(Cloudflare
+     renames permission groups occasionally — match by meaning.)_
    - Account resources: only your account. Zone resources: *All zones from an account* → your account (not *All
      zones*, which spans every account you can access).
    - Client IP filtering: your current public IPv4 **and** IPv6 address, if you have one
@@ -227,10 +227,11 @@ can't create it. Everything after it runs from GitHub Actions.
    then `tofu init`, `tofu plan -out bootstrap.tfplan`, review the plan (everything is an add, plus one import, and
    nothing changes or is destroyed), and `tofu apply bootstrap.tfplan`. The local state file and the plan are already
    encrypted with the passphrase. The apply creates the S3 state and backup buckets, the KMS keys, the GitHub OIDC
-   provider and roles, one Cloudflare zone per platform domain with DNSSEC, the redirect rules (Cloudflare Single
-   Redirect rules on the proxied apex and `www` records of `<platform-domain>` and `<redirect-domains>`), and a scoped
-   token per zone (stored as SSM SecureStrings), the budget alert, and the repository's rulesets and `lab` /
-   `production` environments — importing the repository from section 2 rather than creating it. If DNSSEC fails
+   provider and roles, one Cloudflare zone per platform domain with DNSSEC, the redirect rules of `<redirect-domains>`
+   (Cloudflare Single Redirect rules on proxied apex and `www` records, with Universal SSL on in those two zones), and
+   a scoped token per zone (stored as SSM SecureStrings), the budget alert, and the repository's rulesets and `lab` /
+   `production` environments — importing the repository from section 2 rather than creating it. The apex and `www.` of
+   `<platform-domain>` are DNS-only records to the platform's ingress, which serves their redirect. If DNSSEC fails
    because a zone is still pending, continue and re-run `tofu apply` after section 7.
 5. **Move the state into the bucket it created:** delete `backend_override.tf`, run `tofu init -migrate-state`
    (answer `yes`), then delete the local `terraform.tfstate`, `terraform.tfstate.backup`, and `bootstrap.tfplan`.

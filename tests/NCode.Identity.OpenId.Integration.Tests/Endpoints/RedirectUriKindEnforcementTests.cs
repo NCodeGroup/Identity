@@ -64,7 +64,8 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
     private ValueTask SeedClientAsync(
         string clientId,
         string[] redirectUriKinds,
-        string registeredRedirectUri
+        string registeredRedirectUri,
+        CancellationToken cancellationToken
     ) =>
         Factory.SeedPublicClientWithSettingsAsync(
             clientId,
@@ -73,7 +74,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
                 [OpenIdSettingNames.RedirectUriKindsSupported] = redirectUriKinds,
             },
             [registeredRedirectUri],
-            CancellationToken.None
+            cancellationToken
         );
 
     private static async Task<HttpClient> CreateHttpsOnlyRegistrationClientAsync(
@@ -117,7 +118,12 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
     {
         const string clientId = "it-kind-https-only-refuses-http";
         const string redirectUri = "http://client.example/callback";
-        await SeedClientAsync(clientId, [OpenIdConstants.RedirectUriKinds.Https], redirectUri);
+        await SeedClientAsync(
+            clientId,
+            [OpenIdConstants.RedirectUriKinds.Https],
+            redirectUri,
+            CancellationToken.None
+        );
 
         using var response = await AuthorizeAsync(clientId, redirectUri);
 
@@ -136,7 +142,12 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
     {
         const string clientId = "it-kind-https-only-delivers-https";
         const string redirectUri = "https://client.example/callback";
-        await SeedClientAsync(clientId, [OpenIdConstants.RedirectUriKinds.Https], redirectUri);
+        await SeedClientAsync(
+            clientId,
+            [OpenIdConstants.RedirectUriKinds.Https],
+            redirectUri,
+            CancellationToken.None
+        );
 
         using var response = await AuthorizeAsync(clientId, redirectUri);
 
@@ -152,7 +163,8 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         await SeedClientAsync(
             clientId,
             [OpenIdConstants.RedirectUriKinds.Https, OpenIdConstants.RedirectUriKinds.Loopback],
-            registeredRedirectUri
+            registeredRedirectUri,
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(clientId, requestedRedirectUri);
@@ -171,7 +183,8 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         await SeedClientAsync(
             clientId,
             [OpenIdConstants.RedirectUriKinds.Https, OpenIdConstants.RedirectUriKinds.Loopback],
-            redirectUri
+            redirectUri,
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(clientId, redirectUri);
@@ -211,7 +224,8 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
                 OpenIdConstants.RedirectUriKinds.Loopback,
                 OpenIdConstants.RedirectUriKinds.PrivateUse,
             ],
-            redirectUri
+            redirectUri,
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(clientId, redirectUri);
@@ -231,7 +245,12 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
     {
         const string clientId = "it-kind-par-https-only-refuses-http";
         const string redirectUri = "http://client.example/callback";
-        await SeedClientAsync(clientId, [OpenIdConstants.RedirectUriKinds.Https], redirectUri);
+        await SeedClientAsync(
+            clientId,
+            [OpenIdConstants.RedirectUriKinds.Https],
+            redirectUri,
+            CancellationToken.None
+        );
 
         using var response = await PushAsync(clientId, redirectUri);
 

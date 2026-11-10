@@ -118,10 +118,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// </summary>
     public IReadOnlyDictionary<string, object>? PersistedPlatformSettings { get; set; }
 
+    /// <summary>
+    /// Sends a first request to the tenant, which forces the static tenant provider to persist the tenant entity that
+    /// the stores require as a foreign key.
+    /// </summary>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="ValueTask"/> that completes when the tenant is persisted.</returns>
     private async ValueTask EnsureTenantPersistedAsync(CancellationToken cancellationToken)
     {
-        // A first request forces the static tenant provider to persist the tenant entity,
-        // which the stores require as a foreign key.
         using var client = CreateClient();
         using var _ = await client.GetAsync("/oauth2/jwks", cancellationToken);
     }

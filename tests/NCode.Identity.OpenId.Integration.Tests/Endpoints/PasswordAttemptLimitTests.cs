@@ -23,13 +23,16 @@ public class PasswordAttemptLimitTests
     #region Scaffolding
 
     // The tenant reads its settings at its first request, so this is always the first call on a factory.
-    private static ValueTask SeedLimitAsync(HostApplicationFactory factory) =>
+    private static ValueTask SeedLimitAsync(
+        HostApplicationFactory factory,
+        CancellationToken cancellationToken
+    ) =>
         factory.SeedTenantSettingsAsync(
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.PasswordFailedAttemptsLimit] = FailedAttemptsLimit,
             },
-            CancellationToken.None
+            cancellationToken
         );
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
@@ -88,7 +91,7 @@ public class PasswordAttemptLimitTests
     public async Task PasswordGrant_WhenTheLimitIsReached_RefusesTheRightPasswordAsAWrongOne()
     {
         using var factory = new HostApplicationFactory();
-        await SeedLimitAsync(factory);
+        await SeedLimitAsync(factory, CancellationToken.None);
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
@@ -120,7 +123,7 @@ public class PasswordAttemptLimitTests
     public async Task SignIn_WhenTheLimitIsReached_RefusesTheRightPassword()
     {
         using var factory = new HostApplicationFactory();
-        await SeedLimitAsync(factory);
+        await SeedLimitAsync(factory, CancellationToken.None);
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
@@ -149,7 +152,7 @@ public class PasswordAttemptLimitTests
     public async Task SignIn_AfterTheRightPassword_CountsTheFailuresFromZero()
     {
         using var factory = new HostApplicationFactory();
-        await SeedLimitAsync(factory);
+        await SeedLimitAsync(factory, CancellationToken.None);
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 

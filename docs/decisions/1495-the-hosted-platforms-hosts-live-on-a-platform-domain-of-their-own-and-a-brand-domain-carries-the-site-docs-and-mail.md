@@ -55,10 +55,11 @@ site, docs, status page and operator mail.**
 8. **Registration is long on the two domains that matter.** `ncodeid.net` and `ncodeid.com` are renewed to the
    registry's 10-year maximum and auto-renew. The redirect domains auto-renew yearly.
 9. **Every domain is under a generic TLD.** The platform names no country-code TLD, because a registry can retire one.
-10. **Mail is declared before any domain sends it.** No domain sends mail yet, so each publishes `v=spf1 -all` and
-    DMARC `v=DMARC1; p=reject`, and every domain except `ncodeid.com` also publishes a null MX (`0 .`). System mail
-    (verification, password reset, email MFA) sends only from `mail.ncodeid.net`, with that provider's SPF include and
-    DKIM keys. Operator addresses live on `ncodeid.com`.
+10. **Mail is declared before any domain sends it.** No domain sends mail yet, so every domain publishes DMARC
+    `v=DMARC1; p=reject`; every domain except `ncodeid.com` publishes SPF `v=spf1 -all` and a null MX (`0 .`), and
+    `ncodeid.com` publishes the Email Routing records, whose single SPF record is the one Email Routing publishes.
+    System mail (verification, password reset, email MFA) sends only from `mail.ncodeid.net`, with that provider's SPF
+    include and DKIM keys. Operator addresses live on `ncodeid.com`.
 11. **HSTS follows who serves the subdomains.** The platform domain is submitted to the HSTS preload list with
     `includeSubDomains` once every host serves HTTPS, and its apex redirect serves the preload header. The brand
     domain sends `includeSubDomains` and is not preloaded, because third-party hosts (the status page and the site

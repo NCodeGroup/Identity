@@ -266,10 +266,10 @@ All identity hosts are **DNS-only** in Cloudflare (no proxy), so TLS reaches Tra
   `_address` / `_rule`) runs on `ncodeid.com` only and forwards per-purpose addresses — `security@` for `security.txt`,
   `platform@` as the owner of every cloud resource
   ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account such as
-  `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Every zone publishes SPF
-  `v=spf1 -all` and DMARC `v=DMARC1; p=reject` because nothing sends mail yet — an identity domain is a prime phishing
-  target. Every zone except `ncodeid.com` also publishes a null MX (`0 .`); `ncodeid.com` publishes the Email Routing MX
-  records.
+  `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Every zone publishes DMARC
+  `v=DMARC1; p=reject` because nothing sends mail yet — an identity domain is a prime phishing target. Every zone except
+  `ncodeid.com` publishes SPF `v=spf1 -all` and a null MX (`0 .`); `ncodeid.com` publishes the Email Routing MX records
+  and its single SPF record is the one Email Routing publishes.
 - **Account recovery:** the registrar, DNS host, and GitHub owner accounts recover through an **off-domain** personal
   mailbox, so a broken domain or DNS host can't lock out the accounts needed to fix it. Other vendor accounts (npm,
   GitLab, Docker Hub) use per-purpose `@ncodeid.com` routing addresses, which can be re-pointed to another admin

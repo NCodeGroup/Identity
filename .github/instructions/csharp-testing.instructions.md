@@ -307,8 +307,10 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Language and Async](csharp.instructions.md#language-and-async). Every method in
   `tests/NCode.Identity.OpenId.Integration.Tests` that does asynchronous work — an `Infrastructure` helper,
   `BffTestHost`, and each test class's own helpers — returns `ValueTask` or `ValueTask<T>`, ends in `Async` and takes
-  a `CancellationToken` last, which it passes to every awaited call that accepts one; a test method passes
-  `CancellationToken.None`. A list it takes, such as a client's redirect URIs, grant types or scopes, is an
+  a `CancellationToken` last, which it passes to every awaited call that accepts one. A test method passes
+  `CancellationToken.None` to each of these methods and leaves the optional token of a framework call, such as
+  `HttpClient.SendAsync` or `HttpContent.ReadAsStringAsync`, at its default, which is `CancellationToken.None` too.
+  A list it takes, such as a client's redirect URIs, grant types or scopes, is an
   `IReadOnlyList<T>` before the token, never a `params` array, so a test passes a collection expression and
   `CancellationToken.None` (`factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None)`).
   Nothing optional precedes the token: every caller passes each input, and a set of optional inputs is a type with

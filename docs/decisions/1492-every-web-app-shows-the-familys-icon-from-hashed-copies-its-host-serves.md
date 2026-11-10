@@ -68,8 +68,10 @@ into the `assets/` its host already serves.**
    separately.
 7. **The checks.** `build/favicon-copies.ps1`, run by the `favicon copies` stage of `./build/dod.ps1` through its
    fixture tests, reports every app copy that differs from, or has no counterpart in, `brand/favicon/`. Each app's
-   `src/favicon.test.ts` pins its links and its three files. One test per host reads the built `index.html`, finds
-   each icon link, serves the linked asset through `SinglePageBundle.ServeAsset`, and checks the page policy's
+   `src/favicon.test.ts` checks its links and its three files against the family icon set that `@ncode/test-support`
+   holds once. For each host and each icon, one case reads the built `index.html`, finds the icon's link and serves
+   the linked asset through `SinglePageBundle.ServeAsset` with its image type, and one integration test requests an
+   icon through the host's assets route and gets its image type. The pages' own policy tests hold their
    `img-src 'self'`.
 
 ## Options considered

@@ -3,13 +3,11 @@
 
 using System.Buffers.Text;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -34,7 +32,9 @@ public class TenantKeyRolloverTests
     {
         var recorder = new RecordingAuditEventHandler();
         using var factory = new KeyRolloverAuditHostApplicationFactory(recorder);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var client = CreateHttpClient(factory);
 
         var provisioned = await GetSecretsAsync(administrator);
@@ -74,7 +74,10 @@ public class TenantKeyRolloverTests
         Assert.Contains(rs256Keys, key => key.GetProperty("kid").GetString() == successor.SecretId);
 
         // The successor is published but not active, so the retiring key still signs.
-        var accessToken = await GetBootstrapTokenAsync(client);
+        var accessToken = await BootstrapAdminApplicationFactory.TokenRequest.GetAccessTokenAsync(
+            client,
+            CancellationToken.None
+        );
         Assert.Equal(rs256.SecretId, DecodeJwtHeader(accessToken).GetProperty("kid").GetString());
 
         var generated = Assert.Single(
@@ -93,7 +96,9 @@ public class TenantKeyRolloverTests
     {
         var recorder = new RecordingAuditEventHandler();
         using var factory = new KeyRolloverAuditHostApplicationFactory(recorder);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var client = CreateHttpClient(factory);
 
         var provisioned = await GetSecretsAsync(administrator);
@@ -142,7 +147,9 @@ public class TenantKeyRolloverTests
         using var factory = new KeyRolloverAuditHostApplicationFactory(
             new RecordingAuditEventHandler()
         );
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         var provisioned = await GetSecretsAsync(administrator);
         var rs256 = Assert.Single(provisioned, secret => secret.Algorithm == "RS256");
@@ -244,50 +251,6 @@ public class TenantKeyRolloverTests
 
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    )
-    {
-        var client = CreateHttpClient(factory);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            await GetBootstrapTokenAsync(client)
-        );
-        return client;
-    }
-
-    // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
-    private static async Task<string> GetBootstrapTokenAsync(HttpClient client)
-    {
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = "read:clients",
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-
-        var jsonElement = JsonElement.Parse(body);
-        return jsonElement.GetProperty("access_token").GetString() ?? string.Empty;
-    }
 
     private static JsonElement DecodeJwtHeader(string jwt) =>
         JsonElement.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[0]));

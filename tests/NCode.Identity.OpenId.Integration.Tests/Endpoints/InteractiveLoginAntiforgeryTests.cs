@@ -134,7 +134,7 @@ public class InteractiveLoginAntiforgeryTests
         CancellationToken cancellationToken
     )
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/account/login");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/account/login");
 
         var cookies = new List<string>();
         if (cookieToken is not null)

@@ -215,7 +215,7 @@ public class InteractiveLogoutTests
         CancellationToken cancellationToken
     )
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, LoginPath);
+        using var request = new HttpRequestMessage(HttpMethod.Post, LoginPath);
         AddAntiforgeryCookies(request, requestToken, cookieToken, sessionCookie: null);
 
         request.Content = new FormUrlEncodedContent(
@@ -239,7 +239,7 @@ public class InteractiveLogoutTests
         CancellationToken cancellationToken
     )
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, LogoutPath);
+        using var request = new HttpRequestMessage(HttpMethod.Post, LogoutPath);
         AddAntiforgeryCookies(request, requestToken, cookieToken, sessionCookie);
 
         request.Content = new FormUrlEncodedContent(

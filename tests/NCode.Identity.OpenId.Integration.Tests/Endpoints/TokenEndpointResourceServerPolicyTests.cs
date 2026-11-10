@@ -232,8 +232,9 @@ public class TokenEndpointResourceServerPolicyTests
             CancellationToken.None
         );
 
-        using var response = await CreateClient(factory)
-            .SendAsync(BuildCertificateTokenRequest(clientId, certificate));
+        var client = CreateClient(factory);
+        using var request = BuildCertificateTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -279,8 +280,9 @@ public class TokenEndpointResourceServerPolicyTests
             CancellationToken.None
         );
 
-        using var response = await CreateClient(factory)
-            .SendAsync(BuildCertificateTokenRequest(clientId, certificate));
+        var client = CreateClient(factory);
+        using var request = BuildCertificateTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var jsonElement = await ReadJsonAsync(response, CancellationToken.None);
@@ -314,8 +316,9 @@ public class TokenEndpointResourceServerPolicyTests
             CancellationToken.None
         );
 
-        using var response = await CreateClient(factory)
-            .SendAsync(BuildCertificateTokenRequest(clientId, certificate));
+        var client = CreateClient(factory);
+        using var request = BuildCertificateTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var jsonElement = await ReadJsonAsync(response, CancellationToken.None);

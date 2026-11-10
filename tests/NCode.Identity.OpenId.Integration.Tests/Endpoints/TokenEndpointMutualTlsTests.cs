@@ -261,7 +261,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -297,7 +298,8 @@ public class TokenEndpointMutualTlsTests
         var leaf = Convert.ToBase64String(certificate.RawData);
         var other = Convert.ToBase64String(otherCertificate.RawData);
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, $"{leaf},{other}"));
+        using var request = BuildTokenRequest(clientId, $"{leaf},{other}");
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -318,9 +320,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(
-            BuildTokenRequest(clientId, "-----BEGIN CERTIFICATE-----")
-        );
+        using var request = BuildTokenRequest(clientId, "-----BEGIN CERTIFICATE-----");
+        using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -354,9 +355,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(
-            BuildTokenRequest(clientId, presentedCertificate)
-        );
+        using var request = BuildTokenRequest(clientId, presentedCertificate);
+        using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -416,7 +416,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == expectedStatusCode, body);
@@ -437,7 +438,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -461,7 +463,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -482,7 +485,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         await AssertInvalidClientAsync(response, CancellationToken.None);
     }
@@ -510,9 +514,8 @@ public class TokenEndpointMutualTlsTests
         var leaf = Convert.ToBase64String(certificate.RawData);
         var issuing = Convert.ToBase64String(intermediate.RawData);
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(
-            BuildTokenRequest(clientId, $"{leaf},{issuing}")
-        );
+        using var request = BuildTokenRequest(clientId, $"{leaf},{issuing}");
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -533,7 +536,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, forged));
+        using var request = BuildTokenRequest(clientId, forged);
+        using var response = await client.SendAsync(request);
 
         await AssertInvalidClientAsync(response, CancellationToken.None);
     }
@@ -553,7 +557,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         await AssertInvalidClientAsync(response, CancellationToken.None);
     }
@@ -572,9 +577,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(
-            BuildTokenRequest(clientId, forwardedCertificate: null)
-        );
+        using var request = BuildTokenRequest(clientId, forwardedCertificate: null);
+        using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -611,7 +615,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         await AssertInvalidClientAsync(response, CancellationToken.None);
     }
@@ -645,7 +650,8 @@ public class TokenEndpointMutualTlsTests
         );
 
         var client = CreateClient(factory);
-        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);

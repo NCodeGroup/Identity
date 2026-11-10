@@ -157,10 +157,20 @@ flowchart LR
   `mtlsEndpointAliasAuthority`), so only that host asks for client certificates; per-tenant alias hosts route to their
   tenant ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
 
-### Domain and DNS — `nidentity.io`
+### Domains and DNS
 
-The domain is registered at **Porkbun** (expires 2027-04-11). Registration stays there; DNS hosting moves to
-**Cloudflare DNS (free)** — Porkbun's managed DNS is not used.
+The platform names four domains
+([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
+
+| Domain              | Role                                                                          |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `ncodeid.net`       | Platform domain: every issuer-bearing host                                    |
+| `ncodeid.com`       | Brand domain: site, docs, status page and operator mail                       |
+| `ncodeidentity.com` | Redirect-only, to `https://ncodeid.com`                                       |
+| `ncodeidentity.net` | Redirect-only, to `https://ncodeid.com`                                       |
+
+All four are registered at **Porkbun**; `ncodeid.net` and `ncodeid.com` are renewed to the registry's 10-year maximum.
+DNS is hosted on **Cloudflare DNS (free)**, one zone per domain — Porkbun's managed DNS is not used.
 
 **Manual steps** — the only ones outside IaC, each done once — are written step by step, with verification, in the
 [platform bootstrap runbook](platform-bootstrap.md): registrar hardening at Porkbun, the GitHub organization and the
@@ -172,7 +182,7 @@ stack, the registrar delegation, and the email-routing verification.
 from the owner's machine with those short-lived credentials (local state, then migrated into the bucket it creates):
 the S3 **state bucket** (versioning, encryption, public-access block, TLS-only policy) and **backup bucket** (Object
 Lock in compliance mode, archive lifecycle); the GitHub OIDC provider with a read-only **plan** role and an **apply**
-role that trusts only the repository's protected `production` environment; the zone (`cloudflare_zone`, which outputs
+role that trusts only the repository's protected `production` environment; the zones (`cloudflare_zone`, which outputs
 the nameservers) and DNSSEC (`cloudflare_zone_dnssec`, which outputs the DS record); scoped Cloudflare tokens
 (`cloudflare_account_token`) stored as SSM `SecureString`s; and, through `integrations/github`, the repository's
 environments and rulesets. Revoke the bootstrap token afterwards.
@@ -238,7 +248,7 @@ Why this shape:
 **Environments.** Customer environments are just tenants on production (`acme-dev.auth.ncodeid.net`), so they need no
 extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.ncodeid.net`,
 `{tenant}.auth.lab.ncodeid.net`, `{tenant}.mtls.lab.ncodeid.net`, `manage.lab.ncodeid.net`. Ephemeral Azure runs use
-one host each, `{run}.ci.ncodeid.net`. The lab shares the production zone, so it must never hold a token that can edit
+one host each, `{run}.ci.ncodeid.net`. The lab shares the platform zone, so it must never hold a token that can edit
 it: only the OpenTofu pipeline writes DNS (production changes gated by required reviewers), and lab/CI clusters obtain
 certificates over HTTP-01 for their specific hosts — or, if they need wildcards, over DNS-01 with each
 `_acme-challenge` name CNAME-delegated to a separate, throwaway validation zone, so a compromised lab cluster can't
@@ -249,52 +259,39 @@ All identity hosts are **DNS-only** in Cloudflare (no proxy), so TLS reaches Tra
 **Day-one records** (before any hosting exists):
 
 - **CAA:** `0 issue "letsencrypt.org"` and `0 issuewild "letsencrypt.org"` (optionally pinned to the ACME account
-  with `accounturi=`) — no other CA may issue for the domain. Cloudflare Universal SSL silently adds CAA records for
+  with `accounturi=`) in every zone — no other CA may issue for any of the platform's domains. Cloudflare Universal SSL silently adds CAA records for
   its own CAs, so the `cloudflare-zone` module keeps it off; DNS-only hosts never use its edge certificates, and a host
   proxied through Cloudflare later needs an advanced certificate from a listed CA.
 - **Inbound mail only:** Cloudflare Email Routing (free, receive-only; `cloudflare_email_routing_settings` / `_dns` /
-  `_address` / `_rule`) forwards per-purpose addresses — `security@` for `security.txt`, `platform@` as the owner of
-  every cloud resource ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account
-  such as `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Its MX and SPF
-  records replace a null MX; DMARC stays `v=DMARC1; p=reject` because nothing sends as the domain yet — an identity
-  domain is a prime phishing target.
+  `_address` / `_rule`) runs on `ncodeid.com` only and forwards per-purpose addresses — `security@` for `security.txt`,
+  `platform@` as the owner of every cloud resource
+  ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account such as
+  `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Every zone publishes SPF
+  `v=spf1 -all` and DMARC `v=DMARC1; p=reject` because nothing sends mail yet — an identity domain is a prime phishing
+  target. Every zone except `ncodeid.com` also publishes a null MX (`0 .`); `ncodeid.com` publishes the Email Routing MX
+  records.
 - **Account recovery:** the registrar, DNS host, and GitHub owner accounts recover through an **off-domain** personal
   mailbox, so a broken domain or DNS host can't lock out the accounts needed to fix it. Other vendor accounts (npm,
-  GitLab, Docker Hub) use per-purpose `@nidentity.io` routing addresses, which can be re-pointed to another admin
+  GitLab, Docker Hub) use per-purpose `@ncodeid.com` routing addresses, which can be re-pointed to another admin
   without touching each account.
 
-**Cookies:** tenants share the registrable domain, so session cookies must stay host-only (`__Host-` prefix, no
+**Cookies:** tenants share the platform domain, so session cookies must stay host-only (`__Host-` prefix, no
 `Domain` attribute) to keep one tenant's host from reading or setting another's.
 
-**`.io` caveat:** the `.io` ccTLD's long-term status has been questioned since the 2024–25 Chagos sovereignty
-agreement; no retirement is scheduled _(verify)_. Because the issuer URL is effectively permanent, consider registering
-a fallback name while it is cheap.
+**TLD policy:** every domain the platform names is under a generic TLD. Under the ccNSO Retirement of ccTLDs Policy a
+ccTLD leaves the root five years after ISO 3166-1 deletes its code (up to ten with a retirement plan), and an issuer
+domain is permanent, so no issuer sits under one.
 
-**Domain portfolio (RDAP, 2026-10-18):** `nidentity.com` is held at Name.com since 2007-07-10 (expires 2027-07-10) and
-listed for sale on Spaceship as make-offer (minimum offer $250); `nidentity.net`, `nidentity.dev`, and `nidentity.app` are unregistered.
-Decide the **primary issuer domain before the first real client** — switching is free now and breaking later. Owning the
-`.com` also keeps a look-alike of an identity brand out of a phisher's hands. A separate non-production domain is not
-needed: subdomains plus the token isolation above give the same protection.
+**Public Suffix List:** `ncodeid.net` is not listed; host-only `__Host-` cookies are the cookie control. Listing stays
+available and requires at least two years of registration remaining and a `_psl` TXT record.
 
-**`nidentity.com` due diligence (2026-10-18):** Wayback history shows a 2001–03 redirect to `nidsolutions.com`, PPC
-parking ("may be for sale") from at least 2009, and a for-sale lander since; not listed on Spamhaus DBL, SURBL, or
-URIBL; no MX record; nameservers point at Spaceship, so the listing is controlled by whoever controls the domain. The
-GitHub organization `nidentity` belongs to an unrelated party (created 2021-10-17, no public repositories); repositories
-and container images stay under `NCodeGroup` (`ghcr.io/ncodegroup/…`), which doesn't need to match the product domain.
-The GitLab group [`gitlab.com/nidentity`](https://gitlab.com/nidentity) is held defensively (public, 2FA required,
-no code — it points to GitHub); GitHub remains the single home for source, infrastructure code, CI, and packages
-([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)). On npm the `@ncode` scope
+**Code and package namespaces:** repositories and container images stay under `NCodeGroup` (`ghcr.io/ncodegroup/…`),
+which doesn't need to match the product domain; GitHub remains the single home for source, infrastructure code, CI and
+packages ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)). On npm the `@ncode` scope
 belongs to an unrelated party, so JavaScript packages publish under the org-owned `@ncodegroup` scope (matching the
-GitHub organization and GitHub Packages' scope rule), and `@nidentity` is held defensively (both orgs enforce 2FA); the
-frontend's `@ncode/*`
-workspace packages are private and resolve only through `workspace:*`, so they are renamed only if and when one is
-published.
-Further checks: Google Safe Browsing reports no unsafe content; **no `NIDENTITY` trademark** in the USPTO or the WIPO
-Global Brand Database; other uses of the name are minor and unrelated or dormant — four `NIdentity.*` NuGet packages
-(published December 2022, ~2k downloads each, source repository gone; no conflict, since this family publishes under
-the reserved, verified `NCode.` prefix), a small personal GitHub repository, a music
-account on X, and an art workshop. On Spaceship, Make Offer negotiations carry a 10% seller commission that the parties
-may agree to split, and a seller can require an upfront "Quality Offer" deposit.
+GitHub organization and GitHub Packages' scope rule). The frontend's `@ncode/*` workspace packages are private and
+resolve only through `workspace:*`, so they are renamed only if and when one is published. The family publishes on NuGet
+under the reserved, verified `NCode.` prefix.
 
 ## 4. Compute sizing
 

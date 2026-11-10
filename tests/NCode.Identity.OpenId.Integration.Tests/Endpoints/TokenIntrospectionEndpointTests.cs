@@ -57,8 +57,13 @@ public class TokenIntrospectionEndpointTests
                 ["OpenId:Tenant:KeyProvisioning:Keys:1:Algorithm"] = "RSA-OAEP-256",
             }
         );
-        await factory.SeedTenantSettingsAsync(tenantSettings);
-        await factory.SeedConfidentialClientAsync(IssuingClientId, ClientSecret);
+        await factory.SeedTenantSettingsAsync(tenantSettings, CancellationToken.None);
+        await factory.SeedConfidentialClientAsync(
+            IssuingClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         return factory;
     }
 
@@ -263,13 +268,15 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             BillingResourceServerId,
             BillingAudience,
-            BillingScope
+            [BillingScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -298,7 +305,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
         var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
@@ -317,13 +325,15 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             BillingResourceServerId,
             BillingAudience,
-            BillingScope
+            [BillingScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -348,7 +358,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -383,7 +394,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -431,7 +443,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -481,7 +494,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
 
         // The management token itself is encrypted to the tenant, and the management API reads it.
@@ -514,7 +528,8 @@ public class TokenIntrospectionEndpointTests
             OrdersResourceServerId,
             OrdersAudience,
             EncryptionRequired,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -561,7 +576,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -630,7 +646,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -744,13 +761,15 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             IssuingClientId,
             BillingResourceServerId,
             BillingAudience,
-            BillingScope
+            [BillingScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -795,7 +814,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -873,7 +893,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -907,7 +928,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -948,7 +970,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -984,7 +1007,8 @@ public class TokenIntrospectionEndpointTests
             IssuingClientId,
             OrdersResourceServerId,
             OrdersAudience,
-            OrdersScope
+            [OrdersScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None

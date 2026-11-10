@@ -126,7 +126,8 @@ public class TokenEndpointBootstrapAdminTests
         // configured secret before client authentication; without the self-heal this request fails invalid_client.
         await factory.SeedClientDirectlyAsync(
             BootstrapAdminApplicationFactory.ClientId,
-            "stale-secret-value"
+            "stale-secret-value",
+            CancellationToken.None
         );
 
         var client = factory.CreateClient(

@@ -205,7 +205,13 @@ public class UserInfoEndpointTests
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = CreateHttpClient(factory);
-        await factory.SeedLocalAccountAsync(UserName, Password, Email, emailVerified: true);
+        await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            Email,
+            emailVerified: true,
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
             new Dictionary<string, object>()
@@ -243,7 +249,13 @@ public class UserInfoEndpointTests
             );
         });
         var client = CreateHttpClient(auditedFactory);
-        await factory.SeedLocalAccountAsync(UserName, Password, Email, emailVerified: true);
+        await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            Email,
+            emailVerified: true,
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
             new Dictionary<string, object>()
@@ -275,7 +287,13 @@ public class UserInfoEndpointTests
             )
         );
         var client = CreateHttpClient(recordedFactory);
-        await factory.SeedLocalAccountAsync(UserName, Password, Email, emailVerified: true);
+        await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            Email,
+            emailVerified: true,
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
             new Dictionary<string, object>()
@@ -293,7 +311,13 @@ public class UserInfoEndpointTests
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = CreateHttpClient(factory);
-        await factory.SeedLocalAccountAsync(UserName, Password, Email, emailVerified: true);
+        await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            Email,
+            emailVerified: true,
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
             new Dictionary<string, object>()
@@ -315,7 +339,13 @@ public class UserInfoEndpointTests
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = CreateHttpClient(factory);
-        await factory.SeedLocalAccountAsync(UserName, Password, Email, emailVerified: true);
+        await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            Email,
+            emailVerified: true,
+            CancellationToken.None
+        );
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,
             new Dictionary<string, object> { ["userinfo_signed_response_alg"] = "RS256" }
@@ -341,7 +371,13 @@ public class UserInfoEndpointTests
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = CreateHttpClient(factory);
-        await factory.SeedLocalAccountAsync(UserName, Password, Email, emailVerified: true);
+        await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            Email,
+            emailVerified: true,
+            CancellationToken.None
+        );
         using var clientRsa = RSA.Create(2048);
         var (clientId, clientSecret) = await RegisterClientAsync(
             client,

@@ -214,7 +214,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
     }
 
@@ -238,7 +239,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
     }
 
@@ -789,7 +791,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
         await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
 
@@ -955,7 +958,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
 
         using var teams = await user.GetAsync("/api/teams");
@@ -1648,7 +1652,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
 
         using var tenants = await owner.GetAsync("/api/me/tenants");

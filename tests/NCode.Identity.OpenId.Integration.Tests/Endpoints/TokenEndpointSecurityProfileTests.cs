@@ -59,13 +59,15 @@ public class TokenEndpointSecurityProfileTests
             clientId,
             ClientSecret,
             securityProfiles,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
     }
 

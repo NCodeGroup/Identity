@@ -127,7 +127,8 @@ public class UnreadableSettingsDocumentTests
         using var factory = CreateFactory();
         var localAccountId = await factory.SeedLocalAccountAsync(
             "it-unreadable-user",
-            "unreadable-settings-password"
+            "unreadable-settings-password",
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -157,7 +158,8 @@ public class UnreadableSettingsDocumentTests
         await factory.SeedPublicClientWithSettingsAsync(
             UnreadableClientId,
             new Dictionary<string, object> { ["it_unregistered_setting"] = true },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var administrator = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
@@ -176,11 +178,12 @@ public class UnreadableSettingsDocumentTests
         return administrator;
     }
 
-    private static Task MakeTenantDocumentUnreadableAsync(HostApplicationFactory factory) =>
+    private static ValueTask MakeTenantDocumentUnreadableAsync(HostApplicationFactory factory) =>
         // A direct store write of a setting no descriptor registers, after the management client has authenticated, so
         // the tenant the host materialized stays cached and the management request reads the stored document.
         factory.ReplaceTenantSettingsAsync(
-            new Dictionary<string, object> { ["it_unregistered_setting"] = true }
+            new Dictionary<string, object> { ["it_unregistered_setting"] = true },
+            CancellationToken.None
         );
 
     private static async Task AssertConflictNamingTheTenantAsync(HttpResponseMessage response)

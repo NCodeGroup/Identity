@@ -62,7 +62,8 @@ public class TokenEndpointClientAuthenticationTests
             ClientId,
             "it-auth-rs-api",
             "https://api.auth.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
     private static async Task<HttpResponseMessage> SendBasicAsync(
@@ -101,7 +102,12 @@ public class TokenEndpointClientAuthenticationTests
     {
         // A client registered as confidential never authenticates as public, whatever grant it requests.
         using var factory = new HostApplicationFactory();
-        await factory.SeedClientSecretBasicClientAsync(ClientId, ClientSecret);
+        await factory.SeedClientSecretBasicClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
 
         using var content = new FormUrlEncodedContent(
@@ -121,7 +127,12 @@ public class TokenEndpointClientAuthenticationTests
     public async Task PostToken_WhenAClientSecretBasicClientPostsItsSecret_ReturnsInvalidClient()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedClientSecretBasicClientAsync(ClientId, ClientSecret);
+        await factory.SeedClientSecretBasicClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await SeedApiGrantAsync(factory);
         var client = CreateClient(factory);
 
@@ -135,7 +146,12 @@ public class TokenEndpointClientAuthenticationTests
     public async Task PostToken_WhenAClientSecretPostClientUsesBasicAuth_Returns401WithChallenge()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await SeedApiGrantAsync(factory);
         var client = CreateClient(factory);
 
@@ -150,7 +166,11 @@ public class TokenEndpointClientAuthenticationTests
     {
         // A public client has no secret (RFC 7591 §2 'none'), so one it presents authenticates nothing.
         using var factory = new HostApplicationFactory();
-        await factory.SeedPublicClientAsync(ClientId, "https://client.example/callback");
+        await factory.SeedPublicClientAsync(
+            ClientId,
+            ["https://client.example/callback"],
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
 
         using var content = ClientSecretPostBody(ClientSecret);
@@ -164,7 +184,12 @@ public class TokenEndpointClientAuthenticationTests
     {
         // RFC 7591 §2: a client that registers no token_endpoint_auth_method uses client_secret_basic.
         using var factory = new HostApplicationFactory();
-        await factory.SeedClientWithoutAuthenticationMethodAsync(ClientId, ClientSecret);
+        await factory.SeedClientWithoutAuthenticationMethodAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await SeedApiGrantAsync(factory);
         var client = CreateClient(factory);
 
@@ -188,7 +213,12 @@ public class TokenEndpointClientAuthenticationTests
                     OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             }
         );
-        await factory.SeedClientSecretBasicClientAsync(ClientId, ClientSecret);
+        await factory.SeedClientSecretBasicClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await SeedApiGrantAsync(factory);
         var client = CreateClient(factory);
 
@@ -205,12 +235,18 @@ public class TokenEndpointClientAuthenticationTests
     {
         // RFC 6749 section 2.3.1: a secret with a space, colon, plus and percent is form-urlencoded in the header.
         using var factory = new HostApplicationFactory();
-        await factory.SeedClientSecretBasicClientAsync(ClientId, EncodedClientSecret);
+        await factory.SeedClientSecretBasicClientAsync(
+            ClientId,
+            EncodedClientSecret,
+            [],
+            CancellationToken.None
+        );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-auth-rs-api",
             "https://api.auth.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);
@@ -235,12 +271,18 @@ public class TokenEndpointClientAuthenticationTests
     {
         // RFC 6749 section 2.3.1: a client id with a space, colon, plus and percent is form-urlencoded in the header.
         using var factory = new HostApplicationFactory();
-        await factory.SeedClientSecretBasicClientAsync(EncodedClientId, ClientSecret);
+        await factory.SeedClientSecretBasicClientAsync(
+            EncodedClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await factory.SeedResourceServerWithClientGrantAsync(
             EncodedClientId,
             "it-auth-rs-api",
             "https://api.auth.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);
@@ -267,7 +309,12 @@ public class TokenEndpointClientAuthenticationTests
     public async Task PostToken_BasicAuthWithWrongSecret_Returns401WithChallenge()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedClientSecretBasicClientAsync(ClientId, ClientSecret);
+        await factory.SeedClientSecretBasicClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
 
         var client = CreateClient(factory);
 
@@ -320,12 +367,18 @@ public class TokenEndpointClientAuthenticationTests
     public async Task PostToken_BasicAuthWithCorrectSecret_ReturnsAccessToken()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedClientSecretBasicClientAsync(ClientId, ClientSecret);
+        await factory.SeedClientSecretBasicClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-auth-rs-api",
             "https://api.auth.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);
@@ -349,7 +402,12 @@ public class TokenEndpointClientAuthenticationTests
     public async Task PostToken_PostAuthWithWrongSecret_Returns400WithoutChallenge()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
 
         var client = CreateClient(factory);
 

@@ -504,7 +504,7 @@ def read_lines() -> dict[str, Shape]:
 LINES = read_lines()
 WORDMARK = LINES["wordmark"]        # "NCode Identity", Inter Display Medium
 DESCRIPTOR = LINES["descriptor"]    # the product in one line, Inter Display Regular
-WORD_LEFT, _, WORD_RIGHT, WORD_BOTTOM = extent(WORDMARK)
+WORD_LEFT, _, WORD_RIGHT, _ = extent(WORDMARK)
 
 
 @dataclass(frozen=True)

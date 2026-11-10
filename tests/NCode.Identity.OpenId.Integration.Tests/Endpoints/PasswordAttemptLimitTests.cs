@@ -127,11 +127,13 @@ public class PasswordAttemptLimitTests
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        Assert.NotNull(await SubmitAsync(client, Password));
+        var firstSessionCookie = await SubmitAsync(client, Password);
+        Assert.NotNull(firstSessionCookie);
 
         for (var attempt = 0; attempt < FailedAttemptsLimit; attempt++)
         {
-            Assert.Null(await SubmitAsync(client, WrongPassword));
+            var failedSessionCookie = await SubmitAsync(client, WrongPassword);
+            Assert.Null(failedSessionCookie);
         }
 
         using var limitedResponse = await InteractiveLogin.SubmitLoginAsync(
@@ -156,10 +158,14 @@ public class PasswordAttemptLimitTests
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        Assert.Null(await SubmitAsync(client, WrongPassword));
-        Assert.NotNull(await SubmitAsync(client, Password));
-        Assert.Null(await SubmitAsync(client, WrongPassword));
-        Assert.NotNull(await SubmitAsync(client, Password));
+        var wrongSessionCookie = await SubmitAsync(client, WrongPassword);
+        Assert.Null(wrongSessionCookie);
+        var rightSessionCookie = await SubmitAsync(client, Password);
+        Assert.NotNull(rightSessionCookie);
+        var wrongSessionCookieAfterRight = await SubmitAsync(client, WrongPassword);
+        Assert.Null(wrongSessionCookieAfterRight);
+        var rightSessionCookieAfterWrong = await SubmitAsync(client, Password);
+        Assert.NotNull(rightSessionCookieAfterWrong);
     }
 
     #endregion

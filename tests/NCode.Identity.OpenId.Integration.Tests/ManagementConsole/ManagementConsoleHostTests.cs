@@ -80,10 +80,8 @@ public class ManagementConsoleHostTests
         using var response = await client.GetAsync(ManagementConsoleApplicationFactory.AssetPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(
-            ManagementConsoleApplicationFactory.AssetContent,
-            await response.Content.ReadAsStringAsync()
-        );
+        var assetBody = await response.Content.ReadAsStringAsync();
+        Assert.Equal(ManagementConsoleApplicationFactory.AssetContent, assetBody);
         var cacheControl = Assert.Single(response.Headers.GetValues("Cache-Control"));
         Assert.Contains("immutable", cacheControl, StringComparison.Ordinal);
         Assert.Contains("max-age=31536000", cacheControl, StringComparison.Ordinal);

@@ -36,7 +36,8 @@ public class TokenEndpointTests(HostApplicationFactory factory)
         using var response = await client.PostAsync(TokenPath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
+        var errorCode = await GetErrorCodeAsync(response);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, errorCode);
     }
 
     [Fact]

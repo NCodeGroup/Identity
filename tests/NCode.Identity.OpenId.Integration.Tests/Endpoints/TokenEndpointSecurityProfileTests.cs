@@ -186,7 +186,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(RefusingRequirement.Description, await GetErrorDescriptionAsync(response));
+        var errorDescription = await GetErrorDescriptionAsync(response);
+        Assert.Equal(RefusingRequirement.Description, errorDescription);
     }
 
     [Fact]
@@ -201,7 +202,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(RefusingRequirement.Description, await GetErrorDescriptionAsync(response));
+        var errorDescription = await GetErrorDescriptionAsync(response);
+        Assert.Equal(RefusingRequirement.Description, errorDescription);
     }
 
     [Fact]

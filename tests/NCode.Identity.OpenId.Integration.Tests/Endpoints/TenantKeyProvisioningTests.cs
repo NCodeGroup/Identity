@@ -4,7 +4,6 @@
 using System.Buffers.Text;
 using System.Diagnostics;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
@@ -112,7 +111,10 @@ public class TenantKeyProvisioningTests
         using var client = factory.CreateClient();
 
         // Nothing is seeded: this one request provisions the tenant, its keys, and the bootstrap administrator.
-        var accessToken = await GetBootstrapTokenAsync(client);
+        var accessToken = await BootstrapAdminApplicationFactory.TokenRequest.GetAccessTokenAsync(
+            client,
+            CancellationToken.None
+        );
 
         var header = DecodeJwtHeader(accessToken);
         var kid = header.GetProperty("kid").GetString();
@@ -178,10 +180,9 @@ public class TenantKeyProvisioningTests
         using var client = factory.CreateClient();
 
         // The root tenant's provisioned keys sign the bootstrap administrator's first management token.
-        var accessToken = await GetBootstrapTokenAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
         );
 
         using var createResponse = await client.PostAsJsonAsync(
@@ -212,10 +213,9 @@ public class TenantKeyProvisioningTests
         using var factory = CreateDynamicFactory();
         using var client = factory.CreateClient();
 
-        var accessToken = await GetBootstrapTokenAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
         );
 
         using var createResponse = await client.PostAsJsonAsync(
@@ -249,10 +249,9 @@ public class TenantKeyProvisioningTests
         using var factory = CreateDynamicFactory();
         using var client = factory.CreateClient();
 
-        var accessToken = await GetBootstrapTokenAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
         );
 
         // The platform stops permitting ES256, so a tenant created now is provisioned without its key.
@@ -294,10 +293,9 @@ public class TenantKeyProvisioningTests
         using var factory = CreateDynamicFactory(platformSettings);
         using var client = factory.CreateClient();
 
-        var accessToken = await GetBootstrapTokenAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
         );
 
         using var createResponse = await client.PostAsJsonAsync(
@@ -336,10 +334,9 @@ public class TenantKeyProvisioningTests
         using var factory = CreateDynamicFactory();
         using var client = factory.CreateClient();
 
-        var accessToken = await GetBootstrapTokenAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            accessToken
+        await BootstrapAdminApplicationFactory.TokenRequest.AuthorizeAsync(
+            client,
+            CancellationToken.None
         );
 
         using var createResponse = await client.PostAsJsonAsync(
@@ -387,38 +384,6 @@ public class TenantKeyProvisioningTests
 
         var jsonElement = JsonElement.Parse(body);
         return [.. jsonElement.GetProperty("keys").EnumerateArray().Select(key => key.Clone())];
-    }
-
-    // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
-    private static async Task<string> GetBootstrapTokenAsync(HttpClient client)
-    {
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = "read:clients",
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-
-        var jsonElement = JsonElement.Parse(body);
-        return jsonElement.GetProperty("access_token").GetString() ?? string.Empty;
     }
 
     private static JsonElement DecodeJwtHeader(string jwt) =>

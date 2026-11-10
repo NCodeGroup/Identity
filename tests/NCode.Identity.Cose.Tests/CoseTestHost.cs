@@ -28,20 +28,20 @@ internal sealed class CoseTestHost : IAsyncDisposable
         IEnumerable<CoseAlgorithm>? extraAlgorithms = null
     )
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton<TimeProvider>(TimeProvider);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSingleton<TimeProvider>(TimeProvider);
         if (randomSource is not null)
-            services.AddSingleton<ICoseRandomSource>(randomSource);
+            serviceCollection.AddSingleton<ICoseRandomSource>(randomSource);
 
-        var jose = services.AddSecretsLibrary().AddJoseLibrary().AddEdDsa();
+        var jose = serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddEdDsa();
         var cose = configureOptions is null
             ? jose.AddCoseLibrary()
             : jose.AddCoseLibrary(configureOptions);
         foreach (var algorithm in extraAlgorithms ?? [])
             cose.AddCoseAlgorithm(algorithm);
 
-        Services = services.BuildServiceProvider();
+        Services = serviceCollection.BuildServiceProvider();
     }
 
     public FakeTimeProvider TimeProvider { get; } = new(StartTime);

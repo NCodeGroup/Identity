@@ -20,13 +20,13 @@ public class BffLoginTransactionServiceTests : IAsyncLifetime
 
     public BffLoginTransactionServiceTests()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
-        services
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
+        serviceCollection
             .AddSharedStateServices()
             .AddInProcessExpiringValueSet()
             .AddInProcessExpiringIndexSet();
-        Provider = services.BuildServiceProvider();
+        Provider = serviceCollection.BuildServiceProvider();
 
         var values = Provider.GetRequiredService<IExpiringValueSet>();
         var indexes = Provider.GetRequiredService<IExpiringIndexSet>();

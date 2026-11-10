@@ -41,8 +41,8 @@ public class ClientAuthenticationAttemptLimitTests
     private static HttpClient CreateClient(WebApplicationFactory<HostApiMarker> factory) =>
         factory
             .WithWebHostBuilder(builder =>
-                builder.ConfigureServices(services =>
-                    services.AddSingleton<IStartupFilter, TestRemoteAddressStartupFilter>()
+                builder.ConfigureServices(serviceCollection =>
+                    serviceCollection.AddSingleton<IStartupFilter, TestRemoteAddressStartupFilter>()
                 )
             )
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });

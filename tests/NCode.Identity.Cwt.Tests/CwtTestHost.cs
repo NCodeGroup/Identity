@@ -38,15 +38,15 @@ public sealed class CwtTestHost : IAsyncDisposable
     )
     {
         TimeProvider = new FakeTimeProvider(now ?? StartTime);
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton<TimeProvider>(TimeProvider);
-        var cose = services.AddSecretsLibrary().AddJoseLibrary().AddCoseLibrary();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSingleton<TimeProvider>(TimeProvider);
+        var cose = serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddCoseLibrary();
         foreach (var algorithm in extraAlgorithms ?? [])
             cose.AddCoseAlgorithm(algorithm);
 
         cose.AddCwtLibrary();
-        Services = services.BuildServiceProvider();
+        Services = serviceCollection.BuildServiceProvider();
     }
 
     public FakeTimeProvider TimeProvider { get; }

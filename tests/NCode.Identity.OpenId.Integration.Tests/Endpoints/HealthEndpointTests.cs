@@ -32,8 +32,8 @@ public class HealthEndpointTests(HostApplicationFactory factory)
     public async Task GetHealth_WhenReadinessCheckFails_ReportsNotReadyButAlive()
     {
         using var failingFactory = Factory.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection
                     .AddHealthChecks()
                     .AddCheck("dependency", () => HealthCheckResult.Unhealthy(), tags: ["ready"])
             )
@@ -51,8 +51,10 @@ public class HealthEndpointTests(HostApplicationFactory factory)
     public async Task GetHealth_WhenUntaggedCheckFails_StaysReady()
     {
         using var failingFactory = Factory.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services.AddHealthChecks().AddCheck("other", () => HealthCheckResult.Unhealthy())
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection
+                    .AddHealthChecks()
+                    .AddCheck("other", () => HealthCheckResult.Unhealthy())
             )
         );
         var client = failingFactory.CreateClient();

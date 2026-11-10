@@ -29,14 +29,20 @@ public class MachineClientAuditTests
     {
         var recorder = new RecordingAuditEventHandler();
         using var factory = new MachineClientAuditHostApplicationFactory(recorder);
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator);
         var (clientId, clientSecret, principalId) = await CreateTeamMachineClientAsync(
             administrator
         );
         using var grant = await PostAdminAsync(administrator, principalId);
         Assert.Equal(HttpStatusCode.Created, grant.StatusCode);
-        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+        using var machine = await factory.CreateManagementClientAsync(
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
         using var response = await machine.DeleteAsync(
             $"/api/tenants/{ControlPlaneTenantId}/clients/{clientId}"
@@ -56,14 +62,6 @@ public class MachineClientAuditTests
     #endregion
 
     #region Scaffolding
-
-    private static Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    ) =>
-        factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
-        );
 
     private static async Task CreateTeamAsync(HttpClient client)
     {
@@ -154,8 +152,8 @@ public class MachineClientAuditTests
         {
             base.ConfigureWebHost(builder);
 
-            builder.ConfigureServices(services =>
-                services.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
+            builder.ConfigureServices(serviceCollection =>
+                serviceCollection.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
             );
         }
     }

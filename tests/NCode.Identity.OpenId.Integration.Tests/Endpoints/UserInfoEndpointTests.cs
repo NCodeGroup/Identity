@@ -238,8 +238,8 @@ public class UserInfoEndpointTests
                         }
                     )
             );
-            builder.ConfigureServices(services =>
-                services.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
+            builder.ConfigureServices(serviceCollection =>
+                serviceCollection.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
             );
         });
         var client = CreateHttpClient(auditedFactory);
@@ -270,8 +270,8 @@ public class UserInfoEndpointTests
         using var factory = new AnonymousRegistrationApplicationFactory();
         var recorder = new RecordingAuditEventHandler();
         using var recordedFactory = factory.WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services =>
-                services.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
+            builder.ConfigureServices(serviceCollection =>
+                serviceCollection.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
             )
         );
         var client = CreateHttpClient(recordedFactory);

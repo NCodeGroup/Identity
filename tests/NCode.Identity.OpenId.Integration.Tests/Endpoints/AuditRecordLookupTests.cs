@@ -65,9 +65,8 @@ public class AuditRecordLookupTests
         var older = Record(HostApplicationFactory.TenantId, "client-a");
         var newer = Record(HostApplicationFactory.TenantId, "client-b");
         await SeedAsync(factory, older, newer, Record("another-tenant", "client-a"));
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
 
         using var response = await administrator.GetAsync(
@@ -96,9 +95,8 @@ public class AuditRecordLookupTests
         using var factory = CreateFactory();
         var match = Record(HostApplicationFactory.TenantId, "client-a");
         await SeedAsync(factory, match, Record(HostApplicationFactory.TenantId, "client-b"));
-        using var administrator = await factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
         );
 
         using var response = await administrator.GetAsync(

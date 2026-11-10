@@ -22,10 +22,10 @@ public class DefaultCoseKeyConverterTests
 
     private static ServiceProvider CreateProvider()
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary().AddEdDsa();
-        return services.BuildServiceProvider();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddEdDsa();
+        return serviceCollection.BuildServiceProvider();
     }
 
     private static ISecretKeyFactory Factory => Provider.GetRequiredService<ISecretKeyFactory>();

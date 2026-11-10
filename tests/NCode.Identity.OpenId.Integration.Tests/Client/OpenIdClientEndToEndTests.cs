@@ -49,13 +49,17 @@ public class OpenIdClientEndToEndTests
         Func<ISecretKeyFactory, SecretKey> createKey
     )
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary().AddOpenIdClientLibrary();
-        services
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddJoseLibrary()
+            .AddJwtLibrary()
+            .AddOpenIdClientLibrary();
+        serviceCollection
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             KeyRing,
             (serviceProvider, _) =>
                 serviceProvider
@@ -64,7 +68,7 @@ public class OpenIdClientEndToEndTests
                         createKey(serviceProvider.GetRequiredService<ISecretKeyFactory>()),
                     ])
         );
-        return services.BuildServiceProvider();
+        return serviceCollection.BuildServiceProvider();
     }
 
     private static async Task SeedResourceServerAsync(

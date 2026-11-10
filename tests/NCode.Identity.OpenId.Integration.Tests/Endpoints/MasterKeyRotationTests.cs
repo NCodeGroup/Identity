@@ -2,12 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.SecretProtection;
@@ -20,14 +18,15 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 // rewrapped under the new one, and everything keeps working (ADR-1407).
 public class MasterKeyRotationTests
 {
-    private const string ManagementScope = "read:clients";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     [Fact]
     public async Task Rekey_OfATenant_RewrapsItsSecretsAndTheClientStillAuthenticates()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         using var client = CreateHttpClient(factory);
         var clientId = await CreateClientAsync(administrator);
         var secretMaterial = await CreateSecretAsync(administrator, clientId);
@@ -109,7 +108,9 @@ public class MasterKeyRotationTests
     public async Task Rekey_OfAnUnknownTenant_ReturnsNotFoundAndCreatesNoKey()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsync(
             "/api/tenants/no-such-tenant/encryption-keys/rekey",
@@ -133,7 +134,9 @@ public class MasterKeyRotationTests
     public async Task Rekey_OfThePlatform_KeepsTheHostServingTheManagementApi()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         // The discovery request materializes the platform, so the store holds it.
         using var discovery = await CreateHttpClient(factory)
@@ -167,7 +170,9 @@ public class MasterKeyRotationTests
     public async Task SecretProtectionCommand_DryRun_VerifiesEveryMasterKeyAndReturnsZero()
     {
         using var factory = new BootstrapAdminApplicationFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var clientId = await CreateClientAsync(administrator);
         await CreateSecretAsync(administrator, clientId);
 
@@ -195,42 +200,6 @@ public class MasterKeyRotationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body);
-    }
-
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    )
-    {
-        var client = CreateHttpClient(factory);
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = ManagementScope,
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(tokenRequest);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            JsonElement.Parse(body).GetProperty("access_token").GetString()
-        );
-        return client;
     }
 
     private static async Task<string> CreateClientAsync(HttpClient administrator)

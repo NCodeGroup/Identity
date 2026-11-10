@@ -508,13 +508,13 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
         ITenantProvisioner? provisioner
     )
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
         if (provisioner is not null)
-            services.AddSingleton(provisioner);
+            serviceCollection.AddSingleton(provisioner);
 
         var httpContext = new DefaultHttpContext
         {
-            RequestServices = services.BuildServiceProvider(),
+            RequestServices = serviceCollection.BuildServiceProvider(),
         };
         httpContext.Request.Host = new HostString(host);
         return httpContext;

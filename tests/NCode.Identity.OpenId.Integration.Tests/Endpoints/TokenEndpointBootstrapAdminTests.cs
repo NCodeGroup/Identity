@@ -3,10 +3,8 @@
 
 using System.Buffers.Text;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
 
@@ -15,7 +13,6 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 public class TokenEndpointBootstrapAdminTests
 {
     private const string ManagementAudience = "urn:ncode:management";
-    private const string ManagementScope = "read:clients";
 
     [Fact]
     public async Task PostToken_WithConfiguredBootstrapAdmin_SelfSeedsAndIssuesGlobalAdminToken()
@@ -29,7 +26,7 @@ public class TokenEndpointBootstrapAdminTests
 
         // The first token request provisions the tenant (seeding the bootstrap client) before client authentication,
         // so this single call self-bootstraps.
-        using var request = CreateBootstrapTokenRequest();
+        using var request = BootstrapAdminApplicationFactory.TokenRequest.CreateMessage();
         using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
@@ -71,7 +68,7 @@ public class TokenEndpointBootstrapAdminTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        using var request = CreateBootstrapTokenRequest();
+        using var request = BootstrapAdminApplicationFactory.TokenRequest.CreateMessage();
         using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
@@ -95,7 +92,7 @@ public class TokenEndpointBootstrapAdminTests
         );
 
         // The first request provisions the tenant, which runs the seed and fails; the developer exception page answers.
-        using var request = CreateBootstrapTokenRequest();
+        using var request = BootstrapAdminApplicationFactory.TokenRequest.CreateMessage();
         using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
@@ -112,7 +109,7 @@ public class TokenEndpointBootstrapAdminTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        using var request = CreateBootstrapTokenRequest();
+        using var request = BootstrapAdminApplicationFactory.TokenRequest.CreateMessage();
         using var response = await client.SendAsync(request);
 
         // Absent configuration, the bootstrap client is never seeded, so there is no client to authenticate.
@@ -136,7 +133,7 @@ public class TokenEndpointBootstrapAdminTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        using var request = CreateBootstrapTokenRequest();
+        using var request = BootstrapAdminApplicationFactory.TokenRequest.CreateMessage();
         using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
@@ -148,31 +145,6 @@ public class TokenEndpointBootstrapAdminTests
 
         var payload = DecodeJwtPayload(accessToken.GetString()!);
         Assert.Equal("GlobalAdmin", payload.GetProperty("role").GetString());
-    }
-
-    // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
-    private static HttpRequestMessage CreateBootstrapTokenRequest()
-    {
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapAdminApplicationFactory.ClientId}:{BootstrapAdminApplicationFactory.ClientSecret}"
-        );
-        return new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
-            {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = ManagementScope,
-                }
-            ),
-        };
     }
 
     private static JsonElement DecodeJwtPayload(string jwt)

@@ -40,13 +40,15 @@ public class DefaultCoseAlgorithmCatalogTests
 
     private static IAlgorithmCollectionProvider CreateProvider(bool withEdDsa = false)
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        var jose = services.AddSecretsLibrary().AddJoseLibrary();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        var jose = serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         if (withEdDsa)
             jose.AddEdDsa();
 
-        return services.BuildServiceProvider().GetRequiredService<IAlgorithmCollectionProvider>();
+        return serviceCollection
+            .BuildServiceProvider()
+            .GetRequiredService<IAlgorithmCollectionProvider>();
     }
 
     private static DefaultCoseAlgorithmCatalog CreateCatalog(

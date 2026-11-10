@@ -58,13 +58,17 @@ public class MutualTlsClientEndToEndTests
             TestPlatformSettingsProvider.ApiScope
         );
 
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary().AddOpenIdClientLibrary();
-        services
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection
+            .AddSecretsLibrary()
+            .AddJoseLibrary()
+            .AddJwtLibrary()
+            .AddOpenIdClientLibrary();
+        serviceCollection
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
-        services
+        serviceCollection
             .AddHttpClient(
                 OpenIdClientDefaults.MutualTlsHttpClientNamePrefix
                     + Convert.ToHexString(SHA256.HashData(certificate.RawData))
@@ -75,7 +79,7 @@ public class MutualTlsClientEndToEndTests
                     InnerHandler = factory.Server.CreateHandler(),
                 }
             );
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             KeyRing,
             (serviceProvider, _) =>
                 serviceProvider
@@ -87,7 +91,7 @@ public class MutualTlsClientEndToEndTests
                     ])
         );
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
         var registration = new ClientRegistration(
             HostApplicationFactory.TestServerIssuer,
             clientId,

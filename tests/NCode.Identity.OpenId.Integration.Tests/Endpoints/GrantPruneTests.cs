@@ -83,8 +83,8 @@ public class GrantPruneTests
     {
         using var factory = new HostApplicationFactory();
         using var host = factory.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services.Configure<GrantRetentionOptions>(options =>
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection.Configure<GrantRetentionOptions>(options =>
                 {
                     options.PruneInterval = TimeSpan.FromMilliseconds(50);
                     options.Retention = TimeSpan.FromDays(1);

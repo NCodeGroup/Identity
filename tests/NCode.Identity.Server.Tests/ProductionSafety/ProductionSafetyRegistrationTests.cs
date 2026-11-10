@@ -69,10 +69,10 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void AddProductionSafety_WhenProductionAndUnsafe_Throws()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            services.AddProductionSafety(
+            serviceCollection.AddProductionSafety(
                 CreateConfiguration(("AllowedHosts", "*")),
                 CreateEnvironment(Environments.Production)
             )
@@ -84,14 +84,14 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void AddProductionSafety_WhenProductionAndSafe_DoesNotThrow()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
 
-        var result = services.AddProductionSafety(
+        var result = serviceCollection.AddProductionSafety(
             CreateSafeConfiguration(),
             CreateEnvironment(Environments.Production)
         );
 
-        Assert.Same(services, result);
+        Assert.Same(serviceCollection, result);
     }
 
     [Theory]
@@ -102,21 +102,21 @@ public class ProductionSafetyRegistrationTests
         string environmentName
     )
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
 
         // The same configuration that fails under Production above.
-        var result = services.AddProductionSafety(
+        var result = serviceCollection.AddProductionSafety(
             CreateConfiguration(("AllowedHosts", "*")),
             CreateEnvironment(environmentName)
         );
 
-        Assert.Same(services, result);
+        Assert.Same(serviceCollection, result);
     }
 
     [Fact]
     public void AddProductionSafety_WhenProductionAndMultipleProblems_ReportsAllAtOnce()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
         var configuration = CreateConfiguration(
             ("AllowedHosts", "*"),
             ("DeveloperKeys:PruneUnreadableKeys", "true"),
@@ -124,7 +124,10 @@ public class ProductionSafetyRegistrationTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            services.AddProductionSafety(configuration, CreateEnvironment(Environments.Production))
+            serviceCollection.AddProductionSafety(
+                configuration,
+                CreateEnvironment(Environments.Production)
+            )
         );
 
         // An operator should be able to fix every problem in one pass, not one restart per problem.
@@ -136,14 +139,17 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void AddProductionSafety_WhenProductionAndSecretProtectionMissing_Throws()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
         var configuration = CreateConfiguration(
             ("AllowedHosts", "op.example.com"),
             ("SecretProtection:RootKeyProviders:Local:Key", "inline-root-key-value")
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            services.AddProductionSafety(configuration, CreateEnvironment(Environments.Production))
+            serviceCollection.AddProductionSafety(
+                configuration,
+                CreateEnvironment(Environments.Production)
+            )
         );
 
         Assert.Contains(
@@ -159,28 +165,28 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void AddProductionSafety_WhenNotProduction_IgnoresMissingSecretProtection()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
 
-        var result = services.AddProductionSafety(
+        var result = serviceCollection.AddProductionSafety(
             CreateConfiguration(("AllowedHosts", "op.example.com")),
             CreateEnvironment(Environments.Development)
         );
 
-        Assert.Same(services, result);
+        Assert.Same(serviceCollection, result);
     }
 
     [Fact]
     public void AddProductionSafety_WhenProductionAndKeyRingUnprotected_FailsOnStart()
     {
-        var services = new ServiceCollection();
-        services.AddProductionSafety(
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddProductionSafety(
             CreateSafeConfiguration(),
             CreateEnvironment(Environments.Production)
         );
-        services.Configure<KeyManagementOptions>(options =>
+        serviceCollection.Configure<KeyManagementOptions>(options =>
             options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object
         );
-        using var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() =>
             serviceProvider.GetRequiredService<IStartupValidator>().Validate()
@@ -192,12 +198,12 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void AddProductionSafety_WhenProductionAndKeyRingHasNoRepository_FailsOnStart()
     {
-        var services = new ServiceCollection();
-        services.AddProductionSafety(
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddProductionSafety(
             CreateSafeConfiguration(),
             CreateEnvironment(Environments.Production)
         );
-        using var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() =>
             serviceProvider.GetRequiredService<IStartupValidator>().Validate()
@@ -215,20 +221,20 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void AddProductionSafety_WhenProductionAndPbkdf2IterationsAreBelowTheRecommendation_FailsOnStart()
     {
-        var services = new ServiceCollection();
-        services.AddProductionSafety(
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddProductionSafety(
             CreateSafeConfiguration(),
             CreateEnvironment(Environments.Production)
         );
-        services.Configure<KeyManagementOptions>(options =>
+        serviceCollection.Configure<KeyManagementOptions>(options =>
         {
             options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object;
             options.XmlEncryptor = new Mock<IXmlEncryptor>(MockBehavior.Strict).Object;
         });
-        services.Configure<Pbkdf2SecretVerifierOptions>(options =>
+        serviceCollection.Configure<Pbkdf2SecretVerifierOptions>(options =>
             options.Iterations = Pbkdf2SecretVerifierOptions.MinimumProductionIterations - 1
         );
-        using var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() =>
             serviceProvider.GetRequiredService<IStartupValidator>().Validate()
@@ -247,13 +253,13 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void AddProductionSafety_WhenNotProduction_AllowsAnyPbkdf2Iterations()
     {
-        var services = new ServiceCollection();
-        services.AddProductionSafety(
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddProductionSafety(
             CreateSafeConfiguration(),
             CreateEnvironment(Environments.Development)
         );
-        services.Configure<Pbkdf2SecretVerifierOptions>(options => options.Iterations = 1);
-        using var serviceProvider = services.BuildServiceProvider();
+        serviceCollection.Configure<Pbkdf2SecretVerifierOptions>(options => options.Iterations = 1);
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         Assert.Null(serviceProvider.GetService<IStartupValidator>());
     }
@@ -261,17 +267,17 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void AddProductionSafety_WhenProductionAndKeyRingProtected_StartsCleanly()
     {
-        var services = new ServiceCollection();
-        services.AddProductionSafety(
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddProductionSafety(
             CreateSafeConfiguration(),
             CreateEnvironment(Environments.Production)
         );
-        services.Configure<KeyManagementOptions>(options =>
+        serviceCollection.Configure<KeyManagementOptions>(options =>
         {
             options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object;
             options.XmlEncryptor = new Mock<IXmlEncryptor>(MockBehavior.Strict).Object;
         });
-        using var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         serviceProvider.GetRequiredService<IStartupValidator>().Validate();
     }
@@ -279,14 +285,14 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void AddProductionSafety_WhenNotProduction_LeavesTheKeyRingUnchecked()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
 
-        services.AddProductionSafety(
+        serviceCollection.AddProductionSafety(
             CreateSafeConfiguration(),
             CreateEnvironment(Environments.Development)
         );
 
-        Assert.Empty(services);
+        Assert.Empty(serviceCollection);
     }
 
     [Fact]
@@ -330,21 +336,26 @@ public class ProductionSafetyRegistrationTests
             ("AllowedHosts", "op.example.com"),
             .. SafeSecretProtectionSettings,
         ]);
-        var services = new ServiceCollection();
-        services.AddProductionSafety(configuration, CreateEnvironment(Environments.Production));
-        services.Configure<KeyManagementOptions>(options =>
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddProductionSafety(
+            configuration,
+            CreateEnvironment(Environments.Production)
+        );
+        serviceCollection.Configure<KeyManagementOptions>(options =>
         {
             options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object;
             options.XmlEncryptor = new Mock<IXmlEncryptor>(MockBehavior.Strict).Object;
         });
-        services.Configure<OpenIdOptions>(options =>
+        serviceCollection.Configure<OpenIdOptions>(options =>
             options.Platform.Settings = configuration.GetSection("OpenId:Platform:Settings")
         );
-        services.AddSingleton<ITenantEnvironmentType>(new StubEnvironmentType("production", true));
-        services.AddSingleton<ITenantEnvironmentType>(
+        serviceCollection.AddSingleton<ITenantEnvironmentType>(
+            new StubEnvironmentType("production", true)
+        );
+        serviceCollection.AddSingleton<ITenantEnvironmentType>(
             new StubEnvironmentType("development", false)
         );
-        return services.BuildServiceProvider();
+        return serviceCollection.BuildServiceProvider();
     }
 
     private sealed class StubEnvironmentType(string typeName, bool isProduction)

@@ -23,10 +23,21 @@
       >README.md</PackageReadmeFile>
     <PackageTags>oauth;oauth2;oidc;openid-connect;jwt;jose;jws;jwe;jwk;identity;authentication;security</PackageTags>
     <PackageReleaseNotes>See the changelog: https://github.com/NCodeGroup/Identity/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <!-- Every package carries the family's logo as its icon: the {id} mark on its blue tile, from the brand kit (ADR-1491). -->
+    <PackageIcon>ncode-identity-nuget-tile-blue.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsPackable)' != 'false' And Exists('$(MSBuildProjectDirectory)\README.md')">
     <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None
+      Include="$(MSBuildThisFileDirectory)brand/nuget/ncode-identity-nuget-tile-blue.png"
+      Pack="true"
+      PackagePath="\"
+      Visible="false"
+    />
   </ItemGroup>
 
   <!-- Deterministic, source-linked builds to github.com so consumers can step into the exact released source. -->

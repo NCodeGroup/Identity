@@ -16,12 +16,8 @@
 *.snk binary
 
 # Kept from this repository's own .gitattributes when it adopted the project template
-###############################################################################
-# Set default behavior to automatically normalize line endings.
-###############################################################################
-* text=auto
-* text eol=lf
-
+# No rule here matches every file: a later rule overrides an earlier one, so one would switch the binary types above
+# back to text, and Git would rewrite the line endings inside them.
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

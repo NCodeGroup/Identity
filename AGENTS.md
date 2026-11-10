@@ -99,6 +99,10 @@ compiles it and no gate tests it
 - **Build analyzers** — `NCode.Identity.Analyzers`, the repository's own Roslyn analyzers, which every project's build
   loads and no package ships: `NCID0001` reports a field that could be an auto-property
   ([ADR-1486](docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md))
+- **Logo** — `brand/`, the family's logo kit: the `{id}` mark as SVG masters and as the PNG and ICO files each platform
+  takes, which every package, the host chart and the README show. `brand/build.py` draws every file there, so change
+  the script and run it, never a file it writes
+  ([ADR-1491](docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md))
 
 The central extensibility model — **service** vs **strategy collection** vs **mediator** — is captured in
 [ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md). Extensibility is the family's goal: a

@@ -18,14 +18,12 @@ public sealed class GuardedResilienceHandlerTests : IDisposable
 
     private static TimeSpan EnteredDeadline { get; } = TimeSpan.FromSeconds(10);
 
-    private static Task<HttpResponseMessage> RespondServiceUnavailable(
-        HttpRequestMessage request,
-        CancellationToken cancellationToken
-    )
-    {
-        var response = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
-        return Task.FromResult(response);
-    }
+    private static Func<
+        HttpRequestMessage,
+        CancellationToken,
+        Task<HttpResponseMessage>
+    > RespondServiceUnavailable { get; } =
+        (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
 
     private FakeTimeProvider Time { get; } = new(Start);
 

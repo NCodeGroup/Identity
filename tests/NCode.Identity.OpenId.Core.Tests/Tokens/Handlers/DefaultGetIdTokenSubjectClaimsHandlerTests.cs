@@ -102,8 +102,9 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         );
     }
 
-    private async Task<List<string>> CaptureCopiedClaimTypesAsync(
-        GetIdTokenSubjectClaimsCommand command
+    private async ValueTask<List<string>> CaptureCopiedClaimTypesAsync(
+        GetIdTokenSubjectClaimsCommand command,
+        CancellationToken cancellationToken
     )
     {
         List<string>? capturedClaimTypes = null;
@@ -132,7 +133,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             )
             .Verifiable();
 
-        await Handler.HandleAsync(command, CancellationToken.None);
+        await Handler.HandleAsync(command, cancellationToken);
 
         Assert.NotNull(capturedClaimTypes);
         return capturedClaimTypes;
@@ -252,7 +253,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         SetupSubjectProjection();
         var command = CreateCommand(CreateSubjectAuthentication(), ["openid"]);
 
-        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command, CancellationToken.None);
 
         Assert.Contains(JoseClaimNames.Payload.Acr, claimTypes);
     }
@@ -267,7 +268,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             alwaysIncludeAuthTime: true
         );
 
-        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command, CancellationToken.None);
 
         Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
     }
@@ -282,7 +283,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             alwaysIncludeAuthTime: false
         );
 
-        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command, CancellationToken.None);
 
         Assert.DoesNotContain(JoseClaimNames.Payload.AuthTime, claimTypes);
     }
@@ -298,7 +299,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             authTimeRequired: true
         );
 
-        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command, CancellationToken.None);
 
         Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
     }
@@ -321,7 +322,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             alwaysIncludeAuthTime: false
         );
 
-        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command, CancellationToken.None);
 
         Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
     }
@@ -356,7 +357,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             alwaysIncludeAuthTime: false
         );
 
-        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command, CancellationToken.None);
 
         Assert.DoesNotContain(JoseClaimNames.Payload.Sub, claimTypes);
         var subClaim = Assert.Single(
@@ -377,7 +378,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             accessToken: null
         );
 
-        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command, CancellationToken.None);
 
         Assert.Contains(JoseClaimNames.Payload.Name, claimTypes);
         Assert.Contains(JoseClaimNames.Payload.Email, claimTypes);
@@ -395,7 +396,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             accessToken: "the-access-token"
         );
 
-        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command, CancellationToken.None);
 
         Assert.DoesNotContain(JoseClaimNames.Payload.Name, claimTypes);
         Assert.DoesNotContain(JoseClaimNames.Payload.Email, claimTypes);
@@ -422,7 +423,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             accessToken: "the-access-token"
         );
 
-        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command, CancellationToken.None);
 
         Assert.Contains("custom_claim", claimTypes);
         Assert.DoesNotContain(JoseClaimNames.Payload.Name, claimTypes);

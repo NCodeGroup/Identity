@@ -19,7 +19,7 @@ public sealed class DefaultOpenIdTenantTests
     private static async ValueTask<(
         DefaultOpenIdTenant Tenant,
         Func<int> TeamReleases
-    )> CreateTenantAsync()
+    )> CreateTenantAsync(CancellationToken cancellationToken)
     {
         var teamReleases = 0;
 
@@ -112,7 +112,7 @@ public sealed class DefaultOpenIdTenantTests
     [Fact]
     public async Task ConcurrencyToken_ReturnsTheTokenOfTheRowTheTenantWasMaterializedFrom()
     {
-        var (tenant, _) = await CreateTenantAsync();
+        var (tenant, _) = await CreateTenantAsync(CancellationToken.None);
         await using var disposable = tenant;
 
         Assert.Equal("tenant-ct", tenant.ConcurrencyToken);
@@ -125,7 +125,7 @@ public sealed class DefaultOpenIdTenantTests
     [Fact]
     public async Task DisposeAsync_ReleasesTheTeamOnce()
     {
-        var (tenant, teamReleases) = await CreateTenantAsync();
+        var (tenant, teamReleases) = await CreateTenantAsync(CancellationToken.None);
         Assert.Equal(0, teamReleases());
 
         await tenant.DisposeAsync();
@@ -136,7 +136,7 @@ public sealed class DefaultOpenIdTenantTests
     [Fact]
     public async Task DisposeAsync_Twice_ReleasesTheTeamOnce()
     {
-        var (tenant, teamReleases) = await CreateTenantAsync();
+        var (tenant, teamReleases) = await CreateTenantAsync(CancellationToken.None);
 
         await tenant.DisposeAsync();
         await tenant.DisposeAsync();

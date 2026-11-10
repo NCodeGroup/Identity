@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -89,12 +90,14 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
         };
 
     private static async IAsyncEnumerable<RemoteKeyListing> ToAsyncEnumerable(
-        params RemoteKeyListing[] listings
+        IReadOnlyList<RemoteKeyListing> listings,
+        [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
         await Task.Yield();
         foreach (var listing in listings)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             yield return listing;
         }
     }
@@ -123,7 +126,10 @@ public sealed class RemoteKeySweepJobHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ToAsyncEnumerable(listings))
+            .Returns(
+                (RemoteKeyListRequest _, CancellationToken cancellationToken) =>
+                    ToAsyncEnumerable(listings, cancellationToken)
+            )
             .Verifiable();
     }
 

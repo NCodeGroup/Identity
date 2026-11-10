@@ -220,12 +220,8 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         return client;
     }
 
-    private async Task<OpenIdClient?> ResolveAsync() =>
-        await Resolver.ResolveClientOrDefaultAsync(
-            MockContext.Object,
-            ClientId,
-            CancellationToken.None
-        );
+    private async ValueTask<OpenIdClient?> ResolveAsync(CancellationToken cancellationToken) =>
+        await Resolver.ResolveClientOrDefaultAsync(MockContext.Object, ClientId, cancellationToken);
 
     #endregion
 
@@ -236,7 +232,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     {
         SetupStoredClient(null);
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Null(client);
     }
@@ -246,7 +242,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     {
         SetupStoredClient(CreatePersistedClient(isDisabled: true));
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Null(client);
     }
@@ -256,7 +252,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     {
         SetupStoredClient(CreatePersistedClient(tenantId: "tenant-2"));
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Null(client);
     }
@@ -267,7 +263,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupStoredClient(CreatePersistedClient());
         var expected = SetupClientCreation(expectedResourceServerId: null);
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Same(expected, client);
     }
@@ -278,7 +274,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupStoredClient(CreatePersistedClient());
         SetupClientCreation(expectedResourceServerId: null);
 
-        await ResolveAsync();
+        await ResolveAsync(CancellationToken.None);
 
         Assert.NotNull(CreatedDefinition);
         Assert.Equal(PrincipalId, CreatedDefinition.PrincipalId);
@@ -292,7 +288,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupStoredClient(CreatePersistedClient(secrets: [expired, live]));
         var expected = SetupClientCreation(expectedResourceServerId: null, "live");
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Same(expected, client);
     }
@@ -305,7 +301,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupStoredClient(CreatePersistedClient(secrets: [first, second]));
         var expected = SetupClientCreation(expectedResourceServerId: null, "first", "second");
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Same(expected, client);
     }
@@ -318,7 +314,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupStoredClient(CreatePersistedClient(secrets: [first, second]));
         var expected = SetupClientCreation(expectedResourceServerId: null);
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Same(expected, client);
     }
@@ -332,7 +328,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         var expected = SetupClientCreation(expectedResourceServerId: null, "live");
         TimeProvider.Advance(TimeSpan.FromMinutes(5));
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Same(expected, client);
     }
@@ -343,7 +339,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupStoredClient(CreatePersistedClient(ResourceServerId));
         SetupHttpContext();
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Null(client);
     }
@@ -372,7 +368,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
             verifiers
         );
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Same(expected, client);
     }
@@ -393,7 +389,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupStoredClient(CreatePersistedClient(secrets: [expiredVerifier, verifier]));
         var expected = SetupClientCreation(expectedResourceServerId: null, [], ["verifier"], []);
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Same(expected, client);
     }
@@ -405,7 +401,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupHttpContext();
         SetupEndpoint();
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Null(client);
     }
@@ -417,7 +413,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupHttpContext();
         SetupEndpoint(new ResourceServerClientMetadata(false));
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Null(client);
     }
@@ -430,7 +426,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         SetupEndpoint(new ResourceServerClientMetadata(true));
         var expected = SetupClientCreation(ResourceServerId);
 
-        var client = await ResolveAsync();
+        var client = await ResolveAsync(CancellationToken.None);
 
         Assert.Same(expected, client);
     }

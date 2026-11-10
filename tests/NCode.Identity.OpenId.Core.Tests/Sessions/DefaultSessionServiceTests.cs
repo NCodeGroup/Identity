@@ -122,14 +122,15 @@ public class DefaultSessionServiceTests : BaseTests
             },
         };
 
-    private async Task<(
+    private async ValueTask<(
         string Result,
         PersistedGrant<SessionGrant> Grant,
         DateTimeOffset CreatedWhen,
         TimeSpan? Lifetime
     )> CreateSessionAsync(
         CreateSessionRequest request,
-        Action<Mock<OpenIdContext>>? arrangeContext = null
+        Action<Mock<OpenIdContext>>? arrangeContext,
+        CancellationToken cancellationToken
     )
     {
         var mockContext = CreateContext();
@@ -191,7 +192,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var result = await Service.CreateAsync(mockContext.Object, request, CancellationToken.None);
+        var result = await Service.CreateAsync(mockContext.Object, request, cancellationToken);
 
         return (result, capturedGrant, capturedCreatedWhen, capturedLifetime);
     }
@@ -214,7 +215,7 @@ public class DefaultSessionServiceTests : BaseTests
         };
 
         var (result, capturedGrant, capturedCreatedWhen, capturedLifetime) =
-            await CreateSessionAsync(request);
+            await CreateSessionAsync(request, arrangeContext: null, CancellationToken.None);
 
         Assert.Equal(SessionId, result);
         Assert.Equal(PersistedGrantStatus.Active, capturedGrant.Status);
@@ -242,7 +243,11 @@ public class DefaultSessionServiceTests : BaseTests
             IdleTimeout = TimeSpan.FromDays(3),
         };
 
-        var (_, capturedGrant, _, capturedLifetime) = await CreateSessionAsync(request);
+        var (_, capturedGrant, _, capturedLifetime) = await CreateSessionAsync(
+            request,
+            arrangeContext: null,
+            CancellationToken.None
+        );
 
         Assert.Equal(UtcNow.AddHours(1), capturedGrant.Payload.AbsoluteExpiresWhen);
         Assert.Equal(TimeSpan.FromHours(1), capturedLifetime);
@@ -312,7 +317,8 @@ public class DefaultSessionServiceTests : BaseTests
                     )
                     .Returns(ValueTask.CompletedTask)
                     .Verifiable();
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(SessionId, result);
@@ -345,7 +351,8 @@ public class DefaultSessionServiceTests : BaseTests
                     .Verifiable();
                 SetupSessionGrantIds();
                 SetupLostSessionClaim(mockContext, "old");
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(SessionId, result);

@@ -72,10 +72,16 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
             CreateLooseMock<ILogger<DataProtectionKeyRingGate>>().Object
         );
 
-    private async Task<PlatformSecretProtectorHolder> CreateLoadedHolderAsync() =>
+    private async ValueTask<PlatformSecretProtectorHolder> CreateLoadedHolderAsync(
+        CancellationToken cancellationToken
+    ) =>
         new()
         {
-            Protector = await GetProtectorAsync(CreateSecretServices(PlatformOwner), PlatformOwner),
+            Protector = await GetProtectorAsync(
+                CreateSecretServices(PlatformOwner),
+                PlatformOwner,
+                cancellationToken
+            ),
         };
 
     private ServiceProvider CreateDataProtectionServices(
@@ -247,8 +253,8 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
     [Fact]
     public async Task StartAsync_WhenTheRingWasEncryptedUnderAnotherMasterKey_Throws()
     {
-        var holderA = await CreateLoadedHolderAsync();
-        var holderB = await CreateLoadedHolderAsync();
+        var holderA = await CreateLoadedHolderAsync(CancellationToken.None);
+        var holderB = await CreateLoadedHolderAsync(CancellationToken.None);
         var repository = CreateRepository([]);
         var servicesA = CreateDataProtectionServices(repository, holderA);
         var servicesB = CreateDataProtectionServices(repository, holderB);
@@ -270,7 +276,7 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
     [Fact]
     public async Task StartAsync_WhenTheRingWasEncryptedUnderThePlatformMasterKey_Completes()
     {
-        var holderA = await CreateLoadedHolderAsync();
+        var holderA = await CreateLoadedHolderAsync(CancellationToken.None);
         var repository = CreateRepository([]);
         var servicesA = CreateDataProtectionServices(repository, holderA);
         var now = TimeProvider.System.GetUtcNow();

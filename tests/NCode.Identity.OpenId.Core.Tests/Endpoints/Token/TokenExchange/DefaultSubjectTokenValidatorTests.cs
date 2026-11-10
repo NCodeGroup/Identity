@@ -75,13 +75,16 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
             .ReturnsAsync(result)
             .Verifiable();
 
-    private async Task<SubjectTokenValidationResult> ValidateAsync(string tokenTypeIdentifier) =>
+    private async ValueTask<SubjectTokenValidationResult> ValidateAsync(
+        string tokenTypeIdentifier,
+        CancellationToken cancellationToken
+    ) =>
         await Validator.ValidateAsync(
             MockContext.Object,
             MockClient.Object,
             Token,
             tokenTypeIdentifier,
-            CancellationToken.None
+            cancellationToken
         );
 
     #endregion
@@ -91,7 +94,10 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
     [Fact]
     public async Task ValidateAsync_WhenTokenTypeNotJwt_ReturnsFailWithoutValidatingJwt()
     {
-        var result = await ValidateAsync("urn:ietf:params:oauth:token-type:saml2");
+        var result = await ValidateAsync(
+            "urn:ietf:params:oauth:token-type:saml2",
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Same(MockError.Object, result.Error);
@@ -102,7 +108,10 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
     {
         SetupAccessTokenValidation(ValidResult());
 
-        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.AccessToken);
+        var result = await ValidateAsync(
+            OpenIdProtocol.TokenTypeIdentifiers.AccessToken,
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
         Assert.Equal(Subject, result.Principal?.FindFirst(JoseClaimNames.Payload.Sub)?.Value);
@@ -114,7 +123,10 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
     {
         SetupAccessTokenValidation(TestJwtValidationResults.Invalid(Token));
 
-        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.AccessToken);
+        var result = await ValidateAsync(
+            OpenIdProtocol.TokenTypeIdentifiers.AccessToken,
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Same(MockError.Object, result.Error);
@@ -125,7 +137,10 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
     {
         SetupIdTokenValidation(ValidResult());
 
-        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.IdToken);
+        var result = await ValidateAsync(
+            OpenIdProtocol.TokenTypeIdentifiers.IdToken,
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
         Assert.Equal(Subject, result.Principal?.FindFirst(JoseClaimNames.Payload.Sub)?.Value);
@@ -136,7 +151,10 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
     {
         SetupAccessTokenValidation(ValidResult());
 
-        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.Jwt);
+        var result = await ValidateAsync(
+            OpenIdProtocol.TokenTypeIdentifiers.Jwt,
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
     }
@@ -147,7 +165,10 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
         SetupAccessTokenValidation(TestJwtValidationResults.Invalid(Token));
         SetupIdTokenValidation(ValidResult());
 
-        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.Jwt);
+        var result = await ValidateAsync(
+            OpenIdProtocol.TokenTypeIdentifiers.Jwt,
+            CancellationToken.None
+        );
 
         Assert.True(result.IsValid);
     }
@@ -158,7 +179,10 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
         SetupAccessTokenValidation(TestJwtValidationResults.Invalid(Token));
         SetupIdTokenValidation(TestJwtValidationResults.Invalid(Token));
 
-        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.Jwt);
+        var result = await ValidateAsync(
+            OpenIdProtocol.TokenTypeIdentifiers.Jwt,
+            CancellationToken.None
+        );
 
         Assert.False(result.IsValid);
         Assert.Same(MockError.Object, result.Error);

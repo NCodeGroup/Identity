@@ -97,27 +97,38 @@ public class PlatformSecretProtectorRefreshServiceTests : BaseTests
         );
     }
 
-    private static async Task<bool> UntilAsync(Func<bool> condition)
+    private static async ValueTask<bool> UntilAsync(
+        Func<bool> condition,
+        CancellationToken cancellationToken
+    )
     {
         var deadline = DateTime.UtcNow + Wait;
         while (!condition())
         {
             if (DateTime.UtcNow > deadline)
                 return false;
-            await Task.Delay(10);
+            await Task.Delay(10, cancellationToken);
         }
 
         return true;
     }
 
     // The service may create its timer after StartAsync returns, so the clock advances until a load happens.
-    private static async Task<bool> TickUntilLoadAsync(Fixture fixture)
+    private static async ValueTask<bool> TickUntilLoadAsync(
+        Fixture fixture,
+        CancellationToken cancellationToken
+    )
     {
         var deadline = DateTime.UtcNow + Wait;
         while (DateTime.UtcNow < deadline)
         {
             fixture.Time.Advance(fixture.Interval);
-            if (await fixture.Provider.Requested.WaitAsync(TimeSpan.FromMilliseconds(50)))
+            if (
+                await fixture.Provider.Requested.WaitAsync(
+                    TimeSpan.FromMilliseconds(50),
+                    cancellationToken
+                )
+            )
                 return true;
         }
 
@@ -137,12 +148,19 @@ public class PlatformSecretProtectorRefreshServiceTests : BaseTests
         Assert.Empty(fixture.Provider.Requests);
         Assert.Null(fixture.Holder.Protector);
 
-        Assert.True(await TickUntilLoadAsync(fixture));
-        Assert.True(await UntilAsync(() => fixture.Holder.Protector is not null));
+        Assert.True(await TickUntilLoadAsync(fixture, CancellationToken.None));
+        Assert.True(
+            await UntilAsync(() => fixture.Holder.Protector is not null, CancellationToken.None)
+        );
         var first = fixture.Holder.Protector;
 
-        Assert.True(await TickUntilLoadAsync(fixture));
-        Assert.True(await UntilAsync(() => !ReferenceEquals(fixture.Holder.Protector, first)));
+        Assert.True(await TickUntilLoadAsync(fixture, CancellationToken.None));
+        Assert.True(
+            await UntilAsync(
+                () => !ReferenceEquals(fixture.Holder.Protector, first),
+                CancellationToken.None
+            )
+        );
 
         Assert.True(fixture.Provider.Requests.Count >= 2);
 
@@ -157,12 +175,14 @@ public class PlatformSecretProtectorRefreshServiceTests : BaseTests
 
         await fixture.Service.StartAsync(CancellationToken.None);
 
-        Assert.True(await TickUntilLoadAsync(fixture));
+        Assert.True(await TickUntilLoadAsync(fixture, CancellationToken.None));
         Assert.True(
-            await UntilAsync(() =>
-                fixture.Logger.Events.Any(e =>
-                    e.Id == EventIds.PlatformSecretProtectorRefreshFailed
-                )
+            await UntilAsync(
+                () =>
+                    fixture.Logger.Events.Any(e =>
+                        e.Id == EventIds.PlatformSecretProtectorRefreshFailed
+                    ),
+                CancellationToken.None
             )
         );
         Assert.All(fixture.Logger.Events, e => Assert.Equal(LogLevel.Warning, e.Level));
@@ -170,8 +190,10 @@ public class PlatformSecretProtectorRefreshServiceTests : BaseTests
         Assert.Null(fixture.Holder.Protector);
 
         fixture.Provider.Failure = null;
-        Assert.True(await TickUntilLoadAsync(fixture));
-        Assert.True(await UntilAsync(() => fixture.Holder.Protector is not null));
+        Assert.True(await TickUntilLoadAsync(fixture, CancellationToken.None));
+        Assert.True(
+            await UntilAsync(() => fixture.Holder.Protector is not null, CancellationToken.None)
+        );
 
         await fixture.Service.StopAsync(CancellationToken.None);
     }

@@ -116,7 +116,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
             .ReturnsAsync(recorded)
             .Verifiable();
 
-    private ValueTask<string> InvokeValidateAsync() =>
+    private ValueTask<string> InvokeValidateAsync(CancellationToken cancellationToken) =>
         Validator.ValidateAsync(
             MockContext.Object,
             new DPoPProofValidationRequest
@@ -127,7 +127,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
                 AccessToken = "access-token",
                 Settings = MockClient.Object.Settings,
             },
-            CancellationToken.None
+            cancellationToken
         );
 
     #endregion
@@ -140,7 +140,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         SetupProofService(CreateProof());
         SetupReplayCache(recorded: true);
 
-        var thumbprint = await InvokeValidateAsync();
+        var thumbprint = await InvokeValidateAsync(CancellationToken.None);
 
         Assert.Equal(Thumbprint, thumbprint);
     }
@@ -150,7 +150,9 @@ public class DefaultDPoPProofValidatorTests : BaseTests
     {
         SetupProofService(proof: null, error: "The DPoP proof signature is invalid.");
 
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync().AsTask());
+        await Assert.ThrowsAsync<OpenIdException>(() =>
+            InvokeValidateAsync(CancellationToken.None).AsTask()
+        );
     }
 
     [Fact]
@@ -159,7 +161,9 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         SetupProofService(CreateProof());
         SetupReplayCache(recorded: false);
 
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync().AsTask());
+        await Assert.ThrowsAsync<OpenIdException>(() =>
+            InvokeValidateAsync(CancellationToken.None).AsTask()
+        );
     }
 
     [Fact]
@@ -179,7 +183,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
             .Verifiable();
         SetupReplayCache(recorded: true);
 
-        var thumbprint = await InvokeValidateAsync();
+        var thumbprint = await InvokeValidateAsync(CancellationToken.None);
 
         Assert.Equal(Thumbprint, thumbprint);
     }

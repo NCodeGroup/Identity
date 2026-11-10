@@ -124,17 +124,18 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
             .ReturnsAsync(CreateKeys(keys))
             .Verifiable();
 
-    private async Task<ClientJwtCredentials> SelectAsync(
+    private async ValueTask<ClientJwtCredentials> SelectAsync(
         OpenIdClient client,
         ClientJwtProtectionSettings protectionSettings,
-        bool signs = true,
-        bool refuses = false
+        bool signs,
+        bool refuses,
+        CancellationToken cancellationToken
     ) =>
         await Selector.SelectCredentialsAsync(
             CreateContext(signs, refuses),
             client,
             protectionSettings,
-            CancellationToken.None
+            cancellationToken
         );
 
     #endregion
@@ -149,7 +150,9 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         var credentials = await SelectAsync(
             client,
             ClientJwtProtectionSettings.UserInfo,
-            signs: false
+            signs: false,
+            refuses: false,
+            CancellationToken.None
         );
 
         Assert.False(credentials.IsProtected);
@@ -167,7 +170,13 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
             }
         );
 
-        var credentials = await SelectAsync(client, ClientJwtProtectionSettings.UserInfo);
+        var credentials = await SelectAsync(
+            client,
+            ClientJwtProtectionSettings.UserInfo,
+            signs: true,
+            refuses: false,
+            CancellationToken.None
+        );
 
         var signingCredentials = Assert.IsType<JoseSigningCredentials>(
             credentials.SigningCredentials
@@ -191,7 +200,14 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.IdToken, signs: false, refuses: true)
+            SelectAsync(
+                    client,
+                    ClientJwtProtectionSettings.IdToken,
+                    signs: false,
+                    refuses: true,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
     }
 
@@ -206,7 +222,14 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.IdToken, refuses: true)
+            SelectAsync(
+                    client,
+                    ClientJwtProtectionSettings.IdToken,
+                    signs: true,
+                    refuses: true,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
     }
 
@@ -224,7 +247,13 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         );
         SetupClientKeys(client, ClientSharedSecret, ClientEncryptionKey);
 
-        var credentials = await SelectAsync(client, ClientJwtProtectionSettings.IdToken);
+        var credentials = await SelectAsync(
+            client,
+            ClientJwtProtectionSettings.IdToken,
+            signs: true,
+            refuses: false,
+            CancellationToken.None
+        );
 
         var encryptionCredentials = Assert.IsType<JoseEncryptionCredentials>(
             credentials.EncryptionCredentials
@@ -249,7 +278,14 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.UserInfo, signs: false, refuses: true)
+            SelectAsync(
+                    client,
+                    ClientJwtProtectionSettings.UserInfo,
+                    signs: false,
+                    refuses: true,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
     }
 
@@ -265,7 +301,14 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         SetupClientKeys(client, ClientSharedSecret);
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.UserInfo, signs: false, refuses: true)
+            SelectAsync(
+                    client,
+                    ClientJwtProtectionSettings.UserInfo,
+                    signs: false,
+                    refuses: true,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
     }
 
@@ -282,7 +325,14 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.IdToken, refuses: true)
+            SelectAsync(
+                    client,
+                    ClientJwtProtectionSettings.IdToken,
+                    signs: true,
+                    refuses: true,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
     }
 

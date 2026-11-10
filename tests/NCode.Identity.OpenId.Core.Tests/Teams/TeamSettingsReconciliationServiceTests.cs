@@ -210,8 +210,14 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
         MockReconciler
             .Setup(x => x.ReconcileAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(
-                (string teamId, CancellationToken _) =>
-                    ReconcileAfterReleaseAsync(teamId, started, release, reconciled.Writer)
+                (string teamId, CancellationToken cancellationToken) =>
+                    ReconcileAfterReleaseAsync(
+                        teamId,
+                        started,
+                        release,
+                        reconciled.Writer,
+                        cancellationToken
+                    )
             )
             .Verifiable();
         SetupPlatform();
@@ -368,8 +374,14 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
         MockReconciler
             .Setup(x => x.ReconcileAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(
-                (string teamId, CancellationToken _) =>
-                    ReconcileAfterReleaseAsync(teamId, started, release, reconciled.Writer)
+                (string teamId, CancellationToken cancellationToken) =>
+                    ReconcileAfterReleaseAsync(
+                        teamId,
+                        started,
+                        release,
+                        reconciled.Writer,
+                        cancellationToken
+                    )
             )
             .Verifiable();
         SetupPlatform();
@@ -461,16 +473,17 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
         string teamId,
         TaskCompletionSource started,
         TaskCompletionSource release,
-        ChannelWriter<string> reconciled
+        ChannelWriter<string> reconciled,
+        CancellationToken cancellationToken
     )
     {
         if (teamId == TeamId)
         {
             started.TrySetResult();
-            await release.Task;
+            await release.Task.WaitAsync(cancellationToken);
         }
 
-        await reconciled.WriteAsync(teamId);
+        await reconciled.WriteAsync(teamId, cancellationToken);
         return true;
     }
 

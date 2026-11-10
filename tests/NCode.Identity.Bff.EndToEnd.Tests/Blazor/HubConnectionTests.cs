@@ -20,16 +20,23 @@ public sealed class HubConnectionTests(EndToEndEnvironment environment)
     public async Task BlazorHub_WebSocketFromAnotherOrigin_IsRefused(string browserName)
     {
         var bff = environment.BlazorBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
-        var originPage = await BrowserFlows.OpenOriginAsync(context, environment.CrossSiteAdmitted);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
+        var originPage = await BrowserFlows.OpenOriginAsync(
+            context,
+            environment.CrossSiteAdmitted,
+            CancellationToken.None
+        );
         var before = bff.Counters.HubRequests;
         var url = $"{bff.WebSocketOrigin}/_blazor";
 
-        var refused = await HubFlows.ProbeWebSocketAsync(originPage, url);
+        var refused = await HubFlows.ProbeWebSocketAsync(originPage, url, CancellationToken.None);
         var afterRefusal = bff.Counters.HubRequests;
-        var admitted = await HubFlows.ProbeWebSocketAsync(page, url);
+        var admitted = await HubFlows.ProbeWebSocketAsync(page, url, CancellationToken.None);
 
         Assert.Equal("refused", refused);
         Assert.Equal(before, afterRefusal);
@@ -45,23 +52,27 @@ public sealed class HubConnectionTests(EndToEndEnvironment environment)
     public async Task IdleHub_AfterBackChannelLogout_ClosesTheConnection(string browserName)
     {
         var bff = environment.BlazorBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
 
         var opened = await HubFlows.OpenHubConnectionAsync(
             page,
-            $"{bff.WebSocketOrigin}/hubs/notifications"
+            $"{bff.WebSocketOrigin}/hubs/notifications",
+            CancellationToken.None
         );
         Assert.Equal("open", opened);
 
         await Task.Delay(bff.RevalidationInterval * RevalidationsBeforeLogout);
-        Assert.False(await HubFlows.IsHubConnectionClosedAsync(page));
+        Assert.False(await HubFlows.IsHubConnectionClosedAsync(page, CancellationToken.None));
 
-        await environment.Keycloak.LogOutUserAsync();
+        await environment.Keycloak.LogOutUserAsync(CancellationToken.None);
 
-        await HubFlows.WaitForHubConnectionClosedAsync(page);
-        Assert.True(await HubFlows.IsHubConnectionClosedAsync(page));
+        await HubFlows.WaitForHubConnectionClosedAsync(page, CancellationToken.None);
+        Assert.True(await HubFlows.IsHubConnectionClosedAsync(page, CancellationToken.None));
     }
 
     #endregion

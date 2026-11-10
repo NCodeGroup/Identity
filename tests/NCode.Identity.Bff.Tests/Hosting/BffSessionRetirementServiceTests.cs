@@ -73,8 +73,11 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     private static BffStoreUnavailableException CreateStoreFailure() =>
         new("The store is unavailable.");
 
-    private async Task<BffFrontendSet> ReadPassAsync() =>
-        await Passes.Reader.ReadAsync().AsTask().WaitAsync(WaitLimit);
+    private async ValueTask<BffFrontendSet> ReadPassAsync(CancellationToken cancellationToken) =>
+        await Passes
+            .Reader.ReadAsync(cancellationToken)
+            .AsTask()
+            .WaitAsync(WaitLimit, cancellationToken);
 
     private Mock<TimeProvider> CreateTimerProvider(
         Channel<(TimerCallback Callback, object? State, TimeSpan DueTime)> timers
@@ -103,16 +106,17 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         return mockTimeProvider;
     }
 
-    private static async Task FireRetryTimerAsync(
-        Channel<(TimerCallback Callback, object? State, TimeSpan DueTime)> timers
+    private static async ValueTask FireRetryTimerAsync(
+        Channel<(TimerCallback Callback, object? State, TimeSpan DueTime)> timers,
+        CancellationToken cancellationToken
     )
     {
         while (true)
         {
             var (callback, state, dueTime) = await timers
-                .Reader.ReadAsync()
+                .Reader.ReadAsync(cancellationToken)
                 .AsTask()
-                .WaitAsync(WaitLimit);
+                .WaitAsync(WaitLimit, cancellationToken);
             if (dueTime != RetryDelay)
                 continue;
 
@@ -130,7 +134,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         using var service = CreateService();
 
         await service.StartAsync(CancellationToken.None);
-        var set = await ReadPassAsync();
+        var set = await ReadPassAsync(CancellationToken.None);
         await service.StopAsync(CancellationToken.None);
 
         Assert.Same(Frontends.Current, set);
@@ -143,7 +147,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         using var service = CreateService();
 
         await service.StartAsync(CancellationToken.None);
-        var first = await ReadPassAsync();
+        var first = await ReadPassAsync(CancellationToken.None);
         Source.Change(
             BffTestFrontends.CreateBffOptions(options =>
                 options.Frontends["other"] = BffTestFrontends.CreateOptions(frontend =>
@@ -153,7 +157,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
                 })
             )
         );
-        var second = await ReadPassAsync();
+        var second = await ReadPassAsync(CancellationToken.None);
         await service.StopAsync(CancellationToken.None);
 
         Assert.NotSame(first, second);
@@ -174,9 +178,9 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         using var service = CreateService(timeProvider.Object);
 
         await service.StartAsync(CancellationToken.None);
-        await ReadPassAsync();
-        await FireRetryTimerAsync(timers);
-        await ReadPassAsync();
+        await ReadPassAsync(CancellationToken.None);
+        await FireRetryTimerAsync(timers, CancellationToken.None);
+        await ReadPassAsync(CancellationToken.None);
         await service.StopAsync(CancellationToken.None);
 
         Assert.Contains(
@@ -203,9 +207,9 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         using var service = CreateService(timeProvider.Object);
 
         await service.StartAsync(CancellationToken.None);
-        await ReadPassAsync();
-        await FireRetryTimerAsync(timers);
-        await ReadPassAsync();
+        await ReadPassAsync(CancellationToken.None);
+        await FireRetryTimerAsync(timers, CancellationToken.None);
+        await ReadPassAsync(CancellationToken.None);
         await service.StopAsync(CancellationToken.None);
 
         Assert.Contains(
@@ -229,9 +233,9 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         using var service = CreateService(timeProvider.Object);
 
         await service.StartAsync(CancellationToken.None);
-        await ReadPassAsync();
-        await FireRetryTimerAsync(timers);
-        await ReadPassAsync();
+        await ReadPassAsync(CancellationToken.None);
+        await FireRetryTimerAsync(timers, CancellationToken.None);
+        await ReadPassAsync(CancellationToken.None);
         await service.StopAsync(CancellationToken.None);
     }
 

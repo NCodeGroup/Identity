@@ -139,11 +139,14 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
             .Returns(new ValueTask<BffTokenResult>(BffTokenResult.Success(token)))
             .Verifiable();
 
-    private static async Task<string> ReadResponseBodyAsync(HttpContext context)
+    private static async ValueTask<string> ReadResponseBodyAsync(
+        HttpContext context,
+        CancellationToken cancellationToken
+    )
     {
         context.Response.Body.Position = 0;
         using var reader = new StreamReader(context.Response.Body, SecureEncoding.UTF8);
-        return await reader.ReadToEndAsync();
+        return await reader.ReadToEndAsync(cancellationToken);
     }
 
     private static HttpResponseMessage CreateRemoteResponse(HttpStatusCode status, string body)
@@ -190,7 +193,7 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
         Assert.Null(sentHeaders.Host);
 
         Assert.Equal(StatusCodes.Status201Created, context.Response.StatusCode);
-        Assert.Equal("""{"id":7}""", await ReadResponseBodyAsync(context));
+        Assert.Equal("""{"id":7}""", await ReadResponseBodyAsync(context, CancellationToken.None));
         Assert.False(context.Response.Headers.ContainsKey("Set-Cookie"));
     }
 
@@ -241,7 +244,7 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
         Assert.Equal("""{"qty":1}""", remote.Requests[0].Body);
         Assert.Equal("""{"qty":1}""", remote.Requests[1].Body);
         Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
-        Assert.Equal("""{"id":7}""", await ReadResponseBodyAsync(context));
+        Assert.Equal("""{"id":7}""", await ReadResponseBodyAsync(context, CancellationToken.None));
     }
 
     [Fact]

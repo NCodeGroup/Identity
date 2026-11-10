@@ -49,7 +49,10 @@ public class BffClientAuthenticationStateProviderTests : BaseTests
             CreateLooseMock<ILogger<BffClientSession>>().Object
         );
 
-    private static async Task<PersistentComponentState> CreateStateAsync(string document)
+    private static async ValueTask<PersistentComponentState> CreateStateAsync(
+        string document,
+        CancellationToken cancellationToken
+    )
     {
         var manager = new ComponentStatePersistenceManager(
             NullLogger<ComponentStatePersistenceManager>.Instance
@@ -75,7 +78,7 @@ public class BffClientAuthenticationStateProviderTests : BaseTests
     {
         var httpClientFactory = CreateStrictMock<IHttpClientFactory>();
         using var session = CreateSession(httpClientFactory.Object);
-        var state = await CreateStateAsync(UserDocument);
+        var state = await CreateStateAsync(UserDocument, CancellationToken.None);
         using var provider = new BffClientAuthenticationStateProvider(session, state);
 
         var authenticationState = await provider.GetAuthenticationStateAsync().WaitAsync(Timeout);
@@ -95,7 +98,7 @@ public class BffClientAuthenticationStateProviderTests : BaseTests
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.Unauthorized);
         using var session = CreateSession(handler);
-        var state = await CreateStateAsync(UserDocument);
+        var state = await CreateStateAsync(UserDocument, CancellationToken.None);
         using var provider = new BffClientAuthenticationStateProvider(session, state);
         var notified = new TaskCompletionSource<Task<AuthenticationState>>(
             TaskCreationOptions.RunContinuationsAsynchronously

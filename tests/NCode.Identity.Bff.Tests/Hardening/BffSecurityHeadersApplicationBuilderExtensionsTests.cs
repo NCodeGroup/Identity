@@ -38,7 +38,7 @@ public class BffSecurityHeadersApplicationBuilderExtensionsTests : BaseTests
         var httpContext = new DefaultHttpContext(features) { RequestServices = serviceProvider };
 
         await pipeline(httpContext);
-        await responseFeature.StartAsync();
+        await responseFeature.StartAsync(CancellationToken.None);
 
         Assert.Same(app, returned);
         Assert.Equal("no-referrer", httpContext.Response.Headers["Referrer-Policy"].ToString());

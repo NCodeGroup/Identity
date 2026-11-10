@@ -139,7 +139,8 @@ public class BffHubFilterTests : BaseTests
     private HubInvocationContext CreateInvocation(HubCallerContext context) =>
         new(context, ServiceProvider, Hub, Method, []);
 
-    private static ValueTask<object?> Next(HubInvocationContext _) => new((object?)"result");
+    private static Func<HubInvocationContext, ValueTask<object?>> Next { get; } =
+        _ => new((object?)"result");
 
     #region OnConnectedAsync Tests
 

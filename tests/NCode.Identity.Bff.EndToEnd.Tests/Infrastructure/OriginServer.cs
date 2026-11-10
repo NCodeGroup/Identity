@@ -25,9 +25,10 @@ public sealed class OriginServer : IAsyncDisposable
     /// <summary>
     /// Starts a server that listens on each of the ports.
     /// </summary>
-    public static async Task<OriginServer> StartAsync(
+    public static async ValueTask<OriginServer> StartAsync(
         TestCertificate certificate,
-        IReadOnlyList<int> ports
+        IReadOnlyList<int> ports,
+        CancellationToken cancellationToken
     )
     {
         var builder = WebApplication.CreateBuilder(
@@ -52,7 +53,7 @@ public sealed class OriginServer : IAsyncDisposable
                 Results.Content(TestPages.Blank, "text/html", contentEncoding: SecureEncoding.UTF8)
         );
 
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         return new OriginServer(app);
     }
 

@@ -27,9 +27,12 @@ public sealed class BlazorCircuitTests(EndToEndEnvironment environment)
     public async Task Circuit_AfterBackChannelLogout_SignsOut(string browserName)
     {
         var bff = environment.BlazorBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
         var before = bff.Counters.HubRequests;
 
         await page.GotoAsync($"{bff.Origin}/circuit");
@@ -42,7 +45,7 @@ public sealed class BlazorCircuitTests(EndToEndEnvironment environment)
         Assert.Equal(KeycloakProvider.UserEmail, await page.InnerTextAsync("#circuit-user"));
         Assert.True(bff.Counters.HubRequests > before);
 
-        await environment.Keycloak.LogOutUserAsync();
+        await environment.Keycloak.LogOutUserAsync(CancellationToken.None);
 
         await page.WaitForFunctionAsync(
             CircuitSignedOutScript,
@@ -58,9 +61,12 @@ public sealed class BlazorCircuitTests(EndToEndEnvironment environment)
     )
     {
         var bff = environment.BlazorBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
 
         await page.GotoAsync($"{bff.Origin}/circuit");
         await page.WaitForFunctionAsync(
@@ -76,7 +82,7 @@ public sealed class BlazorCircuitTests(EndToEndEnvironment environment)
             new PageWaitForFunctionOptions { Timeout = WaitTimeoutMilliseconds }
         );
 
-        await environment.Keycloak.LogOutUserAsync();
+        await environment.Keycloak.LogOutUserAsync(CancellationToken.None);
 
         await page.WaitForFunctionAsync(
             CircuitSignedOutScript,

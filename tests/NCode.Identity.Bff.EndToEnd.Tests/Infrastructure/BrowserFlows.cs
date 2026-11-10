@@ -25,20 +25,25 @@ public static class BrowserFlows
     /// <summary>
     /// Signs the user in at Keycloak through the BFF's login endpoint and waits for the return page.
     /// </summary>
-    public static Task LoginAsync(IPage page, BffApplication bff, KeycloakProvider keycloak) =>
-        LoginAsync(page, bff.Origin, keycloak);
+    public static async ValueTask LoginAsync(
+        IPage page,
+        BffApplication bff,
+        KeycloakProvider keycloak,
+        CancellationToken cancellationToken
+    ) => await LoginAsync(page, bff.Origin, keycloak, cancellationToken);
 
     /// <summary>
     /// Signs the user in at Keycloak through the Blazor BFF's login endpoint and waits until its home page has rendered,
     /// past the same-site reload page that a navigation without the session cookie gets first.
     /// </summary>
-    public static async Task LoginAsync(
+    public static async ValueTask LoginAsync(
         IPage page,
         BlazorBffApplication bff,
-        KeycloakProvider keycloak
+        KeycloakProvider keycloak,
+        CancellationToken cancellationToken
     )
     {
-        await LoginAsync(page, bff.Origin, keycloak);
+        await LoginAsync(page, bff.Origin, keycloak, cancellationToken);
         await page.WaitForSelectorAsync("#home");
     }
 
@@ -46,7 +51,12 @@ public static class BrowserFlows
     /// Signs the user in at Keycloak through the login endpoint of the BFF at the origin and waits for the return
     /// page.
     /// </summary>
-    public static async Task LoginAsync(IPage page, string origin, KeycloakProvider keycloak)
+    public static async ValueTask LoginAsync(
+        IPage page,
+        string origin,
+        KeycloakProvider keycloak,
+        CancellationToken cancellationToken
+    )
     {
         await page.GotoAsync($"{origin}/bff/login?returnUrl=%2F");
         await page.FillAsync("#username", KeycloakProvider.UserName);
@@ -61,16 +71,17 @@ public static class BrowserFlows
             }
         );
 #pragma warning restore CS0612
-        await WaitForDocumentAsync(page);
+        await WaitForDocumentAsync(page, cancellationToken);
     }
 
     /// <summary>
     /// Calls <c>fetch</c> in the page, with credentials, and reports what the browser let through.
     /// </summary>
-    public static async Task<FetchOutcome> FetchAsync(
+    public static async ValueTask<FetchOutcome> FetchAsync(
         IPage page,
         string url,
-        bool withAntiforgeryHeader
+        bool withAntiforgeryHeader,
+        CancellationToken cancellationToken
     )
     {
         var json = await page.EvaluateAsync<string>(
@@ -84,7 +95,11 @@ public static class BrowserFlows
     /// <summary>
     /// Opens a new page in the context at the root of an origin.
     /// </summary>
-    public static async Task<IPage> OpenOriginAsync(IBrowserContext context, string origin)
+    public static async ValueTask<IPage> OpenOriginAsync(
+        IBrowserContext context,
+        string origin,
+        CancellationToken cancellationToken
+    )
     {
         var page = await context.NewPageAsync();
         await page.GotoAsync($"{origin}/");
@@ -94,7 +109,11 @@ public static class BrowserFlows
     /// <summary>
     /// Clicks a link to the URL, waits for the navigation and returns the text of the page that loads.
     /// </summary>
-    public static async Task<string> FollowLinkAsync(IPage page, string url)
+    public static async ValueTask<string> FollowLinkAsync(
+        IPage page,
+        string url,
+        CancellationToken cancellationToken
+    )
     {
 #pragma warning disable CS0612 // Playwright marks it obsolete without a replacement that waits for whatever URL the redirects reach.
         await page.RunAndWaitForNavigationAsync(
@@ -102,17 +121,18 @@ public static class BrowserFlows
             new PageRunAndWaitForNavigationOptions { WaitUntil = WaitUntilState.Commit }
         );
 #pragma warning restore CS0612
-        await WaitForDocumentAsync(page);
+        await WaitForDocumentAsync(page, cancellationToken);
         return await page.InnerTextAsync("body");
     }
 
     /// <summary>
     /// Submits a <c>POST</c> form of hidden fields to the action and waits for the response to that <c>POST</c>.
     /// </summary>
-    public static async Task SubmitFormAsync(
+    public static async ValueTask SubmitFormAsync(
         IPage page,
         string action,
-        IReadOnlyDictionary<string, string> fields
+        IReadOnlyDictionary<string, string> fields,
+        CancellationToken cancellationToken
     )
     {
         await page.RunAndWaitForResponseAsync(
@@ -125,11 +145,12 @@ public static class BrowserFlows
     /// Submits a <c>POST</c> form of hidden fields to the action and waits until the navigation that its redirects
     /// start has loaded a URL that the destination predicate accepts.
     /// </summary>
-    public static async Task SubmitFormAndWaitForUrlAsync(
+    public static async ValueTask SubmitFormAndWaitForUrlAsync(
         IPage page,
         string action,
         IReadOnlyDictionary<string, string> fields,
-        Func<string, bool> destination
+        Func<string, bool> destination,
+        CancellationToken cancellationToken
     )
     {
 #pragma warning disable CS0612 // Playwright marks it obsolete without a replacement that waits for a navigation the page has not started yet.
@@ -142,11 +163,13 @@ public static class BrowserFlows
             }
         );
 #pragma warning restore CS0612
-        await WaitForDocumentAsync(page);
+        await WaitForDocumentAsync(page, cancellationToken);
     }
 
     // Firefox can finish loading a page that a cross-origin redirect chain reaches without Playwright seeing its load
     // event, so a navigation is awaited until it commits and the document's own ready state says that it loaded.
-    private static async Task WaitForDocumentAsync(IPage page) =>
-        await page.WaitForFunctionAsync(DocumentCompleteScript);
+    private static async ValueTask WaitForDocumentAsync(
+        IPage page,
+        CancellationToken cancellationToken
+    ) => await page.WaitForFunctionAsync(DocumentCompleteScript);
 }

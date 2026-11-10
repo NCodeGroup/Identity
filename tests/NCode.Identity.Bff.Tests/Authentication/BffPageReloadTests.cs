@@ -35,11 +35,14 @@ public class BffPageReloadTests : BaseTests
         return (new BffPageReload(cookies), frontend, httpContext);
     }
 
-    private static async Task<string> ReadBodyAsync(HttpContext httpContext)
+    private static async ValueTask<string> ReadBodyAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         httpContext.Response.Body.Position = 0;
         using var reader = new StreamReader(httpContext.Response.Body, SecureEncoding.UTF8);
-        return await reader.ReadToEndAsync();
+        return await reader.ReadToEndAsync(cancellationToken);
     }
 
     #region ShouldReload Tests
@@ -195,7 +198,7 @@ public class BffPageReloadTests : BaseTests
 
         await reload.WriteAsync(httpContext, frontend, CancellationToken.None);
 
-        var body = await ReadBodyAsync(httpContext);
+        var body = await ReadBodyAsync(httpContext, CancellationToken.None);
         Assert.Equal(
             "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url=/base/app/page?a=1&amp;b=2\"><title>Continue</title></head><body><a href=\"/base/app/page?a=1&amp;b=2\">Continue</a></body></html>",
             body
@@ -213,7 +216,7 @@ public class BffPageReloadTests : BaseTests
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
         Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
         Assert.StartsWith(PageReloadCookie, httpContext.Response.Headers.SetCookie.ToString());
-        Assert.Equal(string.Empty, await ReadBodyAsync(httpContext));
+        Assert.Equal(string.Empty, await ReadBodyAsync(httpContext, CancellationToken.None));
     }
 
     #endregion

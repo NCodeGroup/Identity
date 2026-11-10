@@ -55,14 +55,15 @@ public class BffAuthenticationHandlerTests : BaseTests
             }
         );
 
-    private async Task<(
+    private async ValueTask<(
         BffAuthenticationHandler Handler,
         DefaultHttpContext HttpContext
     )> CreateHandlerAsync(
         BffSessionState? session,
-        object? endpointMetadata = null,
-        Action<BffFrontendOptions>? configure = null,
-        BffFrontendCatalog? catalog = null
+        object? endpointMetadata,
+        Action<BffFrontendOptions>? configure,
+        BffFrontendCatalog? catalog,
+        CancellationToken cancellationToken
     )
     {
         var timeProvider = new FakeTimeProvider(Now);
@@ -119,11 +120,14 @@ public class BffAuthenticationHandlerTests : BaseTests
         return (handler, httpContext);
     }
 
-    private static async Task<string> ReadBodyAsync(HttpContext httpContext)
+    private static async ValueTask<string> ReadBodyAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
         httpContext.Response.Body.Position = 0;
         using var reader = new StreamReader(httpContext.Response.Body, SecureEncoding.UTF8);
-        return await reader.ReadToEndAsync();
+        return await reader.ReadToEndAsync(cancellationToken);
     }
 
     #region AuthenticateAsync Tests
@@ -131,7 +135,13 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task AuthenticateAsync_WithSession_Succeeds()
     {
-        var (handler, _) = await CreateHandlerAsync(CreateState(), new BffApiAttribute());
+        var (handler, _) = await CreateHandlerAsync(
+            CreateState(),
+            new BffApiAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
 
         var result = await handler.AuthenticateAsync();
 
@@ -143,7 +153,13 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task AuthenticateAsync_PageEndpoint_Succeeds()
     {
-        var (handler, _) = await CreateHandlerAsync(CreateState(), new BffPageAttribute());
+        var (handler, _) = await CreateHandlerAsync(
+            CreateState(),
+            new BffPageAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
 
         var result = await handler.AuthenticateAsync();
 
@@ -155,7 +171,13 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task AuthenticateAsync_HubEndpoint_PrincipalCarriesConnectionSession()
     {
-        var (handler, _) = await CreateHandlerAsync(CreateState(), new BffHubAttribute());
+        var (handler, _) = await CreateHandlerAsync(
+            CreateState(),
+            new BffHubAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
 
         var result = await handler.AuthenticateAsync();
 
@@ -170,7 +192,13 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task AuthenticateAsync_PageEndpoint_PrincipalCarriesNoConnectionSession()
     {
-        var (handler, _) = await CreateHandlerAsync(CreateState(), new BffPageAttribute());
+        var (handler, _) = await CreateHandlerAsync(
+            CreateState(),
+            new BffPageAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
 
         var result = await handler.AuthenticateAsync();
 
@@ -181,7 +209,13 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task AuthenticateAsync_UnguardedEndpoint_ReturnsNoResult()
     {
-        var (handler, _) = await CreateHandlerAsync(CreateState());
+        var (handler, _) = await CreateHandlerAsync(
+            CreateState(),
+            null,
+            null,
+            null,
+            CancellationToken.None
+        );
 
         var result = await handler.AuthenticateAsync();
 
@@ -191,7 +225,13 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task AuthenticateAsync_NoSession_ReturnsNoResult()
     {
-        var (handler, _) = await CreateHandlerAsync(null, new BffApiAttribute());
+        var (handler, _) = await CreateHandlerAsync(
+            null,
+            new BffApiAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
 
         var result = await handler.AuthenticateAsync();
 
@@ -205,26 +245,38 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task ChallengeAsync_ApiEndpoint_WritesUnauthorizedProblem()
     {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffApiAttribute());
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffApiAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
 
         await handler.ChallengeAsync(null);
 
         Assert.Equal(StatusCodes.Status401Unauthorized, httpContext.Response.StatusCode);
         Assert.Equal("application/problem+json", httpContext.Response.ContentType);
-        var body = await ReadBodyAsync(httpContext);
+        var body = await ReadBodyAsync(httpContext, CancellationToken.None);
         Assert.Contains(BffProblemTypes.SessionRequired, body);
     }
 
     [Fact]
     public async Task ChallengeAsync_HubEndpoint_WritesUnauthorizedProblem()
     {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffHubAttribute());
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffHubAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
 
         await handler.ChallengeAsync(null);
 
         Assert.Equal(StatusCodes.Status401Unauthorized, httpContext.Response.StatusCode);
         Assert.Equal("application/problem+json", httpContext.Response.ContentType);
-        var body = await ReadBodyAsync(httpContext);
+        var body = await ReadBodyAsync(httpContext, CancellationToken.None);
         Assert.Contains(BffProblemTypes.SessionRequired, body);
     }
 
@@ -234,7 +286,9 @@ public class BffAuthenticationHandlerTests : BaseTests
         var (handler, httpContext) = await CreateHandlerAsync(
             null,
             new BffPageAttribute(),
-            f => f.ReturnUrls = ["/app"]
+            f => f.ReturnUrls = ["/app"],
+            null,
+            CancellationToken.None
         );
         httpContext.Request.Path = "/app/page";
         httpContext.Request.QueryString = new QueryString("?a=1");
@@ -259,7 +313,9 @@ public class BffAuthenticationHandlerTests : BaseTests
             {
                 f.PathPrefix = "/admin/bff";
                 f.ReturnUrls = ["/admin"];
-            }
+            },
+            null,
+            CancellationToken.None
         );
         httpContext.Request.Path = "/admin/page";
         httpContext.Request.Headers.Cookie = PageReloadCookie;
@@ -279,7 +335,9 @@ public class BffAuthenticationHandlerTests : BaseTests
         var (handler, httpContext) = await CreateHandlerAsync(
             null,
             new BffPageAttribute(),
-            f => f.ReturnUrls = ["/app"]
+            f => f.ReturnUrls = ["/app"],
+            null,
+            CancellationToken.None
         );
         httpContext.Request.Path = "/other";
         httpContext.Request.Headers.Cookie = PageReloadCookie;
@@ -303,7 +361,9 @@ public class BffAuthenticationHandlerTests : BaseTests
         var (handler, httpContext) = await CreateHandlerAsync(
             null,
             new BffPageAttribute(),
-            catalog: catalog
+            null,
+            catalog,
+            CancellationToken.None
         );
         httpContext.Request.Path = "/other";
 
@@ -311,14 +371,20 @@ public class BffAuthenticationHandlerTests : BaseTests
 
         Assert.Equal(StatusCodes.Status401Unauthorized, httpContext.Response.StatusCode);
         Assert.Equal("application/problem+json", httpContext.Response.ContentType);
-        var body = await ReadBodyAsync(httpContext);
+        var body = await ReadBodyAsync(httpContext, CancellationToken.None);
         Assert.Contains(BffProblemTypes.SessionRequired, body);
     }
 
     [Fact]
     public async Task ChallengeAsync_PageNavigationWhenPageReloadApplies_WritesReloadPageAndSetsTheMarker()
     {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffPageAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
         httpContext.Request.Path = "/app/page";
 
         await handler.ChallengeAsync(null);
@@ -327,14 +393,20 @@ public class BffAuthenticationHandlerTests : BaseTests
         Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
         Assert.False(httpContext.Response.Headers.ContainsKey("Location"));
         Assert.StartsWith(PageReloadCookie, httpContext.Response.Headers.SetCookie.ToString());
-        var body = await ReadBodyAsync(httpContext);
+        var body = await ReadBodyAsync(httpContext, CancellationToken.None);
         Assert.Contains("url=/app/page\"", body);
     }
 
     [Fact]
     public async Task ChallengeAsync_PageNavigationWithReloadMarker_RedirectsToLoginAndDeletesTheMarker()
     {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffPageAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
         httpContext.Request.Headers.Cookie = PageReloadCookie;
 
         await handler.ChallengeAsync(null);
@@ -350,7 +422,7 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task ChallengeAsync_UnguardedEndpoint_Throws()
     {
-        var (handler, _) = await CreateHandlerAsync(null);
+        var (handler, _) = await CreateHandlerAsync(null, null, null, null, CancellationToken.None);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.ChallengeAsync(null)
@@ -366,7 +438,13 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task SignOutAsync_UnguardedEndpoint_Throws()
     {
-        var (handler, _) = await CreateHandlerAsync(CreateState());
+        var (handler, _) = await CreateHandlerAsync(
+            CreateState(),
+            null,
+            null,
+            null,
+            CancellationToken.None
+        );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.SignOutAsync(null)
@@ -382,24 +460,36 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task ForbidAsync_ApiEndpoint_WritesForbiddenProblem()
     {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffApiAttribute());
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffApiAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
 
         await handler.ForbidAsync(null);
 
         Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
-        var body = await ReadBodyAsync(httpContext);
+        var body = await ReadBodyAsync(httpContext, CancellationToken.None);
         Assert.Contains(BffProblemTypes.Forbidden, body);
     }
 
     [Fact]
     public async Task ForbidAsync_HubEndpoint_WritesForbiddenProblem()
     {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffHubAttribute());
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffHubAttribute(),
+            null,
+            null,
+            CancellationToken.None
+        );
 
         await handler.ForbidAsync(null);
 
         Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
-        var body = await ReadBodyAsync(httpContext);
+        var body = await ReadBodyAsync(httpContext, CancellationToken.None);
         Assert.Contains(BffProblemTypes.Forbidden, body);
     }
 

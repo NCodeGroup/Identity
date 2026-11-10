@@ -24,28 +24,39 @@ public static class HubFlows
     /// Opens a <c>WebSocket</c> to the URL from the page and reports <c>open</c> when the server accepted the
     /// upgrade, <c>refused</c> when the browser or the server ended it, and <c>timeout</c> when neither happened.
     /// </summary>
-    public static Task<string> ProbeWebSocketAsync(IPage page, string url) =>
-        page.EvaluateAsync<string>(ProbeWebSocketScript, url);
+    public static async ValueTask<string> ProbeWebSocketAsync(
+        IPage page,
+        string url,
+        CancellationToken cancellationToken
+    ) => await page.EvaluateAsync<string>(ProbeWebSocketScript, url);
 
     /// <summary>
     /// Opens a <c>WebSocket</c> to the hub URL from the page, sends SignalR's JSON handshake, keeps the connection
     /// idle apart from a ping every 5 seconds, and reports <c>open</c> once the server accepted the upgrade or
     /// <c>closed</c> when the connection ended first.
     /// </summary>
-    public static Task<string> OpenHubConnectionAsync(IPage page, string url) =>
-        page.EvaluateAsync<string>(OpenHubConnectionScript, url);
+    public static async ValueTask<string> OpenHubConnectionAsync(
+        IPage page,
+        string url,
+        CancellationToken cancellationToken
+    ) => await page.EvaluateAsync<string>(OpenHubConnectionScript, url);
 
     /// <summary>
     /// Reports whether the connection that <see cref="OpenHubConnectionAsync"/> opened in the page has closed.
     /// </summary>
-    public static Task<bool> IsHubConnectionClosedAsync(IPage page) =>
-        page.EvaluateAsync<bool>(HubConnectionClosedScript);
+    public static async ValueTask<bool> IsHubConnectionClosedAsync(
+        IPage page,
+        CancellationToken cancellationToken
+    ) => await page.EvaluateAsync<bool>(HubConnectionClosedScript);
 
     /// <summary>
     /// Waits until the connection that <see cref="OpenHubConnectionAsync"/> opened in the page has closed.
     /// </summary>
-    public static Task WaitForHubConnectionClosedAsync(IPage page) =>
-        page.WaitForFunctionAsync(
+    public static async ValueTask WaitForHubConnectionClosedAsync(
+        IPage page,
+        CancellationToken cancellationToken
+    ) =>
+        await page.WaitForFunctionAsync(
             HubConnectionClosedScript,
             null,
             new PageWaitForFunctionOptions { Timeout = HubConnectionClosedTimeoutMilliseconds }

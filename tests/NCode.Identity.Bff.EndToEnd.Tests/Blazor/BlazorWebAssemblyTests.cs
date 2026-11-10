@@ -27,9 +27,12 @@ public sealed partial class BlazorWebAssemblyTests(EndToEndEnvironment environme
     public async Task WebAssembly_SignedIn_CarriesNoToken(string browserName)
     {
         var bff = environment.BlazorBff;
-        await using var context = await environment.NewContextAsync(browserName);
+        await using var context = await environment.NewContextAsync(
+            browserName,
+            CancellationToken.None
+        );
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak, CancellationToken.None);
         var requests = new ConcurrentQueue<IRequest>();
         page.Request += (_, request) => requests.Enqueue(request);
         var calls = bff.Counters.ApiCalls;
@@ -47,7 +50,7 @@ public sealed partial class BlazorWebAssemblyTests(EndToEndEnvironment environme
         Assert.True(bff.Counters.ApiCalls > calls);
         Assert.Equal(tokenHeaders, bff.Counters.TokenHeaderRequests);
 
-        var user = await BrowserFlows.FetchAsync(page, "/bff/user", true);
+        var user = await BrowserFlows.FetchAsync(page, "/bff/user", true, CancellationToken.None);
         Assert.Equal(200, user.Status);
         Assert.Contains(KeycloakProvider.UserEmail, user.Body, StringComparison.Ordinal);
         Assert.DoesNotMatch(Jwt(), user.Body);

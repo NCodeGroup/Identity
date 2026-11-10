@@ -113,14 +113,17 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
                 ["BFF_LAX_CONTAINER_ORIGIN"] = $"https://{ContainerHost}:{laxPort}",
                 ["BFF_BLAZOR_ORIGIN"] = $"https://localhost:{blazorPort}",
                 ["BFF_BLAZOR_CONTAINER_ORIGIN"] = $"https://{ContainerHost}:{blazorPort}",
-            }
+            },
+            CancellationToken.None
         );
 
         StrictBffOrNull = await BffApplication.StartAsync(
-            CreateSettings(StrictClientId, strictPort, SameSiteMode.Strict)
+            CreateSettings(StrictClientId, strictPort, SameSiteMode.Strict),
+            CancellationToken.None
         );
         LaxBffOrNull = await BffApplication.StartAsync(
-            CreateSettings(LaxClientId, laxPort, SameSiteMode.Lax)
+            CreateSettings(LaxClientId, laxPort, SameSiteMode.Lax),
+            CancellationToken.None
         );
         BlazorBffOrNull = await BlazorBffApplication.StartAsync(
             new BffApplicationSettings(
@@ -132,12 +135,19 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
                 [],
                 [],
                 TimeSpan.FromSeconds(2)
-            )
+            ),
+            CancellationToken.None
         );
 
         OriginServer = await OriginServer.StartAsync(
             Certificate,
-            [crossSiteDeniedPort, crossSiteAdmittedPort, sameSiteUntrustedPort, sameSiteTrustedPort]
+            [
+                crossSiteDeniedPort,
+                crossSiteAdmittedPort,
+                sameSiteUntrustedPort,
+                sameSiteTrustedPort,
+            ],
+            CancellationToken.None
         );
 
         PlaywrightOrNull = await Microsoft.Playwright.Playwright.CreateAsync();
@@ -146,9 +156,15 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
     /// <summary>
     /// Creates a browser context that ignores certificate errors, in a browser that is launched once per run.
     /// </summary>
-    public async Task<IBrowserContext> NewContextAsync(string browserName)
+    public async ValueTask<IBrowserContext> NewContextAsync(
+        string browserName,
+        CancellationToken cancellationToken
+    )
     {
-        var browser = await Browsers.GetOrAdd(browserName, LaunchBrowserAsync);
+        var browser = await Browsers.GetOrAdd(
+            browserName,
+            name => LaunchBrowserAsync(name, cancellationToken).AsTask()
+        );
         return await browser.NewContextAsync(
             new BrowserNewContextOptions { IgnoreHTTPSErrors = true }
         );
@@ -200,10 +216,13 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
             TimeSpan.FromMinutes(1)
         );
 
-    private Task<IBrowser> LaunchBrowserAsync(string browserName)
+    private async ValueTask<IBrowser> LaunchBrowserAsync(
+        string browserName,
+        CancellationToken cancellationToken
+    )
     {
         var browserType = Playwright[browserName];
-        return browserType.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
+        return await browserType.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
     }
 
     private static InvalidOperationException NotInitialized() =>

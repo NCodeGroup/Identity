@@ -71,16 +71,18 @@ public class InteractiveUiLocalesTests
     private static async ValueTask<string> GetPageAsync(
         HttpClient client,
         string url,
-        string? acceptLanguage,
-        string? sessionCookie,
+        PageRequestOptions options,
         CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        if (acceptLanguage is not null)
-            request.Headers.AcceptLanguage.ParseAdd(acceptLanguage);
-        if (sessionCookie is not null)
-            request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        if (options.AcceptLanguage is not null)
+            request.Headers.AcceptLanguage.ParseAdd(options.AcceptLanguage);
+        if (options.SessionCookie is not null)
+            request.Headers.Add(
+                "Cookie",
+                $"{InteractiveLogin.SessionCookieName}={options.SessionCookie}"
+            );
 
         using var response = await client.SendAsync(request, cancellationToken);
 
@@ -123,8 +125,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             loginUrl.PathAndQuery,
-            acceptLanguage: null,
-            sessionCookie: null,
+            new PageRequestOptions(),
             CancellationToken.None
         );
 
@@ -147,8 +148,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             loginUrl.PathAndQuery,
-            acceptLanguage: null,
-            sessionCookie: null,
+            new PageRequestOptions(),
             CancellationToken.None
         );
 
@@ -174,8 +174,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             loginUrl.PathAndQuery,
-            acceptLanguage: null,
-            sessionCookie: null,
+            new PageRequestOptions(),
             CancellationToken.None
         );
 
@@ -195,8 +194,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             loginUrl.PathAndQuery,
-            acceptLanguage: null,
-            sessionCookie: null,
+            new PageRequestOptions(),
             CancellationToken.None
         );
 
@@ -217,8 +215,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             LoginPath,
-            acceptLanguage: null,
-            sessionCookie: null,
+            new PageRequestOptions(),
             CancellationToken.None
         );
 
@@ -243,8 +240,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             LoginPath,
-            acceptLanguage: null,
-            sessionCookie: null,
+            new PageRequestOptions(),
             CancellationToken.None
         );
 
@@ -262,8 +258,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             LoginPath,
-            acceptLanguage: "de;q=0.9, fr;q=0.8",
-            sessionCookie: null,
+            new PageRequestOptions { AcceptLanguage = "de;q=0.9, fr;q=0.8" },
             CancellationToken.None
         );
 
@@ -302,8 +297,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             location.PathAndQuery,
-            acceptLanguage: null,
-            sessionCookie: null,
+            new PageRequestOptions(),
             CancellationToken.None
         );
         Assert.Contains(
@@ -433,8 +427,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             $"{LoginPath}?ReturnUrl=%2F&error={error}&ui_locales=fr",
-            acceptLanguage: null,
-            sessionCookie: null,
+            new PageRequestOptions(),
             CancellationToken.None
         );
 
@@ -500,8 +493,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             consentUrl.PathAndQuery,
-            acceptLanguage: null,
-            sessionCookie: sessionCookie,
+            new PageRequestOptions { SessionCookie = sessionCookie },
             CancellationToken.None
         );
 
@@ -536,8 +528,7 @@ public class InteractiveUiLocalesTests
         var html = await GetPageAsync(
             client,
             confirmUrl.PathAndQuery,
-            acceptLanguage: null,
-            sessionCookie: sessionCookie,
+            new PageRequestOptions { SessionCookie = sessionCookie },
             CancellationToken.None
         );
 

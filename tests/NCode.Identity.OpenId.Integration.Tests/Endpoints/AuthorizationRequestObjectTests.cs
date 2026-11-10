@@ -118,9 +118,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         string clientId,
         string algorithmCode,
         string? audience,
-        TimeSpan? lifetime,
-        string? responseMode,
-        string? redirectUri,
+        RequestObjectOptions options,
         CancellationToken cancellationToken
     )
     {
@@ -144,10 +142,10 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             ["code_challenge"] = TestPkce.CodeChallenge,
             ["code_challenge_method"] = "S256",
         };
-        if (responseMode is not null)
-            claims["response_mode"] = responseMode;
-        if (redirectUri is not null)
-            claims["redirect_uri"] = redirectUri;
+        if (options.ResponseMode is not null)
+            claims["response_mode"] = options.ResponseMode;
+        if (options.RedirectUri is not null)
+            claims["redirect_uri"] = options.RedirectUri;
 
         var encoder = factory.Services.GetRequiredService<IJwtEncoder>();
         return await encoder.EncodeAsync(
@@ -158,7 +156,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
                 Audience = audience,
                 IssuedAt = now,
                 NotBefore = now,
-                Expires = now + (lifetime ?? TimeSpan.FromMinutes(5)),
+                Expires = now + (options.Lifetime ?? TimeSpan.FromMinutes(5)),
                 ExtraPayloadClaims = claims,
             },
             cancellationToken
@@ -266,9 +264,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: null,
-            responseMode: null,
-            redirectUri: RedirectUri,
+            new RequestObjectOptions { RedirectUri = RedirectUri },
             CancellationToken.None
         );
 
@@ -304,9 +300,11 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: null,
-            responseMode: OpenIdProtocol.ResponseModes.Jwt,
-            redirectUri: RedirectUri,
+            new RequestObjectOptions
+            {
+                ResponseMode = OpenIdProtocol.ResponseModes.Jwt,
+                RedirectUri = RedirectUri,
+            },
             CancellationToken.None
         );
 
@@ -346,9 +344,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: null,
-            responseMode: null,
-            redirectUri: RedirectUri,
+            new RequestObjectOptions { RedirectUri = RedirectUri },
             CancellationToken.None
         );
 
@@ -392,9 +388,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: null,
-            responseMode: null,
-            redirectUri: requestObjectRedirectUri,
+            new RequestObjectOptions { RedirectUri = requestObjectRedirectUri },
             CancellationToken.None
         );
 
@@ -432,9 +426,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: null,
-            responseMode: OpenIdProtocol.ResponseModes.Fragment,
-            redirectUri: null,
+            new RequestObjectOptions { ResponseMode = OpenIdProtocol.ResponseModes.Fragment },
             CancellationToken.None
         );
 
@@ -476,9 +468,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: null,
-            responseMode: OpenIdProtocol.ResponseModes.Jwt,
-            redirectUri: null,
+            new RequestObjectOptions { ResponseMode = OpenIdProtocol.ResponseModes.Jwt },
             CancellationToken.None
         );
 
@@ -528,9 +518,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "PS256",
             issuer,
-            lifetime: null,
-            responseMode: null,
-            redirectUri: RedirectUri,
+            new RequestObjectOptions { RedirectUri = RedirectUri },
             CancellationToken.None
         );
 
@@ -573,9 +561,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             audience: null,
-            lifetime: null,
-            responseMode: null,
-            redirectUri: RedirectUri,
+            new RequestObjectOptions { RedirectUri = RedirectUri },
             CancellationToken.None
         );
 
@@ -619,9 +605,11 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: TimeSpan.FromMinutes(61),
-            responseMode: null,
-            redirectUri: RedirectUri,
+            new RequestObjectOptions
+            {
+                Lifetime = TimeSpan.FromMinutes(61),
+                RedirectUri = RedirectUri,
+            },
             CancellationToken.None
         );
 
@@ -670,9 +658,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: null,
-            responseMode: null,
-            redirectUri: RedirectUri,
+            new RequestObjectOptions { RedirectUri = RedirectUri },
             CancellationToken.None
         );
 
@@ -720,9 +706,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: null,
-            responseMode: null,
-            redirectUri: "https://attacker.example/callback",
+            new RequestObjectOptions { RedirectUri = "https://attacker.example/callback" },
             CancellationToken.None
         );
 
@@ -758,9 +742,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            lifetime: null,
-            responseMode: null,
-            redirectUri: RedirectUri,
+            new RequestObjectOptions { RedirectUri = RedirectUri },
             CancellationToken.None
         );
 

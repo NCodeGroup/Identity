@@ -44,9 +44,10 @@ public class PasswordAttemptLimitTests
             }
         );
 
-    private static async Task<(HttpStatusCode StatusCode, string? Error)> RequestTokenAsync(
+    private static async ValueTask<(HttpStatusCode StatusCode, string? Error)> RequestTokenAsync(
         HttpClient client,
-        string password
+        string password,
+        CancellationToken cancellationToken
     )
     {
         using var content = new FormUrlEncodedContent(
@@ -61,8 +62,8 @@ public class PasswordAttemptLimitTests
             }
         );
 
-        using var response = await client.PostAsync("/oauth2/token", content);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.PostAsync("/oauth2/token", content, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         var jsonElement = JsonElement.Parse(body);
         var error = jsonElement.TryGetProperty("error", out var errorElement)
             ? errorElement.GetString()
@@ -70,14 +71,18 @@ public class PasswordAttemptLimitTests
         return (response.StatusCode, error);
     }
 
-    private static async Task<string?> SubmitAsync(HttpClient client, string password)
+    private static async ValueTask<string?> SubmitAsync(
+        HttpClient client,
+        string password,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await InteractiveLogin.SubmitLoginAsync(
             client,
             UserName,
             password,
             "/foo",
-            CancellationToken.None
+            cancellationToken
         );
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         return InteractiveLogin.ReadSessionCookie(response);
@@ -101,20 +106,32 @@ public class PasswordAttemptLimitTests
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var (acceptedStatusCode, acceptedError) = await RequestTokenAsync(client, Password);
+        var (acceptedStatusCode, acceptedError) = await RequestTokenAsync(
+            client,
+            Password,
+            CancellationToken.None
+        );
         Assert.True(acceptedStatusCode == HttpStatusCode.OK, $"error='{acceptedError}'");
 
         string? wrongError = null;
         for (var attempt = 0; attempt < FailedAttemptsLimit; attempt++)
         {
-            var (wrongStatusCode, error) = await RequestTokenAsync(client, WrongPassword);
+            var (wrongStatusCode, error) = await RequestTokenAsync(
+                client,
+                WrongPassword,
+                CancellationToken.None
+            );
             Assert.Equal(HttpStatusCode.BadRequest, wrongStatusCode);
             wrongError = error;
         }
 
         Assert.NotNull(wrongError);
 
-        var (limitedStatusCode, limitedError) = await RequestTokenAsync(client, Password);
+        var (limitedStatusCode, limitedError) = await RequestTokenAsync(
+            client,
+            Password,
+            CancellationToken.None
+        );
         Assert.Equal(HttpStatusCode.BadRequest, limitedStatusCode);
         Assert.Equal(wrongError, limitedError);
     }
@@ -127,12 +144,16 @@ public class PasswordAttemptLimitTests
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var firstSessionCookie = await SubmitAsync(client, Password);
+        var firstSessionCookie = await SubmitAsync(client, Password, CancellationToken.None);
         Assert.NotNull(firstSessionCookie);
 
         for (var attempt = 0; attempt < FailedAttemptsLimit; attempt++)
         {
-            var failedSessionCookie = await SubmitAsync(client, WrongPassword);
+            var failedSessionCookie = await SubmitAsync(
+                client,
+                WrongPassword,
+                CancellationToken.None
+            );
             Assert.Null(failedSessionCookie);
         }
 
@@ -158,13 +179,21 @@ public class PasswordAttemptLimitTests
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
 
-        var wrongSessionCookie = await SubmitAsync(client, WrongPassword);
+        var wrongSessionCookie = await SubmitAsync(client, WrongPassword, CancellationToken.None);
         Assert.Null(wrongSessionCookie);
-        var rightSessionCookie = await SubmitAsync(client, Password);
+        var rightSessionCookie = await SubmitAsync(client, Password, CancellationToken.None);
         Assert.NotNull(rightSessionCookie);
-        var wrongSessionCookieAfterRight = await SubmitAsync(client, WrongPassword);
+        var wrongSessionCookieAfterRight = await SubmitAsync(
+            client,
+            WrongPassword,
+            CancellationToken.None
+        );
         Assert.Null(wrongSessionCookieAfterRight);
-        var rightSessionCookieAfterWrong = await SubmitAsync(client, Password);
+        var rightSessionCookieAfterWrong = await SubmitAsync(
+            client,
+            Password,
+            CancellationToken.None
+        );
         Assert.NotNull(rightSessionCookieAfterWrong);
     }
 

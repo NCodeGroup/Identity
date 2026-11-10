@@ -34,9 +34,9 @@ public class RemoteKeyDeploymentTests
         using var client = factory.CreateClient();
 
         // The first request serves the tenant, which provisions its keys.
-        await GetJwksAsync(client);
+        await GetJwksAsync(client, CancellationToken.None);
 
-        var listed = await ListAsync(provider, "integration");
+        var listed = await ListAsync(provider, "integration", CancellationToken.None);
         Assert.NotEmpty(provider.CreatedKeyIds);
         Assert.Equal(
             provider.CreatedKeyIds.Order(StringComparer.Ordinal),
@@ -47,7 +47,7 @@ public class RemoteKeyDeploymentTests
             listing => Assert.StartsWith("ncid-", listing.GroupName, StringComparison.Ordinal)
         );
 
-        var other = await ListAsync(provider, "other");
+        var other = await ListAsync(provider, "other", CancellationToken.None);
         Assert.Empty(other);
     }
 
@@ -55,16 +55,17 @@ public class RemoteKeyDeploymentTests
 
     #region Helpers
 
-    private static async Task<List<RemoteKeyListing>> ListAsync(
+    private static async ValueTask<List<RemoteKeyListing>> ListAsync(
         TestRemoteKeyProvider provider,
-        string deployment
+        string deployment,
+        CancellationToken cancellationToken
     )
     {
         var listed = new List<RemoteKeyListing>();
         await foreach (
             var listing in provider.ListKeysAsync(
                 new RemoteKeyListRequest { Deployment = deployment },
-                CancellationToken.None
+                cancellationToken
             )
         )
         {
@@ -74,10 +75,13 @@ public class RemoteKeyDeploymentTests
         return listed;
     }
 
-    private static async Task GetJwksAsync(HttpClient client)
+    private static async ValueTask GetJwksAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync(JwksPath);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.GetAsync(JwksPath, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         Assert.NotEmpty(JsonElement.Parse(body).GetProperty("keys").EnumerateArray());
     }

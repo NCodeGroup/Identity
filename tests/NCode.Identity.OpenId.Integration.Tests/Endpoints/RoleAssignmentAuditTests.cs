@@ -39,11 +39,12 @@ public class RoleAssignmentAuditTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator);
+        await CreateTeamAsync(administrator, CancellationToken.None);
         var (clientId, clientSecret, principalId) = await CreateTeamMachineClientAsync(
-            administrator
+            administrator,
+            CancellationToken.None
         );
-        using var grant = await PostAdminAsync(administrator, principalId);
+        using var grant = await PostAdminAsync(administrator, principalId, CancellationToken.None);
         Assert.Equal(HttpStatusCode.Created, grant.StatusCode);
         using var machine = await factory.CreateManagementClientAsync(
             clientId,
@@ -51,7 +52,7 @@ public class RoleAssignmentAuditTests
             CancellationToken.None
         );
 
-        await CreateChildTeamAsync(machine);
+        await CreateChildTeamAsync(machine, CancellationToken.None);
 
         var changes = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, ChildTeamId);
         Assert.All(
@@ -79,10 +80,17 @@ public class RoleAssignmentAuditTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator);
-        var (_, _, principalId) = await CreateTeamMachineClientAsync(administrator);
+        await CreateTeamAsync(administrator, CancellationToken.None);
+        var (_, _, principalId) = await CreateTeamMachineClientAsync(
+            administrator,
+            CancellationToken.None
+        );
 
-        using var response = await PostAdminAsync(administrator, principalId);
+        using var response = await PostAdminAsync(
+            administrator,
+            principalId,
+            CancellationToken.None
+        );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
@@ -116,14 +124,17 @@ public class RoleAssignmentAuditTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator);
-        var (_, _, principalId) = await CreateTeamMachineClientAsync(administrator);
-        using var first = await PostAdminAsync(administrator, principalId);
+        await CreateTeamAsync(administrator, CancellationToken.None);
+        var (_, _, principalId) = await CreateTeamMachineClientAsync(
+            administrator,
+            CancellationToken.None
+        );
+        using var first = await PostAdminAsync(administrator, principalId, CancellationToken.None);
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
         var changesBefore = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, TeamId);
         var recorded = changesBefore.Count;
 
-        using var second = await PostAdminAsync(administrator, principalId);
+        using var second = await PostAdminAsync(administrator, principalId, CancellationToken.None);
 
         var body = await second.Content.ReadAsStringAsync();
         Assert.True(second.StatusCode == HttpStatusCode.OK, body);
@@ -143,13 +154,19 @@ public class RoleAssignmentAuditTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        await CreateTeamAsync(administrator);
-        await CreateTenantAsync(administrator);
+        await CreateTeamAsync(administrator, CancellationToken.None);
+        await CreateTenantAsync(administrator, CancellationToken.None);
         // The resource keeps at least one owner, so a second one holds it while the first is revoked.
-        var (_, _, keptPrincipalId) = await CreateTeamMachineClientAsync(administrator);
-        await PostTenantOwnerAsync(administrator, keptPrincipalId);
-        var (_, _, principalId) = await CreateTeamMachineClientAsync(administrator);
-        await PostTenantOwnerAsync(administrator, principalId);
+        var (_, _, keptPrincipalId) = await CreateTeamMachineClientAsync(
+            administrator,
+            CancellationToken.None
+        );
+        await PostTenantOwnerAsync(administrator, keptPrincipalId, CancellationToken.None);
+        var (_, _, principalId) = await CreateTeamMachineClientAsync(
+            administrator,
+            CancellationToken.None
+        );
+        await PostTenantOwnerAsync(administrator, principalId, CancellationToken.None);
 
         using var revoke = await administrator.DeleteAsync(
             $"/api/tenants/{TenantId}/owners/{principalId}"
@@ -192,7 +209,10 @@ public class RoleAssignmentAuditTests
             ? value.GetString()
             : null;
 
-    private static async Task CreateTeamAsync(HttpClient client)
+    private static async ValueTask CreateTeamAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await client.PostAsJsonAsync(
             "/api/teams",
@@ -202,13 +222,17 @@ public class RoleAssignmentAuditTests
                 displayName = TeamId,
                 isDisabled = false,
                 settings = new { },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
-    private static async Task CreateChildTeamAsync(HttpClient client)
+    private static async ValueTask CreateChildTeamAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await client.PostAsJsonAsync(
             $"/api/teams/{TeamId}/teams",
@@ -218,13 +242,17 @@ public class RoleAssignmentAuditTests
                 displayName = ChildTeamId,
                 isDisabled = false,
                 settings = new { },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
-    private static async Task CreateTenantAsync(HttpClient client)
+    private static async ValueTask CreateTenantAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await client.PostAsJsonAsync(
             $"/api/teams/{TeamId}/tenants",
@@ -234,19 +262,20 @@ public class RoleAssignmentAuditTests
                 displayName = TenantId,
                 isDisabled = false,
                 settings = new { },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
     // Creates a machine client of the team, which authenticates with HTTP Basic, and returns its credentials and the
     // principal that its tokens resolve to.
-    private static async Task<(
+    private static async ValueTask<(
         string ClientId,
         string ClientSecret,
         string PrincipalId
-    )> CreateTeamMachineClientAsync(HttpClient administrator)
+    )> CreateTeamMachineClientAsync(HttpClient administrator, CancellationToken cancellationToken)
     {
         using var created = await administrator.PostAsJsonAsync(
             $"/api/teams/{TeamId}/clients",
@@ -259,9 +288,10 @@ public class RoleAssignmentAuditTests
                         .ClientAuthenticationMethods
                         .ClientSecretBasic,
                 },
-            }
+            },
+            cancellationToken
         );
-        var createdBody = await created.Content.ReadAsStringAsync();
+        var createdBody = await created.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
         var createdClient = JsonElement.Parse(createdBody);
         var clientId = createdClient.GetProperty("clientId").GetString();
@@ -276,29 +306,41 @@ public class RoleAssignmentAuditTests
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
-        var secretBody = await secret.Content.ReadAsStringAsync();
+        var secretBody = await secret.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
         var material = JsonElement.Parse(secretBody).GetProperty("secretMaterial").GetString();
         Assert.NotNull(material);
         return (clientId, material, principalId);
     }
 
-    private static async Task PostTenantOwnerAsync(HttpClient administrator, string principalId)
+    private static async ValueTask PostTenantOwnerAsync(
+        HttpClient administrator,
+        string principalId,
+        CancellationToken cancellationToken
+    )
     {
         using var grant = await administrator.PostAsJsonAsync(
             $"/api/tenants/{TenantId}/owners",
-            new { principalId }
+            new { principalId },
+            cancellationToken
         );
-        var body = await grant.Content.ReadAsStringAsync();
+        var body = await grant.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(grant.StatusCode == HttpStatusCode.Created, body);
     }
 
-    private static Task<HttpResponseMessage> PostAdminAsync(
+    private static async ValueTask<HttpResponseMessage> PostAdminAsync(
         HttpClient administrator,
-        string principalId
-    ) => administrator.PostAsJsonAsync($"/api/teams/{TeamId}/admins", new { principalId });
+        string principalId,
+        CancellationToken cancellationToken
+    ) =>
+        await administrator.PostAsJsonAsync(
+            $"/api/teams/{TeamId}/admins",
+            new { principalId },
+            cancellationToken
+        );
 
     /// <summary>
     /// A factory that selects the tenant by host, with the bootstrap administrator in the control-plane tenant and an

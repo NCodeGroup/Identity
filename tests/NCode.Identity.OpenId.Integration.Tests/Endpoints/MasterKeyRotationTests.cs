@@ -28,10 +28,14 @@ public class MasterKeyRotationTests
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
-        var clientId = await CreateClientAsync(administrator);
-        var secretMaterial = await CreateSecretAsync(administrator, clientId);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
+        var secretMaterial = await CreateSecretAsync(
+            administrator,
+            clientId,
+            CancellationToken.None
+        );
 
-        var before = await GetKeysAsync(administrator, TenantApiPath);
+        var before = await GetKeysAsync(administrator, TenantApiPath, CancellationToken.None);
         var firstKey = Assert.Single(before.GetProperty("keys").EnumerateArray());
         Assert.Equal("active", firstKey.GetProperty("state").GetString());
         Assert.Equal(1, firstKey.GetProperty("version").GetInt32());
@@ -73,7 +77,7 @@ public class MasterKeyRotationTests
         );
 
         // The status never carries material.
-        var after = await GetKeysAsync(administrator, TenantApiPath);
+        var after = await GetKeysAsync(administrator, TenantApiPath, CancellationToken.None);
         Assert.Equal(2, after.GetProperty("keys").GetArrayLength());
         foreach (var key in after.GetProperty("keys").EnumerateArray())
         {
@@ -153,7 +157,7 @@ public class MasterKeyRotationTests
         Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
 
         const string platformPath = "/api/platform";
-        var before = await GetKeysAsync(administrator, platformPath);
+        var before = await GetKeysAsync(administrator, platformPath, CancellationToken.None);
         Assert.Equal(1, before.GetProperty("keys").GetArrayLength());
 
         using var rekey = await administrator.PostAsync(
@@ -167,7 +171,7 @@ public class MasterKeyRotationTests
             JsonElement.Parse(rekeyBody).GetProperty("activeKey").GetProperty("version").GetInt32()
         );
 
-        var after = await GetKeysAsync(administrator, platformPath);
+        var after = await GetKeysAsync(administrator, platformPath, CancellationToken.None);
         Assert.Equal(2, after.GetProperty("keys").GetArrayLength());
 
         // The management API still answers, and so does the tenant plane.
@@ -182,8 +186,8 @@ public class MasterKeyRotationTests
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
         );
-        var clientId = await CreateClientAsync(administrator);
-        await CreateSecretAsync(administrator, clientId);
+        var clientId = await CreateClientAsync(administrator, CancellationToken.None);
+        await CreateSecretAsync(administrator, clientId, CancellationToken.None);
 
         var command = SecretProtectionCommandLine.Parse([
             "secret-protection",
@@ -203,15 +207,25 @@ public class MasterKeyRotationTests
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<JsonElement> GetKeysAsync(HttpClient administrator, string ownerPath)
+    private static async ValueTask<JsonElement> GetKeysAsync(
+        HttpClient administrator,
+        string ownerPath,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await administrator.GetAsync($"{ownerPath}/encryption-keys");
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await administrator.GetAsync(
+            $"{ownerPath}/encryption-keys",
+            cancellationToken
+        );
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body);
     }
 
-    private static async Task<string> CreateClientAsync(HttpClient administrator)
+    private static async ValueTask<string> CreateClientAsync(
+        HttpClient administrator,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients",
@@ -224,15 +238,20 @@ public class MasterKeyRotationTests
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         return JsonElement.Parse(body).GetProperty("clientId").GetString()
             ?? throw new InvalidOperationException("The response has no clientId.");
     }
 
-    private static async Task<string> CreateSecretAsync(HttpClient administrator, string clientId)
+    private static async ValueTask<string> CreateSecretAsync(
+        HttpClient administrator,
+        string clientId,
+        CancellationToken cancellationToken
+    )
     {
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients/{clientId}/secrets",
@@ -241,9 +260,10 @@ public class MasterKeyRotationTests
                 secretType = "symmetric",
                 keySizeBits = 256,
                 expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
+            },
+            cancellationToken
         );
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         return JsonElement.Parse(body).GetProperty("secretMaterial").GetString()
             ?? throw new InvalidOperationException("The response has no secretMaterial.");

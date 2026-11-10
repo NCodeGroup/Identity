@@ -53,9 +53,13 @@ public class RemoteEncryptionKeyTests
         using var client = factory.CreateClient();
 
         // The first request serves the tenant, which provisions its keys.
-        var keys = await GetJwksAsync(client);
+        var keys = await GetJwksAsync(client, CancellationToken.None);
 
-        var secrets = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
+        var secrets = await GetStoredSecretsAsync(
+            factory,
+            HostApplicationFactory.TenantId,
+            CancellationToken.None
+        );
         var secret = Assert.Single(secrets, candidate => candidate.Algorithm == "RSA-OAEP-256");
         Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
         Assert.Equal("enc", secret.Use);
@@ -77,9 +81,13 @@ public class RemoteEncryptionKeyTests
         using var provider = new TestRemoteKeyProvider();
         using var factory = new RemoteKeyApplicationFactory(provider, CreateStaticConfiguration());
         using var client = factory.CreateClient();
-        await GetJwksAsync(client);
+        await GetJwksAsync(client, CancellationToken.None);
 
-        var secrets = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
+        var secrets = await GetStoredSecretsAsync(
+            factory,
+            HostApplicationFactory.TenantId,
+            CancellationToken.None
+        );
         var persistedSecret = Assert.Single(
             secrets,
             candidate => candidate.Algorithm == "RSA-OAEP-256"
@@ -164,7 +172,11 @@ public class RemoteEncryptionKeyTests
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var secretId = JsonElement.Parse(body).GetProperty("secretId").GetString();
 
-        var secrets = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
+        var secrets = await GetStoredSecretsAsync(
+            factory,
+            HostApplicationFactory.TenantId,
+            CancellationToken.None
+        );
         var secret = Assert.Single(secrets, candidate => candidate.SecretId == secretId);
         Assert.Equal("enc", secret.Use);
         Assert.Equal(SecretOrigins.Supplied, secret.Origin);
@@ -174,28 +186,32 @@ public class RemoteEncryptionKeyTests
 
     #endregion
 
-    private static async Task<List<JsonElement>> GetJwksAsync(HttpClient client)
+    private static async ValueTask<List<JsonElement>> GetJwksAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync(JwksPath);
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.GetAsync(JwksPath, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
         var jsonElement = JsonElement.Parse(body);
         return [.. jsonElement.GetProperty("keys").EnumerateArray().Select(key => key.Clone())];
     }
 
-    private static async Task<List<PersistedSecret>> GetStoredSecretsAsync(
+    private static async ValueTask<List<PersistedSecret>> GetStoredSecretsAsync(
         HostApplicationFactory factory,
-        string tenantId
+        string tenantId,
+        CancellationToken cancellationToken
     )
     {
         using var serviceScope = factory.Services.CreateScope();
         await using var storeManager = await serviceScope
             .ServiceProvider.GetRequiredService<IStoreManagerFactory>()
-            .CreateAsync(CancellationToken.None);
+            .CreateAsync(cancellationToken);
         var secrets = await storeManager
             .GetStore<ITenantStore>()
-            .GetSecretsAsync(tenantId, CancellationToken.None);
+            .GetSecretsAsync(tenantId, cancellationToken);
         return [.. secrets.Value];
     }
 }

@@ -191,7 +191,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         string clientId,
         string clientSecret,
         string requestObject,
-        IEnumerable<KeyValuePair<string, string>>? outerParameters,
+        IEnumerable<KeyValuePair<string, string>> outerParameters,
         CancellationToken cancellationToken
     )
     {
@@ -203,7 +203,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         );
         request.Content = new FormUrlEncodedContent([
             new("request", requestObject),
-            .. outerParameters ?? [],
+            .. outerParameters,
         ]);
         return await client.SendAsync(request, cancellationToken);
     }
@@ -667,7 +667,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             clientSecret,
             requestObject,
-            outerParameters: null,
+            outerParameters: [],
             CancellationToken.None
         );
         var parBody = await parResponse.Content.ReadAsStringAsync();
@@ -715,7 +715,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             clientSecret,
             requestObject,
-            outerParameters: null,
+            outerParameters: [],
             CancellationToken.None
         );
 

@@ -23,6 +23,9 @@ public class TenantUsageTests
 {
     private const string UsagePath = $"/api/tenants/{HostApplicationFactory.TenantId}/usage";
 
+    private static IReadOnlyDictionary<string, string?> NoSettings { get; } =
+        new Dictionary<string, string?>();
+
     #region Helpers
 
     private static WebApplicationFactory<HostApiMarker> CreateFactory(
@@ -37,11 +40,11 @@ public class TenantUsageTests
         );
 
     private static BootstrapAdminApplicationFactory CreateHost(
-        IReadOnlyDictionary<string, string?>? settings = null
+        IReadOnlyDictionary<string, string?> settings
     )
     {
         var configuration = new Dictionary<string, string?>();
-        foreach (var (name, value) in settings ?? new Dictionary<string, string?>())
+        foreach (var (name, value) in settings)
             configuration[$"OpenId:Platform:Settings:{name}"] = value;
 
         return new BootstrapAdminApplicationFactory(configuration);
@@ -101,7 +104,7 @@ public class TenantUsageTests
     [Fact]
     public async Task GetUsage_AfterAdmittedRequests_ReturnsTheFlushedCounts()
     {
-        using var host = CreateHost();
+        using var host = CreateHost(NoSettings);
         using var factory = CreateFactory(host);
         using var administrator =
             await BootstrapAdminApplicationFactory.TokenRequest.CreateClientAsync(
@@ -240,7 +243,7 @@ public class TenantUsageTests
     [Fact]
     public async Task GetUsage_WhenTheRangeIsReversed_ReturnsValidationProblem()
     {
-        using var host = CreateHost();
+        using var host = CreateHost(NoSettings);
         using var factory = CreateFactory(host);
         using var administrator =
             await BootstrapAdminApplicationFactory.TokenRequest.CreateClientAsync(
@@ -260,7 +263,7 @@ public class TenantUsageTests
     [Fact]
     public async Task GetUsage_WhenAnonymous_ReturnsUnauthorized()
     {
-        using var host = CreateHost();
+        using var host = CreateHost(NoSettings);
         using var factory = CreateFactory(host);
         var client = CreateClient(factory);
 
@@ -279,7 +282,7 @@ public class TenantUsageTests
         // The default one-minute flush interval means only the final flush at the host's stop writes the ledger. The
         // factory shares its in-memory database with the host it derives, so the parent factory reads what the stopped
         // host added.
-        using var host = CreateHost();
+        using var host = CreateHost(NoSettings);
         var recordingHost = host.WithWebHostBuilder(_ => { });
         var client = CreateClient(recordingHost);
         for (var i = 0; i < 3; ++i)

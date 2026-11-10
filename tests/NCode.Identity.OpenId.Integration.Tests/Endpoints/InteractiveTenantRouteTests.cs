@@ -36,6 +36,9 @@ public class InteractiveTenantRouteTests
     private const string AntiforgeryFieldName = "__RequestVerificationToken";
     private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
 
+    private static IReadOnlyDictionary<string, object> NoSettings { get; } =
+        new Dictionary<string, object>();
+
     private static string AcmeSessionCookieName { get; } =
         $"{SessionCookieName}.{Base64Url.EncodeToString(SHA256.HashData(SecureEncoding.UTF8.GetBytes("/acme")))}";
 
@@ -92,7 +95,7 @@ public class InteractiveTenantRouteTests
     public async Task GetLogin_WhenTenantIsSelectedByPath_IsServedBeneathTheTenantRoute()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme", settings: null, CancellationToken.None);
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/acme/account/login?ReturnUrl=%2Facme%2Ffoo");
@@ -118,7 +121,7 @@ public class InteractiveTenantRouteTests
     public async Task GetAccount_WhenAnonymousUnderAPathTenant_RedirectsToThatTenantsLoginPage()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme", settings: null, CancellationToken.None);
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/acme/account");
@@ -134,7 +137,7 @@ public class InteractiveTenantRouteTests
     public async Task GetAccount_WhenRequestedWithATrailingSlash_IsServedAsTheAccountPage()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme", settings: null, CancellationToken.None);
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
         using var client = CreateClient(factory);
 
         // The bundle links to the account page as its base, `/acme/account/`.
@@ -159,7 +162,7 @@ public class InteractiveTenantRouteTests
         try
         {
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme", settings: null, CancellationToken.None);
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var response = await client.GetAsync("/acme/account/login");
@@ -185,7 +188,7 @@ public class InteractiveTenantRouteTests
         try
         {
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme", settings: null, CancellationToken.None);
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var response = await client.GetAsync("/acme/account/assets/app.js");
@@ -240,7 +243,7 @@ public class InteractiveTenantRouteTests
         try
         {
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme", settings: null, CancellationToken.None);
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var response = await client.GetAsync("/acme/account/assets/app.js");
@@ -269,7 +272,7 @@ public class InteractiveTenantRouteTests
         try
         {
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme", settings: null, CancellationToken.None);
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var response = await client.GetAsync(path);
@@ -291,8 +294,8 @@ public class InteractiveTenantRouteTests
     public async Task PostLogin_WhenTenantIsSelectedByPath_NamesTheSessionForThatTenant()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme", settings: null, CancellationToken.None);
-        await SeedTenantAsync(factory, "beta", settings: null, CancellationToken.None);
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
+        await SeedTenantAsync(factory, "beta", settings: NoSettings, CancellationToken.None);
         await SeedLocalAccountAsync(factory, "acme", CancellationToken.None);
         using var client = CreateClient(factory);
 
@@ -326,7 +329,7 @@ public class InteractiveTenantRouteTests
     public async Task PostLogout_WhenTenantIsSelectedByPath_ClearsTheTenantsCookieAndReturnsToItsLoginPage()
     {
         using var factory = CreatePathFactory();
-        await SeedTenantAsync(factory, "acme", settings: null, CancellationToken.None);
+        await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
         await SeedLocalAccountAsync(factory, "acme", CancellationToken.None);
         using var client = CreateClient(factory);
         using var login = await SignInAsync(client, "/acme", CancellationToken.None);
@@ -382,7 +385,7 @@ public class InteractiveTenantRouteTests
                 },
                 CancellationToken.None
             );
-            await SeedTenantAsync(factory, "beta", settings: null, CancellationToken.None);
+            await SeedTenantAsync(factory, "beta", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
 
             using var acmeResponse = await client.GetAsync("/acme/account/login");
@@ -584,7 +587,7 @@ public class InteractiveTenantRouteTests
     private static async ValueTask SeedTenantAsync(
         HostApplicationFactory factory,
         string tenantId,
-        IReadOnlyDictionary<string, object>? settings,
+        IReadOnlyDictionary<string, object> settings,
         CancellationToken cancellationToken
     )
     {
@@ -597,9 +600,7 @@ public class InteractiveTenantRouteTests
         {
             TenantId = tenantId,
             Issuer = $"http://localhost/{tenantId}",
-            Settings = settings is null
-                ? JsonSerializer.SerializeToElement(null, typeof(object))
-                : JsonSerializer.SerializeToElement(settings),
+            Settings = JsonSerializer.SerializeToElement(settings),
         }.Build();
         await storeManager.GetStore<ITenantStore>().AddAsync(tenant, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);

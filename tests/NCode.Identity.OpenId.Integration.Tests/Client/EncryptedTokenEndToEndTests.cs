@@ -45,6 +45,9 @@ public class EncryptedTokenEndToEndTests
     private const string State = "encrypted-e2e-state";
     private const string Nonce = "encrypted-e2e-nonce";
 
+    private static IReadOnlyDictionary<string, object> NoSettings { get; } =
+        new Dictionary<string, object>();
+
     #region Scaffolding
 
     private static string BuildEncryptionJwks(RSA rsa)
@@ -159,7 +162,7 @@ public class EncryptedTokenEndToEndTests
     private static ValueTask SeedClientAsync(
         HostApplicationFactory factory,
         string clientId,
-        IReadOnlyDictionary<string, object>? extraSettings,
+        IReadOnlyDictionary<string, object> extraSettings,
         CancellationToken cancellationToken
     )
     {
@@ -169,7 +172,7 @@ public class EncryptedTokenEndToEndTests
             [OpenIdSettingNames.JwksUri] = JwksUri,
             [OpenIdSettingNames.IdTokenEncryptedResponseAlg] = "RSA-OAEP-256",
         };
-        foreach (var (name, value) in extraSettings ?? new Dictionary<string, object>())
+        foreach (var (name, value) in extraSettings)
             settings[name] = value;
 
         return factory.SeedSharedSecretClientWithSettingsAsync(
@@ -422,7 +425,7 @@ public class EncryptedTokenEndToEndTests
             ClientJwksResponder = _ => jwks,
         };
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedClientAsync(factory, clientId, null, CancellationToken.None);
+        await SeedClientAsync(factory, clientId, NoSettings, CancellationToken.None);
         await using var provider = CreateClientProvider(factory, clientRsa);
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);
@@ -467,7 +470,7 @@ public class EncryptedTokenEndToEndTests
             ClientJwksResponder = _ => jwks,
         };
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedClientAsync(factory, clientId, null, CancellationToken.None);
+        await SeedClientAsync(factory, clientId, NoSettings, CancellationToken.None);
 
         SecretKey? remoteKey = null;
         await using var provider = CreateRemoteClientProvider(
@@ -536,7 +539,7 @@ public class EncryptedTokenEndToEndTests
             ClientJwksResponder = _ => jwks,
         };
         await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
-        await SeedClientAsync(factory, clientId, null, CancellationToken.None);
+        await SeedClientAsync(factory, clientId, NoSettings, CancellationToken.None);
         await using var provider = CreateClientProvider(factory, clientRsa);
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);

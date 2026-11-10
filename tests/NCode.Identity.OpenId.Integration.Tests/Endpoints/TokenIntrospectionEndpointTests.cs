@@ -115,7 +115,7 @@ public class TokenIntrospectionEndpointTests
     )> CreateResourceServerClientAsync(
         HttpClient administrator,
         string resourceServerId,
-        IReadOnlyDictionary<string, object>? extraSettings,
+        IReadOnlyDictionary<string, object> extraSettings,
         CancellationToken cancellationToken
     )
     {
@@ -125,7 +125,7 @@ public class TokenIntrospectionEndpointTests
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
         };
-        foreach (var (name, value) in extraSettings ?? NoSettings)
+        foreach (var (name, value) in extraSettings)
         {
             settings[name] = value;
         }
@@ -303,7 +303,7 @@ public class TokenIntrospectionEndpointTests
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId,
-            extraSettings: null,
+            extraSettings: NoSettings,
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
@@ -378,7 +378,7 @@ public class TokenIntrospectionEndpointTests
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             BillingResourceServerId,
-            extraSettings: null,
+            extraSettings: NoSettings,
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
@@ -412,7 +412,7 @@ public class TokenIntrospectionEndpointTests
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId,
-            extraSettings: null,
+            extraSettings: NoSettings,
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
@@ -499,7 +499,7 @@ public class TokenIntrospectionEndpointTests
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId,
-            extraSettings: null,
+            extraSettings: NoSettings,
             CancellationToken.None
         );
         using var patch = new HttpRequestMessage(
@@ -559,7 +559,7 @@ public class TokenIntrospectionEndpointTests
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId,
-            extraSettings: null,
+            extraSettings: NoSettings,
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
@@ -610,7 +610,7 @@ public class TokenIntrospectionEndpointTests
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId,
-            extraSettings: null,
+            extraSettings: NoSettings,
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
@@ -652,7 +652,7 @@ public class TokenIntrospectionEndpointTests
         var (clientId, clientSecret) = await CreateResourceServerClientAsync(
             administrator,
             OrdersResourceServerId,
-            extraSettings: null,
+            extraSettings: NoSettings,
             CancellationToken.None
         );
         using var client = CreateHttpClient(factory);
@@ -809,7 +809,7 @@ public class TokenIntrospectionEndpointTests
         HttpClient client,
         string initialAccessToken,
         string tokenEndpointAuthMethod,
-        IReadOnlyDictionary<string, object>? extraMetadata,
+        IReadOnlyDictionary<string, object> extraMetadata,
         CancellationToken cancellationToken
     )
     {
@@ -820,7 +820,7 @@ public class TokenIntrospectionEndpointTests
             // The binding comes from the initial access token alone; a request member is ignored.
             ["resource_server_id"] = BillingResourceServerId,
         };
-        foreach (var (name, value) in extraMetadata ?? NoSettings)
+        foreach (var (name, value) in extraMetadata)
         {
             metadata[name] = value;
         }
@@ -868,7 +868,7 @@ public class TokenIntrospectionEndpointTests
             client,
             initialAccessToken,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-            extraMetadata: null,
+            extraMetadata: NoSettings,
             CancellationToken.None
         );
 
@@ -1009,7 +1009,7 @@ public class TokenIntrospectionEndpointTests
             client,
             initialAccessToken,
             OpenIdProtocol.ClientAuthenticationMethods.None,
-            extraMetadata: null,
+            extraMetadata: NoSettings,
             CancellationToken.None
         );
 
@@ -1046,7 +1046,7 @@ public class TokenIntrospectionEndpointTests
             client,
             initialAccessToken,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-            extraMetadata: null,
+            extraMetadata: NoSettings,
             CancellationToken.None
         );
         var firstBody = await firstResponse.Content.ReadAsStringAsync();
@@ -1056,7 +1056,7 @@ public class TokenIntrospectionEndpointTests
             client,
             initialAccessToken,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-            extraMetadata: null,
+            extraMetadata: NoSettings,
             CancellationToken.None
         );
 
@@ -1093,7 +1093,7 @@ public class TokenIntrospectionEndpointTests
             client,
             initialAccessToken,
             OpenIdProtocol.ClientAuthenticationMethods.None,
-            extraMetadata: null,
+            extraMetadata: NoSettings,
             CancellationToken.None
         );
         var refusedBody = await refusedResponse.Content.ReadAsStringAsync();
@@ -1103,7 +1103,7 @@ public class TokenIntrospectionEndpointTests
             client,
             initialAccessToken,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-            extraMetadata: null,
+            extraMetadata: NoSettings,
             CancellationToken.None
         );
 
@@ -1135,7 +1135,7 @@ public class TokenIntrospectionEndpointTests
             client,
             initialAccessToken,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-            extraMetadata: null,
+            extraMetadata: NoSettings,
             CancellationToken.None
         );
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();

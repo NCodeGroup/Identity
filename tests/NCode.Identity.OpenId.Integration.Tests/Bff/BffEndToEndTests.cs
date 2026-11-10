@@ -30,7 +30,7 @@ public class BffEndToEndTests
 
     private static async ValueTask SeedAsync(
         HostApplicationFactory factory,
-        IReadOnlyDictionary<string, object>? settings,
+        IReadOnlyDictionary<string, object> settings,
         CancellationToken cancellationToken
     )
     {
@@ -39,7 +39,7 @@ public class BffEndToEndTests
             BffTestHost.ClientId,
             BffTestHost.ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
-            settings ?? NoSettings,
+            settings,
             [BffTestHost.CallbackUri],
             cancellationToken
         );
@@ -49,7 +49,7 @@ public class BffEndToEndTests
     public async Task Login_WithUserInfoLoad_CreatesTheSessionWithTheUserInfoClaims()
     {
         using var factory = new HostApplicationFactory();
-        await SeedAsync(factory, settings: null, CancellationToken.None);
+        await SeedAsync(factory, settings: NoSettings, CancellationToken.None);
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var host = await BffTestHost.StartAsync(
@@ -300,7 +300,7 @@ public class BffEndToEndTests
     public async Task Login_ThenUserAndApi_Succeed()
     {
         using var factory = new HostApplicationFactory();
-        await SeedAsync(factory, settings: null, CancellationToken.None);
+        await SeedAsync(factory, settings: NoSettings, CancellationToken.None);
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         await using var host = await BffTestHost.StartAsync(
             factory,
@@ -402,7 +402,7 @@ public class BffEndToEndTests
     public async Task Login_WithAForgedHost_RedirectsToTheConfiguredCallback()
     {
         using var factory = new HostApplicationFactory();
-        await SeedAsync(factory, settings: null, CancellationToken.None);
+        await SeedAsync(factory, settings: NoSettings, CancellationToken.None);
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         await using var host = await BffTestHost.StartAsync(
             factory,

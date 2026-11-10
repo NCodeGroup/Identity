@@ -24,6 +24,9 @@ public class TokenEndpointResourceServerPolicyTests
     private const string TokenPath = "/oauth2/token";
     private const string ClientSecret = "confidential-secret-value";
 
+    private static IReadOnlyDictionary<string, string?> NoConfiguration { get; } =
+        new Dictionary<string, string?>();
+
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
@@ -41,13 +44,11 @@ public class TokenEndpointResourceServerPolicyTests
     private static async ValueTask<HostApplicationFactory> SeedClientSecretPostClientAsync(
         string clientId,
         IReadOnlyDictionary<string, object> resourceServerSettings,
-        IReadOnlyDictionary<string, string?>? configuration,
+        IReadOnlyDictionary<string, string?> configuration,
         CancellationToken cancellationToken
     )
     {
-        HostApplicationFactory factory = configuration is null
-            ? new HostApplicationFactory()
-            : new ConfiguredHostApplicationFactory(configuration);
+        HostApplicationFactory factory = new ConfiguredHostApplicationFactory(configuration);
         await factory.SeedConfidentialClientAsync(clientId, ClientSecret, [], cancellationToken);
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -146,7 +147,7 @@ public class TokenEndpointResourceServerPolicyTests
             {
                 [OpenIdSettingNames.AccessTokenLifetime] = "00:01:00",
             },
-            configuration: null,
+            configuration: NoConfiguration,
             CancellationToken.None
         );
 
@@ -198,7 +199,7 @@ public class TokenEndpointResourceServerPolicyTests
             {
                 [OpenIdSettingNames.AccessTokenSenderConstraintRequired] = true,
             },
-            configuration: null,
+            configuration: NoConfiguration,
             CancellationToken.None
         );
 

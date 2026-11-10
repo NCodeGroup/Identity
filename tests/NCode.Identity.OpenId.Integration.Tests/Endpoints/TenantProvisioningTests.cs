@@ -26,7 +26,8 @@ public class TenantProvisioningTests
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
     private const string DiscoveryPath = "/.well-known/openid-configuration";
 
-    // The TestServer's own host is the root tenant's: nothing is seeded, so the administrator's first token request bootstraps the control plane, and with it the bootstrap administrator.
+    // The TestServer's own host is the root tenant's: nothing is seeded, so the administrator's first token request
+    // bootstraps the control plane, and with it the bootstrap administrator.
     private static BootstrapAdminApplicationFactory CreateFactory(
         string? mtlsEndpointAliasTemplate = null
     ) =>

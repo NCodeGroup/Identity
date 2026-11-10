@@ -77,7 +77,9 @@ public sealed record ManagementTokenRequest(string ClientId, string ClientSecret
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
         var jsonElement = JsonElement.Parse(body);
-        return jsonElement.GetProperty("access_token").GetString() ?? string.Empty;
+        var accessToken = jsonElement.GetProperty("access_token").GetString();
+        Assert.False(string.IsNullOrEmpty(accessToken), body);
+        return accessToken;
     }
 
     /// <summary>

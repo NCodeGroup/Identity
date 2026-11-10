@@ -213,26 +213,19 @@ public class DefaultDPoPProofServiceTests : BaseTests
     {
         var credentials = CreateCredentials("ES256");
 
-        var first = DecodeSegment(
-                await CreateProofAsync(
-                    credentials,
-                    new DPoPProofTestOptions(),
-                    CancellationToken.None
-                ),
-                1
-            )
-            .GetProperty("jti")
-            .GetString();
-        var second = DecodeSegment(
-                await CreateProofAsync(
-                    credentials,
-                    new DPoPProofTestOptions(),
-                    CancellationToken.None
-                ),
-                1
-            )
-            .GetProperty("jti")
-            .GetString();
+        var firstProof = await CreateProofAsync(
+            credentials,
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
+        var secondProof = await CreateProofAsync(
+            credentials,
+            new DPoPProofTestOptions(),
+            CancellationToken.None
+        );
+
+        var first = DecodeSegment(firstProof, 1).GetProperty("jti").GetString();
+        var second = DecodeSegment(secondProof, 1).GetProperty("jti").GetString();
 
         Assert.NotEqual(first, second);
     }

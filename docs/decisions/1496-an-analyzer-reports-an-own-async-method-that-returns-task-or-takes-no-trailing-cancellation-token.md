@@ -54,7 +54,8 @@ method that returns `Task` or `Task<T>` and with `NCID0003` on an own asynchrono
    - an override or implementation, implicit or explicit, of a member that an assembly outside the family declares;
    - a method group handed to a method, constructor or delegate type that a `Microsoft.AspNetCore.*` assembly declares.
 
-   Generated code is not analyzed.
+   Generated code is not analyzed. An explicit interface implementation is checked like any other method, so it is
+   skipped only when the member it implements is declared outside the family.
 3. **The family test is by assembly name.** The family is `NCode.Identity.*`, `NCode.AspNetCore`, `NCode.Json`,
    `NCode.Persistence.*`, `NCode.Registration.*`, `NCode.Time` and the assembly being compiled. A member declared in the
    family is the family's own, so its implementer has the family's shape. `NCode.Mediator` is outside the family, so an

@@ -389,12 +389,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenSignatureAlgorithmsAreUnset_Throws()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions(),
             CancellationToken.None
         );
@@ -426,12 +427,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     {
         // A requirement built from a missing value would let a captured Key Binding JWT replay, so it is refused
         // before the presentation is read, which a valid presentation proves.
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions { WithKeyBinding = true },
             CancellationToken.None
         );
@@ -459,12 +461,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheMaximumAgeIsUnbounded_VerifiesAnOldKeyBindingJwt()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions { WithKeyBinding = true },
             CancellationToken.None
         );
@@ -527,12 +530,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     {
         // The JWT validator reports every exception as a failed result, cancellation included, which the verifier
         // propagates rather than reports as an invalid token.
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions(),
             CancellationToken.None
         );
@@ -610,12 +614,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheIssuerKeyDoesNotVerify_FailsWithTheJwtCode()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions(),
             CancellationToken.None
         );
@@ -670,18 +675,17 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenADisclosureIsMalformed_Fails()
     {
-        var presentation =
-            (
-                await PresentAsync(
-                    await IssueAsync(
-                        ["/given_name"],
-                        new SdJwtTestIssuanceOptions(),
-                        CancellationToken.None
-                    ),
-                    new SdJwtTestPresentationOptions(),
-                    CancellationToken.None
-                )
-            ) + "!!!~";
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
+        var valid = await PresentAsync(
+            issued,
+            new SdJwtTestPresentationOptions(),
+            CancellationToken.None
+        );
+        var presentation = valid + "!!!~";
 
         var result = await VerifyAsync(presentation, CreateParameters(), CancellationToken.None);
 
@@ -692,12 +696,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     public async Task VerifyAsync_WhenOverTheDisclosureLimit_Fails()
     {
         await using var host = new SdJwtTestHost(options => options.MaxDisclosureCount = 1);
+        var issued = await IssueAsync(
+            ["/given_name", "/family_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name", "/family_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions(),
             CancellationToken.None
         );
@@ -800,10 +805,12 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
             new SdJwtTestIssuanceOptions(),
             CancellationToken.None
         );
-        var presentation =
-            (await PresentAsync(issued, new SdJwtTestPresentationOptions(), CancellationToken.None))
-            + other.Disclosures[0].Encoded
-            + "~";
+        var presented = await PresentAsync(
+            issued,
+            new SdJwtTestPresentationOptions(),
+            CancellationToken.None
+        );
+        var presentation = presented + other.Disclosures[0].Encoded + "~";
 
         var result = await VerifyAsync(presentation, CreateParameters(), CancellationToken.None);
 
@@ -818,10 +825,12 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
             new SdJwtTestIssuanceOptions(),
             CancellationToken.None
         );
-        var presentation =
-            (await PresentAsync(issued, new SdJwtTestPresentationOptions(), CancellationToken.None))
-            + issued.Disclosures[0].Encoded
-            + "~";
+        var presented = await PresentAsync(
+            issued,
+            new SdJwtTestPresentationOptions(),
+            CancellationToken.None
+        );
+        var presentation = presented + issued.Disclosures[0].Encoded + "~";
 
         var result = await VerifyAsync(presentation, CreateParameters(), CancellationToken.None);
 
@@ -1079,12 +1088,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WithDecryptionKeysAndACompactJws_Succeeds()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions(),
             CancellationToken.None
         );
@@ -1169,12 +1179,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenKeyBindingIsNotRequired_IgnoresTheKeyBindingJwt()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions { WithKeyBinding = true, Nonce = "other" },
             CancellationToken.None
         );
@@ -1189,12 +1200,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenKeyBindingIsRequiredButAbsent_Fails()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions(),
             CancellationToken.None
         );
@@ -1211,12 +1223,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheNonceDiffers_Fails()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions { WithKeyBinding = true, Nonce = "other" },
             CancellationToken.None
         );
@@ -1233,12 +1246,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheAudienceDiffers_Fails()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions { WithKeyBinding = true },
             CancellationToken.None
         );
@@ -1276,9 +1290,12 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
             CancellationToken.None
         );
         var keyBindingJwt = bound[(bound.LastIndexOf('~') + 1)..];
-        var presentation =
-            (await PresentAsync(issued, new SdJwtTestPresentationOptions(), CancellationToken.None))
-            + keyBindingJwt;
+        var presented = await PresentAsync(
+            issued,
+            new SdJwtTestPresentationOptions(),
+            CancellationToken.None
+        );
+        var presentation = presented + keyBindingJwt;
 
         var result = await VerifyAsync(
             presentation,
@@ -1292,12 +1309,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtIsTooOld_Fails()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions { WithKeyBinding = true },
             CancellationToken.None
         );
@@ -1315,12 +1333,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtIsWithinTheSkew_Succeeds()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions { WithKeyBinding = true },
             CancellationToken.None
         );
@@ -1479,12 +1498,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheIssuerSignedJwtCarriesNoCnf_Fails()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions { WithHolderKey = false },
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions { WithHolderKey = false },
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions { WithKeyBinding = true },
             CancellationToken.None
         );
@@ -1598,12 +1618,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WhenTheKeyBindingJwtDoesNotDecode_ReportsFixedTextWithoutTheToken()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions(),
+            CancellationToken.None
+        );
         var prefix = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions(),
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions(),
             CancellationToken.None
         );
@@ -1706,12 +1727,13 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     [Fact]
     public async Task VerifyAsync_WithProfileAndAPlainJwtType_Fails()
     {
+        var issued = await IssueAsync(
+            ["/given_name"],
+            new SdJwtTestIssuanceOptions { ClaimsJson = VcClaimsJson },
+            CancellationToken.None
+        );
         var presentation = await PresentAsync(
-            await IssueAsync(
-                ["/given_name"],
-                new SdJwtTestIssuanceOptions { ClaimsJson = VcClaimsJson },
-                CancellationToken.None
-            ),
+            issued,
             new SdJwtTestPresentationOptions(),
             CancellationToken.None
         );

@@ -108,10 +108,9 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
             .Setup(x => x.WaitUntilEndedAsync(MockSession.Object, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+        var signedIn = SignedInAsync(MockSession.Object, CancellationToken.None).AsTask();
 
-        Provider.SetAuthenticationState(
-            SignedInAsync(MockSession.Object, CancellationToken.None).AsTask()
-        );
+        Provider.SetAuthenticationState(signedIn);
 
         var current = await Provider.GetAuthenticationStateAsync();
         Assert.False(current.User.Identity?.IsAuthenticated);
@@ -137,9 +136,8 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
             )
             .Verifiable();
         var changes = 0;
-        Provider.SetAuthenticationState(
-            SignedInAsync(MockSession.Object, CancellationToken.None).AsTask()
-        );
+        var signedIn = SignedInAsync(MockSession.Object, CancellationToken.None).AsTask();
+        Provider.SetAuthenticationState(signedIn);
         Provider.AuthenticationStateChanged += _ => Interlocked.Increment(ref changes);
 
         await started.Task.WaitAsync(Timeout);
@@ -163,10 +161,9 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
             .Setup(x => x.WaitUntilEndedAsync(MockSession.Object, It.IsAny<CancellationToken>()))
             .Returns(() => ValueTask.FromException(new InvalidOperationException("watch failed")))
             .Verifiable();
+        var signedIn = SignedInAsync(MockSession.Object, CancellationToken.None).AsTask();
 
-        Provider.SetAuthenticationState(
-            SignedInAsync(MockSession.Object, CancellationToken.None).AsTask()
-        );
+        Provider.SetAuthenticationState(signedIn);
 
         var current = await Provider.GetAuthenticationStateAsync();
         Assert.False(current.User.Identity?.IsAuthenticated);

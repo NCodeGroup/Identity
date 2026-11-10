@@ -193,7 +193,8 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
         Assert.Null(sentHeaders.Host);
 
         Assert.Equal(StatusCodes.Status201Created, context.Response.StatusCode);
-        Assert.Equal("""{"id":7}""", await ReadResponseBodyAsync(context, CancellationToken.None));
+        var body = await ReadResponseBodyAsync(context, CancellationToken.None);
+        Assert.Equal("""{"id":7}""", body);
         Assert.False(context.Response.Headers.ContainsKey("Set-Cookie"));
     }
 
@@ -244,7 +245,8 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
         Assert.Equal("""{"qty":1}""", remote.Requests[0].Body);
         Assert.Equal("""{"qty":1}""", remote.Requests[1].Body);
         Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
-        Assert.Equal("""{"id":7}""", await ReadResponseBodyAsync(context, CancellationToken.None));
+        var body = await ReadResponseBodyAsync(context, CancellationToken.None);
+        Assert.Equal("""{"id":7}""", body);
     }
 
     [Fact]

@@ -72,7 +72,10 @@ internal sealed class BffClientSession(
     /// Gets the current authentication state and starts monitoring the session on the first call. Without a seed, the
     /// current state is the result of the first probe.
     /// </summary>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <param name="cancellationToken">
+    /// The token to observe; it is not observed here because the state is already cached and the shared monitor runs on
+    /// the session's own disposal token.
+    /// </param>
     /// <returns>The task of the current authentication state.</returns>
     public ValueTask<AuthenticationState> GetAuthenticationStateAsync(
         CancellationToken cancellationToken

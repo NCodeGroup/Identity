@@ -102,7 +102,10 @@ public sealed class AsyncMethodShapeAnalyzer : DiagnosticAnalyzer
             {
                 var method = (IMethodSymbol)symbolContext.Symbol;
                 if (
-                    method.MethodKind != MethodKind.Ordinary
+                    (
+                        method.MethodKind != MethodKind.Ordinary
+                        && method.MethodKind != MethodKind.ExplicitInterfaceImplementation
+                    )
                     || method.IsImplicitlyDeclared
                     || MethodExemptions.IsFrameworkContract(method, assemblyName)
                 )

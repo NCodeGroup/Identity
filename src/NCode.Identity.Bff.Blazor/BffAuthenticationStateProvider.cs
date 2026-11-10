@@ -112,7 +112,8 @@ internal sealed class BffAuthenticationStateProvider
             Logger.RevalidationFaulted(exception);
         }
 
-        SetAuthenticationState(SignedOutAsync(cancellationToken).AsTask());
+        var signedOut = SignedOutAsync(cancellationToken).AsTask();
+        SetAuthenticationState(signedOut);
     }
 
     private async Task PersistUserAsync()

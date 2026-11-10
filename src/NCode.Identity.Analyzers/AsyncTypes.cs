@@ -9,28 +9,19 @@ namespace NCode.Identity.Analyzers;
 /// The task types and the cancellation token type of a compilation, and what they say about a method's shape.
 /// </summary>
 // See ADR-1496.
-internal sealed class AsyncTypes
+internal sealed class AsyncTypes(
+    INamedTypeSymbol task,
+    INamedTypeSymbol taskOfT,
+    INamedTypeSymbol valueTask,
+    INamedTypeSymbol valueTaskOfT,
+    INamedTypeSymbol cancellationToken
+)
 {
-    private INamedTypeSymbol Task { get; }
-    private INamedTypeSymbol TaskOfT { get; }
-    private INamedTypeSymbol ValueTask { get; }
-    private INamedTypeSymbol ValueTaskOfT { get; }
-    private INamedTypeSymbol CancellationToken { get; }
-
-    private AsyncTypes(
-        INamedTypeSymbol task,
-        INamedTypeSymbol taskOfT,
-        INamedTypeSymbol valueTask,
-        INamedTypeSymbol valueTaskOfT,
-        INamedTypeSymbol cancellationToken
-    )
-    {
-        Task = task;
-        TaskOfT = taskOfT;
-        ValueTask = valueTask;
-        ValueTaskOfT = valueTaskOfT;
-        CancellationToken = cancellationToken;
-    }
+    private INamedTypeSymbol Task { get; } = task;
+    private INamedTypeSymbol TaskOfT { get; } = taskOfT;
+    private INamedTypeSymbol ValueTask { get; } = valueTask;
+    private INamedTypeSymbol ValueTaskOfT { get; } = valueTaskOfT;
+    private INamedTypeSymbol CancellationToken { get; } = cancellationToken;
 
     /// <summary>
     /// Resolves the types from a compilation.

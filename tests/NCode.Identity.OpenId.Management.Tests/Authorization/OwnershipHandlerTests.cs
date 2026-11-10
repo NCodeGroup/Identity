@@ -22,7 +22,7 @@ public class OwnershipHandlerTests : IDisposable
 
     public void Dispose() => MockRepository.Verify();
 
-    private const string TeamId = "team-1";
+    internal const string TeamId = "team-1";
     private const string TenantId = "tenant-1";
     private const string Subject = "subject-1";
 
@@ -77,25 +77,12 @@ public class OwnershipHandlerTests : IDisposable
 
     // A requirement the handler does not decide reads nothing, a caller without a principal reads no assignments, and
     // a team or platform node reads no tenant.
-    private sealed class HandleOptions
-    {
-        public bool Decides { get; init; } = true;
-
-        public bool ReadsAssignments { get; init; } = true;
-
-        public bool ReadsTenant { get; init; } = true;
-
-        public string? TenantTeamId { get; init; } = TeamId;
-
-        public string[]? TeamAncestors { get; init; }
-    }
-
     private async ValueTask<bool> HandleAsync(
         IAuthorizationRequirement requirement,
         ISupportTenantId resource,
         ClaimsPrincipal user,
         IReadOnlyList<PersistedRoleAssignment> assignments,
-        HandleOptions options,
+        OwnershipHandlerOptions options,
         CancellationToken cancellationToken
     )
     {
@@ -145,7 +132,7 @@ public class OwnershipHandlerTests : IDisposable
             resource,
             user,
             assignments,
-            new HandleOptions(),
+            new OwnershipHandlerOptions(),
             cancellationToken
         );
 
@@ -341,7 +328,7 @@ public class OwnershipHandlerTests : IDisposable
             ClientNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, "parent-team")],
-            new HandleOptions { TeamAncestors = ["parent-team"] },
+            new OwnershipHandlerOptions { TeamAncestors = ["parent-team"] },
             CancellationToken.None
         );
 
@@ -356,7 +343,7 @@ public class OwnershipHandlerTests : IDisposable
             TeamNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, "parent-team")],
-            new HandleOptions { ReadsTenant = false, TeamAncestors = ["parent-team"] },
+            new OwnershipHandlerOptions { ReadsTenant = false, TeamAncestors = ["parent-team"] },
             CancellationToken.None
         );
 
@@ -371,7 +358,7 @@ public class OwnershipHandlerTests : IDisposable
             ClientNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, "child-team")],
-            new HandleOptions { TeamAncestors = ["parent-team"] },
+            new OwnershipHandlerOptions { TeamAncestors = ["parent-team"] },
             CancellationToken.None
         );
 
@@ -386,7 +373,7 @@ public class OwnershipHandlerTests : IDisposable
             TeamNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.TenantAdmin, ResourceNodeTypes.Tenant, TenantId)],
-            new HandleOptions { ReadsTenant = false, TeamAncestors = ["parent-team"] },
+            new OwnershipHandlerOptions { ReadsTenant = false, TeamAncestors = ["parent-team"] },
             CancellationToken.None
         );
 
@@ -401,7 +388,7 @@ public class OwnershipHandlerTests : IDisposable
             ClientNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)],
-            new HandleOptions { TenantTeamId = null },
+            new OwnershipHandlerOptions { TenantTeamId = null },
             CancellationToken.None
         );
 
@@ -444,7 +431,7 @@ public class OwnershipHandlerTests : IDisposable
             TeamNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)],
-            new HandleOptions { ReadsTenant = false },
+            new OwnershipHandlerOptions { ReadsTenant = false },
             CancellationToken.None
         );
 
@@ -459,7 +446,7 @@ public class OwnershipHandlerTests : IDisposable
             TeamNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Team, TeamId)],
-            new HandleOptions { ReadsTenant = false },
+            new OwnershipHandlerOptions { ReadsTenant = false },
             CancellationToken.None
         );
 
@@ -474,7 +461,7 @@ public class OwnershipHandlerTests : IDisposable
             TeamNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.GlobalAdmin, ResourceNodeTypes.Platform, "platform")],
-            new HandleOptions { ReadsTenant = false },
+            new OwnershipHandlerOptions { ReadsTenant = false },
             CancellationToken.None
         );
 
@@ -489,7 +476,7 @@ public class OwnershipHandlerTests : IDisposable
             TeamNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, "team-2")],
-            new HandleOptions { ReadsTenant = false },
+            new OwnershipHandlerOptions { ReadsTenant = false },
             CancellationToken.None
         );
 
@@ -518,7 +505,7 @@ public class OwnershipHandlerTests : IDisposable
             ResourceNode.For(TenantId, ResourceNodeTypes.Platform, "platform"),
             CreateSubject(),
             [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)],
-            new HandleOptions { ReadsTenant = false },
+            new OwnershipHandlerOptions { ReadsTenant = false },
             CancellationToken.None
         );
 
@@ -533,7 +520,7 @@ public class OwnershipHandlerTests : IDisposable
             TeamNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.TenantAdmin, ResourceNodeTypes.Tenant, TenantId)],
-            new HandleOptions { ReadsTenant = false },
+            new OwnershipHandlerOptions { ReadsTenant = false },
             CancellationToken.None
         );
 
@@ -576,7 +563,7 @@ public class OwnershipHandlerTests : IDisposable
             ClientNode(),
             CreateUser(),
             [Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "client-1")],
-            new HandleOptions { ReadsAssignments = false },
+            new OwnershipHandlerOptions { ReadsAssignments = false },
             CancellationToken.None
         );
 
@@ -619,7 +606,7 @@ public class OwnershipHandlerTests : IDisposable
             TeamNode(),
             CreateSubject(),
             [Assignment(BuiltInRoles.TenantAdmin, ResourceNodeTypes.Tenant, TenantId)],
-            new HandleOptions { ReadsTenant = false },
+            new OwnershipHandlerOptions { ReadsTenant = false },
             CancellationToken.None
         );
 
@@ -634,7 +621,7 @@ public class OwnershipHandlerTests : IDisposable
             ResourceNode.For(TenantId, ResourceNodeTypes.Platform, "platform"),
             CreateSubject(),
             [Assignment(BuiltInRoles.TenantAdmin, ResourceNodeTypes.Tenant, TenantId)],
-            new HandleOptions { ReadsTenant = false },
+            new OwnershipHandlerOptions { ReadsTenant = false },
             CancellationToken.None
         );
 

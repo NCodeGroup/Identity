@@ -89,16 +89,11 @@ public class HealthProbeEndpointRouteBuilderExtensionsTests : BaseTests
 
         ((IEndpointRouteBuilder)app).MapHealthProbes();
 
-        var readyStatusCode = await InvokeAsync(
-            app,
-            FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName),
-            CancellationToken.None
-        );
-        var liveStatusCode = await InvokeAsync(
-            app,
-            FindEndpoint(app, HealthProbeDefaults.LivenessEndpointName),
-            CancellationToken.None
-        );
+        var readiness = FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName);
+        var liveness = FindEndpoint(app, HealthProbeDefaults.LivenessEndpointName);
+
+        var readyStatusCode = await InvokeAsync(app, readiness, CancellationToken.None);
+        var liveStatusCode = await InvokeAsync(app, liveness, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, readyStatusCode);
         Assert.Equal(StatusCodes.Status200OK, liveStatusCode);
@@ -111,11 +106,9 @@ public class HealthProbeEndpointRouteBuilderExtensionsTests : BaseTests
 
         ((IEndpointRouteBuilder)app).MapHealthProbes();
 
-        var readyStatusCode = await InvokeAsync(
-            app,
-            FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName),
-            CancellationToken.None
-        );
+        var readiness = FindEndpoint(app, HealthProbeDefaults.ReadinessEndpointName);
+
+        var readyStatusCode = await InvokeAsync(app, readiness, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status200OK, readyStatusCode);
     }

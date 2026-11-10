@@ -31,10 +31,10 @@ namespace NCode.Identity.OpenId.Client.Tests.UserInfo;
 
 public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
 {
-    private const string Authority = "https://op.example.test";
+    internal const string Authority = "https://op.example.test";
     private const string UserInfoEndpoint = "https://op.example.test/userinfo";
     private const string AccessToken = "access-token";
-    private const string ClientId = "client-1";
+    internal const string ClientId = "client-1";
     private const string KeyRingName = "client-ring";
 
     private Mock<IProviderMetadataResolver> MockMetadataResolver { get; }
@@ -179,29 +179,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
         return mock;
     }
 
-    private sealed class UserInfoJwtOptions
-    {
-        public string Issuer { get; init; } = Authority;
-
-        public string Audience { get; init; } = ClientId;
-
-        public string Subject { get; init; } = "user-1";
-
-        public string Alg { get; init; } = "PS256";
-
-        public string TokenType { get; init; } = JoseTokenTypes.Jwt;
-
-        public SecretKey? SigningKey { get; init; }
-
-        public DateTimeOffset? Expires { get; init; }
-
-        public bool Encrypted { get; init; }
-    }
-
     // A UserInfo response the provider signs as OpenID Connect Core 1.0 §5.3.2 requires: its issuer, an audience naming
     // the client, and the end-user's claims; encrypted to the client when encryption credentials are given.
     private async ValueTask<string> CreateUserInfoJwtAsync(
-        UserInfoJwtOptions options,
+        UserInfoJwtTestOptions options,
         CancellationToken cancellationToken
     )
     {
@@ -517,11 +498,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoSigning_AsksForAJwtAndValidatesIt()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(new UserInfoJwtOptions(), CancellationToken.None),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions(),
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
 
         var result = await client.GetUserInfoAsync(
@@ -558,14 +539,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoSigning_WhenAnotherIssuerSignedIt_FailsWithInvalidIssuer()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(
-                new UserInfoJwtOptions { Issuer = "https://attacker.example.test" },
-                CancellationToken.None
-            ),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions { Issuer = "https://attacker.example.test" },
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
 
         var result = await client.GetUserInfoAsync(
@@ -580,14 +558,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoSigning_WhenItNamesAnotherAudience_FailsWithInvalidAudience()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(
-                new UserInfoJwtOptions { Audience = "client-2" },
-                CancellationToken.None
-            ),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions { Audience = "client-2" },
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
 
         var result = await client.GetUserInfoAsync(
@@ -602,14 +577,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoSigning_WhenAnotherKeySignedIt_FailsWithInvalidSignature()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(
-                new UserInfoJwtOptions { SigningKey = OtherKey },
-                CancellationToken.None
-            ),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions { SigningKey = OtherKey },
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
 
         var result = await client.GetUserInfoAsync(
@@ -628,14 +600,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoSigning_WhenSignedWithAnUnregisteredAlgorithm_FailsWithAlgorithmNotPermitted()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(
-                new UserInfoJwtOptions { Alg = "RS256" },
-                CancellationToken.None
-            ),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions { Alg = "RS256" },
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(handler);
 
         var result = await client.GetUserInfoAsync(
@@ -650,11 +619,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoSigning_WhenTheProviderAdvertisesNoneOfItsAlgorithms_FailsWithAlgorithmNotPermitted()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(new UserInfoJwtOptions(), CancellationToken.None),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions(),
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(handler, advertisedSigningAlgorithms: ["ES256"]);
 
         var result = await client.GetUserInfoAsync(
@@ -673,14 +642,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoSigning_WhenItIsAnotherKindOfToken_FailsWithInvalidTokenType()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(
-                new UserInfoJwtOptions { TokenType = "at+jwt" },
-                CancellationToken.None
-            ),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions { TokenType = "at+jwt" },
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
 
         var result = await client.GetUserInfoAsync(
@@ -695,14 +661,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoSigning_WhenItHasExpired_Fails()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(
-                new UserInfoJwtOptions { Expires = DateTimeOffset.UtcNow.AddHours(-1) },
-                CancellationToken.None
-            ),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions { Expires = DateTimeOffset.UtcNow.AddHours(-1) },
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
 
         var result = await client.GetUserInfoAsync(
@@ -717,14 +680,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoSigning_WhenItIsAboutAnotherSubject_FailsWithSubjectMismatch()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(
-                new UserInfoJwtOptions { Subject = "someone-else" },
-                CancellationToken.None
-            ),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions { Subject = "someone-else" },
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(handler, keySetMock: CreateKeySetMock());
 
         var result = await client.GetUserInfoAsync(
@@ -739,14 +699,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoEncryption_DecryptsAndValidatesTheNestedJwt()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(
-                new UserInfoJwtOptions { Encrypted = true },
-                CancellationToken.None
-            ),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions { Encrypted = true },
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(
             handler,
             keySetMock: CreateKeySetMock(),
@@ -766,11 +723,11 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task GetUserInfoAsync_WithUserInfoEncryption_WhenTheResponseIsOnlySigned_FailsAsInvalidToken()
     {
-        var handler = StubHttpMessageHandler.Respond(
-            HttpStatusCode.OK,
-            await CreateUserInfoJwtAsync(new UserInfoJwtOptions(), CancellationToken.None),
-            "application/jwt"
+        var jwt = await CreateUserInfoJwtAsync(
+            new UserInfoJwtTestOptions(),
+            CancellationToken.None
         );
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, jwt, "application/jwt");
         var client = CreateClient(
             handler,
             keySetMock: CreateKeySetMock(),

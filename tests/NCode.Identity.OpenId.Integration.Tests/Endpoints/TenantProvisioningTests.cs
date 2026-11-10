@@ -68,7 +68,8 @@ public class TenantProvisioningTests
         Assert.Equal("https://acme.auth.test", created.GetProperty("issuer").GetString());
 
         // Seeded as soon as it exists, without waiting for its first request (ADR-1166).
-        Assert.True(await HasOpenIdResourceServerAsync(factory, "acme"));
+        var hasOpenIdResourceServer = await HasOpenIdResourceServerAsync(factory, "acme");
+        Assert.True(hasOpenIdResourceServer);
 
         // Served beneath the derived issuer, through the host strategy's route to it.
         using var discoveryRequest = new HttpRequestMessage(HttpMethod.Get, DiscoveryPath);

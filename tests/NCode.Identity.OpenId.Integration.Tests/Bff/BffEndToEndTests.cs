@@ -33,13 +33,14 @@ public class BffEndToEndTests
         IReadOnlyDictionary<string, object>? settings = null
     )
     {
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             BffTestHost.ClientId,
             BffTestHost.ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             settings ?? NoSettings,
-            BffTestHost.CallbackUri
+            [BffTestHost.CallbackUri],
+            CancellationToken.None
         );
     }
 
@@ -140,7 +141,7 @@ public class BffEndToEndTests
             ClientJwksResponder = _ =>
                 jwks ?? throw new InvalidOperationException("The BFF's key set is not ready."),
         };
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedPrivateKeyJwtClientWithSettingsAsync(
             BffTestHost.ClientId,
             "https://bff.example/bff/jwks",
@@ -148,7 +149,8 @@ public class BffEndToEndTests
             {
                 [OpenIdSettingNames.IdTokenEncryptedResponseAlg] = "RSA-OAEP-256",
             },
-            BffTestHost.CallbackUri
+            [BffTestHost.CallbackUri],
+            CancellationToken.None
         );
 
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
@@ -246,7 +248,12 @@ public class BffEndToEndTests
                 HandleCookies = false,
             }
         );
-        var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var providerSession = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var loginPath =
             $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
@@ -281,7 +288,12 @@ public class BffEndToEndTests
                 HandleCookies = false,
             }
         );
-        var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var providerSession = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var loginPath =
             $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
@@ -345,7 +357,12 @@ public class BffEndToEndTests
                 HandleCookies = false,
             }
         );
-        var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var providerSession = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         // The request names another host; the redirect_uri still comes from the frontend's PublicOrigin, so the provider accepts it
         // and sends the browser back to the registered callback.

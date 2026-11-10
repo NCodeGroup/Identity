@@ -33,7 +33,7 @@ public class InteractiveLoginAntiforgeryTests
     public async Task PostLogin_WhenAntiforgeryTokenMintedUnderAnExistingSessionCookie_Succeeds()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions

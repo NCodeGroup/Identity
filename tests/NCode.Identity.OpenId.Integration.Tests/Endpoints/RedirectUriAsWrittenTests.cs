@@ -120,7 +120,11 @@ public class RedirectUriAsWrittenTests
     {
         const string clientId = "it-as-written-direct";
         using var factory = new HostApplicationFactory();
-        await factory.SeedPublicClientAsync(clientId, PrivateUseRedirectUri);
+        await factory.SeedPublicClientAsync(
+            clientId,
+            [PrivateUseRedirectUri],
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
 
         using var response = await AuthorizeAsync(
@@ -146,10 +150,19 @@ public class RedirectUriAsWrittenTests
     {
         const string clientId = "it-as-written-continue";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, PrivateUseRedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(
+            clientId,
+            [PrivateUseRedirectUri],
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var response = await ContinueAsync(
             client,
@@ -179,10 +192,19 @@ public class RedirectUriAsWrittenTests
         const string clientId = "it-as-written-normalized";
         const string normalizedRedirectUri = "com.example.app://callback/";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, PrivateUseRedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(
+            clientId,
+            [PrivateUseRedirectUri],
+            CancellationToken.None
+        );
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var response = await ContinueAsync(
             client,
@@ -207,10 +229,15 @@ public class RedirectUriAsWrittenTests
         const string clientId = "it-as-written-host-case";
         const string hostCaseRedirectUri = "https://CLIENT.example/callback";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, WebRedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [WebRedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var response = await AuthorizeAsync(
             client,

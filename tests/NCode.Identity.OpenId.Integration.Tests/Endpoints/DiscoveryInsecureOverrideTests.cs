@@ -57,7 +57,7 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
     [Fact]
     public async Task GetAuthorize_WithImplicitResponseType_IsAcceptedAfterOverride()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var query =
             $"?client_id={ClientId}"
@@ -85,7 +85,7 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
     public async Task GetAuthorize_WithAResponseTypeThatIsNotListed_IsRejectedAsUnsupported()
     {
         const string clientId = "it-insecure-unlisted-client";
-        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
 
         var query =
             $"?client_id={clientId}"
@@ -111,7 +111,7 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
     public async Task GetAuthorize_WithAHybridResponseType_ReturnsTheResponseInTheFragment()
     {
         const string clientId = "it-insecure-hybrid-client";
-        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
 
         var query =
             $"?client_id={clientId}"

@@ -157,10 +157,15 @@ public class AuthorizationCodePkceTests
     {
         const string clientId = "it-pkce-public";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var code = await GetCodeAsync(client, sessionCookie, clientId, TestPkce.QueryParameters);
         var (statusCode, body) = await RedeemAsync(
@@ -183,10 +188,15 @@ public class AuthorizationCodePkceTests
         const string clientId = "it-pkce-public-mismatch";
         const string otherVerifier = "OTHERJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var code = await GetCodeAsync(client, sessionCookie, clientId, TestPkce.QueryParameters);
         var (statusCode, body) = await RedeemAsync(
@@ -208,10 +218,15 @@ public class AuthorizationCodePkceTests
     {
         // require_pkce is in force by default, so the nonce does not stand in for PKCE.
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var (clientId, _) = await RegisterConfidentialClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var response = await AuthorizeAsync(
             client,
@@ -231,10 +246,15 @@ public class AuthorizationCodePkceTests
     public async Task CodeExchange_UnderTheNonceExemption_IssuesTokensToTheAuthenticatedClient()
     {
         using var factory = new ConfiguredHostApplicationFactory(NonceExemptionConfiguration);
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var (clientId, clientSecret) = await RegisterConfidentialClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var code = await GetCodeAsync(client, sessionCookie, clientId, $"&nonce={Nonce}");
         var (statusCode, body) = await RedeemAsync(
@@ -253,10 +273,15 @@ public class AuthorizationCodePkceTests
     public async Task CodeExchange_UnderTheNonceExemption_RefusesARedemptionWithoutClientAuthentication()
     {
         using var factory = new ConfiguredHostApplicationFactory(NonceExemptionConfiguration);
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var (clientId, _) = await RegisterConfidentialClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var code = await GetCodeAsync(client, sessionCookie, clientId, $"&nonce={Nonce}");
         var (statusCode, body) = await RedeemAsync(
@@ -277,10 +302,15 @@ public class AuthorizationCodePkceTests
     {
         // A request that uses neither PKCE nor the nonce leaves the code unprotected (OAuth 2.1 §7.5.1.1).
         using var factory = new ConfiguredHostApplicationFactory(NonceExemptionConfiguration);
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var (clientId, _) = await RegisterConfidentialClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var response = await AuthorizeAsync(client, sessionCookie, clientId, string.Empty);
 

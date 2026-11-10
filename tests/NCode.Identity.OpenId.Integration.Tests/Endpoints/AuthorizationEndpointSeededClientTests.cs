@@ -20,7 +20,7 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
     [Fact]
     public async Task GetAuthorize_WithSeededClient_ResolvesClientAndProcessesRequest()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -45,7 +45,7 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
     [Fact]
     public async Task GetAuthorize_WithPromptNoneAndNoSession_RedirectsToClientWithError()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -79,7 +79,7 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
     [Fact]
     public async Task GetAuthorize_WithConcurrentPromptNoneRequests_EachEchoesItsOwnState()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         // Each concurrent request carries a DISTINCT state; a response that returns a null or another request's
         // state proves request-scoped data (the authorization request / its state) is bleeding across concurrent
@@ -122,7 +122,7 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
     [Fact]
     public async Task GetAuthorize_WithUnregisteredRedirectUri_ReturnsBadRequest()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -148,7 +148,7 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
     [Fact]
     public async Task GetAuthorize_WithImplicitResponseType_IsRejectedByDefault()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -178,7 +178,7 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
     {
         // An authorization code is bound to PKCE by default; a missing code_challenge is invalid_request
         // (RFC 7636 §4.4.1).
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -207,7 +207,7 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
     public async Task GetAuthorize_WithPlainCodeChallengeMethod_RedirectsInvalidRequestToTheClient()
     {
         // 'plain' exposes the verifier in the authorization request and is not a method the server offers.
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

@@ -192,7 +192,8 @@ public class InteractiveTenantRouteTests
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
-            Assert.Equal(BundleScript, await response.Content.ReadAsStringAsync());
+            var assetBody = await response.Content.ReadAsStringAsync();
+            Assert.Equal(BundleScript, assetBody);
             var entityTag = response.Headers.ETag;
             Assert.NotNull(entityTag);
 
@@ -223,7 +224,8 @@ public class InteractiveTenantRouteTests
             using var response = await client.GetAsync("/nobody/account/assets/app.js");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Equal(BundleScript, await response.Content.ReadAsStringAsync());
+            var assetBody = await response.Content.ReadAsStringAsync();
+            Assert.Equal(BundleScript, assetBody);
         }
         finally
         {
@@ -379,18 +381,20 @@ public class InteractiveTenantRouteTests
             // no-cache, no-store (ADR-1253).
             Assert.True(acmeResponse.Headers.CacheControl?.NoStore);
             Assert.True(acmeResponse.Headers.CacheControl?.NoCache);
+            var acmeHtml = await acmeResponse.Content.ReadAsStringAsync();
             Assert.Contains(
                 "<script type=\"application/json\" id=\"branding\">"
                     + "{\"displayName\":\"Acme\",\"primaryColor\":\"#1565c0\",\"mode\":\"dark\","
                     + "\"environment\":{\"type\":\"development\"}}</script>",
-                await acmeResponse.Content.ReadAsStringAsync(),
+                acmeHtml,
                 StringComparison.Ordinal
             );
             Assert.Equal(HttpStatusCode.OK, betaResponse.StatusCode);
+            var betaHtml = await betaResponse.Content.ReadAsStringAsync();
             Assert.Contains(
                 "<script type=\"application/json\" id=\"branding\">"
                     + "{\"environment\":{\"type\":\"development\"}}</script>",
-                await betaResponse.Content.ReadAsStringAsync(),
+                betaHtml,
                 StringComparison.Ordinal
             );
         }
@@ -478,16 +482,18 @@ public class InteractiveTenantRouteTests
             using var betaResponse = await client.GetAsync("/beta/account/login");
 
             Assert.Equal(HttpStatusCode.OK, acmeResponse.StatusCode);
+            var acmeHtml = await acmeResponse.Content.ReadAsStringAsync();
             Assert.Contains(
                 "<script type=\"application/json\" id=\"branding\">"
                     + "{\"environment\":{\"type\":\"staging\",\"name\":\"sandbox\"}}</script>",
-                await acmeResponse.Content.ReadAsStringAsync(),
+                acmeHtml,
                 StringComparison.Ordinal
             );
             Assert.Equal(HttpStatusCode.OK, betaResponse.StatusCode);
+            var betaHtml = await betaResponse.Content.ReadAsStringAsync();
             Assert.Contains(
                 "<script type=\"application/json\" id=\"branding\">{}</script>",
-                await betaResponse.Content.ReadAsStringAsync(),
+                betaHtml,
                 StringComparison.Ordinal
             );
         }
@@ -560,7 +566,7 @@ public class InteractiveTenantRouteTests
         IReadOnlyDictionary<string, object>? settings = null
     )
     {
-        await factory.EnsureTeamAsync();
+        await factory.EnsureTeamAsync(CancellationToken.None);
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
         await using var storeManager = await storeManagerFactory.CreateAsync(

@@ -47,13 +47,19 @@ public class TokenEndpointResourceServerPolicyTests
         HostApplicationFactory factory = configuration is null
             ? new HostApplicationFactory()
             : new ConfiguredHostApplicationFactory(configuration);
-        await factory.SeedConfidentialClientAsync(clientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            clientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
             resourceServerSettings,
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
         return factory;
     }
@@ -88,14 +94,16 @@ public class TokenEndpointResourceServerPolicyTests
             {
                 [OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens] = true,
             },
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
             resourceServerSettings,
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
         return factory;
     }
@@ -252,13 +260,15 @@ public class TokenEndpointResourceServerPolicyTests
                     OpenIdConstants.SecurityProfiles.Fapi2,
                 },
             },
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         using var response = await CreateClient(factory)

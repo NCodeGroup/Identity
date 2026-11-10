@@ -29,13 +29,14 @@ public class BffRefreshEndToEndTests
     public async Task ConcurrentRefreshes_AcrossTwoReplicas_NeverReuseARefreshToken()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             BffTestHost.ClientId,
             BffTestHost.ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             NoSettings,
-            BffTestHost.CallbackUri
+            [BffTestHost.CallbackUri],
+            CancellationToken.None
         );
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
@@ -119,7 +120,12 @@ public class BffRefreshEndToEndTests
                 HandleCookies = false,
             }
         );
-        var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var providerSession = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var loginPath =
             $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";

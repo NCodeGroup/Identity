@@ -147,13 +147,15 @@ public class RemoteClientKeyEndToEndTests
         await factory.SeedConfidentialClientWithJwksUriAsync(
             clientId,
             JwksUri,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             clientId + "-rs",
             ResourceServerUri,
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         await using var provider = CreateClientProvider(

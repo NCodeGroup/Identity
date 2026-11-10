@@ -100,13 +100,15 @@ public class TokenEndpointClientJwksUriTests
         await factory.SeedConfidentialClientWithJwksUriAsync(
             ClientId,
             JwksUri,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-jwks-rs-api",
             "https://api.jwks.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = factory.CreateClient(
@@ -136,13 +138,15 @@ public class TokenEndpointClientJwksUriTests
         await factory.SeedConfidentialClientWithJwksUriAsync(
             ClientId,
             JwksUri,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-jwks-rs-api",
             "https://api.jwks.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = factory.CreateClient(

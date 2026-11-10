@@ -79,7 +79,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
                     OpenIdProtocol.ResponseModes.QueryJwt,
                 },
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -105,7 +106,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
                     OpenIdProtocol.ResponseModes.FormPost,
                 },
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(clientId, RedirectUri, "&prompt=none");
@@ -128,7 +130,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
                     OpenIdProtocol.ResponseModes.QueryJwt,
                 },
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -155,7 +158,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
                 [OpenIdSettingNames.AuthorizationSigningAlgValuesSupported] = new[] { "PS256" },
                 [OpenIdSettingNames.AuthorizationSignedResponseAlg] = "RS256",
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -184,7 +188,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             {
                 [OpenIdSettingNames.AuthorizationResponseLifetime] = "00:01:00",
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -215,7 +220,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -236,7 +242,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            redirectUri
+            [redirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(clientId, redirectUri, "&prompt=none");
@@ -256,7 +263,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -277,7 +285,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            "http://127.0.0.1/callback"
+            ["http://127.0.0.1/callback"],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(clientId, requestedUri, "&prompt=none");
@@ -295,7 +304,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object> { [OpenIdSettingNames.AllowLoopbackRedirect] = false },
-            "http://127.0.0.1/callback"
+            ["http://127.0.0.1/callback"],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -315,7 +325,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            "http://localhost/callback"
+            ["http://localhost/callback"],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -335,7 +346,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -361,7 +373,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -391,7 +404,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -416,7 +430,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(
@@ -444,7 +459,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         await Factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>(),
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         using var response = await AuthorizeAsync(

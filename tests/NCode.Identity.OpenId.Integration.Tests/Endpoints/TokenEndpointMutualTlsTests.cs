@@ -151,13 +151,15 @@ public class TokenEndpointMutualTlsTests
             clientId,
             subjectDn,
             trustAnchors,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
         return factory;
     }
@@ -180,13 +182,15 @@ public class TokenEndpointMutualTlsTests
                     .ClientCertificateRevocationMode
                     .Online,
             },
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
         return factory;
     }
@@ -243,13 +247,15 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             "it-mtls-ss-rs-api",
             "https://api.mtls-ss.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);
@@ -273,13 +279,15 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             "it-mtls-ssc-rs-api",
             "https://api.mtls-ssc.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         // Traefik's passTLSClientCert (pem: true) forwards each certificate of the presented chain as base64 DER,
@@ -303,7 +311,8 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);
@@ -331,13 +340,15 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             registeredCertificate,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             "it-mtls-ssw-rs-api",
             "https://api.mtls-ssw.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);
@@ -391,13 +402,15 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientWithJwksUriAsync(
             clientId,
             JwksUri,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             "it-mtls-jwks-rs-api",
             "https://api.mtls-jwks.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);

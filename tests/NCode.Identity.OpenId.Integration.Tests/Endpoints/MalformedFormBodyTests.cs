@@ -136,8 +136,13 @@ public class MalformedFormBodyTests(HostApplicationFactory factory)
     {
         const string userName = "malformed-form-user";
         const string password = "malformed-form-passphrase-7";
-        await Factory.SeedLocalAccountAsync(userName, password);
-        var sessionCookie = await InteractiveLogin.SignInAsync(CreateClient(), userName, password);
+        await Factory.SeedLocalAccountAsync(userName, password, CancellationToken.None);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            CreateClient(),
+            userName,
+            password,
+            CancellationToken.None
+        );
 
         using var response = await PostMalformedFormAsync("/oauth2/device", sessionCookie);
 

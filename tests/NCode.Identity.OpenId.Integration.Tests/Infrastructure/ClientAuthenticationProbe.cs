@@ -20,11 +20,20 @@ public static class ClientAuthenticationProbe
     /// Reads the tenant's issuer from its discovery document, which a client assertion names as its audience.
     /// </summary>
     /// <param name="client">The <see cref="HttpClient"/> of the host.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The issuer.</returns>
-    public static async Task<string> GetIssuerAsync(HttpClient client)
+    public static async ValueTask<string> GetIssuerAsync(
+        HttpClient client,
+        CancellationToken cancellationToken
+    )
     {
-        using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        using var response = await client.GetAsync(
+            "/.well-known/openid-configuration",
+            cancellationToken
+        );
+        var jsonElement = JsonElement.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
         var issuer = jsonElement.GetProperty("issuer").GetString();
         Assert.NotNull(issuer);
         return issuer;
@@ -35,21 +44,25 @@ public static class ClientAuthenticationProbe
     /// </summary>
     /// <param name="client">The <see cref="HttpClient"/> of the host.</param>
     /// <param name="credentials">The form fields that authenticate the client.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns><see langword="null"/> when the client was accepted; otherwise, the error the endpoint returned.</returns>
-    public static async Task<string?> RevokeAsync(
+    public static async ValueTask<string?> RevokeAsync(
         HttpClient client,
-        Dictionary<string, string> credentials
+        Dictionary<string, string> credentials,
+        CancellationToken cancellationToken
     )
     {
         credentials["token"] = "not-a-real-token";
         using var content = new FormUrlEncodedContent(credentials);
-        using var response = await client.PostAsync("/oauth2/revoke", content);
+        using var response = await client.PostAsync("/oauth2/revoke", content, cancellationToken);
         if (response.StatusCode == HttpStatusCode.OK)
         {
             return null;
         }
 
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken)
+        );
         return jsonElement.GetProperty("error").GetString();
     }
 
@@ -59,11 +72,13 @@ public static class ClientAuthenticationProbe
     /// <param name="client">The <see cref="HttpClient"/> of the host.</param>
     /// <param name="clientId">The identifier of the client.</param>
     /// <param name="clientSecret">The secret the client presents.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns><see langword="null"/> when the client was accepted; otherwise, the error the endpoint returned.</returns>
-    public static Task<string?> RevokeWithSecretAsync(
+    public static ValueTask<string?> RevokeWithSecretAsync(
         HttpClient client,
         string clientId,
-        string clientSecret
+        string clientSecret,
+        CancellationToken cancellationToken
     ) =>
         RevokeAsync(
             client,
@@ -71,7 +86,8 @@ public static class ClientAuthenticationProbe
             {
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
-            }
+            },
+            cancellationToken
         );
 
     /// <summary>
@@ -81,12 +97,14 @@ public static class ClientAuthenticationProbe
     /// <param name="clientId">The identifier of the client.</param>
     /// <param name="clientSecret">The secret the assertion is keyed by.</param>
     /// <param name="audience">The audience of the assertion, such as the tenant's issuer.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns><see langword="null"/> when the client was accepted; otherwise, the error the endpoint returned.</returns>
-    public static Task<string?> RevokeWithAssertionAsync(
+    public static ValueTask<string?> RevokeWithAssertionAsync(
         HttpClient client,
         string clientId,
         string clientSecret,
-        string audience
+        string audience,
+        CancellationToken cancellationToken
     ) =>
         RevokeAsync(
             client,
@@ -94,7 +112,8 @@ public static class ClientAuthenticationProbe
             {
                 ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
                 ["client_assertion"] = BuildClientSecretJwt(clientId, clientSecret, audience),
-            }
+            },
+            cancellationToken
         );
 
     /// <summary>

@@ -27,7 +27,8 @@ public class ClientSecretRotationTests
 
         var clientId = await CreateClientAsync(administrator);
         var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
-        Assert.Null(await AuthenticateAsync(client, clientId, secretMaterial));
+        var authenticationError = await AuthenticateAsync(client, clientId, secretMaterial);
+        Assert.Null(authenticationError);
 
         var (replacementId, replacementMaterial) = await RotateAsync(
             administrator,
@@ -39,8 +40,10 @@ public class ClientSecretRotationTests
         Assert.False(string.IsNullOrEmpty(replacementMaterial));
 
         // Both authenticate while the holder switches.
-        Assert.Null(await AuthenticateAsync(client, clientId, replacementMaterial));
-        Assert.Null(await AuthenticateAsync(client, clientId, secretMaterial));
+        var replacementError = await AuthenticateAsync(client, clientId, replacementMaterial);
+        Assert.Null(replacementError);
+        var rotatedSecretError = await AuthenticateAsync(client, clientId, secretMaterial);
+        Assert.Null(rotatedSecretError);
 
         // Both are listed without their material.
         using var listResponse = await administrator.GetAsync(
@@ -59,8 +62,10 @@ public class ClientSecretRotationTests
         );
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        Assert.Equal("invalid_client", await AuthenticateAsync(client, clientId, secretMaterial));
-        Assert.Null(await AuthenticateAsync(client, clientId, replacementMaterial));
+        var deletedSecretError = await AuthenticateAsync(client, clientId, secretMaterial);
+        Assert.Equal("invalid_client", deletedSecretError);
+        var retainedSecretError = await AuthenticateAsync(client, clientId, replacementMaterial);
+        Assert.Null(retainedSecretError);
     }
 
     [Fact]
@@ -82,8 +87,10 @@ public class ClientSecretRotationTests
             DateTimeOffset.UtcNow.AddMinutes(-1)
         );
 
-        Assert.Equal("invalid_client", await AuthenticateAsync(client, clientId, secretMaterial));
-        Assert.Null(await AuthenticateAsync(client, clientId, replacementMaterial));
+        var expiredSecretError = await AuthenticateAsync(client, clientId, secretMaterial);
+        Assert.Equal("invalid_client", expiredSecretError);
+        var replacementError = await AuthenticateAsync(client, clientId, replacementMaterial);
+        Assert.Null(replacementError);
     }
 
     [Fact]

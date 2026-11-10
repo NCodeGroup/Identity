@@ -59,13 +59,15 @@ public class TokenEndpointSecurityProfileTests
             clientId,
             ClientSecret,
             securityProfiles,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
     }
 
@@ -184,7 +186,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(RefusingRequirement.Description, await GetErrorDescriptionAsync(response));
+        var errorDescription = await GetErrorDescriptionAsync(response);
+        Assert.Equal(RefusingRequirement.Description, errorDescription);
     }
 
     [Fact]
@@ -199,7 +202,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(RefusingRequirement.Description, await GetErrorDescriptionAsync(response));
+        var errorDescription = await GetErrorDescriptionAsync(response);
+        Assert.Equal(RefusingRequirement.Description, errorDescription);
     }
 
     [Fact]

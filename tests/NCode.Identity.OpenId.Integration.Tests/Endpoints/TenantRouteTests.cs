@@ -199,7 +199,7 @@ public class TenantRouteTests
         string? issuer
     )
     {
-        await factory.EnsureTeamAsync();
+        await factory.EnsureTeamAsync(CancellationToken.None);
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
         await using var storeManager = await storeManagerFactory.CreateAsync(

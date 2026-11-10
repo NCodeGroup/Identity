@@ -37,8 +37,8 @@ public class JwtSecuredAuthorizationResponseTests
         HostApplicationFactory factory
     )
     {
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
             {
@@ -46,7 +46,12 @@ public class JwtSecuredAuthorizationResponseTests
                 HandleCookies = false,
             }
         );
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         return (client, sessionCookie);
     }
 
@@ -261,7 +266,8 @@ public class JwtSecuredAuthorizationResponseTests
             {
                 [OpenIdSettingNames.AuthorizationSignedResponseAlg] = "PS256",
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -299,7 +305,8 @@ public class JwtSecuredAuthorizationResponseTests
             {
                 [OpenIdSettingNames.AuthorizationEncryptedResponseAlg] = "RSA-OAEP-256",
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

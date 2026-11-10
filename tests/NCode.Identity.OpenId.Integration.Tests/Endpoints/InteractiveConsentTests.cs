@@ -22,11 +22,12 @@ public class InteractiveConsentTests
     {
         const string clientId = "it-consent-deny";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object> { [OpenIdSettingNames.RequireConsent] = true },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -35,7 +36,12 @@ public class InteractiveConsentTests
                 HandleCookies = false,
             }
         );
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var query =
             $"?client_id={Uri.EscapeDataString(clientId)}"
@@ -66,7 +72,8 @@ public class InteractiveConsentTests
             consentUrl.PathAndQuery,
             "/account/consent",
             sessionCookie,
-            new Dictionary<string, string> { ["action"] = "deny", ["ReturnUrl"] = returnUrl }
+            new Dictionary<string, string> { ["action"] = "deny", ["ReturnUrl"] = returnUrl },
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);

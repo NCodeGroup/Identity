@@ -71,12 +71,18 @@ public class ClientAuthenticationAttemptLimitTests
 
     private static async Task SeedAsync(HostApplicationFactory factory)
     {
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-attempt-rs-api",
             "https://api.attempt.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
     }
 

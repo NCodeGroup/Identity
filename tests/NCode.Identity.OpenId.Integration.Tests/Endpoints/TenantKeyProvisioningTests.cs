@@ -101,7 +101,8 @@ public class TenantKeyProvisioningTests
         var keys = await GetJwksAsync(client, host: null);
 
         Assert.Empty(keys);
-        Assert.Empty(await GetSecretIdsAsync(factory, HostApplicationFactory.TenantId));
+        var tenantSecretIds = await GetSecretIdsAsync(factory, HostApplicationFactory.TenantId);
+        Assert.Empty(tenantSecretIds);
     }
 
     [Fact]
@@ -240,7 +241,8 @@ public class TenantKeyProvisioningTests
             ["ES256", "PS256"],
             keys.Select(key => key.GetProperty("alg").GetString()).Order(StringComparer.Ordinal)
         );
-        Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
+        var acmeSecretIds = await GetSecretIdsAsync(factory, "acme");
+        Assert.Equal(2, acmeSecretIds.Count);
     }
 
     [Fact]
@@ -269,7 +271,8 @@ public class TenantKeyProvisioningTests
         );
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
-        Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
+        var initialSecretIds = await GetSecretIdsAsync(factory, "acme");
+        Assert.Equal(2, initialSecretIds.Count);
 
         // Restoring the default lists permits ES256 again; the reconciliation of the platform's own team, which holds
         // the tenant, seeds it for the tenant (ADR-1412), so the key arrives after the PATCH returns.
@@ -310,7 +313,8 @@ public class TenantKeyProvisioningTests
         );
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
-        Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
+        var initialSecretIds = await GetSecretIdsAsync(factory, "acme");
+        Assert.Equal(2, initialSecretIds.Count);
 
         // A configuration reload that adds ES256 to every list permits it; the reconciliation of the platform's own
         // team, which holds the tenant, seeds the key (ADR-1412), though nothing was written through the management
@@ -351,7 +355,8 @@ public class TenantKeyProvisioningTests
         );
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
-        Assert.Equal(3, (await GetSecretIdsAsync(factory, "acme")).Count);
+        var acmeSecretIds = await GetSecretIdsAsync(factory, "acme");
+        Assert.Equal(3, acmeSecretIds.Count);
 
         // The tenant's keys are part of it, so they do not block its deletion (ADR-1169).
         using var deleteResponse = await client.DeleteAsync("/api/tenants/acme");

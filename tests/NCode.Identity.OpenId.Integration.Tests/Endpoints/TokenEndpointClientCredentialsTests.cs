@@ -23,12 +23,18 @@ public class TokenEndpointClientCredentialsTests
     public async Task PostToken_WithClientCredentials_ReturnsAccessToken()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = factory.CreateClient(
@@ -74,12 +80,18 @@ public class TokenEndpointClientCredentialsTests
     public async Task PostToken_WithClientCredentials_NamesTheClientsPrincipalAsTheSubject()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = factory.CreateClient(
@@ -109,7 +121,12 @@ public class TokenEndpointClientCredentialsTests
     public async Task PostToken_WithWrongClientSecret_DoesNotReturnAccessToken()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -137,12 +154,18 @@ public class TokenEndpointClientCredentialsTests
     public async Task PostToken_ClientAuthenticationResult_IsScopedPerRequest()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = factory.CreateClient(

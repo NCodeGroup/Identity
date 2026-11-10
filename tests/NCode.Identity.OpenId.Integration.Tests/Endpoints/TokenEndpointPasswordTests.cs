@@ -30,15 +30,21 @@ public class TokenEndpointPasswordTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdProtocol.GrantTypes.Password
+            [OpenIdProtocol.GrantTypes.Password],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
-        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -96,15 +102,17 @@ public class TokenEndpointPasswordTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdProtocol.GrantTypes.Password
+            [OpenIdProtocol.GrantTypes.Password],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -134,7 +142,7 @@ public class TokenEndpointPasswordTests
     public async Task PostToken_WhenClientRegistersEncryptedIdToken_ReturnsIdTokenEncryptedToClientKey()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );

@@ -18,7 +18,12 @@ public class TokenRevocationEndpointTests
     public async Task PostRevoke_WithUnknownToken_ReturnsOk()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -44,7 +49,12 @@ public class TokenRevocationEndpointTests
     public async Task PostRevoke_WithoutToken_ReturnsInvalidRequest()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -70,7 +80,12 @@ public class TokenRevocationEndpointTests
     public async Task PostRevoke_WithoutClientAuthentication_IsRejected()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedConfidentialClientAsync(
+            ClientId,
+            ClientSecret,
+            [],
+            CancellationToken.None
+        );
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

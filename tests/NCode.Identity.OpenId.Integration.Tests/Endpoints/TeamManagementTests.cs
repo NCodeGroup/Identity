@@ -214,7 +214,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
     }
 
@@ -238,7 +239,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
     }
 
@@ -789,7 +791,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
         await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
 
@@ -955,7 +958,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
 
         using var teams = await user.GetAsync("/api/teams");
@@ -1012,24 +1016,33 @@ public class TeamManagementTests
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         var (clientId, clientSecret) = await CreateSecretClientAsync(administrator, "acme-dev");
 
-        Assert.Equal(
-            HttpStatusCode.OK,
-            await RequestClientCredentialsTokenAsync(factory, "acme-dev", clientId, clientSecret)
+        var tokenStatusCode = await RequestClientCredentialsTokenAsync(
+            factory,
+            "acme-dev",
+            clientId,
+            clientSecret
         );
+        Assert.Equal(HttpStatusCode.OK, tokenStatusCode);
 
         await SetTeamDisabledAsync(administrator, "acme", isDisabled: true);
 
-        Assert.Equal(
-            HttpStatusCode.NotFound,
-            await RequestClientCredentialsTokenAsync(factory, "acme-dev", clientId, clientSecret)
+        var disabledStatusCode = await RequestClientCredentialsTokenAsync(
+            factory,
+            "acme-dev",
+            clientId,
+            clientSecret
         );
+        Assert.Equal(HttpStatusCode.NotFound, disabledStatusCode);
 
         await SetTeamDisabledAsync(administrator, "acme", isDisabled: false);
 
-        Assert.Equal(
-            HttpStatusCode.OK,
-            await RequestClientCredentialsTokenAsync(factory, "acme-dev", clientId, clientSecret)
+        var reenabledStatusCode = await RequestClientCredentialsTokenAsync(
+            factory,
+            "acme-dev",
+            clientId,
+            clientSecret
         );
+        Assert.Equal(HttpStatusCode.OK, reenabledStatusCode);
     }
 
     #endregion
@@ -1648,7 +1661,8 @@ public class TeamManagementTests
             ConsoleRedirectUri,
             UserName,
             Password,
-            "openid read:clients"
+            "openid read:clients",
+            CancellationToken.None
         );
 
         using var tenants = await owner.GetAsync("/api/me/tenants");
@@ -2602,8 +2616,10 @@ public class TeamManagementTests
         await CreateTeamAsync(client, "hooli", new { });
         await CreateTenantAsync(client, "hooli", "hooli-dev");
 
-        Assert.Contains("PS256", await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev"));
-        Assert.Contains("PS256", await GetIdTokenSigningAlgorithmsAsync(client, "hooli-dev"));
+        var globexAlgorithmsBefore = await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev");
+        Assert.Contains("PS256", globexAlgorithmsBefore);
+        var hooliAlgorithmsBefore = await GetIdTokenSigningAlgorithmsAsync(client, "hooli-dev");
+        Assert.Contains("PS256", hooliAlgorithmsBefore);
 
         await PatchAsync(
             client,
@@ -2619,10 +2635,8 @@ public class TeamManagementTests
             }
         );
 
-        Assert.Equal<string>(
-            ["RS256"],
-            await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev")
-        );
+        var globexAlgorithmsAfter = await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev");
+        Assert.Equal<string>(["RS256"], globexAlgorithmsAfter);
 
         var other = await GetIdTokenSigningAlgorithmsAsync(client, "hooli-dev");
         Assert.Contains("PS256", other);
@@ -3256,10 +3270,11 @@ public class TeamManagementTests
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
         await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
 
-        Assert.Equal<string>(
-            ["RS256"],
-            await GetIdTokenSigningAlgorithmsAsync(administrator, "globex-web-dev")
+        var signingAlgorithms = await GetIdTokenSigningAlgorithmsAsync(
+            administrator,
+            "globex-web-dev"
         );
+        Assert.Equal<string>(["RS256"], signingAlgorithms);
     }
 
     [Fact]

@@ -276,7 +276,7 @@ public class InteractiveTenantRouteTests
             var iconPath = Path.Combine(bundleRoot.FullName, "assets", fileName);
             await File.WriteAllTextAsync(iconPath, "icon", SecureEncoding.UTF8);
             using var factory = CreatePathFactory(bundleRoot.FullName);
-            await SeedTenantAsync(factory, "acme");
+            await SeedTenantAsync(factory, "acme", settings: NoSettings, CancellationToken.None);
             using var client = CreateClient(factory);
             var requestPath = $"/acme/account/assets/{fileName}";
 

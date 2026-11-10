@@ -25,7 +25,8 @@ public class HealthEndpointTests(HostApplicationFactory factory)
         using var response = await client.GetAsync(path);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Equal("Healthy", body);
     }
 
     [Fact]

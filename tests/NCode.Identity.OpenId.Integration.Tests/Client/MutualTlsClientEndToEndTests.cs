@@ -49,13 +49,15 @@ public class MutualTlsClientEndToEndTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             clientId + "-rs",
             "https://api.client.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var serviceCollection = new ServiceCollection();

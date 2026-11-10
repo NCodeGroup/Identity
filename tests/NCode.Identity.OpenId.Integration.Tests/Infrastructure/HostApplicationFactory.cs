@@ -119,17 +119,28 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     public IReadOnlyDictionary<string, object>? PersistedPlatformSettings { get; set; }
 
     /// <summary>
+    /// Sends a first request to the tenant, which forces the static tenant provider to persist the tenant entity that
+    /// the stores require as a foreign key.
+    /// </summary>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="ValueTask"/> that completes when the tenant is persisted.</returns>
+    private async ValueTask EnsureTenantPersistedAsync(CancellationToken cancellationToken)
+    {
+        using var client = CreateClient();
+        using var _ = await client.GetAsync("/oauth2/jwks", cancellationToken);
+    }
+
+    /// <summary>
     /// Ensures the tenant exists (persisted lazily on first request) and seeds a public client
     /// (<c>none</c> client authentication, no secrets) registered with the given redirect URIs.
     /// </summary>
-    public async Task SeedPublicClientAsync(string clientId, params string[] redirectUris)
+    public async ValueTask SeedPublicClientAsync(
+        string clientId,
+        IReadOnlyList<string> redirectUris,
+        CancellationToken cancellationToken
+    )
     {
-        // A first request forces the static tenant provider to persist the tenant entity,
-        // which ClientStore.AddAsync requires as a foreign key.
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         var settingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
             new Dictionary<string, object>
@@ -141,9 +152,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
         using var scope = Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
         var persistedClient = new PersistedClientBuilder
@@ -153,26 +162,22 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             Settings = settingsJson,
         }.Build();
 
-        await store.AddAsync(persistedClient, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await store.AddAsync(persistedClient, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
     /// Ensures the tenant exists and seeds a public client registered with the given redirect URIs and the extra
     /// client settings.
     /// </summary>
-    public async Task SeedPublicClientWithSettingsAsync(
+    public async ValueTask SeedPublicClientWithSettingsAsync(
         string clientId,
         IReadOnlyDictionary<string, object> settings,
-        params string[] redirectUris
+        IReadOnlyList<string> redirectUris,
+        CancellationToken cancellationToken
     )
     {
-        // A first request forces the static tenant provider to persist the tenant entity,
-        // which ClientStore.AddAsync requires as a foreign key.
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         var allSettings = new Dictionary<string, object>(settings)
         {
@@ -185,7 +190,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             scope.ServiceProvider,
             clientId,
             System.Text.Json.JsonSerializer.SerializeToElement(allSettings),
-            []
+            [],
+            cancellationToken
         );
     }
 
@@ -194,17 +200,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// <paramref name="jwksUri"/> (resolved at runtime), with no stored secrets, registered with the given redirect URIs
     /// and the extra client settings, so the client can authenticate via <c>private_key_jwt</c>.
     /// </summary>
-    public async Task SeedPrivateKeyJwtClientWithSettingsAsync(
+    public async ValueTask SeedPrivateKeyJwtClientWithSettingsAsync(
         string clientId,
         string jwksUri,
         IReadOnlyDictionary<string, object> settings,
-        params string[] redirectUris
+        IReadOnlyList<string> redirectUris,
+        CancellationToken cancellationToken
     )
     {
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         var allSettings = new Dictionary<string, object>(settings)
         {
@@ -220,36 +224,29 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             scope.ServiceProvider,
             clientId,
             System.Text.Json.JsonSerializer.SerializeToElement(allSettings),
-            []
+            [],
+            cancellationToken
         );
     }
 
     /// <summary>
     /// Ensures the tenant exists and seeds a passwordless local account together with the one-to-one self-issued
-    /// federated identity that a real interactive login provisions, so the UserInfo scope-claims enricher
-    /// can be exercised end-to-end. Returns the provisioned principal id — the value a self-issued access token carries
-    /// as its public <c>sub</c>, which the enricher resolves the local account from.
+    /// federated identity that a real interactive login provisions. Returns the provisioned principal id, the value a
+    /// self-issued access token carries as its public <c>sub</c>.
     /// </summary>
     // See ADR-1035.
-    public async Task<string> SeedLocalAccountAsync(
+    public async ValueTask<string> SeedPasswordlessLocalAccountAsync(
         string localAccountId,
-        string? email = null,
-        bool emailVerified = false,
-        params (string Type, string Value)[] claims
+        CancellationToken cancellationToken
     )
     {
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         var principalId = $"pid-{Guid.NewGuid():N}";
 
         using var scope = Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
 
         var accountStore = storeManager.GetStore<ILocalAccountStore>();
         await accountStore.AddAsync(
@@ -258,16 +255,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 TenantId = TenantId,
                 LocalAccountId = localAccountId,
                 UserName = localAccountId,
-                Email = email,
-                EmailVerified = emailVerified,
+                Email = null,
+                EmailVerified = false,
                 IsEnabled = true,
-                Claims = claims
-                    .Select(c => new PersistedLocalAccountClaim { Type = c.Type, Value = c.Value })
-                    .ToList(),
+                Claims = [],
                 ConcurrencyToken = string.Empty,
             },
             password: null,
-            CancellationToken.None
+            cancellationToken
         );
 
         var principalStore = storeManager.GetStore<IFederatedPrincipalStore>();
@@ -278,7 +273,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 PrincipalId = principalId,
                 ConcurrencyToken = string.Empty,
             },
-            CancellationToken.None
+            cancellationToken
         );
 
         var identityStore = storeManager.GetStore<IFederatedIdentityStore>();
@@ -293,10 +288,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 JoinKey = null,
                 ConcurrencyToken = string.Empty,
             },
-            CancellationToken.None
+            cancellationToken
         );
 
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.SaveChangesAsync(cancellationToken);
         return principalId;
     }
 
@@ -307,16 +302,19 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// setting is restricted to those values (required for grants a client must explicitly allow, such as
     /// <c>password</c>).
     /// </summary>
-    public Task SeedConfidentialClientAsync(
+    public ValueTask SeedConfidentialClientAsync(
         string clientId,
         string clientSecret,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     ) =>
         SeedSharedSecretClientAsync(
             clientId,
             clientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-            grantTypes
+            grantTypes,
+            new Dictionary<string, object>(),
+            cancellationToken
         );
 
     /// <summary>
@@ -325,16 +323,19 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// When <paramref name="grantTypes"/> is supplied, the client's effective <c>grant_types_supported</c> setting is
     /// restricted to those values.
     /// </summary>
-    public Task SeedClientSecretBasicClientAsync(
+    public ValueTask SeedClientSecretBasicClientAsync(
         string clientId,
         string clientSecret,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     ) =>
         SeedSharedSecretClientAsync(
             clientId,
             clientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
-            grantTypes
+            grantTypes,
+            new Dictionary<string, object>(),
+            cancellationToken
         );
 
     /// <summary>
@@ -343,16 +344,19 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// signs with that secret. When <paramref name="grantTypes"/> is supplied, the client's effective
     /// <c>grant_types_supported</c> setting is restricted to those values.
     /// </summary>
-    public Task SeedClientSecretJwtClientAsync(
+    public ValueTask SeedClientSecretJwtClientAsync(
         string clientId,
         string clientSecret,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     ) =>
         SeedSharedSecretClientAsync(
             clientId,
             clientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
-            grantTypes
+            grantTypes,
+            new Dictionary<string, object>(),
+            cancellationToken
         );
 
     /// <summary>
@@ -361,11 +365,20 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// When <paramref name="grantTypes"/> is supplied, the client's effective <c>grant_types_supported</c> setting is
     /// restricted to those values.
     /// </summary>
-    public Task SeedClientWithoutAuthenticationMethodAsync(
+    public ValueTask SeedClientWithoutAuthenticationMethodAsync(
         string clientId,
         string clientSecret,
-        params string[] grantTypes
-    ) => SeedSharedSecretClientAsync(clientId, clientSecret, null, grantTypes);
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
+    ) =>
+        SeedSharedSecretClientAsync(
+            clientId,
+            clientSecret,
+            null,
+            grantTypes,
+            new Dictionary<string, object>(),
+            cancellationToken
+        );
 
     /// <summary>
     /// Ensures the tenant exists and seeds a confidential client registered for the shared-secret
@@ -373,34 +386,37 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// symmetric secret matches <paramref name="clientSecret"/>, registered with the given redirect URIs and the extra
     /// client settings, so an authorization-code flow can be exercised end to end.
     /// </summary>
-    public Task SeedSharedSecretClientWithSettingsAsync(
+    public ValueTask SeedSharedSecretClientWithSettingsAsync(
         string clientId,
         string clientSecret,
         string tokenEndpointAuthMethod,
         IReadOnlyDictionary<string, object> settings,
-        params string[] redirectUris
+        IReadOnlyList<string> redirectUris,
+        CancellationToken cancellationToken
     ) =>
         SeedSharedSecretClientAsync(
             clientId,
             clientSecret,
             tokenEndpointAuthMethod,
             [],
-            new Dictionary<string, object>(settings) { ["redirect_uris"] = redirectUris }
+            new Dictionary<string, object>(settings) { ["redirect_uris"] = redirectUris },
+            cancellationToken
         );
 
     /// <summary>
     /// Reads the secrets stored for a client, so a test can check the form each is stored in.
     /// </summary>
-    public async Task<IReadOnlyCollection<PersistedSecret>> GetClientSecretsAsync(string clientId)
+    public async ValueTask<IReadOnlyCollection<PersistedSecret>> GetClientSecretsAsync(
+        string clientId,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var secrets = await storeManager
             .GetStore<IClientStore>()
-            .GetSecretsOrDefaultAsync(clientId, CancellationToken.None);
+            .GetSecretsOrDefaultAsync(clientId, cancellationToken);
         return secrets?.Value ?? [];
     }
 
@@ -409,22 +425,24 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// so a test can tell an expired secret from an unexpired one.
     /// </summary>
     /// <param name="clientId">The identifier of the client whose secrets expire.</param>
-    /// <returns>A <see cref="Task"/> that completes when the secrets are stored again.</returns>
-    public async Task ExpireClientSecretsAsync(string clientId)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="ValueTask"/> that completes when the secrets are stored again.</returns>
+    public async ValueTask ExpireClientSecretsAsync(
+        string clientId,
+        CancellationToken cancellationToken
+    )
     {
         var expired = new List<PersistedSecret>();
         using (var scope = Services.CreateScope())
         {
             var storeManagerFactory =
                 scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-            await using var storeManager = await storeManagerFactory.CreateAsync(
-                CancellationToken.None
-            );
+            await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
             var store = storeManager.GetStore<IClientStore>();
-            var secrets = await store.GetSecretsOrDefaultAsync(clientId, CancellationToken.None);
+            var secrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
             foreach (var secret in secrets?.Value ?? [])
             {
-                await store.RemoveSecretAsync(clientId, secret.SecretId, CancellationToken.None);
+                await store.RemoveSecretAsync(clientId, secret.SecretId, cancellationToken);
                 var expiredSecret = new PersistedSecretBuilder
                 {
                     SecretId = secret.SecretId,
@@ -445,7 +463,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 expired.Add(expiredSecret);
             }
 
-            await storeManager.SaveChangesAsync(CancellationToken.None);
+            await storeManager.SaveChangesAsync(cancellationToken);
         }
 
         // The removal is saved first, so the secrets are added again under the identifiers their envelopes are bound to.
@@ -453,16 +471,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         {
             var storeManagerFactory =
                 scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-            await using var storeManager = await storeManagerFactory.CreateAsync(
-                CancellationToken.None
-            );
+            await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
             var store = storeManager.GetStore<IClientStore>();
             foreach (var secret in expired)
             {
-                await store.AddSecretAsync(clientId, secret, CancellationToken.None);
+                await store.AddSecretAsync(clientId, secret, cancellationToken);
             }
 
-            await storeManager.SaveChangesAsync(CancellationToken.None);
+            await storeManager.SaveChangesAsync(cancellationToken);
         }
     }
 
@@ -473,16 +489,17 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// its one-way verifier.
     /// </summary>
     // See ADR-1391.
-    private static async Task<PersistedSecret> CreateSharedSecretAsync(
+    private static async ValueTask<PersistedSecret> CreateSharedSecretAsync(
         IServiceProvider serviceProvider,
         string secretId,
         string clientSecret,
-        string? tokenEndpointAuthMethod
+        string? tokenEndpointAuthMethod,
+        CancellationToken cancellationToken
     )
     {
         var protector = await serviceProvider
             .GetRequiredService<ISecretProtectorProvider>()
-            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
+            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], cancellationToken);
 
         var request = new SharedSecretRequest
         {
@@ -503,20 +520,16 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             );
     }
 
-    private async Task SeedSharedSecretClientAsync(
+    private async ValueTask SeedSharedSecretClientAsync(
         string clientId,
         string clientSecret,
         string? tokenEndpointAuthMethod,
-        string[] grantTypes,
-        IReadOnlyDictionary<string, object>? additionalSettings = null
+        IReadOnlyList<string> grantTypes,
+        IReadOnlyDictionary<string, object> additionalSettings,
+        CancellationToken cancellationToken
     )
     {
-        // A first request forces the static tenant provider to persist the tenant entity,
-        // which ClientStore.AddAsync requires as a foreign key.
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
@@ -527,22 +540,22 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             serviceProvider,
             $"{clientId}-secret",
             clientSecret,
-            tokenEndpointAuthMethod
+            tokenEndpointAuthMethod,
+            cancellationToken
         );
 
-        var settings = additionalSettings is null
-            ? new Dictionary<string, object>()
-            : new Dictionary<string, object>(additionalSettings);
+        var settings = new Dictionary<string, object>(additionalSettings);
         if (tokenEndpointAuthMethod is not null)
             settings["token_endpoint_auth_method"] = tokenEndpointAuthMethod;
-        if (grantTypes.Length > 0)
+        if (grantTypes.Count > 0)
             settings["grant_types_supported"] = grantTypes;
 
         await AddClientAsync(
             serviceProvider,
             clientId,
             System.Text.Json.JsonSerializer.SerializeToElement(settings),
-            [persistedSecret]
+            [persistedSecret],
+            cancellationToken
         );
     }
 
@@ -551,16 +564,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// <paramref name="certificate"/> (stored as an <c>x509</c> secret), so the client can authenticate via
     /// <c>private_key_jwt</c> by signing a <c>client_assertion</c> with the certificate's private key.
     /// </summary>
-    public async Task SeedConfidentialClientWithCertificateAsync(
+    public async ValueTask SeedConfidentialClientWithCertificateAsync(
         string clientId,
         X509Certificate2 certificate,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     )
     {
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
@@ -573,14 +584,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 .ClientAuthenticationMethods
                 .PrivateKeyJwt,
         };
-        if (grantTypes.Length > 0)
+        if (grantTypes.Count > 0)
             settings["grant_types_supported"] = grantTypes;
 
         await AddClientAsync(
             serviceProvider,
             clientId,
             System.Text.Json.JsonSerializer.SerializeToElement(settings),
-            [persistedSecret]
+            [persistedSecret],
+            cancellationToken
         );
     }
 
@@ -589,19 +601,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// public half of <paramref name="certificate"/>, registered with the given redirect URIs and the extra client
     /// settings, so a security profile's authorization flow can be exercised end to end.
     /// </summary>
-    public async Task SeedPrivateKeyJwtClientWithSettingsAsync(
+    public async ValueTask SeedPrivateKeyJwtClientWithSettingsAsync(
         string clientId,
         X509Certificate2 certificate,
         IReadOnlyDictionary<string, object> settings,
-        params string[] redirectUris
+        IReadOnlyList<string> redirectUris,
+        CancellationToken cancellationToken
     )
     {
-        // A first request forces the static tenant provider to persist the tenant entity,
-        // which ClientStore.AddAsync requires as a foreign key.
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
@@ -620,7 +628,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             serviceProvider,
             clientId,
             System.Text.Json.JsonSerializer.SerializeToElement(allSettings),
-            [persistedSecret]
+            [persistedSecret],
+            cancellationToken
         );
     }
 
@@ -654,16 +663,18 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// given <paramref name="jwksUri"/> (resolved at runtime), with no stored secrets, so the client can authenticate
     /// via <c>private_key_jwt</c> by signing a <c>client_assertion</c> with the corresponding private key.
     /// </summary>
-    public Task SeedConfidentialClientWithJwksUriAsync(
+    public ValueTask SeedConfidentialClientWithJwksUriAsync(
         string clientId,
         string jwksUri,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     ) =>
         SeedClientWithJwksUriAsync(
             clientId,
             jwksUri,
             OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
-            grantTypes
+            grantTypes,
+            cancellationToken
         );
 
     /// <summary>
@@ -671,45 +682,43 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// whose certificates are published, as the <c>x5c</c> of its keys, at the given <paramref name="jwksUri"/>
     /// (resolved at runtime), with no stored secrets (RFC 8705 §2.2).
     /// </summary>
-    public Task SeedSelfSignedTlsClientWithJwksUriAsync(
+    public ValueTask SeedSelfSignedTlsClientWithJwksUriAsync(
         string clientId,
         string jwksUri,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     ) =>
         SeedClientWithJwksUriAsync(
             clientId,
             jwksUri,
             OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
-            grantTypes
+            grantTypes,
+            cancellationToken
         );
 
-    private async Task SeedClientWithJwksUriAsync(
+    private async ValueTask SeedClientWithJwksUriAsync(
         string clientId,
         string jwksUri,
         string authenticationMethod,
-        string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     )
     {
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         var settings = new Dictionary<string, object>
         {
             ["jwks_uri"] = jwksUri,
             ["token_endpoint_auth_method"] = authenticationMethod,
         };
-        if (grantTypes.Length > 0)
+        if (grantTypes.Count > 0)
             settings["grant_types_supported"] = grantTypes;
 
         var settingsJson = System.Text.Json.JsonSerializer.SerializeToElement(settings);
 
         using var scope = Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
         var persistedClient = new PersistedClientBuilder
@@ -719,8 +728,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             Settings = settingsJson,
         }.Build();
 
-        await store.AddAsync(persistedClient, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await store.AddAsync(persistedClient, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -728,16 +737,18 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// (RFC 8705 §2.2) whose registered certificate is the public half of <paramref name="certificate"/>, so the
     /// client authenticates by presenting that certificate on the mutual-TLS connection.
     /// </summary>
-    public Task SeedSelfSignedTlsClientAsync(
+    public ValueTask SeedSelfSignedTlsClientAsync(
         string clientId,
         X509Certificate2 certificate,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     ) =>
         SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
             new Dictionary<string, object>(),
-            grantTypes
+            grantTypes,
+            cancellationToken
         );
 
     /// <summary>
@@ -745,17 +756,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// whose registered certificate is the public half of <paramref name="certificate"/>, carrying the given
     /// additional client settings (for example <c>require_tls_client_certificate_bound_access_tokens</c>).
     /// </summary>
-    public async Task SeedSelfSignedTlsClientAsync(
+    public async ValueTask SeedSelfSignedTlsClientAsync(
         string clientId,
         X509Certificate2 certificate,
         IReadOnlyDictionary<string, object> additionalSettings,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     )
     {
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
@@ -782,14 +791,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 .ClientAuthenticationMethods
                 .SelfSignedTlsClientAuth,
         };
-        if (grantTypes.Length > 0)
+        if (grantTypes.Count > 0)
             settings["grant_types_supported"] = grantTypes;
 
         await AddClientAsync(
             serviceProvider,
             clientId,
             System.Text.Json.JsonSerializer.SerializeToElement(settings),
-            [persistedSecret]
+            [persistedSecret],
+            cancellationToken
         );
     }
 
@@ -799,18 +809,20 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// certificate must chain to one of <paramref name="trustAnchors"/> (PEM), so the client authenticates by
     /// presenting a certificate issued by that PKI with that subject on the mutual-TLS connection.
     /// </summary>
-    public Task SeedTlsClientAuthSubjectDnClientAsync(
+    public ValueTask SeedTlsClientAuthSubjectDnClientAsync(
         string clientId,
         string subjectDn,
         IReadOnlyCollection<string> trustAnchors,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     ) =>
         SeedTlsClientAuthSubjectDnClientAsync(
             clientId,
             subjectDn,
             trustAnchors,
             new Dictionary<string, object>(),
-            grantTypes
+            grantTypes,
+            cancellationToken
         );
 
     /// <summary>
@@ -819,18 +831,16 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// of <paramref name="trustAnchors"/> (PEM), carrying the given additional client settings (for example
     /// <c>tls_client_auth_revocation_mode</c>), which override the defaults this method sets.
     /// </summary>
-    public async Task SeedTlsClientAuthSubjectDnClientAsync(
+    public async ValueTask SeedTlsClientAuthSubjectDnClientAsync(
         string clientId,
         string subjectDn,
         IReadOnlyCollection<string> trustAnchors,
         IReadOnlyDictionary<string, object> additionalSettings,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     )
     {
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         var settings = new Dictionary<string, object>
         {
@@ -846,7 +856,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         };
         foreach (var (name, value) in additionalSettings)
             settings[name] = value;
-        if (grantTypes.Length > 0)
+        if (grantTypes.Count > 0)
             settings["grant_types_supported"] = grantTypes;
 
         using var scope = Services.CreateScope();
@@ -854,21 +864,21 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             scope.ServiceProvider,
             clientId,
             System.Text.Json.JsonSerializer.SerializeToElement(settings),
-            []
+            [],
+            cancellationToken
         );
     }
 
-    private static async Task AddClientAsync(
+    private static async ValueTask AddClientAsync(
         IServiceProvider serviceProvider,
         string clientId,
         System.Text.Json.JsonElement settingsJson,
-        IReadOnlyList<PersistedSecret> secrets
+        IReadOnlyList<PersistedSecret> secrets,
+        CancellationToken cancellationToken
     )
     {
         var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
         var persistedClient = new PersistedClientBuilder
@@ -879,8 +889,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             Secrets = secrets,
         }.Build();
 
-        await store.AddAsync(persistedClient, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await store.AddAsync(persistedClient, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -888,17 +898,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// <paramref name="securityProfiles"/> (for example <c>fapi2</c>), so profile-driven setting ceilings and
     /// enforcement can be exercised end-to-end. An empty list is stored as an explicit empty selection.
     /// </summary>
-    public async Task SeedConfidentialClientWithSecurityProfilesAsync(
+    public async ValueTask SeedConfidentialClientWithSecurityProfilesAsync(
         string clientId,
         string clientSecret,
         IReadOnlyCollection<string> securityProfiles,
-        params string[] grantTypes
+        IReadOnlyList<string> grantTypes,
+        CancellationToken cancellationToken
     )
     {
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
@@ -907,7 +915,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             serviceProvider,
             $"{clientId}-secret",
             clientSecret,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            cancellationToken
         );
 
         var settings = new Dictionary<string, object>
@@ -917,14 +926,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 .ClientSecretPost,
             ["security_profiles"] = securityProfiles,
         };
-        if (grantTypes.Length > 0)
+        if (grantTypes.Count > 0)
             settings["grant_types_supported"] = grantTypes;
 
         await AddClientAsync(
             serviceProvider,
             clientId,
             System.Text.Json.JsonSerializer.SerializeToElement(settings),
-            [persistedSecret]
+            [persistedSecret],
+            cancellationToken
         );
     }
 
@@ -932,44 +942,42 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// Seeds a resource server owning the given scopes and a client grant authorizing the client to all of them,
     /// so the client may request those scopes.
     /// </summary>
-    public Task SeedResourceServerWithClientGrantAsync(
+    public ValueTask SeedResourceServerWithClientGrantAsync(
         string clientId,
         string resourceServerId,
         string identifier,
-        params string[] scopes
+        IReadOnlyList<string> scopes,
+        CancellationToken cancellationToken
     ) =>
         SeedResourceServerWithClientGrantAsync(
             clientId,
             resourceServerId,
             identifier,
             new Dictionary<string, object>(),
-            scopes
+            scopes,
+            cancellationToken
         );
 
     /// <summary>
     /// Seeds a resource server carrying the given settings document and owning the given scopes, and a client grant
     /// authorizing the client to all of them. The settings bound every access token issued for the resource server.
     /// </summary>
-    public async Task SeedResourceServerWithClientGrantAsync(
+    public async ValueTask SeedResourceServerWithClientGrantAsync(
         string clientId,
         string resourceServerId,
         string identifier,
         IReadOnlyDictionary<string, object> settings,
-        params string[] scopes
+        IReadOnlyList<string> scopes,
+        CancellationToken cancellationToken
     )
     {
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         var settingsJson = System.Text.Json.JsonSerializer.SerializeToElement(settings);
 
         using var scope = Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
         var clientGrantStore = storeManager.GetStore<IClientGrantStore>();
 
@@ -989,10 +997,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 })
                 .ToList(),
         }.Build();
-        await resourceServerStore.AddAsync(resourceServer, CancellationToken.None);
+        await resourceServerStore.AddAsync(resourceServer, cancellationToken);
         // Persist the resource server before the grant: the grant store resolves the resource-server foreign key,
         // and an in-memory query does not observe unsaved inserts.
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.SaveChangesAsync(cancellationToken);
 
         await clientGrantStore.AddAsync(
             new PersistedClientGrant
@@ -1003,9 +1011,9 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 ConcurrencyToken = string.Empty,
                 Scopes = scopes,
             },
-            CancellationToken.None
+            cancellationToken
         );
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -1015,29 +1023,32 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// request's provisioning pass must reconcile. The client registers no client-authentication method, so it uses the
     /// default, <c>client_secret_basic</c>.
     /// </summary>
-    public async Task SeedClientDirectlyAsync(string clientId, string storedSecret)
+    public async ValueTask SeedClientDirectlyAsync(
+        string clientId,
+        string storedSecret,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
         var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
 
-        await EnsureTeamAsync();
+        await EnsureTeamAsync(cancellationToken);
         var tenantStore = storeManager.GetStore<ITenantStore>();
-        if (await tenantStore.GetOrDefaultAsync(TenantId, CancellationToken.None) is null)
+        if (await tenantStore.GetOrDefaultAsync(TenantId, cancellationToken) is null)
         {
-            await tenantStore.AddAsync(CreateEmptyTenant(TenantId), CancellationToken.None);
-            await storeManager.SaveChangesAsync(CancellationToken.None);
+            await tenantStore.AddAsync(CreateEmptyTenant(TenantId), cancellationToken);
+            await storeManager.SaveChangesAsync(cancellationToken);
         }
 
         var persistedSecret = await CreateSharedSecretAsync(
             serviceProvider,
             $"{clientId}-secret",
             storedSecret,
-            tokenEndpointAuthMethod: null
+            tokenEndpointAuthMethod: null,
+            cancellationToken
         );
 
         var persistedClient = new PersistedClientBuilder
@@ -1048,8 +1059,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         }.Build();
 
         var clientStore = storeManager.GetStore<IClientStore>();
-        await clientStore.AddAsync(persistedClient, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await clientStore.AddAsync(persistedClient, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -1057,19 +1068,33 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// <paramref name="password"/>, so the resource-owner <c>password</c> grant can be exercised. Returns the
     /// generated <c>LocalAccountId</c> (the subject of the account's self-issued federated identity).
     /// </summary>
-    public async Task<string> SeedLocalAccountAsync(
+    public ValueTask<string> SeedLocalAccountAsync(
         string userName,
         string password,
-        string? email = null,
-        bool emailVerified = false
+        CancellationToken cancellationToken
+    ) =>
+        SeedLocalAccountAsync(
+            userName,
+            password,
+            email: null,
+            emailVerified: false,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds an enabled local account carrying the given email address, whose stored
+    /// password hash matches <paramref name="password"/>. Returns the generated <c>LocalAccountId</c> (the subject of
+    /// the account's self-issued federated identity).
+    /// </summary>
+    public async ValueTask<string> SeedLocalAccountAsync(
+        string userName,
+        string password,
+        string? email,
+        bool emailVerified,
+        CancellationToken cancellationToken
     )
     {
-        // A first request forces the static tenant provider to persist the tenant entity,
-        // which LocalAccountStore.AddAsync requires as a foreign key.
-        using (var warmupClient = CreateClient())
-        {
-            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
-        }
+        await EnsureTenantPersistedAsync(cancellationToken);
 
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
@@ -1077,9 +1102,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         var localAccountId = Guid.NewGuid().ToString("N");
 
         var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ILocalAccountStore>();
 
         // The store hashes the credential and generates the security stamp internally.
@@ -1096,9 +1119,9 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 ConcurrencyToken = string.Empty,
             },
             SecureEncoding.UTF8.GetBytes(password),
-            CancellationToken.None
+            cancellationToken
         );
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await storeManager.SaveChangesAsync(cancellationToken);
 
         return localAccountId;
     }
@@ -1110,28 +1133,30 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// factory serves any request.
     /// </summary>
     /// <param name="settings">The tenant's settings document.</param>
-    public async Task SeedTenantSettingsAsync(IReadOnlyDictionary<string, object> settings)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public async ValueTask SeedTenantSettingsAsync(
+        IReadOnlyDictionary<string, object> settings,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
         var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var tenantStore = storeManager.GetStore<ITenantStore>();
-        if (await tenantStore.GetOrDefaultAsync(TenantId, CancellationToken.None) is not null)
+        if (await tenantStore.GetOrDefaultAsync(TenantId, cancellationToken) is not null)
         {
             throw new InvalidOperationException(
                 "The tenant is already persisted, so it may already be served with its earlier settings."
             );
         }
 
-        await EnsureTeamAsync();
+        await EnsureTeamAsync(cancellationToken);
         var tenant = CreateEmptyTenant(TenantId);
         tenant.Settings.Value = System.Text.Json.JsonSerializer.SerializeToElement(settings);
-        await tenantStore.AddAsync(tenant, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await tenantStore.AddAsync(tenant, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -1140,25 +1165,27 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// reads a document the settings vocabulary may not honor while the caller's token still validates.
     /// </summary>
     /// <param name="settings">The tenant's settings document.</param>
-    public async Task ReplaceTenantSettingsAsync(IReadOnlyDictionary<string, object> settings)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    public async ValueTask ReplaceTenantSettingsAsync(
+        IReadOnlyDictionary<string, object> settings,
+        CancellationToken cancellationToken
+    )
     {
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
         var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
         var tenantStore = storeManager.GetStore<ITenantStore>();
         var tenantSettings =
-            await tenantStore.GetSettingsOrDefaultAsync(TenantId, CancellationToken.None)
+            await tenantStore.GetSettingsOrDefaultAsync(TenantId, cancellationToken)
             ?? throw new InvalidOperationException(
                 "The tenant is not persisted yet; serve a request first."
             );
 
         tenantSettings.Value = System.Text.Json.JsonSerializer.SerializeToElement(settings);
-        await tenantStore.UpdateSettingsAsync(tenantSettings, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await tenantStore.UpdateSettingsAsync(tenantSettings, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -1189,13 +1216,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// <param name="userName">The user name of a seeded local account.</param>
     /// <param name="password">The password of the account.</param>
     /// <param name="scope">The space-delimited scopes the authorization request asks for.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The HTTP client, which does not follow redirects and carries the bearer token.</returns>
-    public async Task<HttpClient> CreateManagementUserClientAsync(
+    public async ValueTask<HttpClient> CreateManagementUserClientAsync(
         string clientId,
         string redirectUri,
         string userName,
         string password,
-        string scope
+        string scope,
+        CancellationToken cancellationToken
     )
     {
         using var browser = CreateClient(
@@ -1205,7 +1234,12 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 HandleCookies = false,
             }
         );
-        var sessionCookie = await InteractiveLogin.SignInAsync(browser, userName, password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            browser,
+            userName,
+            password,
+            cancellationToken
+        );
 
         var codeVerifier = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
         var codeChallenge = Base64Url.EncodeToString(
@@ -1237,7 +1271,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             "Cookie",
             $"{InteractiveLogin.SessionCookieName}={sessionCookie}"
         );
-        using var authorizeResponse = await browser.SendAsync(authorizeRequest);
+        using var authorizeResponse = await browser.SendAsync(authorizeRequest, cancellationToken);
 
         var location = authorizeResponse.Headers.Location;
         if (
@@ -1261,42 +1295,50 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         var client = CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+        try
         {
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.AuthorizationCode,
-                    ["code"] = code,
-                    ["redirect_uri"] = redirectUri,
-                    ["client_id"] = clientId,
-                    ["code_verifier"] = codeVerifier,
-                }
-            ),
-        };
+            using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+            {
+                Content = new FormUrlEncodedContent(
+                    new Dictionary<string, string>
+                    {
+                        ["grant_type"] = OpenIdProtocol.GrantTypes.AuthorizationCode,
+                        ["code"] = code,
+                        ["redirect_uri"] = redirectUri,
+                        ["client_id"] = clientId,
+                        ["code_verifier"] = codeVerifier,
+                    }
+                ),
+            };
 
-        using var response = await client.SendAsync(tokenRequest);
-        response.EnsureSuccessStatusCode();
-        var jsonElement = System.Text.Json.JsonElement.Parse(
-            await response.Content.ReadAsStringAsync()
-        );
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            jsonElement.GetProperty("access_token").GetString()
-        );
-        return client;
+            using var response = await client.SendAsync(tokenRequest, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var jsonElement = System.Text.Json.JsonElement.Parse(
+                await response.Content.ReadAsStringAsync(cancellationToken)
+            );
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                "Bearer",
+                jsonElement.GetProperty("access_token").GetString()
+            );
+            return client;
+        }
+        catch
+        {
+            client.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
     /// Creates the <see cref="TeamId"/> team when it does not exist, so a test that persists a tenant directly has the
     /// team the tenant belongs to.
     /// </summary>
-    public async Task EnsureTeamAsync()
+    public async ValueTask EnsureTeamAsync(CancellationToken cancellationToken)
     {
         using var scope = Services.CreateScope();
         await scope
             .ServiceProvider.GetRequiredService<ITeamProvisioner>()
-            .EnsureCreatedAsync(TeamId, TeamId, CancellationToken.None);
+            .EnsureCreatedAsync(TeamId, TeamId, cancellationToken);
     }
 
     private static PersistedTenant CreateEmptyTenant(string tenantId) =>

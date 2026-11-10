@@ -108,10 +108,8 @@ public class TenantUsageTests
 
         for (var i = 0; i < 3; ++i)
         {
-            Assert.NotEqual(
-                HttpStatusCode.TooManyRequests,
-                await PostAnonymousTokenRequestAsync(client)
-            );
+            var anonymousStatusCode = await PostAnonymousTokenRequestAsync(client);
+            Assert.NotEqual(HttpStatusCode.TooManyRequests, anonymousStatusCode);
         }
 
         // The ledger is written by the periodic flush, so poll until the counts arrive. The three anonymous token
@@ -197,10 +195,8 @@ public class TenantUsageTests
         using var refusedRequest = BootstrapAdminApplicationFactory.TokenRequest.CreateMessage();
         using (var refused = await client.SendAsync(refusedRequest))
             Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
-        Assert.NotEqual(
-            HttpStatusCode.TooManyRequests,
-            await PostAnonymousTokenRequestAsync(client)
-        );
+        var anonymousStatusCode = await PostAnonymousTokenRequestAsync(client);
+        Assert.NotEqual(HttpStatusCode.TooManyRequests, anonymousStatusCode);
 
         // The administrator's token request and the anonymous one are usage; the refused request is not. Wait for both,
         // then for a few more flushes, so a recorded refusal would have reached the ledger too.
@@ -258,10 +254,8 @@ public class TenantUsageTests
         var client = CreateClient(recordingHost);
         for (var i = 0; i < 3; ++i)
         {
-            Assert.NotEqual(
-                HttpStatusCode.TooManyRequests,
-                await PostAnonymousTokenRequestAsync(client)
-            );
+            var anonymousStatusCode = await PostAnonymousTokenRequestAsync(client);
+            Assert.NotEqual(HttpStatusCode.TooManyRequests, anonymousStatusCode);
         }
 
         await recordingHost.DisposeAsync();

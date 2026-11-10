@@ -20,7 +20,11 @@ public class DeviceAuthorizationEndpointTests(HostApplicationFactory factory)
     public async Task PostDeviceAuthorization_WithSeededPublicClient_MarksTheResponseNoStore()
     {
         const string clientId = "it-device-no-store";
-        await Factory.SeedPublicClientAsync(clientId, "https://client.example/callback");
+        await Factory.SeedPublicClientAsync(
+            clientId,
+            ["https://client.example/callback"],
+            CancellationToken.None
+        );
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

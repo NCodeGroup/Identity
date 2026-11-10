@@ -34,7 +34,8 @@ public class IncoherentClientReportTests
                     OpenIdConstants.RedirectUriKinds.Https,
                 },
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None
@@ -78,7 +79,8 @@ public class IncoherentClientReportTests
             {
                 [OpenIdSettingNames.AccessTokenLifetime] = "01:00:00",
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None

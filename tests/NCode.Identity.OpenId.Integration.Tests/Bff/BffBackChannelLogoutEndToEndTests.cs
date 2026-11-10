@@ -34,7 +34,7 @@ public class BffBackChannelLogoutEndToEndTests
     {
         var deliveries = new ConcurrentQueue<RecordedHttpExchange>();
         using var factory = new HostApplicationFactory { BackChannelLogoutExchanges = deliveries };
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             BffTestHost.ClientId,
             BffTestHost.ClientSecret,
@@ -45,13 +45,19 @@ public class BffBackChannelLogoutEndToEndTests
                     $"https://bff.example{BackChannelLogoutPath}",
                 [OpenIdSettingNames.BackChannelLogoutSessionRequired] = true,
             },
-            BffTestHost.CallbackUri
+            [BffTestHost.CallbackUri],
+            CancellationToken.None
         );
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         await using var host = await BffTestHost.StartAsync(factory, keySet, valueSet, indexSet);
 
         var browser = CreateBrowser(factory);
-        var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var providerSession = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         await LoginAsync(browser, providerSession, host);
 
         var csrf = (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue);
@@ -87,7 +93,8 @@ public class BffBackChannelLogoutEndToEndTests
             BffTestHost.ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             NoSettings,
-            BffTestHost.CallbackUri
+            [BffTestHost.CallbackUri],
+            CancellationToken.None
         );
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         await using var host = await BffTestHost.StartAsync(
@@ -152,7 +159,8 @@ public class BffBackChannelLogoutEndToEndTests
         using var response = await InteractiveLogin.ConfirmEndSessionAsync(
             browser,
             EndSessionPath,
-            providerSession
+            providerSession,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

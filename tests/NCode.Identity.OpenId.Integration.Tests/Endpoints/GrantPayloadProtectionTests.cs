@@ -25,7 +25,7 @@ public class GrantPayloadProtectionTests(HostApplicationFactory factory)
     [Fact]
     public async Task PostPar_StoresTheRequestOnlyInProtectedForm()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

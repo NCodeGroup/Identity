@@ -234,10 +234,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     public async Task Authorize_WhenRequestObjectSignedWithTheRegisteredAlgorithm_IssuesCode()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
 
@@ -251,10 +256,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     public async Task Authorize_WhenRequestObjectRequestsTheJwtResponseMode_ReturnsTheResponseAsAJwt()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         var requestObject = await CreateRequestObjectAsync(
             factory,
@@ -278,10 +288,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     public async Task Authorize_WhenAParameterIsSentOnlyOutsideTheRequestObject_IgnoresIt()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
 
@@ -309,10 +324,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     )
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         var requestObject = await CreateRequestObjectAsync(
             factory,
@@ -333,10 +353,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     public async Task Authorize_WhenVerifiedRequestObjectIsRefused_DeliversTheErrorWithItsStateAndResponseMode()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         // The object is verified but lacks its redirect_uri, so validation refuses it after verification.
         var requestObject = await CreateRequestObjectAsync(
@@ -370,10 +395,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     public async Task Authorize_WhenVerifiedRequestObjectRequestsJwtAndIsRefused_ReturnsTheErrorAsAJwtWithItsState()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         var requestObject = await CreateRequestObjectAsync(
             factory,
@@ -414,10 +444,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         // The client registered RS256, so a request object signed with PS256 — even by its own key — is refused
         // before its signature is verified (OpenID Connect Dynamic Client Registration 1.0 §2).
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         var requestObject = await CreateRequestObjectAsync(factory, clientId, "PS256", issuer);
 
@@ -439,10 +474,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         // A request object is addressed to the authorization server, so one without the issuer in its 'aud' is
         // refused (RFC 9101 §4, ADR-1187).
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var requestObject = await CreateRequestObjectAsync(
             factory,
             clientId,
@@ -468,10 +508,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         // The default request_object_max_lifetime is 60 minutes, so a request object valid for longer is refused
         // (ADR-1187).
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         var requestObject = await CreateRequestObjectAsync(
             factory,
@@ -501,10 +546,15 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     public async Task Authorize_WhenPushedBodyIsOnlyTheRequestObject_IssuesCodeToTheObjectsRedirectUri()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         var client = CreateClient(factory);
         var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var issuer = await GetIssuerAsync(client);
         var requestObject = await CreateRequestObjectAsync(factory, clientId, "RS256", issuer);
 

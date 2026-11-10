@@ -131,7 +131,12 @@ public class RefreshTokenRotationTests
     // Signs in, authorizes and redeems the code for the first refresh token of a new rotation family.
     private static async Task<string> IssueRefreshTokenAsync(HttpClient client, string clientId)
     {
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var code = await GetCodeAsync(client, sessionCookie, clientId);
         var (statusCode, body) = await RedeemAsync(client, clientId, code);
@@ -153,8 +158,8 @@ public class RefreshTokenRotationTests
     {
         const string clientId = "it-rotation-public";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
 
         var first = await IssueRefreshTokenAsync(client, clientId);
@@ -176,11 +181,16 @@ public class RefreshTokenRotationTests
     {
         const string clientId = "it-rotation-horizon";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         var client = CreateClient(factory);
 
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var code = await GetCodeAsync(client, sessionCookie, clientId);
         var (redeemStatus, redeemBody) = await RedeemAsync(client, clientId, code);
         var first = GetRefreshToken(redeemStatus, redeemBody);
@@ -203,14 +213,15 @@ public class RefreshTokenRotationTests
     {
         const string clientId = "it-rotation-reuse-interval";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.RefreshTokenReuseInterval] = "00:01:00",
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var client = CreateClient(factory);
 

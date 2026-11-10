@@ -129,13 +129,15 @@ public class TokenEndpointClientAssertionTests
         await factory.SeedClientSecretJwtClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-assert-rs-api",
             "https://api.assert.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
         return factory;
     }
@@ -374,13 +376,15 @@ public class TokenEndpointClientAssertionTests
         await factory.SeedConfidentialClientWithCertificateAsync(
             privateKeyClientId,
             certificate,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             privateKeyClientId,
             "it-assert-pk-rs-api",
             "https://api.assert-pk.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = CreateClient(factory);

@@ -82,9 +82,13 @@ public class MasterKeyRotationTests
         }
 
         // The retired key still opens what it protected, before and after the rewrap.
-        Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
+        var revocationErrorBeforeRewrap = await ClientAuthenticationProbe.RevokeWithSecretAsync(
+            client,
+            clientId,
+            secretMaterial,
+            CancellationToken.None
         );
+        Assert.Null(revocationErrorBeforeRewrap);
 
         using var scope = factory.Services.CreateScope();
         var manager = scope.ServiceProvider.GetRequiredService<IMasterKeyManager>();
@@ -96,12 +100,17 @@ public class MasterKeyRotationTests
 
         Assert.True(rewrapped.Rewrapped >= 1);
         Assert.Equal(0, rewrapped.Failed);
-        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var clientSecrets = await factory.GetClientSecretsAsync(clientId, CancellationToken.None);
+        var stored = Assert.Single(clientSecrets);
         Assert.True(provider.TryReadMasterKeyId(stored.EncodedValue, out var storedKeyId));
         Assert.Equal(activeKeyId, storedKeyId);
-        Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
+        var revocationErrorAfterRewrap = await ClientAuthenticationProbe.RevokeWithSecretAsync(
+            client,
+            clientId,
+            secretMaterial,
+            CancellationToken.None
         );
+        Assert.Null(revocationErrorAfterRewrap);
     }
 
     [Fact]

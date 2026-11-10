@@ -158,7 +158,12 @@ public class AuthorizationRequestClientEndToEndTests
                 HandleCookies = false,
             }
         );
-        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var authorizeRequest = new HttpRequestMessage(
             HttpMethod.Get,
@@ -204,13 +209,14 @@ public class AuthorizationRequestClientEndToEndTests
         const string clientId = "it-par-e2e-secret-basic";
 
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             clientId,
             ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             NoSettings,
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var provider = CreateClientProvider(factory, exchanges, CreateSecretKey);
@@ -233,13 +239,14 @@ public class AuthorizationRequestClientEndToEndTests
         const string clientId = "it-par-e2e-secret-post";
 
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             clientId,
             ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             NoSettings,
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var provider = CreateClientProvider(factory, exchanges, CreateSecretKey);
@@ -271,12 +278,13 @@ public class AuthorizationRequestClientEndToEndTests
             RSASignaturePadding.Pkcs1
         ).CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedPrivateKeyJwtClientWithSettingsAsync(
             clientId,
             certificate,
             NoSettings,
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var provider = CreateClientProvider(
@@ -321,15 +329,17 @@ public class AuthorizationRequestClientEndToEndTests
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.RequirePushedAuthorizationRequests] = true,
-            }
+            },
+            CancellationToken.None
         );
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             clientId,
             ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             NoSettings,
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var provider = CreateClientProvider(factory, exchanges, CreateSecretKey);
@@ -355,7 +365,7 @@ public class AuthorizationRequestClientEndToEndTests
         const string clientId = "it-par-e2e-registration-requires";
 
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             clientId,
             ClientSecret,
@@ -364,7 +374,8 @@ public class AuthorizationRequestClientEndToEndTests
             {
                 [OpenIdSettingNames.RequirePushedAuthorizationRequests] = true,
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
         await using var provider = CreateClientProvider(factory, exchanges, CreateSecretKey);

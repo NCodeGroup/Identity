@@ -73,13 +73,16 @@ public class SecretRevealingManagementResponseTests
         using var factory = CreateFactory();
         await factory.SeedConfidentialClientAsync(
             ResourceServerClientId,
-            ResourceServerClientSecret
+            ResourceServerClientSecret,
+            [],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ResourceServerClientId,
             ResourceServerId,
             ResourceServerAudience,
-            ResourceServerScope
+            [ResourceServerScope],
+            CancellationToken.None
         );
         using var administrator = await factory.CreateAdministratorClientAsync(
             CancellationToken.None

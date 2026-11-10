@@ -139,14 +139,20 @@ public class HtmlPageSecurityTests
     {
         const string clientId = "it-page-consent";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object> { [OpenIdSettingNames.RequireConsent] = true },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         using var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var query =
             $"?client_id={Uri.EscapeDataString(clientId)}"
@@ -217,9 +223,14 @@ public class HtmlPageSecurityTests
                     ["InteractiveAuthentication:BundleRootPath"] = bundleRoot.FullName,
                 }
             );
-            await factory.SeedLocalAccountAsync(UserName, Password);
+            await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
             using var client = CreateClient(factory);
-            var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+            var sessionCookie = await InteractiveLogin.SignInAsync(
+                client,
+                UserName,
+                Password,
+                CancellationToken.None
+            );
 
             List<string> nonces = [];
             for (var attempt = 0; attempt < 2; attempt++)
@@ -263,10 +274,15 @@ public class HtmlPageSecurityTests
     {
         const string clientId = "it-page-form-post";
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
         using var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var query =
             $"?client_id={Uri.EscapeDataString(clientId)}"
@@ -320,9 +336,10 @@ public class HtmlPageSecurityTests
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.FrontChannelLogoutSupported] = true,
-            }
+            },
+            CancellationToken.None
         );
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         using var host = factory.WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(serviceCollection =>
                 serviceCollection.AddSingleton<IFrontChannelLogoutService>(
@@ -331,12 +348,18 @@ public class HtmlPageSecurityTests
             )
         );
         using var client = CreateClient(host);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var response = await InteractiveLogin.ConfirmEndSessionAsync(
             client,
             "/oauth2/end_session",
-            sessionCookie
+            sessionCookie,
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

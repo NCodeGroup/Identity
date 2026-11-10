@@ -107,8 +107,8 @@ public class InteractiveUiLocalesTests
     public async Task Authorize_WhenTheRequestPrefersASupportedLocale_TheLoginPageRendersInIt()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
-        await factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
+        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
         using var client = CreateClient(factory);
 
         var loginUrl = await GetLoginRedirectAsync(client, "fr");
@@ -125,8 +125,8 @@ public class InteractiveUiLocalesTests
     public async Task Authorize_WhenTheRequestPrefersAnUnsupportedLocale_NeverFailsAndRendersTheDefault()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
-        await factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
+        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
         using var client = CreateClient(factory);
 
         var loginUrl = await GetLoginRedirectAsync(client, "xx-YY");
@@ -142,8 +142,8 @@ public class InteractiveUiLocalesTests
     public async Task Authorize_WhenTheRequestListsLocalesInOrder_RendersTheFirstSupportedOne()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
-        await factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
+        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
         using var client = CreateClient(factory);
 
         // German is served but the tenant does not support it; a regional French tag selects French.
@@ -159,7 +159,7 @@ public class InteractiveUiLocalesTests
     public async Task Authorize_WhenTheTenantSupportsNoLocaleInParticular_RendersAnyServedLocale()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
         using var client = CreateClient(factory);
 
         var loginUrl = await GetLoginRedirectAsync(client, "de");
@@ -175,7 +175,8 @@ public class InteractiveUiLocalesTests
     {
         using var factory = new HostApplicationFactory();
         await factory.SeedTenantSettingsAsync(
-            new Dictionary<string, object> { [OpenIdSettingNames.DefaultUiLocale] = "es" }
+            new Dictionary<string, object> { [OpenIdSettingNames.DefaultUiLocale] = "es" },
+            CancellationToken.None
         );
         using var client = CreateClient(factory);
 
@@ -194,7 +195,8 @@ public class InteractiveUiLocalesTests
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.UiLocalesSupported] = new[] { "fr" },
-            }
+            },
+            CancellationToken.None
         );
         using var client = CreateClient(factory);
 
@@ -208,7 +210,7 @@ public class InteractiveUiLocalesTests
     public async Task GetLoginPage_WhenOnlyTheUserAgentStatesALanguage_RendersInItWhenSupported()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
         using var client = CreateClient(factory);
 
         var html = await GetPageAsync(client, LoginPath, acceptLanguage: "de;q=0.9, fr;q=0.8");
@@ -220,7 +222,7 @@ public class InteractiveUiLocalesTests
     public async Task PostLogin_WhenTheCredentialsAreWrong_RedirectsBackInTheSameLocale()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var response = await InteractiveLogin.PostFormAsync(
@@ -234,7 +236,8 @@ public class InteractiveUiLocalesTests
                 ["password"] = "wrong",
                 ["ReturnUrl"] = "/foo",
                 ["ui_locales"] = "fr",
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
@@ -256,7 +259,7 @@ public class InteractiveUiLocalesTests
     public async Task PostLogin_WhenACredentialIsMissing_RedirectsBackInTheSameLocale()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var response = await InteractiveLogin.PostFormAsync(
@@ -269,7 +272,8 @@ public class InteractiveUiLocalesTests
                 ["username"] = "nobody",
                 ["ReturnUrl"] = "/foo",
                 ["ui_locales"] = "fr",
-            }
+            },
+            CancellationToken.None
         );
 
         var query = AssertRedirectsToTheLoginPage(response);
@@ -282,7 +286,7 @@ public class InteractiveUiLocalesTests
     public async Task PostConsent_WhenNoSessionExists_RedirectsToTheLoginPageInTheSameLocale()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var response = await InteractiveLogin.PostFormAsync(
@@ -295,7 +299,8 @@ public class InteractiveUiLocalesTests
                 ["action"] = "allow",
                 ["ReturnUrl"] = "/foo",
                 ["ui_locales"] = "fr",
-            }
+            },
+            CancellationToken.None
         );
 
         var query = AssertRedirectsToTheLoginPage(response);
@@ -308,17 +313,23 @@ public class InteractiveUiLocalesTests
     public async Task PostConsent_WhenTheReturnUrlIsMissing_RedirectsToTheLoginPageInTheSameLocale()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         using var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var response = await InteractiveLogin.PostFormAsync(
             client,
             $"{ConsentPath}?ui_locales=fr",
             ConsentPath,
             sessionCookie,
-            new Dictionary<string, string> { ["action"] = "allow", ["ui_locales"] = "fr" }
+            new Dictionary<string, string> { ["action"] = "allow", ["ui_locales"] = "fr" },
+            CancellationToken.None
         );
 
         var query = AssertRedirectsToTheLoginPage(response);
@@ -358,7 +369,7 @@ public class InteractiveUiLocalesTests
     )
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
         using var client = CreateClient(factory);
 
         var html = await GetPageAsync(
@@ -374,7 +385,7 @@ public class InteractiveUiLocalesTests
     public async Task GetAuthorize_WhenTheRequestIsRefusedAndPrefersASupportedLocale_TheErrorPageRendersInIt()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var request = new HttpRequestMessage(
@@ -400,15 +411,21 @@ public class InteractiveUiLocalesTests
     public async Task Authorize_WhenConsentIsRequiredAndTheRequestPrefersASupportedLocale_TheConsentPageRendersInIt()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedPublicClientWithSettingsAsync(
             ClientId,
             new Dictionary<string, object> { [OpenIdSettingNames.RequireConsent] = true },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
         using var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var consentUrl = await GetRedirectAsync(
             client,
@@ -433,10 +450,15 @@ public class InteractiveUiLocalesTests
     public async Task EndSession_WhenTheRequestPrefersASupportedLocale_TheConfirmationPageRendersInIt()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         using var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         var confirmUrl = await GetRedirectAsync(
             client,
@@ -461,10 +483,15 @@ public class InteractiveUiLocalesTests
     public async Task PostLogoutConfirmation_WhenTheEndUserDeclines_ReturnsToTheAccountPageInTheSameLocale()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         using var client = CreateClient(factory);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         var confirmUrl = await GetRedirectAsync(
             client,
             $"{EndSessionPath}?ui_locales=fr",
@@ -484,7 +511,8 @@ public class InteractiveUiLocalesTests
                 ["action"] = "cancel",
                 ["ReturnUrl"] = returnUrl,
                 ["ui_locales"] = "fr",
-            }
+            },
+            CancellationToken.None
         );
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
@@ -501,7 +529,7 @@ public class InteractiveUiLocalesTests
     public async Task GetAccountPage_WhenAnonymousAndTheRequestCarriesALocale_RedirectsToTheLoginPageInIt()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var response = await client.GetAsync($"{AccountPath}?ui_locales=fr");
@@ -522,7 +550,7 @@ public class InteractiveUiLocalesTests
     public async Task Discovery_WhenTheTenantSupportsLocales_AdvertisesThem()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench, CancellationToken.None);
         using var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");

@@ -34,7 +34,7 @@ public class InteractiveLogoutTests
     public async Task GetMe_WhenAnonymous_ReturnsUnauthorized()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -49,7 +49,7 @@ public class InteractiveLogoutTests
     public async Task InteractiveLogout_WhenAuthenticated_ReturnsSessionThenClearsCookie()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -98,8 +98,8 @@ public class InteractiveLogoutTests
         const string redirectUri = "https://client.example/cb";
 
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(clientId, redirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(clientId, [redirectUri], CancellationToken.None);
 
         const int concurrency = 32;
         var failures = new ConcurrentBag<string>();

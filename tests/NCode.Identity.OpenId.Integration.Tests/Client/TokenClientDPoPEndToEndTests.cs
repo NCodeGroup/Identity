@@ -120,13 +120,14 @@ public class TokenClientDPoPEndToEndTests
 
     private static async Task SeedClientAsync(HostApplicationFactory factory, string clientId)
     {
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             clientId,
             ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             new Dictionary<string, object> { [OpenIdSettingNames.DPoPNonceRequired] = true },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
     }
 
@@ -159,7 +160,12 @@ public class TokenClientDPoPEndToEndTests
                 HandleCookies = false,
             }
         );
-        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            browser,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var authorizeRequest = new HttpRequestMessage(
             HttpMethod.Get,

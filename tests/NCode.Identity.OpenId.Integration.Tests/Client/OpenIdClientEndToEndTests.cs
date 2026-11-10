@@ -79,7 +79,8 @@ public class OpenIdClientEndToEndTests
             clientId,
             clientId + "-rs",
             ResourceServerUri,
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
     private static ClientRegistration CreateSecretPostRegistration(string clientId) =>
@@ -106,7 +107,8 @@ public class OpenIdClientEndToEndTests
         await factory.SeedConfidentialClientWithJwksUriAsync(
             clientId,
             JwksUri,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await SeedResourceServerAsync(factory, clientId);
 
@@ -153,7 +155,8 @@ public class OpenIdClientEndToEndTests
         await factory.SeedConfidentialClientAsync(
             clientId,
             ClientSecret,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await SeedResourceServerAsync(factory, clientId);
 
@@ -180,7 +183,8 @@ public class OpenIdClientEndToEndTests
         await factory.SeedConfidentialClientAsync(
             clientId,
             ClientSecret,
-            OpenIdProtocol.GrantTypes.ClientCredentials
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
         );
         await SeedResourceServerAsync(factory, clientId);
 

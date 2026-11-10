@@ -34,14 +34,15 @@ public class TokenExchangeEndpointTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdProtocol.GrantTypes.ClientCredentials,
-            OpenIdProtocol.GrantTypes.TokenExchange
+            [OpenIdProtocol.GrantTypes.ClientCredentials, OpenIdProtocol.GrantTypes.TokenExchange],
+            CancellationToken.None
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestPlatformSettingsProvider.ApiScope
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
         );
 
         var client = factory.CreateClient(

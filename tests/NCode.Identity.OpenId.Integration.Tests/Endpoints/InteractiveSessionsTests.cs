@@ -20,7 +20,7 @@ public class InteractiveSessionsTests
     public async Task GetSessionsList_AfterSignIn_ListsTheSessionEndingAfterTheDefaultIdleTimeout()
     {
         using var factory = new HostApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -30,7 +30,12 @@ public class InteractiveSessionsTests
             }
         );
 
-        var cookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var cookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
 
         using var request = new HttpRequestMessage(HttpMethod.Get, SessionsListPath);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={cookie}");

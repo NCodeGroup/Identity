@@ -90,7 +90,12 @@ public class TenantRootKeyTests
         );
 
         // A client that existed before still authenticates: its secret opens through the tenant's key.
-        Assert.Null(await AuthenticateClientAsync(client, clientId, secretMaterial));
+        var authenticationErrorBeforeRevocation = await AuthenticateClientAsync(
+            client,
+            clientId,
+            secretMaterial
+        );
+        Assert.Null(authenticationErrorBeforeRevocation);
 
         // The tenant revokes the key, and the next validation makes the tenant fail closed.
         wrapper.Revoke(KeyReference);
@@ -110,10 +115,8 @@ public class TenantRootKeyTests
 
         // A call that needs the tenant's protector is refused, and asks the caller to retry.
         using var refused = await PostSecretAsync(administrator, clientId);
-        Assert.True(
-            refused.StatusCode == HttpStatusCode.ServiceUnavailable,
-            await refused.Content.ReadAsStringAsync()
-        );
+        var refusedBody = await refused.Content.ReadAsStringAsync();
+        Assert.True(refused.StatusCode == HttpStatusCode.ServiceUnavailable, refusedBody);
         Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
 
         // A protocol endpoint answers the tenant's outage with a retryable protocol error: the context cannot be
@@ -143,7 +146,12 @@ public class TenantRootKeyTests
                 auditEvent.Change == RootKeyChanges.Restored
                 && auditEvent.KeyReference == KeyReference
         );
-        Assert.Null(await AuthenticateClientAsync(client, clientId, secretMaterial));
+        var authenticationErrorAfterRestore = await AuthenticateClientAsync(
+            client,
+            clientId,
+            secretMaterial
+        );
+        Assert.Null(authenticationErrorAfterRestore);
 
         // Removing the key moves every master key back under the deployment's root key.
         using var removed = await administrator.DeleteAsync(RootKeyPath);
@@ -167,7 +175,12 @@ public class TenantRootKeyTests
             recorder.Events.OfType<RootKeyAuditEvent>(),
             auditEvent => auditEvent.Change == RootKeyChanges.Removed
         );
-        Assert.Null(await AuthenticateClientAsync(client, clientId, secretMaterial));
+        var authenticationErrorAfterRemoval = await AuthenticateClientAsync(
+            client,
+            clientId,
+            secretMaterial
+        );
+        Assert.Null(authenticationErrorAfterRemoval);
     }
 
     [Fact]
@@ -215,7 +228,8 @@ public class TenantRootKeyTests
             }
         );
 
-        Assert.Null(await AuthenticateClientAsync(client, clientId, secretMaterial));
+        var authenticationError = await AuthenticateClientAsync(client, clientId, secretMaterial);
+        Assert.Null(authenticationError);
 
         Assert.NotEmpty(wrapper.Bindings);
         Assert.All(wrapper.Bindings, binding => Assert.Equal("tenant:acme", binding));

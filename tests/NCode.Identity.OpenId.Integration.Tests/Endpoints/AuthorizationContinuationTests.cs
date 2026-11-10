@@ -31,8 +31,8 @@ public class AuthorizationContinuationTests
         HostApplicationFactory factory
     )
     {
-        await factory.SeedLocalAccountAsync(UserName, Password);
-        await factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        await factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
             {
@@ -40,7 +40,12 @@ public class AuthorizationContinuationTests
                 HandleCookies = false,
             }
         );
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
         return (client, sessionCookie);
     }
 

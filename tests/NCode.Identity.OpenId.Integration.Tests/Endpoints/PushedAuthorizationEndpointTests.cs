@@ -44,7 +44,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     [Fact]
     public async Task PostPar_WithSeededPublicClient_ReturnsRequestUriAndExpiresIn()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -68,7 +68,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     public async Task PostPar_WithSeededPublicClient_MarksTheResponseNoStore()
     {
         const string clientId = "it-par-no-store";
-        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -86,7 +86,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     {
         // The pushed request is validated as the authorization endpoint would validate it, so a missing
         // code_challenge is refused at the PAR endpoint with invalid_request (RFC 7636 §4.4.1).
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -113,7 +113,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     public async Task PostPar_WhenRefused_MarksTheErrorResponseNoStore()
     {
         const string clientId = "it-par-no-store-error";
-        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(clientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -147,7 +147,8 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
                     OpenIdProtocol.ResponseModes.Query,
                 },
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         var client = Factory.CreateClient(
@@ -184,7 +185,8 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
                 [OpenIdSettingNames.AuthorizationSigningAlgValuesSupported] = new[] { "PS256" },
                 [OpenIdSettingNames.AuthorizationSignedResponseAlg] = "RS256",
             },
-            RedirectUri
+            [RedirectUri],
+            CancellationToken.None
         );
 
         var client = Factory.CreateClient(
@@ -217,7 +219,12 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         // public by omitting its credentials.
         const string confidentialClientId = "it-par-confidential";
         using var factory = new HostApplicationFactory();
-        await factory.SeedClientSecretBasicClientAsync(confidentialClientId, "par-client-secret");
+        await factory.SeedClientSecretBasicClientAsync(
+            confidentialClientId,
+            "par-client-secret",
+            [],
+            CancellationToken.None
+        );
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -243,7 +250,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     [Fact]
     public async Task PostPar_WithRequestUriParameter_ReturnsBadRequest()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -263,7 +270,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     [Fact]
     public async Task PostParThenAuthorize_WithRequestUri_ProcessesRequest()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -288,7 +295,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     [Fact]
     public async Task Authorize_WithRequestUriConsumedTwice_SecondUseFails()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -312,7 +319,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     [Fact]
     public async Task Authorize_WithUnknownPushedRequestUri_ReturnsBadRequest()
     {
-        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+        await Factory.SeedPublicClientAsync(ClientId, [RedirectUri], CancellationToken.None);
 
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

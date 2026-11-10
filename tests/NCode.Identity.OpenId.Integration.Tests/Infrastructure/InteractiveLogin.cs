@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// Signs an end-user in through the interactive login page and returns the OP session cookie, so a test can drive the
 /// authorization endpoint as an authenticated user agent.
 /// </summary>
-public static class InteractiveLogin
+public static partial class InteractiveLogin
 {
     /// <summary>
     /// The name of the OP session cookie the interactive login issues.
@@ -37,14 +37,22 @@ public static class InteractiveLogin
     /// <param name="client">The <see cref="HttpClient"/> of the host, with automatic redirects and cookies off.</param>
     /// <param name="userName">The user name of a seeded local account.</param>
     /// <param name="password">The password of the account.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The value of the <see cref="SessionCookieName"/> cookie.</returns>
-    public static async Task<string> SignInAsync(
+    public static async ValueTask<string> SignInAsync(
         HttpClient client,
         string userName,
-        string password
+        string password,
+        CancellationToken cancellationToken
     )
     {
-        using var login = await SubmitLoginAsync(client, userName, password, ReturnUrl);
+        using var login = await SubmitLoginAsync(
+            client,
+            userName,
+            password,
+            ReturnUrl,
+            cancellationToken
+        );
         Assert.Equal(HttpStatusCode.Found, login.StatusCode);
 
         var sessionCookie = ReadSessionCookie(login);
@@ -60,12 +68,14 @@ public static class InteractiveLogin
     /// <param name="userName">The user name of a local account.</param>
     /// <param name="password">The password sent for the account.</param>
     /// <param name="returnUrl">The local URL the login page was asked to return to.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The response of the login form post.</returns>
-    public static Task<HttpResponseMessage> SubmitLoginAsync(
+    public static ValueTask<HttpResponseMessage> SubmitLoginAsync(
         HttpClient client,
         string userName,
         string password,
-        string returnUrl
+        string returnUrl,
+        CancellationToken cancellationToken
     ) =>
         PostFormAsync(
             client,
@@ -77,7 +87,8 @@ public static class InteractiveLogin
                 ["username"] = userName,
                 ["password"] = password,
                 ["ReturnUrl"] = returnUrl,
-            }
+            },
+            cancellationToken
         );
 
     /// <summary>
@@ -99,20 +110,22 @@ public static class InteractiveLogin
     /// <param name="actionPath">The path the form posts to.</param>
     /// <param name="sessionCookie">The value of the session cookie to send, or <see langword="null"/> to send none.</param>
     /// <param name="fields">The form fields, without the antiforgery token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The response of the form post.</returns>
-    public static async Task<HttpResponseMessage> PostFormAsync(
+    public static async ValueTask<HttpResponseMessage> PostFormAsync(
         HttpClient client,
         string pageUrl,
         string actionPath,
         string? sessionCookie,
-        IReadOnlyDictionary<string, string> fields
+        IReadOnlyDictionary<string, string> fields,
+        CancellationToken cancellationToken
     )
     {
         using var pageRequest = new HttpRequestMessage(HttpMethod.Get, pageUrl);
         if (sessionCookie is not null)
             pageRequest.Headers.Add("Cookie", $"{SessionCookieName}={sessionCookie}");
 
-        using var page = await client.SendAsync(pageRequest);
+        using var page = await client.SendAsync(pageRequest, cancellationToken);
         var requestToken = ReadSetCookieValue(page, AntiforgeryRequestCookieName);
         var cookieToken = ReadSetCookieRaw(page, AntiforgeryCookiePrefix);
 
@@ -131,7 +144,7 @@ public static class InteractiveLogin
         form[AntiforgeryFieldName] = requestToken ?? string.Empty;
         request.Content = new FormUrlEncodedContent(form);
 
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     /// <summary>
@@ -143,15 +156,22 @@ public static class InteractiveLogin
     /// <param name="endSessionUrl">The URL of the end-session request, with its query.</param>
     /// <param name="sessionCookie">The value of the session cookie to send.</param>
     /// <param name="action">The <c>action</c> the form posts, <c>logout</c> to confirm or <c>cancel</c> to decline.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The response of the confirmation form post.</returns>
-    public static async Task<HttpResponseMessage> AnswerEndSessionConfirmationAsync(
+    public static async ValueTask<HttpResponseMessage> AnswerEndSessionConfirmationAsync(
         HttpClient client,
         string endSessionUrl,
         string sessionCookie,
-        string action
+        string action,
+        CancellationToken cancellationToken
     )
     {
-        using var challenge = await GetWithSessionAsync(client, endSessionUrl, sessionCookie);
+        using var challenge = await GetWithSessionAsync(
+            client,
+            endSessionUrl,
+            sessionCookie,
+            cancellationToken
+        );
         Assert.Equal(HttpStatusCode.Found, challenge.StatusCode);
         Assert.NotNull(challenge.Headers.Location);
 
@@ -170,7 +190,8 @@ public static class InteractiveLogin
             location.PathAndQuery,
             LogoutConfirmPath,
             sessionCookie,
-            new Dictionary<string, string> { ["action"] = action, ["ReturnUrl"] = returnUrl }
+            new Dictionary<string, string> { ["action"] = action, ["ReturnUrl"] = returnUrl },
+            cancellationToken
         );
     }
 
@@ -181,18 +202,21 @@ public static class InteractiveLogin
     /// <param name="client">The <see cref="HttpClient"/> of the host, with automatic redirects and cookies off.</param>
     /// <param name="endSessionUrl">The URL of the end-session request, with its query.</param>
     /// <param name="sessionCookie">The value of the session cookie to send.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The response of the resumed logout.</returns>
-    public static async Task<HttpResponseMessage> ConfirmEndSessionAsync(
+    public static async ValueTask<HttpResponseMessage> ConfirmEndSessionAsync(
         HttpClient client,
         string endSessionUrl,
-        string sessionCookie
+        string sessionCookie,
+        CancellationToken cancellationToken
     )
     {
         using var confirmation = await AnswerEndSessionConfirmationAsync(
             client,
             endSessionUrl,
             sessionCookie,
-            "logout"
+            "logout",
+            cancellationToken
         );
         Assert.Equal(HttpStatusCode.Found, confirmation.StatusCode);
         Assert.NotNull(confirmation.Headers.Location);
@@ -201,18 +225,24 @@ public static class InteractiveLogin
             new Uri("http://localhost"),
             confirmation.Headers.Location.OriginalString
         );
-        return await GetWithSessionAsync(client, continueUrl.PathAndQuery, sessionCookie);
+        return await GetWithSessionAsync(
+            client,
+            continueUrl.PathAndQuery,
+            sessionCookie,
+            cancellationToken
+        );
     }
 
-    private static Task<HttpResponseMessage> GetWithSessionAsync(
+    private static async ValueTask<HttpResponseMessage> GetWithSessionAsync(
         HttpClient client,
         string url,
-        string sessionCookie
+        string sessionCookie,
+        CancellationToken cancellationToken
     )
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Add("Cookie", $"{SessionCookieName}={sessionCookie}");
-        return client.SendAsync(request);
+        return await client.SendAsync(request, cancellationToken);
     }
 
     private static string? ReadSetCookieValue(HttpResponseMessage response, string name)

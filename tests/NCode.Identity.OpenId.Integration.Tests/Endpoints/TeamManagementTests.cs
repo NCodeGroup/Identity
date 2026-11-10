@@ -55,14 +55,6 @@ public class TeamManagementTests
             RootTenantId
         );
 
-    private static Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    ) =>
-        factory.CreateManagementClientAsync(
-            BootstrapAdminApplicationFactory.ClientId,
-            BootstrapAdminApplicationFactory.ClientSecret
-        );
-
     private static async Task CreateTeamAsync(HttpClient client, string teamId, object settings)
     {
         using var response = await client.PostAsJsonAsync(
@@ -706,7 +698,7 @@ public class TeamManagementTests
     public async Task CreateTeam_ThenCreateItsTenant_ServesTheTenantUnderTheTeamsSettings()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
 
         await CreateTeamAsync(client, "acme", new { environment_type = "development" });
         await CreateTenantAsync(client, "acme", "acme-dev");
@@ -730,7 +722,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_CreatesATenantUnderItsTeamAndManagesItsClients()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -780,7 +774,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_CreatesTwoClientsAndAResourceServerAndOwnsEach()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         var principalId = await SeedConsoleUserAsync(factory);
         using var grant = await administrator.PostAsJsonAsync(
@@ -854,7 +850,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_CannotCreateATenantUnderAnotherTeam()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
@@ -874,7 +872,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_CannotReadOrWriteThePlatformOrCreateATeam()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -921,7 +921,9 @@ public class TeamManagementTests
     public async Task Owner_CannotCreateATenantOrGrantTeamAdmin()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
 
@@ -941,7 +943,9 @@ public class TeamManagementTests
     public async Task PlatformAssignment_ListsTeamsAndTenantsAcrossTeams()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         var principalId = await SeedConsoleUserAsync(factory);
@@ -967,7 +971,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_CannotReEnableATeamThePlatformDisabled()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -999,7 +1005,9 @@ public class TeamManagementTests
     public async Task DisableTeam_MakesItsTenantsAnswerNotFoundAtTheTokenEndpoint()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         var (clientId, clientSecret) = await CreateSecretClientAsync(administrator, "acme-dev");
@@ -1032,12 +1040,18 @@ public class TeamManagementTests
     public async Task MachineClient_GrantedTeamAdmin_CreatesTenantsUnderItsTeamOnly()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(administrator);
         await GrantTeamAdminAsync(administrator, "acme", principalId);
-        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+        using var machine = await factory.CreateManagementClientAsync(
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
         await CreateTenantAsync(machine, "acme", "acme-dev");
 
@@ -1057,10 +1071,16 @@ public class TeamManagementTests
     public async Task MachineClient_WithoutAnAssignment_CannotCreateATenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         var (clientId, clientSecret, _) = await CreateMachineClientAsync(administrator);
-        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+        using var machine = await factory.CreateManagementClientAsync(
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
         using var response = await PostTenantAsync(machine, "acme", "acme-dev");
 
@@ -1071,11 +1091,17 @@ public class TeamManagementTests
     public async Task MachineClient_WhenDisabled_LosesItsAuthority()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(administrator);
         await GrantTeamAdminAsync(administrator, "acme", principalId);
-        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+        using var machine = await factory.CreateManagementClientAsync(
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
         await PatchAsync(
             administrator,
@@ -1099,7 +1125,9 @@ public class TeamManagementTests
     public async Task PostClientSecret_ForATeamsMachineClient_ByAnotherTeamsMachineClient_ReturnsForbidden()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         var (acmeClientId, _, _) = await CreateMachineClientAsync(
@@ -1113,7 +1141,8 @@ public class TeamManagementTests
         await GrantTeamAdminAsync(administrator, "globex", managerPrincipalId);
         using var manager = await factory.CreateManagementClientAsync(
             managerClientId,
-            managerSecret
+            managerSecret,
+            CancellationToken.None
         );
 
         using var response = await PostClientSecretAsync(manager, acmeClientId);
@@ -1125,7 +1154,9 @@ public class TeamManagementTests
     public async Task PostClientSecret_ByTheControlPlaneTenantAdministrator_ForAMachineClientThatHoldsNoRole_ReturnsForbidden()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         var (teamClientId, _, _) = await CreateMachineClientAsync(
             administrator,
@@ -1149,7 +1180,9 @@ public class TeamManagementTests
     public async Task PostClientSecret_ByTheTeamsAdministrator_ForItsMachineClientThatHoldsTheTeamsRole_ReturnsCreated()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         var (teamClientId, _, teamPrincipalId) = await CreateMachineClientAsync(
             administrator,
@@ -1173,7 +1206,9 @@ public class TeamManagementTests
     public async Task PostClientSecret_WhenTheCallerIsAGlobalAdmin_ReturnsCreated()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         var (teamClientId, _, teamPrincipalId) = await CreateMachineClientAsync(administrator);
         await GrantTeamAdminAsync(administrator, "acme", teamPrincipalId);
@@ -1188,7 +1223,9 @@ public class TeamManagementTests
     public async Task GrantTeamAdmin_ToAnOrdinaryClient_ReturnsConflict()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var created = await administrator.PostAsJsonAsync(
             $"/api/tenants/{RootTenantId}/clients",
@@ -1212,7 +1249,9 @@ public class TeamManagementTests
     public async Task GrantTeamAdmin_ToAnotherTeamsMachineClient_ReturnsConflict()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         var (_, _, globexPrincipalId) = await CreateMachineClientAsync(
@@ -1233,7 +1272,9 @@ public class TeamManagementTests
     public async Task GrantTenantOwner_ToTheTeamsMachineClient_ReturnsCreated()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         var (_, _, acmePrincipalId) = await CreateMachineClientAsync(
@@ -1254,7 +1295,9 @@ public class TeamManagementTests
     public async Task GrantTeamAdmin_ToThePlatformsMachineClient_ReturnsCreated()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         var (_, _, platformPrincipalId) = await CreateMachineClientAsync(administrator);
 
@@ -1271,7 +1314,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_CreatesAMachineClientThatAdministersItsTeamOnly()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         using var user = await CreateTeamUserClientAsync(factory, administrator, "acme", "admins");
@@ -1289,7 +1334,11 @@ public class TeamManagementTests
         Assert.Equal("acme", readJson.GetProperty("owningNodeId").GetString());
 
         await GrantTeamAdminAsync(user, "acme", principalId);
-        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+        using var machine = await factory.CreateManagementClientAsync(
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
         await CreateTenantAsync(machine, "acme", "acme-dev");
 
@@ -1301,7 +1350,9 @@ public class TeamManagementTests
     public async Task ListTeamClients_ListsOnlyTheTeamsMachineClients()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         var (acmeClientId, _, _) = await CreateMachineClientAsync(
@@ -1331,7 +1382,9 @@ public class TeamManagementTests
     public async Task CreatePlatformClient_IsOwnedByThePlatformAndListedThere()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var created = await administrator.PostAsJsonAsync(
             "/api/platform/clients",
@@ -1359,7 +1412,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_GetsForbiddenForAnotherTeamsAndThePlatformsMachineClients()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
@@ -1386,7 +1441,9 @@ public class TeamManagementTests
     public async Task CreateTeamClient_WithAnInteractiveGrantType_ReturnsBadRequest()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
 
         using var response = await administrator.PostAsJsonAsync(
@@ -1409,7 +1466,9 @@ public class TeamManagementTests
     public async Task CreateTeamClient_ForATeamThatDoesNotExist_ReturnsNotFound()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.PostAsJsonAsync(
             "/api/teams/missing/clients",
@@ -1424,7 +1483,9 @@ public class TeamManagementTests
     public async Task PatchMachineClientSettings_WithAnotherGrantType_ReturnsBadRequest()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         var (clientId, _, _) = await CreateMachineClientAsync(
             administrator,
@@ -1453,7 +1514,9 @@ public class TeamManagementTests
     public async Task DeleteTeam_WhileItOwnsAMachineClient_ReturnsConflict()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateMachineClientAsync(administrator, "/api/teams/acme/clients");
 
@@ -1471,7 +1534,9 @@ public class TeamManagementTests
     public async Task GetCaller_AsTheBootstrapAdministrator_HoldsPlatformAuthority()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await administrator.GetAsync("/api/me");
 
@@ -1484,7 +1549,9 @@ public class TeamManagementTests
     public async Task GetCaller_WhenTheCallerIsATeamAdmin_ReportsItsAssignment()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
@@ -1513,7 +1580,9 @@ public class TeamManagementTests
     public async Task GetCallerTeams_WhenTheCallerIsATeamAdmin_ListsItsTeamOnly()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
@@ -1542,7 +1611,9 @@ public class TeamManagementTests
     public async Task ListTeams_WhenTheCallerIsATeamAdmin_IsForbidden()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -1560,7 +1631,9 @@ public class TeamManagementTests
     public async Task GetCallerTenants_AsATenantOwner_ListsTheTenantAndNoTeam()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         var principalId = await SeedConsoleUserAsync(factory);
@@ -1601,9 +1674,15 @@ public class TeamManagementTests
     public async Task GetCaller_AsAMachineClient_ReportsItsPrincipal()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(administrator);
-        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+        using var machine = await factory.CreateManagementClientAsync(
+            clientId,
+            clientSecret,
+            CancellationToken.None
+        );
 
         using var response = await machine.GetAsync("/api/me");
 
@@ -1620,7 +1699,9 @@ public class TeamManagementTests
     public async Task TenantAdmin_CreatesAClientInItsTenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         using var tenantAdmin = await CreateGrantedUserClientAsync(
@@ -1651,7 +1732,9 @@ public class TeamManagementTests
     public async Task TenantAdmin_CannotReachItsTeamOrCreateATenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         using var tenantAdmin = await CreateGrantedUserClientAsync(
@@ -1673,7 +1756,9 @@ public class TeamManagementTests
     public async Task TenantAdminOfTheRootTenant_CannotReachThePlatformOrATeam()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         using var user = await CreateGrantedUserClientAsync(
             factory,
             administrator,
@@ -1701,7 +1786,9 @@ public class TeamManagementTests
     public async Task TenantAdminOfTheRootTenant_CannotTakeOverTheBootstrapClient()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         using var user = await CreateGrantedUserClientAsync(
             factory,
             administrator,
@@ -1748,7 +1835,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_GetsForbiddenForAnUnknownTeamAndAnotherTeam()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
@@ -1789,7 +1878,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_GetsForbiddenForAnUnknownTenantAndAnotherTeamsTenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateTenantAsync(administrator, "globex", "globex-dev");
@@ -1829,7 +1920,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_GetsForbiddenForWritesInAnotherTeamsTenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateTenantAsync(administrator, "globex", "globex-dev");
@@ -1938,7 +2031,9 @@ public class TeamManagementTests
     public async Task ClientOwner_ManagesItsClientsSecretsButCreatesNone()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         var (clientId, _) = await CreateSecretClientAsync(administrator, "acme-dev");
@@ -1984,7 +2079,9 @@ public class TeamManagementTests
     public async Task TenantAdmin_GetsForbiddenForAnUnknownTenantAndASiblingTenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         await CreateTenantAsync(administrator, "acme", "acme-prod");
@@ -2014,7 +2111,9 @@ public class TeamManagementTests
     public async Task Administrator_GetsNotFoundForAnUnknownTeamAndTenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         await AssertGetStatusAsync(administrator, "/api/teams/nope", HttpStatusCode.NotFound);
         await AssertGetStatusAsync(administrator, "/api/tenants/nope", HttpStatusCode.NotFound);
@@ -2033,7 +2132,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_CannotChangeItsTeamsLimits()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -2086,7 +2187,9 @@ public class TeamManagementTests
     public async Task PlatformAdministrator_ChangesATeamsLimits()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
 
         await PatchAsync(
@@ -2108,7 +2211,9 @@ public class TeamManagementTests
     public async Task TeamAdmin_SetsALimitOnItsTenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -2137,7 +2242,9 @@ public class TeamManagementTests
     public async Task TenantOwner_CannotChangeItsTenantsLimits()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         using var owner = await CreateGrantedUserClientAsync(
@@ -2177,7 +2284,9 @@ public class TeamManagementTests
     public async Task GetSettingLimits_AsATeamAdmin_ReportsItsTeamsLimitsItCannotChange()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -2196,7 +2305,9 @@ public class TeamManagementTests
     public async Task GetSettingLimits_AsATeamAdmin_ReportsItsTenantsLimitsItCanChange()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -2216,7 +2327,9 @@ public class TeamManagementTests
     public async Task GetSettingLimits_AsATenantOwner_ReportsItsTenantsLimitsItCannotChange()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         using var owner = await CreateGrantedUserClientAsync(
@@ -2235,7 +2348,9 @@ public class TeamManagementTests
     public async Task GetSettingLimits_AsThePlatformAdministrator_ReportsATeamsLimitsItCanChange()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
 
         var limits = await GetJsonAsync(administrator, "/api/teams/acme/settings/limits");
@@ -2262,7 +2377,9 @@ public class TeamManagementTests
     public async Task ListRoleAssignments_AsATenantOwner_ReportsItMayChangeTheOwners()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         using var owner = await CreateGrantedUserClientAsync(
@@ -2281,7 +2398,9 @@ public class TeamManagementTests
     public async Task ListRoleAssignments_AsATenantOwner_ReportsItMayNotChangeTheAdministrators()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         using var owner = await CreateGrantedUserClientAsync(
@@ -2299,7 +2418,9 @@ public class TeamManagementTests
     public async Task ListRoleAssignments_AsATeamAdmin_ReportsItMayChangeItsTenantsAdministrators()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -2318,7 +2439,9 @@ public class TeamManagementTests
     public async Task ListRoleAssignments_AsATeamAdmin_ReportsItMayChangeItsTeamsAdministrators()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var teamAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -2336,7 +2459,9 @@ public class TeamManagementTests
     public async Task ListRoleAssignments_AsATeamOwner_ReportsItMayChangeItsTeamsOwners()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
 
@@ -2349,7 +2474,9 @@ public class TeamManagementTests
     public async Task ListRoleAssignments_AsAnAdministrator_ReportsItMayChangeAClientsOwners()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         var clientId = await CreateClientForRoleListAsync(administrator, "acme-dev");
@@ -2366,7 +2493,9 @@ public class TeamManagementTests
     public async Task ListRoleAssignments_AsAnAdministrator_ReportsItMayChangeAResourceServersOwners()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTenantAsync(administrator, "acme", "acme-dev");
         var resourceServerId = await CreateResourceServerForRoleListAsync(
@@ -2437,7 +2566,7 @@ public class TeamManagementTests
     public async Task PatchTeamSettings_ReachesTheTeamsTenantsAtOnce()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTeamAsync(client, "globex", new { });
         await CreateTenantAsync(client, "globex", "globex-dev");
 
@@ -2467,7 +2596,7 @@ public class TeamManagementTests
     public async Task PatchTeamSettings_LeavesAnotherTeamsTenantsAlone()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTeamAsync(client, "globex", new { });
         await CreateTenantAsync(client, "globex", "globex-dev");
         await CreateTeamAsync(client, "hooli", new { });
@@ -2508,7 +2637,7 @@ public class TeamManagementTests
     public async Task DisableTeam_MakesItsTenantsAnswerNotFound()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTeamAsync(client, "initech", new { });
         await CreateTenantAsync(client, "initech", "initech-dev");
 
@@ -2530,7 +2659,7 @@ public class TeamManagementTests
     public async Task DisableTeam_KeepsItsTenantsManageable()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTeamAsync(client, "umbrella", new { });
         await CreateTenantAsync(client, "umbrella", "umbrella-dev");
         var (clientId, _) = await CreateSecretClientAsync(client, "umbrella-dev");
@@ -2596,7 +2725,7 @@ public class TeamManagementTests
     public async Task DisableTeam_RefusesRuntimeWritesOnItsTenants()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTeamAsync(client, "wonka", new { });
         await CreateTenantAsync(client, "wonka", "wonka-dev");
 
@@ -2663,7 +2792,7 @@ public class TeamManagementTests
     public async Task CreateTenant_WhenTheTeamIsFull_ReturnsConflict()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTeamAsync(client, "hooli", new { max_tenants = 1 });
         await CreateTenantAsync(client, "hooli", "hooli-one");
 
@@ -2681,7 +2810,7 @@ public class TeamManagementTests
     public async Task DeleteTeam_WhileItHasTenants_ReturnsConflict()
     {
         using var factory = CreateFactory();
-        using var client = await CreateAdministratorClientAsync(factory);
+        using var client = await factory.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTeamAsync(client, "umbrella", new { });
         await CreateTenantAsync(client, "umbrella", "umbrella-dev");
 
@@ -2695,7 +2824,9 @@ public class TeamManagementTests
     public async Task TeamOwner_CannotDeleteTheTeam()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
 
@@ -2723,7 +2854,7 @@ public class TeamManagementTests
                 )
             )
         );
-        using var administrator = await CreateAdministratorClientAsync(host);
+        using var administrator = await host.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTenantAsync(administrator, HostApplicationFactory.TeamId, "usage-one");
         await CreateTenantAsync(administrator, HostApplicationFactory.TeamId, "usage-two");
 
@@ -2779,7 +2910,9 @@ public class TeamManagementTests
     public async Task PreviewTenantPromotion_ReportsTheChangesAndNotesWithoutApplying()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(administrator);
 
         using var previewResponse = await PostPromotionAsync(
@@ -2822,7 +2955,9 @@ public class TeamManagementTests
     public async Task PromoteTenant_CopiesConfigurationButNoSecretsOrEnvironmentValues()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(administrator);
 
         using var promoteResponse = await PostPromotionAsync(
@@ -2875,7 +3010,9 @@ public class TeamManagementTests
     public async Task PromoteTenant_WhenPromotedAgain_ReportsEveryChangeUnchanged()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await ArrangePromotionSourceAsync(administrator);
 
         using var promoteResponse = await PostPromotionAsync(
@@ -2908,7 +3045,9 @@ public class TeamManagementTests
     public async Task PromoteTenant_WithEnvironmentSettings_WritesTheSuppliedValues()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var (clientId, _) = await ArrangePromotionSourceAsync(administrator);
 
         using var promoteResponse = await PostPromotionAsync(
@@ -2948,7 +3087,9 @@ public class TeamManagementTests
     public async Task PromoteTenant_ByATeamOwner_ReturnsForbidden()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await ArrangePromotionSourceAsync(administrator);
         using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
 
@@ -2970,7 +3111,9 @@ public class TeamManagementTests
     public async Task PromoteTenant_ToAnotherTeamsTenant_ReturnsNotFound()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await ArrangePromotionSourceAsync(administrator);
         await CreateTeamAsync(administrator, "beta", new { });
         await CreateTenantAsync(administrator, "beta", "beta-prod");
@@ -2991,7 +3134,9 @@ public class TeamManagementTests
     public async Task PromoteTenant_ByATenantAdminOfBoth_WhenALimitChanges_ReturnsForbidden()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await ArrangePromotionSourceAsync(administrator);
         await PatchAsync(
             administrator,
@@ -3063,7 +3208,9 @@ public class TeamManagementTests
     public async Task PromoteTenant_LeavesTheHostManagedClientAlone()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         var root = await GetJsonAsync(administrator, $"/api/tenants/{RootTenantId}");
         var teamId = root.GetProperty("teamId").GetString();
         Assert.NotNull(teamId);
@@ -3098,7 +3245,9 @@ public class TeamManagementTests
     public async Task NestedTeam_ServesItsTenantsUnderItsParentsSettings()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(
             administrator,
             "globex",
@@ -3117,7 +3266,9 @@ public class TeamManagementTests
     public async Task NestedTeam_PatchingTheParentsSettings_ReachesTheChildsTenantsAtOnce()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
         await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
@@ -3148,7 +3299,9 @@ public class TeamManagementTests
     public async Task NestedTeam_DisablingTheParent_MakesTheChildsTenantsAnswerNotFound()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
         await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
@@ -3171,7 +3324,9 @@ public class TeamManagementTests
     public async Task NestedTeam_DeletingAParentWithAChildTeam_ReturnsConflict()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
 
@@ -3185,7 +3340,9 @@ public class TeamManagementTests
     public async Task NestedTeam_ParentTeamAdmin_CreatesAChildTeamAndItsTenant()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         using var parentAdmin = await CreateTeamUserClientAsync(
             factory,
@@ -3205,7 +3362,9 @@ public class TeamManagementTests
     public async Task NestedTeam_ParentTeamAdmin_ChangesAChildTeamsLimits()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { max_tenants = 2 });
         using var parentAdmin = await CreateTeamUserClientAsync(
@@ -3234,7 +3393,9 @@ public class TeamManagementTests
     public async Task NestedTeam_ChildTeamAdmin_CannotChangeItsTeamsLimits()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { max_tenants = 2 });
         using var childAdmin = await CreateTeamUserClientAsync(
@@ -3267,7 +3428,9 @@ public class TeamManagementTests
     public async Task NestedTeam_CreatingATenantWhenTheParentIsFull_ReturnsConflict()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { max_tenants = 1 });
         await CreateTenantAsync(administrator, "globex", "globex-main");
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
@@ -3282,7 +3445,9 @@ public class TeamManagementTests
     public async Task NestedTeam_BeneathThePlatformsOwnTeam_ReturnsConflict()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await PostChildTeamAsync(
             administrator,
@@ -3299,7 +3464,9 @@ public class TeamManagementTests
     public async Task NestedTeam_Stranger_GetsForbiddenOnEveryChildTeamRouteForAnUnknownTeam()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "acme", new { });
         await CreateTeamAsync(administrator, "globex", new { });
         using var stranger = await CreateTeamUserClientAsync(
@@ -3332,7 +3499,9 @@ public class TeamManagementTests
     public async Task NestedTeam_ChildTeamAdmin_GetsForbiddenForItsParentAndSiblings()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-api", new { });
@@ -3357,7 +3526,9 @@ public class TeamManagementTests
     public async Task NestedTeam_ChildTeamAdmin_CannotDisableOrDeleteItsOwnTeam()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
         using var childAdmin = await CreateTeamUserClientAsync(
@@ -3395,7 +3566,9 @@ public class TeamManagementTests
     public async Task NestedTeam_ParentTeamAdmin_DisablesRestoresAndDeletesAChildTeam()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
         using var parentAdmin = await CreateTeamUserClientAsync(
@@ -3418,7 +3591,9 @@ public class TeamManagementTests
     public async Task NestedTeam_Administrator_GetsNotFoundForAnUnknownParent()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
 
         using var response = await PostChildTeamAsync(administrator, "nope", "stray", new { });
 
@@ -3437,7 +3612,7 @@ public class TeamManagementTests
                 )
             )
         );
-        using var administrator = await CreateAdministratorClientAsync(host);
+        using var administrator = await host.CreateAdministratorClientAsync(CancellationToken.None);
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
         await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
@@ -3488,7 +3663,9 @@ public class TeamManagementTests
     public async Task NestedTeam_ParentTeamAdmin_PromotesBetweenAChildTeamsTenants()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
         await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
@@ -3515,7 +3692,9 @@ public class TeamManagementTests
     public async Task NestedTeam_PromotingAChildTeamsTenantsThroughItsParent_ReturnsNotFound()
     {
         using var factory = CreateFactory();
-        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
         await CreateTeamAsync(administrator, "globex", new { });
         await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
         await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");

@@ -344,12 +344,12 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
 
     private static HttpContext CreateHttpContext()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton(Mock.Of<IMediator>());
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(Mock.Of<IMediator>());
         return new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity(authenticationType: "test")),
-            RequestServices = services.BuildServiceProvider(),
+            RequestServices = serviceCollection.BuildServiceProvider(),
         };
     }
 

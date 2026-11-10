@@ -33,13 +33,13 @@ public class SecretProtectionCommandLineTests : BaseTests
         IStartupValidator? validator = null
     )
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton(rewrapper);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSingleton(rewrapper);
         if (validator is not null)
-            services.AddSingleton(validator);
+            serviceCollection.AddSingleton(validator);
 
-        return services.BuildServiceProvider();
+        return serviceCollection.BuildServiceProvider();
     }
 
     #region Parse Tests

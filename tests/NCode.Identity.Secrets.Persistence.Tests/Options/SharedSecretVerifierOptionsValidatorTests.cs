@@ -89,10 +89,10 @@ public class SharedSecretVerifierOptionsValidatorTests : BaseTests
     // Builds the services and validates the options as a host does when it starts.
     private static void ValidateOnStart(Action<IServiceCollection> configure)
     {
-        var services = new ServiceCollection();
-        new ServiceBuilder<SecretsLibrary>(services).AddPersistenceLibrary();
-        configure(services);
-        using var serviceProvider = services.BuildServiceProvider();
+        var serviceCollection = new ServiceCollection();
+        new ServiceBuilder<SecretsLibrary>(serviceCollection).AddPersistenceLibrary();
+        configure(serviceCollection);
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
         serviceProvider.GetRequiredService<IStartupValidator>().Validate();
     }
 
@@ -100,8 +100,8 @@ public class SharedSecretVerifierOptionsValidatorTests : BaseTests
     public void AddPersistenceLibrary_WhenASchemeIsNotRegistered_FailsAsTheHostStarts()
     {
         var exception = Assert.Throws<OptionsValidationException>(() =>
-            ValidateOnStart(services =>
-                services.Configure<SharedSecretVerifierOptions>(options =>
+            ValidateOnStart(serviceCollection =>
+                serviceCollection.Configure<SharedSecretVerifierOptions>(options =>
                     options.SuppliedSecretScheme = "unregistered"
                 )
             )
@@ -119,8 +119,10 @@ public class SharedSecretVerifierOptionsValidatorTests : BaseTests
     public void AddPersistenceLibrary_WhenThePbkdf2IterationsAreBelowOne_FailsAsTheHostStarts()
     {
         var exception = Assert.Throws<OptionsValidationException>(() =>
-            ValidateOnStart(services =>
-                services.Configure<Pbkdf2SecretVerifierOptions>(options => options.Iterations = 0)
+            ValidateOnStart(serviceCollection =>
+                serviceCollection.Configure<Pbkdf2SecretVerifierOptions>(options =>
+                    options.Iterations = 0
+                )
             )
         );
 
@@ -135,8 +137,8 @@ public class SharedSecretVerifierOptionsValidatorTests : BaseTests
     public void AddPersistenceLibrary_WhenTheGateOptionsAreOutOfRange_FailsAsTheHostStarts()
     {
         var exception = Assert.Throws<OptionsValidationException>(() =>
-            ValidateOnStart(services =>
-                services.Configure<SecretVerificationGateOptions>(options =>
+            ValidateOnStart(serviceCollection =>
+                serviceCollection.Configure<SecretVerificationGateOptions>(options =>
                     options.MaxConcurrency = 0
                 )
             )

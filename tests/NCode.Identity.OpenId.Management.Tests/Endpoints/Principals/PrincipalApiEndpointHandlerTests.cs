@@ -189,12 +189,12 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         var identity = authenticated
             ? new ClaimsIdentity(authenticationType: "test")
             : new ClaimsIdentity();
-        var services = new ServiceCollection();
-        services.AddSingleton(Mock.Of<IMediator>());
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(Mock.Of<IMediator>());
         return new DefaultHttpContext
         {
             User = new ClaimsPrincipal(identity),
-            RequestServices = services.BuildServiceProvider(),
+            RequestServices = serviceCollection.BuildServiceProvider(),
         };
     }
 

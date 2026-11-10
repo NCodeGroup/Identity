@@ -52,10 +52,10 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         MockMetadataResolver = CreateStrictMock<IProviderMetadataResolver>();
         MockHttpClientFactory = CreateStrictMock<IHttpClientFactory>();
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary();
-        JwtProvider = services.BuildServiceProvider();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary();
+        JwtProvider = serviceCollection.BuildServiceProvider();
 
         var keyFactory = JwtProvider.GetRequiredService<ISecretKeyFactory>();
         ProviderKey = keyFactory.CreateRsa(new KeyMetadata { KeyId = "k1" }, ProviderRsa);

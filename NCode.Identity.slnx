@@ -12,7 +12,6 @@
         <Project Path="benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks.csproj" />
     </Folder>
     <Folder Name="/src/">
-        <Project Path="src/NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Analyzers/NCode.Identity.Analyzers.csproj" />
         <Project Path="src/NCode.Identity.AspNetCore.Abstractions/NCode.Identity.AspNetCore.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.AspNetCore/NCode.Identity.AspNetCore.csproj" />
@@ -85,14 +84,12 @@
         <Project Path="src/NCode.Identity.SharedState.Abstractions/NCode.Identity.SharedState.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.SharedState.Valkey/NCode.Identity.SharedState.Valkey.csproj" />
         <Project Path="src/NCode.Identity.SharedState/NCode.Identity.SharedState.csproj" />
-        <Project Path="src/NCode.Identity/NCode.Identity.csproj" />
         <Project Path="src/NCode.Identity.Json/NCode.Identity.Json.csproj" />
         <Project Path="src/NCode.Identity.Registration.AspNetCore/NCode.Identity.Registration.AspNetCore.csproj" />
         <Project Path="src/NCode.Identity.Registration/NCode.Identity.Registration.csproj" />
         <Project Path="src/NCode.Identity.Time/NCode.Identity.Time.csproj" />
     </Folder>
     <Folder Name="/tests/">
-        <Project Path="tests/NCode.Identity.Abstractions.Tests/NCode.Identity.Abstractions.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Analyzers.Tests/NCode.Identity.Analyzers.Tests.csproj" />
         <Project Path="tests/NCode.Identity.AspNetCore.Tests/NCode.Identity.AspNetCore.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Bff.Blazor.Client.Tests/NCode.Identity.Bff.Blazor.Client.Tests.csproj" />
@@ -140,7 +137,6 @@
         <Project Path="tests/NCode.Identity.Settings.Tests/NCode.Identity.Settings.Tests.csproj" />
         <Project Path="tests/NCode.Identity.SharedState.Tests/NCode.Identity.SharedState.Tests.csproj" />
         <Project Path="tests/NCode.Identity.SharedState.Valkey.Tests/NCode.Identity.SharedState.Valkey.Tests.csproj" />
-        <Project Path="tests/NCode.Identity.Tests/NCode.Identity.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Json.Tests/NCode.Identity.Json.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Registration.Tests/NCode.Identity.Registration.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Time.Tests/NCode.Identity.Time.Tests.csproj" />

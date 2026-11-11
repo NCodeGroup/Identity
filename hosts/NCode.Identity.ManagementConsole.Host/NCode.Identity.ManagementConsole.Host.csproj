@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <UserSecretsId>594bdda7-a1e9-46a6-806c-5655318a3b7d</UserSecretsId>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\NCode.Identity.ManagementConsole\NCode.Identity.ManagementConsole.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Secrets.AwsKms\NCode.Identity.Secrets.AwsKms.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Secrets.AzureKeyVault\NCode.Identity.Secrets.AzureKeyVault.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Secrets.GoogleCloudKms\NCode.Identity.Secrets.GoogleCloudKms.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.SharedState.Valkey\NCode.Identity.SharedState.Valkey.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
+    </ItemGroup>
+</Project>

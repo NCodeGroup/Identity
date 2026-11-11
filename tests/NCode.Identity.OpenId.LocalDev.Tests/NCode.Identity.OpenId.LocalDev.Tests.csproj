@@ -31,13 +31,13 @@
             CopyToOutputDirectory="PreserveNewest"
         />
         <None
-            Include="..\..\src\NCode.Identity.OpenId.Host\appsettings.Conformance.json"
+            Include="..\..\hosts\NCode.Identity.OpenId.Host\appsettings.Conformance.json"
             Link="DevelopmentSecrets\appsettings.Conformance.json"
             CopyToOutputDirectory="PreserveNewest"
         />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.LocalDev\NCode.Identity.OpenId.LocalDev.csproj" />
+        <ProjectReference Include="..\..\hosts\NCode.Identity.OpenId.LocalDev\NCode.Identity.OpenId.LocalDev.csproj" />
     </ItemGroup>
 </Project>

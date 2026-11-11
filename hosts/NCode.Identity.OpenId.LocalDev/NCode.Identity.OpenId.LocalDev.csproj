@@ -2,7 +2,7 @@
     <!-- Aspire local-dev orchestrator (ADR-1071). The Aspire.AppHost.Sdk version is pinned in global.json
          ('msbuild-sdks'); the hosting packages are pinned in Directory.Packages.props. This is a sibling of the
          host (NOT nested inside it): the host stays a single reference OP process, and this AppHost
-         orchestrates it plus the frontend apps as one resource graph. It is never packed (IsPackable=false) and is
+         orchestrates it plus the frontend apps as one resource graph. It lives under hosts/, so it is never packed, and is
          excluded from the publish pipeline. -->
     <Sdk Name="Aspire.AppHost.Sdk" />
 
@@ -13,7 +13,6 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <IsAspireHost>true</IsAspireHost>
-        <IsPackable>false</IsPackable>
         <UserSecretsId>7d2a4c1e-9b63-4f0a-8e5b-1c2d3e4f5a6b</UserSecretsId>
         <!-- This AppHost is launched via `dotnet run` / F5, not the standalone `aspire` CLI, so it deliberately runs
              without the Aspire CLI bundle (AspireUseCliBundle=false). ASPIRE010 only flags CLI-bundle-exclusive

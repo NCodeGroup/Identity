@@ -7,12 +7,11 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.csproj" />
-        <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.EntityFramework.Core\NCode.Identity.OpenId.Persistence.EntityFramework.Core.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Persistence.EntityFramework.Core\NCode.Identity.OpenId.Persistence.EntityFramework.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>

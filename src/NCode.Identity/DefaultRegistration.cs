@@ -34,8 +34,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton(ArrayPool<byte>.Shared);
 
             // Claims
-            serviceCollection.TryAddSingleton<IClaimsService, DefaultClaimsService>();
-            serviceCollection.TryAddSingleton<IClaimsSerializer>(DefaultClaimsSerializer.Singleton);
+            serviceCollection.AddClaimsLibrary();
 
             // Endpoints
             serviceCollection.AddEndpointGroupRouting();

@@ -10,8 +10,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 using NCode.Identity.OpenId.Authentication.Interactive;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.Registration;
 using NCode.Mediator;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Accounts.Authentication;
 

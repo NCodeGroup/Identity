@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.SharedState;
 

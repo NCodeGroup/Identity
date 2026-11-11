@@ -83,8 +83,8 @@
         <Project Path="src/NCode.Identity/NCode.Identity.csproj" />
         <Project Path="src/NCode.Json/NCode.Json.csproj" />
         <Project Path="src/NCode.Persistence.Abstractions/NCode.Persistence.Abstractions.csproj" />
-        <Project Path="src/NCode.Registration.AspNetCore/NCode.Registration.AspNetCore.csproj" />
-        <Project Path="src/NCode.Registration/NCode.Registration.csproj" />
+        <Project Path="src/NCode.Identity.Registration.AspNetCore/NCode.Identity.Registration.AspNetCore.csproj" />
+        <Project Path="src/NCode.Identity.Registration/NCode.Identity.Registration.csproj" />
         <Project Path="src/NCode.Time/NCode.Time.csproj" />
     </Folder>
     <Folder Name="/tests/">
@@ -135,7 +135,7 @@
         <Project Path="tests/NCode.Identity.SharedState.Valkey.Tests/NCode.Identity.SharedState.Valkey.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Tests/NCode.Identity.Tests.csproj" />
         <Project Path="tests/NCode.Json.Tests/NCode.Json.Tests.csproj" />
-        <Project Path="tests/NCode.Registration.Tests/NCode.Registration.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.Registration.Tests/NCode.Identity.Registration.Tests.csproj" />
         <Project Path="tests/NCode.Time.Tests/NCode.Time.Tests.csproj" />
     </Folder>
 </Solution>

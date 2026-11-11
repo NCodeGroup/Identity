@@ -15,6 +15,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
@@ -22,7 +23,6 @@ using NCode.Identity.Server.OpenApi;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.PropertyBag;
-using NCode.Registration;
 
 namespace NCode.Identity.Server;
 

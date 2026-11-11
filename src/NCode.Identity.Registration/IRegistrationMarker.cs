@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Registration;
+namespace NCode.Identity.Registration;
 
 /// <summary>
 /// Marks a type as a registration marker: a zero-member, curiously-recurring type discriminator that

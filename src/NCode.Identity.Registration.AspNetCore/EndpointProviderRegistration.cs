@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace NCode.Registration.AspNetCore;
+namespace NCode.Identity.Registration.AspNetCore;
 
 /// <summary>
 /// Provides extension methods to register endpoint providers and endpoint groups.

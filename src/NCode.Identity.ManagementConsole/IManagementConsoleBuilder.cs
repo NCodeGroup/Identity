@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.Bff.Server;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.ManagementConsole;
 

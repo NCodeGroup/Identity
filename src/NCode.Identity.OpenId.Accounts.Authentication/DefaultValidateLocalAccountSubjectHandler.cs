@@ -9,9 +9,9 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Accounts.Authentication;
 

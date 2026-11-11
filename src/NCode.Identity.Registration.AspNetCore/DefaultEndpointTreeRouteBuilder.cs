@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace NCode.Registration.AspNetCore;
+namespace NCode.Identity.Registration.AspNetCore;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IEndpointTreeRouteBuilder"/> abstraction.

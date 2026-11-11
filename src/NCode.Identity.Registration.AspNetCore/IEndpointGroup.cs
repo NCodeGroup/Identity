@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 
-namespace NCode.Registration.AspNetCore;
+namespace NCode.Identity.Registration.AspNetCore;
 
 /// <summary>
 /// Declares a node in the endpoint route-group hierarchy: its relative route prefix (via <see cref="GetPrefix"/>), the

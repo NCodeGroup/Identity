@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Cose;
 using NCode.Identity.Cwt.Issuance;
 using NCode.Identity.Cwt.Validation;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.Cwt;
 

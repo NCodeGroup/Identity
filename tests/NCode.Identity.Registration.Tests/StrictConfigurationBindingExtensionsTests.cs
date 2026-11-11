@@ -4,7 +4,7 @@
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
-namespace NCode.Registration.Tests;
+namespace NCode.Identity.Registration.Tests;
 
 public sealed class StrictConfigurationBindingExtensionsTests
 {

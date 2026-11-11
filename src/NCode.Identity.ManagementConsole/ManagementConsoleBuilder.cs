@@ -11,7 +11,7 @@ using NCode.AspNetCore;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Server;
 using NCode.Identity.ManagementConsole.Options;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.ManagementConsole;
 

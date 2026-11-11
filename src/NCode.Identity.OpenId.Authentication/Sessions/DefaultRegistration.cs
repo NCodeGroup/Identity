@@ -6,8 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Dispatch;
+using NCode.Identity.Registration;
 using NCode.Mediator;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;
 

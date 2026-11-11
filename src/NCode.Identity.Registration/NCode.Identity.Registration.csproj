@@ -3,6 +3,7 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <Description>The registration builder of NCode.Identity: IServiceBuilder&lt;TMarker&gt; with library markers that check each registration's prerequisites at compile time, and strict configuration binding.</Description>
     </PropertyGroup>
 
     <ItemGroup>

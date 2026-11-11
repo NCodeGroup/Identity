@@ -7,9 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Claims;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Registration;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Identity.Settings;
-using NCode.Registration;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity;
 

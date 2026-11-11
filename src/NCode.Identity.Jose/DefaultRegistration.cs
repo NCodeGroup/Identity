@@ -9,8 +9,8 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.DPoP;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
-using NCode.Registration;
 
 namespace NCode.Identity.Jose;
 

@@ -17,10 +17,10 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.Registration;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Identity.Settings;
 using NCode.Mediator;
-using NCode.Registration;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 

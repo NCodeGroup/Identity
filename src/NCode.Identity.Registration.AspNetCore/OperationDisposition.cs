@@ -4,18 +4,18 @@
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
-namespace NCode.Registration.AspNetCore;
+namespace NCode.Identity.Registration.AspNetCore;
 
 /// <summary>
 /// Indicates the disposition of an operation.
 /// </summary>
 [PublicAPI]
-public readonly record struct ReadOnlyOperationDisposition<TError>
+public sealed class OperationDisposition<TError>
 {
     /// <summary>
-    /// Gets the error that occurred during the operation.
+    /// Gets or sets the error that occurred during the operation.
     /// </summary>
-    public TError? Error { get; init; }
+    public TError? Error { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether the operation was successful.

@@ -4,8 +4,8 @@
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.Registration;
 using NCode.Identity.Server.DevelopmentEnvironment;
-using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

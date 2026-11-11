@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.Registration;
 using NCode.Persistence;
 using NCode.Persistence.Stores;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 

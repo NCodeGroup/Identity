@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.AspNetCore;
 

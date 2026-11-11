@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 

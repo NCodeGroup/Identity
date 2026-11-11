@@ -16,8 +16,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 

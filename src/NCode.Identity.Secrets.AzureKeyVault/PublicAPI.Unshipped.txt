@@ -2,8 +2,8 @@
 const NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultKeyWrapperOptions.DefaultSectionName = "SecretProtection:RootKeyProviders:AzureKeyVault" -> string!
 const NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultRemoteKeyProviderOptions.DefaultSectionName = "SecretProtection:RemoteKeyProviders:AzureKeyVault" -> string!
 NCode.Identity.Secrets.AzureKeyVault.DefaultRegistration
-NCode.Identity.Secrets.AzureKeyVault.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!)
-NCode.Identity.Secrets.AzureKeyVault.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddAzureKeyVaultKeyWrapper(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Secrets.AzureKeyVault.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!)
+NCode.Identity.Secrets.AzureKeyVault.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddAzureKeyVaultKeyWrapper(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
 NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultKeyWrapperOptions
 NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultKeyWrapperOptions.AzureKeyVaultKeyWrapperOptions() -> void
 NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultKeyWrapperOptions.KeyId.get -> string?
@@ -17,6 +17,6 @@ NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultRemoteKeyProviderOptio
 NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultRemoteKeyProviderOptions.VaultUri.get -> string?
 NCode.Identity.Secrets.AzureKeyVault.Options.AzureKeyVaultRemoteKeyProviderOptions.VaultUri.set -> void
 NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration
-NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
-NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAzureKeyVaultRemoteKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
-NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAzureKeyVaultRemoteKeyProviderIfConfigured(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
+NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAzureKeyVaultRemoteKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Secrets.AzureKeyVault.SecretsLibraryRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddAzureKeyVaultRemoteKeyProviderIfConfigured(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!

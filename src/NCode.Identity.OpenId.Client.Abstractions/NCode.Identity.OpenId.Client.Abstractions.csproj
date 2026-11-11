@@ -17,6 +17,6 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Protocol.Abstractions\NCode.Identity.OpenId.Protocol.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
-        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
     </ItemGroup>
 </Project>

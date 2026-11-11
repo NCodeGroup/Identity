@@ -12,9 +12,9 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.OpenApi;
 using NCode.Identity.OpenId.Management.ResourceServers;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Registration;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
-using NCode.Registration;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management;
 

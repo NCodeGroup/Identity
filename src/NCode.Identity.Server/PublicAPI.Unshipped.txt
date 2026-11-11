@@ -48,8 +48,8 @@ NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserName
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserPassword.get -> string?
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserPassword.set -> void
 NCode.Identity.Server.ConformanceSeedRegistration
-NCode.Identity.Server.ConformanceSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
-NCode.Identity.Server.ConformanceSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddConformanceSeed(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.ConformanceSeedRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
+NCode.Identity.Server.ConformanceSeedRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddConformanceSeed(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DefaultRegistration
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddIdentityServer() -> NCode.Identity.Server.IIdentityServerBuilder!
@@ -61,14 +61,14 @@ const NCode.Identity.Server.DeveloperCorsRegistration.PolicyName = "NCode.Identi
 NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperCors(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.DeveloperInteractiveSeedRegistration
-NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
-NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperInteractiveSeed(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
+NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperInteractiveSeed(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DeveloperKeysConfiguration
 NCode.Identity.Server.DeveloperKeysConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
 NCode.Identity.Server.DeveloperKeysConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).GetDeveloperKeysOptions() -> NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions!
 NCode.Identity.Server.DeveloperKeysRegistration
-NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
-NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeyPruning() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeyPruning() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.BackchannelLogoutUri.get -> string?
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.BackchannelLogoutUri.set -> void
@@ -131,15 +131,15 @@ NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.S
 NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.Server.IIdentityServerBuilder!).AddFrontendBootstrap(Microsoft.Extensions.Configuration.IConfiguration! configuration, string? sectionName = null, System.Action<NCode.Identity.Server.Frontend.FrontendBootstrapOptions!>? configureOptions = null) -> NCode.Identity.Server.IIdentityServerBuilder!
 NCode.Identity.Server.IIdentityServerBuilder
 NCode.Identity.Server.IIdentityServerBuilder.DataProtectionBuilder.get -> Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder!
-NCode.Identity.Server.IIdentityServerBuilder.IdentityLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!
-NCode.Identity.Server.IIdentityServerBuilder.JoseLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
-NCode.Identity.Server.IIdentityServerBuilder.JwtLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
-NCode.Identity.Server.IIdentityServerBuilder.OpenIdAuthenticationLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!
-NCode.Identity.Server.IIdentityServerBuilder.OpenIdCoreLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
-NCode.Identity.Server.IIdentityServerBuilder.OpenIdManagementLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
-NCode.Identity.Server.IIdentityServerBuilder.SecretPersistenceLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
-NCode.Identity.Server.IIdentityServerBuilder.SecretsLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
-NCode.Identity.Server.IIdentityServerBuilder.SharedStateLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.IdentityLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.JoseLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.JwtLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.OpenIdAuthenticationLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.OpenIdCoreLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.OpenIdManagementLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.SecretPersistenceLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.SecretsLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.SharedStateLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!
 const NCode.Identity.Server.Frontend.FrontendBootstrapOptions.DefaultSectionName = "Frontend" -> string!
 NCode.Identity.Server.Frontend.FrontendBootstrapOptions
 NCode.Identity.Server.Frontend.FrontendBootstrapOptions.ApiBaseUrl.get -> string?
@@ -199,8 +199,8 @@ NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.ProductionSafet
 override NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.ToString() -> string!
 static NCode.Identity.Server.ProductionSafetyRegistration.FindViolations(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation!>!
 NCode.Identity.Server.DevelopmentEnvironmentRegistration
-NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
-NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDevelopmentEnvironment(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
+NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDevelopmentEnvironment(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.TelemetryRegistration
 NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddOpenTelemetryMetrics(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

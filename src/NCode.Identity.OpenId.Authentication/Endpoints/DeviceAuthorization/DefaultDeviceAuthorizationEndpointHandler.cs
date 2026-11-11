@@ -13,7 +13,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Results
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Results;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization;
 

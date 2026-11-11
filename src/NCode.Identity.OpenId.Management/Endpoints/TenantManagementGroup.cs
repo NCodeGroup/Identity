@@ -10,7 +10,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Grants;
 using NCode.Identity.OpenId.Management.Endpoints.Principals;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 using NCode.Identity.OpenId.Management.Endpoints.Sessions;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 

@@ -8,8 +8,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Handler
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Results;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization;
 

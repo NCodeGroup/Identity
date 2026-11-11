@@ -24,10 +24,10 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Teams;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
-using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
 

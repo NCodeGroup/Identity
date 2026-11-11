@@ -3,8 +3,8 @@
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.Registration;
 using NCode.Persistence;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 

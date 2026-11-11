@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.AspNetCore.Options;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.AspNetCore;
 

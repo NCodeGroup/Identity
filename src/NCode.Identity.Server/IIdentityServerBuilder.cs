@@ -8,10 +8,10 @@ using NCode.Identity.Jwt;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication;
 using NCode.Identity.OpenId.Management;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.SharedState;
-using NCode.Registration;
 
 namespace NCode.Identity.Server;
 

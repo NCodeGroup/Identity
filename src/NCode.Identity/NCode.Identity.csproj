@@ -11,8 +11,8 @@
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Settings.Abstractions\NCode.Identity.Settings.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
-        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
-        <ProjectReference Include="..\NCode.Registration.AspNetCore\NCode.Registration.AspNetCore.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Registration.AspNetCore\NCode.Identity.Registration.AspNetCore.csproj" />
     </ItemGroup>
 
     <ItemGroup>

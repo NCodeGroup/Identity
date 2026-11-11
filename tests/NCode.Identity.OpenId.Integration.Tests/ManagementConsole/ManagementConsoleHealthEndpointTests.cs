@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using NCode.Identity.ManagementConsole.Host;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
-using NCode.Registration;
+using NCode.Identity.Registration;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.ManagementConsole;

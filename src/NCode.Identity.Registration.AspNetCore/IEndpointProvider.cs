@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Routing;
 
-namespace NCode.Registration.AspNetCore;
+namespace NCode.Identity.Registration.AspNetCore;
 
 /// <summary>
 /// Provides the ability for providers to map endpoints onto the HTTP request pipeline.

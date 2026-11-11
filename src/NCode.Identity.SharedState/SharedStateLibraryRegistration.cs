@@ -3,8 +3,8 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Registration;
 using NCode.Identity.SharedState.InProcess;
-using NCode.Registration;
 
 namespace NCode.Identity.SharedState;
 

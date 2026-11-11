@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 
-namespace NCode.Registration;
+namespace NCode.Identity.Registration;
 
 /// <summary>
 /// Binds configuration strictly, so a key that maps to nothing stops the host from starting instead of being silently

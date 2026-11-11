@@ -3,8 +3,8 @@
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
+using NCode.Identity.Registration;
 using NCode.Identity.SharedState.Valkey.Facades;
-using NCode.Registration;
 using StackExchange.Redis;
 using Xunit;
 

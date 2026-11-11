@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace NCode.Registration;
+namespace NCode.Identity.Registration;
 
 /// <summary>
 /// Provides various extension methods for <see cref="IServiceCollection"/>.

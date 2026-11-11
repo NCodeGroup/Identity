@@ -12,10 +12,10 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Serialization;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Identity.Results;
 using NCode.Mediator;
 using NCode.Mediator.Middleware;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 

@@ -4,7 +4,7 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>NCode.Registration.Tests</RootNamespace>
+        <RootNamespace>NCode.Identity.Registration.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
@@ -24,6 +24,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\NCode.Registration\NCode.Registration.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
     </ItemGroup>
 </Project>

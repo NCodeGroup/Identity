@@ -1,4 +1,4 @@
 #nullable enable
 NCode.Identity.Jose.Secp256k1.DefaultRegistration
-NCode.Identity.Jose.Secp256k1.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!)
-NCode.Identity.Jose.Secp256k1.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!).AddSecp256k1() -> NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
+NCode.Identity.Jose.Secp256k1.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!)
+NCode.Identity.Jose.Secp256k1.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!).AddSecp256k1() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!

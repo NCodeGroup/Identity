@@ -45,8 +45,8 @@ NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.IsRefused.get
 NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.RoleAssignmentGrant() -> void
 NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
-NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
-NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
+NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
+NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
 NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand
 NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.Capabilities.get -> System.Collections.Generic.Dictionary<string!, object!>!
 NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.Capabilities.init -> void

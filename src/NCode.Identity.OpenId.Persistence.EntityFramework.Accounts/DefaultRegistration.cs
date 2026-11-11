@@ -8,9 +8,9 @@ using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.Credentials;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Stores;
+using NCode.Identity.Registration;
 using NCode.Persistence;
 using NCode.Persistence.Stores;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 

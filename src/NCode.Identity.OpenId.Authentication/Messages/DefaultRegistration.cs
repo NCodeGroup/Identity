@@ -9,8 +9,8 @@ using NCode.Identity.OpenId.Authentication.Messages.Commands;
 using NCode.Identity.OpenId.Authentication.Messages.Handlers;
 using NCode.Identity.OpenId.Authentication.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.Registration;
 using NCode.Mediator;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Messages;
 

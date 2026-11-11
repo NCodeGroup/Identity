@@ -166,7 +166,7 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Eight family records override template records:
+so a bare ADR number names one record. Nine family records override template records:
 
 - [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
@@ -192,6 +192,10 @@ so a bare ADR number names one record. Eight family records override template re
 - [ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
   supersedes project-template ADR-0129's decision 6 for the management API, which answers a caller without authority
   `403` for any identifier, because it authorizes at a node before it reads, so the answer discloses nothing.
+- [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)
+  overrides the project template's rule that production projects live under `src/`, because `src/` holds only the
+  published packages: the deployables, the build analyzers and the web apps' workspace live in `hosts/`, `analyzers/`
+  and `frontend/`.
 
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.

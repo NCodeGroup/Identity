@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using NCode.Buffers;
 
-namespace NCode.Json;
+namespace NCode.Identity.Json;
 
 /// <summary>
 /// Provides the ability to deserialize JSON into a loosely-typed <see cref="object"/> graph — JSON objects become

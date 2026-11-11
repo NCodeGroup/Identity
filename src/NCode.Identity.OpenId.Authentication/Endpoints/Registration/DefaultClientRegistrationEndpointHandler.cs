@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.AspNetCore;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Json;
 using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
@@ -31,7 +32,6 @@ using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
-using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration;

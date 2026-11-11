@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
@@ -12,7 +13,6 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
-using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Promotions;

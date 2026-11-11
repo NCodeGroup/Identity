@@ -3,7 +3,7 @@
 
 using NCode.Identity.Cose;
 using NCode.Identity.Cwt.Validation;
-using NCode.Json;
+using NCode.Identity.Json;
 
 namespace NCode.Identity.Cwt.Claims;
 

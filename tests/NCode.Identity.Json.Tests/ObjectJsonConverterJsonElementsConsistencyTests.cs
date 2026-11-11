@@ -4,9 +4,9 @@
 using System.Numerics;
 using System.Text.Json;
 
-namespace NCode.Json.Tests;
+namespace NCode.Identity.Json.Tests;
 
-// Audits that the two loosely-typed JSON mappers in NCode.Json stay consistent with each other:
+// Audits that the two loosely-typed JSON mappers in NCode.Identity.Json stay consistent with each other:
 // ObjectJsonConverter (JSON -> most-specific CLR type, target unknown) and JsonElements.TryGetValue<T>
 // (JSON -> an explicitly requested CLR type). The parity tests guard the invariant that every scalar
 // coercion the converter performs is also recognized by the typed accessor for the same type; the

@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 
-namespace NCode.Json;
+namespace NCode.Identity.Json;
 
 /// <summary>
 /// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize a type by delegating to another type.

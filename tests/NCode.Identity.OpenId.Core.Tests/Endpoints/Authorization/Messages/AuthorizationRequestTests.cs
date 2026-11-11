@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Moq;
 using NCode.Collections.Providers;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 using NCode.Identity.OpenId.Authentication.Messages.Parameters;
@@ -14,7 +15,6 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
 using NCode.Identity.OpenId.Serialization;
-using NCode.Json;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Messages;

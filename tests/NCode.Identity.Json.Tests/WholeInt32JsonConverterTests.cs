@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 
-namespace NCode.Json.Tests;
+namespace NCode.Identity.Json.Tests;
 
 public class WholeInt32JsonConverterTests
 {

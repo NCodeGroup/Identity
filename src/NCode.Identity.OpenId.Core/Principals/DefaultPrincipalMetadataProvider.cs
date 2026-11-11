@@ -1,9 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Principals;

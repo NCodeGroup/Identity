@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Json;
+namespace NCode.Identity.Json;
 
 /// <summary>
 /// Controls how <see cref="ObjectJsonConverter"/> maps JSON scalar values to CLR types when deserializing into a

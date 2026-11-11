@@ -1,0 +1,69 @@
+#nullable enable
+NCode.Identity.Json.DateCoercion
+NCode.Identity.Json.DelegatingJsonConverter<TInterface, TImplementation>
+NCode.Identity.Json.DelegatingJsonConverter<TInterface, TImplementation>.DelegatingJsonConverter() -> void
+NCode.Identity.Json.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.get -> bool
+NCode.Identity.Json.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
+NCode.Identity.Json.JsonElements
+NCode.Identity.Json.ObjectGraphExtensions
+NCode.Identity.Json.ObjectJsonConverter
+NCode.Identity.Json.ObjectJsonConverter.ObjectJsonConverter(NCode.Identity.Json.ObjectJsonConverterOptions! options) -> void
+NCode.Identity.Json.ObjectJsonConverterOptions
+NCode.Identity.Json.ObjectJsonConverterOptions.AllowBigInteger.get -> bool
+NCode.Identity.Json.ObjectJsonConverterOptions.AllowBigInteger.init -> void
+NCode.Identity.Json.ObjectJsonConverterOptions.CoerceStringToGuid.get -> bool
+NCode.Identity.Json.ObjectJsonConverterOptions.CoerceStringToGuid.init -> void
+NCode.Identity.Json.ObjectJsonConverterOptions.CoerceStringToNumber.get -> bool
+NCode.Identity.Json.ObjectJsonConverterOptions.CoerceStringToNumber.init -> void
+NCode.Identity.Json.ObjectJsonConverterOptions.DateString.get -> NCode.Identity.Json.ObjectJsonDateStringHandling
+NCode.Identity.Json.ObjectJsonConverterOptions.DateString.init -> void
+NCode.Identity.Json.ObjectJsonConverterOptions.Integer.get -> NCode.Identity.Json.ObjectJsonIntegerHandling
+NCode.Identity.Json.ObjectJsonConverterOptions.Integer.init -> void
+NCode.Identity.Json.ObjectJsonConverterOptions.ObjectJsonConverterOptions() -> void
+NCode.Identity.Json.ObjectJsonConverterOptions.Real.get -> NCode.Identity.Json.ObjectJsonRealHandling
+NCode.Identity.Json.ObjectJsonConverterOptions.Real.init -> void
+NCode.Identity.Json.ObjectJsonDateStringHandling
+NCode.Identity.Json.ObjectJsonDateStringHandling.DateTime = 1 -> NCode.Identity.Json.ObjectJsonDateStringHandling
+NCode.Identity.Json.ObjectJsonDateStringHandling.DateTimeOffset = 2 -> NCode.Identity.Json.ObjectJsonDateStringHandling
+NCode.Identity.Json.ObjectJsonDateStringHandling.None = 0 -> NCode.Identity.Json.ObjectJsonDateStringHandling
+NCode.Identity.Json.ObjectJsonIntegerHandling
+NCode.Identity.Json.ObjectJsonIntegerHandling.Int64 = 1 -> NCode.Identity.Json.ObjectJsonIntegerHandling
+NCode.Identity.Json.ObjectJsonIntegerHandling.MostSpecific = 0 -> NCode.Identity.Json.ObjectJsonIntegerHandling
+NCode.Identity.Json.ObjectJsonRealHandling
+NCode.Identity.Json.ObjectJsonRealHandling.Decimal = 1 -> NCode.Identity.Json.ObjectJsonRealHandling
+NCode.Identity.Json.ObjectJsonRealHandling.Double = 0 -> NCode.Identity.Json.ObjectJsonRealHandling
+override NCode.Identity.Json.ObjectJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> object?
+override NCode.Identity.Json.ObjectJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, object! value, System.Text.Json.JsonSerializerOptions! options) -> void
+NCode.Identity.Json.UriJsonConverter
+NCode.Identity.Json.UriJsonConverter.UriJsonConverter() -> void
+override NCode.Identity.Json.DelegatingJsonConverter<TInterface, TImplementation>.CanConvert(System.Type! typeToConvert) -> bool
+override NCode.Identity.Json.DelegatingJsonConverter<TInterface, TImplementation>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> TInterface?
+override NCode.Identity.Json.DelegatingJsonConverter<TInterface, TImplementation>.Write(System.Text.Json.Utf8JsonWriter! writer, TInterface value, System.Text.Json.JsonSerializerOptions! options) -> void
+override NCode.Identity.Json.UriJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> System.Uri?
+override NCode.Identity.Json.UriJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, System.Uri? value, System.Text.Json.JsonSerializerOptions! options) -> void
+NCode.Identity.Json.WholeInt32JsonConverter
+NCode.Identity.Json.WholeInt32JsonConverter.WholeInt32JsonConverter() -> void
+override NCode.Identity.Json.WholeInt32JsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> int
+override NCode.Identity.Json.WholeInt32JsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, int value, System.Text.Json.JsonSerializerOptions! options) -> void
+static NCode.Identity.Json.DateCoercion.TryFromNumericDate(double seconds, out System.DateTimeOffset value) -> bool
+static NCode.Identity.Json.DateCoercion.TryFromNumericDate(long seconds, out System.DateTimeOffset value) -> bool
+static NCode.Identity.Json.DateCoercion.TryParseDateTime(string? text, out System.DateTime value) -> bool
+static NCode.Identity.Json.DateCoercion.TryParseDateTimeOffset(string? text, out System.DateTimeOffset value) -> bool
+static NCode.Identity.Json.DateCoercion.TryParseNumericDate(string? text, out System.DateTimeOffset value) -> bool
+static NCode.Identity.Json.ObjectJsonConverter.Default.get -> NCode.Identity.Json.ObjectJsonConverter!
+static NCode.Identity.Json.ObjectJsonConverterOptions.Default.get -> NCode.Identity.Json.ObjectJsonConverterOptions!
+static NCode.Identity.Json.ObjectJsonConverterOptions.NewtonsoftCompatible.get -> NCode.Identity.Json.ObjectJsonConverterOptions!
+static NCode.Identity.Json.UriJsonConverter.Singleton.get -> NCode.Identity.Json.UriJsonConverter!
+NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement)
+NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).IsNullOrUndefined() -> bool
+NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).OrEmptyObject() -> System.Text.Json.JsonElement
+NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetNumericDate(out System.DateTimeOffset value) -> bool
+NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyNumericDate(string! propertyName, out System.DateTimeOffset value) -> bool
+NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyValue<T>(string! propertyName, out T value) -> bool
+NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyWholeInt32(string! propertyName, out int value) -> bool
+NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetValue<T>(out T value) -> bool
+NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetWholeInt32(out int value) -> bool
+NCode.Identity.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!)
+NCode.Identity.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!).TryGetValue<T>(string! key, out T value) -> bool
+static NCode.Identity.Json.JsonElements.EmptyObject.get -> System.Text.Json.JsonElement
+static NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).Parse(System.Buffers.ReadOnlySequence<byte> utf8Json, System.Text.Json.JsonDocumentOptions options = default(System.Text.Json.JsonDocumentOptions)) -> System.Text.Json.JsonElement

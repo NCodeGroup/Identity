@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Json;
+namespace NCode.Identity.Json;
 
 /// <summary>
 /// Specifies how a JSON integer number is mapped to a CLR type when <see cref="ObjectJsonConverter"/> deserializes

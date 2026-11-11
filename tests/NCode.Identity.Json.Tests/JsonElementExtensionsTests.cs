@@ -4,7 +4,7 @@
 using System.Buffers.Text;
 using System.Text.Json;
 
-namespace NCode.Json.Tests;
+namespace NCode.Identity.Json.Tests;
 
 public class JsonElementExtensionsTests
 {

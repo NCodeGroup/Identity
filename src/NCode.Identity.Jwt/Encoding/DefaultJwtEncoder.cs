@@ -6,8 +6,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Credentials;
+using NCode.Identity.Json;
 using NCode.Identity.Jwt.Claims;
-using NCode.Json;
 using NCode.Time;
 
 namespace NCode.Identity.Jwt.Encoding;

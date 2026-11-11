@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text.Json;
 using NCode.Buffers;
 
-namespace NCode.Json.Tests;
+namespace NCode.Identity.Json.Tests;
 
 public class ObjectJsonConverterTests
 {

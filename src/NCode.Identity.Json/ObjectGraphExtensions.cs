@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Numerics;
 using JetBrains.Annotations;
 
-namespace NCode.Json;
+namespace NCode.Identity.Json;
 
 /// <summary>
 /// Provides extension methods for reading typed values out of a loosely-typed object graph — the kind produced by

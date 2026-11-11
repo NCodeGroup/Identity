@@ -7,6 +7,6 @@ T:System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler;Use Microsoft.Identity
 T:System.IdentityModel.Tokens.Jwt.JwtSecurityToken;Use Microsoft.IdentityModel.JsonWebTokens.JsonWebToken instead of the legacy JwtSecurityToken.
 
 # Unix-time factories throw on out-of-range input, so a wire-supplied NumericDate could fault the caller (ADR-1123).
-M:System.DateTimeOffset.FromUnixTimeSeconds(System.Int64);Throws on out-of-range input. Use NCode.Json.DateCoercion.TryFromNumericDate / TryParseNumericDate or JsonElement.TryGetNumericDate.
-M:System.DateTimeOffset.FromUnixTimeMilliseconds(System.Int64);Throws on out-of-range input. Use NCode.Json.DateCoercion.TryFromNumericDate / TryParseNumericDate or JsonElement.TryGetNumericDate.
+M:System.DateTimeOffset.FromUnixTimeSeconds(System.Int64);Throws on out-of-range input. Use NCode.Identity.Json.DateCoercion.TryFromNumericDate / TryParseNumericDate or JsonElement.TryGetNumericDate.
+M:System.DateTimeOffset.FromUnixTimeMilliseconds(System.Int64);Throws on out-of-range input. Use NCode.Identity.Json.DateCoercion.TryFromNumericDate / TryParseNumericDate or JsonElement.TryGetNumericDate.
 

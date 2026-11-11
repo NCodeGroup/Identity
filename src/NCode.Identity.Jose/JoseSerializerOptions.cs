@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Json;
+using NCode.Identity.Json;
 
 namespace NCode.Identity.Jose;
 

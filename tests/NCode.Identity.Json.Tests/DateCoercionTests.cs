@@ -1,7 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-namespace NCode.Json.Tests;
+namespace NCode.Identity.Json.Tests;
 
 public class DateCoercionTests
 {

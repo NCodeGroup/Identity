@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Json;
+namespace NCode.Identity.Json;
 
 /// <summary>
 /// Specifies how a JSON real (fractional or exponential) number is mapped to a CLR type when

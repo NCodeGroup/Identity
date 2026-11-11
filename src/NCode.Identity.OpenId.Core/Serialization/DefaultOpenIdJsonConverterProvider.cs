@@ -4,9 +4,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NCode.Identity.Claims;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Serialization;
 

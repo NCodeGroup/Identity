@@ -6,10 +6,10 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Jose.SdJwt.Digests;
 using NCode.Identity.Jose.SdJwt.Options;
+using NCode.Identity.Json;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
-using NCode.Json;
 
 namespace NCode.Identity.Jose.SdJwt.Issuance;
 

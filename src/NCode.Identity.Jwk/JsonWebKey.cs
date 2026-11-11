@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
-using NCode.Json;
+using NCode.Identity.Json;
 
 namespace NCode.Identity.Jwk;
 

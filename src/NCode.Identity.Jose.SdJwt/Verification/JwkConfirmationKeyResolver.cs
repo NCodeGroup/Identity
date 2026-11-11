@@ -4,11 +4,11 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Buffers;
+using NCode.Identity.Json;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
-using NCode.Json;
 
 namespace NCode.Identity.Jose.SdJwt.Verification;
 

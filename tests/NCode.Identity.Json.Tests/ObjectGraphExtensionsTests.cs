@@ -3,7 +3,7 @@
 
 using System.Numerics;
 
-namespace NCode.Json.Tests;
+namespace NCode.Identity.Json.Tests;
 
 public class ObjectGraphExtensionsTests
 {

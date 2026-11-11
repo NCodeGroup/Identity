@@ -8,7 +8,7 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Buffers;
 
-namespace NCode.Json;
+namespace NCode.Identity.Json;
 
 /// <summary>
 /// Provides shared, reusable <see cref="JsonElement"/> values and factories. These avoid the common pitfalls of

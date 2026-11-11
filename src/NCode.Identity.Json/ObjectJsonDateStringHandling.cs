@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Json;
+namespace NCode.Identity.Json;
 
 /// <summary>
 /// Specifies whether <see cref="ObjectJsonConverter"/> attempts to interpret a JSON <em>string</em> as a date/time

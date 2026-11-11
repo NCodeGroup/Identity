@@ -1386,7 +1386,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Resolve the content root to the host project so its appsettings.json is loaded.
-        builder.UseSolutionRelativeContentRoot("src/NCode.Identity.OpenId.Host");
+        builder.UseSolutionRelativeContentRoot("hosts/NCode.Identity.OpenId.Host");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
 
         // A tenant is served only beneath its issuer, so the static tenant is pinned to the TestServer's own origin,

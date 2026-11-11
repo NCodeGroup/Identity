@@ -50,5 +50,5 @@ hides the mistake until run time.
 
 - [ADR-1257](1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
   [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)
-- `src/frontend/packages/api/src/owner.ts`, `src/frontend/packages/store/src/managementApi.ts`
+- `frontend/packages/api/src/owner.ts`, `frontend/packages/store/src/managementApi.ts`
 - Issue [#568](https://github.com/NCodeGroup/Identity/issues/568)

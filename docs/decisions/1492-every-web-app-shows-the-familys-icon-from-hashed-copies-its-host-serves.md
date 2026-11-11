@@ -7,7 +7,7 @@
 
 ## Context
 
-The four web apps under `src/frontend/apps` are served in two ways. `auth` is the sign-in and account bundle: the OP
+The four web apps under `frontend/apps` are served in two ways. `auth` is the sign-in and account bundle: the OP
 host serves it beneath each tenant's route, with a relative base
 ([ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md)). `mgmt` is the management console: its
 BFF host serves it at its origin's root, and writes each response's nonce into the page
@@ -25,7 +25,7 @@ cache
 [ADR-1457](1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md)). Every page the server writes
 carries a content security policy with `img-src 'self'` and no `manifest-src`
 ([ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
-The image builds' context holds only `src/`
+The image builds' context holds only `src/`, `hosts/`, `analyzers/`, `frontend/` and the root build files
 ([ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)), so a frontend build
 cannot read `brand/`.
 
@@ -38,7 +38,7 @@ any shape, which a browser would squash into a 16-pixel square if it were a tab 
 into the `assets/` its host already serves.**
 
 1. **The copies.** Each app holds `favicon.ico`, `favicon.svg` and `apple-touch-icon.png` in
-   `src/frontend/apps/<app>/favicon/`, byte for byte the files of `brand/favicon/`.
+   `frontend/apps/<app>/favicon/`, byte for byte the files of `brand/favicon/`.
 2. **The links.** Each `index.html` has the first three tags of `brand/README.md`, relative to itself:
 
    ```html
@@ -82,7 +82,7 @@ into the `assets/` its host already serves.**
   limits serving to.
 - **One shared copy and a preset plugin.** Rejected: a link into another package resolves in a build but not on a dev
   server ([ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
-- **Reading `brand/` directly.** Rejected: the image builds' context is only `src/`
+- **Reading `brand/` directly.** Rejected: the image builds' context holds no `brand/`
   ([ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
 - **Linking the web manifest.** Rejected for the reasons of decision 4.
 

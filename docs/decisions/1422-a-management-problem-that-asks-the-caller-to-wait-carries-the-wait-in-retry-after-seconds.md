@@ -57,5 +57,5 @@ console shows it.**
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)
 - RFC 9457 (problem details), RFC 9110 §10.2.3 (`Retry-After`)
 - `src/NCode.Identity.OpenId.Management/Endpoints/RetryAfterProblem.cs`,
-  `src/frontend/packages/store/src/apiError.ts`
+  `frontend/packages/store/src/apiError.ts`
 - Issue [#571](https://github.com/NCodeGroup/Identity/issues/571)

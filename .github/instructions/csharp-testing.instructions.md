@@ -96,7 +96,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - ✅ **No decision-record citations in `///` doc comments in tests either.** Put the citation on a `//` line after the
   doc comment (`// See ADR-1201.`), as production code does
   ([`csharp-production.instructions.md`](csharp-production.instructions.md) §10); the `doc comment citations` stage of
-  [`build/dod.ps1`](../../build/dod.ps1) scans `tests/` as well as `src/`.
+  [`build/dod.ps1`](../../build/dod.ps1) scans `tests/` as well as `src/`, `hosts/` and `analyzers/`.
 
 ## Isolation & mocking
 
@@ -414,7 +414,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   template [Integration Tests](csharp-tests.instructions.md#integration-tests): `InteractiveBundleShellTests` reads the
   built `apps/auth` `index.html` under `[BuiltAuthBundleFact]`, which skips unless `NCODE_AUTH_BUNDLE_INDEX` names it.
   Frontend CI sets the variable after `pnpm run build`; locally, run `pnpm exec vite build` in
-  `src/frontend/apps/auth` and set the variable to the absolute path of `dist/index.html`.
+  `frontend/apps/auth` and set the variable to the absolute path of `dist/index.html`.
 - 👁 **Validate new tests in Release before running `dod.ps1`** — template
   [Integration Tests](csharp-tests.instructions.md#integration-tests).
 - 👁 **Build a JWT with exact time claims through `IJoseSerializer`, not `IJwtEncoder`.** The JWT encoder

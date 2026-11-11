@@ -15,9 +15,9 @@ The config-driven startup seeder is `AddConformanceSeed(IConfiguration)` in `NCo
 [`ConformanceClientSeed`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceClientSeed.cs)), modeled on
 the bootstrap admin seeder ([`BootstrapAdminSeedHandler`](../../src/NCode.Identity.Server/BootstrapAdminSeedHandler.cs)):
 idempotent, declarative, and conformance-only. It is wired into the host
-([`Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs)) and activated by the `Conformance` launch profile
+([`Program.cs`](../../hosts/NCode.Identity.OpenId.Host/Program.cs)) and activated by the `Conformance` launch profile
 ([#126](https://github.com/NCodeGroup/Identity/issues/126)) plus the
-[`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Host/appsettings.Conformance.json) overlay, whose
+[`appsettings.Conformance.json`](../../hosts/NCode.Identity.OpenId.Host/appsettings.Conformance.json) overlay, whose
 `ConformanceSeed` section declares the `conformance` tenant, the three Basic-OP clients, the FAPI 1.0 Advanced clients
 and the `conformance-user`.
 

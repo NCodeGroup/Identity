@@ -195,6 +195,6 @@ model, writer, headers, nonce and framing rules. It differs in one default, and 
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveHtmlResult.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBundleShell.cs`,
-  `src/frontend/packages/vite-config/src/preset.ts`, `src/frontend/apps/auth/src/cspNonce.ts`,
-  `src/frontend/apps/auth/src/mount.tsx` and
+  `frontend/packages/vite-config/src/preset.ts`, `frontend/apps/auth/src/cspNonce.ts`,
+  `frontend/apps/auth/src/mount.tsx` and
   `tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/HtmlPageSecurityTests.cs`.

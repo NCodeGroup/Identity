@@ -82,6 +82,6 @@ existed, and it carries the marker with that reason.
   the rollout and keep the previous release working.
 - [ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md): the Postgres dev database and the migration
   worker.
-- `src/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
-  `src/NCode.Identity.OpenId.Host.Database/ContractMigrationAttribute.cs`, and
+- `hosts/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
+  `hosts/NCode.Identity.OpenId.Host.Database/ContractMigrationAttribute.cs`, and
   `tests/NCode.Identity.OpenId.Host.Database.Tests/ExpandOnlyRuleTests.cs`.

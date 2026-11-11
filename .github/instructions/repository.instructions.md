@@ -207,7 +207,7 @@ enables auto-merge, because the user self-reviews the draft and that step is the
    build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` and
    `Console image` checks on the pull request find it.
     - **The frontend has its own gate.** `./build/dod.ps1` never runs the frontend's checks. A change under
-      `src/frontend` also runs CI's frontend job locally from `src/frontend`, with the pnpm version its `package.json`
+      `frontend` also runs CI's frontend job locally from `frontend`, with the pnpm version its `package.json`
       names: `pnpm install --frozen-lockfile`, then `pnpm run format:check`, `lint`, `typecheck`, `build` and
       `test:report`. `test:report` runs every package's tests with coverage, and a package under its coverage threshold
       fails the job.

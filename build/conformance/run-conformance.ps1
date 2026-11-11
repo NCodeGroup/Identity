@@ -26,7 +26,7 @@
 .NOTES
     Prerequisites (see `build/conformance/README.md`):
       - Docker (Compose v2) and a real Python 3 on PATH (not the Windows Store alias); the .NET SDK and NVS for the
-        pre-flight (`build/frontend-install.ps1` adds the Node major pinned in `src/frontend/.node-version` and the
+        pre-flight (`build/frontend-install.ps1` adds the Node major pinned in `frontend/.node-version` and the
         pinned pnpm).
       - Hosts-file entries `127.0.0.1  localhost.emobix.co.uk` (the suite's external base URL) and
         `127.0.0.1  host.docker.internal` (the OP issuer, probed from the host).
@@ -113,8 +113,8 @@ $RepoRoot = (Resolve-Path "$PSScriptRoot/../..").Path
 
 # ConvertTo-Base64Url (shared with Get-ConformanceSeedCredentials.ps1) and Expand-ConfigTemplate; build/tests tests both.
 . (Join-Path $PSScriptRoot 'ConformanceHelpers.ps1')
-$FrontendDir = Join-Path $RepoRoot 'src/frontend'
-$HostProject = Join-Path $RepoRoot 'src/NCode.Identity.OpenId.Host'
+$FrontendDir = Join-Path $RepoRoot 'frontend'
+$HostProject = Join-Path $RepoRoot 'hosts/NCode.Identity.OpenId.Host'
 $ComposeFile = Join-Path $SuiteRepo 'docker-compose-prebuilt.yml'
 
 function Write-Step([string] $Message) {
@@ -234,7 +234,7 @@ $suiteUp = $false
 $failed = $false
 
 # Location is session-global, not script-scoped: any Set-Location / Push-Location here (including nvs' auto-switch hook
-# triggered by entering src/frontend) leaks into the caller's shell. Capture the entry location and restore it on exit.
+# triggered by entering frontend) leaks into the caller's shell. Capture the entry location and restore it on exit.
 $OriginalLocation = Get-Location
 
 # The FAPI 1.0 Advanced Final plans, one per client-authentication method and response mode, each paired with the

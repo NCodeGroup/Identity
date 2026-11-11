@@ -42,12 +42,12 @@ jobs:
           persist-credentials: false
 
       # The Dockerfile names Node by a literal tag and digest, which a FROM line cannot read from a file, so its major
-      # must equal the single pin in src/frontend/.node-version (ADR-1152, ADR-1249).
+      # must equal the single pin in frontend/.node-version (ADR-1152, ADR-1249).
       - name: Check the Node image follows .node-version
         run: |
-          major=$(cat src/frontend/.node-version)
-          if ! grep -q "node:${major}-trixie-slim@sha256:" src/NCode.Identity.ManagementConsole.Host/Dockerfile; then
-            echo "::error::The Dockerfile must pin node:${major}-trixie-slim by digest (src/frontend/.node-version)"
+          major=$(cat frontend/.node-version)
+          if ! grep -q "node:${major}-trixie-slim@sha256:" hosts/NCode.Identity.ManagementConsole.Host/Dockerfile; then
+            echo "::error::The Dockerfile must pin node:${major}-trixie-slim by digest (frontend/.node-version)"
             exit 1
           fi
 
@@ -60,7 +60,7 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          file: src/NCode.Identity.ManagementConsole.Host/Dockerfile
+          file: hosts/NCode.Identity.ManagementConsole.Host/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: false
           cache-from: type=gha,scope=console-image
@@ -72,7 +72,7 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          file: src/NCode.Identity.ManagementConsole.Host/Dockerfile
+          file: hosts/NCode.Identity.ManagementConsole.Host/Dockerfile
           platforms: linux/amd64
           load: true
           tags: ncode-identity-management-console:ci

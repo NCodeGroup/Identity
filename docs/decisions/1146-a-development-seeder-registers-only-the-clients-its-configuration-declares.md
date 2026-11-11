@@ -85,5 +85,5 @@ library has no default; the host's environment overlay declares the entries.
 - [ADR-1064](1064-frontend-presentation-platform.md): runtime-discovered client ids ("one bundle, every tier").
 - Code: `NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions`,
   `NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedHandler`,
-  `src/NCode.Identity.OpenId.Host/appsettings.Development.json`,
+  `hosts/NCode.Identity.OpenId.Host/appsettings.Development.json`,
   `tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/DeveloperSpaClientSeedingTests.cs`.

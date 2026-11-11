@@ -61,7 +61,7 @@ finds them.
 ## Consequences
 
 - The local developer database evolves without data loss; adding an entity or column is `dotnet ef migrations add
-<Name> --project src/NCode.Identity.OpenId.Host --startup-project src/NCode.Identity.OpenId.Host`, applied
+<Name> --project hosts/NCode.Identity.OpenId.Host --startup-project hosts/NCode.Identity.OpenId.Host`, applied
   on the next Development startup.
 - **One-time switchover cost:** a database previously built by `EnsureCreated()` has no migrations history and must be
   deleted once so the baseline migration can create it cleanly. Development startup detects this (a relational database

@@ -1,8 +1,9 @@
 <Project>
-  <!-- These settings are gated on IsPackable. Test projects and the host projects set <IsPackable>false</IsPackable>
-       in their body (visible here, since Directory.Build.targets is imported after the project body); shipping
-       libraries leave it unset. The SDK defaults an unset IsPackable to 'true' only later in evaluation, so we gate
-       on "not explicitly false" rather than "== true" — otherwise shipping projects (still empty here) are skipped. -->
+  <!-- These settings are gated on IsPackable. A project's top-level folder decides it (ADR-1501): every folder outside
+       src/ (tests/, hosts/, analyzers/, benchmarks/) sets <IsPackable>false</IsPackable> in its Directory.Build.props,
+       and the published packages under src/ leave it unset. The SDK defaults an unset IsPackable to 'true' only later
+       in evaluation, so we gate on "not explicitly false" rather than "== true" — otherwise shipping projects (still
+       empty here) are skipped. -->
 
   <!-- Packaging + provenance defaults for the shipping (non-test) assemblies. This is an open-source library
        published from a PUBLIC GitHub repo, so tracked source is served from github.com via SourceLink — we do
@@ -84,6 +85,22 @@
     <Error
       Condition="'$(DisableMicrosoftExtensionsLoggingSourceGenerator)' == 'true' Or '@(_TelemetryAbstractionsAnalyzer)' != ''"
       Text="A shipping package must not switch off the Microsoft.Extensions.Logging source generator: $(MSBuildProjectName) depends on Microsoft.Extensions.Telemetry.Abstractions or sets DisableMicrosoftExtensionsLoggingSourceGenerator, which replaces the [LoggerMessage] generator of every project that consumes the package. Bound outbound calls with Polly.Core instead of Microsoft.Extensions.Http.Resilience (ADR-1385)."
+    />
+  </Target>
+
+  <!-- A project's top-level folder says whether it ships (ADR-1501): every project under src/ packs, and none outside it does. -->
+  <Target Name="RequirePackingFollowsFolder" AfterTargets="ResolveReferences">
+    <PropertyGroup>
+      <_ProjectFolderFromRoot>$([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/'))</_ProjectFolderFromRoot>
+      <_ProjectUnderSrc>$(_ProjectFolderFromRoot.StartsWith('src/'))</_ProjectUnderSrc>
+    </PropertyGroup>
+    <Error
+      Condition="'$(_ProjectUnderSrc)' == 'true' And '$(IsPackable)' == 'false'"
+      Text="$(MSBuildProjectName) is under src/, which holds only published packages, so it must pack: remove IsPackable=false, or put the project in the top-level folder of its role (ADR-1501)."
+    />
+    <Error
+      Condition="'$(_ProjectUnderSrc)' != 'true' And '$(IsPackable)' != 'false'"
+      Text="$(MSBuildProjectName) is outside src/, so it must not pack: its top-level folder's Directory.Build.props sets IsPackable to false (ADR-1501)."
     />
   </Target>
 </Project>

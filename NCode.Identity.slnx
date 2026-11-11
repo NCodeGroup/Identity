@@ -8,11 +8,20 @@
         <File Path=".editorconfig" />
         <File Path="README.md" />
     </Folder>
+    <Folder Name="/analyzers/">
+        <Project Path="analyzers/NCode.Identity.Analyzers/NCode.Identity.Analyzers.csproj" />
+    </Folder>
     <Folder Name="/benchmarks/">
         <Project Path="benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks.csproj" />
     </Folder>
+    <Folder Name="/hosts/">
+        <Project Path="hosts/NCode.Identity.ManagementConsole.Host/NCode.Identity.ManagementConsole.Host.csproj" />
+        <Project Path="hosts/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj" />
+        <Project Path="hosts/NCode.Identity.OpenId.Host.MigrationService/NCode.Identity.OpenId.Host.MigrationService.csproj" />
+        <Project Path="hosts/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj" />
+        <Project Path="hosts/NCode.Identity.OpenId.LocalDev/NCode.Identity.OpenId.LocalDev.csproj" />
+    </Folder>
     <Folder Name="/src/">
-        <Project Path="src/NCode.Identity.Analyzers/NCode.Identity.Analyzers.csproj" />
         <Project Path="src/NCode.Identity.AspNetCore.Abstractions/NCode.Identity.AspNetCore.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.AspNetCore/NCode.Identity.AspNetCore.csproj" />
         <Project Path="src/NCode.Identity.Bff.Abstractions/NCode.Identity.Bff.Abstractions.csproj" />
@@ -41,7 +50,6 @@
         <Project Path="src/NCode.Identity.Jwk/NCode.Identity.Jwk.csproj" />
         <Project Path="src/NCode.Identity.Jwt.Abstractions/NCode.Identity.Jwt.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Jwt/NCode.Identity.Jwt.csproj" />
-        <Project Path="src/NCode.Identity.ManagementConsole.Host/NCode.Identity.ManagementConsole.Host.csproj" />
         <Project Path="src/NCode.Identity.ManagementConsole/NCode.Identity.ManagementConsole.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Abstractions/NCode.Identity.OpenId.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Accounts.Abstractions/NCode.Identity.OpenId.Accounts.Abstractions.csproj" />
@@ -57,10 +65,6 @@
         <Project Path="src/NCode.Identity.OpenId.Client.Abstractions/NCode.Identity.OpenId.Client.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Client/NCode.Identity.OpenId.Client.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Core/NCode.Identity.OpenId.Core.csproj" />
-        <Project Path="src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj" />
-        <Project Path="src/NCode.Identity.OpenId.Host.MigrationService/NCode.Identity.OpenId.Host.MigrationService.csproj" />
-        <Project Path="src/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj" />
-        <Project Path="src/NCode.Identity.OpenId.LocalDev/NCode.Identity.OpenId.LocalDev.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Management.Abstractions/NCode.Identity.OpenId.Management.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Management/NCode.Identity.OpenId.Management.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Messages.Abstractions/NCode.Identity.OpenId.Messages.Abstractions.csproj" />

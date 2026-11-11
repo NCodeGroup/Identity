@@ -10,7 +10,7 @@
       // and the Management console Vite dev server ("mgmt"). Aspire gates each UI resource on the API being HEALTHY
       // (WaitFor + /health/ready), deterministically eliminating the old UI-before-API race, and the Aspire dashboard is the
       // single place for ordered startup, logs, and traces. Prerequisite: run build/frontend-install.ps1 once per clone
-      // (it adds the Node pinned in src/frontend/.node-version through NVS, the pinned pnpm, and the pnpm workspace).
+      // (it adds the Node pinned in frontend/.node-version through NVS, the pinned pnpm, and the pnpm workspace).
       // The dashboard URL is printed on startup.
       //
       // DEBUGGER GOTCHA: keep "User-Unhandled Exceptions" OFF in the Run and Debug > BREAKPOINTS panel. Benign
@@ -21,7 +21,7 @@
       "name": "Aspire: Full stack (F5)",
       "type": "dotnet",
       "request": "launch",
-      "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.LocalDev/NCode.Identity.OpenId.LocalDev.csproj",
+      "projectPath": "${workspaceFolder}/hosts/NCode.Identity.OpenId.LocalDev/NCode.Identity.OpenId.LocalDev.csproj",
       "launchSettingsProfile": "https",
       // Step into framework code when debugging.
       "justMyCode": false,
@@ -35,7 +35,7 @@
       "name": "C#: NCode.Identity.OpenId.Host Debug",
       "type": "dotnet",
       "request": "launch",
-      "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj",
+      "projectPath": "${workspaceFolder}/hosts/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj",
       "launchSettingsProfile": "NCode.Identity.OpenId.Host",
       // Step into framework code when debugging.
       "justMyCode": false,

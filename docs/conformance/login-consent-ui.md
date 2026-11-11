@@ -34,7 +34,7 @@ forms submit as native HTML form POSTs, so the browser, and Selenium with it, fo
   ([`LocalAccountInteractiveCredentialVerifier`](../../src/NCode.Identity.OpenId.Accounts.Authentication/LocalAccountInteractiveCredentialVerifier.cs),
   registered by `AddLocalAccountInteractiveAuthentication()`) reuses the resource-owner-password credential path, so
   there is one credential verifier.
-- **The render surface** is the React + MUI `apps/auth` bundle ([`src/frontend/apps/auth`](../../src/frontend/apps/auth)),
+- **The render surface** is the React + MUI `apps/auth` bundle ([`frontend/apps/auth`](../../frontend/apps/auth)),
   an app on the family's shared frontend platform
   ([ADR-1064](../decisions/1064-frontend-presentation-platform.md)) and the real end-user login surface, not a
   conformance-only one. It is served same-origin under `/account/*` and exposes the Appendix B locators (`username`,
@@ -60,7 +60,7 @@ forms submit as native HTML form POSTs, so the browser, and Selenium with it, fo
   [ADR-1380](../decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)) is
   served the same way and exposes `logout-confirm` and `logout-cancel`.
 
-The host opts in ([`Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs)), and integration and unit tests cover
+The host opts in ([`Program.cs`](../../hosts/NCode.Identity.OpenId.Host/Program.cs)), and integration and unit tests cover
 the endpoints
 ([`InteractiveLoginAntiforgeryTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/InteractiveLoginAntiforgeryTests.cs),
 [`InteractiveLogoutTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/InteractiveLogoutTests.cs),

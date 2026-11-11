@@ -21,7 +21,13 @@ It holds until the first stable release.
 
 ## Layout
 
-Production projects live under `src/`; test projects (the `*Tests` projects) live under `tests/`.
+A project's top-level folder says whether it ships
+([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)): `src/` holds only the published
+NuGet packages, and every project there packs; `hosts/` holds the deployables; `analyzers/` holds the repository's own
+Roslyn analyzers; `frontend/` holds the pnpm workspace of the web apps; and test projects (the `*Tests` projects) live
+under `tests/`. Each folder outside `src/` turns packing off in its `Directory.Build.props`, and the build fails a
+project under `src/` that does not pack and a project outside it that does. This overrides the project template's rule
+that production projects live under `src/`.
 Benchmark projects (the `*.Benchmarks` projects) live under `benchmarks/`; the build compiles them and nothing runs
 them ([ADR-1386](docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)).
 End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./build/dod.ps1` never runs them, and
@@ -36,7 +42,8 @@ compiles it and no gate tests it
   (page and response security, front-channel metadata, host hardening and the HTTP result contracts), which any package
   may reference
   ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md))
-- **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.Jwt(.Abstractions)`, and the opt-in algorithm
+- **JOSE / JWT** — `NCode.Identity.Jwk` (the JSON Web Key, key set and thumbprint model that the JOSE and Secrets
+  libraries share), `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.Jwt(.Abstractions)`, and the opt-in algorithm
   packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K), and the
   opt-in `NCode.Identity.Jose.SdJwt`, Selective Disclosure for JWTs (RFC 9901) over the JWT library with the SD-JWT
   VC profile as data
@@ -61,10 +68,25 @@ compiles it and no gate tests it
 - **OpenID** — `NCode.Identity.OpenId.Abstractions` + `.Core` (environments, errors, messages, serialization),
   `.Authentication(.Abstractions)` (endpoints, grant handlers, token/claims services), `.Management(.Abstractions)`
   (the `.Abstractions` package holds the wire contracts under the `NCode.Identity.OpenId.Management.Contracts` namespace),
-  `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework`, and
+  `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework` with its slices
+  `NCode.Identity.OpenId.Persistence.EntityFramework.Core` and
+  `NCode.Identity.OpenId.Persistence.EntityFramework.Accounts`
+  ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-framework-plus-slices.md)), and
   `NCode.Identity.OpenId.Protocol.Abstractions` (the dependency-free OAuth/OIDC wire vocabulary `OpenIdProtocol`, shared
   by the OP and the protocol client —
   [ADR-1276](docs/decisions/1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md))
+- **Accounts** — `NCode.Identity.OpenId.Accounts(.Abstractions)` (local accounts behind one store seam),
+  `NCode.Identity.OpenId.Accounts.AspNetIdentity` (the local-account store over ASP.NET Core Identity),
+  `NCode.Identity.OpenId.Accounts.Authentication` (the password grant and interactive credential verification against
+  local accounts) and `NCode.Identity.OpenId.Accounts.Management(.Abstractions)` (the management API's local-account
+  endpoints)
+  ([ADR-1051](docs/decisions/1051-local-accounts-behind-a-pluggable-account-source-seam.md),
+  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md))
+- **Interactive login and consent** — `NCode.Identity.OpenId.Authentication.Interactive(.Abstractions)`: the opt-in
+  sign-in, consent and account surface that the OP serves from the `apps/auth` bundle, with a pluggable credential
+  verifier
+  ([ADR-1062](docs/decisions/1062-opt-in-interactive-login-consent-ui.md),
+  [ADR-1070](docs/decisions/1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md))
 - **OpenID protocol client** — `NCode.Identity.OpenId.Client(.Abstractions)`: an OAuth 2.0 / OIDC client for server-side
   callers (discovery, JWKS, client authentication, token and revocation requests) built on the family's JOSE stack
   ([ADR-1270](docs/decisions/1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md))
@@ -101,13 +123,23 @@ compiles it and no gate tests it
   `NCode.Identity.Events(.Abstractions)`, `NCode.Identity.SharedState(.Abstractions)` (state every replica sees) and its
   opt-in `NCode.Identity.SharedState.Valkey` adapter
   ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md))
-- **Composition / host** — `NCode.Identity.Registration` (the `IServiceBuilder<TMarker>` builder) and
-  `NCode.Identity.Registration.AspNetCore` (endpoint registration), `NCode.Identity.Server` (`AddIdentityServer()`),
-  `NCode.Identity.OpenId.Host` (ASP.NET Core reference host),
-  `NCode.Identity.OpenId.LocalDev` (.NET Aspire local-dev orchestrator — [ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md))
-- **Build analyzers** — `NCode.Identity.Analyzers`, the repository's own Roslyn analyzers, which every project's build
-  loads and no package ships: `NCID0001` reports a field that could be an auto-property
+- **Composition** — `NCode.Identity.Registration` (the `IServiceBuilder<TMarker>` builder) and
+  `NCode.Identity.Registration.AspNetCore` (endpoint registration), `NCode.Identity.Server` (`AddIdentityServer()`)
+- **Hosts (`hosts/`)** — the deployables, which no package ships: `NCode.Identity.OpenId.Host` (the ASP.NET Core
+  reference OP), `NCode.Identity.OpenId.Host.Database` (the host's EF Core migrations and Npgsql wiring),
+  `NCode.Identity.OpenId.Host.MigrationService` (the migration worker the host image carries),
+  `NCode.Identity.ManagementConsole.Host` (the management console's BFF host) and `NCode.Identity.OpenId.LocalDev`
+  (the .NET Aspire local-dev orchestrator)
+  ([ADR-1073](docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md),
+  [ADR-1180](docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+  [ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md))
+- **Build analyzers** — `NCode.Identity.Analyzers`, under `analyzers/`, the repository's own Roslyn analyzers, which
+  every project's build loads and no package ships: `NCID0001` reports a field that could be an auto-property
   ([ADR-1486](docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md))
+- **Frontend (`frontend/`)** — the pnpm workspace of the web apps (`apps/auth`, `apps/mgmt`, `apps/playground`,
+  `apps/conformance`, `apps/conformance-runner`) and their shared `@ncode/*` packages, with a gate of its own
+  ([ADR-1064](docs/decisions/1064-frontend-presentation-platform.md))
 - **Logo** — `brand/`, the family's logo kit: the `{id}` mark as SVG masters and as the PNG and ICO files each platform
   takes, which every package, the host chart and the README show. `brand/build.py` draws every file there, so change
   the script and run it, never a file it writes
@@ -134,7 +166,7 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Eight family records override template records:
+so a bare ADR number names one record. Nine family records override template records:
 
 - [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
@@ -160,6 +192,10 @@ so a bare ADR number names one record. Eight family records override template re
 - [ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
   supersedes project-template ADR-0129's decision 6 for the management API, which answers a caller without authority
   `403` for any identifier, because it authorizes at a node before it reads, so the answer discloses nothing.
+- [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)
+  overrides the project template's rule that production projects live under `src/`, because `src/` holds only the
+  published packages: the deployables, the build analyzers and the web apps' workspace live in `hosts/`, `analyzers/`
+  and `frontend/`.
 
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.
@@ -425,5 +461,5 @@ everything on it. Only commits pushed from the repository clone survive — work
 [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) installs the .NET SDK
 `global.json` selects, Node, and pnpm and restores the NuGet and pnpm packages before a session starts. The platform
 runs it only from the default branch, so until it is on `main` a session starts without pnpm or the frontend packages.
-Run `npx -y pnpm@<version> install --frozen-lockfile` in `src/frontend`, using the version from `packageManager` in its
+Run `npx -y pnpm@<version> install --frozen-lockfile` in `frontend`, using the version from `packageManager` in its
 `package.json`; it takes seconds. Then run each tool through `npx -y pnpm@<version> exec`.

@@ -71,7 +71,7 @@ and serves nothing else of the bundle. A test runs the host's split against the 
 - `assets` is a contract between the host and `@ncode/vite-config`. A bundle built with another directory has no file
   served.
 - The Definition of Done reports the built-bundle fact skipped. Frontend CI is the gate that runs it, and a local run
-  builds the bundle with `pnpm exec vite build` in `src/frontend/apps/auth` and sets `NCODE_AUTH_BUNDLE_INDEX` to the
+  builds the bundle with `pnpm exec vite build` in `frontend/apps/auth` and sets `NCODE_AUTH_BUNDLE_INDEX` to the
   absolute path of `dist/index.html`.
 
 ## References
@@ -85,7 +85,7 @@ and serves nothing else of the bundle. A test runs the host's split against the 
 - Code: `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBundleAssetEndpointGroup.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBundleAssetEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBundleReader.cs`,
-  `src/frontend/packages/vite-config/src/preset.ts`,
+  `frontend/packages/vite-config/src/preset.ts`,
   `tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/BuiltAuthBundleFactAttribute.cs`,
   `tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/InteractiveBundleShellTests.cs` and
   `.github/workflows/frontend.yml`.

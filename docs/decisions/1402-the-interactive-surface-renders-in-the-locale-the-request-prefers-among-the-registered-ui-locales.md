@@ -156,4 +156,4 @@ forms carry on.**
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationOptionsValidator.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs`,
-  `src/frontend/apps/auth/src/i18n/`, `src/frontend/apps/auth/src/pageLanguage.ts`.
+  `frontend/apps/auth/src/i18n/`, `frontend/apps/auth/src/pageLanguage.ts`.

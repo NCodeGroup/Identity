@@ -29,12 +29,12 @@ lists every problem and names `./build/frontend-install.ps1`.**
    `FrontendToolchainGuard`. The NVS lookup is unchanged: Windows-only, the newest numeric version of the pinned major,
    `x64`, prepended to `PATH` without duplicates.
 2. **Node check.** After the NVS install is on `PATH`, the guard runs `node --version` (10 s timeout) with that `PATH`
-   and requires its major to equal the major pinned in `src/frontend/.node-version`. This covers both "NVS has no
+   and requires its major to equal the major pinned in `frontend/.node-version`. This covers both "NVS has no
    install and `node` on `PATH` is another major" (the reported case: Node 24 against a pin of 26) and "no `node` at
    all", on every OS. The test is equality with the pinned major rather than the `engines` range, because ADR-1152 pins
    one major.
 3. **Workspace check.** The guard reads files that pnpm itself writes:
-   - `node_modules/.modules.yaml` exists and its `packageManager` equals `pnpm@<version>` from `src/frontend/package.json`.
+   - `node_modules/.modules.yaml` exists and its `packageManager` equals `pnpm@<version>` from `frontend/package.json`.
      The file is JSON despite its extension. This catches a pnpm pin change (the reported pnpm 9.12.0 install).
    - `node_modules/.pnpm/lock.yaml`, pnpm's copy of the lockfile made at install time, equals `pnpm-lock.yaml` after
      CRLF is normalized to LF. This catches new workspace packages and any dependency change since the last install.
@@ -75,6 +75,6 @@ lists every problem and names `./build/frontend-install.ps1`.**
 - [ADR-1071](1071-aspire-local-dev-orchestrator.md) — the Aspire local development orchestrator
 - [ADR-1152](1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md) — the pinned Node and pnpm
 - [`build/frontend-install.ps1`](../../build/frontend-install.ps1)
-- [`src/frontend/.node-version`](../../src/frontend/.node-version)
-- [`src/NCode.Identity.OpenId.LocalDev/Program.cs`](../../src/NCode.Identity.OpenId.LocalDev/Program.cs)
+- [`frontend/.node-version`](../../frontend/.node-version)
+- [`hosts/NCode.Identity.OpenId.LocalDev/Program.cs`](../../hosts/NCode.Identity.OpenId.LocalDev/Program.cs)
 - Issue #401

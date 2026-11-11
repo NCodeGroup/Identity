@@ -30,7 +30,7 @@ deployable artifacts of a host
 **The console ships as a container image of its own, and as an opt-in component of the host chart that routes the manage
 host.**
 
-1. **The image mirrors the host image.** `src/NCode.Identity.ManagementConsole.Host/Dockerfile` uses the same pinned
+1. **The image mirrors the host image.** `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile` uses the same pinned
    base images and digests. Its Node stage builds `@ncode/app-mgmt`, its final stage is chiseled-extra and runs as the
    non-root UID 1654 on port 8080, it writes one-line JSON logs, and it serves the bundle from `/app/mgmt`.
 2. **A `Console image` workflow builds it.** The `Host image` workflow's job is the required check `Host image`, and
@@ -71,6 +71,6 @@ host.**
   [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md),
   [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md),
   [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)
-- `src/NCode.Identity.ManagementConsole.Host/Dockerfile`, `.github/workflows/console-image.yml`,
+- `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile`, `.github/workflows/console-image.yml`,
   `charts/ncode-identity-host`
 - Issue [#610](https://github.com/NCodeGroup/Identity/issues/610)

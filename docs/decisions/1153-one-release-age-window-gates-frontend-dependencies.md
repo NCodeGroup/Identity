@@ -63,7 +63,7 @@ runs it.
 
 ## References
 
-- [`src/frontend/pnpm-workspace.yaml`](../../src/frontend/pnpm-workspace.yaml),
+- [`frontend/pnpm-workspace.yaml`](../../frontend/pnpm-workspace.yaml),
   [`.github/dependabot.yml`](../../.github/dependabot.yml)
 - [ADR-1152](1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md) (pnpm 10 and the other
   supply-chain settings)

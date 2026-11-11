@@ -99,7 +99,7 @@ certified.
 
 ## Layout
 
-Production projects are under `src/`, tests under `tests/`.
+A project's top-level folder says whether it ships ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)): the published packages are under `src/`, the deployables under `hosts/`, the repository's own analyzers under `analyzers/`, the web apps' pnpm workspace under `frontend/`, tests under `tests/` and benchmarks under `benchmarks/`.
 
 | Area                 | Packages                                                                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -115,7 +115,9 @@ Production projects are under `src/`, tests under `tests/`.
 | Persistence          | `NCode.Identity.Persistence.Abstractions`, `NCode.Identity.OpenId.Persistence*(.EntityFramework)` |
 | Protocol client      | `NCode.Identity.OpenId.Client(.Abstractions)`, `NCode.Identity.OpenId.Protocol.Abstractions`                                     |
 | Backend for frontend | `NCode.Identity.Bff(.Abstractions)`, `.Bff.Protocol.Abstractions`, `.Bff.Server` (the turnkey `AddIdentityBff`), `.Bff.Blazor`, `.Bff.Blazor.Client` |
-| Composition and host | `NCode.Identity.Registration(.AspNetCore)`, `NCode.Identity.Server`, `NCode.Identity.OpenId.Host*`                   |
+| Composition | `NCode.Identity.Registration(.AspNetCore)`, `NCode.Identity.Server`, `NCode.Identity.ManagementConsole` |
+
+The deployables under `hosts/` are `NCode.Identity.OpenId.Host` with its `.Host.Database` and `.Host.MigrationService`, `NCode.Identity.ManagementConsole.Host` and `NCode.Identity.OpenId.LocalDev`.
 
 The extensibility model — **service** vs **strategy collection** vs **mediator** — is
 [ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md).
@@ -129,11 +131,11 @@ PostgreSQL container, the schema migration worker, and the frontend apps — wit
 ```pwsh
 dotnet tool restore                      # once per clone
 ./build/frontend-install.ps1             # once per clone (pinned Node via NVS + pinned pnpm + pnpm workspace)
-dotnet run --project src/NCode.Identity.OpenId.LocalDev
+dotnet run --project hosts/NCode.Identity.OpenId.LocalDev
 ```
 
 That brings up the provider at `https://localhost:5001`, the management console at `https://localhost:5005`, the flow
-explorer, and the conformance posture dashboard. See [`src/frontend/README.md`](src/frontend/README.md) for the frontend toolchain.
+explorer, and the conformance posture dashboard. See [`frontend/README.md`](frontend/README.md) for the frontend toolchain.
 
 ## Build and test
 

@@ -110,16 +110,16 @@ in `favicon.svg`, by the reader's color scheme.
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 ```
 
-The four web apps under `src/frontend/apps` link `favicon.ico`, `favicon.svg` and `apple-touch-icon.png` with the first
+The four web apps under `frontend/apps` link `favicon.ico`, `favicon.svg` and `apple-touch-icon.png` with the first
 three tags, written relative to their `index.html` (`./favicon/favicon.ico`), and carry copies of them in their own
-`favicon/` folders, because a frontend build reads only `src/`. Each build gives the copies content-hashed names in the
+`favicon/` folders, because an image build's context holds no `brand/`. Each build gives the copies content-hashed names in the
 assets its host serves, and no app links the manifest
 ([ADR-1492](../docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md)). The
 `favicon copies` stage of `./build/dod.ps1` fails when a copy differs from the file here, so after `build.py` changes
 one, copy it to every app:
 
 ```powershell
-foreach ($app in 'auth', 'conformance', 'mgmt', 'playground') { Copy-Item brand/favicon/favicon.ico, brand/favicon/favicon.svg, brand/favicon/apple-touch-icon.png "src/frontend/apps/$app/favicon/" }
+foreach ($app in 'auth', 'conformance', 'mgmt', 'playground') { Copy-Item brand/favicon/favicon.ico, brand/favicon/favicon.svg, brand/favicon/apple-touch-icon.png "frontend/apps/$app/favicon/" }
 ```
 
 ## Badges

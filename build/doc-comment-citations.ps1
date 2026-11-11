@@ -3,7 +3,7 @@
 
 <#
 .SYNOPSIS
-    Checks that no /// doc comment under src/ or tests/ cites a decision record.
+    Checks that no /// doc comment under src/, hosts/, analyzers/ or tests/ cites a decision record.
 
 .DESCRIPTION
     A /// comment ships in the package's XML documentation and, for HTTP contracts, in the OpenAPI document, where an
@@ -14,17 +14,22 @@
     - a /// line that matches ADR-NNNN or docs/decisions/.
 
     Files under a bin or obj folder are generated, so they are skipped. Test code follows the same rule, so tests/ is
-    scanned as well as src/.
+    scanned as well as src/, hosts/ and analyzers/.
 
 .PARAMETER Root
-    The folders to scan. Defaults to src and tests under the repository root.
+    The folders to scan. Defaults to src, hosts, analyzers and tests under the repository root.
 
 .EXAMPLE
     ./build/doc-comment-citations.ps1
 #>
 [CmdletBinding()]
 param(
-    [string[]]$Root = @((Join-Path (Split-Path -Parent $PSScriptRoot) 'src'), (Join-Path (Split-Path -Parent $PSScriptRoot) 'tests'))
+    [string[]]$Root = @(
+        (Join-Path (Split-Path -Parent $PSScriptRoot) 'src'),
+        (Join-Path (Split-Path -Parent $PSScriptRoot) 'hosts'),
+        (Join-Path (Split-Path -Parent $PSScriptRoot) 'analyzers'),
+        (Join-Path (Split-Path -Parent $PSScriptRoot) 'tests')
+    )
 )
 
 Set-StrictMode -Version Latest

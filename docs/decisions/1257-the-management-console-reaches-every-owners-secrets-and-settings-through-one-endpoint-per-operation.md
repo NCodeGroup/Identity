@@ -82,10 +82,10 @@ rotated secret beside its replacement).
 - [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md), superseded by
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md): a client secret
   is rotated by adding a replacement beside the rotated secret, which stays until it expires or is deleted.
-- Code: `src/frontend/packages/api/src/owner.ts`, `src/frontend/packages/api/src/scope.ts`,
-  `src/frontend/packages/store/src/managementApi.ts`, `src/frontend/apps/mgmt/src/containers/OwnerSecretsTab.tsx`,
-  `src/frontend/apps/mgmt/src/containers/OwnerSettingsTab.tsx`,
-  `src/frontend/apps/mgmt/src/containers/ServerDetailPage.tsx`,
-  `src/frontend/apps/mgmt/src/containers/TenantDetailPage.tsx`,
-  `src/frontend/apps/mgmt/src/containers/ClientDetailPage.tsx` and
-  `src/frontend/apps/mgmt/src/containers/ResourceServerDetailPage.tsx`.
+- Code: `frontend/packages/api/src/owner.ts`, `frontend/packages/api/src/scope.ts`,
+  `frontend/packages/store/src/managementApi.ts`, `frontend/apps/mgmt/src/containers/OwnerSecretsTab.tsx`,
+  `frontend/apps/mgmt/src/containers/OwnerSettingsTab.tsx`,
+  `frontend/apps/mgmt/src/containers/ServerDetailPage.tsx`,
+  `frontend/apps/mgmt/src/containers/TenantDetailPage.tsx`,
+  `frontend/apps/mgmt/src/containers/ClientDetailPage.tsx` and
+  `frontend/apps/mgmt/src/containers/ResourceServerDetailPage.tsx`.

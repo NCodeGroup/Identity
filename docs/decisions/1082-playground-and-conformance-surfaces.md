@@ -104,4 +104,4 @@ document surface-aware so one endpoint can hand each surface its own coordinates
 - Posture: [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) and the security-practice default in
   [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md).
 - Conformance plan: [`docs/conformance-testing.md`](../conformance-testing.md).
-- Platform guide: [`src/frontend/README.md`](../../src/frontend/README.md).
+- Platform guide: [`frontend/README.md`](../../frontend/README.md).

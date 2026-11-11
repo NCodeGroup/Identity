@@ -1,6 +1,6 @@
 # 1486. An analyzer in every project reports a field that could be an auto-property
 
-- **Status:** Accepted (decision 2 amended by [ADR-1493](1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md): the analyzers build against the Roslyn EF Core Design pins, older than every SDK global.json admits)
+- **Status:** Accepted (decision 2 amended by [ADR-1493](1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md): the analyzers build against the Roslyn EF Core Design pins, older than every SDK global.json admits; decision 1 amended by [ADR-1501](1501-a-projects-top-level-folder-says-whether-it-ships.md): the analyzer lives under `analyzers/`)
 - **Date:** 2026-11-09
 - **Deciders:** NCode Group
 
@@ -26,12 +26,12 @@ alone keeps the rule. The forces:
 **A Roslyn analyzer of the repository's own, `NCode.Identity.Analyzers`, is loaded by every project and fails the build
 with `NCID0001` on a field that a property could replace.**
 
-1. **The analyzer is the project `src/NCode.Identity.Analyzers`.** It targets `netstandard2.0`, is not packable
-   (`IsPackable` is false), and sets `IsRoslynComponent` and `EnforceExtendedAnalyzerRules`, so
-   `Microsoft.CodeAnalysis.Analyzers` checks the analyzer itself. No package ships it. It has no release tracking:
-   release tracking documents the rules of a published analyzer package, and its `RS2002` check finds a descriptor only
-   in a static field, which `NCID0001` forbids. The project suppresses `RS2008` and has no `AnalyzerReleases.*.md`
-   files.
+1. **The analyzer is the project `analyzers/NCode.Identity.Analyzers`.** It targets `netstandard2.0`, is not packable
+   (`analyzers/Directory.Build.props` sets `IsPackable` to false), and sets `IsRoslynComponent` and
+   `EnforceExtendedAnalyzerRules`, so `Microsoft.CodeAnalysis.Analyzers` checks the analyzer itself. No package ships
+   it. It has no release tracking: release tracking documents the rules of a published analyzer package, and its
+   `RS2002` check finds a descriptor only in a static field, which `NCID0001` forbids. The project suppresses `RS2008`
+   and has no `AnalyzerReleases.*.md` files.
 2. **It builds against Roslyn 5.0.0.** `Microsoft.CodeAnalysis.CSharp` 5.0.0 is the Roslyn of the oldest SDK
    `global.json` admits (10.0.100), so every SDK the build rolls forward to loads the analyzer. It is also exactly the
    version EF Core Design 10.0.14 depends on, which central transitive pinning would otherwise conflict with.
@@ -95,4 +95,4 @@ with `NCID0001` on a field that a property could replace.**
 - [#714](https://github.com/NCodeGroup/Identity/issues/714)
 - [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md): a benchmark input
   stays a field because the measured method takes it by `in`.
-- `src/NCode.Identity.Analyzers/AutoPropertyAnalyzer.cs`
+- `analyzers/NCode.Identity.Analyzers/AutoPropertyAnalyzer.cs`

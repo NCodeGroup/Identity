@@ -104,7 +104,7 @@ The **OpenID Provider side** already provides everything a BFF needs:
 | Revocation and exchange                      | Refresh-token revocation ([ADR-1028](decisions/1028-token-revocation-refresh-tokens-only.md)) and token exchange ([ADR-1101](decisions/1101-oauth-token-exchange-rfc8693.md))   |
 
 The family's relying-party library is `NCode.Identity.Bff`, which helps an application consume the OP. Its own
-management console (`src/frontend/apps/mgmt`) is a BFF frontend served by `NCode.Identity.ManagementConsole.Host`, so
+management console (`frontend/apps/mgmt`) is a BFF frontend served by `NCode.Identity.ManagementConsole.Host`, so
 the most privileged surface the family has holds no token in the browser
 ([§5.15](#515-the-management-console)).
 
@@ -1284,7 +1284,7 @@ same two claims from the document. A page renders the logout form from them in e
 
 ### 5.15 The management console
 
-The management console (`src/frontend/apps/mgmt`) is a BFF frontend. `NCode.Identity.ManagementConsole.Host` serves its
+The management console (`frontend/apps/mgmt`) is a BFF frontend. `NCode.Identity.ManagementConsole.Host` serves its
 bundle, its `/bff/*` endpoints and the forwarded management API on one origin, and the console is the confidential
 client `mgmt-console` of the control-plane tenant
 ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
@@ -1339,7 +1339,7 @@ holds, or both
 ([ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
 [ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
 
-**Deployment.** The console host ships as its own image (`src/NCode.Identity.ManagementConsole.Host/Dockerfile`) and as
+**Deployment.** The console host ships as its own image (`hosts/NCode.Identity.ManagementConsole.Host/Dockerfile`) and as
 the `managementConsole` component of `charts/ncode-identity-host`, which mounts each key ring's PEM key from a Secret or
 names its keys in a KMS that the console reaches through its own workload identity, routes every path of the console's
 host to the console host, and sets `ManagementConsole:ManagementApiUrl` to `/api` on the authority's origin

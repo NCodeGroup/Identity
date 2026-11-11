@@ -82,12 +82,12 @@ found that "green" claimed less than it appeared to:
   would only hide it.
 - Adding a workspace means adding `@ncode/test-support` as a `devDependency`, a `vitest.setup.ts` that calls
   `failOnConsole`, `--max-warnings 0` on its `lint` script, and `expect.requireAssertions` plus coverage thresholds in
-  its Vitest config — the [frontend README](../../src/frontend/README.md) lists the steps.
+  its Vitest config — the [frontend README](../../frontend/README.md) lists the steps.
 
 ## References
 
-- [`src/frontend/packages/test-support`](../../src/frontend/packages/test-support),
-  [`src/frontend/eslint.config.js`](../../src/frontend/eslint.config.js), each workspace's `vitest.setup.ts` and
+- [`frontend/packages/test-support`](../../frontend/packages/test-support),
+  [`frontend/eslint.config.js`](../../frontend/eslint.config.js), each workspace's `vitest.setup.ts` and
   `vite.config.ts` / `vitest.config.ts`
 - [ADR-1064](1064-frontend-presentation-platform.md) (frontend platform),
   [ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md) (CI test and coverage reports),

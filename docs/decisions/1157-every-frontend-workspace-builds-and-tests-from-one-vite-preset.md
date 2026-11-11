@@ -88,8 +88,8 @@ configuration file is a single call to it with that workspace's coverage floors.
 
 ## References
 
-- [`src/frontend/packages/vite-config`](../../src/frontend/packages/vite-config),
-  [`src/frontend/turbo.json`](../../src/frontend/turbo.json), each workspace's `vite.config.ts` / `vitest.config.ts`
+- [`frontend/packages/vite-config`](../../frontend/packages/vite-config),
+  [`frontend/turbo.json`](../../frontend/turbo.json), each workspace's `vite.config.ts` / `vitest.config.ts`
 - [ADR-1151](1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md) (the test gates),
   [ADR-1064](1064-frontend-presentation-platform.md) (package boundaries),
   [ADR-1071](1071-aspire-local-dev-orchestrator.md) (the AppHost and service discovery),

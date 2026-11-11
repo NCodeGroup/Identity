@@ -85,4 +85,4 @@ section configures it.**
   `src/NCode.Identity.Server/StrictTransportSecurityApplicationBuilderExtensions.cs`,
   `src/NCode.Identity.Server/StrictTransportSecurity/StrictTransportSecurityOptions.cs`,
   `src/NCode.Identity.Server/StrictTransportSecurity/StrictTransportSecurityOptionsValidator.cs` and
-  `src/NCode.Identity.OpenId.Host/Program.cs`.
+  `hosts/NCode.Identity.OpenId.Host/Program.cs`.

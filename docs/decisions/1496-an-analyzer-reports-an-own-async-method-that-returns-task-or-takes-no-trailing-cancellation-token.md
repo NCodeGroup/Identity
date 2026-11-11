@@ -94,7 +94,7 @@ method that returns `Task` or `Task<T>` and with `NCID0003` on an own asynchrono
 
 - The rule is tool-enforced: `.github/instructions/csharp-production.instructions.md` §1 and
   `.github/instructions/csharp-testing.instructions.md` mark it ✅.
-- Every own async method of `src/` and of every test project returns `ValueTask` or `ValueTask<T>` and takes the token
+- Every own async method of `src/`, of `hosts/` and of every test project returns `ValueTask` or `ValueTask<T>` and takes the token
   last, except where a framework contract or a suppression with an ADR-citing justification fixes the shape.
 - A method that the family declares and a caller hands to an API that takes a `Task` calls `.AsTask()`, and a
   `ValueTask` is awaited exactly once.
@@ -112,4 +112,4 @@ method that returns `Task` or `Task<T>` and with `NCID0003` on an own asynchrono
 - [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)
 - [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md)
 - [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)
-- `src/NCode.Identity.Analyzers/AsyncMethodShapeAnalyzer.cs`
+- `analyzers/NCode.Identity.Analyzers/AsyncMethodShapeAnalyzer.cs`

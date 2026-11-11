@@ -50,23 +50,23 @@ updates:
         applies-to: security-updates
         patterns: ['*']
 
-  # The frontend pnpm workspace (ADR-1064). Its root is src/frontend, not the repository root — that is where
+  # The frontend pnpm workspace (ADR-1064). Its root is frontend, not the repository root — that is where
   # pnpm-workspace.yaml and the lockfile live, and pointing Dependabot anywhere else finds no manifest.
   - package-ecosystem: npm
-    directory: /src/frontend
+    directory: /frontend
     schedule:
       interval: weekly
     # Version updates paused (issue #36); 5 when resumed.
     open-pull-requests-limit: 0
     # A version must be three days old before Dependabot proposes it. It is the same window as pnpm's
-    # minimumReleaseAge in src/frontend/pnpm-workspace.yaml, and must not be longer: Dependabot enforces this cooldown
+    # minimumReleaseAge in frontend/pnpm-workspace.yaml, and must not be longer: Dependabot enforces this cooldown
     # on every version already in the lockfile, and pnpm's gate is what keeps a younger one out (ADR-1153). Equal
     # windows also mean Dependabot defers to pnpm's own setting. Dependabot's default is 3 days; it is stated here so a
     # change to that default cannot reopen the gap.
     cooldown:
       default-days: 3
     ignore:
-      # `@types/node` describes the Node runtime, so its major must equal the one pinned in src/frontend/.node-version
+      # `@types/node` describes the Node runtime, so its major must equal the one pinned in frontend/.node-version
       # (which CI, NVS, and the Aspire AppHost all read). Types from a newer major let code compile against APIs the
       # runtime lacks. Bump the runtime and this major together, deliberately (ADR-1147).
       - dependency-name: '@types/node'
@@ -116,11 +116,11 @@ updates:
   # The host and management console images' base images (ADR-1249). Both images share the same base images, so one pull
   # request moves both. A digest pin receives operating-system and runtime fixes only through this
   # stream, so it runs while issue #36 pauses the other ecosystems. A runtime major moves deliberately, together with
-  # src/frontend/.node-version or the target framework, so semver-major updates are ignored.
+  # frontend/.node-version or the target framework, so semver-major updates are ignored.
   - package-ecosystem: docker
     directories:
-      - /src/NCode.Identity.OpenId.Host
-      - /src/NCode.Identity.ManagementConsole.Host
+      - /hosts/NCode.Identity.OpenId.Host
+      - /hosts/NCode.Identity.ManagementConsole.Host
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

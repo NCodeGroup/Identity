@@ -7,11 +7,11 @@
 
 .DESCRIPTION
     Collects the changed paths (committed, staged and unstaged changes since the merge base of HEAD and -Base, plus
-    untracked files), maps each path to the project under src/ or tests/ whose directory is its longest prefix, and
+    untracked files), maps each path to the project under src/, hosts/, analyzers/ or tests/ whose directory is its longest prefix, and
     selects the test projects (under tests/) in the reverse ProjectReference closure of those projects. A change to a
     global build input (build/, .config/, global.json, nuget.config, version.json, the solution, .editorconfig,
     any BannedSymbols*.txt, any Directory.* file, any .runsettings file) selects all tests. A path under no project,
-    such as docs/, charts/, src/frontend/ or .github/, selects nothing (ADR-1263).
+    such as docs/, charts/, frontend/ or .github/, selects nothing (ADR-1263).
 
     Outputs one object with All (true when a global trigger matched), Projects (repository-relative test .csproj paths
     with / separators, sorted ordinal, empty when All is true), EndToEndProjects (the *.EndToEnd.Tests projects, which
@@ -86,9 +86,9 @@ foreach ($rawPath in $rawPaths) {
     }
 }
 
-# Every project under src/ and tests/, keyed by its repository-relative path, with its directory and references.
+# Every project under src/, hosts/, analyzers/ and tests/, keyed by its repository-relative path, with its directory and references.
 $projects = [ordered]@{}
-foreach ($folder in @('src', 'tests')) {
+foreach ($folder in @('src', 'hosts', 'analyzers', 'tests')) {
     $folderPath = Join-Path $Root $folder
     if (-not (Test-Path -LiteralPath $folderPath)) {
         continue

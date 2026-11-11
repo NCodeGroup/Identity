@@ -20,7 +20,7 @@ on:
     branches: [main, 'release/**']
     # Keep in sync with the pattern in the `changes` job, which applies the same paths to a pull request.
     paths:
-      - 'src/frontend/**'
+      - 'frontend/**'
       - '.github/workflows/frontend.yml'
       - '.github/workflows/codecov-upload.yml'
       - '.github/actions/install-dotnet/**'
@@ -50,7 +50,7 @@ concurrency:
 
 defaults:
   run:
-    working-directory: src/frontend
+    working-directory: frontend
 
 jobs:
   # Decides from a pull request's changed files whether the frontend job runs; every event other than pull_request, the
@@ -81,7 +81,7 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           if [ "$EVENT" != "pull_request" ]; then echo "frontend=true" >> "$GITHUB_OUTPUT"; exit 0; fi
-          pattern='^(src/frontend/|\.github/workflows/frontend\.yml$|\.github/workflows/codecov-upload\.yml$|\.github/actions/install-dotnet/|build/Get-TestRuntimes\.ps1$|build/test-report\.ps1$|build/coverage-report\.ps1$|\.config/dotnet-tools\.json$|src/NCode\.Identity\.OpenId\.Authentication\.Interactive/|tests/NCode\.Identity\.OpenId\.Authentication\.Interactive\.Tests/)'
+          pattern='^(frontend/|\.github/workflows/frontend\.yml$|\.github/workflows/codecov-upload\.yml$|\.github/actions/install-dotnet/|build/Get-TestRuntimes\.ps1$|build/test-report\.ps1$|build/coverage-report\.ps1$|\.config/dotnet-tools\.json$|src/NCode\.Identity\.OpenId\.Authentication\.Interactive/|tests/NCode\.Identity\.OpenId\.Authentication\.Interactive\.Tests/)'
           # Capture the list first: piping into `grep -q` under pipefail fails on a large diff, because grep exits at
           # the first match and `git diff` then dies of SIGPIPE, which reads as "no frontend change".
           changed="$(git diff --name-only "$BASE" HEAD)"
@@ -104,12 +104,12 @@ jobs:
           # Nothing in this job pushes, so the token stays out of .git/config, where later steps could read it.
           persist-credentials: false
 
-      # The Node major is pinned once, in src/frontend/.node-version, which is the same file NVS selects locally and the
+      # The Node major is pinned once, in frontend/.node-version, which is the same file NVS selects locally and the
       # Aspire AppHost reads (ADR-1152), so CI runs the runtime a developer machine runs.
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version-file: src/frontend/.node-version
+          node-version-file: frontend/.node-version
 
       # Installs the exact pnpm the workspace's "packageManager" field pins (Node no longer bundles Corepack, which used
       # to provide it), so CI and a developer machine run identical tooling. It also caches the pnpm store, resolving
@@ -119,9 +119,9 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
-          package_json_file: src/frontend/package.json
+          package_json_file: frontend/package.json
           cache: true
-          cache_dependency_path: src/frontend/pnpm-lock.yaml
+          cache_dependency_path: frontend/pnpm-lock.yaml
 
       # --frozen-lockfile makes the lockfile authoritative: CI fails rather than silently resolving a different tree
       # when a manifest and the lockfile disagree.
@@ -155,7 +155,7 @@ jobs:
         if: always()
         shell: pwsh
         working-directory: .
-        run: ./build/test-report.ps1 -Path 'src/frontend/*/*/test-results/junit.xml' -Title 'Frontend tests'
+        run: ./build/test-report.ps1 -Path 'frontend/*/*/test-results/junit.xml' -Title 'Frontend tests'
 
       # .NET renders the coverage report with the same ReportGenerator tool (pinned in .config/dotnet-tools.json) as the
       # .NET coverage, so both tiers present coverage identically, and it runs the host's test against the built login
@@ -171,7 +171,7 @@ jobs:
         working-directory: .
         run: |
           dotnet tool restore
-          ./build/coverage-report.ps1 -Path 'src/frontend/*/*/coverage/cobertura-coverage.xml' -TargetDirectory artifacts/frontend-coverage -Title 'Frontend coverage' -ArtifactName frontend-coverage -PerPackageReports
+          ./build/coverage-report.ps1 -Path 'frontend/*/*/coverage/cobertura-coverage.xml' -TargetDirectory artifacts/frontend-coverage -Title 'Frontend coverage' -ArtifactName frontend-coverage -PerPackageReports
 
       - name: Build
         id: build
@@ -185,7 +185,7 @@ jobs:
         shell: pwsh
         working-directory: .
         env:
-          NCODE_AUTH_BUNDLE_INDEX: ${{ github.workspace }}/src/frontend/apps/auth/dist/index.html
+          NCODE_AUTH_BUNDLE_INDEX: ${{ github.workspace }}/frontend/apps/auth/dist/index.html
         run: dotnet test tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/NCode.Identity.OpenId.Authentication.Interactive.Tests.csproj --nologo --filter "FullyQualifiedName~InteractiveBundleShellTests.TryCreate_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
 
       - name: Test the console host against the built console bundle
@@ -193,7 +193,7 @@ jobs:
         shell: pwsh
         working-directory: .
         env:
-          NCODE_MGMT_BUNDLE_INDEX: ${{ github.workspace }}/src/frontend/apps/mgmt/dist/index.html
+          NCODE_MGMT_BUNDLE_INDEX: ${{ github.workspace }}/frontend/apps/mgmt/dist/index.html
         run: dotnet test tests/NCode.Identity.ManagementConsole.Tests/NCode.Identity.ManagementConsole.Tests.csproj --nologo --filter "FullyQualifiedName~ManagementConsolePageTests.Render_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
 
       - name: Upload test results
@@ -201,7 +201,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-test-results
-          path: src/frontend/*/*/test-results/junit.xml
+          path: frontend/*/*/test-results/junit.xml
           retention-days: 14
           if-no-files-found: warn
 

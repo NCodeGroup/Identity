@@ -1,6 +1,6 @@
 ---
 description: "NCode.Identity production C# conventions — async, public-API discipline, file/code organization, extension methods, build gates, clean code, testability, and provenance."
-applyTo: "src/**/*.cs"
+applyTo: "src/**/*.cs,hosts/**/*.cs,analyzers/**/*.cs"
 ---
 
 # NCode.Identity coding conventions (production)
@@ -88,7 +88,7 @@ than inlining the rationale.
   ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
 - ✅ **Auto-properties over fields, `private` members and a `Lock` included** — template
   [Members and Constructors](csharp.instructions.md#members-and-constructors). `NCID0001`, from
-  `src/NCode.Identity.Analyzers`, fails the build of every project on a field that is not a `const`, a `ref` field, a
+  `analyzers/NCode.Identity.Analyzers`, fails the build of every project on a field that is not a `const`, a `ref` field, a
   `volatile` or fixed-size buffer field, a field of a `[StructLayout]` or `[InlineArray]` struct, or a field the code
   uses by reference (`ref`, `out` or `in`, `Interlocked`, `Volatile`, `&`, or an in-place call on a mutable struct)
   ([ADR-1486](../../docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)).
@@ -882,7 +882,7 @@ than inlining the rationale.
   `DeveloperDataProtectionDbContext` in `Migrations/DeveloperDataProtection` of `NCode.Identity.OpenId.Host.Database`.
   Any edit to an entity, an `IEntityTypeConfiguration`, or a model contributor that changes a host context model
   deletes that context's migration, designer file and model snapshot from its folder and scaffolds them again with
-  `dotnet ef migrations add InitialCreate --project src/NCode.Identity.OpenId.Host.Database --startup-project src/NCode.Identity.OpenId.Host.Database --context OpenIdDbContext --output-dir Migrations/OpenId`
+  `dotnet ef migrations add InitialCreate --project hosts/NCode.Identity.OpenId.Host.Database --startup-project hosts/NCode.Identity.OpenId.Host.Database --context OpenIdDbContext --output-dir Migrations/OpenId`
   (`--context DeveloperDataProtectionDbContext --output-dir Migrations/DeveloperDataProtection` for the other
   context); the database project carries the design-time factories, so it is both the project and the startup
   project. No migration carries raw SQL or seed-data changes: `InitialCreateTests` fails a context that holds any
@@ -1122,7 +1122,7 @@ says for a pre-release project.
   comment, above the declaration's attributes (`// See ADR-1150.`). The `doc comment citations` stage of
   [`build/dod.ps1`](../../build/dod.ps1) runs
   [`build/doc-comment-citations.ps1`](../../build/doc-comment-citations.ps1), which fails on any `///` line under
-  `src/` or `tests/` that matches `ADR-\d{4}` or `docs/decisions/`.
+  `src/`, `hosts/`, `analyzers/` or `tests/` that matches `ADR-\d{4}` or `docs/decisions/`.
 - 👁 **No internal implementation names in `///` doc comments** — template
   [XML Documentation](csharp.instructions.md#xml-documentation).
 - 👁 **A minimal-API handler's `///` reaches its OpenAPI operation only under specific conditions** — template

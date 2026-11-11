@@ -49,8 +49,6 @@ NCode.Identity.Claims.SerializableClaimsPrincipal.Identities.init -> void
 NCode.Identity.Claims.SerializableClaimsPrincipal.SerializableClaimsPrincipal() -> void
 NCode.Identity.IdentityLibrary
 NCode.Identity.IdentityLibrary.IdentityLibrary() -> void
-NCode.Identity.ISupportClone<T>
-NCode.Identity.ISupportClone<T>.Clone() -> T
 NCode.Identity.Cryptography.CryptoServiceExtensions
 NCode.Identity.Cryptography.CryptoServiceExtensions.extension(NCode.Identity.Cryptography.ICryptoService!)
 NCode.Identity.Cryptography.CryptoServiceExtensions.extension(NCode.Identity.Cryptography.ICryptoService!).GenerateResourceId() -> string!

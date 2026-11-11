@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity;
+namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
 /// Specifies that the current instance supports cloning.

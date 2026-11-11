@@ -1075,3 +1075,5 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyActivationDelay
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyRetirementGrace.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyProvider.get -> NCode.Identity.Settings.SettingKey<string!>
+NCode.Identity.OpenId.Messages.ISupportClone<T>
+NCode.Identity.OpenId.Messages.ISupportClone<T>.Clone() -> T

@@ -18,7 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Cryptography.Abstractions\NCode.Identity.Cryptography.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Events.Abstractions\NCode.Identity.Events.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Accounts.Abstractions\NCode.Identity.OpenId.Accounts.Abstractions.csproj" />

@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Claims\NCode.Identity.Claims.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Cryptography\NCode.Identity.Cryptography.csproj" />
         <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Settings\NCode.Identity.Settings.csproj" />

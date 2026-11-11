@@ -26,6 +26,8 @@
         <Project Path="src/NCode.Identity.Claims/NCode.Identity.Claims.csproj" />
         <Project Path="src/NCode.Identity.Cose.Abstractions/NCode.Identity.Cose.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Cose/NCode.Identity.Cose.csproj" />
+        <Project Path="src/NCode.Identity.Cryptography.Abstractions/NCode.Identity.Cryptography.Abstractions.csproj" />
+        <Project Path="src/NCode.Identity.Cryptography/NCode.Identity.Cryptography.csproj" />
         <Project Path="src/NCode.Identity.Cwt.Abstractions/NCode.Identity.Cwt.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Cwt/NCode.Identity.Cwt.csproj" />
         <Project Path="src/NCode.Identity.Dispatch.Abstractions/NCode.Identity.Dispatch.Abstractions.csproj" />
@@ -102,6 +104,7 @@
         <Project Path="tests/NCode.Identity.Bff.Tests/NCode.Identity.Bff.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Claims.Tests/NCode.Identity.Claims.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Cose.Tests/NCode.Identity.Cose.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.Cryptography.Tests/NCode.Identity.Cryptography.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Cwt.Tests/NCode.Identity.Cwt.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Dispatch.Tests/NCode.Identity.Dispatch.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Events.Tests/NCode.Identity.Events.Tests.csproj" />

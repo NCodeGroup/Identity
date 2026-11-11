@@ -67,7 +67,7 @@ probe, because it never leaves the store.
 - [ADR-1267](1267-replicas-share-versioned-expiring-values-and-membership-indexes.md) - the value port, amended here
 - [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) - point 2's release
   rule, amended here
-- [Issue #422](https://github.com/NCodeGroup/Identity/issues/422)
-- [Issue #462](https://github.com/NCodeGroup/Identity/issues/462)
+- [Issue #422](https://github.com/NCodeGroup/identity/issues/422)
+- [Issue #462](https://github.com/NCodeGroup/identity/issues/462)
 - `IExpiringValueSet.cs`, `DefaultInProcessExpiringValueSet.cs`, `ValkeyExpiringValueSet.cs`
 - `DefaultBffSessionStore.cs`, `DefaultBffUserTokenService.cs`

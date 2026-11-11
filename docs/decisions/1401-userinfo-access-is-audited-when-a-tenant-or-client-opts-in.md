@@ -77,7 +77,7 @@ that names the subject, the client and the names of the claims disclosed, never 
   metric.
 - The record names claim types, not values, so it shows that a client read an email address, not which one.
 - A response that fails after the audit, for example while it is written to the connection, is still recorded.
-- This implements issue [#21](https://github.com/NCodeGroup/Identity/issues/21).
+- This implements issue [#21](https://github.com/NCodeGroup/identity/issues/21).
 
 ## References
 

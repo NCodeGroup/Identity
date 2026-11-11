@@ -21,7 +21,7 @@ Two recurring friction points motivated this decision:
   deleted database, because the check compares the **model to the migration snapshot**, not to the database contents.
   Deleting the dev DB does not help.
 - **Nothing caught the drift before it was pushed.** A model change committed without its migration (observed in the
-  [#141](https://github.com/NCodeGroup/Identity/issues/141) server-management change: a `DisplayName` column with no migration) was only discovered when someone next ran
+  [#141](https://github.com/NCodeGroup/identity/issues/141) server-management change: a `DisplayName` column with no migration) was only discovered when someone next ran
   the app. Migrations are the source of truth for real databases, so drift must fail fast — ideally pre-push and in CI.
 
 ## Decision
@@ -61,7 +61,7 @@ the file), and the drift gate guarantees a migration exists before the change **
 - **An Aspire migration-worker resource.** Aspire ([ADR-1071](1071-aspire-local-dev-orchestrator.md)) is a runtime
   orchestrator with no concept of model-vs-migration drift; a dedicated worker would relocate the failure to the
   dashboard but neither **prevent** drift nor remove the inner-loop friction, at the cost of a new project. Deferred as
-  optional runtime polish; see [GitHub issues](https://github.com/NCodeGroup/Identity/issues).
+  optional runtime polish; see [GitHub issues](https://github.com/NCodeGroup/identity/issues).
 
 ## Consequences
 

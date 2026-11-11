@@ -173,7 +173,7 @@ limit until its window ends, the way a rate limit refuses.**
   incremented after it.
 - An outage of the shared state fails client authentication.
 - A guesser that invents `client_id`s creates a counter for each, which expires with its window.
-- This implements issue [#533](https://github.com/NCodeGroup/Identity/issues/533).
+- This implements issue [#533](https://github.com/NCodeGroup/identity/issues/533).
 
 ## References
 

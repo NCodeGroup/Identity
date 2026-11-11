@@ -79,4 +79,4 @@ asynchronous at the bottom is asynchronous at every caller.
   [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
   [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md): the
   decisions whose signing members are asynchronous.
-- [#165](https://github.com/NCodeGroup/Identity/issues/165)
+- [#165](https://github.com/NCodeGroup/identity/issues/165)

@@ -19,7 +19,7 @@ lease on its refresh token
 replicas because the OP rotates refresh tokens: two replicas that present the same refresh token make the OP revoke the
 whole family (RFC 9700 §4.14.2).
 
-Phase 3 of the [design](../backend-for-frontend.md) (issue [#395](https://github.com/NCodeGroup/Identity/issues/395))
+Phase 3 of the [design](../backend-for-frontend.md) (issue [#395](https://github.com/NCodeGroup/identity/issues/395))
 adds four more requirements and two ways to call a remote API with them:
 
 - `client`: the BFF's own token from the `client_credentials` grant (RFC 6749 §4.4).
@@ -149,4 +149,4 @@ second, equally valid token and revokes nothing.
 - [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)
 - RFC 6749 §4.4, RFC 8693, RFC 9449, RFC 9700
 - `src/NCode.Identity.Bff/Tokens/`, `src/NCode.Identity.Bff/RemoteApis/`
-- Issue [#395](https://github.com/NCodeGroup/Identity/issues/395)
+- Issue [#395](https://github.com/NCodeGroup/identity/issues/395)

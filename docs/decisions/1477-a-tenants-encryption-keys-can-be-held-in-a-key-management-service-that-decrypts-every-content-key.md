@@ -154,4 +154,4 @@ to every caller, and one tenant setting chooses the custody of every provisioned
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
 - [RFC 7516](https://www.rfc-editor.org/rfc/rfc7516) §11.5
 - [RFC 7518](https://www.rfc-editor.org/rfc/rfc7518) §4.3 and §4.6
-- Issue [#650](https://github.com/NCodeGroup/Identity/issues/650)
+- Issue [#650](https://github.com/NCodeGroup/identity/issues/650)

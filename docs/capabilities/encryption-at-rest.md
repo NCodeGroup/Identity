@@ -559,11 +559,11 @@ We'd rather say what this doesn't do yet:
   with the root key until the backup expires.
 - **Azure Key Vault doesn't bind or log the owner context.** Only the key-check value catches a master key presented
   for the wrong owner, and that RSA root isn't quantum-resistant (post-quantum recovery wrap:
-  [#178](https://github.com/NCodeGroup/Identity/issues/178)).
+  [#178](https://github.com/NCodeGroup/identity/issues/178)).
 
 | Coming next                                       | Issue                                                     |
 | ------------------------------------------------- | --------------------------------------------------------- |
-| More root key providers (OpenBao/Vault Transit, PKCS#11, Infisical) | [#173](https://github.com/NCodeGroup/Identity/issues/173) |
+| More root key providers (OpenBao/Vault Transit, PKCS#11, Infisical) | [#173](https://github.com/NCodeGroup/identity/issues/173) |
 
 ## Further reading
 

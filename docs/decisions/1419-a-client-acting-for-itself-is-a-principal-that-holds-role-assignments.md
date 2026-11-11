@@ -80,4 +80,4 @@ fails least privilege.
   `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Stores/ClientStore.cs`,
   `src/NCode.Identity.OpenId.Management/Auditing/DefaultManagementAuditRecorder.cs`
-- Issue [#557](https://github.com/NCodeGroup/Identity/issues/557)
+- Issue [#557](https://github.com/NCodeGroup/identity/issues/557)

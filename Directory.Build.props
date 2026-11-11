@@ -8,8 +8,8 @@
     <Product>NCode.Identity</Product>
     <Year>$([System.DateTime]::Now.Year)</Year>
     <Copyright>Copyright © $(Company) $(Year)</Copyright>
-    <PackageProjectUrl>https://github.com/NCodeGroup/Identity</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/NCodeGroup/Identity</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/NCodeGroup/identity</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/NCodeGroup/identity</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
   </PropertyGroup>

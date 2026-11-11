@@ -54,4 +54,4 @@ browser to the provider's end-session endpoint.**
   [`BffUserHandler.cs`](../../src/NCode.Identity.Bff/Endpoints/BffUserHandler.cs) and
   [`BffEndpointRouteBuilderExtensions.cs`](../../src/NCode.Identity.Bff/Endpoints/BffEndpointRouteBuilderExtensions.cs).
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.8.
-- [NCodeGroup/Identity#442](https://github.com/NCodeGroup/Identity/issues/442).
+- [NCodeGroup/identity#442](https://github.com/NCodeGroup/identity/issues/442).

@@ -15,7 +15,7 @@ envelope under the tenant master key ([ADR-1110](1110-shared-secret-vs-cryptogra
 [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). The envelope keeps a
 database backup from revealing it, but the server can still read every secret back, and whoever holds the root key
 reads them all. Template ADR-0146 rule 6 stores a credential the application only verifies as a hash, and ADR-1110
-recorded that conflict ([#163](https://github.com/NCodeGroup/Identity/issues/163)).
+recorded that conflict ([#163](https://github.com/NCodeGroup/identity/issues/163)).
 
 The client-authentication methods use the secret in two ways:
 
@@ -124,7 +124,7 @@ that uses the secret as a key keeps it reversible, and every other method holds 
    the caller that the client holds a supplied secret and that the gate is saturated, which the bootstrap
    administrator's and the conformance clients' known `client_id`s already reveal. Default limits on failed client
    authentications, counted before the client is authenticated, are tracked in
-   [#533](https://github.com/NCodeGroup/Identity/issues/533).
+   [#533](https://github.com/NCodeGroup/identity/issues/533).
 
    No cap limits how many supplied-secret verifiers a client holds. Only the configuration seeds store a supplied
    secret, and each stores one per client: the bootstrap administrator's refresh replaces its stored secret, and a
@@ -214,7 +214,7 @@ that uses the secret as a key keeps it reversible, and every other method holds 
 - **Limit failed client authentications per `client_id` before verifying.** Rejected as the bound on the work factor:
   anyone who knows a `client_id`, such as the bootstrap administrator's, could lock that client out, while the gate
   bounds the processors. Default limits on failed authentications are tracked in
-  [#533](https://github.com/NCodeGroup/Identity/issues/533) as a complement, not a replacement.
+  [#533](https://github.com/NCodeGroup/identity/issues/533) as a complement, not a replacement.
 - **Let a verification wait for a turn without bound.** Rejected: the queue is then the attacker's, every costly
   verification in the process waits behind it, and each waiter holds its request's connection and memory.
 - **Answer a refused verification with `invalid_client`.** Rejected: the secret was not compared, and a legitimate
@@ -273,4 +273,4 @@ that uses the secret as a key keeps it reversible, and every other method holds 
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)
 - [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
-- Issue [#163](https://github.com/NCodeGroup/Identity/issues/163)
+- Issue [#163](https://github.com/NCodeGroup/identity/issues/163)

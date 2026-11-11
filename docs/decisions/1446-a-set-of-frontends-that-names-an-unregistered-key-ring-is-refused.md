@@ -21,7 +21,7 @@ A key ring is a keyed `ISecretKeyCollectionProvider` registration, which `AddBff
   with a source that is not keyed dependency injection.
 - Resolving a key ring loads its keys, which a check that runs on every configuration change must not do.
 
-Issue [#614](https://github.com/NCodeGroup/Identity/issues/614) describes the need.
+Issue [#614](https://github.com/NCodeGroup/identity/issues/614) describes the need.
 
 ## Decision
 
@@ -58,4 +58,4 @@ frontends that names a key ring it does not find.**
   [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
   [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
 - `src/NCode.Identity.Bff/Frontends/BffKeyRingCheck.cs`
-- Issue [#614](https://github.com/NCodeGroup/Identity/issues/614)
+- Issue [#614](https://github.com/NCodeGroup/identity/issues/614)

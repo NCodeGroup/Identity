@@ -16,7 +16,7 @@ dictionary, starts a new retrieval and downloads again what was recorded a momen
 closes the same gap by checking its caches again inside the retrieval
 ([ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md) decision 1), and
 ADR-1350 lists the revocation retrieval's gap as a consequence to follow up
-([#500](https://github.com/NCodeGroup/Identity/issues/500)).
+([#500](https://github.com/NCodeGroup/identity/issues/500)).
 
 ## Decision
 
@@ -44,5 +44,5 @@ ADR-1350 lists the revocation retrieval's gap as a consequence to follow up
 - [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
   [ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md) and
   [ADR-1350](1350-a-shared-fetch-is-single-flight-through-one-helper.md)
-- Issue [#500](https://github.com/NCodeGroup/Identity/issues/500)
+- Issue [#500](https://github.com/NCodeGroup/identity/issues/500)
 - `RevocationRetrievalCache.cs` in `NCode.Identity.OpenId.Authentication`

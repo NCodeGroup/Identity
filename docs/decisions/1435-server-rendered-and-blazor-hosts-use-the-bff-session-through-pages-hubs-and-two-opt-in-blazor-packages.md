@@ -15,7 +15,7 @@
 
 The design leaves one question open for hosts that render on the server
 ([`docs/backend-for-frontend.md`](../backend-for-frontend.md) §11 question 4, issue
-[#524](https://github.com/NCodeGroup/Identity/issues/524)): how do Razor Pages, MVC and Blazor use the BFF session?
+[#524](https://github.com/NCodeGroup/identity/issues/524)): how do Razor Pages, MVC and Blazor use the BFF session?
 
 Five facts shape the answer:
 
@@ -118,4 +118,4 @@ WebAssembly client never holds a token.**
   [ADR-1434](1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md),
   [ADR-1436](1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)
 - [RFC 10017](https://datatracker.ietf.org/doc/html/rfc10017)
-- Issue [#524](https://github.com/NCodeGroup/Identity/issues/524)
+- Issue [#524](https://github.com/NCodeGroup/identity/issues/524)

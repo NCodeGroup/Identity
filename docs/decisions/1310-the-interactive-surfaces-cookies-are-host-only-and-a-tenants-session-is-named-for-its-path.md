@@ -62,4 +62,4 @@ origin are separated by the cookie's name instead of its path.
   [`DefaultRegistration.cs`](../../src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs) and
   [`DefaultSessionStateService.cs`](../../src/NCode.Identity.OpenId.Authentication/Sessions/DefaultSessionStateService.cs).
 - [RFC 6265bis](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/) §4.1.3: cookie name prefixes.
-- [NCodeGroup/Identity#442](https://github.com/NCodeGroup/Identity/issues/442).
+- [NCodeGroup/identity#442](https://github.com/NCodeGroup/identity/issues/442).

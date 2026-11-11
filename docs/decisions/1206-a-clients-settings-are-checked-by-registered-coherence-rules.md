@@ -33,7 +33,7 @@ carry them.
 Each place that stores a client checked a different subset of those relations. Dynamic registration, the management API,
 and the conformance seed each checked some of the response algorithms, the redirect URI kinds, and the
 client-authentication method, and none checked all of them. A change to a tenant's or the server's settings
-re-checked only the response algorithms of the clients that it affected. A review (issues [#231](https://github.com/NCodeGroup/Identity/issues/231) and [#246](https://github.com/NCodeGroup/Identity/issues/246)) found the
+re-checked only the response algorithms of the clients that it affected. A review (issues [#231](https://github.com/NCodeGroup/identity/issues/231) and [#246](https://github.com/NCodeGroup/identity/issues/246)) found the
 consequence: a management write that narrowed `redirect_uri_kinds_supported`, or that selected `fapi2` or
 `fapi1-advanced`, was accepted, and each client whose redirect URI the change excluded failed when it next requested
 authorization.
@@ -193,7 +193,7 @@ authorization.
   the seeders, and the walks over tenants and servers run it without a change.
 - A tenant or server settings change that selects `fapi2` or `fapi1-advanced`, or that narrows
   `redirect_uri_kinds_supported`, is refused when it leaves a client with a redirect URI that it excludes. This closes
-  issue [#246](https://github.com/NCodeGroup/Identity/issues/246).
+  issue [#246](https://github.com/NCodeGroup/identity/issues/246).
 - Dynamic registration answers a refused redirect URI with `invalid_redirect_uri` and any other violation with
   `invalid_client_metadata`, and it describes every violation in one form.
 - `post_logout_redirect_uris` is checked at every write, as `redirect_uris` is
@@ -211,4 +211,4 @@ authorization.
   server cannot honor.
 - A deployment or a reload that makes a stored client incoherent is logged, client by client, once per change of the
   server's effective settings.
-- This implements issues [#231](https://github.com/NCodeGroup/Identity/issues/231), [#246](https://github.com/NCodeGroup/Identity/issues/246), [#253](https://github.com/NCodeGroup/Identity/issues/253), [#254](https://github.com/NCodeGroup/Identity/issues/254), [#263](https://github.com/NCodeGroup/Identity/issues/263) and [#272](https://github.com/NCodeGroup/Identity/issues/272).
+- This implements issues [#231](https://github.com/NCodeGroup/identity/issues/231), [#246](https://github.com/NCodeGroup/identity/issues/246), [#253](https://github.com/NCodeGroup/identity/issues/253), [#254](https://github.com/NCodeGroup/identity/issues/254), [#263](https://github.com/NCodeGroup/identity/issues/263) and [#272](https://github.com/NCodeGroup/identity/issues/272).

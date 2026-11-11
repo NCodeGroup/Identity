@@ -24,7 +24,7 @@ sends a `TenantChangedCommand` after it commits, and the default handler evicts 
 that handled the write ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md), decision 10).
 
 Any replica may serve the next request ([ADR-1134](1134-cloud-native-operating-principles.md)), and the eviction reached
-only the replica that made the write. A review (issue [#240](https://github.com/NCodeGroup/Identity/issues/240)) found that every other replica kept its cached tenant. A
+only the replica that made the write. A review (issue [#240](https://github.com/NCodeGroup/identity/issues/240)) found that every other replica kept its cached tenant. A
 replica picked up a change to the tenant's settings through its poll every 5 minutes and to its secrets through its poll
 every 15, and a change that those polls do not read waited for the entry to expire. So a replica:
 
@@ -121,4 +121,4 @@ for state that every replica must see
 - The access-control user of the Valkey connection needs `PUBLISH` and `SUBSCRIBE`.
 - A feature that needs another replica to drop what it cached names a channel and registers an
   `IReplicaBroadcastHandler`, and changes neither the port nor an adapter.
-- This implements issue [#240](https://github.com/NCodeGroup/Identity/issues/240); with ADR-1219 it closes [#249](https://github.com/NCodeGroup/Identity/issues/249).
+- This implements issue [#240](https://github.com/NCodeGroup/identity/issues/240); with ADR-1219 it closes [#249](https://github.com/NCodeGroup/identity/issues/249).

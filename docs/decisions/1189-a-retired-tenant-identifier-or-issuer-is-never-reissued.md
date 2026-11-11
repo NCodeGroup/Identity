@@ -81,4 +81,4 @@ row, so the server must remember an identity after the tenant that held it is go
 - [ADR-1129](./1129-the-tenant-issuer-is-the-single-authoritative-origin.md)
 - [ADR-1159](./1159-a-tenant-is-named-by-its-creator.md)
 - [ADR-1165](./1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)
-- Issue [#109](https://github.com/NCodeGroup/Identity/issues/109)
+- Issue [#109](https://github.com/NCodeGroup/identity/issues/109)

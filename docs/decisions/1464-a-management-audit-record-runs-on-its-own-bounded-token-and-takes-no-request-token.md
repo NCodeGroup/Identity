@@ -15,7 +15,7 @@ publishes the event.
 With the request's token on the lookup, a client that disconnects after the commit cancels the lookup.
 `DefaultManagementTenantEnvironmentResolver` lets the `OperationCanceledException` through, so the event is never
 published and a caller that records several events stops at the first. The change is committed and its audit record is
-lost ([#621](https://github.com/NCodeGroup/Identity/issues/621)).
+lost ([#621](https://github.com/NCodeGroup/identity/issues/621)).
 
 ## Decision
 

@@ -82,4 +82,4 @@ declares the binding problems it can answer.**
   declares every problem it answers.
 - [ADR-1481](1481-a-management-routes-problem-responses-say-when-each-occurs.md): the problems a route declares say when
   each occurs.
-- [#708](https://github.com/NCodeGroup/Identity/issues/708)
+- [#708](https://github.com/NCodeGroup/identity/issues/708)

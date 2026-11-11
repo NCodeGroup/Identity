@@ -4,8 +4,8 @@ The **OpenID Foundation Conformance Suite** — the certified, spec-author-maint
 behind the fast in-house probe-runner pre-flight, driven by one committed, runnable command. This document describes
 that harness and how the OP fares against it. Parent design: [`docs/conformance-testing.md`](../conformance-testing.md).
 Decision record: [ADR-1084](../decisions/1084-spec-coverage-conformance-harness.md) (the `browser` / `probe-runner` /
-`external-suite` exercise boundary). Tracking issues: [#129](https://github.com/NCodeGroup/Identity/issues/129) and
-[#124](https://github.com/NCodeGroup/Identity/issues/124).
+`external-suite` exercise boundary). Tracking issues: [#129](https://github.com/NCodeGroup/identity/issues/129) and
+[#124](https://github.com/NCodeGroup/identity/issues/124).
 
 ## The harness
 
@@ -13,15 +13,15 @@ The harness is [`build/conformance/`](../../build/conformance):
 
 - **[`run-conformance.ps1`](../../build/conformance/run-conformance.ps1)** — the orchestration. It launches the OpenID
   host on the reachable HTTPS origin (`host.docker.internal:5001`, the `Conformance` launch profile —
-  [#126](https://github.com/NCodeGroup/Identity/issues/126)), asserts the discovery `issuer` byte-matches that origin,
+  [#126](https://github.com/NCodeGroup/identity/issues/126)), asserts the discovery `issuer` byte-matches that origin,
   runs the in-house probe runner as a **fast pre-flight** that fails early before the slow external suite is started,
   brings the suite up from **prebuilt Docker images** (no Java build), drives the Config OP + Basic OP plans (or, with
   `-Fapi1Advanced`, the FAPI 1.0 Advanced Final plans) headlessly via the suite's `run-test-plan.py` gated on the
   committed baselines, and tears everything down — surfacing one non-zero exit code on any unexpected failure.
-- **Config templates** resolved against the deterministic seed ([#127](https://github.com/NCodeGroup/Identity/issues/127)):
+- **Config templates** resolved against the deterministic seed ([#127](https://github.com/NCodeGroup/identity/issues/127)):
   [`oidcc-basic.template.json`](../../build/conformance/oidcc-basic.template.json) (with the `browser` automation block
   whose selectors — `username` / `password` / `login` / `consent-allow` — match the `apps/auth` surface,
-  [#125](https://github.com/NCodeGroup/Identity/issues/125)), [`oidcc-config.json`](../../build/conformance/oidcc-config.json)
+  [#125](https://github.com/NCodeGroup/identity/issues/125)), [`oidcc-config.json`](../../build/conformance/oidcc-config.json)
   and [`fapi1-advanced.template.json`](../../build/conformance/fapi1-advanced.template.json).
 - **Baselines** [`expected-failures.json`](../../build/conformance/expected-failures.json) /
   [`expected-skips.json`](../../build/conformance/expected-skips.json): an entry codifies only a documented, intentional
@@ -51,14 +51,14 @@ hermetic [`build/dod.ps1`](../../build/dod.ps1) inner loop — consistent with
 
 ## Pending work
 
-- **Nightly CI pipeline** ([#129](https://github.com/NCodeGroup/Identity/issues/129)). No workflow runs the harness: a
+- **Nightly CI pipeline** ([#129](https://github.com/NCodeGroup/identity/issues/129)). No workflow runs the harness: a
   separate, opt-in / nightly job (`docker compose` + Python 3, no local Java) that invokes `run-conformance.ps1` and
   publishes the `.results/` zips as artifacts is wired together with the repository's broader CI rather than as a
   one-off.
 - **Profile expansion** beyond Basic + Config (Form Post / Dynamic OP / FAPI) as those capabilities are verified
   end-to-end. The FAPI 1.0 Advanced Final plans are wired (`run-conformance.ps1 -Fapi1Advanced`, see the
   [harness README](../../build/conformance/README.md#run)); running them against the suite and committing their baseline
-  is tracked as issue [#124](https://github.com/NCodeGroup/Identity/issues/124).
+  is tracked as issue [#124](https://github.com/NCodeGroup/identity/issues/124).
 
 ## Basic OP and Config OP results
 
@@ -74,7 +74,7 @@ The Config OP plan passes cleanly (`44 successes, 0 failures, 0 warnings`). The 
 together finish with `31 PASSED, 0 WARNING, 3 REVIEW, 4 SKIPPED, 1 FAILED` across 39 modules and a green gate
 (`Conformance run PASSED`): the failure is the expected one, codified below, and a `REVIEW` result with no failing
 conditions does not gate the run. The disposition of each module verdict is tracked in issue
-[#131](https://github.com/NCodeGroup/Identity/issues/131).
+[#131](https://github.com/NCodeGroup/identity/issues/131).
 
 ### Behavior the suite verifies
 

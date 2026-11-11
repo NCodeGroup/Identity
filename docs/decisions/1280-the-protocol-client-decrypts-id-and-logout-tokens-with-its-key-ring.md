@@ -114,5 +114,5 @@ registered encryption.**
 - [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) — the logout-token validator this
   amends
 - [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code.md) — the failure codes this extends
-- Issues [#347](https://github.com/NCodeGroup/Identity/issues/347) and
-  [#342](https://github.com/NCodeGroup/Identity/issues/342)
+- Issues [#347](https://github.com/NCodeGroup/identity/issues/347) and
+  [#342](https://github.com/NCodeGroup/identity/issues/342)

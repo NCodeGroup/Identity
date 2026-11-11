@@ -65,4 +65,4 @@ protocol endpoint, as the rate limits and the client secret verifier do
 - [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
-- Issue [#573](https://github.com/NCodeGroup/Identity/issues/573)
+- Issue [#573](https://github.com/NCodeGroup/identity/issues/573)

@@ -23,7 +23,7 @@ origin. Four facts shape where the two helpers live:
 - Whether a proxy terminates TLS is the deployment's to say, so a library that adds the helpers for every host would
   decide it for the host.
 
-Issue [#611](https://github.com/NCodeGroup/Identity/issues/611) describes the need.
+Issue [#611](https://github.com/NCodeGroup/identity/issues/611) describes the need.
 
 ## Decision
 
@@ -67,4 +67,4 @@ Issue [#611](https://github.com/NCodeGroup/Identity/issues/611) describes the ne
   [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md),
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
 - `src/NCode.Identity.AspNetCore/`
-- Issue [#611](https://github.com/NCodeGroup/Identity/issues/611)
+- Issue [#611](https://github.com/NCodeGroup/identity/issues/611)

@@ -174,4 +174,4 @@ every key ring when the host starts.**
 - [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)
 - RFC 7523 §2.2
 - RFC 9449
-- Issue [#651](https://github.com/NCodeGroup/Identity/issues/651)
+- Issue [#651](https://github.com/NCodeGroup/identity/issues/651)

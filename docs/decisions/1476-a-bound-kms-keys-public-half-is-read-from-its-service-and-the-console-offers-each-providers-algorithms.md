@@ -93,6 +93,6 @@ rows; and the console creates and binds a tenant's remote keys from them.**
   the routes this decision amends.
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md):
   the descriptor catalog and `GetPublicKeyAsync`.
-- [#687](https://github.com/NCodeGroup/Identity/issues/687),
-  [#690](https://github.com/NCodeGroup/Identity/issues/690),
-  [#691](https://github.com/NCodeGroup/Identity/issues/691)
+- [#687](https://github.com/NCodeGroup/identity/issues/687),
+  [#690](https://github.com/NCodeGroup/identity/issues/690),
+  [#691](https://github.com/NCodeGroup/identity/issues/691)

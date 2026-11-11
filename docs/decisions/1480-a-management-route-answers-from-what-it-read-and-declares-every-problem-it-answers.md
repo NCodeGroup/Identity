@@ -111,5 +111,5 @@ filters on every route.**
 - [project-template ADR-0125](project-template/0125-a-write-that-loses-a-race-is-answered-412.md): a write that loses
   a race is answered `412`.
 - [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457): problem details for HTTP APIs.
-- [#700](https://github.com/NCodeGroup/Identity/issues/700),
-  [#701](https://github.com/NCodeGroup/Identity/issues/701)
+- [#700](https://github.com/NCodeGroup/identity/issues/700),
+  [#701](https://github.com/NCodeGroup/identity/issues/701)

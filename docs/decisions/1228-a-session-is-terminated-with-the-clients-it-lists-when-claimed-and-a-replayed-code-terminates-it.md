@@ -10,12 +10,12 @@
 `IPersistedGrantService.RevokeSessionOnceAsync` before it dispatches `OnSessionTerminatedCommand`. The claim reported
 only whether the call revoked the session, so a termination notified the clients that an earlier read listed. A client
 that an ID token issued under the session added to it between that read and the claim received no back-channel logout,
-although its tokens were revoked (issue [#288](https://github.com/NCodeGroup/Identity/issues/288)). A subject-wide termination listed only the active sessions and then
+although its tokens were revoked (issue [#288](https://github.com/NCodeGroup/identity/issues/288)). A subject-wide termination listed only the active sessions and then
 revoked every grant of the subject, so a session that had ended and awaited the background pass
 ([ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)) was revoked without its relying
 parties being notified. The replay of an authorization code revoked the grants of its session without the seam
 ([ADR-1112](1112-authorization-code-replay-revokes-session.md)), so its relying parties were not notified and nothing
-was audited (issue [#287](https://github.com/NCodeGroup/Identity/issues/287)).
+was audited (issue [#287](https://github.com/NCodeGroup/identity/issues/287)).
 
 ## Decision
 
@@ -67,7 +67,7 @@ session through `ISessionService.RevokeAsync`.**
 - The replay of an authorization code is audited, and it notifies the relying parties of the session.
 - **Breaking:** `RevokeSessionOnceAsync<TPayload>` returns `PersistedGrant<TPayload>?`, and
   `SessionTerminationReasons.AuthorizationCodeReplay` is added.
-- This implements issues [#287](https://github.com/NCodeGroup/Identity/issues/287) and [#288](https://github.com/NCodeGroup/Identity/issues/288).
+- This implements issues [#287](https://github.com/NCodeGroup/identity/issues/287) and [#288](https://github.com/NCodeGroup/identity/issues/288).
 
 ## References
 

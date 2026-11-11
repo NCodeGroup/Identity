@@ -138,4 +138,4 @@ one of its own from `TokenValidationFailureCodes`.**
   validator this amends
 - [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) — the logout-token validator this
   amends
-- Issue [#343](https://github.com/NCodeGroup/Identity/issues/343)
+- Issue [#343](https://github.com/NCodeGroup/identity/issues/343)

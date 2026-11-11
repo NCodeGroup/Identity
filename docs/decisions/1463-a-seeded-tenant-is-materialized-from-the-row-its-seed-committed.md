@@ -60,4 +60,4 @@ token as the ETag.
   through one pipeline under every strategy
 - [ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md) — a
   replica that may have missed a tenant announcement evicts only the tenants whose row changed
-- [#619](https://github.com/NCodeGroup/Identity/issues/619)
+- [#619](https://github.com/NCodeGroup/identity/issues/619)

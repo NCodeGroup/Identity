@@ -18,7 +18,7 @@ required). That shape had three problems.
 
 - **Configuration could extend the list but never replace it.** The configuration binder appends configured entries to
   a list that already holds some, so `DeveloperInteractiveSeed:SpaClients` added clients beside the two built-in ones
-  and could not remove or replace them (issue [#98](https://github.com/NCodeGroup/Identity/issues/98)). This is the same defect that was fixed for
+  and could not remove or replace them (issue [#98](https://github.com/NCodeGroup/identity/issues/98)). This is the same defect that was fixed for
   `ConformanceClientSeed`'s grant types, and it breaks the binding convention of
   [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md): a bound collection starts empty.
 - **The seed was never inert.** `AddDevelopmentEnvironment` documents that each development convenience does nothing
@@ -78,7 +78,7 @@ library has no default; the host's environment overlay declares the entries.
 
 ## References
 
-- Issue: [#98](https://github.com/NCodeGroup/Identity/issues/98).
+- Issue: [#98](https://github.com/NCodeGroup/identity/issues/98).
 - [ADR-1082](1082-playground-and-conformance-surfaces.md): the surfaces and the list-shaped seed this amends.
 - [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md): strict binding, and why a bound
   collection starts empty.

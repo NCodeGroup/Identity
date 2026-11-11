@@ -19,7 +19,7 @@ not confidential, so a public client without DPoP received a reusable bearer ref
 
 Rotation also has a cost for the clients that do not need it. FAPI 2.0 §5.3.2.1-9 and its Note 1 forbid it for a
 confidential client whose tokens are sender-constrained: it adds no security there, and a client that loses the response
-of a rotation loses its session (issue [#268](https://github.com/NCodeGroup/Identity/issues/268)).
+of a rotation loses its session (issue [#268](https://github.com/NCodeGroup/identity/issues/268)).
 
 ## Decision
 
@@ -85,7 +85,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
   [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)).
 - **Breaking:** `refresh_token_rotation_enabled` is removed with its name and key constants, and
   `refresh_token_rotation_policy` is added.
-- This implements issue [#268](https://github.com/NCodeGroup/Identity/issues/268).
+- This implements issue [#268](https://github.com/NCodeGroup/identity/issues/268).
 
 ## References
 

@@ -8,7 +8,7 @@
 
 ## Context
 
-Issue [#28](https://github.com/NCodeGroup/Identity/issues/28) asked to move the JSON Web Token (JWT) service contracts into their `.Abstractions` package so
+Issue [#28](https://github.com/NCodeGroup/identity/issues/28) asked to move the JSON Web Token (JWT) service contracts into their `.Abstractions` package so
 Abstractions-only consumers (notably the OpenID authentication handlers) could depend on contracts rather than the
 implementation — the same split the Jose and OpenID families already have.
 

@@ -163,4 +163,4 @@ a retired key is destroyed once a scan finds no value that still names it. The p
 - `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyManager.cs`,
   `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRing.cs`,
   `src/NCode.Identity.OpenId.Core/SecretProtection/`, `src/NCode.Identity.Server/SecretProtection/`
-- Issue [#171](https://github.com/NCodeGroup/Identity/issues/171)
+- Issue [#171](https://github.com/NCodeGroup/identity/issues/171)

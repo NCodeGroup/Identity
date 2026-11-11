@@ -13,7 +13,7 @@ X25519 and X448, the Diffie-Hellman functions of [RFC 7748](https://datatracker.
 Ed25519 and Ed448 signing curves of §3.1. Both uses share the `OKP` key type: a JSON Web Key with `kty`, `crv`, `x`
 and, for a private key, `d`. Under [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md) the
 `ECDH-ES` algorithms serve every key type that has a registered `IEcdhKeyAgreement`, so serving the Montgomery curves
-takes an agreement, its arithmetic and the keys ([#336](https://github.com/NCodeGroup/Identity/issues/336)). Like the Edwards
+takes an agreement, its arithmetic and the keys ([#336](https://github.com/NCodeGroup/identity/issues/336)). Like the Edwards
 curves, the Montgomery curves have no primitive in the BCL on .NET 10.
 
 Two facts shape the design. First, an X25519 key and an Ed25519 key are both 256 bits, so neither the key type nor the
@@ -89,5 +89,5 @@ order makes the shared secret all zeros, which a party who chose that key knows 
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)
-- Issue [#336](https://github.com/NCodeGroup/Identity/issues/336), part of [#66](https://github.com/NCodeGroup/Identity/issues/66)
+- Issue [#336](https://github.com/NCodeGroup/identity/issues/336), part of [#66](https://github.com/NCodeGroup/identity/issues/66)
 - `X25519`, `X448`, `OkpCurves`, `OkpEcdhKeyAgreement` and `DefaultRegistration` in `NCode.Identity.Jose.EdDsa`

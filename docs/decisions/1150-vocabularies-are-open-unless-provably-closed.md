@@ -65,7 +65,7 @@ relationships in a mask or a chain, closes the behavior and the topology even wh
 - A new vocabulary starts open; closing it is the exception a reviewer must be able to justify in three sentences.
 - The settings framework is open to new entity types: setting scopes are registered `SettingScopeDescriptor` data with
   their cascade derived by a catalog ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)).
-- The existing public enums were re-evaluated against the test (issue [#35](https://github.com/NCodeGroup/Identity/issues/35)). Four failed it and became names:
+- The existing public enums were re-evaluated against the test (issue [#35](https://github.com/NCodeGroup/identity/issues/35)). Four failed it and became names:
     - `SessionTerminationReason` became the `SessionTerminationReasons` names, because an extension ends a session for
       its own reason ([ADR-1098](1098-session-lifecycle-termination-seam.md)).
     - `SecretKeyImportFormat` became the `SecretKeyImportFormats` names, which each key type declares, because a

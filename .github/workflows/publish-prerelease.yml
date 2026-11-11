@@ -12,7 +12,7 @@
 #     It refuses a version already on nuget.org, which needs a bump in version.json, but skips duplicates within a
 #     version so a run that failed part way can be run again.
 #
-# Setup the maintainers own: a nuget.org trusted publishing policy for NCodeGroup/Identity, this workflow file and the
+# Setup the maintainers own: a nuget.org trusted publishing policy for NCodeGroup/identity, this workflow file and the
 # `nuget` environment; the `nuget` environment with required reviewers and deployment rules for main and `v*` tags; and
 # the repository variable NUGET_USER naming the nuget.org account that owns the policy.
 name: Publish prerelease packages

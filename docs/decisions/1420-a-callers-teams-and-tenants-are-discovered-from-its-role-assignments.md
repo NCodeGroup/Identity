@@ -63,4 +63,4 @@ before it can manage them.
   [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)
-- Issue [#566](https://github.com/NCodeGroup/Identity/issues/566)
+- Issue [#566](https://github.com/NCodeGroup/identity/issues/566)

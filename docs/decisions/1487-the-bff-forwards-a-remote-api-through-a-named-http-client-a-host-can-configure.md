@@ -61,4 +61,4 @@ no redirect, sends or stores no cookie, uses no proxy and decompresses no respon
   DPoP `htu` is compared with the tenant's published URLs.
 - [ADR-1484](1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md): a
   management route's caller is the principal its management access token authenticates.
-- [#716](https://github.com/NCodeGroup/Identity/issues/716)
+- [#716](https://github.com/NCodeGroup/identity/issues/716)

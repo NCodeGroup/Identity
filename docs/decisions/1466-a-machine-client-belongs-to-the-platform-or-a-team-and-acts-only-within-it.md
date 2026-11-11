@@ -76,4 +76,4 @@ itself, and that holds roles only at its owning node or beneath it.**
   [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
   [ADR-1448](1448-a-settings-reader-learns-which-limits-it-may-change.md),
   [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md)
-- Issue [#588](https://github.com/NCodeGroup/Identity/issues/588)
+- Issue [#588](https://github.com/NCodeGroup/identity/issues/588)

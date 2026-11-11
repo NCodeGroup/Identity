@@ -3,7 +3,7 @@
 The OpenID Provider's **interactive login and consent experience** is one the OpenID Foundation Conformance Suite's
 headless `BrowserControl` can drive end-to-end: stable element locators, a deterministic signed-in session, and a
 consent outcome — so a protocol-correct authorization flow completes under automation. Tracking issue:
-[#125](https://github.com/NCodeGroup/Identity/issues/125). Parent design:
+[#125](https://github.com/NCodeGroup/identity/issues/125). Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #2 and Appendix B). Decision records:
 [ADR-1062](../decisions/1062-opt-in-interactive-login-consent-ui.md) (seam + stable-locator contract),
 [ADR-1065](../decisions/1065-interactive-login-consent-op-hosted-auth-surface.md) (the OP-hosted `apps/auth` surface),
@@ -71,7 +71,7 @@ which reads an `X-Test-Subject` header.
 
 ## Seeded identity
 
-The login uses a deterministic user. That seeding is owned by [#127](https://github.com/NCodeGroup/Identity/issues/127)
+The login uses a deterministic user. That seeding is owned by [#127](https://github.com/NCodeGroup/identity/issues/127)
 ([`conformance-seeding.md`](conformance-seeding.md)); the login surface **consumes** it (a fixed username and a
 per-machine password in the conformance tenant) and never seeds independently.
 
@@ -86,6 +86,6 @@ per-machine password in the conformance tenant) and never seeds independently.
 
 ## Dependencies & links
 
-- **Depends on** [#127](https://github.com/NCodeGroup/Identity/issues/127) (seeded conformance identity) and
-  [#126](https://github.com/NCodeGroup/Identity/issues/126) (reachable host for end-to-end verification).
+- **Depends on** [#127](https://github.com/NCodeGroup/identity/issues/127) (seeded conformance identity) and
+  [#126](https://github.com/NCodeGroup/identity/issues/126) (reachable host for end-to-end verification).
 - Locator contract: [`conformance-testing.md`](../conformance-testing.md) Appendix B; `browser` config: Appendix D.

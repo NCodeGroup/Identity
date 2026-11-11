@@ -64,7 +64,7 @@ tools such as SPDX and REUSE read, and the copyright line is the one the project
 
 ## References
 
-- [#448](https://github.com/NCodeGroup/Identity/issues/448): the issue that asks for an enforced header.
+- [#448](https://github.com/NCodeGroup/identity/issues/448): the issue that asks for an enforced header.
 - [NCodeGroup/project-template#215](https://github.com/NCodeGroup/project-template/issues/215): the template's
   truncated `file_header_template`.
 - [SPDX license: Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) and the

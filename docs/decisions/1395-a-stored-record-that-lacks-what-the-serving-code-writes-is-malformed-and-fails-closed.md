@@ -69,7 +69,7 @@ gives it:
    with no `[PersistedPayloadVersion]` bump and no upcaster. A stored record that lacks what the serving code writes is
    malformed and fails closed (decision 1). From the first stable release, the additive-only contract of ADR-1113 and
    the version-and-upcaster step govern every change to the released shape, and
-   [#535](https://github.com/NCodeGroup/Identity/issues/535) retires this decision then.
+   [#535](https://github.com/NCodeGroup/identity/issues/535) retires this decision then.
 
 ## Options considered
 

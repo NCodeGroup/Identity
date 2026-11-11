@@ -48,4 +48,4 @@ bundle, so the `Host` header contributes nothing. A same-origin link may stay re
   [`FrontendBootstrapEndpointProvider.cs`](../../src/NCode.Identity.Server/Frontend/FrontendBootstrapEndpointProvider.cs)
   and [`FrontendBootstrapOptions.cs`](../../src/NCode.Identity.Server/Frontend/FrontendBootstrapOptions.cs).
 - [`preset.ts`](../../frontend/packages/vite-config/src/preset.ts): the standalone proxy.
-- [NCodeGroup/Identity#442](https://github.com/NCodeGroup/Identity/issues/442).
+- [NCodeGroup/identity#442](https://github.com/NCodeGroup/identity/issues/442).

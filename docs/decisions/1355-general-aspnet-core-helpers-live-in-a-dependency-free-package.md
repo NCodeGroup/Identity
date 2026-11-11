@@ -57,4 +57,4 @@ The helpers need a home that both can reference.
 - [ADR-1016](./1016-implementation-packages-depend-only-on-abstractions.md)
 - [ADR-1188](./1188-general-time-helpers-live-in-a-dependency-free-package.md)
 - [ADR-1345](./1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)
-- Issue [#492](https://github.com/NCodeGroup/Identity/issues/492)
+- Issue [#492](https://github.com/NCodeGroup/identity/issues/492)

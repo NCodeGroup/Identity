@@ -69,4 +69,4 @@ and starts the platform over with a new master key.**
   [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)
 - `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperPlatformMasterKeyPruning.cs`,
   `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperMasterKeyReset.cs`
-- Issue [#569](https://github.com/NCodeGroup/Identity/issues/569)
+- Issue [#569](https://github.com/NCodeGroup/identity/issues/569)

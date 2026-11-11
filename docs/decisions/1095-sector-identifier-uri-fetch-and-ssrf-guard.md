@@ -11,7 +11,7 @@
 Pairwise subject identifiers ([ADR-1093](1093-pairwise-subject-identifiers.md)) resolve a client's pairwise **sector**
 from the host of its `sector_identifier_uri` client setting when present, otherwise the common host of its
 `redirect_uris`. That ADR accepted the configured `sector_identifier_uri`'s host **without fetching** the document it
-references, and split the remote step out as issue [#58](https://github.com/NCodeGroup/Identity/issues/58).
+references, and split the remote step out as issue [#58](https://github.com/NCodeGroup/identity/issues/58).
 
 OpenID Connect Core 1.0 §8.1 defines that remote step. When a client registers a `sector_identifier_uri`:
 
@@ -80,7 +80,7 @@ false` stops a redirect from bouncing the fetch to an internal host. This floor 
 ## Options considered
 
 - **Keep accepting the configured host without fetching (status quo from ADR-1093).** Rejected. It is the explicit
-  [#58](https://github.com/NCodeGroup/Identity/issues/58) gap: without the fetch, sector membership is unverified, so a client can claim another party's host as its
+  [#58](https://github.com/NCodeGroup/identity/issues/58) gap: without the fetch, sector membership is unverified, so a client can claim another party's host as its
   sector. The greenfield posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) prefers the correct,
   spec-complete model.
 
@@ -100,7 +100,7 @@ false` stops a redirect from bouncing the fetch to an internal host. This floor 
 
 ## Consequences
 
-- The OP now performs the full §8.1 registration-time validation, closing issue [#58](https://github.com/NCodeGroup/Identity/issues/58); a pairwise client can only
+- The OP now performs the full §8.1 registration-time validation, closing issue [#58](https://github.com/NCodeGroup/identity/issues/58); a pairwise client can only
   share a sector when the `sector_identifier_uri` document vouches for its redirect URIs.
 - The server-side fetch is SSRF-hardened by default (private-address block + no-redirect + timeout + size cap), with an
   optional host allow-list for deployments that want to narrow it further.

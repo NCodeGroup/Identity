@@ -67,4 +67,4 @@ records it once the client has handled the token.**
 - [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) - point 5, amended here
 - [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) - decrypting a logout token
 - OpenID Connect Back-Channel Logout 1.0 §2.6 step 8 and §2.8
-- [Issue #349](https://github.com/NCodeGroup/Identity/issues/349)
+- [Issue #349](https://github.com/NCodeGroup/identity/issues/349)

@@ -185,7 +185,7 @@ dotnet user-secrets set DeveloperInteractiveSeed:AdminPassword '<at least 15 cha
 `$secret` is the client secret to present. Without a value neither administrator is seeded. The `Conformance` profile
 reads `BootstrapAdmin__ClientSecret` from the environment, because user secrets load only in Development.
 
-The conformance seed's credentials are generated the same way ([#514](https://github.com/NCodeGroup/Identity/issues/514)):
+The conformance seed's credentials are generated the same way ([#514](https://github.com/NCodeGroup/identity/issues/514)):
 `appsettings.Conformance.json` lists the conformance clients and the `conformance-user` test user without a secret or
 password. The AppHost and
 [`build/conformance/Get-ConformanceSeedCredentials.ps1`](../../build/conformance/Get-ConformanceSeedCredentials.ps1)
@@ -217,7 +217,7 @@ host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/O
 
 ### Each context has one `InitialCreate` until the first stable release
 
-Until the first stable release ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each context has one
+Until the first stable release ([#535](https://github.com/NCodeGroup/identity/issues/535)), each context has one
 migration, `InitialCreate`, which creates its whole model and changes no data
 ([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
 After changing the EF model, delete the context's migration, designer file and model snapshot, and scaffold
@@ -246,7 +246,7 @@ reset the local database with `build/dev-db-reset.ps1` (below).
 
 ### The expand-only rule governs migrations from the first stable release
 
-From the first stable release ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each context's
+From the first stable release ([#535](https://github.com/NCodeGroup/identity/issues/535)), each context's
 `InitialCreate` is its baseline and every model change adds a migration, which only expands the schema unless it is
 marked a contract step
 ([ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and

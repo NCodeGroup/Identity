@@ -17,7 +17,7 @@ A rotation that removes the rotated secret in the same change breaks every calle
 reconfigured. A rotation that keeps it needs a bound, or a forgotten delete leaves a stale credential accepted
 forever, and that bound only works when a credential past its `ExpiresWhen` stops authenticating. Signing-key
 rollover and the expiry of every other stored key, a tenant's, a server's or a resource server's, are tracked in issue
-[#166](https://github.com/NCodeGroup/Identity/issues/166); a client credential's expiry is the part rotation needs.
+[#166](https://github.com/NCodeGroup/identity/issues/166); a client credential's expiry is the part rotation needs.
 
 A client's shared secret stores the UTF-8 length of its base64url string as `KeySizeBits`, not its entropy
 ([ADR-1110](1110-shared-secret-vs-cryptographic-key-storage.md)), so copying the stored size as the replacement's
@@ -62,7 +62,7 @@ secret. Both authenticate until the rotated secret expires or is deleted. This s
 Storage is unchanged. A `client_secret_jwt` secret is a key the server itself uses, which template ADR-0146 rule 6
 allows to be stored protected by a key held outside the store
 ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). Verify-only secrets
-remain reversible until issue [#163](https://github.com/NCodeGroup/Identity/issues/163) hashes them; ADR-1110 records
+remain reversible until issue [#163](https://github.com/NCodeGroup/identity/issues/163) hashes them; ADR-1110 records
 that conflict.
 
 ## Options considered
@@ -91,4 +91,4 @@ that conflict.
 - [ADR-1011](1011-secret-management-api.md), [ADR-1110](1110-shared-secret-vs-cryptographic-key-storage.md),
   [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md),
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
-- Issues [#163](https://github.com/NCodeGroup/Identity/issues/163) and [#166](https://github.com/NCodeGroup/Identity/issues/166)
+- Issues [#163](https://github.com/NCodeGroup/identity/issues/163) and [#166](https://github.com/NCodeGroup/identity/issues/166)

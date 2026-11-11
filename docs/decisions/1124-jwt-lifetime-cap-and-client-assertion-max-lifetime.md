@@ -13,7 +13,7 @@ the replay cache effectively forever, and a pre-minted assertion stayed usable f
 §3 lets the server reject an assertion whose `exp` is "unreasonably far in the future" and one whose `iat` is
 "unreasonably far in the past", and mainstream providers bound assertion lifetime (Auth0 accepts at most five minutes;
 Okta rejects an `exp` more than an hour ahead). [ADR-1123](1123-numeric-date-is-read-strictly-and-range-guarded.md)
-fixed the overflow such an `exp` caused but left the lifetime unbounded (issue [#78](https://github.com/NCodeGroup/Identity/issues/78)).
+fixed the overflow such an `exp` caused but left the lifetime unbounded (issue [#78](https://github.com/NCodeGroup/identity/issues/78)).
 
 Three adjacent defects shared the cause:
 
@@ -75,7 +75,7 @@ client assertions use it through a lattice-bounded setting.**
 - Every lifetime-validated JWT (client assertions, request objects, CIBA request objects, access tokens at protected
   resources, introspected tokens, token-exchange subject tokens) is now rejected when its `iat` is unreadable or later
   than the clock skew in the future. Tokens this server issues stamp `iat` at issuance, so they are unaffected.
-- The far-future-`exp` replay-cache growth that motivated [#78](https://github.com/NCodeGroup/Identity/issues/78) is closed.
+- The far-future-`exp` replay-cache growth that motivated [#78](https://github.com/NCodeGroup/identity/issues/78) is closed.
 - Signed request objects (JAR and CIBA) apply `MaxLifetime` through their own `request_object_max_lifetime` setting,
   with the claim rules FAPI 2.0 Message Signing, FAPI 1.0 Advanced, and CIBA impose
   ([ADR-1187](./1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md)).
@@ -89,4 +89,4 @@ client assertions use it through a lattice-bounded setting.**
 - [RFC 7523 §3 — JWT assertion processing](https://datatracker.ietf.org/doc/html/rfc7523#section-3)
 - [FAPI 2.0 Security Profile §5.3.2.1](https://openid.net/specs/fapi-security-profile-2_0-final.html)
 - [Auth0 — Authenticate with Private Key JWT](https://auth0.com/docs/get-started/authentication-and-authorization-flow/authenticate-with-private-key-jwt)
-- Issues [#78](https://github.com/NCodeGroup/Identity/issues/78) and [#79](https://github.com/NCodeGroup/Identity/issues/79)
+- Issues [#78](https://github.com/NCodeGroup/identity/issues/78) and [#79](https://github.com/NCodeGroup/identity/issues/79)

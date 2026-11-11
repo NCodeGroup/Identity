@@ -148,7 +148,7 @@ forms carry on.**
 - [RFC 4647 §3.4](https://www.rfc-editor.org/rfc/rfc4647#section-3.4): lookup.
 - [ADR-1010](1010-supported-settings-unset-means-unrestricted.md), [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md).
-- Issue [#540](https://github.com/NCodeGroup/Identity/issues/540).
+- Issue [#540](https://github.com/NCodeGroup/identity/issues/540).
 - Code: `src/NCode.Identity.OpenId.Abstractions/Locales/`, `src/NCode.Identity.OpenId.Core/Locales/`,
   `src/NCode.Identity.OpenId.Authentication.Interactive.Abstractions/InteractiveLocale.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveLocales.cs`,

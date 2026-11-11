@@ -76,4 +76,4 @@ JSON has no date type. RFC 7519 represents time claims as `NumericDate` numbers,
 - [ADR-1122](1122-jwt-claim-values-map-to-json-by-declared-type.md) — the claim-value mapping this date rule is part of
 - [RFC 7519 §2 — `NumericDate`](https://datatracker.ietf.org/doc/html/rfc7519#section-2)
 - [OpenID Connect Core 1.0 §5.1 — Standard Claims (`birthdate`)](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims)
-- Issue [#32](https://github.com/NCodeGroup/Identity/issues/32)
+- Issue [#32](https://github.com/NCodeGroup/identity/issues/32)

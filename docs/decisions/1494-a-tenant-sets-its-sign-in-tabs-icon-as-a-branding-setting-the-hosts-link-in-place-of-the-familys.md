@@ -83,7 +83,7 @@ family's icon and leaves a tenant's own tab icon to a branding setting of its ow
 
 ## References
 
-- Issue [#745](https://github.com/NCodeGroup/Identity/issues/745)
+- Issue [#745](https://github.com/NCodeGroup/identity/issues/745)
 - [ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md)
 - [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md)
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)

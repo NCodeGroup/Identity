@@ -91,8 +91,8 @@ with `NCID0001` on a field that a property could replace.**
 
 ## References
 
-- [#713](https://github.com/NCodeGroup/Identity/issues/713)
-- [#714](https://github.com/NCodeGroup/Identity/issues/714)
+- [#713](https://github.com/NCodeGroup/identity/issues/713)
+- [#714](https://github.com/NCodeGroup/identity/issues/714)
 - [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md): a benchmark input
   stays a field because the measured method takes it by `in`.
 - `analyzers/NCode.Identity.Analyzers/AutoPropertyAnalyzer.cs`

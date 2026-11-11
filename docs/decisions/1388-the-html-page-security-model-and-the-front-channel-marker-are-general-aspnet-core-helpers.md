@@ -23,7 +23,7 @@ CORS preflight to it.
 
 These types hold method bodies: the policy's validation and serialization, the header writer, the nonce and hash
 sources, and the request-delegate wrapper that refuses a preflight. An `*.Abstractions` package holds contracts and
-data only (issue [#513](https://github.com/NCodeGroup/Identity/issues/513)). None of them names an identity concept: a
+data only (issue [#513](https://github.com/NCodeGroup/identity/issues/513)). None of them names an identity concept: a
 Content-Security-Policy and a page the user agent navigates to are HTTP notions that any ASP.NET Core application has.
 
 [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) makes `NCode.Identity.AspNetCore` the home of
@@ -94,4 +94,4 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 - [ADR-1345](1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)
 - [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)
 - [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
-- Issue [#513](https://github.com/NCodeGroup/Identity/issues/513)
+- Issue [#513](https://github.com/NCodeGroup/identity/issues/513)

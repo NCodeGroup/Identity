@@ -51,7 +51,7 @@ process choose them.**
 
 ## References
 
-- Issue [#124](https://github.com/NCodeGroup/Identity/issues/124)
+- Issue [#124](https://github.com/NCodeGroup/identity/issues/124)
 - [FAPI 1.0 Part 2: Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html)
 - [RFC 8996](https://www.rfc-editor.org/rfc/rfc8996)
 - [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705)

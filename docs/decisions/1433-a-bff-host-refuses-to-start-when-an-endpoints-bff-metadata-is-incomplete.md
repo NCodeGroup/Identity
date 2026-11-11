@@ -17,7 +17,7 @@ which `MapReverseProxy().AsBffRemoteApis()` adds
 ([ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
 decision 8). A route without that call fails closed: the token accessor serves a token only to an endpoint the BFF
 guards, so the transform throws and YARP answers `502`. The failure surfaces on every call to the route and never at
-start (issue [#522](https://github.com/NCodeGroup/Identity/issues/522)).
+start (issue [#522](https://github.com/NCodeGroup/identity/issues/522)).
 
 Three more facts make a start-time check worth having:
 
@@ -84,4 +84,4 @@ refusals stay the backstop.**
 - [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)
 - `src/NCode.Identity.Bff/Hosting/BffEndpointStartupCheck.cs`
-- Issue [#522](https://github.com/NCodeGroup/Identity/issues/522)
+- Issue [#522](https://github.com/NCodeGroup/identity/issues/522)

@@ -10,7 +10,7 @@
 
 `apps/auth` and `apps/mgmt` are Vite bundles. Each host reads the bundle's `index.html` once per version of the file and
 serves the bundle's `assets` directory immutable. Two copies of that code drift (issue
-[#612](https://github.com/NCodeGroup/Identity/issues/612)). The surfaces differ only in what they keep of the index:
+[#612](https://github.com/NCodeGroup/identity/issues/612)). The surfaces differ only in what they keep of the index:
 
 - The interactive surface splits the index at its mount point once per version.
 - The management console renders a nonce into the index for every response.
@@ -54,4 +54,4 @@ registers one instance with its own index type.**
 - [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md),
   [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)
 - `src/NCode.Identity.AspNetCore/SinglePageBundle.cs`, `src/NCode.Identity.AspNetCore/SinglePageBundleDefaults.cs`
-- Issue [#612](https://github.com/NCodeGroup/Identity/issues/612)
+- Issue [#612](https://github.com/NCodeGroup/identity/issues/612)

@@ -11,7 +11,7 @@
 A person or an agent reads a project's role from its folder. When published packages, deployables, a build analyzer and
 a pnpm workspace share one folder, the folder hides whether a project ships, and only each project's own `IsPackable`
 setting tells. A reader has to open a project file to learn whether a change reaches a consumer
-([#759](https://github.com/NCodeGroup/Identity/issues/759)).
+([#759](https://github.com/NCodeGroup/identity/issues/759)).
 
 ## Decision
 
@@ -51,7 +51,7 @@ has a folder of its own, and the build fails a project whose folder and packing 
 
 ## References
 
-- Issue [#759](https://github.com/NCodeGroup/Identity/issues/759).
+- Issue [#759](https://github.com/NCodeGroup/identity/issues/759).
 - [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),
   [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md),

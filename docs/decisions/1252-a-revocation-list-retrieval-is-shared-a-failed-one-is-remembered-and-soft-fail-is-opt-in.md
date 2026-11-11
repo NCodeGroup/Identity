@@ -19,7 +19,7 @@ makes its limits options validated when the host starts, and
 revocation check, a correctness guard, fail closed. This record applies them to the certificate revocation list
 retrieval of the `tls_client_auth` checker, and decides the one opt-in that relaxes the second.
 
-The checker of [ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md) (issue [#255](https://github.com/NCodeGroup/Identity/issues/255)) has
+The checker of [ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md) (issue [#255](https://github.com/NCodeGroup/identity/issues/255)) has
 four weaknesses:
 
 - It retrieves a list once per concurrent check, so a burst of requests for one list repeats one download.
@@ -69,7 +69,7 @@ configured time, and `online_soft_fail` is a revocation mode that a tenant or cl
    `online`, which fails closed:
    [RFC 8705 §2.1](https://www.rfc-editor.org/rfc/rfc8705#section-2.1) leaves revocation to the PKI that issued the
    client's certificate, FAPI 2.0 adds no rule for it, and a secure default fails closed.
-6. **The rest of [#255](https://github.com/NCodeGroup/Identity/issues/255) stays open.** OCSP with a response cache, delta CRLs, partitioned CRLs (`reasons` and
+6. **The rest of [#255](https://github.com/NCodeGroup/identity/issues/255) stays open.** OCSP with a response cache, delta CRLs, partitioned CRLs (`reasons` and
    `onlySomeReasons`), indirect CRLs and a CRL signed by another key of the CA stay unsupported, and the checker answers
    unknown for them. A deployment whose PKI needs them replaces `IClientCertificateRevocationChecker`.
 
@@ -92,7 +92,7 @@ configured time, and `online_soft_fail` is a revocation mode that a tenant or cl
   too large, not yet valid or past its next update, and the list forms that the checker does not support all let a
   revoked certificate through. An operator opts into it only for a PKI whose outage must not stop its clients.
 - An option that a timer or a size refuses stops the host when it starts, not the first time a list is retrieved.
-- This implements the resilience and policy parts of issue [#255](https://github.com/NCodeGroup/Identity/issues/255); OCSP and the remaining list forms stay there.
+- This implements the resilience and policy parts of issue [#255](https://github.com/NCodeGroup/identity/issues/255); OCSP and the remaining list forms stay there.
 
 ## References
 

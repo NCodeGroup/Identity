@@ -47,7 +47,7 @@ settings update to accept it, would carry a design with no instance in every `IS
    it, and no setting names it
    ([ADR-1195](1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
 5. **The first stable release designs retirement.** At that release
-   ([#535](https://github.com/NCodeGroup/Identity/issues/535)) the family decides how a released setting retires or is
+   ([#535](https://github.com/NCodeGroup/identity/issues/535)) the family decides how a released setting retires or is
    renamed across a rolling deploy, under the expand-and-contract rule of
    [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md), with the design of
    [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md) as prior art.
@@ -70,7 +70,7 @@ settings update to accept it, would carry a design with no instance in every `IS
   that loads it. A settings write that replaces the document clears it, and `build/dev-db-reset.ps1` resets a local
   database.
 - `ISettingSerializer` has one validation member, and a management update needs no stored document to validate.
-- [#535](https://github.com/NCodeGroup/Identity/issues/535) retires this record when it decides how a released setting
+- [#535](https://github.com/NCodeGroup/identity/issues/535) retires this record when it decides how a released setting
   retires or is renamed.
 
 ## References

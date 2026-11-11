@@ -96,7 +96,7 @@ into the `assets/` its host already serves.**
 
 ## References
 
-- Issue [#737](https://github.com/NCodeGroup/Identity/issues/737)
+- Issue [#737](https://github.com/NCodeGroup/identity/issues/737)
 - `brand/README.md`
 - [ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)
 - [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)

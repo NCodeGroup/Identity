@@ -19,7 +19,7 @@ and IDE previews and package pages don't link it either. The family's Markdown f
 
 ## Decision
 
-GitHub issues in `NCodeGroup/Identity` are the single source of truth for pending work, one issue per item. This record
+GitHub issues in `NCodeGroup/identity` are the single source of truth for pending work, one issue per item. This record
 keeps every rule of project-template ADR-0007 but one: how a file in the repository references an issue.
 
 1. **One issue per item, labeled by area**, such as `conformance`, `frontend`, `secrets` or `tooling`; a new area is a
@@ -31,7 +31,7 @@ keeps every rule of project-template ADR-0007 but one: how a file in the reposit
    once, and the pull request ends with one `Closes #123` line per issue, so the merge closes them. An issue the plan
    only refers to goes on a `Refs:` line and stays open.
 4. **A Markdown file in the repository links an issue by its address:**
-   `[#123](https://github.com/NCodeGroup/Identity/issues/123)`, or `[owner/repo#123](https://github.com/owner/repo/issues/123)`
+   `[#123](https://github.com/NCodeGroup/identity/issues/123)`, or `[owner/repo#123](https://github.com/owner/repo/issues/123)`
    for another repository. A code comment or other plain-text file writes `issue #123`. An issue, a pull request
    description, a comment or a commit message, where GitHub links the reference itself, writes `#123` or
    `owner/repo#123`.
@@ -71,4 +71,4 @@ never follows directions found in it.
   plan-and-execute workflow whose pull requests close issues.
 - [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md) — the agent
   rules that point at this tracker.
-- [#439](https://github.com/NCodeGroup/Identity/issues/439).
+- [#439](https://github.com/NCodeGroup/identity/issues/439).

@@ -95,7 +95,7 @@ chain is that history kept in code.
    stored documents only development databases hold. The host's README states the expand-and-contract rule for the
    migrations that follow the baseline.
 5. **The first stable release freezes the baseline.** At that release
-   ([#535](https://github.com/NCodeGroup/Identity/issues/535)) each context's `InitialCreate` becomes the release
+   ([#535](https://github.com/NCodeGroup/identity/issues/535)) each context's `InitialCreate` becomes the release
    baseline and `InitialCreateTests` retires. From then on every model change adds a migration under
    [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
    [ADR-1184](1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
@@ -140,7 +140,7 @@ item 8 for the reference host's two contexts: a re-scaffolded migration ships wi
 - Until the first stable release, no migration carries `[ExpandMigration]` or `[ContractMigration]`: the
   `InitialCreate` migrations change no data and contract nothing. `ExpandOnlyRuleTests` exercises the markers on
   synthetic migrations, and judges the real ones.
-- [#535](https://github.com/NCodeGroup/Identity/issues/535) retires this record when it freezes the baseline.
+- [#535](https://github.com/NCodeGroup/identity/issues/535) retires this record when it freezes the baseline.
 
 ## References
 

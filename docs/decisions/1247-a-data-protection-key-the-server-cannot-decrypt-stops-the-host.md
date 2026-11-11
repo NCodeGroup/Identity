@@ -79,7 +79,7 @@ decrypt, and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
 - A key that has expired or been revoked is ignored however unreadable it is, so it never stops the host.
 - A Development host without a database still keeps its key ring in the default key directory, where the gate revokes
   the keys of earlier runs.
-- This implements issue [#239](https://github.com/NCodeGroup/Identity/issues/239).
+- This implements issue [#239](https://github.com/NCodeGroup/identity/issues/239).
 
 ## References
 

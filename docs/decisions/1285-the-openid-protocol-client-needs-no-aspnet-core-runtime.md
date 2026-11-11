@@ -16,7 +16,7 @@ console app or worker that uses the client install the ASP.NET Core runtime. The
 [backend-for-frontend design](../backend-for-frontend.md) (§4.1) calls the client useful to any server-side client, and
 [ADR-1056](1056-abstractions-split-into-framework-free-tiered-packages.md) scopes the framework
 reference to the packages that genuinely need HTTP types (issue
-[#321](https://github.com/NCodeGroup/Identity/issues/321)).
+[#321](https://github.com/NCodeGroup/identity/issues/321)).
 
 ## Decision
 
@@ -28,7 +28,7 @@ The protocol client is a plain .NET library: no package of it references an ASP.
 - It references five `Microsoft.Extensions.*` packages directly, exactly the ones its `using`s name:
   `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Http`,
   `Microsoft.Extensions.Logging.Abstractions`, `Microsoft.Extensions.Options` and `Microsoft.Extensions.Primitives`.
-- Amendment (2026-11-02, [#519](https://github.com/NCodeGroup/Identity/issues/519)): a sixth direct reference,
+- Amendment (2026-11-02, [#519](https://github.com/NCodeGroup/identity/issues/519)): a sixth direct reference,
   `Microsoft.Extensions.Diagnostics`, supplies `IMeterFactory` and `AddMetrics()` for the retry and timeout counters on
   the `NCode.Identity.OpenId.Client` meter. It is framework-free and already came in through `Microsoft.Extensions.Http`,
   so it adds nothing to restore; the client still carries no `Microsoft.Extensions.Telemetry.*` package, which

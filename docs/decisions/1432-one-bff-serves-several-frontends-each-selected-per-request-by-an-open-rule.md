@@ -27,7 +27,7 @@
 A product often has several browser apps, such as a shop and its admin console, on several hosts or on several paths of
 one origin. Each is its own OAuth client: it has its own `client_id`, authentication method and key, scopes, callback,
 return URLs, security headers and remote APIs. Two of them on one origin must never share a session cookie, the rule
-that issue [#89](https://github.com/NCodeGroup/Identity/issues/89) sets for the OP's own interactive surfaces
+that issue [#89](https://github.com/NCodeGroup/identity/issues/89) sets for the OP's own interactive surfaces
 ([ADR-1310](1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md)).
 
 Four forces shape the answer:
@@ -42,7 +42,7 @@ Four forces shape the answer:
   application writes.
 - A request that matches two frontends, or none, must not reach a session or a client registration by accident.
 
-Design [§5.10](../backend-for-frontend.md) and issue [#396](https://github.com/NCodeGroup/Identity/issues/396) describe
+Design [§5.10](../backend-for-frontend.md) and issue [#396](https://github.com/NCodeGroup/identity/issues/396) describe
 the need.
 
 ## Decision
@@ -148,5 +148,5 @@ endpoint or a token takes it from that frontend.**
   [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
 - `src/NCode.Identity.Bff/Frontends/`, `src/NCode.Identity.Bff/Options/BffFrontendOptions.cs`,
   `src/NCode.Identity.Bff.Abstractions/IBffFrontendSelector.cs`
-- Issues [#89](https://github.com/NCodeGroup/Identity/issues/89) and
-  [#396](https://github.com/NCodeGroup/Identity/issues/396)
+- Issues [#89](https://github.com/NCodeGroup/identity/issues/89) and
+  [#396](https://github.com/NCodeGroup/identity/issues/396)

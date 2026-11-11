@@ -97,5 +97,5 @@ other member from its caller as an argument.**
 - <https://www.iana.org/assignments/named-information> — Named Information Hash Algorithm Registry
 - `src/NCode.Identity.Jwk/JsonWebKey.cs`
 - `src/NCode.Identity.Jwk/JsonWebKeySet.cs`
-- Issues [#328](https://github.com/NCodeGroup/Identity/issues/328) and
-  [#329](https://github.com/NCodeGroup/Identity/issues/329)
+- Issues [#328](https://github.com/NCodeGroup/identity/issues/328) and
+  [#329](https://github.com/NCodeGroup/identity/issues/329)

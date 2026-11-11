@@ -9,7 +9,7 @@
 
 ## Context
 
-Phase 4 of the [design](../backend-for-frontend.md) (issue [#396](https://github.com/NCodeGroup/Identity/issues/396))
+Phase 4 of the [design](../backend-for-frontend.md) (issue [#396](https://github.com/NCodeGroup/identity/issues/396))
 adds two things a BFF host may need beyond its session and tokens:
 
 - **Security headers for the frontend's pages.** The paved path serves the frontend and the BFF from one origin
@@ -112,4 +112,4 @@ Four forces shape both:
   [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)
 - RFC 7517, RFC 7523, RFC 10017 §6.1.4.1, W3C Content Security Policy Level 3
 - `src/NCode.Identity.Bff/Hardening/`, `src/NCode.Identity.Bff/Endpoints/BffJwksHandler.cs`
-- Issue [#396](https://github.com/NCodeGroup/Identity/issues/396)
+- Issue [#396](https://github.com/NCodeGroup/identity/issues/396)

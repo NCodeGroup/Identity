@@ -88,4 +88,4 @@ location is optional and rendered only when set.**
 - [ADR-1485](1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md)
 - [ADR-1489](1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)
 - `charts/ncode-identity-host`, `.github/workflows/host-chart.yml`
-- Issue [#725](https://github.com/NCodeGroup/Identity/issues/725)
+- Issue [#725](https://github.com/NCodeGroup/identity/issues/725)

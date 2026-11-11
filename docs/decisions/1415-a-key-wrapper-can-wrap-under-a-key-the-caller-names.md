@@ -67,4 +67,4 @@ configuration.
   `src/NCode.Identity.Secrets.AwsKms/AwsKmsKeyWrapper.cs`,
   `src/NCode.Identity.Secrets.GoogleCloudKms/GoogleCloudKmsKeyWrapper.cs`,
   `src/NCode.Identity.Secrets.AzureKeyVault/AzureKeyVaultKeyWrapper.cs`
-- Issue [#174](https://github.com/NCodeGroup/Identity/issues/174)
+- Issue [#174](https://github.com/NCodeGroup/identity/issues/174)

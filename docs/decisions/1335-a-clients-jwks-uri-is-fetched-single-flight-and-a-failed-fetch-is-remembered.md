@@ -18,7 +18,7 @@ send as many.
 asks that concurrent callers of one caller-supplied URL share a single fetch (decision 4) and that a failed fetch is
 remembered for a short time (decision 5).
 [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) bounded each fetch but left
-both open (issue [#466](https://github.com/NCodeGroup/Identity/issues/466)).
+both open (issue [#466](https://github.com/NCodeGroup/identity/issues/466)).
 
 ## Decision
 
@@ -72,5 +72,5 @@ both open (issue [#466](https://github.com/NCodeGroup/Identity/issues/466)).
 - [ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md),
   [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)
-- Issue [#466](https://github.com/NCodeGroup/Identity/issues/466)
+- Issue [#466](https://github.com/NCodeGroup/identity/issues/466)
 - `DefaultClientKeyResolver.cs` and `OutboundHttpOptions.cs` in `NCode.Identity.OpenId.Authentication`

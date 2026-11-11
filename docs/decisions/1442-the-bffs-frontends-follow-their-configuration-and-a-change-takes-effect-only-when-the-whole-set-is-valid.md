@@ -31,7 +31,7 @@ Five forces shape the answer:
 - `IOptionsMonitor<T>.CurrentValue` throws after an invalid change, and its listeners never see one, so it can neither
   keep the last valid value nor say why it was refused.
 
-Issue [#602](https://github.com/NCodeGroup/Identity/issues/602) describes the need.
+Issue [#602](https://github.com/NCodeGroup/identity/issues/602) describes the need.
 
 ## Decision
 
@@ -116,5 +116,5 @@ derives from its options reads the current set.**
   [ADR-1443](1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md)
 - `src/NCode.Identity.Bff/Frontends/BffFrontendCatalog.cs`, `src/NCode.Identity.Bff/Frontends/BffFrontendSet.cs`,
   `src/NCode.Identity.Bff/Endpoints/BffFrontendEndpointDataSource.cs`
-- Issues [#602](https://github.com/NCodeGroup/Identity/issues/602) and
-  [#123](https://github.com/NCodeGroup/Identity/issues/123)
+- Issues [#602](https://github.com/NCodeGroup/identity/issues/602) and
+  [#123](https://github.com/NCodeGroup/identity/issues/123)

@@ -63,4 +63,4 @@ path to the console.**
 - [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
 - [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)
 - `charts/ncode-identity-host`, `.github/workflows/host-chart.yml`
-- Issue [#720](https://github.com/NCodeGroup/Identity/issues/720)
+- Issue [#720](https://github.com/NCodeGroup/identity/issues/720)

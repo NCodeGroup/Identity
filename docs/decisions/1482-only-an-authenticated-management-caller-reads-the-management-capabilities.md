@@ -53,4 +53,4 @@ else is answered with an authentication-required problem.**
 - [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md): the capabilities document.
 - [ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md): a route
   declares every problem it answers.
-- [#707](https://github.com/NCodeGroup/Identity/issues/707)
+- [#707](https://github.com/NCodeGroup/identity/issues/707)

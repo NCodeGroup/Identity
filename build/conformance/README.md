@@ -23,11 +23,11 @@ is slow, so it runs as an opt-in / nightly gate while the `dod.ps1` inner loop s
 The `conformance-user` login identity in the configs and the `client` credentials the pre-flight uses match the
 deterministic seed in
 [`appsettings.Conformance.json`](../../hosts/NCode.Identity.OpenId.Host/appsettings.Conformance.json)
-(`AddConformanceSeed`, issue [#127](https://github.com/NCodeGroup/Identity/issues/127)); the Basic OP plan registers its own client per module via Dynamic Client
+(`AddConformanceSeed`, issue [#127](https://github.com/NCodeGroup/identity/issues/127)); the Basic OP plan registers its own client per module via Dynamic Client
 Registration. This is a local test harness, never production.
 
 **Credentials.** No conformance credential is committed
-([#514](https://github.com/NCodeGroup/Identity/issues/514),
+([#514](https://github.com/NCodeGroup/identity/issues/514),
 [ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)):
 `appsettings.Conformance.json` lists the clients and the test user without a secret or password.
 [`Get-ConformanceSeedCredentials.ps1`](Get-ConformanceSeedCredentials.ps1) generates the client secrets of the clients
@@ -133,7 +133,7 @@ certificate-bound, so the OP is launched requesting client certificates and adve
 tokens and the `code id_token` response type; that is why the switch needs a fresh OP (not `-UseRunningOp`).
 The pre-flight still runs first, as in the default run: advertised certificate binding requires a certificate only
 from a client whose security profile requires binding (issue
-[#233](https://github.com/NCodeGroup/Identity/issues/233)), and the pre-flight's `client` selects none.
+[#233](https://github.com/NCodeGroup/identity/issues/233)), and the pre-flight's `client` selects none.
 `-Fapi1Advanced -PreflightOnly` runs only that pre-flight against the FAPI-configured OP, without Docker or Python.
 
 The pre-flight step bootstraps the frontend pnpm workspace via
@@ -146,7 +146,7 @@ would otherwise retry with backoff and hang the wrapper indefinitely, so a plan 
 killed (process tree) and the run fails fast. The harness also pins the suite script's own retry bounds
 (`CONFORMANCE_RETRY_TIMEOUT`, `CONFORMANCE_RESTART_RETRIES`, `CONFORMANCE_MAX_CONSECUTIVE_FAILURES`) so the suite
 self-aborts quickly on a dead/flapping server rather than relying on whatever defaults the freshly-cloned
-upstream ships (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).
+upstream ships (issue [#131](https://github.com/NCodeGroup/identity/issues/131)).
 
 On first run the script shallow-clones the suite repo into `./.conformance-suite/` (gitignored) for its
 `scripts/run-test-plan.py` and `docker-compose-prebuilt.yml`, and creates a Python venv there for the suite's

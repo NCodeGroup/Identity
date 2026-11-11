@@ -94,8 +94,8 @@ admits that SDK.
 
 ## References
 
-- Issue [#738](https://github.com/NCodeGroup/Identity/issues/738)
-- Issue [#746](https://github.com/NCodeGroup/Identity/issues/746)
+- Issue [#738](https://github.com/NCodeGroup/identity/issues/738)
+- Issue [#746](https://github.com/NCodeGroup/identity/issues/746)
 - [dotnet/roslyn#80024](https://github.com/dotnet/roslyn/issues/80024)
 - [dotnet/roslyn#80433](https://github.com/dotnet/roslyn/pull/80433)
 - [dotnet/roslyn#80433 maintainer comment](https://github.com/dotnet/roslyn/pull/80433#issuecomment-3798934789)

@@ -65,4 +65,4 @@ the ASP.NET Core antiforgery token is valid under the session's principal, and `
   [ADR-1311](1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md),
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)
 - [Project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)
-- Issue [#524](https://github.com/NCodeGroup/Identity/issues/524)
+- Issue [#524](https://github.com/NCodeGroup/identity/issues/524)

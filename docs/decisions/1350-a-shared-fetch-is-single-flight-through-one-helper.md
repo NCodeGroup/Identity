@@ -15,7 +15,7 @@ remembered for a short time (decision 5). The revocation retrieval
 `jwks_uri` resolver
 ([ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)) each kept their own
 `ConcurrentDictionary` of lazily started tasks and their own `:unavailable` memory-cache entry, so a fix to one copy
-missed the other ([#482](https://github.com/NCodeGroup/Identity/issues/482)). ADR-1335 rejected reusing
+missed the other ([#482](https://github.com/NCodeGroup/identity/issues/482)). ADR-1335 rejected reusing
 `RevocationRetrievalCache` because that type carries the revocation feature's options and logs.
 
 ## Decision
@@ -56,6 +56,6 @@ missed the other ([#482](https://github.com/NCodeGroup/Identity/issues/482)). AD
 
 - [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) and
   [ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)
-- Issue [#482](https://github.com/NCodeGroup/Identity/issues/482)
+- Issue [#482](https://github.com/NCodeGroup/identity/issues/482)
 - `SingleFlight.cs`, `RevocationRetrievalCache.cs` and `DefaultClientKeyResolver.cs` in
   `NCode.Identity.OpenId.Authentication`

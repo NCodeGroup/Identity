@@ -28,9 +28,9 @@ and siblings). Several converging needs now require a real presentation layer:
 - **Management (`api/...`).** Tenants, clients, resource servers/scopes, grants, secrets, and settings are
   only reachable by hand-driving REST. The global surface (`api/servers/...`) and the tenant-scoped surface
   (`api/tenants/{tenantId}/...`) sit on **different security boundaries** and must be browsed distinctly.
-- **Interactive auth ([#125](https://github.com/NCodeGroup/Identity/issues/125)/[ADR-1062](1062-opt-in-interactive-login-consent-ui.md)).** Conformance needs a
+- **Interactive auth ([#125](https://github.com/NCodeGroup/identity/issues/125)/[ADR-1062](1062-opt-in-interactive-login-consent-ui.md)).** Conformance needs a
   browser-drivable login + consent surface over the existing cookie-challenge seam.
-- **Consent ([#40](https://github.com/NCodeGroup/Identity/issues/40)).** Durable consent will need a user-facing approval screen.
+- **Consent ([#40](https://github.com/NCodeGroup/identity/issues/40)).** Durable consent will need a user-facing approval screen.
 - **Playground & OIDC conformance.** A reference host and a scriptable OP surface.
 - **Branding (future).** Customer-facing surfaces must be themeable/brandable per tenant.
 
@@ -136,7 +136,7 @@ services/logic — so every layer is independently testable.** Concretely:
 - The family gains its first UI and a new toolchain (Node/pnpm) in the repo. It is isolated under
   `frontend/` and does not affect the .NET Definition of Done; it needs its own lint/test/build CI
   job, added separately.
-- All future surfaces ([#125](https://github.com/NCodeGroup/Identity/issues/125) login/consent, [#40](https://github.com/NCodeGroup/Identity/issues/40) consent, Playground, conformance) build on this platform
+- All future surfaces ([#125](https://github.com/NCodeGroup/identity/issues/125) login/consent, [#40](https://github.com/NCodeGroup/identity/issues/40) consent, Playground, conformance) build on this platform
   instead of re-inventing a UI, and inherit the design system, API client, auth bootstrap, and discovery.
 - The stateless/stateful/service layering becomes a maintained convention (captured in
   [`frontend/README.md`](../../frontend/README.md)); breaking it (state in presentational
@@ -150,7 +150,7 @@ services/logic — so every layer is independently testable.** Concretely:
 
 ## References
 
-- Issues: interactive UI ([#125](https://github.com/NCodeGroup/Identity/issues/125)), consent ([#40](https://github.com/NCodeGroup/Identity/issues/40)), presentation
+- Issues: interactive UI ([#125](https://github.com/NCodeGroup/identity/issues/125)), consent ([#40](https://github.com/NCodeGroup/identity/issues/40)), presentation
   platform (new group `U`).
 - Related: [ADR-1062](1062-opt-in-interactive-login-consent-ui.md) (opt-in login/consent UI and its
   stable-locator contract — the Auth surface of this platform must honor it),

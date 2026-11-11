@@ -139,8 +139,8 @@ addresses are relative; from another one they are the files' addresses on `main`
 
 ```html
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/NCodeGroup/Identity/main/brand/lockup/ncode-identity-lockup-light.svg">
-  <img src="https://raw.githubusercontent.com/NCodeGroup/Identity/main/brand/lockup/ncode-identity-lockup-blue.svg" alt="NCode Identity" height="48">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/NCodeGroup/identity/main/brand/lockup/ncode-identity-lockup-light.svg">
+  <img src="https://raw.githubusercontent.com/NCodeGroup/identity/main/brand/lockup/ncode-identity-lockup-blue.svg" alt="NCode Identity" height="48">
 </picture>
 ```
 

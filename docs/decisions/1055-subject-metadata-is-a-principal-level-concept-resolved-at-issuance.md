@@ -89,7 +89,7 @@ persistence layer (or by Jose/Secrets) without dragging ASP.NET Core into packag
 promoted to a new dependency-free `NCode.Identity.Json` package (namespace `NCode.Identity.Json`) that any package beneath
 `NCode.Identity.*` can reference. The broader cleanup of `NCode.Identity.Abstractions` — splitting its ASP.NET Core HTTP
 surface and the Settings subsystem into their own packages so the core is lean and referenceable by anything, and Jose /
-Secrets stay standalone-reusable — is tracked in [GitHub issues](https://github.com/NCodeGroup/Identity/issues).
+Secrets stay standalone-reusable — is tracked in [GitHub issues](https://github.com/NCodeGroup/identity/issues).
 
 ## Options considered
 
@@ -128,7 +128,7 @@ Secrets stay standalone-reusable — is tracked in [GitHub issues](https://githu
 - The owner-vs-server trust boundary and whole-bag nesting of [ADR-1054](1054-local-account-metadata-projection.md) are
   retained; only the metadata's home and the resolution point change.
 - The `SystemMetadata` write-path invariant (never end-user-writable) remains the management layer's responsibility and
-  now applies at the principal level; it stays tracked in [GitHub issues](https://github.com/NCodeGroup/Identity/issues).
+  now applies at the principal level; it stays tracked in [GitHub issues](https://github.com/NCodeGroup/identity/issues).
 
 ## References
 

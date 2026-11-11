@@ -62,8 +62,8 @@ on every key of a registered or published set, so a registration whose key has n
 
 ## References
 
-- Issue [#124](https://github.com/NCodeGroup/Identity/issues/124)
-- Issue [#129](https://github.com/NCodeGroup/Identity/issues/129)
+- Issue [#124](https://github.com/NCodeGroup/identity/issues/124)
+- Issue [#129](https://github.com/NCodeGroup/identity/issues/129)
 - [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)
 - [RFC 7638](https://www.rfc-editor.org/rfc/rfc7638)
 - [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517)

@@ -50,8 +50,9 @@ packages and domains follow one naming scheme.**
      ([ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
      `ncodeid.net` is the platform domain that carries every issuer, `ncodeid.com` the brand domain; the redirect-only
      `ncodeidentity.com` and `ncodeidentity.net` guard the name.
-6. **GitHub names.** Each repository's name on GitHub is the one decision 5 gives. GitHub resolves a repository name
-   without regard to case, so a link to `https://github.com/NCodeGroup/Identity` reaches `NCodeGroup/identity`.
+6. **GitHub names.** Each repository's name on GitHub is the one decision 5 gives, and every link and reference spells
+   it that way, such as `https://github.com/NCodeGroup/identity` and `NCodeGroup/identity#760`. GitHub resolves a
+   repository name without regard to case, so a link in any capitalization reaches the repository.
 
 ## Options considered
 
@@ -70,11 +71,12 @@ packages and domains follow one naming scheme.**
 - A self-hoster finds everything it runs in the two public repositories.
 - A proprietary part of the managed offering consumes only `identity`'s public contracts, and a change to such a
   contract is decided in `identity`.
-- A link to `NCodeGroup/Identity` reaches `NCodeGroup/identity`.
+- Every link and reference spells a repository as its GitHub name, such as `NCodeGroup/identity`; GitHub resolves a
+  link in any capitalization to the same repository.
 
 ## References
 
-- Issue [#760](https://github.com/NCodeGroup/Identity/issues/760).
+- Issue [#760](https://github.com/NCodeGroup/identity/issues/760).
 - [ADR-1003](1003-central-package-management-and-lockstep-versioning.md),
   [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md),

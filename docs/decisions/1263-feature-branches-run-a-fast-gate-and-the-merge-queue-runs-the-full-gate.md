@@ -115,7 +115,7 @@ ADR-1261 stands.
   exposed to: a pull request would run too few tests, and only the queue would catch the break. Add it to the pattern.
 - Backports are automated: a `backport vX.Y` label on a merged pull request makes the `Backport` workflow cherry-pick
   it onto `backport/<pr>-vX.Y` and open the pull request against the line, or comment when the cherry-pick conflicts
-  (issue [#185](https://github.com/NCodeGroup/Identity/issues/185), `GOVERNANCE.md` "Releases, branches & tags").
+  (issue [#185](https://github.com/NCodeGroup/identity/issues/185), `GOVERNANCE.md` "Releases, branches & tags").
 
 ## References
 

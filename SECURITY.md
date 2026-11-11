@@ -4,7 +4,7 @@
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Report privately via GitHub's **[Security Advisories](https://github.com/NCodeGroup/Identity/security/advisories/new)**
+Report privately via GitHub's **[Security Advisories](https://github.com/NCodeGroup/identity/security/advisories/new)**
 ("Report a vulnerability"). Include a description, affected package(s) and version(s), reproduction steps, and impact.
 You will receive an acknowledgement, and we will coordinate a fix and disclosure timeline with you.
 

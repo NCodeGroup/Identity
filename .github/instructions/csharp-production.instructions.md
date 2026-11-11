@@ -1185,7 +1185,12 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   (`IAesKeyWrap.WrapKey` with `GetEncryptedContentKeySizeBytes`); Moq proxies such methods. See
   [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md). `BufferFactory.Rent`'s `out` span or
   memory is exactly the requested length — never slice it back to that length — and the `out Span<T>` overload is the
-  default; take `out Memory<T>` only for a buffer stored in a field or used across an `await`.
+  default; take `out Memory<T>` only for a buffer stored in a field or used across an `await`. A writable `Span<T>` or
+  `Memory<T>` parameter is a destination whose size the caller knows before the call — a fixed size, a sizing member
+  beside it, or a length the caller chooses — and a method whose output can be shorter returns the count it wrote;
+  output whose size the caller cannot know goes to a `ref TWriter` writer. A helper that rents a buffer, fills it and
+  hands it to its caller returns the lease and a read-only view, `out ReadOnlySpan<T>`, or `out ReadOnlyMemory<T>`
+  across an `await`, as `CommonJoseEncoder.EncodeUtf8` does; only `BufferFactory.Rent` hands back a writable one.
 - 👁 **Parse a fixed-segment token (compact JWS or JWE) without allocating its parts.** Split it with
   `MemoryExtensions.Split` into a `stackalloc Range[segmentCount + 1]` — never `string.Split` — and reject any count
   but `segmentCount`: the spare slot makes extra segments count past it instead of folding into the last range. The JWS

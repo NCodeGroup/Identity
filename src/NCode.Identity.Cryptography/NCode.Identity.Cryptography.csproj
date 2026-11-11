@@ -15,6 +15,7 @@
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.Buffers" />
         <PackageReference Include="NCode.Disposables" />

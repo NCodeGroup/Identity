@@ -32,5 +32,5 @@ flag_management:
     # last frontend report forward keeps that tier's numbers on such commits instead of reporting it as uncovered.
     - name: frontend
       paths:
-        - src/frontend/
+        - frontend/
       carryforward: true

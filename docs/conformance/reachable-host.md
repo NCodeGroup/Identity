@@ -8,7 +8,7 @@ direct token/userinfo/jwks/discovery calls all target one consistent origin. Tra
 
 ## The `Conformance` launch profile
 
-The [`Conformance` launch profile](../../src/NCode.Identity.OpenId.Host/Properties/launchSettings.json) is the single
+The [`Conformance` launch profile](../../hosts/NCode.Identity.OpenId.Host/Properties/launchSettings.json) is the single
 "run the OP for the external suite" entry point:
 
 - **Binds all interfaces on the stable port.** `applicationUrl = https://0.0.0.0:5001;http://0.0.0.0:5000`, so the
@@ -34,7 +34,7 @@ https://host.docker.internal:5001` makes the discovery `issuer` byte-match the o
   `InteractiveAuthentication__BundleRootPath` serves the `apps/auth` login/consent bundle under the tenant's
   `/account/*`.
 
-Run it with `dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance` after
+Run it with `dotnet run --project hosts/NCode.Identity.OpenId.Host --launch-profile Conformance` after
 `./build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment` in the same shell: the seeded clients' secrets
 and the test user's password are generated per machine and passed in the environment, never committed
 ([#514](https://github.com/NCodeGroup/Identity/issues/514)). The full orchestration that also brings the suite up and

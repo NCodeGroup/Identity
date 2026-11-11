@@ -10,7 +10,7 @@ The dev database is **PostgreSQL**, orchestrated by the Aspire AppHost
 AppHost (not this project directly) so the database, migrations, and host come up in the right order:
 
 ```pwsh
-dotnet run --project src/NCode.Identity.OpenId.LocalDev
+dotnet run --project hosts/NCode.Identity.OpenId.LocalDev
 ```
 
 The AppHost:
@@ -178,8 +178,8 @@ Development only):
 ```pwsh
 $secret = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
 $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($secret)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
-dotnet user-secrets set BootstrapAdmin:ClientSecret $encoded --project src/NCode.Identity.OpenId.Host
-dotnet user-secrets set DeveloperInteractiveSeed:AdminPassword '<at least 15 characters>' --project src/NCode.Identity.OpenId.Host
+dotnet user-secrets set BootstrapAdmin:ClientSecret $encoded --project hosts/NCode.Identity.OpenId.Host
+dotnet user-secrets set DeveloperInteractiveSeed:AdminPassword '<at least 15 characters>' --project hosts/NCode.Identity.OpenId.Host
 ```
 
 `$secret` is the client secret to present. Without a value neither administrator is seeded. The `Conformance` profile
@@ -197,7 +197,7 @@ shell first:
 
 ```pwsh
 ./build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment
-dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance
+dotnet run --project hosts/NCode.Identity.OpenId.Host --launch-profile Conformance
 ```
 
 ## Schema management (EF Core migrations)
@@ -227,8 +227,8 @@ After changing the EF model, delete the context's migration, designer file and m
 ```pwsh
 dotnet tool restore   # first time only (provides dotnet-ef)
 dotnet ef migrations add InitialCreate `
-  --project src/NCode.Identity.OpenId.Host.Database `
-  --startup-project src/NCode.Identity.OpenId.Host.Database `
+  --project hosts/NCode.Identity.OpenId.Host.Database `
+  --startup-project hosts/NCode.Identity.OpenId.Host.Database `
   --context OpenIdDbContext `
   --output-dir Migrations/OpenId
 ```
@@ -283,10 +283,10 @@ DataProtection key ring are in the same database and are purged with it.
 The `Dockerfile` builds the production image from the repository root. Its base images are pinned by tag and digest, and
 Dependabot moves the digests
 ([ADR-1249](../../docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)); the
-Node image's major matches the single pin in `src/frontend/.node-version`, which the `Host image` workflow checks:
+Node image's major matches the single pin in `frontend/.node-version`, which the `Host image` workflow checks:
 
 ```bash
-docker build --file src/NCode.Identity.OpenId.Host/Dockerfile --tag ncode-identity-host .
+docker build --file hosts/NCode.Identity.OpenId.Host/Dockerfile --tag ncode-identity-host .
 ```
 
 The image runs on a chiseled ASP.NET Core base with no shell. It runs as the non-root `app` user (UID 1654), listens on

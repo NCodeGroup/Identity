@@ -10,7 +10,7 @@ The `Dockerfile` builds the production image from the repository root. Its base 
 tag and digest:
 
 ```bash
-docker build --file src/NCode.Identity.ManagementConsole.Host/Dockerfile --tag ncode-identity-management-console .
+docker build --file hosts/NCode.Identity.ManagementConsole.Host/Dockerfile --tag ncode-identity-management-console .
 ```
 
 The image runs on a chiseled ASP.NET Core base with no shell. It runs as the non-root `app` user (UID 1654), listens on

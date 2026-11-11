@@ -20,6 +20,7 @@
 !nuget.config
 !version.json
 !src/
+!analyzers/
 
 # Build outputs and local state inside the allowed tree.
 **/bin/

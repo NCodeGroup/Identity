@@ -2,7 +2,6 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <RootNamespace>NCode.Identity.Analyzers</RootNamespace>
-        <IsPackable>false</IsPackable>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <!-- The analyzer ships in no package, so it tracks no analyzer releases. -->

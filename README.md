@@ -35,8 +35,8 @@ through public contracts.
 | **Repository** | The product's public repository; the platform's infrastructure is [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform) ([Repositories](#repositories)) |
 
 The whole family is versioned in lockstep from a single [`version.json`](version.json)
-([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)), and its packages, hosts, images,
-chart and frontend live and release together in this repository.
+([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)), and its packages, hosts, images
+and chart, with the frontend the console image builds, live together in this repository.
 
 ## Why
 

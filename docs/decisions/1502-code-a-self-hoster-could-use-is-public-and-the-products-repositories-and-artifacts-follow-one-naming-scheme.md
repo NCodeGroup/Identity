@@ -27,8 +27,9 @@ packages and domains follow one naming scheme.**
    offering's first proprietary code.
 2. **The product's repository.** `identity` is not a library-only repository: the chart and the images change with the
    host, so they live beside it ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md) decision 1). The
-   packages, hosts, images, chart and frontend version in lockstep from one `version.json`
-   ([ADR-1003](1003-central-package-management-and-lockstep-versioning.md)), and the console image builds `frontend/`.
+   packages, hosts, images and chart version in lockstep from one `version.json`
+   ([ADR-1003](1003-central-package-management-and-lockstep-versioning.md)), and the console image builds `frontend/`,
+   whose private packages are never published.
    So `frontend/` and every package stay in `identity`, at the first stable release and after it.
 3. **Public or private.** Code is public when a self-hoster could use it. Anything in `identity-cloud` that a
    self-hoster would want belongs in `identity` or `identity-platform`.
@@ -59,8 +60,8 @@ packages and domains follow one naming scheme.**
 - **One private repository for the managed offering's infrastructure and code.** Rejected: self-hosters need the
   components, and [ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md) makes the infrastructure
   public.
-- **Separate repositories for the packages and the frontend at the first stable release.** Rejected: they version in
-  lockstep from one `version.json`, and the console image builds `frontend/`.
+- **Separate repositories for the packages and the frontend at the first stable release.** Rejected: the packages
+  version in lockstep from one `version.json`, and the console image builds `frontend/`.
 - **Repository names that repeat the organization, such as `NCodeGroup/ncode-identity`.** Rejected: the organization
   already names the company.
 

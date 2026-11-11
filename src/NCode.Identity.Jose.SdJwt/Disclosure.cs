@@ -243,16 +243,19 @@ public sealed class Disclosure
         return Base64Url.Encode(buffer.AsReadOnlySequence);
     }
 
-    private static IDisposable DecodeBase64Url(ReadOnlySpan<char> chars, out Span<byte> bytes)
+    private static IDisposable DecodeBase64Url(
+        ReadOnlySpan<char> chars,
+        out ReadOnlySpan<byte> bytes
+    )
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
-        var lease = BufferFactory.Rent(byteCount, isSensitive: false, out bytes);
+        var lease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> buffer);
         try
         {
             // The disclosure is wire input, so one that does not decode whole is refused rather than read from a
             // buffer the decoder filled only in part.
             if (
-                !Base64Url.TryDecode(chars, bytes, out var bytesWritten)
+                !Base64Url.TryDecode(chars, buffer, out var bytesWritten)
                 || bytesWritten != byteCount
             )
                 throw new FormatException("The disclosure is not valid base64url.");
@@ -263,6 +266,7 @@ public sealed class Disclosure
             throw;
         }
 
+        bytes = buffer;
         return lease;
     }
 }

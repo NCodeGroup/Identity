@@ -63,9 +63,9 @@ than inlining the rationale.
   malformed body or one over the form limits, which the OpenID exception handler answers with `500`. An OpenID endpoint
   reads its form once, first — before client authentication — through `TryReadFormAsync` and answers
   `UnreadableForm.CreateError` (`400 invalid_request`) when it returns `null`; a later reader gets the cached form. Every
-  package reads a form through that one method, `NCode.AspNetCore.FormRequestExtensions.TryReadFormAsync` (`null` for no
+  package reads a form through that one method, `NCode.Identity.AspNetCore.FormRequestExtensions.TryReadFormAsync` (`null` for no
   form or an unreadable one) — the OpenID endpoints and the BFF alike — never through a copy of its own
-  ([ADR-1355](../../docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+  ([ADR-1498](../../docs/decisions/1498-every-package-names-one-capability-under-the-ncode-identity-prefix.md)).
 - 👁 **A background loop treats an `OperationCanceledException` as a failure unless its own stopping token is
   cancelled** — template [Language and Async](csharp.instructions.md#language-and-async) (`JobDispatchWorker`,
   [ADR-1232](../../docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md)).
@@ -124,7 +124,7 @@ than inlining the rationale.
   endpoint, such as background work, resolves no such client
   ([ADR-1168](../../docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
 - 👁 **Keep CORS off a front-channel endpoint with `WithFrontChannel()`, never CORS metadata.** An endpoint the
-  user agent navigates to (authorization, continue, end-session, the interactive surface) carries `NCode.AspNetCore`'s
+  user agent navigates to (authorization, continue, end-session, the interactive surface) carries `NCode.Identity.AspNetCore`'s
   `IFrontChannelEndpointMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same call
   routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker, and a
   preflight that selects no endpoint (an unmapped method) gets no policy either. Do not use `DisableCors()` /
@@ -211,10 +211,12 @@ than inlining the rationale.
 - 👁 **An implementation package references only `*.Abstractions` packages — never another implementation package.**
   Cross-implementation collaboration flows through an interface owned by an `*.Abstractions` package, resolved from DI;
   the concrete type is registered by its own package's `DefaultRegistration.cs` (§4) and referenced in exactly one
-  place — the composition root (`AddIdentityServer()` on the `NCode.Registration` `IServiceBuilder<TMarker>` builder). A
+  place — the composition root (`AddIdentityServer()` on the `NCode.Identity.Registration` `IServiceBuilder<TMarker>` builder). A
   new capability shared by more than one implementation therefore ships as an abstraction/implementation **pair**. An
   implementation `.csproj` whose `ProjectReference` names a non-`Abstractions` package is a violation. See
-  [ADR-1016](../../docs/decisions/1016-implementation-packages-depend-only-on-abstractions.md).
+  [ADR-1016](../../docs/decisions/1016-implementation-packages-depend-only-on-abstractions.md). A foundation package
+  (`NCode.Identity.Json`, `NCode.Identity.Time`, `NCode.Identity.AspNetCore`) is the exception: any package may
+  reference it ([ADR-1498](../../docs/decisions/1498-every-package-names-one-capability-under-the-ncode-identity-prefix.md)).
 - 👁 **Mark infrastructure-public types** — template [Public API](csharp.instructions.md#public-api), with the summary
   _"This API supports the NCode.Identity infrastructure and is not intended to be used directly from your code."_
 - ⏳ The public surface is deliberate and tracked by `PublicApiAnalyzers` (`RS0016` / `RS0017` / `RS0024`): a public
@@ -280,15 +282,15 @@ than inlining the rationale.
   `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default, such as the reference
   host's `AllowAnyClientCertificate()` for mutual TLS
   ([ADR-1202](../../docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
-- 👁 **A host maps its probes with `MapHealthProbes()`** (`NCode.AspNetCore`), and a package tags a check a replica cannot serve without with `HealthCheckTags.Readiness` (`NCode.Registration`) ([ADR-1456](../../docs/decisions/1456-the-hosts-map-their-health-probes-through-one-general-helper.md)).
+- 👁 **A host maps its probes with `MapHealthProbes()`** (`NCode.Identity.AspNetCore`), and a package tags a check a replica cannot serve without with `HealthCheckTags.Readiness` (`NCode.Identity.Registration`) ([ADR-1456](../../docs/decisions/1456-the-hosts-map-their-health-probes-through-one-general-helper.md)).
 - ✅ **C# 14 `extension` member syntax** — template
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods)
-  (`extension(IServiceBuilder<IdentityLibrary> builder) { … }` in `DefaultRegistration.cs`).
+  (`extension(IServiceBuilder<OpenIdCoreLibrary> builder) { … }` in `DefaultRegistration.cs`).
 - ✅ **One receiver type per static class (`CA1708`)** — template
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods).
 - 👁 **When two receiver interfaces are unrelated but a concrete type implements both, target their common base** —
   template [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods)
-  (`NCode.Json.ObjectGraphExtensions.TryGetValue<T>`).
+  (`NCode.Identity.Json.ObjectGraphExtensions.TryGetValue<T>`).
 - 👁 **Null-guard the receiver** — template
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods).
 - 👁 **Name the receiver in a receiver-argument exception even though `CA2208` objects** — template
@@ -403,7 +405,7 @@ than inlining the rationale.
   authenticated. See [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md) and
   [ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md).
 - 👁 **Bind configuration strictly and validate it when the host starts** — template
-  [Configuration and Options](csharp.instructions.md#configuration-and-options). Bind through `NCode.Registration`'s
+  [Configuration and Options](csharp.instructions.md#configuration-and-options). Bind through `NCode.Identity.Registration`'s
   `BindStrictly`, which names the section in the error. A seeded client's id and redirect URIs have no library default:
   the host's environment overlay declares them beside the configuration that publishes them
   ([ADR-1146](../../docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)).
@@ -501,7 +503,7 @@ than inlining the rationale.
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-1069](../../docs/decisions/1069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the
   compile-time prerequisite:** a package root's `AddXLibrary()` extends its prerequisite library's builder
-  (`extension(IServiceBuilder<IdentityLibrary>) { AddOpenIdCoreLibrary() }`), and an **opt-in bolt-on capability**
+  (`extension(IServiceBuilder<OpenIdCoreLibrary>) { AddOpenIdManagementLibrary() }`), and an **opt-in bolt-on capability**
   extends the marker of the library it augments (`AddLocalAccountManagement()` on `IServiceBuilder<OpenIdManagementLibrary>`,
   `AddInteractiveAuthentication()` on `IServiceBuilder<OpenIdAuthenticationLibrary>`) — **never** a naked
   `IServiceCollection`, so it is compile-time-impossible to add a capability without its framework. A library marker a
@@ -510,7 +512,7 @@ than inlining the rationale.
   `ConfigureMethod` data to keep in sync). **A second litmus governs which `.Abstractions`
   packages own a marker: a registerable library _layer_ does (minted by its `AddXLibrary()`), and a dependency-inverted
   _seam that other registrations build on_ owns a _presence marker_ minted by every implementation.** Two seams own one:
-  the persistence framework owns `StoreManagerLibrary` (`NCode.Persistence.Abstractions`, minted by
+  the persistence framework owns `StoreManagerLibrary` (`NCode.Identity.Persistence.Abstractions`, minted by
   `AddEntityFrameworkCorePersistence`), and the local-account store owns `LocalAccountLibrary`
   (per [ADR-1060](../../docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)): each store
   registration (`AddLocalAccountEntityFramework`, `AddAspNetIdentityLocalAccountStore`, a custom store) receives
@@ -528,7 +530,7 @@ than inlining the rationale.
   another marker-bearing library's services** is a bolt-on and **must** gate on that library's `IServiceBuilder<TMarker>`
   (e.g. the dev-host `AddDeveloperKeyPruning` / `AddDeveloperInteractiveSeed`, which hook the server's command handlers,
   extend `IServiceBuilder<IdentityServer>` — never the bare collection). Only a chain **root**
-  with no prerequisite (`AddIdentityLibrary`, `AddSecretsLibrary`, `AddEventServices` which mints `EventsLibrary`, and the
+  with no prerequisite (`AddSettingsLibrary`, `AddClaimsLibrary`, `AddCryptographyLibrary`, `AddSecretsLibrary`, `AddEventServices` which mints `EventsLibrary`, and the
   persistence-framework root `AddEntityFrameworkCorePersistence` which mints `StoreManagerLibrary`), a **generic utility
   helper**, or **foundational marker-less cross-cutting infrastructure** (`AddPropertyBag`, `AddDataProtection`) takes a
   naked `IServiceCollection`; a dependency-inverted store instead receives its framework seam's builder
@@ -716,7 +718,7 @@ than inlining the rationale.
   [ADR-1253](../../docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md).
 - 👁 **A content-hashed static file is served by a route group that resolves no tenant.**
   `InteractiveBundleAssetEndpointGroup` takes the tenant-route prefix and adds no `OpenIdEnvironmentEndpointFilter`. It
-  reads through `NCode.AspNetCore`'s `SinglePageBundle<InteractiveBundleShell>`, whose file provider is rooted at
+  reads through `NCode.Identity.AspNetCore`'s `SinglePageBundle<InteractiveBundleShell>`, whose file provider is rooted at
   `assets`, so nothing outside `assets`, the bundle's `index.html` included, is servable, and `ServeAsset` sends a
   served file `Cache-Control: public, max-age=31536000, immutable`. Every surface that serves a built bundle registers
   its own `SinglePageBundle<TIndex>`. See
@@ -826,16 +828,16 @@ than inlining the rationale.
 - 👁 **A response that reveals a secret is marked `.WithNoStore()`.** Map every endpoint whose response can carry
   secret material (a generated secret or key, an initial access token, a `client_secret` or
   `registration_access_token`, or a one-time credential: a `request_uri`, a `device_code` and `user_code`, or an
-  `auth_req_id`) with `.WithNoStore()` (`NCode.AspNetCore`), which writes
+  `auth_req_id`) with `.WithNoStore()` (`NCode.Identity.AspNetCore`), which writes
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` before the handler runs, so the mapping shows
   which routes reveal a secret and no handler path can forget it. `HttpResponse.SetNoStore()` writes the same headers
   where a response rather than a route carries the secret, as the authorization response writer does. Reference the
-  `NCode.AspNetCore` package, the home for general ASP.NET Core helpers, which references no identity package. See
+  `NCode.Identity.AspNetCore` foundation package. See
   [ADR-1345](../../docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md),
-  [ADR-1355](../../docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) and
+  [ADR-1498](../../docs/decisions/1498-every-package-names-one-capability-under-the-ncode-identity-prefix.md) and
   [ADR-1388](../../docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
-  property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
+  property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Identity.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.
 
 ## 5. Formatting & build gates
@@ -953,9 +955,9 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
 - **Dispose what you own** — template [Clean Code](csharp.instructions.md#clean-code); never leave an
   `HttpResponseMessage`, a `Stream` or an `IHttpClientFactory`-created client undisposed. **Parse JSON into a detached
   `JsonElement`** — template [Serialized and Stored Data](csharp.instructions.md#serialized-and-stored-data);
-  `NCode.Json` also parses a `ReadOnlySequence<byte>`, so a token segment decoded into a rented buffer parses straight
+  `NCode.Identity.Json` also parses a `ReadOnlySequence<byte>`, so a token segment decoded into a rented buffer parses straight
   from the span, and a parsed `JsonElement` is named for what it holds, or `jsonElement`, never `document`.
-- **Read `JsonElement` members with the `NCode.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
+- **Read `JsonElement` members with the `NCode.Identity.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
   `TryGetPropertyValue<T>` / `TryGetValue<T>` — which convert by `ValueKind` and never throw — in place of a
   `TryGetProperty(name, out var e) + e.ValueKind == JsonValueKind.X + e.GetString()/GetInt64()/…` chain (the bare
   `GetInt64()`/`GetString()` form also throws on a mismatched kind); `IsNullOrUndefined()` in place of a bare
@@ -963,9 +965,9 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   The property readers (`TryGetPropertyValue<T>`, `TryGetPropertyNumericDate`) call `JsonElement.TryGetProperty`, which
   throws `InvalidOperationException` on anything but an object, so JSON parsed from wire input — a token's header or
   payload, a request body — is rejected unless `ValueKind == JsonValueKind.Object` before its members are read.
-  Reference the dependency-free **`NCode.Json`** package — the shared home for these helpers
+  Reference the **`NCode.Identity.Json`** foundation package — the shared home for these helpers
   ([ADR-1056](../../docs/decisions/1056-abstractions-split-into-framework-free-tiered-packages.md)).
-- **Parse a date/time string with `NCode.Json.DateCoercion`, never a hand-rolled `DateTime(Offset).TryParse`.**
+- **Parse a date/time string with `NCode.Identity.Json.DateCoercion`, never a hand-rolled `DateTime(Offset).TryParse`.**
   `TryParseDateTimeOffset` / `TryParseDateTime` are the family's single lenient, invariant-culture date policy (zone-less
   → UTC, explicit offset honored, an out-of-range instant fails instead of clamping), so every package accepts the same
   formats and produces the same values. Apply it only where the value is **declared** to be a date (an explicit claim
@@ -984,14 +986,14 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
 - **Read a count of seconds a remote party sends (`expires_in`, `interval`) with `JsonElement.TryGetWholeInt32` /
   `TryGetPropertyWholeInt32`, or `[JsonConverter(typeof(WholeInt32JsonConverter))]` on a serialized member** — never
   `JsonElement.TryGetInt32` or the serializer's default `int` handling. JSON has one number type, so a peer may write
-  60 as `60.0` or `6e1`, which the BCL readers reject; the `NCode.Json` readers accept any whole value in `int` range
+  60 as `60.0` or `6e1`, which the BCL readers reject; the `NCode.Identity.Json` readers accept any whole value in `int` range
   and still refuse a non-zero fraction, a string, and an out-of-range number. See
   [ADR-1277](../../docs/decisions/1277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md).
-- **Stamp an instant that a JWT or a stored grant carries with `NCode.Time`'s whole-second helpers.** Use
+- **Stamp an instant that a JWT or a stored grant carries with `NCode.Identity.Time`'s whole-second helpers.** Use
   `TimeProvider.GetUtcNowWithPrecisionInSeconds()` (or `GetTimestampWithPrecisionInSeconds()` for ticks) and
   `WithPrecisionInSeconds()`, so a stored time equals the `NumericDate` it round-trips through. Reference the
-  dependency-free **`NCode.Time`** package, the home for general time helpers. A helper with a method body never lives
-  in an `*.Abstractions` package. See [ADR-1188](../../docs/decisions/1188-general-time-helpers-live-in-a-dependency-free-package.md).
+  the **`NCode.Identity.Time`** foundation package, the home for general time helpers. A helper with a method body never lives
+  in an `*.Abstractions` package. See [ADR-1498](../../docs/decisions/1498-every-package-names-one-capability-under-the-ncode-identity-prefix.md).
 - **Bound a received JWT's lifetime through the lifetime requirement, never with ad-hoc `exp` arithmetic.** Cap a
   client-supplied JWT (assertion, request object) with `ValidateTokenLifeTime(o => o.MaxLifetime = …)`, fed from a
   `Min`-merged `*_max_lifetime` setting; it measures from the earliest asserted `iat`/`nbf` (or now plus skew), so the
@@ -1263,9 +1265,9 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
     | `6000`–`6999`   | `NCode.Identity.Secrets`                            |
     | `7000`–`7999`   | `NCode.Identity.Secrets.Persistence`                |
     | `8000`–`8999`   | `NCode.Identity.Jose`                               |
-    | `9000`–`9999`   | `NCode.Identity.JsonWebTokens`                      |
-    | `10000`–`10999` | `NCode.Identity`                                    |
-    | `11000`–`11999` | `NCode.Registration`                                |
+    | `9000`–`9999`   | `NCode.Identity.Jwt`                                |
+    | `10000`–`10999` | `NCode.Identity.Settings`                           |
+    | `11000`–`11999` | `NCode.Identity.Registration`                       |
     | `12000`–`12999` | `NCode.Identity.Server`                             |
     | `13000`–`13999` | `NCode.Identity.OpenId.Host`                        |
     | `14000`–`14999` | `NCode.Identity.Events`                             |
@@ -1280,6 +1282,8 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
     | `23000`–`23999` | `NCode.Identity.Cwt`                                |
     | `24000`–`24999` | `NCode.Identity.Bff.Blazor.Client`                  |
     | `25000`–`25999` | `NCode.Identity.Bff.Blazor`                         |
+    | `26000`–`26999` | `NCode.Identity.Claims`                             |
+    | `27000`–`27999` | `NCode.Identity.Cryptography`                       |
 
 ### Metrics
 
@@ -1331,5 +1335,5 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   `DeveloperInteractiveSeed` and `ConformanceSeed` require their `TenantId`
   ([ADR-1166](../../docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)).
 - 👁 **A period that options hand to a timer is validated when the host starts with `TimerPeriod.IsValid`**
-  (`NCode.Time`) — template [Configuration and Options](csharp.instructions.md#configuration-and-options) and
+  (`NCode.Identity.Time`) — template [Configuration and Options](csharp.instructions.md#configuration-and-options) and
   [ADR-1221](../../docs/decisions/1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md).

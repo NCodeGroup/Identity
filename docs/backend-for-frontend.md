@@ -3,7 +3,7 @@
 - **Status:** In progress. SharedState, the protocol client, the `NCode.Identity.Bff` core, remote APIs, browser
   hardening, multiple frontends, server-rendered and Blazor hosts, and the management console are implemented
   ([§9](#9-implementation-status)). The library is tracked as issue
-  [#123](https://github.com/NCodeGroup/Identity/issues/123). Each implemented area's decisions
+  [#123](https://github.com/NCodeGroup/identity/issues/123). Each implemented area's decisions
   ([§8](#8-decisions-and-options-considered)) are ADRs.
 - **Date:** 2026-10-20
 - **Scope:** a **server-side** library that turns an ASP.NET Core application into the Backend for Frontend (BFF)
@@ -961,7 +961,7 @@ every registered rule, and `IsMatch` reads only the request. Two rules are built
 
 **Isolation.** Each frontend has its own session cookie, `__Host-Http-bff.<name>`, and login cookie,
 `__Host-Http-bff-login.<name>`, so two surfaces on one origin never share a session cookie. Naming the cookie per frontend
-applies the same rule issue [#89](https://github.com/NCodeGroup/Identity/issues/89) sets for the OP's own interactive
+applies the same rule issue [#89](https://github.com/NCodeGroup/identity/issues/89) sets for the OP's own interactive
 surface. The session metadata records its frontend, which is authenticated as associated data of the record
 ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)), and
 the resolver ignores and deletes a cookie whose session belongs to another frontend. A login transaction records its
@@ -1588,7 +1588,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
   refresh-token rotation, RP-initiated logout and back-channel logout work from discovery metadata alone, so the
   library is proven not to depend on NCode behavior.
 - **OpenID Foundation conformance.** The relying-party test plans (OIDC Basic RP, and FAPI 2.0 client where it
-  applies) certify the protocol client from the other side of the suite the OP already targets (issue [#124](https://github.com/NCodeGroup/Identity/issues/124)).
+  applies) certify the protocol client from the other side of the suite the OP already targets (issue [#124](https://github.com/NCodeGroup/identity/issues/124)).
 - **Browser end-to-end.** Playwright for .NET in Chromium, Firefox and WebKit checks the cookie attributes, `SameSite`
   on cross-site navigation and form posts, CORS preflight denial, and Fetch Metadata rejection of what CORS admits.
   A Blazor Web App host (interactive server and WebAssembly) shows that a circuit signs out after back-channel logout,
@@ -1631,7 +1631,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
    sits under `OpenId` because it is a protocol concern, and the BFF is an application pattern.
    Decided: `NCode.Identity.Bff` and `NCode.Identity.Bff.Abstractions`, because the BFF is an application pattern
    ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)).
-6. **The reference host as its own BFF.** For [#158](https://github.com/NCodeGroup/Identity/issues/158), should the console's BFF run in the OP host process,
+6. **The reference host as its own BFF.** For [#158](https://github.com/NCodeGroup/identity/issues/158), should the console's BFF run in the OP host process,
    or as a separate host?
    Decided: a separate host, `NCode.Identity.ManagementConsole.Host`, on an origin of its own
    ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).

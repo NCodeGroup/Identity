@@ -6,7 +6,7 @@ harness, driven **fully automated** by the committed automation in [`build/confo
 [`docs/conformance/external-suite.md`](conformance/external-suite.md) describes. This document is the design: why an
 external harness, how the suite works, what full automation requires of the repository and where each requirement
 lives, and the annotated reference templates behind the committed configs. Tracking issue:
-[#124](https://github.com/NCodeGroup/Identity/issues/124).
+[#124](https://github.com/NCodeGroup/identity/issues/124).
 
 ## Why an external harness (not just our own tests)
 
@@ -27,7 +27,7 @@ Apache-2 for libs), and self-hostable:
 prebuilt Docker images on the developer's machine; the suite reaches the OP over `host.docker.internal:5001`, so no
 public ingress is required. The OpenID Foundation's **hosted** instance (`https://www.certification.openid.net/`) is an
 optional alternative that _would_ require a publicly reachable OP — it is not the default path and not a prerequisite of
-issue [#124](https://github.com/NCodeGroup/Identity/issues/124).
+issue [#124](https://github.com/NCodeGroup/identity/issues/124).
 
 It is what Auth0, Okta, Keycloak, Ping, and Duende IdentityServer use to self-certify. There is **no
 separate official OAuth 2.0/2.1-only** suite; the OIDC **Basic/Config** OP profiles exercise the OAuth
@@ -92,7 +92,7 @@ Selected under "Test an OpenID Provider" in the suite:
 5. **Dynamic OP** — Dynamic Client Registration (RFC 7591) is implemented
    ([ADR-1063](decisions/1063-dynamic-client-registration.md)).
 6. **FAPI 1.0 Advanced** — wired as `run-conformance.ps1 -Fapi1Advanced`; its run and baseline are tracked in
-   [#124](https://github.com/NCodeGroup/Identity/issues/124). FAPI 2 is out of scope unless the family targets
+   [#124](https://github.com/NCodeGroup/identity/issues/124). FAPI 2 is out of scope unless the family targets
    open-finance ecosystems.
 
 ## What "full automation" requires in this repo
@@ -107,7 +107,7 @@ Prerequisites, in dependency order, each with the document that describes how th
    profile provides it ([`reachable-host.md`](conformance/reachable-host.md)).
 2. **Automatable login + consent UI** with stable selectors and a **seeded deterministic conformance
    user** (fixed username; password generated per machine and never committed —
-   [#514](https://github.com/NCodeGroup/Identity/issues/514)), with a scripted, optional consent task
+   [#514](https://github.com/NCodeGroup/identity/issues/514)), with a scripted, optional consent task
    ([`login-consent-ui.md`](conformance/login-consent-ui.md)).
 3. **Deterministic conformance tenant + clients.** The seeder provisions the conformance tenant, the test user and
    the static clients (the static-client path needs **three**: two `client_secret_basic`, one `client_secret_post` —
@@ -134,7 +134,7 @@ Prerequisites, in dependency order, each with the document that describes how th
 9. **CI wiring:** a **separate, opt-in/nightly** pipeline — **not** [`build/dod.ps1`](../build/dod.ps1),
    whose inner loop must stay fast and hermetic. The job needs Docker + Python 3; no local Java (prebuilt
    images). Gate it on the baseline so a regression turns the pipeline red. This pipeline is pending work, tracked in
-   [#129](https://github.com/NCodeGroup/Identity/issues/129).
+   [#129](https://github.com/NCodeGroup/identity/issues/129).
 
 ### Windows developer notes
 

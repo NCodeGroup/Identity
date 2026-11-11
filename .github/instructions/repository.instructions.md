@@ -8,7 +8,7 @@ applyTo: "**"
 ## Standing direction from the project owner
 
 The project owner's words, which hold until the first stable release
-([#535](https://github.com/NCodeGroup/Identity/issues/535) retires them then):
+([#535](https://github.com/NCodeGroup/identity/issues/535) retires them then):
 
 > I want the best option long term that is cohesive and comprehensive, irrelevant of how difficult it would be to
 > refactor now to accomplish that. This entire project is greenfield: it is in active development, nothing is shipped,
@@ -123,12 +123,12 @@ during a task into the instruction files or an ADR as part of the same change. S
 [project-template ADR-0001](../../docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md).
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
-[GitHub issues](https://github.com/NCodeGroup/Identity/issues), the single source of truth for it
+[GitHub issues](https://github.com/NCodeGroup/identity/issues), the single source of truth for it
 ([ADR-1306](../../docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)). Record a pending item as an issue
 labeled by its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
 ([project-template ADR-0001](../../docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an
 issue closes it with `Closes #<number>`. Read open issues with `gh issue list`; reference one as
-`[#123](https://github.com/NCodeGroup/Identity/issues/123)` in a Markdown file, `issue #123` in a code comment, and
+`[#123](https://github.com/NCodeGroup/identity/issues/123)` in a Markdown file, `issue #123` in a code comment, and
 `#123` in an issue, a pull request or a commit message.
 
 **Completion status is one fact, the same everywhere.** "Done" is binary and global: report an item as done — in a

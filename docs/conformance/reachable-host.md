@@ -3,7 +3,7 @@
 The OpenID host runs as a **real, externally reachable HTTPS process** whose discovery document's `issuer`
 **byte-matches** the origin the conformance suite uses to reach it — so the suite's nginx/Selenium front end and its
 direct token/userinfo/jwks/discovery calls all target one consistent origin. Tracking issue:
-[#126](https://github.com/NCodeGroup/Identity/issues/126). Parent design:
+[#126](https://github.com/NCodeGroup/identity/issues/126). Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisites #1 and #5, and the "Windows developer notes").
 
 ## The `Conformance` launch profile
@@ -28,8 +28,8 @@ https://host.docker.internal:5001` makes the discovery `issuer` byte-match the o
   pins `https://localhost:5003`. Both conformance profiles serve their own `conformance` tenant (the overlay's
   `StaticSingle:TenantId`), so the Aspire instance never shares the development host's `default` tenant — and its
   stored issuer — in the shared Postgres.
-- **Reuses the conformance tenant/seed ([#127](https://github.com/NCodeGroup/Identity/issues/127)) and the interactive
-  UI ([#125](https://github.com/NCodeGroup/Identity/issues/125)).** `ASPNETCORE_ENVIRONMENT = Conformance` loads
+- **Reuses the conformance tenant/seed ([#127](https://github.com/NCodeGroup/identity/issues/127)) and the interactive
+  UI ([#125](https://github.com/NCodeGroup/identity/issues/125)).** `ASPNETCORE_ENVIRONMENT = Conformance` loads
   `appsettings.Conformance.json` (the `ConformanceSeed` section → `AddConformanceSeed`), and
   `InteractiveAuthentication__BundleRootPath` serves the `apps/auth` login/consent bundle under the tenant's
   `/account/*`.
@@ -37,7 +37,7 @@ https://host.docker.internal:5001` makes the discovery `issuer` byte-match the o
 Run it with `dotnet run --project hosts/NCode.Identity.OpenId.Host --launch-profile Conformance` after
 `./build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment` in the same shell: the seeded clients' secrets
 and the test user's password are generated per machine and passed in the environment, never committed
-([#514](https://github.com/NCodeGroup/Identity/issues/514)). The full orchestration that also brings the suite up and
+([#514](https://github.com/NCodeGroup/identity/issues/514)). The full orchestration that also brings the suite up and
 down is [`run-conformance.ps1`](../../build/conformance/run-conformance.ps1)
 ([`external-suite.md`](external-suite.md)).
 
@@ -74,10 +74,10 @@ down is [`run-conformance.ps1`](../../build/conformance/run-conformance.ps1)
 
 ## Dependencies & links
 
-- **Serves** end-to-end verification for [#125](https://github.com/NCodeGroup/Identity/issues/125) and the live plans
-  in [#124](https://github.com/NCodeGroup/Identity/issues/124).
-- **Pairs with** [#127](https://github.com/NCodeGroup/Identity/issues/127) (the reachable host serves the seeded
-  conformance tenant/clients) and [#128](https://github.com/NCodeGroup/Identity/issues/128) (discovery is correct on
+- **Serves** end-to-end verification for [#125](https://github.com/NCodeGroup/identity/issues/125) and the live plans
+  in [#124](https://github.com/NCodeGroup/identity/issues/124).
+- **Pairs with** [#127](https://github.com/NCodeGroup/identity/issues/127) (the reachable host serves the seeded
+  conformance tenant/clients) and [#128](https://github.com/NCodeGroup/identity/issues/128) (discovery is correct on
   that origin).
 - Config/issuer specifics: [`conformance-testing.md`](../conformance-testing.md) Appendix D and "Windows developer
   notes".

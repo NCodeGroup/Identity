@@ -5,7 +5,7 @@ values an operator overrides through configuration ([ADR-1083](../decisions/1083
 The Config OP profile reads the discovery document and **fails on anything advertised that the OP cannot deliver**, so
 over-advertising is a certification blocker, not a warning. This document is the field-by-field reference and
 rationale. Parent design: [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #4 and Appendix A).
-Tracking issue: [#128](https://github.com/NCodeGroup/Identity/issues/128).
+Tracking issue: [#128](https://github.com/NCodeGroup/identity/issues/128).
 
 ## Secure-by-default values
 
@@ -47,11 +47,11 @@ Each discoverable field, checked against actual support for the Basic/Config pro
 
 | Metadata field                                                           | Target (Basic/Config)                          | Note                                                                                 |
 | ------------------------------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `issuer`                                                                 | exact reached origin                           | Owned by [#126](https://github.com/NCodeGroup/Identity/issues/126) (byte-match)      |
+| `issuer`                                                                 | exact reached origin                           | Owned by [#126](https://github.com/NCodeGroup/identity/issues/126) (byte-match)      |
 | `authorization_endpoint`/`token_endpoint`/`jwks_uri`/`userinfo_endpoint` | origin-relative, present                       | Emitted from `EndpointDataSource`                                                    |
 | `response_types_supported`                                               | `["code"]`                                     | Implicit/hybrid are not advertised                                                   |
 | `grant_types_supported`                                                  | includes `authorization_code`, `refresh_token` | Never `implicit`; matches the seeded clients' grants                                 |
-| `subject_types_supported`                                                | `["public","pairwise"]`                        | Both implemented ([#47](https://github.com/NCodeGroup/Identity/issues/47), ADR-1093) |
+| `subject_types_supported`                                                | `["public","pairwise"]`                        | Both implemented ([#47](https://github.com/NCodeGroup/identity/issues/47), ADR-1093) |
 | `id_token_signing_alg_values_supported`                                  | asymmetric algorithms only                     | Must match the key served at `jwks_uri`                                              |
 | `scopes_supported`                                                       | incl. `openid`, `profile`, `email`             | Suite requests these in standard-claims tests                                        |
 | `claims_supported`                                                       | the claims actually returned                   | Over-advertising triggers warnings                                                   |
@@ -61,13 +61,13 @@ Each discoverable field, checked against actual support for the Basic/Config pro
 ## Approach
 
 - Alignment is a **configuration/settings audit**, driven from the conformance profile
-  ([#126](https://github.com/NCodeGroup/Identity/issues/126)), not a handler rewrite.
+  ([#126](https://github.com/NCodeGroup/identity/issues/126)), not a handler rewrite.
 - Implicit and hybrid response types are advertised only for a profile that exercises them.
 - Every advertised value is backed by real behavior: each `scope` resolvable, each `token_endpoint_auth_method` accepted
   at the token endpoint, the advertised `id_token` signing alg matching the active `jwks_uri` key, and
   `claims_supported` matching what the claims handlers emit.
 - Where the OP intentionally does **not** support something the suite probes, that is a baseline entry
-  (`expected-skips.json` / `expected-failures.json`, [#124](https://github.com/NCodeGroup/Identity/issues/124)), not an
+  (`expected-skips.json` / `expected-failures.json`, [#124](https://github.com/NCodeGroup/identity/issues/124)), not an
   advertised capability.
 
 ## Acceptance criteria
@@ -81,8 +81,8 @@ Each discoverable field, checked against actual support for the Basic/Config pro
 
 ## Dependencies & links
 
-- **Depends on** [#126](https://github.com/NCodeGroup/Identity/issues/126) for the `issuer` byte-match; **pairs with**
-  [#127](https://github.com/NCodeGroup/Identity/issues/127) (advertised grants must match the seeded clients).
-- Feeds [#124](https://github.com/NCodeGroup/Identity/issues/124) (Config OP) and its baseline files for any intentional
+- **Depends on** [#126](https://github.com/NCodeGroup/identity/issues/126) for the `issuer` byte-match; **pairs with**
+  [#127](https://github.com/NCodeGroup/identity/issues/127) (advertised grants must match the seeded clients).
+- Feeds [#124](https://github.com/NCodeGroup/identity/issues/124) (Config OP) and its baseline files for any intentional
   non-support.
 - Field-by-field reference: [`conformance-testing.md`](../conformance-testing.md) Appendix A.

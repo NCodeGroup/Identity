@@ -17,7 +17,7 @@ endpoints, this runner exercises the **confidential and server-initiated legs a 
 Each probe reports `verified`, `failed`, or `skipped` (with an actionable reason — unadvertised capability, or a
 missing credential). A capability the OP does not advertise surfaces as `skipped` and is verified once the OP advertises
 it, so the runner is both a gap finder and a regression detector. It exits non-zero when any probe **fails**, so it is a
-usable CI pre-flight for the external OpenID Foundation Conformance Suite ([#124](https://github.com/NCodeGroup/Identity/issues/124)).
+usable CI pre-flight for the external OpenID Foundation Conformance Suite ([#124](https://github.com/NCodeGroup/identity/issues/124)).
 
 ## Run
 
@@ -44,7 +44,7 @@ private key via `--private-key` (the `private_key_jwt` client assertion, with `-
 requires in place of `EdDSA`). RSA keys must be ordinary `rsaEncryption` keys: an RSA-PSS-restricted (`id-RSASSA-PSS`) key is rejected
 up front because its public key cannot be published as a JWK — `PS256`/`PS384`/`PS512` already sign an ordinary RSA key
 with PSS padding. The DPoP proof embeds the key's public JWK in its header (RFC 9449 §4). These legs still `skip` until
-the backend advertises the capability (`private_key_jwt`: [#54](https://github.com/NCodeGroup/Identity/issues/54) / [#161](https://github.com/NCodeGroup/Identity/issues/161); DPoP: [#45](https://github.com/NCodeGroup/Identity/issues/45)).
+the backend advertises the capability (`private_key_jwt`: [#54](https://github.com/NCodeGroup/identity/issues/54) / [#161](https://github.com/NCodeGroup/identity/issues/161); DPoP: [#45](https://github.com/NCodeGroup/identity/issues/45)).
 
 The process exits `0` when no probe fails, `1` when any probe fails, and `2` for invalid arguments or a run that could
 not complete (for example, unreachable discovery metadata or an unloadable key).

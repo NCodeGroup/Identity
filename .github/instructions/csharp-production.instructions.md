@@ -194,7 +194,7 @@ than inlining the rationale.
   ([ADR-1395](../../docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
   A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) carries the `[JsonExtensionData]` bag above so
   a read-modify-write never drops a member it does not model. Until the first stable release
-  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), a member the serving code always writes is `required`;
+  ([#535](https://github.com/NCodeGroup/identity/issues/535)), a member the serving code always writes is `required`;
   from it, a non-additive change bumps `[PersistedPayloadVersion(N)]` on the payload and ships one
   `FromVersion → FromVersion + 1` `IPersistedPayloadUpcaster`.
 - 👁 **Buffer by default; stream deliberately** — template
@@ -376,7 +376,7 @@ than inlining the rationale.
   capability package replaces it via `TryAddSingleton`. A side-effecting **transport** (notification, back-channel
   delivery) stays an injectable service invoked **from** a handler, not a mediator command. Exemplars: the token,
   end-session, and CIBA ([ADR-1085](../../docs/decisions/1085-ciba-grant.md)) endpoints; the device-authorization endpoint is
-  the pre-convention outlier (issue [#56](https://github.com/NCodeGroup/Identity/issues/56)), **not** a template to copy.
+  the pre-convention outlier (issue [#56](https://github.com/NCodeGroup/identity/issues/56)), **not** a template to copy.
 - 👁 **Protocol endpoints are served under the tenant route.** The OpenID protocol group's prefix is the configured
   tenant route (`/{tenantId}`, a literal path, or empty), so an endpoint's own route is relative to the tenant; never
   hard-code an absolute protocol path into a published URL. Generate every URL that leaves the process with
@@ -389,7 +389,7 @@ than inlining the rationale.
   that binds `[FromForm]`, `IFormFile` or `IFormCollection` sets
   `<EnableRequestDelegateGenerator>false</EnableRequestDelegateGenerator>`, because the generated form binding ignores
   a failed antiforgery validation and answers 500, and each such endpoint has an integration test that a POST without
-  the antiforgery token answers 4xx and changes nothing (issue [#186](https://github.com/NCodeGroup/Identity/issues/186) re-enables the generator). See
+  the antiforgery token answers 4xx and changes nothing (issue [#186](https://github.com/NCodeGroup/identity/issues/186) re-enables the generator). See
   [ADR-1262](../../docs/decisions/1262-minimal-api-request-delegates-are-generated-at-compile-time.md).
 - 👁 **A client authenticates only with its registered method, and its type is that one fact.** The registered
   `token_endpoint_auth_method` (RFC 7591 §2; `client_secret_basic` when none is registered) is the only method that
@@ -422,7 +422,7 @@ than inlining the rationale.
   reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
   Settings are rejected wherever they enter — configuration on start, management writes (`ISettingSerializer.ValidateSettings`
   → `400`), and stored documents on read (fail closed). Until the first stable release
-  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), retiring, renaming, narrowing the scopes of a setting, or
+  ([#535](https://github.com/NCodeGroup/identity/issues/535)), retiring, renaming, narrowing the scopes of a setting, or
   narrowing its domain edits its descriptor and writes no data migration: each host database context has one
   re-scaffolded `InitialCreate` that holds no data, and a stored document that names an unregistered setting or holds a
   value outside its domain fails closed
@@ -877,7 +877,7 @@ than inlining the rationale.
   errors in CI** — template [Build](csharp.instructions.md#build) and
   [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md).
 - ✅ **An EF Core model change re-scaffolds its context's `InitialCreate`.** Until the first stable release
-  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each host context has one migration, `InitialCreate`,
+  ([#535](https://github.com/NCodeGroup/identity/issues/535)), each host context has one migration, `InitialCreate`,
   which creates its whole model and changes no data: `OpenIdDbContext` in `Migrations/OpenId` and
   `DeveloperDataProtectionDbContext` in `Migrations/DeveloperDataProtection` of `NCode.Identity.OpenId.Host.Database`.
   Any edit to an entity, an `IEntityTypeConfiguration`, or a model contributor that changes a host context model

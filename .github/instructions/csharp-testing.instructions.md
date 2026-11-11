@@ -162,7 +162,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   `DefaultInProcessExpiringKeySetTests` show it. Never write a `TimeProvider` subclass or mock `GetUtcNow`. A strict
   `TimeProvider` mock stays only where a test drives a timer loop through the captured `CreateTimer` callback, below,
   whose setup pins the period. Rolling out: the strict `GetUtcNow` mocks still in other test classes move to it
-  ([#509](https://github.com/NCodeGroup/Identity/issues/509)).
+  ([#509](https://github.com/NCodeGroup/identity/issues/509)).
 - 👁 **Drive a `BackgroundService`'s timer loop through the captured timer callback.** A `PeriodicTimer` on a
   `TimeProvider` asks it for `CreateTimer(callback, state, period, period)`: set that up on the strict `TimeProvider`
   mock, capture the callback and state in a `TaskCompletionSource`, return a strict `ITimer` whose `Dispose()` is set

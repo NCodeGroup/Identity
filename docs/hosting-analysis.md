@@ -15,7 +15,7 @@
 | ≥ 3 nodes for service HA                                                  | Traefik sourcing tenant PKI / mTLS config from our datastores   |
 | Traefik as the load balancer, with mTLS                                   | Mix-and-match vendors (compute, Postgres, Valkey, KMS)          |
 | Entry-level, shared CPU OK, monthly billing                               |                                                                 |
-| Backing services: **PostgreSQL** (EF Core / Npgsql) and **Valkey** (cache) | Root key in a KMS (ADR-1235); remote signing — issue [#165](https://github.com/NCodeGroup/Identity/issues/165)    |
+| Backing services: **PostgreSQL** (EF Core / Npgsql) and **Valkey** (cache) | Root key in a KMS (ADR-1235); remote signing — issue [#165](https://github.com/NCodeGroup/identity/issues/165)    |
 
 Every option is judged against the platform's operating principles — cattle not pets, immutable artifacts, everything as
 code, stateless services, redundancy by default, proven recoverability, and secure by default
@@ -72,8 +72,8 @@ Decided in [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostn
   customer tenant. Lab hosts carry a `lab` label (`auth.lab.ncodeid.net`) so a platform environment can't be confused
   with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
   platform environment ([ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)).
-- **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits (done, issue [#84](https://github.com/NCodeGroup/Identity/issues/84)) and
-  quotas (done, issue [#118](https://github.com/NCodeGroup/Identity/issues/118)) keep one tenant's load test from starving another.
+- **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits (done, issue [#84](https://github.com/NCodeGroup/identity/issues/84)) and
+  quotas (done, issue [#118](https://github.com/NCodeGroup/identity/issues/118)) keep one tenant's load test from starving another.
 
 ### Recommended plan
 
@@ -129,9 +129,9 @@ control plane (+$60).
 - **Valkey can be self-hosted in-cluster** for $0 — it's a cache (DPoP replay/nonce stores), not a system of record.
 - **Hetzner US is no longer entry-level:** US shared plans now start at $21.09 (2 vCPU / 2 GB) with 1 TB traffic, and
   several plans showed "currently unavailable".
-- **Three server gaps found** while validating Traefik mTLS (tracked as [#82](https://github.com/NCodeGroup/Identity/issues/82), [#83](https://github.com/NCodeGroup/Identity/issues/83), [#86](https://github.com/NCodeGroup/Identity/issues/86)); see [§8](#8-traefik-mtls-and-tenant-pki).
+- **Three server gaps found** while validating Traefik mTLS (tracked as [#82](https://github.com/NCodeGroup/identity/issues/82), [#83](https://github.com/NCodeGroup/identity/issues/83), [#86](https://github.com/NCodeGroup/identity/issues/86)); see [§8](#8-traefik-mtls-and-tenant-pki).
 - **Dev/test + conformance on Azure:** the Visual Studio Professional **$50/month Azure credit** covers ephemeral
-  conformance / load-test / mTLS-topology environments and the Key Vault ([#165](https://github.com/NCodeGroup/Identity/issues/165)) experiments — **not** production or
+  conformance / load-test / mTLS-topology environments and the Key Vault ([#165](https://github.com/NCodeGroup/identity/issues/165)) experiments — **not** production or
   always-on staging; see [§10](#10-devtest-and-conformance-on-azure-visual-studio-credit).
 
 ## 3. Reference architecture
@@ -325,7 +325,7 @@ No production load data exists yet, so these are **planning estimates**; confirm
   [ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
   and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
   connection string ([ADR-1164](decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); the
-  in-process job dispatcher does not coordinate across nodes (issue [#25](https://github.com/NCodeGroup/Identity/issues/25)).
+  in-process job dispatcher does not coordinate across nodes (issue [#25](https://github.com/NCodeGroup/identity/issues/25)).
 
 **Measure before buying:** run the host (`NCode.Identity.OpenId.Host`) with `dotnet-counters` attached, drive the token
 endpoint with k6 (`client_credentials` and authorization-code flows), and record working set and CPU-ms per request;
@@ -448,19 +448,19 @@ Verified against Traefik v3.7 documentation and source:
 
 ### Server gaps found (tracked as issues)
 
-- **[#83](https://github.com/NCodeGroup/Identity/issues/83) — chain in the forwarded header (resolved).** The default `Base64Der` format reads Traefik's comma-separated
+- **[#83](https://github.com/NCodeGroup/identity/issues/83) — chain in the forwarded header (resolved).** The default `Base64Der` format reads Traefik's comma-separated
   chain, the client's own certificate first, and surfaces the rest as intermediates for chain building. A forwarded
   value that cannot be decoded fails the request with `invalid_request` rather than reading as no certificate
   ([ADR-1172](decisions/1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
-- **[#82](https://github.com/NCodeGroup/Identity/issues/82) — chain validation in the server (resolved).** `tls_client_auth` builds the presented certificate's chain to
+- **[#82](https://github.com/NCodeGroup/identity/issues/82) — chain validation in the server (resolved).** `tls_client_auth` builds the presented certificate's chain to
   the client's `tls_client_auth_trust_anchors` (tenant- or client-scoped PEM CAs, custom root trust, `clientAuth` EKU,
   validity, `tls_client_auth_revocation_mode`) before matching the subject, and trusts no certificate when no anchor is
   configured. The proxy only requests and forwards the certificate
   ([ADR-1173](decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
-- **[#86](https://github.com/NCodeGroup/Identity/issues/86) — the mTLS alias host routes to its tenant (resolved).** The alias is the tenant property
+- **[#86](https://github.com/NCodeGroup/identity/issues/86) — the mTLS alias host routes to its tenant (resolved).** The alias is the tenant property
   `MtlsEndpointAliasAuthority`; `DynamicByHost` routes its derived host as well as the issuer's, and validation keeps
   both hosts unique ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Each tenant's
-  alias is derived from `DynamicByHost:MtlsEndpointAliasTemplate` unless one is set through the management API ([#117](https://github.com/NCodeGroup/Identity/issues/117)).
+  alias is derived from `DynamicByHost:MtlsEndpointAliasTemplate` unless one is set through the management API ([#117](https://github.com/NCodeGroup/identity/issues/117)).
 
 **Proxy rule:** on the mTLS host, use `RequireAnyClientCert` (request, don't verify) and forward the certificate. The
 server validates `tls_client_auth` chains itself, so `tls_client_auth` and `self_signed_tls_client_auth` clients share
@@ -475,7 +475,7 @@ Yes, indirectly — but it is not the recommended long-term design:
   provider with a generated file works the same way outside Kubernetes.)
 - **Limits:** client-CA selection happens at the TLS handshake by SNI, before any tenant routing — per-tenant CAs at the
   proxy require **per-tenant hostnames** (`DynamicByHost`). Self-signed and PKI clients still cannot share a host.
-- **Recommended (implemented by [#82](https://github.com/NCodeGroup/Identity/issues/82)):** keep the proxy simple — **request** the certificate on the mTLS host and
+- **Recommended (implemented by [#82](https://github.com/NCodeGroup/identity/issues/82)):** keep the proxy simple — **request** the certificate on the mTLS host and
   forward it — and enforce per-tenant / per-client trust anchors **in the server**. Tenant changes then apply
   immediately, without proxy reloads, and both RFC 8705 methods share one mTLS alias host. Use proxy-side dynamic config only for what must live at
   the edge: per-tenant custom-domain routers and their server certificates (cert-manager).
@@ -485,18 +485,18 @@ Yes, indirectly — but it is not the recommended long-term design:
 An `IngressRouteTCP` with `tls.passthrough: true` can route the mTLS hostname by SNI straight to Kestrel
 (`ClientCertificateMode.AllowCertificate`). The server then reads the certificate from the connection — no forwarded
 header to trust — at the cost of Traefik's L7 features for that host. Per-tenant trust comes from the server's trust
-anchors ([#82](https://github.com/NCodeGroup/Identity/issues/82)).
+anchors ([#82](https://github.com/NCodeGroup/identity/issues/82)).
 
 ## 9. Root key and remote keys / KMS (ADR-1235)
 
-Tracked as issue [#165](https://github.com/NCodeGroup/Identity/issues/165).
+Tracked as issue [#165](https://github.com/NCodeGroup/identity/issues/165).
 
 Every deployment needs one root key in a key management service (ADR-1235); it wraps the master keys that protect
-stored secrets and is called only when a replica first meets an owner. Remote signing ([#165](https://github.com/NCodeGroup/Identity/issues/165)) is the separate,
+stored secrets and is called only when a replica first meets an owner. Remote signing ([#165](https://github.com/NCodeGroup/identity/issues/165)) is the separate,
 per-request use priced below. The root key lives in AWS KMS, in the account that already holds the platform's OpenTofu
 state key. A cluster reaches it through web identity federation, which needs the cluster's service-account issuer to be
 publicly discoverable, because AWS IAM fetches the issuer's discovery document and JWKS; a cluster whose issuer is
-private needs IAM Roles Anywhere (issue [#177](https://github.com/NCodeGroup/Identity/issues/177)) or the `local` provider. Google Cloud KMS, by contrast, accepts an
+private needs IAM Roles Anywhere (issue [#177](https://github.com/NCodeGroup/identity/issues/177)) or the `local` provider. Google Cloud KMS, by contrast, accepts an
 uploaded JWKS, so a private issuer is no obstacle there. The `azure-key-vault` and `google-cloud-kms` providers
 ([ADR-1260](decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)) let a deployment keep its root key
 in either service instead.
@@ -513,7 +513,7 @@ in either service instead.
 Example: 1M token signatures/month with an ES256 key ≈ **$15/mo** (Key Vault Standard or AWS KMS), +$5/mo for an HSM EC
 key on Key Vault Premium.
 
-Design considerations for [#165](https://github.com/NCodeGroup/Identity/issues/165):
+Design considerations for [#165](https://github.com/NCodeGroup/identity/issues/165):
 
 - **Latency:** every remote signature is a network round-trip plus service time on the token path. Put the vault in the
   Azure region nearest the cluster — Central US (Iowa) for Kansas City, South Central US (Texas) for Dallas, North
@@ -524,7 +524,7 @@ Design considerations for [#165](https://github.com/NCodeGroup/Identity/issues/1
   issuer; Google Cloud accepts an uploaded JWKS. GitHub Actions likewise uses OIDC federation for OpenTofu.
 - **Cross-vendor is fine here:** unlike Postgres, KMS calls are few per request and public keys are cacheable.
 - **Experiment on the Visual Studio credit** ([§10](#10-devtest-and-conformance-on-azure-visual-studio-credit)): a
-  Standard vault costs only per operation, so [#165](https://github.com/NCodeGroup/Identity/issues/165) prototyping is effectively free.
+  Standard vault costs only per operation, so [#165](https://github.com/NCodeGroup/identity/issues/165) prototyping is effectively free.
 
 ## 10. Dev/test and conformance on Azure (Visual Studio credit)
 
@@ -564,20 +564,20 @@ VM prices exclude the OS managed disk (a few dollars per month, _(verify)_).
 | -------------------------------------------------------------------------------------------- | --------------------------------------- |
 | **Conformance run** — 1 × B2als v2 + public IP; Postgres + Valkey as containers; Traefik with a real ACME certificate | ~$0.05/h → a 2-hour nightly run ≈ **$3/mo** |
 | **Topology rehearsal** — 3 × B2als v2 (k3s, or AKS Free tier) + Standard LB + public IP       | ~$0.165/h → ~**300 h/mo** within the credit |
-| **Key Vault [#165](https://github.com/NCodeGroup/Identity/issues/165) experiments** — Standard vault, EC P-256 software key                        | 100k test signatures ≈ **$1.50**        |
+| **Key Vault [#165](https://github.com/NCodeGroup/identity/issues/165) experiments** — Standard vault, EC P-256 software key                        | 100k test signatures ≈ **$1.50**        |
 | Always-on 3-node staging                                                                     | ~$120/mo + 120-hour rule → **doesn't fit** |
 
-**What Azure adds over the local Docker conformance harness ([#124](https://github.com/NCodeGroup/Identity/issues/124)):**
+**What Azure adds over the local Docker conformance harness ([#124](https://github.com/NCodeGroup/identity/issues/124)):**
 
 - A **publicly reachable HTTPS OP**, which the OpenID Foundation's hosted conformance suite (official certification)
   needs; the local harness only targets `host.docker.internal`. Once production exists, certification runs can target
   its `conformance` tenant instead.
-- The **production-shaped path**: L4 LB → Traefik → forwarded client certificate ([#82](https://github.com/NCodeGroup/Identity/issues/82) / [#83](https://github.com/NCodeGroup/Identity/issues/83)), multiple replicas
+- The **production-shaped path**: L4 LB → Traefik → forwarded client certificate ([#82](https://github.com/NCodeGroup/identity/issues/82) / [#83](https://github.com/NCodeGroup/identity/issues/83)), multiple replicas
   sharing Valkey, Postgres over the network — including the mTLS/FAPI plans.
 - k6 **load tests** that produce the real sizing numbers for [§4](#4-compute-sizing).
-- **Remote signing** against Key Vault ([#165](https://github.com/NCodeGroup/Identity/issues/165)), including latency measurement.
+- **Remote signing** against Key Vault ([#165](https://github.com/NCodeGroup/identity/issues/165)), including latency measurement.
 
-The plain nightly [#124](https://github.com/NCodeGroup/Identity/issues/124) run needs no Azure at all — it runs in Docker on a GitHub-hosted runner.
+The plain nightly [#124](https://github.com/NCodeGroup/identity/issues/124) run needs no Azure at all — it runs in Docker on a GitHub-hosted runner.
 
 **Automation:** a `workflow_dispatch` / scheduled GitHub Actions job authenticates with **GitHub OIDC federation**
 (no stored secret) → `tofu apply` (azurerm) → deploy → run the suite / load test → upload results → `tofu destroy`
@@ -637,8 +637,8 @@ speed-test endpoint from the Denver network the users are on.
   needed to use them. Every private value is encrypted under a per-owner master key wrapped by a root key held in a key
   management service, and a Production host refuses to start without a real root key and a recovery decision
   ([ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
-  [#165](https://github.com/NCodeGroup/Identity/issues/165)).
-- **Kubernetes deployment artifacts** — issue [#85](https://github.com/NCodeGroup/Identity/issues/85), done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
+  [#165](https://github.com/NCodeGroup/identity/issues/165)).
+- **Kubernetes deployment artifacts** — issue [#85](https://github.com/NCodeGroup/identity/issues/85), done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ForwardedHeaders:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
   developer CORS, seeders). Its image is chiseled, runs non-root on port 8080, is built for amd64 and arm64, and
@@ -649,11 +649,11 @@ speed-test endpoint from the Denver network the users are on.
   ([ADR-1179](decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Before
   each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
   working ([ADR-1180](decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
-  needed: publishing the image and chart ([#87](https://github.com/NCodeGroup/Identity/issues/87)).
-- **Per-tenant rate limits and quotas** — issues [#84](https://github.com/NCodeGroup/Identity/issues/84) and [#118](https://github.com/NCodeGroup/Identity/issues/118), done
+  needed: publishing the image and chart ([#87](https://github.com/NCodeGroup/identity/issues/87)).
+- **Per-tenant rate limits and quotas** — issues [#84](https://github.com/NCodeGroup/identity/issues/84) and [#118](https://github.com/NCodeGroup/identity/issues/118), done
   ([ADR-1196](decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-  [ADR-1198](decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)); the mTLS work ([#82](https://github.com/NCodeGroup/Identity/issues/82), [#83](https://github.com/NCodeGroup/Identity/issues/83),
-  [#86](https://github.com/NCodeGroup/Identity/issues/86), and [#117](https://github.com/NCodeGroup/Identity/issues/117)) is done.
+  [ADR-1198](decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)); the mTLS work ([#82](https://github.com/NCodeGroup/identity/issues/82), [#83](https://github.com/NCodeGroup/identity/issues/83),
+  [#86](https://github.com/NCodeGroup/identity/issues/86), and [#117](https://github.com/NCodeGroup/identity/issues/117)) is done.
 
 **Operations:**
 
@@ -707,7 +707,7 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
 4. **Environments — decided** ([ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)):
    customer dev/test/prod are tenants on production; the platform runs production plus a private lab
    on the OCI Pay-As-You-Go A1 allowance (~$4) and ephemeral Azure runs on the Visual Studio credit (§2, §10,
-   issue [#132](https://github.com/NCodeGroup/Identity/issues/132)).
-5. **Server prerequisites before mTLS goes live:** done — [#86](https://github.com/NCodeGroup/Identity/issues/86) (route per-tenant mTLS alias hosts), [#82](https://github.com/NCodeGroup/Identity/issues/82) (in-app
-   chain validation), [#83](https://github.com/NCodeGroup/Identity/issues/83) (Traefik header format), and [#117](https://github.com/NCodeGroup/Identity/issues/117) (each tenant's alias derived from a template).
+   issue [#132](https://github.com/NCodeGroup/identity/issues/132)).
+5. **Server prerequisites before mTLS goes live:** done — [#86](https://github.com/NCodeGroup/identity/issues/86) (route per-tenant mTLS alias hosts), [#82](https://github.com/NCodeGroup/identity/issues/82) (in-app
+   chain validation), [#83](https://github.com/NCodeGroup/identity/issues/83) (Traefik header format), and [#117](https://github.com/NCodeGroup/identity/issues/117) (each tenant's alias derived from a template).
 6. **Domains — decided** ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)): `ncodeid.net` carries every issuer, `ncodeid.com` the site, docs, status page and mail (§3).

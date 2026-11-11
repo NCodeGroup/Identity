@@ -26,7 +26,7 @@ runner uses the exact same pnpm. Node does not bundle Corepack, so nothing activ
 [`build/frontend-install.ps1`](../build/frontend-install.ps1) installs the pinned version with the pinned Node's
 npm, and CI installs it with `pnpm/action-setup`. A globally installed pnpm 10 or later also switches to the pinned
 version by itself. The pin stays on the newest pnpm major Dependabot supports (10), and Dependabot does not bump it, so
-it moves only by a deliberate change (issue [#153](https://github.com/NCodeGroup/Identity/issues/153),
+it moves only by a deliberate change (issue [#153](https://github.com/NCodeGroup/identity/issues/153),
 [ADR-1152](../docs/decisions/1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
 
 Every pnpm setting lives in [`pnpm-workspace.yaml`](pnpm-workspace.yaml), not `.npmrc` or the `package.json` `pnpm`
@@ -361,7 +361,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
 
 > Dev connectivity: the console signs in through the OP at `https://localhost:5001` as a confidential client the
 > development seeder (`AddDeveloperInteractiveSeed`) registers, and the interactive login surface
-> ([#125](https://github.com/NCodeGroup/Identity/issues/125)) provides local end-to-end sign-in (issues [#133](https://github.com/NCodeGroup/Identity/issues/133)/[#139](https://github.com/NCodeGroup/Identity/issues/139)).
+> ([#125](https://github.com/NCodeGroup/identity/issues/125)) provides local end-to-end sign-in (issues [#133](https://github.com/NCodeGroup/identity/issues/133)/[#139](https://github.com/NCodeGroup/identity/issues/139)).
 > The AppHost generates the console's private_key_jwt and DPoP keys, so no manual key setup is needed.
 
 ## Gotchas (hard-won)
@@ -408,7 +408,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
   chunk. A debounced input takes its delay as a prop that tests set to `0` (`TenantsPage`'s `addressPreviewDelayMs`),
   so a test never waits out a real debounce. A test awaits the request mock or the settled UI, never a duration.
   Testing Library's `waitFor` recognizes only Jest's fake timers, so Vitest's fake timers stall it and MUI transitions
-  and are not an option (issue [#302](https://github.com/NCodeGroup/Identity/issues/302)).
+  and are not an option (issue [#302](https://github.com/NCodeGroup/identity/issues/302)).
 - **The interactive bundle mounts over the page the host rendered.** `mountSurface`
   ([`apps/auth/src/mount.tsx`](apps/auth/src/mount.tsx)) runs when the bundle's module runs and fetches nothing: it
   reads the `#branding` block and the page's state with `readServerPage`

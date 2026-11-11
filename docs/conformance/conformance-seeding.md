@@ -2,8 +2,8 @@
 
 A host launched for conformance starts up with a **deterministic conformance tenant**, the **client registrations** the
 static-client plans need, and a **fixed test user** — reproducibly, with no manual API calls — so the suite and the
-login UI ([#125](https://github.com/NCodeGroup/Identity/issues/125)) always see the same identities. Tracking issue:
-[#127](https://github.com/NCodeGroup/Identity/issues/127). Parent design:
+login UI ([#125](https://github.com/NCodeGroup/identity/issues/125)) always see the same identities. Tracking issue:
+[#127](https://github.com/NCodeGroup/identity/issues/127). Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #3 and Appendix C).
 
 ## The seeder
@@ -16,7 +16,7 @@ The config-driven startup seeder is `AddConformanceSeed(IConfiguration)` in `NCo
 the bootstrap admin seeder ([`BootstrapAdminSeedHandler`](../../src/NCode.Identity.Server/BootstrapAdminSeedHandler.cs)):
 idempotent, declarative, and conformance-only. It is wired into the host
 ([`Program.cs`](../../hosts/NCode.Identity.OpenId.Host/Program.cs)) and activated by the `Conformance` launch profile
-([#126](https://github.com/NCodeGroup/Identity/issues/126)) plus the
+([#126](https://github.com/NCodeGroup/identity/issues/126)) plus the
 [`appsettings.Conformance.json`](../../hosts/NCode.Identity.OpenId.Host/appsettings.Conformance.json) overlay, whose
 `ConformanceSeed` section declares the `conformance` tenant, the three Basic-OP clients, the FAPI 1.0 Advanced clients
 and the `conformance-user`.
@@ -25,7 +25,7 @@ Client secrets and the test user's password are not in the overlay: they are gen
 repository, and passed to the host as `ConformanceSeed__` environment variables by the LocalDev AppHost and by
 [`run-conformance.ps1`](../../build/conformance/run-conformance.ps1), through
 [`Get-ConformanceSeedCredentials.ps1`](../../build/conformance/Get-ConformanceSeedCredentials.ps1)
-([#514](https://github.com/NCodeGroup/Identity/issues/514)). The host stores each seeded secret as a PBKDF2 verifier,
+([#514](https://github.com/NCodeGroup/identity/issues/514)). The host stores each seeded secret as a PBKDF2 verifier,
 from which the secret cannot be read back, unless its client registers `client_secret_jwt`, which keys its assertion
 from the secret itself, so the host stores that secret reversibly
 ([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
@@ -75,7 +75,7 @@ The **deterministic test user** (`conformance-user`, with a per-machine password
 
 ## Dependencies & links
 
-- **Provides** the seeded identity consumed by [#125](https://github.com/NCodeGroup/Identity/issues/125) and the clients
-  used by [#124](https://github.com/NCodeGroup/Identity/issues/124).
-- **Runs on** the [#126](https://github.com/NCodeGroup/Identity/issues/126) reachable host/profile.
+- **Provides** the seeded identity consumed by [#125](https://github.com/NCodeGroup/identity/issues/125) and the clients
+  used by [#124](https://github.com/NCodeGroup/identity/issues/124).
+- **Runs on** the [#126](https://github.com/NCodeGroup/identity/issues/126) reachable host/profile.
 - Registration details: [`conformance-testing.md`](../conformance-testing.md) Appendix C.

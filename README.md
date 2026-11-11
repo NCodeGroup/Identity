@@ -5,9 +5,9 @@
   </picture>
 </h1>
 
-[![.NET CI](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml)
-[![Frontend CI](https://github.com/NCodeGroup/Identity/actions/workflows/frontend.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/Identity/actions/workflows/frontend.yml)
-[![codecov](https://codecov.io/gh/NCodeGroup/Identity/graph/badge.svg?branch=main)](https://codecov.io/gh/NCodeGroup/Identity)
+[![.NET CI](https://github.com/NCodeGroup/identity/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/identity/actions/workflows/ci.yml)
+[![Frontend CI](https://github.com/NCodeGroup/identity/actions/workflows/frontend.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/identity/actions/workflows/frontend.yml)
+[![codecov](https://codecov.io/gh/NCodeGroup/identity/graph/badge.svg?branch=main)](https://codecov.io/gh/NCodeGroup/identity)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](global.json)
 
@@ -30,7 +30,7 @@ through public contracts.
 | **Stage**      | Pre-1.0, greenfield, actively developed                                                           |
 | **Published**  | Nothing — no NuGet packages, no releases, no tags                                                 |
 | **Stability**  | None promised; public API, schema, and token formats are all free to change                       |
-| **Certified**  | Not yet — OpenID Foundation conformance work is in progress ([#124](https://github.com/NCodeGroup/Identity/issues/124))  |
+| **Certified**  | Not yet — OpenID Foundation conformance work is in progress ([#124](https://github.com/NCodeGroup/identity/issues/124))  |
 | **Target**     | .NET 10                                                                                           |
 | **Repository** | The product's public repository; the platform's infrastructure is [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform) ([Repositories](#repositories)) |
 
@@ -93,7 +93,7 @@ zeroed after use. See [Encryption at Rest](docs/capabilities/encryption-at-rest.
 payloads, tenant-scoped data access enforced at the persistence layer, and a management API with resource-based
 ownership authorization.
 
-Known gaps, deferred decisions, and follow-ups are tracked in [GitHub issues](https://github.com/NCodeGroup/Identity/issues) — including the fact that
+Known gaps, deferred decisions, and follow-ups are tracked in [GitHub issues](https://github.com/NCodeGroup/identity/issues) — including the fact that
 independent **OpenID Foundation conformance certification** is still in progress, so nothing here claims to be
 certified.
 
@@ -168,7 +168,7 @@ green run means the same thing in both places. It prints `Definition of Done: PA
 Test results land in `artifacts/test-results/` and the merged coverage report in `artifacts/coverage/` (open
 `index.html`). In CI, each run's summary page shows the stage timings, test results, and coverage, failed tests are
 annotated in place, and coverage history and pull-request diff coverage live on
-[Codecov](https://codecov.io/gh/NCodeGroup/Identity) ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md)).
+[Codecov](https://codecov.io/gh/NCodeGroup/identity) ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md)).
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) has the full workflow. Work lands on the single `main` trunk
 ([project-template ADR-0004](docs/decisions/project-template/0004-trunk-based-development-on-the-default-branch.md)),
@@ -181,7 +181,7 @@ and shipped versions are serviced from `release/vX.Y` lines beside it
 | ------------------------------------ | ------------------------------------------------------------------------------ |
 | [`docs/capabilities/`](docs/capabilities/README.md) | What the product promises and why it's built that way: an overview first, then the architecture |
 | [`docs/decisions/`](docs/decisions/)             | Architecture Decision Records — the reasoning behind every non-obvious decision |
-| [GitHub issues](https://github.com/NCodeGroup/Identity/issues)           | The single source of truth for known pending work                              |
+| [GitHub issues](https://github.com/NCodeGroup/identity/issues)           | The single source of truth for known pending work                              |
 | [`CHANGELOG.md`](CHANGELOG.md)       | What the family does until its first stable release, then each release's changes |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Build, conventions, and the change workflow                                    |
 | [`GOVERNANCE.md`](GOVERNANCE.md)     | Ownership, versioning, releases, and publishing                                |

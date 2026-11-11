@@ -4,7 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Disposables;
-using NCode.Identity.Models;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Collections;

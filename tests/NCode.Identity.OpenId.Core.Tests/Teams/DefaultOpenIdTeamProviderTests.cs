@@ -4,7 +4,7 @@
 using Moq;
 using Moq.Protected;
 using NCode.Disposables;
-using NCode.Identity.Exceptions;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;

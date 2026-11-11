@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
-namespace NCode.Identity.Results;
+namespace NCode.Identity.AspNetCore;
 
 /// <summary>
 /// Provides the ability to produce an <see cref="IResult"/> through an optimized path.

@@ -18,6 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.AspNetCore.Abstractions\NCode.Identity.AspNetCore.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
     </ItemGroup>
 </Project>

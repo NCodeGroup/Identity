@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
-namespace NCode.Identity.Results;
+namespace NCode.Identity.AspNetCore;
 
 /// <summary>
 /// Defines an interface for a service which can execute a particular kind of <see cref="IResult"/> by

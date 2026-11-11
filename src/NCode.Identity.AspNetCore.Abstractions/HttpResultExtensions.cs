@@ -3,9 +3,8 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Exceptions;
 
-namespace NCode.Identity.Results;
+namespace NCode.Identity.AspNetCore;
 
 /// <summary>
 /// Provides extension methods for <see cref="IResult"/>.

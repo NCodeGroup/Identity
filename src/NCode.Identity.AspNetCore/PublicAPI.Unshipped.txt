@@ -8,8 +8,6 @@ NCode.Identity.AspNetCore.NoStoreResponseExtensions.extension(Microsoft.AspNetCo
 NCode.Identity.AspNetCore.FormRequestExtensions
 NCode.Identity.AspNetCore.FormRequestExtensions.extension(Microsoft.AspNetCore.Http.HttpRequest!)
 NCode.Identity.AspNetCore.FormRequestExtensions.extension(Microsoft.AspNetCore.Http.HttpRequest!).TryReadFormAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IFormCollection?>
-NCode.Identity.AspNetCore.IFrontChannelEndpointMetadata
-NCode.Identity.AspNetCore.IFrontChannelEndpointMetadata.IsFrontChannel.get -> bool
 NCode.Identity.AspNetCore.FrontChannelEndpointMetadata
 NCode.Identity.AspNetCore.FrontChannelEndpointMetadata.IsFrontChannel.get -> bool
 NCode.Identity.AspNetCore.FrontChannelEndpointMetadata.IsFrontChannel.init -> void

@@ -3,9 +3,9 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Metrics;
-using NCode.Identity.Results;
 
 namespace NCode.Identity.OpenId.Results;
 

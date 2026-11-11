@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 
-namespace NCode.Identity.Results;
+namespace NCode.Identity.AspNetCore;
 
 /// <summary>
 /// Provides the ability to associate additional HTTP response headers with the current instance.

@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Xunit;
 
-namespace NCode.Identity.Models;
+namespace NCode.Identity.AspNetCore.Tests;
 
 public class UriDescriptorTests
 {

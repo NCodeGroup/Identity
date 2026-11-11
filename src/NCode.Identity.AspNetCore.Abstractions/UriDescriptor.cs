@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
-namespace NCode.Identity.Models;
+namespace NCode.Identity.AspNetCore;
 
 /// <summary>
 /// Represents the components of an Uniform Resource Identifier (URI).

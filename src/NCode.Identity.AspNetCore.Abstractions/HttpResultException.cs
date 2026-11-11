@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
-namespace NCode.Identity.Exceptions;
+namespace NCode.Identity.AspNetCore;
 
 /// <summary>
 /// Represents an error that occurred while executing an <c>HTTP</c> endpoint.

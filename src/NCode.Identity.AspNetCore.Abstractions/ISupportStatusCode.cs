@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Results;
+namespace NCode.Identity.AspNetCore;
 
 /// <summary>
 /// Provides the ability to associate an HTTP Status Code with the current instance.

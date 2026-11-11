@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Settings;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
 

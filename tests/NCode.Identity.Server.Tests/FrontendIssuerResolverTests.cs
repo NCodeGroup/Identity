@@ -7,8 +7,8 @@ using Moq;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Server.Frontend;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

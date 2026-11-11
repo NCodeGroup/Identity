@@ -27,7 +27,7 @@ digest length in its ordinal.
    algorithm the framework does not implement replaces `ICryptoService`.
 2. **A binary encoding is a name plus a registered `IBinaryEncoder`.** `BinaryEncodings` holds the built-in names
    `base64url`, `base64`, and `hex`. Each is the `Name` of an `IBinaryEncoder` in the DI strategy collection, and
-   `AddIdentityLibrary` registers the three built-ins with `TryAddEnumerable`. `DefaultCryptoService` builds its
+   `AddCryptographyLibrary` registers the three built-ins with `TryAddEnumerable`. `DefaultCryptoService` builds its
    name-to-encoder map when it is constructed, fails on a name registered twice, and rejects an unregistered name with
    an `ArgumentException` that names it. Names compare ordinally. A package adds an encoding, such as Base32, by
    registering another encoder.

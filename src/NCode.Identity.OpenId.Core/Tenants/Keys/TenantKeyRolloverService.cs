@@ -14,11 +14,11 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Tenants.Keys;
 

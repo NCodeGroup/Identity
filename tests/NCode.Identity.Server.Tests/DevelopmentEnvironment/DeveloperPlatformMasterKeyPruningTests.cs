@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.DevelopmentEnvironment;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

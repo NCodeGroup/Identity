@@ -80,7 +80,7 @@ no ad-hoc query protocol.**
   query protocol would violate.
 - [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the query filter that scopes the client list
   to the ambient tenant for free.
-- Code: `NCode.Persistence.Stores.PagedResult<T>`,
+- Code: `NCode.Identity.Persistence.Stores.PagedResult<T>`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore` (keyset mechanics),
   `NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>`,
   `NCode.Identity.OpenId.Management.Operations.List`.

@@ -19,7 +19,7 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Client\NCode.Identity.OpenId.Client.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
         <ProjectReference Include="..\NCode.Identity.SharedState\NCode.Identity.SharedState.csproj" />
-        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
     </ItemGroup>
 
     <ItemGroup>

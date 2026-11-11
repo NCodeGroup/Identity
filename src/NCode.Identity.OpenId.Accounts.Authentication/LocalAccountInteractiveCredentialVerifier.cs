@@ -12,7 +12,7 @@ using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Accounts.Authentication;
 

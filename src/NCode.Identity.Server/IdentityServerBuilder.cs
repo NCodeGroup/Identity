@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Claims;
+using NCode.Identity.Cryptography;
 using NCode.Identity.Dispatch;
 using NCode.Identity.Events;
 using NCode.Identity.Jose;
@@ -15,14 +17,15 @@ using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
 using NCode.Identity.Server.OpenApi;
+using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.PropertyBag;
-using NCode.Registration;
 
 namespace NCode.Identity.Server;
 
@@ -50,7 +53,13 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
     public IServiceBuilder<JwtLibrary> JwtLibraryBuilder { get; }
 
     /// <inheritdoc />
-    public IServiceBuilder<IdentityLibrary> IdentityLibraryBuilder { get; }
+    public IServiceBuilder<SettingsLibrary> SettingsLibraryBuilder { get; }
+
+    /// <inheritdoc />
+    public IServiceBuilder<ClaimsLibrary> ClaimsLibraryBuilder { get; }
+
+    /// <inheritdoc />
+    public IServiceBuilder<CryptographyLibrary> CryptographyLibraryBuilder { get; }
 
     /// <inheritdoc />
     public IServiceBuilder<OpenIdCoreLibrary> OpenIdCoreLibraryBuilder { get; }
@@ -92,12 +101,17 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         JoseLibraryBuilder = SecretsLibraryBuilder.AddJoseLibrary();
         JwtLibraryBuilder = JoseLibraryBuilder.AddJwtLibrary();
 
-        IdentityLibraryBuilder = serviceCollection.AddIdentityLibrary();
-        OpenIdCoreLibraryBuilder = IdentityLibraryBuilder.AddOpenIdCoreLibrary();
-        OpenIdAuthenticationLibraryBuilder = IdentityLibraryBuilder.AddOpenIdAuthenticationLibrary(
-            JoseLibraryBuilder
+        SettingsLibraryBuilder = serviceCollection.AddSettingsLibrary();
+        ClaimsLibraryBuilder = serviceCollection.AddClaimsLibrary();
+        CryptographyLibraryBuilder = serviceCollection.AddCryptographyLibrary();
+
+        OpenIdCoreLibraryBuilder = SettingsLibraryBuilder.AddOpenIdCoreLibrary(
+            ClaimsLibraryBuilder,
+            CryptographyLibraryBuilder
         );
-        OpenIdManagementLibraryBuilder = IdentityLibraryBuilder.AddOpenIdManagementLibrary();
+        OpenIdAuthenticationLibraryBuilder =
+            OpenIdCoreLibraryBuilder.AddOpenIdAuthenticationLibrary(JoseLibraryBuilder);
+        OpenIdManagementLibraryBuilder = OpenIdCoreLibraryBuilder.AddOpenIdManagementLibrary();
 
         // The bootstrap administrator client's management tokens are stamped with the GlobalAdmin role at issuance
         // (ADR-1044); the handler is a no-op unless a bootstrap client id is configured.

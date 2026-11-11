@@ -9,6 +9,7 @@ using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Json;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Endpoints;
@@ -16,7 +17,6 @@ using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 
@@ -382,7 +382,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
             return false;
         }
 
-        // The NCode.Json property readers throw on anything but a JSON object.
+        // The NCode.Identity.Json property readers throw on anything but a JSON object.
         return element.ValueKind == JsonValueKind.Object;
     }
 }

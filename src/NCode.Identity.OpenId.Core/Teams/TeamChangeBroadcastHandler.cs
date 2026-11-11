@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.SharedState;
-using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Teams;

@@ -7,7 +7,7 @@ using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 

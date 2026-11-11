@@ -11,8 +11,8 @@ using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Settings;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;

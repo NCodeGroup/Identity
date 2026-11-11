@@ -10,8 +10,8 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.SharedState;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;
 

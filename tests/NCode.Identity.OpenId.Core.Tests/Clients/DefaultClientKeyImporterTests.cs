@@ -38,7 +38,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     {
         // The real key-type catalog, secret importer, and algorithms are the policy's sources of truth.
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddIdentityLibrary();
+        serviceCollection.AddCryptographyLibrary();
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddPersistenceLibrary();
         secrets.AddJoseLibrary();
@@ -477,7 +477,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     )
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddIdentityLibrary();
+        serviceCollection.AddCryptographyLibrary();
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddPersistenceLibrary();
         secrets.AddJoseLibrary().AddEdDsa();

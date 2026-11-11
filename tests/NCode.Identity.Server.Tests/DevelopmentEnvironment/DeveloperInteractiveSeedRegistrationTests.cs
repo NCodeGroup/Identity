@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Registration;
+using NCode.Identity.Registration;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

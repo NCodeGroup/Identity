@@ -4,10 +4,10 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 

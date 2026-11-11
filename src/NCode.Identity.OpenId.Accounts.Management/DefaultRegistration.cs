@@ -6,8 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Endpoints;
-using NCode.Registration;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Accounts.Management;
 

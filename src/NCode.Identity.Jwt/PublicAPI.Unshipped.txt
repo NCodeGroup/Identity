@@ -1,11 +1,11 @@
 #nullable enable
 abstract NCode.Identity.Jwt.Validation.JwtValidationHandler<TRequirement>.HandleRequirementAsync(NCode.Identity.Jwt.Validation.JwtValidationContext! context, TRequirement requirement, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Jwt.DefaultRegistration
-NCode.Identity.Jwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!)
-NCode.Identity.Jwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!).AddJwtLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
+NCode.Identity.Jwt.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!)
+NCode.Identity.Jwt.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!).AddJwtLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
 NCode.Identity.Jwt.JwtValidationHandlerRegistration
-NCode.Identity.Jwt.JwtValidationHandlerRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!)
-NCode.Identity.Jwt.JwtValidationHandlerRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddJwtValidationHandler<THandler>() -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
+NCode.Identity.Jwt.JwtValidationHandlerRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!)
+NCode.Identity.Jwt.JwtValidationHandlerRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddJwtValidationHandler<THandler>() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
 NCode.Identity.Jwt.Encoding.JwtEncoderOptions
 NCode.Identity.Jwt.Encoding.JwtEncoderOptions.DefaultTokenLifetime.get -> System.TimeSpan
 NCode.Identity.Jwt.Encoding.JwtEncoderOptions.EnsureTokenLifetime.get -> bool

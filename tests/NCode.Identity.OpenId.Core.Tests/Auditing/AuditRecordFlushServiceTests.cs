@@ -5,12 +5,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Json;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Auditing;

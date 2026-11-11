@@ -66,7 +66,7 @@ Three facts shape how it is added:
    abstractions, and it extends the JOSE library's builder, `IServiceBuilder<JoseLibrary>`, whose curve catalog and
    algorithms it adds to, as `AddEdDsa()` does, so a host cannot call it without the JOSE library
    ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)). Each is registered as an instance, once,
-   with `TryAddEnumerableInstance` from `NCode.Registration`, which adds an instance unless the same instance is
+   with `TryAddEnumerableInstance` from `NCode.Identity.Registration`, which adds an instance unless the same instance is
    registered, because `TryAddEnumerable` keeps one registration per implementation type and would drop the
    application's other curves and specifications.
 

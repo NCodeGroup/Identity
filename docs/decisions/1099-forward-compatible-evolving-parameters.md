@@ -31,7 +31,7 @@ Apply this specifically to **optional, growing filter/criteria sets**. Do **not*
 
 - **Required identity keys stay positional** (e.g. the `clientId` a client-grant query is scoped to) — they are the
   operation's subject, not a growing filter.
-- The **`(cursor, limit)` pagination pair is wrapped in a shared `PageRequest` DTO** (`NCode.Persistence.Stores`,
+- The **`(cursor, limit)` pagination pair is wrapped in a shared `PageRequest` DTO** (`NCode.Identity.Persistence.Stores`,
   beside `PagedResult<T>`): every store `GetPageAsync` takes `PageRequest { Cursor, Limit }`, so pagination can grow
   (e.g. a sort direction) without a breaking signature change — the same forward-compatible shape as the filter DTOs.
 - **Request/command inputs already use init-only records** (`CreateSessionRequest`, `CreateSecurityTokenRequest`,

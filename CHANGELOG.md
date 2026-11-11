@@ -36,12 +36,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   `AddIdentityServer()` composition root chains `AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary()` and exposes each
   library's builder (`SecretsLibraryBuilder`, `JoseLibraryBuilder`, `JwtLibraryBuilder`,
   `OpenIdAuthenticationLibraryBuilder`, `OpenIdManagementLibraryBuilder` and the rest).
-  `AddOpenIdAuthenticationLibrary()` extends `IServiceBuilder<IdentityLibrary>` and takes
-  `IServiceBuilder<JoseLibrary>`, and `AddInteractiveAuthentication(...)` extends
+  `AddOpenIdCoreLibrary()` extends `IServiceBuilder<SettingsLibrary>` and takes `IServiceBuilder<ClaimsLibrary>` and
+  `IServiceBuilder<CryptographyLibrary>`, `AddOpenIdAuthenticationLibrary()` and `AddOpenIdManagementLibrary()` extend
+  `IServiceBuilder<OpenIdCoreLibrary>`, the first taking `IServiceBuilder<JoseLibrary>`, and
+  `AddInteractiveAuthentication(...)` extends
   `IServiceBuilder<OpenIdAuthenticationLibrary>`. Every library marker lives in its abstractions package, such as
-  `JwtLibrary` in `NCode.Identity.Jwt.Abstractions`, `OpenIdCoreLibrary` in `NCode.Identity.OpenId.Abstractions`,
+  `JwtLibrary` in `NCode.Identity.Jwt.Abstractions`, `SettingsLibrary`, `ClaimsLibrary` and `CryptographyLibrary` in
+  their abstractions packages, `OpenIdCoreLibrary` in `NCode.Identity.OpenId.Abstractions`,
   `OpenIdManagementLibrary` in `NCode.Identity.OpenId.Management.Abstractions`, `LocalAccountLibrary` in
-  `NCode.Identity.OpenId.Accounts.Abstractions` and `StoreManagerLibrary` in `NCode.Persistence.Abstractions`. The
+  `NCode.Identity.OpenId.Accounts.Abstractions` and `StoreManagerLibrary` in `NCode.Identity.Persistence.Abstractions`. The
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core` registration class is `DefaultRegistration`
   ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md)).
 
@@ -56,14 +59,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md),
   [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
 
-- **Strict configuration binding is public.** `NCode.Registration.StrictConfigurationBindingExtensions.BindStrictly`
+- **Strict configuration binding is public.** `NCode.Identity.Registration.StrictConfigurationBindingExtensions.BindStrictly`
   binds a section so that a key that maps to no option fails, so an extension binds its own section the way the family
   does ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
 
 - **Endpoints register through declarative, hierarchical endpoint groups in the cross-cutting
-  `NCode.Registration.AspNetCore` package.** The mechanism (`IEndpointGroup`, `IEndpointGroupBuilder`,
+  `NCode.Identity.Registration.AspNetCore` package.** The mechanism (`IEndpointGroup`, `IEndpointGroupBuilder`,
   `IEndpointProvider`, `IEndpointTreeRouteBuilder`, `MapEndpointGroups()` and the endpoint and operation disposition
-  types) layers on `NCode.Registration` and the ASP.NET Core shared framework under the `NCode.Registration.AspNetCore`
+  types) layers on `NCode.Identity.Registration` and the ASP.NET Core shared framework under the `NCode.Identity.Registration.AspNetCore`
   namespace. A named `IEndpointGroup` owns its contents: a `Name` and `Prefix`, an optional `ConfigureRoutes` that
   attaches shared route-group filters when routes are mapped, and a `ConfigureServices(IEndpointGroupBuilder)` that
   registers its endpoints (`AddEndpoint<T>()`), child groups (`AddGroup<T>()`) and the services those endpoints depend
@@ -77,25 +80,35 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1043](docs/decisions/1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md),
   [ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md)).
 
-- **The abstractions are split into framework-free tiered packages.** `NCode.Identity.Abstractions` is framework-free
-  and referenceable by any lower-tier package, including the JOSE and Secrets crypto branch.
-  `NCode.Identity.AspNetCore.Abstractions` holds the ASP.NET Core HTTP surface (`UriDescriptor`, `HttpResultException`
-  and the `Results/*` contracts) and carries the `Microsoft.AspNetCore.App` framework reference, and
-  `NCode.Identity.Settings.Abstractions` holds the `NCode.Identity.Settings.*` subsystem.
-  `NCode.Identity.OpenId.Abstractions` references `NCode.Registration.AspNetCore` directly because it exposes
-  `ReadOnlyEndpointDisposition` on its public surface
-  ([ADR-1056](docs/decisions/1056-abstractions-split-into-framework-free-tiered-packages.md)).
+- **Every package names one capability under the `NCode.Identity` prefix.** Each capability publishes its contracts in
+  an `.Abstractions` package and its default implementation beside it, so a consumer implements, decorates or replaces
+  any part: `NCode.Identity.Settings(.Abstractions)` (setting descriptors, scopes, collections and the serializer,
+  `AddSettingsLibrary()`), `NCode.Identity.Claims(.Abstractions)` (the claims serializer and claims service,
+  `AddClaimsLibrary()`) and `NCode.Identity.Cryptography(.Abstractions)` (random keys, hashing and the registered binary
+  encoders, `AddCryptographyLibrary()`). Foundation packages hold the family's building blocks on one technology for the
+  family and its consumers alike: `NCode.Identity.Json`, `NCode.Identity.Time` (with `TimerPeriod` and `TimePeriod`) and
+  `NCode.Identity.AspNetCore`, whose contracts `NCode.Identity.AspNetCore.Abstractions` holds (the HTTP result
+  contracts, `HttpResultException`, `UriDescriptor` and the front-channel endpoint metadata).
+  `NCode.Identity.Persistence.Abstractions` holds every persistence contract, and `NCode.Identity.OpenId.Abstractions`
+  references `NCode.Identity.Registration.AspNetCore` directly because it exposes `ReadOnlyEndpointDisposition` on its
+  public surface ([#758](https://github.com/NCodeGroup/Identity/issues/758),
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
+  [ADR-1056](docs/decisions/1056-abstractions-split-into-framework-free-tiered-packages.md)).
 
-- **The dependency-free `NCode.Json` package holds the shared `JsonElement` helpers.** `JsonElements` (`EmptyObject`,
-  `OrEmptyObject`, `IsNullOrUndefined`, `TryGetPropertyValue<T>`, namespace `NCode.Json`) is the single home for
+- **The `NCode.Identity.Json` foundation package holds the shared `JsonElement` helpers.** `JsonElements` (`EmptyObject`,
+  `OrEmptyObject`, `IsNullOrUndefined`, `TryGetPropertyValue<T>`, namespace `NCode.Identity.Json`) is the single home for
   `JsonElement` helpers, so the persistence layer and any package beneath `NCode.Identity.*` reuse it without an ASP.NET
   Core framework reference. Detached JSON parsing uses `JsonElement.Parse(string)`
   ([ADR-1055](docs/decisions/1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md),
+  [#758](https://github.com/NCodeGroup/Identity/issues/758),
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
   [ADR-1056](docs/decisions/1056-abstractions-split-into-framework-free-tiered-packages.md)).
 
-- **General ASP.NET Core helpers live in the dependency-free `NCode.AspNetCore` package.** `.WithNoStore()` and
-  `HttpResponse.SetNoStore()` are in the `NCode.AspNetCore` namespace, because an Abstractions package holds contracts
+- **General ASP.NET Core helpers live in the `NCode.Identity.AspNetCore` foundation package.** `.WithNoStore()` and
+  `HttpResponse.SetNoStore()` are in the `NCode.Identity.AspNetCore` namespace, because an Abstractions package holds contracts
   only ([#492](https://github.com/NCodeGroup/Identity/issues/492),
+  [#758](https://github.com/NCodeGroup/Identity/issues/758),
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
   [ADR-1355](docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
 
 - **Minimal-API request delegates are generated at compile time, so a host starts fast.** Every package builds with the
@@ -139,7 +152,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DefaultTokenEndpointProvider`) use the 2.x `OpenApiMediaType` model.
 
 - **The reference hosts separate liveness from readiness through one helper.** `MapHealthProbes()`
-  (`NCode.AspNetCore`) maps `/health/live`, which runs no checks and reports only that the process answers, so a
+  (`NCode.Identity.AspNetCore`) maps `/health/live`, which runs no checks and reports only that the process answers, so a
   dependency outage never makes Kubernetes restart a replica, and `/health/ready`, which runs every check tagged
   `HealthCheckTags.Readiness` and returns `503` while any of them fails, taking the replica out of rotation until its
   dependencies return; it returns their route group, so a host adds a convention such as `RequireHost` to both.
@@ -510,7 +523,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DecodedJwt` is constructed from a `JoseToken`. Typed `DeserializeAsync<T>` / `VerifyJws<T>` come as explicit
   no-options / with-options overload pairs, with no optional-parameter overloads, satisfying the public-API analyzer.
   `NCode.Identity.Jose.Abstractions` holds contracts only and references only `NCode.Identity.Secrets.Abstractions`, not
-  `NCode.Json`, `Microsoft.Extensions.Primitives` or `NCode.Buffers`: `CompactJwt` exposes its segments as
+  `NCode.Identity.Json`, `Microsoft.Extensions.Primitives` or `NCode.Buffers`: `CompactJwt` exposes its segments as
   zero-allocation `ReadOnlyMemory<char>` slices that the implementation computes by span-splitting the token once,
   keeping the abstractions package free of logic and heavy transitive references.
 
@@ -630,7 +643,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ECDSA algorithm for each registered one; `AddJoseLibrary()` registers `ES256`, `ES384` and `ES512` the same way, as
   `EccSignatureAlgorithmSpecification.Es256`, `Es384` and `Es512`. Building the algorithm collection fails on a null
   specification, an empty, whitespace or duplicate code, or a curve the elliptic-curve catalog does not hold by both
-  `crv` and OID. `TryAddEnumerableInstance` in `NCode.Registration` registers such an instance once without dropping
+  `crv` and OID. `TryAddEnumerableInstance` in `NCode.Identity.Registration` registers such an instance once without dropping
   the other instances of its type ([#337](https://github.com/NCodeGroup/Identity/issues/337),
   [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 
@@ -814,7 +827,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `azp` ([#34](https://github.com/NCodeGroup/Identity/issues/34),
   [ADR-1122](docs/decisions/1122-jwt-claim-values-map-to-json-by-declared-type.md)).
 
-- **Claim dates parse only by declared type, through the public `NCode.Json.DateCoercion`.** `DateCoercion` is the
+- **Claim dates parse only by declared type, through the public `NCode.Identity.Json.DateCoercion`.** `DateCoercion` is the
   date/time policy shared by `ObjectJsonConverter`, `JsonElements` and `ObjectGraphExtensions`, and its
   `TryParseDateTimeOffset` and `TryParseDateTime` let every package parse date strings under one lenient,
   invariant-culture policy. The JWT encoder parses a claim typed `ClaimValueTypes.DateTime` through it; a value that
@@ -1191,7 +1204,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **Hash algorithms and binary encodings are open vocabularies.** `ICryptoService.HashValue` takes the framework's
   `HashAlgorithmName` and computes the digest with `CryptographicOperations`, so SHA-384 and SHA-3 are available.
   Encodings are named: `BinaryEncodings` holds `base64url`, `base64` and `hex`, each the name of a registered
-  `IBinaryEncoder`, and `EncodeBinary`, `GenerateKey` and `HashValue` take the name as a `string`. `AddIdentityLibrary`
+  `IBinaryEncoder`, and `EncodeBinary`, `GenerateKey` and `HashValue` take the name as a `string`. `AddCryptographyLibrary`
   registers the three built-in encoders, a package adds one, such as Base32, by registering another, and an unregistered
   or duplicate encoding name is rejected
   ([ADR-1190](docs/decisions/1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md),
@@ -2005,7 +2018,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with the cached copy's, so a rebuilt bundle is picked up without a restart, including on bind-mounted and network file
   systems where change notifications are unreliable.
 
-- **`SinglePageBundle<TIndex>` reads and serves a built single-page bundle.** `NCode.AspNetCore` reads a bundle's
+- **`SinglePageBundle<TIndex>` reads and serves a built single-page bundle.** `NCode.Identity.AspNetCore` reads a bundle's
   `index.html` once per version into the index type its surface parses, revalidated per request by the file's last-write
   time and length, resolves only the files of its `assets` directory, and serves them with
   `Cache-Control: public, max-age=31536000, immutable`, validators and range requests; the interactive surface and the
@@ -2091,13 +2104,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1402](docs/decisions/1402-the-interactive-surface-renders-in-the-locale-the-request-prefers-among-the-registered-ui-locales.md),
   issue [#540](https://github.com/NCodeGroup/Identity/issues/540)).
 
-- **The HTML page security model and the front-channel marker are general ASP.NET Core helpers in `NCode.AspNetCore`.**
+- **The HTML page security model and the front-channel marker are general ASP.NET Core helpers in `NCode.Identity.AspNetCore`.**
   `HtmlPageSecurityPolicy`, `HtmlPageSecurityResponseExtensions` (`SetHtmlPageSecurity`),
   `ContentSecurityPolicyDirective`, `ContentSecurityPolicyDirectives` and `ContentSecurityPolicySources` are in the
-  `NCode.AspNetCore` namespace, and `SetHtmlPageSecurity` writes its cache headers through `SetNoStore()`. The
+  `NCode.Identity.AspNetCore` namespace, and `SetHtmlPageSecurity` writes its cache headers through `SetNoStore()`. The
   front-channel marker is general endpoint metadata: `IFrontChannelEndpointMetadata`, `FrontChannelEndpointMetadata` and
   `FrontChannelEndpointConventionBuilderExtensions`, with `WithFrontChannel()` and `Endpoint.IsFrontChannel`.
-  `NCode.AspNetCore` references `NCode.Buffers` ([#513](https://github.com/NCodeGroup/Identity/issues/513),
+  `NCode.Identity.AspNetCore` references `NCode.Buffers` ([#513](https://github.com/NCodeGroup/Identity/issues/513),
   [ADR-1388](docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md)).
 
 - **One TypeScript UI platform serves every frontend surface (`src/frontend`).** Management, login/consent, playground
@@ -2684,9 +2697,9 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The protocol client accepts an `expires_in` written with a zero fraction.** A pushed authorization response or token
   response whose `expires_in` is a whole number written as `60.0` or `6e1` is read as 60 seconds, and a non-zero
-  fraction such as `60.5` is rejected with `OpenIdProviderException`. `NCode.Json` provides
+  fraction such as `60.5` is rejected with `OpenIdProviderException`. `NCode.Identity.Json` provides
   `JsonElement.TryGetWholeInt32`, `TryGetPropertyWholeInt32` and `WholeInt32JsonConverter` for such values, and
-  `NCode.Identity.OpenId.Client.Abstractions` references `NCode.Json`
+  `NCode.Identity.OpenId.Client.Abstractions` references `NCode.Identity.Json`
   ([ADR-1277](docs/decisions/1277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md), issue
   [#352](https://github.com/NCodeGroup/Identity/issues/352)).
 
@@ -2894,7 +2907,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
 
 - **Store queries take extensible parameter records.** Every store's `GetPageAsync` pages with a shared `PageRequest {
-  Cursor, Limit }` init-only record struct (in `NCode.Persistence.Stores`, beside `PagedResult<T>`) across
+  Cursor, Limit }` init-only record struct (in `NCode.Identity.Persistence.Stores`, beside `PagedResult<T>`) across
   `IGrantStore`, `IClientStore`, `IClientGrantStore`, `IResourceServerStore`, `IPlatformStore`, `ITeamStore`, `ITenantStore`,
   `ILocalAccountStore` and the generic `BaseStore`, and the grant store's `GetPageAsync` and `RevokeWhereAsync` select
   grants with a `GrantFilter` init-only record struct (`SubjectId`, `ClientId`, `SessionId`, `GrantType`), so pagination
@@ -3123,7 +3136,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1267](docs/decisions/1267-replicas-share-versioned-expiring-values-and-membership-indexes.md), issue
   [#123](https://github.com/NCodeGroup/Identity/issues/123)).
 
-- **`HealthCheckTags.Readiness` tags every readiness health check.** `NCode.Registration` publishes the tag
+- **`HealthCheckTags.Readiness` tags every readiness health check.** `NCode.Identity.Registration` publishes the tag
   (`"ready"`) of every health check that decides whether a replica can serve requests. The Valkey adapter tags its check
   with it and `MapHealthProbes()`'s `/health/ready` endpoint runs the checks that carry it, so a package that adds a
   readiness check uses the constant.
@@ -3289,7 +3302,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   platform's and the tenants' settings and secrets refresh intervals, `OpenId:Team:ReconciliationLeaseDuration`,
   `OpenId:Tenant:TenantCacheLifetime`, `GrantRetentionOptions.PruneInterval` and `TenantUsageOptions.FlushInterval` must
   be between one millisecond and 4,294,967,294 milliseconds (about 49.7 days), and a retention must not be negative; the
-  error names the option and its configuration key. `NCode.Time.TimerPeriod` states the range
+  error names the option and its configuration key. `NCode.Identity.Time.TimerPeriod` states the range
   ([ADR-1221](docs/decisions/1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md), issues
   [#274](https://github.com/NCodeGroup/Identity/issues/274) and
   [#277](https://github.com/NCodeGroup/Identity/issues/277)).
@@ -3615,12 +3628,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
 
 - **One public form reader serves the OpenID endpoints and the BFF.**
-  `NCode.AspNetCore.FormRequestExtensions.TryReadFormAsync` reads a request's form, or returns `null` when it has none
+  `NCode.Identity.AspNetCore.FormRequestExtensions.TryReadFormAsync` reads a request's form, or returns `null` when it has none
   or its body is malformed or over the form limits ([#517](https://github.com/NCodeGroup/Identity/issues/517),
+  [#758](https://github.com/NCodeGroup/Identity/issues/758),
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
   [ADR-1355](docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
 
-- **`NCode.Json.ObjectJsonConverter` deserializes loosely-typed JSON.** The public `System.Text.Json` converter in the
-  dependency-free `NCode.Json` package reads JSON into an `object` graph (objects → `Dictionary<string, object?>`,
+- **`NCode.Identity.Json.ObjectJsonConverter` deserializes loosely-typed JSON.** The public `System.Text.Json` converter in the
+  `NCode.Identity.Json` foundation package reads JSON into an `object` graph (objects → `Dictionary<string, object?>`,
   arrays → `List<object?>`) for any package to reuse, beside the `JsonElements` helpers. `ObjectJsonConverterOptions`
   (passed to the constructor; `ObjectJsonConverter.Default` is the shared default instance) drives scalar mapping.
   `ObjectJsonConverterOptions.Default` is lenient — most-specific integers, `double` reals, and strings coerced to the
@@ -3638,17 +3653,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Utc`, an explicit offset is `Local`, and a zone-less value is `Utc` (never `Unspecified`), so a parsed `DateTime` is
   never treated as machine-local downstream.
 
-- **`NCode.Json.UriJsonConverter` and `NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>` are reusable
-  converters.** Both live in the dependency-free `NCode.Json` package beside `ObjectJsonConverter` and `JsonElements`.
+- **`NCode.Identity.Json.UriJsonConverter` and `NCode.Identity.Json.DelegatingJsonConverter<TInterface, TImplementation>` are reusable
+  converters.** Both live in the `NCode.Identity.Json` foundation package beside `ObjectJsonConverter` and `JsonElements`.
   `UriJsonConverter` round-trips `System.Uri` with absolute/relative fidelity and has a shared, stateless
   `UriJsonConverter.Singleton`. `DelegatingJsonConverter<TInterface, TImplementation>` serializes an interface by
   delegating to a concrete implementation and has no singleton, because it carries mutable `MatchExact` state per
   interface/implementation pair. The OpenID-coupled `StringValuesJsonConverter` (which relies on
   `OpenIdConstants.ParameterSeparatorChar`) and the claims, message, and JWK converters live in their domain packages,
-  so `NCode.Json` stays dependency-free.
+  so `NCode.Identity.Json` stays dependency-free.
 
-- **`NCode.Json.ObjectGraphExtensions.TryGetValue<T>` reads typed values from loosely-typed object graphs, tolerant of
-  numeric width.** The accessor lives in the dependency-free `NCode.Json` package beside `JsonElements` and
+- **`NCode.Identity.Json.ObjectGraphExtensions.TryGetValue<T>` reads typed values from loosely-typed object graphs, tolerant of
+  numeric width.** The accessor lives in the `NCode.Identity.Json` foundation package beside `JsonElements` and
   `ObjectJsonConverter`, keeping logic out of the abstractions packages. Its receiver is the common
   `IEnumerable<KeyValuePair<string, object>>` base of `IDictionary<string, object>` and
   `IReadOnlyDictionary<string, object>`, so a single overload serves both interface-typed callers — and any concrete
@@ -3659,9 +3674,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DateCoercion` helper, so they cannot drift. A JWT's caller-supplied `iat`, `nbf`, and `exp` are honored whatever
   integer width the claim boxed as.
 
-- **The dependency-free `NCode.Time` package holds the whole-second time helpers.** `DateTimeExtensions`,
+- **The `NCode.Identity.Time` foundation package holds the whole-second time helpers.** `DateTimeExtensions`,
   `DateTimeOffsetExtensions` and `TimeProviderExtensions` (`WithPrecisionInSeconds`, `GetUtcNowWithPrecisionInSeconds`,
-  `GetTimestampWithPrecisionInSeconds`) live in namespace `NCode.Time`, so `NCode.Identity.Jose.Abstractions` holds no
+  `GetTimestampWithPrecisionInSeconds`) live in namespace `NCode.Identity.Time`, so `NCode.Identity.Jose.Abstractions` holds no
   logic ([ADR-1188](docs/decisions/1188-general-time-helpers-live-in-a-dependency-free-package.md), issue
   [#31](https://github.com/NCodeGroup/Identity/issues/31)).
 
@@ -4293,7 +4308,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   cannot prepend its own entries. The section is validated: a trusted proxy that is not an IP address (IPv4 written as
   four decimal octets, so `10.0.0` is never read as another address), a trusted network that is not CIDR notation or
   has bits set past its prefix (so `10.0.0.4/8` is never masked to `10.0.0.0/8`), and a forward limit below one stop
-  the host. `NCode.AspNetCore` holds it, and the reference host and the management console host compose it
+  the host. `NCode.Identity.AspNetCore` holds it, and the reference host and the management console host compose it
   ([#611](https://github.com/NCodeGroup/Identity/issues/611),
   [ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md),
   [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
@@ -4306,7 +4321,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   are resolved through `IOptions<T>` ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
 
 - **The reference host and the management console host send `Strict-Transport-Security` on every HTTPS response outside
-  Development.** `AddStrictTransportSecurity` (`NCode.AspNetCore`) binds `StrictTransportSecurityOptions` strictly from
+  Development.** `AddStrictTransportSecurity` (`NCode.Identity.AspNetCore`) binds `StrictTransportSecurityOptions` strictly from
   the `StrictTransportSecurity` section (`Enabled`, `MaxAge`, `IncludeSubDomains`, `Preload`, `ExcludedHosts`) and
   validates it when the host starts, and `UseStrictTransportSecurity`, which a host calls right after
   `UseTrustedForwardedHeaders`, adds the header to every response to a request that arrived over HTTPS, directly or
@@ -4491,7 +4506,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   time zone. A client key registered or published with an `x5c` certificate is subject to this certificate-lifetime
   check ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
 
-- **RFC 7519 `NumericDate` values are read strictly and never fault the server.** `NCode.Json.DateCoercion` offers the
+- **RFC 7519 `NumericDate` values are read strictly and never fault the server.** `NCode.Identity.Json.DateCoercion` offers the
   non-throwing `TryFromNumericDate(long)`, `TryFromNumericDate(double)` (fractional seconds, kept to tick precision as
   RFC 7519 allows) and `TryParseNumericDate(string?)`; `JsonElements` offers the strict `TryGetNumericDate()` /
   `TryGetPropertyNumericDate(name)`, which accept only a JSON number, and the loosely typed
@@ -4508,7 +4523,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
   are banned (`RS0030`) in production and test code, which parse with `JsonElement.Parse` and read a stream with
   `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled buffers when it is
-  not disposed. `NCode.Json` provides the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`, which reads one
+  not disposed. `NCode.Identity.Json` provides the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`, which reads one
   value from a segmented buffer, honors every `JsonDocumentOptions` member and refuses trailing content. A parsed value
   is named `jsonElement`, never `document`, including the parameter of `IPersistedPayloadSerializer.Deserialize`
   ([#386](https://github.com/NCodeGroup/Identity/issues/386)).
@@ -5465,7 +5480,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   that issues one, creating a resource server key, minting an initial access token, and dynamic client registration (the RFC 7591 registration and the RFC 7592 read
   and update) answer with `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache`, so no browser, proxy or
   gateway cache keeps the one-time secret. An endpoint opts in with the `.WithNoStore()` endpoint convention, and
-  `HttpResponse.SetNoStore()` is public in the `NCode.AspNetCore` package
+  `HttpResponse.SetNoStore()` is public in the `NCode.Identity.AspNetCore` package
   ([#473](https://github.com/NCodeGroup/Identity/issues/473),
   [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
 
@@ -5673,7 +5688,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Setting merge is a first-class policy that keeps a more specific scope from loosening a broader one.** The public
   `SettingMerge` vocabulary of lattice dual pairs (`Min`/`Max`, `And`/`Or`, `Intersect`/`Union`, `Keep`/`Replace`) in
-  `NCode.Identity.Abstractions` is reusable by host-authored descriptors. Each built-in setting is a ceiling (a parent
+  `NCode.Identity.Settings.Abstractions` is reusable by host-authored descriptors. Each built-in setting is a ceiling (a parent
   caps the child), a floor (a parent sets an un-loosenable minimum) or an override, chosen by its value polarity: token
   and code lifetimes, `clock_skew` and `subject_max_age` are ceilings a child may only shorten; `require_pkce`, the
   `*_encryption_required` flags, `claims_supported_is_strict`, `refresh_token_rotation_enabled` and the

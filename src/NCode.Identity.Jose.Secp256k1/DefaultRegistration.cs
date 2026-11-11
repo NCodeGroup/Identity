@@ -4,8 +4,8 @@
 using JetBrains.Annotations;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Secp256k1.KeyTypes;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets.KeyTypes;
-using NCode.Registration;
 
 namespace NCode.Identity.Jose.Secp256k1;
 

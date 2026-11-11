@@ -5,8 +5,8 @@ using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Subject;
 

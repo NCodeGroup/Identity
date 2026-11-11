@@ -9,9 +9,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using NCode.AspNetCore;
 using NCode.Buffers;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Jose;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
@@ -25,8 +26,7 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Json;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 

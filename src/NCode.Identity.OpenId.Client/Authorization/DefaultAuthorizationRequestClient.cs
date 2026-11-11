@@ -6,10 +6,10 @@ using System.Text;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Encoders;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Client.Authorization;
 

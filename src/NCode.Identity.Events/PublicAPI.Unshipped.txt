@@ -1,10 +1,10 @@
 #nullable enable
 NCode.Identity.Events.DefaultRegistration
 NCode.Identity.Events.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Events.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEventServices() -> NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!
+NCode.Identity.Events.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEventServices() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!
 NCode.Identity.Events.EventLibraryRegistration
-NCode.Identity.Events.EventLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!)
-NCode.Identity.Events.EventLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!).AddBackgroundEventDelivery() -> NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!
-NCode.Identity.Events.EventLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!).AddEventHandler<TEvent, THandler>() -> NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!
+NCode.Identity.Events.EventLibraryRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!)
+NCode.Identity.Events.EventLibraryRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!).AddBackgroundEventDelivery() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!
+NCode.Identity.Events.EventLibraryRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!).AddEventHandler<TEvent, THandler>() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!
 NCode.Identity.Events.EventMetrics
 const NCode.Identity.Events.EventMetrics.MeterName = "NCode.Identity.Events" -> string!

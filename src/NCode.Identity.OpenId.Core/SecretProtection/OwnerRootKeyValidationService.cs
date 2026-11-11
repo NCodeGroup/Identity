@@ -9,12 +9,12 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.Persistence;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.SharedState;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.SecretProtection;
 

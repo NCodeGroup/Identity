@@ -54,7 +54,7 @@ Text becomes bytes, and bytes become text, only through a strict encoding.
 - A compact `b64=false` JWS with a non-ASCII payload now signs and verifies the real bytes, and a DPoP proof is rejected
   when the access token is not ASCII.
 - A lone surrogate in a hashed key, HKDF info or AAD field now throws instead of colliding with U+FFFD.
-- `NCode.Json` depends on `NCode.Buffers`.
+- `NCode.Identity.Json` depends on `NCode.Buffers`.
 - `text/plain` responses now carry `charset=utf-8`; `application/jwt` responses still carry no charset.
 - A test that needs UTF-16 or a byte-order mark builds a strict encoding explicitly.
 

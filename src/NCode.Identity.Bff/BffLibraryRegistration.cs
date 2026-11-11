@@ -9,8 +9,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Secrets;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets.Collections;
-using NCode.Registration;
 
 namespace NCode.Identity.Bff;
 

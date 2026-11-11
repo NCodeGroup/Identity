@@ -4,12 +4,12 @@
 using System.Buffers;
 using System.Text.Json;
 using NCode.Buffers;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 

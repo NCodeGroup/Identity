@@ -5,7 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.AuditRecords;
 

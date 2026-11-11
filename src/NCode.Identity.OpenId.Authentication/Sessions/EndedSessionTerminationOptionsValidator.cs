@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;
 

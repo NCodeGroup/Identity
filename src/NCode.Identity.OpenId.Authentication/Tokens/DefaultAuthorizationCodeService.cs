@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.Cryptography;
-using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
@@ -12,7 +11,7 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens;
 

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.Persistence;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 

@@ -5,11 +5,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
-using NCode.Identity.Exceptions;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Strategies;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tenants;

@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Json\NCode.Identity.Json.csproj" />
     </ItemGroup>
 
     <ItemGroup>

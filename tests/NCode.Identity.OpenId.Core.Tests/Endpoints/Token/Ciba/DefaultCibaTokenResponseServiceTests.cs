@@ -6,7 +6,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
-using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
@@ -15,6 +14,7 @@ using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.Time;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.Ciba;

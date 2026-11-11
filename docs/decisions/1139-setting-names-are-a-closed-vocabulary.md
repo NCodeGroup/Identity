@@ -19,7 +19,7 @@
   settings, the root of the settings cascade, are configured under `OpenId:Platform:Settings`; amended by
   [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
   forwarded-header trust is `TrustedForwardedHeadersOptions` in the `ForwardedHeaders` section, validated by
-  `NCode.AspNetCore`'s `TrustedForwardedHeadersOptionsValidator`)
+  `NCode.Identity.AspNetCore`'s `TrustedForwardedHeadersOptionsValidator`)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)
@@ -133,4 +133,4 @@ accepts traffic.
   `NCode.Identity.OpenId.Settings.ServerSettingsOptionsValidator`, `NCode.Identity.OpenId.Settings.RootSettingsCollectionDataSource`,
   `NCode.Identity.Server.ReverseProxy.ReverseProxyOptionsValidator`,
   `NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptionsValidator`,
-  `NCode.Identity.Server.DeveloperKeysConfiguration`, `NCode.Registration.StrictConfigurationBindingExtensions`.
+  `NCode.Identity.Server.DeveloperKeysConfiguration`, `NCode.Identity.Registration.StrictConfigurationBindingExtensions`.

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
 

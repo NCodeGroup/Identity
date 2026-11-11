@@ -1,4 +1,4 @@
 #nullable enable
 NCode.Identity.Cwt.DefaultRegistration
-NCode.Identity.Cwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Cose.CoseLibrary>!)
-NCode.Identity.Cwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Cose.CoseLibrary>!).AddCwtLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Cwt.CwtLibrary>!
+NCode.Identity.Cwt.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Cose.CoseLibrary>!)
+NCode.Identity.Cwt.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Cose.CoseLibrary>!).AddCwtLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Cwt.CwtLibrary>!

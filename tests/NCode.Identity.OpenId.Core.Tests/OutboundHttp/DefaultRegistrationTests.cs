@@ -5,7 +5,7 @@ using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Authentication;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
-using NCode.Registration;
+using NCode.Identity.Registration;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.OutboundHttp;

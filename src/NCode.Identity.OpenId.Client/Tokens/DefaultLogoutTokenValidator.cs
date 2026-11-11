@@ -6,8 +6,8 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Jose;
+using NCode.Identity.Json;
 using NCode.Identity.SharedState;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
 

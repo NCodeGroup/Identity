@@ -3,7 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Moq;
-using NCode.Identity.Models;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Tenants;

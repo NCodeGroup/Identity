@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using NCode.Identity.OpenId.Management.Authorization;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 

@@ -15,8 +15,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Registration;
 using NCode.Identity.Settings;
-using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;

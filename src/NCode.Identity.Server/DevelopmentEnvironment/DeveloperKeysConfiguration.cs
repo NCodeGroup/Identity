@@ -3,8 +3,8 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
+using NCode.Identity.Registration;
 using NCode.Identity.Server.DevelopmentEnvironment;
-using NCode.Registration;
 
 namespace NCode.Identity.Server;
 

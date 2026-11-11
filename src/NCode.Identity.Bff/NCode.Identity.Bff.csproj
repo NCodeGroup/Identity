@@ -12,14 +12,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.AspNetCore\NCode.AspNetCore.csproj" />
+        <ProjectReference Include="..\NCode.Identity.AspNetCore\NCode.Identity.AspNetCore.csproj" />
         <ProjectReference Include="..\NCode.Identity.Bff.Abstractions\NCode.Identity.Bff.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Client.Abstractions\NCode.Identity.OpenId.Client.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.SharedState.Abstractions\NCode.Identity.SharedState.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Events.Abstractions\NCode.Identity.Events.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
-        <ProjectReference Include="..\NCode.Time\NCode.Time.csproj" />
-        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Json\NCode.Identity.Json.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Time\NCode.Identity.Time.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
     </ItemGroup>
 
     <ItemGroup>

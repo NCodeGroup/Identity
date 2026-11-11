@@ -16,8 +16,8 @@ using NCode.Identity.OpenId.Management.Promotions;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Persistence.Stores;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 

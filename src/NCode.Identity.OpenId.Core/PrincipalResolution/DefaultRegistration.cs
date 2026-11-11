@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Principals;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.OpenId.PrincipalResolution;
 

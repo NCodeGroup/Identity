@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
-using NCode.Registration;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
@@ -17,7 +17,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 

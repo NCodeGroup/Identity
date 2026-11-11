@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Json;
 using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.Secrets;
@@ -15,7 +16,6 @@ using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 

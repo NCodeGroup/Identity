@@ -1,7 +1,7 @@
 #nullable enable
 NCode.Identity.Secrets.DefaultRegistration
 NCode.Identity.Secrets.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Secrets.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddSecretsLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Secrets.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddSecretsLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.AkpSecretKeyTypeDescriptor(NCode.Extensions.DataProtection.IDataProtectorFactory<NCode.Identity.Secrets.Keys.SecretKey!>! dataProtectorFactory) -> void
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!

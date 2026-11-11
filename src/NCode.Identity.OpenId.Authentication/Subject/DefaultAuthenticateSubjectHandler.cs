@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Endpoints;
@@ -15,8 +15,8 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Identity.Persistence.Stores;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Subject;
 

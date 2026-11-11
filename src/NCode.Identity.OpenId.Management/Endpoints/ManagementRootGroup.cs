@@ -12,7 +12,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.Teams;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Identity.OpenId.Management.OpenApi;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 

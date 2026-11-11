@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (decisions 1 and 6 amended by
   [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
-  the registration and the pipeline step live in `NCode.AspNetCore`, every host composes them, and a host trusts its
+  the registration and the pipeline step live in `NCode.Identity.AspNetCore`, every host composes them, and a host trusts its
   proxies through the `ForwardedHeaders` section, which `UseTrustedForwardedHeaders()` applies right before
   `UseStrictTransportSecurity()`)
 - **Date:** 2026-10-24

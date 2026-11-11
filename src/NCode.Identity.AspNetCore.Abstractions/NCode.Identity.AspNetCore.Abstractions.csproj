@@ -4,7 +4,8 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>NCode.Identity</RootNamespace>
+        <RootNamespace>NCode.Identity.AspNetCore</RootNamespace>
+        <Description>The contracts of NCode.Identity's HTTP building blocks: the HTTP result executor and provider contracts, status-code and response-header support, HttpResultException, UriDescriptor and the front-channel endpoint metadata.</Description>
     </PropertyGroup>
 
     <ItemGroup>

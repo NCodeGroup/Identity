@@ -5,7 +5,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 

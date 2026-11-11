@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Jose;
-using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode;
@@ -24,6 +23,7 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Time;
 using NCode.Mediator;
 using Xunit;
 

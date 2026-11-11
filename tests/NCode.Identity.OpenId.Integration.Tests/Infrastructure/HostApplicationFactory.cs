@@ -29,12 +29,12 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.DevelopmentEnvironment;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 

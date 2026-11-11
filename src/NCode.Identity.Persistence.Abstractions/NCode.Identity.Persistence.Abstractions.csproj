@@ -4,10 +4,11 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>NCode.Identity.Persistence</RootNamespace>
+        <Description>The persistence contracts of NCode.Identity: stores, the store manager and its factory, paging, concurrency tokens, the store-neutral concurrency exception and post-commit work.</Description>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Persistence.Abstractions\NCode.Persistence.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
     </ItemGroup>
 
     <ItemGroup>

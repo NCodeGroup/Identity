@@ -13,7 +13,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Bff.Abstractions\NCode.Identity.Bff.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
     </ItemGroup>
 
     <ItemGroup>

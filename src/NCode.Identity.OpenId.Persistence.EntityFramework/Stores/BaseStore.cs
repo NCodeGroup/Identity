@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 using IdGen;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 

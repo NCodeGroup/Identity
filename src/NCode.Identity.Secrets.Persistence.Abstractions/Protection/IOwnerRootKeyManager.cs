@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 

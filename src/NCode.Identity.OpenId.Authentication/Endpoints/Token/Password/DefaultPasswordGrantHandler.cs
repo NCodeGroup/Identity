@@ -13,7 +13,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 

@@ -16,7 +16,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Caller;
 

@@ -27,16 +27,16 @@ Issue [#611](https://github.com/NCodeGroup/Identity/issues/611) describes the ne
 
 ## Decision
 
-**`NCode.AspNetCore` holds forwarded-header trust and Strict-Transport-Security, and each host composes both.**
+**`NCode.Identity.AspNetCore` holds forwarded-header trust and Strict-Transport-Security, and each host composes both.**
 
-1. **`NCode.AspNetCore` holds both helpers.** It holds `AddTrustedForwardedHeaders(configuration)` and
+1. **`NCode.Identity.AspNetCore` holds both helpers.** It holds `AddTrustedForwardedHeaders(configuration)` and
    `UseTrustedForwardedHeaders()` with `TrustedForwardedHeadersOptions` (section `ForwardedHeaders`: `KnownProxies`,
    `KnownNetworks`, `ForwardLimit`), and `AddStrictTransportSecurity(configuration)` and
    `UseStrictTransportSecurity()` with `StrictTransportSecurityOptions` (section `StrictTransportSecurity`). The options
-   live in namespace `NCode.AspNetCore.Options`. `ForwardedHeaders` is the section that holds the forwarded-header trust
+   live in namespace `NCode.Identity.AspNetCore.Options`. `ForwardedHeaders` is the section that holds the forwarded-header trust
    which ADR-1137, ADR-1139, ADR-1258 and ADR-1399 name, and `TrustedForwardedHeadersOptionsValidator` applies the rules
    of ADR-1139 decision 6 to it.
-2. **Both sections bind strictly and validate on start.** `NCode.AspNetCore` references `NCode.Registration` for strict
+2. **Both sections bind strictly and validate on start.** `NCode.Identity.AspNetCore` references `NCode.Identity.Registration` for strict
    binding ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
 3. **Each host composes both.** A host calls `UseTrustedForwardedHeaders()` and then `UseStrictTransportSecurity()`
    first in its pipeline. No library adds them.
@@ -45,7 +45,7 @@ Issue [#611](https://github.com/NCodeGroup/Identity/issues/611) describes the ne
 ## Options considered
 
 - **Keep them in `NCode.Identity.Server`.** Rejected: the management console host must not reference it.
-- **A separate hosting package.** Rejected: `NCode.AspNetCore` is the package that
+- **A separate hosting package.** Rejected: `NCode.Identity.AspNetCore` is the package that
   [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) names for general ASP.NET Core
   helpers.
 - **The `ReverseProxy` section name.** Rejected: YARP's routes live in that section, and strict binding of trust options
@@ -56,8 +56,8 @@ Issue [#611](https://github.com/NCodeGroup/Identity/issues/611) describes the ne
 
 - The console host trusts its ingress through `ForwardedHeaders:KnownNetworks` and sends Strict-Transport-Security
   outside Development.
-- A BFF host references `NCode.AspNetCore` to do the same.
-- `NCode.AspNetCore` depends on `NCode.Buffers` and `NCode.Registration`.
+- A BFF host references `NCode.Identity.AspNetCore` to do the same.
+- `NCode.Identity.AspNetCore` depends on `NCode.Buffers` and `NCode.Identity.Registration`.
 
 ## References
 
@@ -66,5 +66,5 @@ Issue [#611](https://github.com/NCodeGroup/Identity/issues/611) describes the ne
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md),
   [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md),
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
-- `src/NCode.AspNetCore/`
+- `src/NCode.Identity.AspNetCore/`
 - Issue [#611](https://github.com/NCodeGroup/Identity/issues/611)

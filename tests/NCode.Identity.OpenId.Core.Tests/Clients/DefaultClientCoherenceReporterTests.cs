@@ -7,8 +7,8 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Settings;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Clients;

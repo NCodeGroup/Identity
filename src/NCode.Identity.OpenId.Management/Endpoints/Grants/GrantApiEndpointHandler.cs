@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
@@ -18,8 +18,8 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Grants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Persistence.Stores;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Grants;
 

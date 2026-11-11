@@ -24,9 +24,9 @@ using NCode.Identity.Events;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Client;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
 using NCode.Identity.SharedState;
-using NCode.Registration;
 using Xunit;
 using Yarp.ReverseProxy.Forwarder;
 

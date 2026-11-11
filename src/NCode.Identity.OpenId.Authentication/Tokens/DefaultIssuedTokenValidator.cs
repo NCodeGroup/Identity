@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using NCode.Identity.Jose;
+using NCode.Identity.Json;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
@@ -10,7 +11,6 @@ using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Keys;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens;
 

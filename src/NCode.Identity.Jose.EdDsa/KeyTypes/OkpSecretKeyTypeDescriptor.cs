@@ -12,12 +12,12 @@ using Microsoft.AspNetCore.DataProtection;
 using NCode.Buffers;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Jose.EdDsa.Keys;
+using NCode.Identity.Json;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
-using NCode.Json;
 
 namespace NCode.Identity.Jose.EdDsa.KeyTypes;
 

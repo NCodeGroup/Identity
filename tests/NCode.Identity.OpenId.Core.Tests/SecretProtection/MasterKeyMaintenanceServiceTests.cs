@@ -11,12 +11,12 @@ using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.SecretProtection;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.SharedState;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.SecretProtection;

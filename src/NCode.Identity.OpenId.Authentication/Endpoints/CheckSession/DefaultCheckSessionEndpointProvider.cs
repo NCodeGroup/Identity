@@ -4,10 +4,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using NCode.AspNetCore;
 using NCode.Buffers;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Sessions;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.CheckSession;
 

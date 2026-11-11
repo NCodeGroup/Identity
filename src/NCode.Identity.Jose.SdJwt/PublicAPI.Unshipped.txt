@@ -26,9 +26,9 @@ const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.Reser
 const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.UnreferencedDisclosure = "unreferenced_disclosure" -> string!
 const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.UnsupportedDigestAlgorithm = "unsupported_digest_algorithm" -> string!
 NCode.Identity.Jose.SdJwt.DefaultRegistration
-NCode.Identity.Jose.SdJwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!)
-NCode.Identity.Jose.SdJwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddSdJwt() -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
-NCode.Identity.Jose.SdJwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddSdJwt(System.Action<NCode.Identity.Jose.SdJwt.Options.SdJwtOptions!>! configureOptions) -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
+NCode.Identity.Jose.SdJwt.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!)
+NCode.Identity.Jose.SdJwt.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddSdJwt() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
+NCode.Identity.Jose.SdJwt.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddSdJwt(System.Action<NCode.Identity.Jose.SdJwt.Options.SdJwtOptions!>! configureOptions) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
 NCode.Identity.Jose.SdJwt.Digests.ISdJwtDigestAlgorithmCatalog
 NCode.Identity.Jose.SdJwt.Digests.ISdJwtDigestAlgorithmCatalog.Algorithms.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm!>!
 NCode.Identity.Jose.SdJwt.Digests.ISdJwtDigestAlgorithmCatalog.TryGet(string! name, out NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm? algorithm) -> bool

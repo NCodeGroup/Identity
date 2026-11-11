@@ -7,11 +7,11 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 

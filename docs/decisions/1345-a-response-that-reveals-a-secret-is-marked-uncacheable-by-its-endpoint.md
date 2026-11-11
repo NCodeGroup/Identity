@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amended by
   [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md): `.WithNoStore()` and
-  `HttpResponse.SetNoStore()` live in the dependency-free `NCode.AspNetCore` package)
+  `HttpResponse.SetNoStore()` live in the dependency-free `NCode.Identity.AspNetCore` package)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)
@@ -63,7 +63,7 @@ handler runs, so success and error responses alike carry `Cache-Control: no-stor
 ## Consequences
 
 - The secret-revealing responses are never cached by a client or an intermediary.
-- `.WithNoStore()` and `HttpResponse.SetNoStore()` are public in the dependency-free `NCode.AspNetCore` package
+- `.WithNoStore()` and `HttpResponse.SetNoStore()` are public in the dependency-free `NCode.Identity.AspNetCore` package
   ([ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)); the token endpoint and the
   authorization response writer call `SetNoStore()` too.
 - The pushed authorization (`DefaultPushedAuthorizationRequestEndpointHandler`), device authorization
@@ -76,9 +76,9 @@ handler runs, so success and error responses alike carry `Cache-Control: no-stor
 
 ## References
 
-- [`NoStoreEndpointConventionBuilderExtensions`](../../src/NCode.AspNetCore/NoStoreEndpointConventionBuilderExtensions.cs)
-- [`NoStoreResponseExtensions`](../../src/NCode.AspNetCore/NoStoreResponseExtensions.cs)
-- [`NoStoreEndpointFilter`](../../src/NCode.AspNetCore/NoStoreEndpointFilter.cs)
+- [`NoStoreEndpointConventionBuilderExtensions`](../../src/NCode.Identity.AspNetCore/NoStoreEndpointConventionBuilderExtensions.cs)
+- [`NoStoreResponseExtensions`](../../src/NCode.Identity.AspNetCore/NoStoreResponseExtensions.cs)
+- [`NoStoreEndpointFilter`](../../src/NCode.Identity.AspNetCore/NoStoreEndpointFilter.cs)
 - [`ClientApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs)
 - [`ResourceServerApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/ResourceServers/ResourceServerApiEndpointHandler.cs)
 - [`GrantApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/Grants/GrantApiEndpointHandler.cs)

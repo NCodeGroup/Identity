@@ -4,8 +4,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 

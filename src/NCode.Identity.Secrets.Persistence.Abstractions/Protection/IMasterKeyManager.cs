@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 

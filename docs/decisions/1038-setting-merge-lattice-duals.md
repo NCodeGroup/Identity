@@ -44,7 +44,7 @@ makes the intent true:
 | Collection                 | `Intersect`      | `Union`         | —                                             |
 | Value                      | —                | —               | `Keep` (parent wins) / `Replace` (child wins) |
 
-`SettingMerge` lives in `NCode.Identity.Abstractions` (namespace `NCode.Identity.Settings`) so host-authored
+`SettingMerge` lives in `NCode.Identity.Settings.Abstractions` (namespace `NCode.Identity.Settings`) so host-authored
 descriptors reuse the same vocabulary; the default implementations that consume it stay internal
 ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)).
 

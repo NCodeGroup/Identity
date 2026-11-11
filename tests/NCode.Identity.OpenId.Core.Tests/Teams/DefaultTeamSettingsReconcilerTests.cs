@@ -11,10 +11,10 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Teams;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Teams;
@@ -59,16 +59,19 @@ public sealed class DefaultTeamSettingsReconcilerTests : BaseTests
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
         MockMediator = CreateStrictMock<IMediator>();
 
-        Settings = new DefaultSettingCollection(
-            CreateLooseMock<ISettingDescriptorCollectionProvider>().Object,
-            [new Setting<bool>(FlagDescriptor, true)]
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(
+            CreateLooseMock<ISettingDescriptorCollectionProvider>().Object
         );
+        serviceCollection.AddSettingsLibrary();
+        serviceCollection.AddScoped(_ => MockMediator.Object);
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+
+        Settings = ServiceProvider
+            .GetRequiredService<ISettingCollectionFactory>()
+            .Create([new Setting<bool>(FlagDescriptor, true)]);
         Fingerprint = SettingsFingerprint.Compute(Settings, JsonOptions);
         SnapshotText = SettingsSnapshot.Write(Settings, JsonOptions).GetRawText();
-
-        ServiceProvider = new ServiceCollection()
-            .AddScoped(_ => MockMediator.Object)
-            .BuildServiceProvider();
 
         Reconciler = new DefaultTeamSettingsReconciler(
             MockStoreManagerFactory.Object,

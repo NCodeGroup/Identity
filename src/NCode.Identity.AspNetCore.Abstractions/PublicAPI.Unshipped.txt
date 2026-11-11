@@ -1,30 +1,32 @@
 #nullable enable
-NCode.Identity.Exceptions.HttpResultException
-NCode.Identity.Exceptions.HttpResultException.HttpResult.get -> Microsoft.AspNetCore.Http.IResult!
-NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult) -> void
-NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message) -> void
-NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message, System.Exception? innerException) -> void
-NCode.Identity.Models.UriDescriptor
-NCode.Identity.Models.UriDescriptor.Host.get -> Microsoft.AspNetCore.Http.HostString
-NCode.Identity.Models.UriDescriptor.Host.init -> void
-NCode.Identity.Models.UriDescriptor.Path.get -> Microsoft.AspNetCore.Http.PathString
-NCode.Identity.Models.UriDescriptor.Path.init -> void
-NCode.Identity.Models.UriDescriptor.Query.get -> Microsoft.AspNetCore.Http.QueryString
-NCode.Identity.Models.UriDescriptor.Query.init -> void
-NCode.Identity.Models.UriDescriptor.Scheme.get -> string!
-NCode.Identity.Models.UriDescriptor.Scheme.init -> void
-NCode.Identity.Models.UriDescriptor.UriDescriptor() -> void
-NCode.Identity.Results.HttpResultExtensions
-NCode.Identity.Results.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!)
-NCode.Identity.Results.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!).AsException(string? message = null) -> NCode.Identity.Exceptions.HttpResultException!
-NCode.Identity.Results.IResultExecutor<TResult>
-NCode.Identity.Results.IResultExecutor<TResult>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, TResult result, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.Results.IResultProvider
-NCode.Identity.Results.IResultProvider.AsHttpResult() -> Microsoft.AspNetCore.Http.IResult!
-NCode.Identity.Results.ISupportResponseHeaders
-NCode.Identity.Results.ISupportResponseHeaders.ResponseHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Microsoft.Extensions.Primitives.StringValues>?
-NCode.Identity.Results.ISupportResponseHeaders.SetResponseHeader(string! name, Microsoft.Extensions.Primitives.StringValues value) -> void
-NCode.Identity.Results.ISupportStatusCode
-NCode.Identity.Results.ISupportStatusCode.StatusCode.get -> int?
-NCode.Identity.Results.ISupportStatusCode.StatusCode.set -> void
-override NCode.Identity.Models.UriDescriptor.ToString() -> string!
+NCode.Identity.AspNetCore.HttpResultException
+NCode.Identity.AspNetCore.HttpResultException.HttpResult.get -> Microsoft.AspNetCore.Http.IResult!
+NCode.Identity.AspNetCore.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message, System.Exception? innerException) -> void
+NCode.Identity.AspNetCore.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message) -> void
+NCode.Identity.AspNetCore.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult) -> void
+NCode.Identity.AspNetCore.HttpResultExtensions
+NCode.Identity.AspNetCore.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!)
+NCode.Identity.AspNetCore.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!).AsException(string? message = null) -> NCode.Identity.AspNetCore.HttpResultException!
+NCode.Identity.AspNetCore.IFrontChannelEndpointMetadata
+NCode.Identity.AspNetCore.IFrontChannelEndpointMetadata.IsFrontChannel.get -> bool
+NCode.Identity.AspNetCore.IResultExecutor<TResult>
+NCode.Identity.AspNetCore.IResultExecutor<TResult>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, TResult result, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.AspNetCore.IResultProvider
+NCode.Identity.AspNetCore.IResultProvider.AsHttpResult() -> Microsoft.AspNetCore.Http.IResult!
+NCode.Identity.AspNetCore.ISupportResponseHeaders
+NCode.Identity.AspNetCore.ISupportResponseHeaders.ResponseHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Microsoft.Extensions.Primitives.StringValues>?
+NCode.Identity.AspNetCore.ISupportResponseHeaders.SetResponseHeader(string! name, Microsoft.Extensions.Primitives.StringValues value) -> void
+NCode.Identity.AspNetCore.ISupportStatusCode
+NCode.Identity.AspNetCore.ISupportStatusCode.StatusCode.get -> int?
+NCode.Identity.AspNetCore.ISupportStatusCode.StatusCode.set -> void
+NCode.Identity.AspNetCore.UriDescriptor
+NCode.Identity.AspNetCore.UriDescriptor.Host.get -> Microsoft.AspNetCore.Http.HostString
+NCode.Identity.AspNetCore.UriDescriptor.Host.init -> void
+NCode.Identity.AspNetCore.UriDescriptor.Path.get -> Microsoft.AspNetCore.Http.PathString
+NCode.Identity.AspNetCore.UriDescriptor.Path.init -> void
+NCode.Identity.AspNetCore.UriDescriptor.Query.get -> Microsoft.AspNetCore.Http.QueryString
+NCode.Identity.AspNetCore.UriDescriptor.Query.init -> void
+NCode.Identity.AspNetCore.UriDescriptor.Scheme.get -> string!
+NCode.Identity.AspNetCore.UriDescriptor.Scheme.init -> void
+NCode.Identity.AspNetCore.UriDescriptor.UriDescriptor() -> void
+override NCode.Identity.AspNetCore.UriDescriptor.ToString() -> string!

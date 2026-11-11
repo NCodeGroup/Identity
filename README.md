@@ -103,17 +103,19 @@ Production projects are under `src/`, tests under `tests/`.
 
 | Area                 | Packages                                                                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| JOSE / JWT           | `NCode.Identity.Jose(.Abstractions)`, `.Jose.EdDsa`, `.Jose.Secp256k1`, `.Jose.SdJwt`, `.Jwt(.Abstractions)`, `.Jwk`, `NCode.Json`, `NCode.Time` |
+| Foundation | `NCode.Identity.Json`, `NCode.Identity.Time`, `NCode.Identity.AspNetCore(.Abstractions)` |
+| JOSE / JWT           | `NCode.Identity.Jose(.Abstractions)`, `.Jose.EdDsa`, `.Jose.Secp256k1`, `.Jose.SdJwt`, `.Jwt(.Abstractions)`, `.Jwk` |
 | COSE / CWT           | `NCode.Identity.Cose(.Abstractions)`, `NCode.Identity.Cwt(.Abstractions)`                                                          |
 | Secrets              | `NCode.Identity.Secrets(.Abstractions)`, `.Secrets.Persistence(.Abstractions)`, KMS adapters (key wrappers and remote key providers) `.Secrets.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms` |
+| Settings, claims, cryptography | `NCode.Identity.Settings(.Abstractions)`, `NCode.Identity.Claims(.Abstractions)`, `NCode.Identity.Cryptography(.Abstractions)` |
 | OpenID protocol      | `NCode.Identity.OpenId.Abstractions`, `.Core`, `.Messages.Abstractions`                                                            |
-| Endpoints & grants   | `NCode.Identity.OpenId.Authentication(.Abstractions)`, `.Authentication.Interactive(.Abstractions)`, `NCode.AspNetCore`            |
+| Endpoints & grants   | `NCode.Identity.OpenId.Authentication(.Abstractions)`, `.Authentication.Interactive(.Abstractions)`            |
 | Management API       | `NCode.Identity.OpenId.Management(.Abstractions)`                                                                                  |
 | Accounts             | `NCode.Identity.OpenId.Accounts*` (local-account store, ASP.NET Core Identity adapter, management)                                 |
-| Persistence          | `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`, `NCode.Identity.OpenId.Persistence*(.EntityFramework)` |
+| Persistence          | `NCode.Identity.Persistence.Abstractions`, `NCode.Identity.OpenId.Persistence*(.EntityFramework)` |
 | Protocol client      | `NCode.Identity.OpenId.Client(.Abstractions)`, `NCode.Identity.OpenId.Protocol.Abstractions`                                     |
 | Backend for frontend | `NCode.Identity.Bff(.Abstractions)`, `.Bff.Protocol.Abstractions`, `.Bff.Server` (the turnkey `AddIdentityBff`), `.Bff.Blazor`, `.Bff.Blazor.Client` |
-| Composition and host | `NCode.Registration(.AspNetCore)`, `NCode.Identity`, `NCode.Identity.Server`, `NCode.Identity.OpenId.Host*`                   |
+| Composition and host | `NCode.Identity.Registration(.AspNetCore)`, `NCode.Identity.Server`, `NCode.Identity.OpenId.Host*`                   |
 
 The extensibility model — **service** vs **strategy collection** vs **mediator** — is
 [ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md).

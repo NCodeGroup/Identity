@@ -3,6 +3,7 @@
 
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Claims;
 using NCode.Identity.OpenId.Serialization;
 using Xunit;
@@ -11,11 +12,16 @@ namespace NCode.Identity.OpenId.Core.Tests.Serialization;
 
 public class ClaimJsonConverterTests
 {
+    private ServiceProvider ServiceProvider { get; }
     private JsonSerializerOptions Options { get; }
 
     public ClaimJsonConverterTests()
     {
-        var serializer = DefaultClaimsSerializer.Singleton;
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddClaimsLibrary();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+
+        var serializer = ServiceProvider.GetRequiredService<IClaimsSerializer>();
         Options = new JsonSerializerOptions
         {
             Converters =

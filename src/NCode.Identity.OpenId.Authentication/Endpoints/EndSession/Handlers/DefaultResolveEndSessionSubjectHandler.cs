@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
@@ -13,7 +14,6 @@ using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;

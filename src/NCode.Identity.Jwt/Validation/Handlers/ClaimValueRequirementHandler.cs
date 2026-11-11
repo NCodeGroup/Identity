@@ -3,7 +3,7 @@
 
 using System.Collections.Frozen;
 using System.Text.Json;
-using NCode.Json;
+using NCode.Identity.Json;
 
 namespace NCode.Identity.Jwt.Validation;
 

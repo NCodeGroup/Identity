@@ -10,9 +10,9 @@ using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
 using NCode.Identity.SharedState;
-using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Client.Tests;

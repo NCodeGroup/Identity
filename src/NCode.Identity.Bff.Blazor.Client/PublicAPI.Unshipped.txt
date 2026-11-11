@@ -9,7 +9,7 @@ const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.HttpClientName = 
 NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults
 NCode.Identity.Bff.Blazor.Client.DefaultRegistration
 NCode.Identity.Bff.Blazor.Client.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Bff.Blazor.Client.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddBffBlazorClient() -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary>!
+NCode.Identity.Bff.Blazor.Client.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddBffBlazorClient() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary>!
 NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions
 NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.AntiforgeryHeaderName.get -> string!
 NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.AntiforgeryHeaderName.set -> void

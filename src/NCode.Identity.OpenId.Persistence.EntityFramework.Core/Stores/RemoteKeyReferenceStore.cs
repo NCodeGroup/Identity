@@ -3,8 +3,8 @@
 
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 

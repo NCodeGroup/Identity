@@ -4,7 +4,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Authentication.Interactive;
@@ -13,14 +13,14 @@ using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
+using NCode.Identity.Registration;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Identity.Secrets.AwsKms;
 using NCode.Identity.Secrets.AzureKeyVault;
 using NCode.Identity.Secrets.GoogleCloudKms;
 using NCode.Identity.Server;
 using NCode.Identity.Server.SecretProtection;
 using NCode.Identity.SharedState.Valkey;
-using NCode.Registration;
-using NCode.Registration.AspNetCore;
 
 // COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or
 // developer-only startup logic does NOT belong here — put it in the owning package as an extension

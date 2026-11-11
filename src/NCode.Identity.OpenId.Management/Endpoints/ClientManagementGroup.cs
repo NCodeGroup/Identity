@@ -3,7 +3,7 @@
 
 using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 

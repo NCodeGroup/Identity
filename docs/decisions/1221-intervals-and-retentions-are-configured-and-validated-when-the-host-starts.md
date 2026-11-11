@@ -40,7 +40,7 @@ the retention options bind from configuration.**
 
 1. **A timer period is between 1 millisecond and 4,294,967,294 milliseconds.** One millisecond is the shortest period a
    `PeriodicTimer` accepts, and 4,294,967,294 milliseconds, about 49.7 days, is the longest that any .NET timer or
-   `CancellationTokenSource` delay accepts. `NCode.Time.TimerPeriod` states the range as `MinValue`, `MaxValue`, and
+   `CancellationTokenSource` delay accepts. `NCode.Identity.Time.TimerPeriod` states the range as `MinValue`, `MaxValue`, and
    `IsValid`. The six `OpenIdOptions` values above, `GrantRetentionOptions.PruneInterval`,
    `TenantUsageOptions.FlushInterval`, and `EndedSessionTerminationOptions.Interval`
    ([ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)) must be valid periods. The
@@ -95,7 +95,7 @@ the retention options bind from configuration.**
   period.
 - [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — the reconciliation that
   holds a lease for `ReconciliationLeaseDuration`.
-- Code: `NCode.Time.TimerPeriod`, `NCode.Identity.OpenId.OpenIdIntervalsOptionsValidator`,
+- Code: `NCode.Identity.Time.TimerPeriod`, `NCode.Identity.OpenId.OpenIdIntervalsOptionsValidator`,
   `NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptionsValidator`,
   `NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptionsValidator`,
   `NCode.Identity.Server.IdentityServerBuilderExtensions`.

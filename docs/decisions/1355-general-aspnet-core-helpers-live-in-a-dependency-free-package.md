@@ -1,11 +1,6 @@
 # 1355. General ASP.NET Core helpers live in a dependency-free package
 
-- **Status:** Accepted (amended by
-  [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md):
-  the package also references `NCode.Buffers` for the strict encodings, and holds the HTML page security model and the
-  front-channel marker; and by
-  [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
-  it references `NCode.Registration` and holds forwarded-header trust and Strict-Transport-Security)
+- **Status:** Superseded by [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md)
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 

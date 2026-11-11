@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 using NCode.Identity.Jose.SdJwt.Verification;
-using NCode.Json;
+using NCode.Identity.Json;
 
 namespace NCode.Identity.Jose.SdJwt.Digests;
 

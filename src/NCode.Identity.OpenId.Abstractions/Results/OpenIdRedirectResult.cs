@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.Results;
+using NCode.Identity.AspNetCore;
 
 namespace NCode.Identity.OpenId.Results;
 

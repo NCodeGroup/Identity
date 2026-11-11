@@ -6,9 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.SharedState;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.SecretProtection;
 

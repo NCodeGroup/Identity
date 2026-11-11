@@ -26,11 +26,11 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
-using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
 

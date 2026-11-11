@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.OpenId.Authentication.Auditing;
-using NCode.Time;
+using NCode.Identity.Time;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Auditing;

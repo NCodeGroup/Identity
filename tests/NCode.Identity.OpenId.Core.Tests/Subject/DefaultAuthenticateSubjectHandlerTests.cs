@@ -17,8 +17,8 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Identity.Persistence.Stores;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Subject;

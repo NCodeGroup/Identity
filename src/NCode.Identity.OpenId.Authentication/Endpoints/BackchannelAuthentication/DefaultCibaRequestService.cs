@@ -12,7 +12,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication;
 

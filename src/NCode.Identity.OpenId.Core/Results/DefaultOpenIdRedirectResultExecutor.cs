@@ -3,7 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
-using NCode.Identity.Results;
+using NCode.Identity.AspNetCore;
 
 namespace NCode.Identity.OpenId.Results;
 

@@ -8,7 +8,7 @@ using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logging;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.Bff.Tokens;
 

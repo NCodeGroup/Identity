@@ -5,8 +5,8 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
+using NCode.Identity.Registration;
 using NCode.Identity.Settings;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Passwords;
 

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <RootNamespace>NCode.Identity.Settings</RootNamespace>
+        <Description>The default implementation of NCode.Identity's settings: the setting descriptor and scope collections and their providers, setting collections and their factories, and the setting serializer.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Settings.Abstractions\NCode.Identity.Settings.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Json\NCode.Identity.Json.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="NCode.Collections.Providers" />
+    </ItemGroup>
+</Project>

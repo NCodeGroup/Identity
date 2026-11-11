@@ -4,7 +4,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose.Secp256k1.Algorithms;
 using NCode.Identity.Jose.Secp256k1.KeyTypes;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.Jose.Secp256k1;
 

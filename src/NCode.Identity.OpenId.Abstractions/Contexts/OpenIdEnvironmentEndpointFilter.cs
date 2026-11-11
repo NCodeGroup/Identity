@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.Exceptions;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Persistence.Tenants;

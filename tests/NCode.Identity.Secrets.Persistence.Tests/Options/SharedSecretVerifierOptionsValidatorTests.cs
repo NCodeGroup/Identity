@@ -3,9 +3,9 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets.Persistence.Verifiers;
 using NCode.Identity.Secrets.Verifiers;
-using NCode.Registration;
 
 namespace NCode.Identity.Secrets.Persistence.Options;
 

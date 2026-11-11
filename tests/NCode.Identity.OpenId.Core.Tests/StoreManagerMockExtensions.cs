@@ -3,7 +3,7 @@
 
 using Moq;
 using Moq.Language.Flow;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Core.Tests;
 

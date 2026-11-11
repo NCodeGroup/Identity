@@ -5,8 +5,8 @@ using System.Text.Json;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Settings;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 

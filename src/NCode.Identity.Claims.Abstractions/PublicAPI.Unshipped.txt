@@ -1,0 +1,51 @@
+#nullable enable
+NCode.Identity.Claims.IClaimsSerializer
+NCode.Identity.Claims.IClaimsSerializer.DeserializeClaim(NCode.Identity.Claims.SerializableClaim! serializableClaim) -> System.Security.Claims.Claim!
+NCode.Identity.Claims.IClaimsSerializer.DeserializeClaim(NCode.Identity.Claims.SerializableClaim! serializableClaim, System.Security.Claims.ClaimsIdentity? subject) -> System.Security.Claims.Claim!
+NCode.Identity.Claims.IClaimsSerializer.DeserializeIdentity(NCode.Identity.Claims.SerializableClaimsIdentity! serializableIdentity) -> System.Security.Claims.ClaimsIdentity!
+NCode.Identity.Claims.IClaimsSerializer.DeserializePrincipal(NCode.Identity.Claims.SerializableClaimsPrincipal! serializablePrincipal) -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Claims.IClaimsSerializer.SerializeClaim(System.Security.Claims.Claim! claim) -> NCode.Identity.Claims.SerializableClaim!
+NCode.Identity.Claims.IClaimsSerializer.SerializeIdentity(System.Security.Claims.ClaimsIdentity! identity) -> NCode.Identity.Claims.SerializableClaimsIdentity!
+NCode.Identity.Claims.IClaimsSerializer.SerializePrincipal(System.Security.Claims.ClaimsPrincipal! principal) -> NCode.Identity.Claims.SerializableClaimsPrincipal!
+NCode.Identity.Claims.IClaimsService
+NCode.Identity.Claims.IClaimsService.CopyClaims(System.Security.Claims.ClaimsPrincipal! source, System.Collections.Generic.ICollection<System.Security.Claims.Claim!>! target, bool preventDuplicates, params System.Collections.Generic.IEnumerable<string!>! claimTypes) -> void
+NCode.Identity.Claims.SerializableClaim
+NCode.Identity.Claims.SerializableClaim.Issuer.get -> string?
+NCode.Identity.Claims.SerializableClaim.Issuer.init -> void
+NCode.Identity.Claims.SerializableClaim.OriginalIssuer.get -> string?
+NCode.Identity.Claims.SerializableClaim.OriginalIssuer.init -> void
+NCode.Identity.Claims.SerializableClaim.Properties.get -> System.Collections.Generic.IDictionary<string!, string!>!
+NCode.Identity.Claims.SerializableClaim.Properties.init -> void
+NCode.Identity.Claims.SerializableClaim.SerializableClaim() -> void
+NCode.Identity.Claims.SerializableClaim.SubjectRef.get -> string?
+NCode.Identity.Claims.SerializableClaim.SubjectRef.init -> void
+NCode.Identity.Claims.SerializableClaim.Type.get -> string!
+NCode.Identity.Claims.SerializableClaim.Type.init -> void
+NCode.Identity.Claims.SerializableClaim.Value.get -> string!
+NCode.Identity.Claims.SerializableClaim.Value.init -> void
+NCode.Identity.Claims.SerializableClaim.ValueType.get -> string?
+NCode.Identity.Claims.SerializableClaim.ValueType.init -> void
+NCode.Identity.Claims.SerializableClaimsIdentity
+NCode.Identity.Claims.SerializableClaimsIdentity.Actor.get -> NCode.Identity.Claims.SerializableClaimsIdentity?
+NCode.Identity.Claims.SerializableClaimsIdentity.Actor.init -> void
+NCode.Identity.Claims.SerializableClaimsIdentity.AuthenticationType.get -> string?
+NCode.Identity.Claims.SerializableClaimsIdentity.AuthenticationType.init -> void
+NCode.Identity.Claims.SerializableClaimsIdentity.BootstrapContext.get -> System.Text.Json.JsonElement
+NCode.Identity.Claims.SerializableClaimsIdentity.BootstrapContext.init -> void
+NCode.Identity.Claims.SerializableClaimsIdentity.Claims.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Claims.SerializableClaim!>!
+NCode.Identity.Claims.SerializableClaimsIdentity.Claims.init -> void
+NCode.Identity.Claims.SerializableClaimsIdentity.Label.get -> string?
+NCode.Identity.Claims.SerializableClaimsIdentity.Label.init -> void
+NCode.Identity.Claims.SerializableClaimsIdentity.NameClaimType.get -> string?
+NCode.Identity.Claims.SerializableClaimsIdentity.NameClaimType.init -> void
+NCode.Identity.Claims.SerializableClaimsIdentity.ReferenceId.get -> string!
+NCode.Identity.Claims.SerializableClaimsIdentity.ReferenceId.init -> void
+NCode.Identity.Claims.SerializableClaimsIdentity.RoleClaimType.get -> string?
+NCode.Identity.Claims.SerializableClaimsIdentity.RoleClaimType.init -> void
+NCode.Identity.Claims.SerializableClaimsIdentity.SerializableClaimsIdentity() -> void
+NCode.Identity.Claims.SerializableClaimsPrincipal
+NCode.Identity.Claims.SerializableClaimsPrincipal.Identities.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Claims.SerializableClaimsIdentity!>!
+NCode.Identity.Claims.SerializableClaimsPrincipal.Identities.init -> void
+NCode.Identity.Claims.SerializableClaimsPrincipal.SerializableClaimsPrincipal() -> void
+NCode.Identity.Claims.ClaimsLibrary
+NCode.Identity.Claims.ClaimsLibrary.ClaimsLibrary() -> void

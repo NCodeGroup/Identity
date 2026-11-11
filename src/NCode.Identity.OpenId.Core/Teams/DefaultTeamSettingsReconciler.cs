@@ -10,10 +10,10 @@ using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Teams;
 

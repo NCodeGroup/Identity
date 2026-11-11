@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Json;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
@@ -21,7 +22,6 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
-using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;

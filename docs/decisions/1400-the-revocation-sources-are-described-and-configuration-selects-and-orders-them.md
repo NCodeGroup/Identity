@@ -85,7 +85,7 @@ when the host starts; empty, the default, asks every registered source in the de
 - A misspelled or repeated source name stops the host when it starts.
 - The host constructs every revocation source as it starts, so a source's own dependencies must resolve then.
 - The selection is one for the whole server.
-- This implements issue [#38](https://github.com/NCodeGroup/Identity/issues/38).
+- This implements issue [#38](https://github.com/NCodeGroup/identity/issues/38).
 
 ## References
 

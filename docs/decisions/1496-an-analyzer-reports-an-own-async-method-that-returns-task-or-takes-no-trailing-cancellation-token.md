@@ -10,7 +10,7 @@
 The template's Language and Async rule, in `.github/instructions/csharp-production.instructions.md` §1, has an async
 method return `ValueTask` or `ValueTask<T>`, end in `Async` and take a `CancellationToken` as its last parameter. Review
 alone kept the rule, and the integration test project's conversion
-([#740](https://github.com/NCodeGroup/Identity/issues/740)) found the same shape in every test project: helpers that
+([#740](https://github.com/NCodeGroup/identity/issues/740)) found the same shape in every test project: helpers that
 return `Task` and take no token, beside the production code that follows the rule. The forces:
 
 - **Review is the only gate.** `.editorconfig`, `BannedSymbols.txt` and a text gate cannot tell a method the family
@@ -104,9 +104,9 @@ method that returns `Task` or `Task<T>` and with `NCID0003` on an own asynchrono
 
 ## References
 
-- [#743](https://github.com/NCodeGroup/Identity/issues/743)
-- [#744](https://github.com/NCodeGroup/Identity/issues/744)
-- [#740](https://github.com/NCodeGroup/Identity/issues/740), the issue of PR #741: the integration test project's
+- [#743](https://github.com/NCodeGroup/identity/issues/743)
+- [#744](https://github.com/NCodeGroup/identity/issues/744)
+- [#740](https://github.com/NCodeGroup/identity/issues/740), the issue of PR #741: the integration test project's
   conversion
 - [ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md): the analyzer project
 - [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)

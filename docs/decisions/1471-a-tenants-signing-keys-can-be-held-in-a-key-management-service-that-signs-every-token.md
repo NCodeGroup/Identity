@@ -234,4 +234,4 @@ public keys without calling the service.**
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md).
-- [#165](https://github.com/NCodeGroup/Identity/issues/165)
+- [#165](https://github.com/NCodeGroup/identity/issues/165)

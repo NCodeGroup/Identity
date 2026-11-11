@@ -62,4 +62,4 @@ the URLs the server publishes and left these comparisons to a follow-up.
   [`ClientAssertionClientAuthenticationHandler.cs`](../../src/NCode.Identity.OpenId.Authentication/Clients/Handlers/ClientAssertionClientAuthenticationHandler.cs)
   and
   [`DefaultProofOfPossessionService.cs`](../../src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultProofOfPossessionService.cs).
-- [NCodeGroup/Identity#518](https://github.com/NCodeGroup/Identity/issues/518).
+- [NCodeGroup/identity#518](https://github.com/NCodeGroup/identity/issues/518).

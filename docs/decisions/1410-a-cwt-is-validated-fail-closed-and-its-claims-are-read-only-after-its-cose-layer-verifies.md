@@ -97,6 +97,6 @@ carries the same claims in CBOR, and its `NumericDate` may be an integer or a fl
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
   [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
   [ADR-1409](1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md)
-- Issue [#76](https://github.com/NCodeGroup/Identity/issues/76)
+- Issue [#76](https://github.com/NCodeGroup/identity/issues/76)
 - `NCode.Identity.Cwt.Abstractions`: `ICwtValidator`, `CwtValidationParameters`, `ICwtIssuer`;
   `NCode.Identity.Cwt`: `DefaultCwtValidator`, `DefaultCwtIssuer`, `CwtClaimsReader`

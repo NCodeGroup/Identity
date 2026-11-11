@@ -70,4 +70,4 @@ tests pin both.**
 - [ADR-1046](1046-api-reference-openapi-document-and-scalar.md): the OpenAPI document and its owner.
 - [ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md): a route
   declares every problem it answers.
-- [#706](https://github.com/NCodeGroup/Identity/issues/706)
+- [#706](https://github.com/NCodeGroup/identity/issues/706)

@@ -147,4 +147,4 @@ to take effect within a bounded period across replicas without a KMS call per re
   `src/NCode.Identity.Secrets.Persistence/Protection/MasterKeyFactory.cs`,
   `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRing.cs`,
   `src/NCode.Identity.OpenId.Core/SecretProtection/OwnerRootKeyValidationService.cs`
-- Issue [#174](https://github.com/NCodeGroup/Identity/issues/174), Auth0 "Bring Your Own Key"
+- Issue [#174](https://github.com/NCodeGroup/identity/issues/174), Auth0 "Bring Your Own Key"

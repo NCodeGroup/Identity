@@ -136,4 +136,4 @@ secret keeps the instants its creator gave it.
 - [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
   [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)
-- Issue [#166](https://github.com/NCodeGroup/Identity/issues/166)
+- Issue [#166](https://github.com/NCodeGroup/identity/issues/166)

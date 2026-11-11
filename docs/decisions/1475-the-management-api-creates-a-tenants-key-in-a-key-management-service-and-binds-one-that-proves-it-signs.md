@@ -124,4 +124,4 @@ public half the operator supplied.**
   before any read.
 - [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md),
   [ADR-1104](1104-import-public-asymmetric-secret-material.md): the import policy of a supplied public half.
-- [#648](https://github.com/NCodeGroup/Identity/issues/648)
+- [#648](https://github.com/NCodeGroup/identity/issues/648)

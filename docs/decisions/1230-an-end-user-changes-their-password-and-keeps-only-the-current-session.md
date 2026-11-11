@@ -12,7 +12,7 @@
 
 [ADR-1226](1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md) decision 7
 decides what a self-service password change does: it terminates every other session of the principal and keeps the
-current one. The server offered no such change (issue [#290](https://github.com/NCodeGroup/Identity/issues/290)). The interactive surface is backend-agnostic
+current one. The server offered no such change (issue [#290](https://github.com/NCodeGroup/identity/issues/290)). The interactive surface is backend-agnostic
 ([ADR-1070](1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md)), so a password change cannot
 assume a local account.
 
@@ -76,7 +76,7 @@ user but the current one and revokes every grant that was issued under no sessio
 - **Breaking:** `IInteractivePasswordChanger`, `InteractivePasswordChangeResult`,
   `InteractiveAuthenticationDefaults.PasswordPath`, `SessionTerminationReasons.PasswordChanged` and
   `GrantFilter.WithoutSession` are added, and `RevokeAllExceptAsync` revokes the grants issued under no session.
-- This implements issue [#290](https://github.com/NCodeGroup/Identity/issues/290).
+- This implements issue [#290](https://github.com/NCodeGroup/identity/issues/290).
 
 ## References
 

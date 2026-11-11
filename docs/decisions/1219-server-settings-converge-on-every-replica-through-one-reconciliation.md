@@ -22,8 +22,8 @@
 The server's effective settings are its configured settings with its committed settings document merged onto them
 ([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md)), and they bound every tenant and client
 below them. Three kinds of change move them: a management write to the document, a reload of
-`OpenId:Server:Settings`, and a deployment whose configuration differs. A review (issues [#248](https://github.com/NCodeGroup/Identity/issues/248), [#249](https://github.com/NCodeGroup/Identity/issues/249), [#252](https://github.com/NCodeGroup/Identity/issues/252) and
-[#263](https://github.com/NCodeGroup/Identity/issues/263)) found that none of them reached every replica, every tenant, and every client in a bounded time:
+`OpenId:Server:Settings`, and a deployment whose configuration differs. A review (issues [#248](https://github.com/NCodeGroup/identity/issues/248), [#249](https://github.com/NCodeGroup/identity/issues/249), [#252](https://github.com/NCodeGroup/identity/issues/252) and
+[#263](https://github.com/NCodeGroup/identity/issues/263)) found that none of them reached every replica, every tenant, and every client in a bounded time:
 
 - A replica read the committed document through a poll every 5 minutes, the replica that made the write included, so
   a write was advertised and enforced up to 5 minutes late.
@@ -108,7 +108,7 @@ below them. Three kinds of change move them: a management write to the document,
 
 ## Options considered
 
-- **A durable `IJobDispatcher` adapter** (issue [#25](https://github.com/NCodeGroup/Identity/issues/25)). Rejected for this purpose: a stored job would carry the
+- **A durable `IJobDispatcher` adapter** (issue [#25](https://github.com/NCodeGroup/identity/issues/25)). Rejected for this purpose: a stored job would carry the
   comparison of two documents, which a configuration change never produces, while the invariants can be checked from
   the current state. A durable adapter for deliveries stays deferred.
 - **Waiting for the replica's first request.** Rejected: derived state would stay unreconciled after a deployment until
@@ -116,7 +116,7 @@ below them. Three kinds of change move them: a management write to the document,
   nothing cost one read.
 - **Remembering every reconciled fingerprint in the shared state.** Rejected: a return to an earlier state would be
   skipped, while tenants and clients created in between were reconciled against the other state only.
-- **A pass that compares the previous effective settings with the current ones.** Deferred (issue [#279](https://github.com/NCodeGroup/Identity/issues/279)): it needs
+- **A pass that compares the previous effective settings with the current ones.** Deferred (issue [#279](https://github.com/NCodeGroup/identity/issues/279)): it needs
   the previous settings stored, not only their fingerprint, and a full pass runs only when the settings change.
 - **Announcing the settings document.** Rejected: a message may be lost, repeated, or late, so it can only tell a
   replica to read the store.
@@ -152,7 +152,7 @@ below them. Three kinds of change move them: a management write to the document,
     implementation implements them.
   - `OpenIdTenantOptions.TenantCacheExpiration`, a sliding expiration, is `TenantCacheLifetime`, an absolute one.
   - The `AddServerReconciledSettingsFingerprint` migration adds the `Servers.ReconciledSettingsFingerprint` column.
-- This implements issues [#248](https://github.com/NCodeGroup/Identity/issues/248), [#249](https://github.com/NCodeGroup/Identity/issues/249), [#252](https://github.com/NCodeGroup/Identity/issues/252) and [#263](https://github.com/NCodeGroup/Identity/issues/263).
+- This implements issues [#248](https://github.com/NCodeGroup/identity/issues/248), [#249](https://github.com/NCodeGroup/identity/issues/249), [#252](https://github.com/NCodeGroup/identity/issues/252) and [#263](https://github.com/NCodeGroup/identity/issues/263).
 
 ## References
 

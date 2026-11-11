@@ -60,7 +60,7 @@ readers that consumers must change something, and there are no consumers.
 
 6. **The rule spans the pre-release period [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) defines.**
    From the first stable tag, a version that consumers hold exists, and Keep a Changelog's full grouping records the
-   changes to it. [#535](https://github.com/NCodeGroup/Identity/issues/535) retires this record and the owner's
+   changes to it. [#535](https://github.com/NCodeGroup/identity/issues/535) retires this record and the owner's
    standing direction at that tag.
 
 ## Options considered
@@ -81,7 +81,7 @@ readers that consumers must change something, and there are no consumers.
 - The template's planning commands write `### Changed` and `### Fixed` headings and `**Breaking:**` labels. A plan in
   this repository names this record in its Context for the executor, its changelog step edits the catalog under
   `### Added` and `### Security`, and its review rejects the other headings, the label and the `!` marker. The conflict
-  with the template is tracked in [#536](https://github.com/NCodeGroup/Identity/issues/536).
+  with the template is tracked in [#536](https://github.com/NCodeGroup/identity/issues/536).
 - A reviewer rejects delta phrasing in any text a change writes, as decision 1 lists it.
 - Accepted records keep their text, as the decision-record convention requires; a record that amends or supersedes one
   states its own decision in the present tense.

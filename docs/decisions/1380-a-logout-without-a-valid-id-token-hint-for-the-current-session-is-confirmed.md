@@ -11,7 +11,7 @@ An `end_session_endpoint` that ends the end-user's session for any request that 
 sign the end-user out (logout CSRF). OpenID Connect RP-Initiated Logout 1.0 section 2 says "the OP MUST ask the
 End-User this question if an id_token_hint was not provided or if the supplied ID Token does not belong to the current
 OP session with the RP and/or currently logged in End-User"
-([#494](https://github.com/NCodeGroup/Identity/issues/494)).
+([#494](https://github.com/NCodeGroup/identity/issues/494)).
 
 ## Decision
 
@@ -79,4 +79,4 @@ OP session with the RP and/or currently logged in End-User"
 ## References
 
 - [ADR-1074](1074-session-management-and-logout.md), [ADR-1096](1096-end-session-subject-from-server-state.md)
-- Issue [#494](https://github.com/NCodeGroup/Identity/issues/494)
+- Issue [#494](https://github.com/NCodeGroup/identity/issues/494)

@@ -76,4 +76,4 @@ runtime. The server packages and the client package both read them from there.**
   [ADR-1276](1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md),
   [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)
-- Issue [#605](https://github.com/NCodeGroup/Identity/issues/605)
+- Issue [#605](https://github.com/NCodeGroup/identity/issues/605)

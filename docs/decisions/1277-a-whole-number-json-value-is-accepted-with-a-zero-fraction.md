@@ -84,4 +84,4 @@ whole value in `int` range is accepted, and everything else is refused.**
   logic
 - [ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) — the pushed
   authorization request this amends
-- Issue [#352](https://github.com/NCodeGroup/Identity/issues/352)
+- Issue [#352](https://github.com/NCodeGroup/identity/issues/352)

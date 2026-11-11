@@ -40,4 +40,4 @@ package segment. A package that adds another service names itself the same way.
 - [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)
 - [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)
 - [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)
-- Issue [#652](https://github.com/NCodeGroup/Identity/issues/652)
+- Issue [#652](https://github.com/NCodeGroup/identity/issues/652)

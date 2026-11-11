@@ -125,7 +125,7 @@ public half ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-besid
 
 ## References
 
-- Issue [#534](https://github.com/NCodeGroup/Identity/issues/534)
+- Issue [#534](https://github.com/NCodeGroup/identity/issues/534)
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md),
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md),

@@ -122,7 +122,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
 - WebKit is proven only off Windows; CI covers it on Linux.
 - Adding the check to the `main` and `release-lines` rulesets is an administrator's action on the repository.
 - The `main` and `release-lines` rulesets enforce the check once they list `End-to-end`, tracked in
-  [#591](https://github.com/NCodeGroup/Identity/issues/591).
+  [#591](https://github.com/NCodeGroup/identity/issues/591).
 - A test that shows the BFF failing against Keycloak or a browser is a finding about the BFF.
 
 ## References
@@ -132,7 +132,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
   [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
   [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md),
   [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md)
-- Issues [#418](https://github.com/NCodeGroup/Identity/issues/418) and
-  [#419](https://github.com/NCodeGroup/Identity/issues/419)
+- Issues [#418](https://github.com/NCodeGroup/identity/issues/418) and
+  [#419](https://github.com/NCodeGroup/identity/issues/419)
 - `tests/NCode.Identity.Bff.EndToEnd.Tests/`, `build/e2e.ps1`, `build/test-projects.ps1`,
   `.github/workflows/e2e.yml`

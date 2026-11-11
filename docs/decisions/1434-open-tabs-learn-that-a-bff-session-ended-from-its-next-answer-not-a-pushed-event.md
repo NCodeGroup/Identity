@@ -11,7 +11,7 @@ A BFF session ends in four ways: the user logs out, the OP posts a back-channel 
 comes back `invalid_grant`, or the idle or absolute timeout passes. Only the first happens in the tab that is open. The
 other tabs of the same browser keep showing a signed-in page until they make a call. The design leaves the question open
 ([`docs/backend-for-frontend.md`](../backend-for-frontend.md) §11 question 3, issue
-[#523](https://github.com/NCodeGroup/Identity/issues/523)): should the BFF push the end of a session to open tabs, for
+[#523](https://github.com/NCodeGroup/identity/issues/523)): should the BFF push the end of a session to open tabs, for
 example through a server-sent-events endpoint, or is the next guarded call's `401` soon enough?
 
 A push endpoint would have to keep every guarantee of the BFF's other endpoints:
@@ -79,4 +79,4 @@ between tabs.**
 - [ADR-1074](1074-session-management-and-logout.md),
   [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
   [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
-- Issue [#523](https://github.com/NCodeGroup/Identity/issues/523)
+- Issue [#523](https://github.com/NCodeGroup/identity/issues/523)

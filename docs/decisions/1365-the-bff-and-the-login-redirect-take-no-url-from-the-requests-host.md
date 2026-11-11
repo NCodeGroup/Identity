@@ -49,7 +49,7 @@ contributes nothing to a URL the server publishes.
 - A BFF that is reachable under several names publishes one of them.
 - Comparisons that still read the request's `Host` (the client-assertion `aud` and the DPoP `htu`) compare and do not
   publish, so they are left to a follow-up of
-  [NCodeGroup/Identity#493](https://github.com/NCodeGroup/Identity/issues/493).
+  [NCodeGroup/identity#493](https://github.com/NCodeGroup/identity/issues/493).
 
 ## References
 
@@ -57,4 +57,4 @@ contributes nothing to a URL the server publishes.
   [`BffOptionsValidator.cs`](../../src/NCode.Identity.Bff/Options/BffOptionsValidator.cs) and
   [`DefaultRegistration.cs`](../../src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs) of the
   interactive package.
-- [NCodeGroup/Identity#493](https://github.com/NCodeGroup/Identity/issues/493).
+- [NCodeGroup/identity#493](https://github.com/NCodeGroup/identity/issues/493).

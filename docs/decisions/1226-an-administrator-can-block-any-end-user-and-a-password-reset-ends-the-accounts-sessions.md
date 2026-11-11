@@ -18,10 +18,10 @@
 
 A disabled local account refuses its principal through every connection
 ([ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md)), but a principal whose connections are all
-external has no state that an administrator can set (issue [#284](https://github.com/NCodeGroup/Identity/issues/284)). Auth0 blocks a user, not a connection.
+external has no state that an administrator can set (issue [#284](https://github.com/NCodeGroup/identity/issues/284)). Auth0 blocks a user, not a connection.
 
 An administrator's password reset rotates the security stamp of the account, which nothing reads, so the sessions and
-the refresh tokens of a compromised account keep working until they expire (issue [#285](https://github.com/NCodeGroup/Identity/issues/285)). OWASP ASVS V3.3.3 asks that
+the refresh tokens of a compromised account keep working until they expire (issue [#285](https://github.com/NCodeGroup/identity/issues/285)). OWASP ASVS V3.3.3 asks that
 a password change or a password reset terminates the other active sessions, across the relying parties as well.
 
 ## Decision
@@ -103,7 +103,7 @@ request for it, and an administrator's password reset ends the account's session
   `OpenIdConstants.EndpointTags.Principals`, `ManagementResourceTypes.Principal`, `PrincipalChangedAuditEvent` and
   `PrincipalResource` are added, and the `AddFederatedPrincipalIsBlocked` migration adds a column to the federated
   principals table.
-- This implements issues [#284](https://github.com/NCodeGroup/Identity/issues/284) and [#285](https://github.com/NCodeGroup/Identity/issues/285).
+- This implements issues [#284](https://github.com/NCodeGroup/identity/issues/284) and [#285](https://github.com/NCodeGroup/identity/issues/285).
 
 ## References
 

@@ -27,7 +27,7 @@ that landed between the two reads was overwritten:
   so an approval that landed between the poll's read and its write was lost;
 - the approval and the denial of a device authorization or of a CIBA request replaced the payload without checking
   that it was still pending as stored, so two approvals both succeeded, and both CIBA approvals delivered a ping or
-  pushed tokens (issue [#282](https://github.com/NCodeGroup/Identity/issues/282)).
+  pushed tokens (issue [#282](https://github.com/NCodeGroup/identity/issues/282)).
 
 ## Decision
 
@@ -81,7 +81,7 @@ caller to the grant as it is stored and reads again when its write loses a race.
   takes a payload are removed, `UpdatePayloadAsync` takes the function that computes the change, and
   `PersistedGrantUpdate<TPayload>` is added, so every implementation of the service implements it. The result of
   `ISessionService.AddClientAsync` means that this call added the client.
-- This implements issue [#282](https://github.com/NCodeGroup/Identity/issues/282).
+- This implements issue [#282](https://github.com/NCodeGroup/identity/issues/282).
 
 ## References
 

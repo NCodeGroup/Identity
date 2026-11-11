@@ -103,4 +103,4 @@ directory.
   `src/NCode.Identity.Secrets.Abstractions/KeyWrapping/ReferencedKey.cs`,
   `src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IReferencedKeyWrapper.cs`,
   `src/NCode.Identity.Secrets.Persistence/Protection/DefaultOwnerRootKeyManager.cs`
-- Issue [#574](https://github.com/NCodeGroup/Identity/issues/574)
+- Issue [#574](https://github.com/NCodeGroup/identity/issues/574)

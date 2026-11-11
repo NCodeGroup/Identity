@@ -136,8 +136,8 @@ ADR-1139: name, type, and domain are checked together, at the same entry points,
   ([ADR-1141](1141-response-types-are-whole-values.md)).
 - `client_notification_endpoint` has an empty default, so a ping or push client that registered none is reported as a
   missing endpoint rather than failing to read the setting.
-- Follow-ups: issue [#93](https://github.com/NCodeGroup/Identity/issues/93) (a parent's security profile is un-loosenable only when it is `fapi2`, decided in
-  [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)) and [#94](https://github.com/NCodeGroup/Identity/issues/94)
+- Follow-ups: issue [#93](https://github.com/NCodeGroup/identity/issues/93) (a parent's security profile is un-loosenable only when it is `fapi2`, decided in
+  [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)) and [#94](https://github.com/NCodeGroup/identity/issues/94)
   (registration of combined `response_types`, decided in [ADR-1141](1141-response-types-are-whole-values.md)).
 
 ## References

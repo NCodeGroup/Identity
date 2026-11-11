@@ -24,7 +24,7 @@ use avoid the cycle, but only by a convention that nothing enforced.
 
 Dynamic registration had a second copy of the vocabulary. It named the methods that verify a shared secret in a
 hard-coded list, to decide whether to issue a `client_secret`, so a method that a package added was never issued one. A
-review (issue [#251](https://github.com/NCodeGroup/Identity/issues/251)) found both.
+review (issue [#251](https://github.com/NCodeGroup/identity/issues/251)) found both.
 
 ## Decision
 
@@ -78,4 +78,4 @@ review (issue [#251](https://github.com/NCodeGroup/Identity/issues/251)) found b
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md) cannot arise through the handlers.
 - The domain of the client-authentication settings follows the registered descriptors, not the registered handlers. This
   amends [ADR-1140](1140-setting-values-are-validated-against-their-domain.md).
-- This implements issue [#251](https://github.com/NCodeGroup/Identity/issues/251).
+- This implements issue [#251](https://github.com/NCodeGroup/identity/issues/251).

@@ -46,6 +46,6 @@ FAPI plans.
 
 ## References
 
-- Issue [#124](https://github.com/NCodeGroup/Identity/issues/124)
+- Issue [#124](https://github.com/NCodeGroup/identity/issues/124)
 - [FAPI 1.0 Part 1: Baseline](https://openid.net/specs/openid-financial-api-part-1-1_0.html)
 - [RFC 4122](https://www.rfc-editor.org/rfc/rfc4122)

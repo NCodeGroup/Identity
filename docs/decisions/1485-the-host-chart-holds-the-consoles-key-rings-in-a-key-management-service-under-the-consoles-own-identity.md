@@ -96,4 +96,4 @@ location read from that key, and gives the console a workload identity of its ow
 - [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)
 - [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)
 - `charts/ncode-identity-host`, `.github/workflows/host-chart.yml`
-- Issue [#712](https://github.com/NCodeGroup/Identity/issues/712)
+- Issue [#712](https://github.com/NCodeGroup/identity/issues/712)

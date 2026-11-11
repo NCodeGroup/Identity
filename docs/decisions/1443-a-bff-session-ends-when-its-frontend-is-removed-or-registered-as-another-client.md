@@ -89,4 +89,4 @@ client; and a background pass on one replica ends every stored session whose fro
   [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
 - `src/NCode.Identity.Bff/Sessions/BffSessionRetirement.cs`, `src/NCode.Identity.Bff/Sessions/DefaultBffSessionStore.cs`,
   `src/NCode.Identity.Bff.Abstractions/IBffSessionStore.cs`
-- Issue [#602](https://github.com/NCodeGroup/Identity/issues/602)
+- Issue [#602](https://github.com/NCodeGroup/identity/issues/602)

@@ -16,7 +16,7 @@ which removes the `Microsoft.Extensions.Logging.Generators` analyzer and adds `M
 generators emit a different logged-state type for `[LoggerMessage]`. The repository's own fix, a
 `Directory.Build.targets` override, was not packed, so every consumer of `NCode.Identity.OpenId.Authentication` or
 `NCode.Identity.Server` had the logging code of its own projects changed
-([#471](https://github.com/NCodeGroup/Identity/issues/471)).
+([#471](https://github.com/NCodeGroup/identity/issues/471)).
 
 ## Decision
 
@@ -63,6 +63,6 @@ generators emit a different logged-state type for `[LoggerMessage]`. The reposit
 
 - [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md),
   [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)
-- Issue [#471](https://github.com/NCodeGroup/Identity/issues/471)
+- Issue [#471](https://github.com/NCodeGroup/identity/issues/471)
 - `GuardedResilienceHandler.cs` and `GuardedResiliencePipelines.cs` in `NCode.Identity.OpenId.Authentication`, and
   `Directory.Build.targets`

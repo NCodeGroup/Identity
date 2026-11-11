@@ -12,7 +12,7 @@
 
 ## Context
 
-FAPI 2.0 readiness (issue [#54](https://github.com/NCodeGroup/Identity/issues/54)) requires strong client authentication. `private_key_jwt`
+FAPI 2.0 readiness (issue [#54](https://github.com/NCodeGroup/identity/issues/54)) requires strong client authentication. `private_key_jwt`
 ([ADR-1102](1102-jwt-bearer-client-authentication.md)) and signed request objects (JAR, RFC 9101) both verify a
 client-signed JWT against the client's **public** keys. A client may onboard those keys two ways:
 

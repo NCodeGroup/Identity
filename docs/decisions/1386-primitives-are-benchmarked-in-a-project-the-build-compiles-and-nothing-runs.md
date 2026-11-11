@@ -10,7 +10,7 @@
 [ADR-1116](1116-memory-allocations-and-buffer-operations.md) decision 4 and
 [project-template ADR-0112](project-template/0112-binary-data-uses-spans-pooled-buffers-and-cleared-secrets.md) rule 7
 require a benchmark to justify an optimization of a hot-path primitive, such as the field, scalar and group arithmetic
-of `NCode.Identity.Jose.EdDsa`, and there was none ([#470](https://github.com/NCodeGroup/Identity/issues/470)). The
+of `NCode.Identity.Jose.EdDsa`, and there was none ([#470](https://github.com/NCodeGroup/identity/issues/470)). The
 primitives are `internal`, and the public `EdDsaSignatureAlgorithm` cannot isolate one operation such as a field
 multiplication.
 
@@ -56,5 +56,5 @@ multiplication.
 - [ADR-1116](1116-memory-allocations-and-buffer-operations.md),
   [project-template ADR-0104](project-template/0104-no-cross-assembly-internalsvisibleto.md),
   [project-template ADR-0112](project-template/0112-binary-data-uses-spans-pooled-buffers-and-cleared-secrets.md)
-- Issue [#470](https://github.com/NCodeGroup/Identity/issues/470)
+- Issue [#470](https://github.com/NCodeGroup/identity/issues/470)
 - `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks/` and `AssemblyInfo.cs` in `NCode.Identity.Jose.EdDsa`

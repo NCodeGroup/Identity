@@ -15,7 +15,7 @@
 secret under a key hierarchy whose root key is held by a root key provider: an open vocabulary of `IRootKeyProvider`
 strategies, selected by `SecretProtection:RootKeyProvider`, that only wrap and unwrap master keys. It defines
 `ephemeral`, `local` and `aws-kms`, and leaves the other key management services as follow-up providers (issue
-[#173](https://github.com/NCodeGroup/Identity/issues/173)). A deployment on Azure or Google Cloud keeps its root key in its own cloud's key management service, audited by
+[#173](https://github.com/NCodeGroup/identity/issues/173)). A deployment on Azure or Google Cloud keeps its root key in its own cloud's key management service, audited by
 that cloud's logs and reached through the same keyless workload identity as its other resources, rather than in an AWS
 account that exists for one key.
 
@@ -118,7 +118,7 @@ never from configuration.
 - A deployment on Azure or Google Cloud keeps its root key in its own cloud, where that cloud's audit logs can record
   every unwrap.
 - An Azure root key is RSA, so unlike the symmetric `aws-kms`, `google-cloud-kms` and `local` roots it is not
-  quantum-resistant: master keys wrapped under it rely on RSA, as the recovery wrap does (issue [#178](https://github.com/NCodeGroup/Identity/issues/178)).
+  quantum-resistant: master keys wrapped under it rely on RSA, as the recovery wrap does (issue [#178](https://github.com/NCodeGroup/identity/issues/178)).
 - Azure neither binds nor logs the context: Key Vault cannot refuse a wrapped key presented for another owner, which
   only the key-check value catches after the unwrap, and its audit log records the key, not the owner it was used for.
 - Rotating either key in its service needs no configuration change while the Azure key identifier carries no version;
@@ -127,7 +127,7 @@ never from configuration.
   JWKS uploaded to it, so the cluster's signing keys must be uploaded again whenever they change.
 - The reference host registers all three cloud providers, so its image carries the AWS, Azure and Google SDKs and serves
   a deployment on any of the three clouds; a host built on the library references only the package it uses.
-- Infisical KMS, OpenBao/Vault Transit and PKCS#11 providers remain follow-ups (issue [#173](https://github.com/NCodeGroup/Identity/issues/173)).
+- Infisical KMS, OpenBao/Vault Transit and PKCS#11 providers remain follow-ups (issue [#173](https://github.com/NCodeGroup/identity/issues/173)).
 
 ## References
 

@@ -185,7 +185,7 @@ of the JOSE stack and the keys of the family.
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
   [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md),
   [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)
-- Issue [#76](https://github.com/NCodeGroup/Identity/issues/76)
+- Issue [#76](https://github.com/NCodeGroup/identity/issues/76)
 - `NCode.Identity.Cose.Abstractions`: `ICoseSerializer`, `CoseAlgorithms`, `CoseKeyTypeDescriptors`,
   `CoseKeyIdentifiers`;
   `NCode.Identity.Cose`: `DefaultCoseSerializer`, `DefaultCoseAlgorithmCatalog`, `DefaultCoseKeyConverter`,

@@ -22,7 +22,7 @@ batch its own unit of work. This record applies it to grants.
 No grant row was ever removed. Every authorization code, token, rotation of a refresh token, and session left a row, so
 the grants table grew without bound. Deleting a client or a tenant loads all of its grants into one unit of work
 ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)), so the growth also made the delete a larger unit of work
-(issue [#267](https://github.com/NCodeGroup/Identity/issues/267)).
+(issue [#267](https://github.com/NCodeGroup/identity/issues/267)).
 
 A grant that is revoked or expired is still read: a rotated refresh token that is presented again is a reuse
 ([ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md)), and a replayed authorization code revokes its
@@ -89,7 +89,7 @@ supports.**
 - An operator sets the retention and the interval through configuration
   ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
 - **Breaking:** `IGrantStore.RemoveEndedBeforeAsync` is added, so every implementation of the store implements it.
-- This implements issue [#267](https://github.com/NCodeGroup/Identity/issues/267).
+- This implements issue [#267](https://github.com/NCodeGroup/identity/issues/267).
 
 ## References
 

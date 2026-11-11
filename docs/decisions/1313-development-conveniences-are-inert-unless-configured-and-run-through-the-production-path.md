@@ -65,4 +65,4 @@ refuses each section in Production.
   [`DeveloperCorsRegistration.cs`](../../src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperCorsRegistration.cs),
   [`DevelopmentEnvironmentRegistration.cs`](../../src/NCode.Identity.Server/DevelopmentEnvironment/DevelopmentEnvironmentRegistration.cs)
   and [`ProductionSafetyRegistration.cs`](../../src/NCode.Identity.Server/ProductionSafety/ProductionSafetyRegistration.cs).
-- [NCodeGroup/Identity#441](https://github.com/NCodeGroup/Identity/issues/441).
+- [NCodeGroup/identity#441](https://github.com/NCodeGroup/identity/issues/441).

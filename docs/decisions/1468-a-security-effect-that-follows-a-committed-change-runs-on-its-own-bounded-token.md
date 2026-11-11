@@ -18,7 +18,7 @@ administrator's account create and password reset clear the failed attempts
 Each of these must run even when the client disconnects, so none takes the request's token. Without a bound, a hung
 store or back-channel logout holds the response indefinitely. An effect that throws turns the committed change into an
 error response and skips the audit record that follows it
-([#626](https://github.com/NCodeGroup/Identity/issues/626)).
+([#626](https://github.com/NCodeGroup/identity/issues/626)).
 [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) and
 [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md) bound other
 post-commit steps.

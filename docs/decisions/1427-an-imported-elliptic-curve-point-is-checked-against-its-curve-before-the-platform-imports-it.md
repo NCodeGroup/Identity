@@ -49,4 +49,4 @@ arithmetic on public constants, so the check does not need the platform.
   [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)
 - `src/NCode.Identity.Secrets/KeyTypes/EccSecretKeyTypeDescriptor.cs`,
   `src/NCode.Identity.Secrets.Abstractions/KeyTypes/EccCurveDomain.cs`
-- Issue [#575](https://github.com/NCodeGroup/Identity/issues/575)
+- Issue [#575](https://github.com/NCodeGroup/identity/issues/575)

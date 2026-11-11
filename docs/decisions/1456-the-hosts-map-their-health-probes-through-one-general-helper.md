@@ -9,7 +9,7 @@
 
 Two hosts, `NCode.Identity.OpenId.Host` and `NCode.Identity.ManagementConsole.Host`, serve the same liveness and
 readiness probes. A copy of the probe options in each host drifts from the other (issue
-[#609](https://github.com/NCodeGroup/Identity/issues/609)). Four facts shape where the helper and the readiness tag live:
+[#609](https://github.com/NCodeGroup/identity/issues/609)). Four facts shape where the helper and the readiness tag live:
 
 - The readiness tag must be reachable by a package that registers a check without ASP.NET Core, such as the Valkey
   adapter.
@@ -53,4 +53,4 @@ readiness probes. A copy of the probe options in each host drifts from the other
   [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)
 - `src/NCode.Identity.AspNetCore/HealthProbeEndpointRouteBuilderExtensions.cs`,
   `src/NCode.Identity.AspNetCore/HealthProbeDefaults.cs`, `src/NCode.Identity.Registration/HealthCheckTags.cs`
-- Issue [#609](https://github.com/NCodeGroup/Identity/issues/609)
+- Issue [#609](https://github.com/NCodeGroup/identity/issues/609)

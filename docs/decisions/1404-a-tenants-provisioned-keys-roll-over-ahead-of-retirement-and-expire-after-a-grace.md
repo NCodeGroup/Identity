@@ -185,4 +185,4 @@ change the server makes to a tenant's key on its own is an audit event.**
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
   [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)
-- Issue [#166](https://github.com/NCodeGroup/Identity/issues/166)
+- Issue [#166](https://github.com/NCodeGroup/identity/issues/166)

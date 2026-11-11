@@ -15,12 +15,12 @@ every change it records.
 The recorder asks after the change is committed
 ([ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md)). A machine
 client that deletes itself is gone from the store when it asks, the read finds no client, and the record names an
-administrator, not the client ([#632](https://github.com/NCodeGroup/Identity/issues/632)). Each of those callers also
-reads the same client again ([#633](https://github.com/NCodeGroup/Identity/issues/633)).
+administrator, not the client ([#632](https://github.com/NCodeGroup/identity/issues/632)). Each of those callers also
+reads the same client again ([#633](https://github.com/NCodeGroup/identity/issues/633)).
 
 UserInfo and token exchange both refuse a client's own token, and a host that registers its own
 `IClientPrincipalResolver` must get one answer at both
-([#634](https://github.com/NCodeGroup/Identity/issues/634)).
+([#634](https://github.com/NCodeGroup/identity/issues/634)).
 
 ## Decision
 
@@ -66,5 +66,5 @@ resolver.**
   client-credentials access token names the client's principal as its subject
 - [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md) — a management
   audit record runs on its own bounded token and takes no request token
-- [#632](https://github.com/NCodeGroup/Identity/issues/632), [#633](https://github.com/NCodeGroup/Identity/issues/633),
-  [#634](https://github.com/NCodeGroup/Identity/issues/634)
+- [#632](https://github.com/NCodeGroup/identity/issues/632), [#633](https://github.com/NCodeGroup/identity/issues/633),
+  [#634](https://github.com/NCodeGroup/identity/issues/634)

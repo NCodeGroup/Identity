@@ -19,7 +19,7 @@ An end-user session has two bounds: `session_absolute_lifetime`, how long it las
 `session_idle_timeout`, how long it lasts without a request that resolves it. Both defaulted to zero, and zero turned
 the bound off. A session under the defaults therefore never ended: its grant had no expiry, so the grant prune
 ([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md)) kept it, and a user who signed in stayed signed
-in until the user signed out (issue [#271](https://github.com/NCodeGroup/Identity/issues/271)).
+in until the user signed out (issue [#271](https://github.com/NCodeGroup/identity/issues/271)).
 
 The idle window lived only in the payload of the session grant, so even a configured idle timeout left the grant's row
 in the table until the absolute end. A request that found a session past its absolute end did not terminate it through
@@ -88,7 +88,7 @@ request that finds an ended session terminates it.**
 ## Options considered
 
 - **Keep zero as "no bound".** Rejected: a setting may not weaken a security control below its safe baseline, and a
-  session that never ends is the finding of issue [#271](https://github.com/NCodeGroup/Identity/issues/271).
+  session that never ends is the finding of issue [#271](https://github.com/NCodeGroup/identity/issues/271).
 - **Keep the grant's expiry at the absolute end and prune idle sessions from their payload.** Rejected: the grant store
   does not read payloads, and every reader of a session would compute the idle end again.
 - **Terminate ended sessions in a background pass.** Adopted by
@@ -115,7 +115,7 @@ request that finds an ended session terminates it.**
   `IPersistedGrantService.UpdatePayloadAndExpirationAsync` is added, so every implementation of the service implements
   it. `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen`, and `expiresWhen` of `/account/sessions/list` are not
   nullable.
-- This implements issue [#271](https://github.com/NCodeGroup/Identity/issues/271).
+- This implements issue [#271](https://github.com/NCodeGroup/identity/issues/271).
 
 ## References
 

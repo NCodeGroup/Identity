@@ -62,4 +62,4 @@ Each shipped `major.minor` is serviced from a long-lived release line beside the
 - [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) — the gates, rulesets
   and backports of the release lines.
 - [`GOVERNANCE.md`](../../GOVERNANCE.md#releases-branches--tags) and [`version.json`](../../version.json).
-- [#439](https://github.com/NCodeGroup/Identity/issues/439).
+- [#439](https://github.com/NCodeGroup/identity/issues/439).

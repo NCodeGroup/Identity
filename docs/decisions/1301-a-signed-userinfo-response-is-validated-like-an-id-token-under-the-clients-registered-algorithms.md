@@ -91,4 +91,4 @@ token, under the algorithms it registered; a client that registered no UserInfo 
   `userinfo_signing_alg_values_supported`
 - [RFC 8725 §3.1, §3.2](https://www.rfc-editor.org/rfc/rfc8725#section-3.1) — algorithm verification and selection
 - [ADR-1299](1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) — UserInfo
-- Issue [#421](https://github.com/NCodeGroup/Identity/issues/421)
+- Issue [#421](https://github.com/NCodeGroup/identity/issues/421)

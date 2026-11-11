@@ -21,7 +21,7 @@ Because the `FrameworkReference` sat on the lowest common abstractions package, 
 beneath `NCode.Identity.*` and blocked the standalone crypto branch (`NCode.Identity.Jose(.Abstractions)`,
 `NCode.Identity.Secrets(.Abstractions)`) from ever referencing the core without inverting the layering. That same
 layering wall forced the JOSE branch to keep its own `JsonElement` helper (`JsonElementExtensions`) separate from the
-Identity branch's helper, leaving two homes for the same utility (issues [#193](https://github.com/NCodeGroup/Identity/issues/193)/[#195](https://github.com/NCodeGroup/Identity/issues/195)).
+Identity branch's helper, leaving two homes for the same utility (issues [#193](https://github.com/NCodeGroup/identity/issues/193)/[#195](https://github.com/NCodeGroup/identity/issues/195)).
 
 ## Decision
 
@@ -37,8 +37,8 @@ cutover is `.csproj` + `PublicAPI` mechanics with no `using` churn in consumers:
   anything — including the crypto branch.
 - The JOSE `JsonElement` helper is folded into the dependency-free **`NCode.Identity.Json`** package: `TryGetPropertyValue<T>`
   now lives on `NCode.Identity.Json.JsonElements` alongside `IsNullOrUndefined` / `OrEmptyObject` / `EmptyObject`, giving one
-  universal home (resolves [#193](https://github.com/NCodeGroup/Identity/issues/193)). Detached parsing standardizes on `JsonElement.Parse(string)` at the convertible call
-  sites (resolves [#194](https://github.com/NCodeGroup/Identity/issues/194)).
+  universal home (resolves [#193](https://github.com/NCodeGroup/identity/issues/193)). Detached parsing standardizes on `JsonElement.Parse(string)` at the convertible call
+  sites (resolves [#194](https://github.com/NCodeGroup/identity/issues/194)).
 
 The `NCode.Identity.Registration.AspNetCore` project reference, previously carried by the core and relied on **transitively** by
 `NCode.Identity.OpenId.Abstractions` (whose `IOpenIdExceptionHandler` returns a `ReadOnlyEndpointDisposition`), moves to

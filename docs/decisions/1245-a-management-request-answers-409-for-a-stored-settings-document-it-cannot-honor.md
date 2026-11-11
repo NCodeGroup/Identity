@@ -19,7 +19,7 @@ A request that needs the effective settings of the document's owner cannot do it
 effective settings of a tenant, a client or a resource server, the creation of a client, the report, and the judgment
 of a password's policy. The resolver throws a `JsonException` for it, and an exception that escapes answers `500`, which
 tells the caller that the server failed, not which document to replace. While the server's own document cannot be
-honored, every request that resolves the server's settings answers `500` as well (issue [#301](https://github.com/NCodeGroup/Identity/issues/301)).
+honored, every request that resolves the server's settings answers `500` as well (issue [#301](https://github.com/NCodeGroup/identity/issues/301)).
 
 ## Decision
 
@@ -101,7 +101,7 @@ route group.**
   ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)); this answer concerns the management API only.
 - **Breaking:** `IEffectiveSettingsResolver` gains `ResolveStored`, which a custom resolver implements, and it and
   `ResolveServerAsync(CancellationToken)` throw `UnreadableSettingsException` for a stored document.
-- This implements issue [#301](https://github.com/NCodeGroup/Identity/issues/301).
+- This implements issue [#301](https://github.com/NCodeGroup/identity/issues/301).
 
 ## References
 

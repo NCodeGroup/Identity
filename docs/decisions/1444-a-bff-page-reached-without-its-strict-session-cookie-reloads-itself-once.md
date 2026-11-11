@@ -92,4 +92,4 @@ reload from repeating.**
   [ADR-1436](1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md),
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
 - [Project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)
-- Issue [#603](https://github.com/NCodeGroup/Identity/issues/603)
+- Issue [#603](https://github.com/NCodeGroup/identity/issues/603)

@@ -17,7 +17,7 @@ whatever its own document says ([ADR-1148](1148-security-profiles-accumulate-dow
 server selects no security profile ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)).
 
 The live providers materialize this merge for a request. Code that runs outside a materialized tenant or client needs
-the same result: a key seed, a management preview, and a check of a proposed change. A review (issue [#230](https://github.com/NCodeGroup/Identity/issues/230)) found that
+the same result: a key seed, a management preview, and a check of a proposed change. A review (issue [#230](https://github.com/NCodeGroup/identity/issues/230)) found that
 the merge was rebuilt by hand in about ten places: `TenantKeySeedHandler`, the tenant factories
 (`DefaultOpenIdTenantFactory` and `EphemeralOpenIdTenantFactory`), `DefaultOpenIdClientResolver`,
 `DefaultResourceServerCredentialResolver`, `ConformanceSeedHandler`, the tenant, client, resource-server, and server
@@ -31,8 +31,8 @@ The copies had already drifted:
   read.
 
 Two pieces of work needed one answer to what the server permits. The seed that re-seeds tenants after a server settings
-change (issue [#241](https://github.com/NCodeGroup/Identity/issues/241)) runs on the replica that committed the change, so it must see the committed document rather than
-the polled copy. The server settings PATCH (issue [#212](https://github.com/NCodeGroup/Identity/issues/212)) loaded every tenant and every client with their secrets and
+change (issue [#241](https://github.com/NCodeGroup/identity/issues/241)) runs on the replica that committed the change, so it must see the committed document rather than
+the polled copy. The server settings PATCH (issue [#212](https://github.com/NCodeGroup/identity/issues/212)) loaded every tenant and every client with their secrets and
 with change tracking to check each client's registered algorithms
 ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), even when the change touched nothing
 that check reads.
@@ -83,7 +83,7 @@ that check reads.
 
 - **A static helper.** Rejected: a host could not replace it, and it could not read the committed server document,
   which needs the store and the server provider.
-- **Resolving onto the polled server settings.** Rejected: the seed that [#241](https://github.com/NCodeGroup/Identity/issues/241) dispatches after a server settings
+- **Resolving onto the polled server settings.** Rejected: the seed that [#241](https://github.com/NCodeGroup/identity/issues/241) dispatches after a server settings
   change runs on the writing replica, whose polled copy can be 5 minutes behind the commit. A newly permitted
   algorithm would be missed by the seed, and a preview would show a stale state.
 - **Keeping the copies.** Rejected: they had drifted, and every further caller would copy the merge again.
@@ -104,4 +104,4 @@ that check reads.
   in a constructor.
 - A server or tenant settings change that touches no setting a coherence rule reads loads no client, and a change
   that does reads each tenant's and client's settings without their secrets.
-- This implements issue [#230](https://github.com/NCodeGroup/Identity/issues/230) (one resolver) and [#212](https://github.com/NCodeGroup/Identity/issues/212) (a bounded server settings PATCH).
+- This implements issue [#230](https://github.com/NCodeGroup/identity/issues/230) (one resolver) and [#212](https://github.com/NCodeGroup/identity/issues/212) (a bounded server settings PATCH).

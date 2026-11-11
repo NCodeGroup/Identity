@@ -77,5 +77,5 @@ management access token authenticates, or an anonymous principal.**
   declares every problem it answers.
 - [ADR-1482](1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md): only an authenticated
   caller reads the capabilities.
-- [#715](https://github.com/NCodeGroup/Identity/issues/715)
-- [#716](https://github.com/NCodeGroup/Identity/issues/716)
+- [#715](https://github.com/NCodeGroup/identity/issues/715)
+- [#716](https://github.com/NCodeGroup/identity/issues/716)

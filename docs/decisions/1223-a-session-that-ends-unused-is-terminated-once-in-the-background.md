@@ -34,7 +34,7 @@ only pruned:
 - an `OpenIdContext` could be built only from an `HttpContext`, and the termination seam needs one, so no background
   work could run it;
 - a request and a pass that find one ended session would both terminate it, and its relying parties would be
-  notified twice (issue [#281](https://github.com/NCodeGroup/Identity/issues/281)).
+  notified twice (issue [#281](https://github.com/NCodeGroup/identity/issues/281)).
 
 ## Decision
 
@@ -143,7 +143,7 @@ interval, and the grant prune keeps a session until it is terminated.**
   `ISessionService.TerminateIfEndedAsync`, `IOpenIdContextFactory.CreateForBackgroundAsync`, and
   `IMaterializedServerAccessor` are added, so every implementation of those interfaces implements them. The
   `AddGrantTypeRevokedWhenExpiresWhenIndex` migration adds an index to the grants table.
-- This implements issue [#281](https://github.com/NCodeGroup/Identity/issues/281).
+- This implements issue [#281](https://github.com/NCodeGroup/identity/issues/281).
 
 ## References
 

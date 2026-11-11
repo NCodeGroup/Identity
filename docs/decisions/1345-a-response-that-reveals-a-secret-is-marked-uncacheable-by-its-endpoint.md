@@ -94,8 +94,8 @@ handler runs, so success and error responses alike carry `Cache-Control: no-stor
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md),
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
   [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)
-- Issues [#473](https://github.com/NCodeGroup/Identity/issues/473), [#488](https://github.com/NCodeGroup/Identity/issues/488)
-  and [#492](https://github.com/NCodeGroup/Identity/issues/492)
+- Issues [#473](https://github.com/NCodeGroup/identity/issues/473), [#488](https://github.com/NCodeGroup/identity/issues/488)
+  and [#492](https://github.com/NCodeGroup/identity/issues/492)
 - RFC [7591](https://www.rfc-editor.org/rfc/rfc7591), [7592](https://www.rfc-editor.org/rfc/rfc7592),
   [8628](https://www.rfc-editor.org/rfc/rfc8628), [9111](https://www.rfc-editor.org/rfc/rfc9111) and
   [9126](https://www.rfc-editor.org/rfc/rfc9126);

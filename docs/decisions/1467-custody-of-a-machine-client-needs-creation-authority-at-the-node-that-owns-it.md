@@ -57,5 +57,5 @@ that node.**
   [ADR-1449](1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md),
   [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md),
   [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)
-- PR review <https://github.com/NCodeGroup/Identity/pull/585#discussion_r4485655771>
-- Issue [#589](https://github.com/NCodeGroup/Identity/issues/589)
+- PR review <https://github.com/NCodeGroup/identity/pull/585#discussion_r4485655771>
+- Issue [#589](https://github.com/NCodeGroup/identity/issues/589)

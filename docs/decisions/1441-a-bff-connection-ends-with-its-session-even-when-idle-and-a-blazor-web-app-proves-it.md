@@ -83,5 +83,5 @@ end-to-end suite proves the behavior in real browsers.**
 
 - [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md),
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)
-- Issues [#603](https://github.com/NCodeGroup/Identity/issues/603) and
-  [#604](https://github.com/NCodeGroup/Identity/issues/604)
+- Issues [#603](https://github.com/NCodeGroup/identity/issues/603) and
+  [#604](https://github.com/NCodeGroup/identity/issues/604)

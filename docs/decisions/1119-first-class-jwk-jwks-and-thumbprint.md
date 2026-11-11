@@ -6,7 +6,7 @@
 
 ## Context
 
-Issue [#72](https://github.com/NCodeGroup/Identity/issues/72) asked for first-class **JSON Web Key** (RFC 7517), **JSON Web Key Set** (RFC 7517 §5), and
+Issue [#72](https://github.com/NCodeGroup/identity/issues/72) asked for first-class **JSON Web Key** (RFC 7517), **JSON Web Key Set** (RFC 7517 §5), and
 **JWK Thumbprint** / **Thumbprint URI** (RFC 7638 / RFC 9278) types. Before this, a key's JWK form existed only as a
 raw `System.Text.Json.Nodes.JsonObject` produced by the secret-key-type descriptor
 ([ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md)), the JWKS endpoint hand-assembled a result object of

@@ -24,7 +24,7 @@ curve: P-256 and secp256k1 are both 256-bit `EC` curves, and Ed25519 and X25519 
 which RFC 8037 §3.1 and §3.2 give one to signing and the other to key agreement. The `epk` header's members are defined
 per `kty`, so the algorithm cannot write or read them for a key type it does not know, and a package that contributes a
 key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able to bring its agreement
-([#327](https://github.com/NCodeGroup/Identity/issues/327)).
+([#327](https://github.com/NCodeGroup/identity/issues/327)).
 
 ## Decision
 
@@ -167,7 +167,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md)
-- Issue [#327](https://github.com/NCodeGroup/Identity/issues/327)
+- Issue [#327](https://github.com/NCodeGroup/identity/issues/327)
 - `KeyedAlgorithm`, `AlgorithmKeyType`, `KeyAlgorithmDeclaration`, `KeyGenerationDeclaration` and `IEcdhKeyAgreement`
   in `NCode.Identity.Jose.Abstractions`; `AsymmetricSecretKey.CurveName` in `NCode.Identity.Secrets.Abstractions`;
   `EcdhKeyManagementAlgorithm` and `EccEcdhKeyAgreement` in `NCode.Identity.Jose`

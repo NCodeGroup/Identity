@@ -22,7 +22,7 @@ cannot honor: an unregistered setting, a value outside its domain, or a setting 
 An exception that escapes fails the write with `500`. One such document therefore blocks every server write, and an
 unreadable document that a write replaces blocks the write that would repair it. The incoherent-client report lists
 such a client with its `DocumentError`
-([ADR-1233](1233-the-management-api-lists-a-tenants-incoherent-clients.md)). Issue [#295](https://github.com/NCodeGroup/Identity/issues/295).
+([ADR-1233](1233-the-management-api-lists-a-tenants-incoherent-clients.md)). Issue [#295](https://github.com/NCodeGroup/identity/issues/295).
 
 ## Decision
 
@@ -74,7 +74,7 @@ change introduces.**
 - A management request that needs a stored server, tenant, client or resource-server document that cannot be honored
   answers `409` with a problem that names the document, and a settings write that replaces it repairs it
   ([ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
-- This implements issue [#295](https://github.com/NCodeGroup/Identity/issues/295).
+- This implements issue [#295](https://github.com/NCodeGroup/identity/issues/295).
 
 ## References
 

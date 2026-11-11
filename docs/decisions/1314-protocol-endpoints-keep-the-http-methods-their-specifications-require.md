@@ -48,4 +48,4 @@ The authorization endpoint, `/oauth2/continue` and the `end_session_endpoint` ac
   [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) §3.1.2.1 and
   [RP-Initiated Logout 1.0](https://openid.net/specs/openid-connect-rpinitiated-1_0.html) §2.
 - [`DefaultEndSessionEndpointProvider.cs`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/DefaultEndSessionEndpointProvider.cs).
-- [NCodeGroup/Identity#442](https://github.com/NCodeGroup/Identity/issues/442).
+- [NCodeGroup/identity#442](https://github.com/NCodeGroup/identity/issues/442).

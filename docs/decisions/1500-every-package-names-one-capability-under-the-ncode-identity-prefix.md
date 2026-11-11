@@ -92,7 +92,7 @@ foundation packages that any package may reference.**
 
 ## References
 
-- Issue [#758](https://github.com/NCodeGroup/Identity/issues/758).
+- Issue [#758](https://github.com/NCodeGroup/identity/issues/758).
 - [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
   [ADR-1056](1056-abstractions-split-into-framework-free-tiered-packages.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),

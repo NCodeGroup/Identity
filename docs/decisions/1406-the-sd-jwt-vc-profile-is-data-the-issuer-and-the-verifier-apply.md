@@ -66,6 +66,6 @@ Other profiles exist and more will, so the rules must be data an application can
 - [draft-ietf-oauth-sd-jwt-vc](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc),
   [RFC 9901](https://datatracker.ietf.org/doc/html/rfc9901)
 - [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)
-- Issue [#73](https://github.com/NCodeGroup/Identity/issues/73)
+- Issue [#73](https://github.com/NCodeGroup/identity/issues/73)
 - `SdJwtProfile` and `SdJwtProfiles` in `NCode.Identity.Jose.SdJwt`; `JoseTokenTypes.SdJwtVc` and the `vct`,
   `vct#integrity` and `status` names in `JoseClaimNames.Payload` of `NCode.Identity.Jose.Abstractions`

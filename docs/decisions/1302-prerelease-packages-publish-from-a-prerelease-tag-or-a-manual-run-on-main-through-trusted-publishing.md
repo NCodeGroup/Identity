@@ -49,7 +49,7 @@ workflow whose publishing job holds only a short-lived nuget.org key issued thro
 
 ## Consequences
 
-- The maintainers configure a nuget.org trusted publishing policy for `NCodeGroup/Identity`, this workflow and the
+- The maintainers configure a nuget.org trusted publishing policy for `NCodeGroup/identity`, this workflow and the
   `nuget` environment, the `nuget` environment with required reviewers and deployment rules for `main` and `v*` tags,
   and the repository variable `NUGET_USER`.
 - Release publishing (#184) reuses the policy, the environment and the two-job shape, adding signing, timestamping and
@@ -61,5 +61,5 @@ workflow whose publishing job holds only a short-lived nuget.org key issued thro
 - [GitHub Actions OIDC](https://docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect)
 - [ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md) — no write-scoped permission in the job that runs
   third-party code
-- Issues [#324](https://github.com/NCodeGroup/Identity/issues/324) and
-  [#184](https://github.com/NCodeGroup/Identity/issues/184)
+- Issues [#324](https://github.com/NCodeGroup/identity/issues/324) and
+  [#184](https://github.com/NCodeGroup/identity/issues/184)

@@ -133,7 +133,7 @@ shape how the family adds it:
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
   [ADR-1406](1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md)
-- Issue [#73](https://github.com/NCodeGroup/Identity/issues/73)
+- Issue [#73](https://github.com/NCodeGroup/identity/issues/73)
 - `NCode.Identity.Jose.SdJwt`: `DefaultSdJwtIssuer`, `DefaultSdJwtHolder`, `DefaultSdJwtVerifier`,
   `SdJwtPayloadProcessor`, `JwkConfirmationKeyResolver`; `JoseTokenTypes.KeyBindingJwt` and the `_sd`, `_sd_alg`,
   `...` and `sd_hash` names in `JoseClaimNames.Payload` of `NCode.Identity.Jose.Abstractions`

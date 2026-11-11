@@ -45,7 +45,7 @@ consent. The lab cluster runs on Ampere A1 nodes, so the image must also run on 
    installed from `package.json`'s `packageManager` field.
 6. **The version comes from `version.json` alone.** The build context has no `.git`, so the build sets
    `NBGV_GitEngine=Disabled`. Publishing is a release concern: the release workflow tags the image with the version it
-   computes from the repository (issue [#87](https://github.com/NCodeGroup/Identity/issues/87)).
+   computes from the repository (issue [#87](https://github.com/NCodeGroup/identity/issues/87)).
 7. **CI builds both architectures on every change.** The `Host image` workflow builds the image for `linux/amd64` and
    `linux/arm64` without pushing it.
 8. **Visual Studio keeps a debuggable stage.** Container fast mode debugs against the `base` stage, which needs a

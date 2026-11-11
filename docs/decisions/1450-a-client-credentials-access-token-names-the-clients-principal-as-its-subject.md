@@ -53,4 +53,4 @@ acting for itself.**
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md),
   [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)
-- Issue [#587](https://github.com/NCodeGroup/Identity/issues/587)
+- Issue [#587](https://github.com/NCodeGroup/identity/issues/587)

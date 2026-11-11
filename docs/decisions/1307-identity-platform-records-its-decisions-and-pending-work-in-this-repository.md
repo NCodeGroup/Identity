@@ -33,8 +33,8 @@ identity-platform, whose `AGENTS.md` lists them as overrides, that supersedes th
    records, and `/analyze-decision` is not used there.
 2. **Pending work (project-template ADR-0007).** identity-platform's pending work is issues here, under
    [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md). Its `/ship-plan` files a
-   plan's follow-ups here (`follow-ups: NCodeGroup/Identity`), and its pull requests end with
-   `Closes NCodeGroup/Identity#<number>` or `Refs NCodeGroup/Identity#<number>`.
+   plan's follow-ups here (`follow-ups: NCodeGroup/identity`), and its pull requests end with
+   `Closes NCodeGroup/identity#<number>` or `Refs NCodeGroup/identity#<number>`.
 3. **Merge method (project-template ADR-0013).** identity-platform's `main` takes only squash merges, with linear
    history: the pull request's title, a conventional commit subject, and its description become the one commit on
    `main`, and agent attribution is avoided in both
@@ -58,7 +58,7 @@ serve identity-platform.
 - An identity-platform change that needs a decision takes two pull requests: the record here, then the change there
   that cites it.
 - An issue here may be completed by a pull request in identity-platform, which closes it with
-  `Closes NCodeGroup/Identity#<number>`.
+  `Closes NCodeGroup/identity#<number>`.
 - When identity-platform takes a template version that moves one of these rules to another record, its `AGENTS.md`
   names the new record, and this record still states the decision.
 
@@ -71,4 +71,4 @@ serve identity-platform.
   method and pending-work records.
 - identity-platform's [`AGENTS.md`](https://github.com/NCodeGroup/identity-platform/blob/main/AGENTS.md), which lists
   the overrides.
-- [#438](https://github.com/NCodeGroup/Identity/issues/438).
+- [#438](https://github.com/NCodeGroup/identity/issues/438).

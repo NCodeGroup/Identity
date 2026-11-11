@@ -71,4 +71,4 @@ rewraps every master key and exits without starting the server.
 - `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRewrapper.cs`,
   `src/NCode.Identity.Server/SecretProtection/SecretProtectionCommandLine.cs`,
   `charts/ncode-identity-host/templates/secret-protection-job.yaml`
-- Issue [#172](https://github.com/NCodeGroup/Identity/issues/172)
+- Issue [#172](https://github.com/NCodeGroup/identity/issues/172)

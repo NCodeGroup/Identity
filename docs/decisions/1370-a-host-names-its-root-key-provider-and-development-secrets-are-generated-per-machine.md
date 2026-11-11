@@ -57,5 +57,5 @@ No root key provider is a default, and no development credential is committed.
   [`DefaultKeyWrapperCatalog.cs`](../../src/NCode.Identity.Secrets.Persistence/Protection/DefaultKeyWrapperCatalog.cs),
   [`ProductionSafetyRegistration.cs`](../../src/NCode.Identity.Server/ProductionSafety/ProductionSafetyRegistration.cs)
   and [`DevelopmentSecretFile.cs`](../../hosts/NCode.Identity.OpenId.LocalDev/DevelopmentSecrets/DevelopmentSecretFile.cs).
-- [NCodeGroup/Identity#495](https://github.com/NCodeGroup/Identity/issues/495) and
-  [#496](https://github.com/NCodeGroup/Identity/issues/496).
+- [NCodeGroup/identity#495](https://github.com/NCodeGroup/identity/issues/495) and
+  [#496](https://github.com/NCodeGroup/identity/issues/496).

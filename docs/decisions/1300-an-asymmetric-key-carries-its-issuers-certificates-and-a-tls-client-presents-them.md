@@ -75,4 +75,4 @@ client presents them with the client certificate.**
 - RFC 8705 §2.1, PKI Mutual-TLS Method: <https://www.rfc-editor.org/rfc/rfc8705#section-2.1>
 - [ADR-1288](1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) — the protocol
   client's TLS client certificate
-- Issue [#407](https://github.com/NCodeGroup/Identity/issues/407)
+- Issue [#407](https://github.com/NCodeGroup/identity/issues/407)

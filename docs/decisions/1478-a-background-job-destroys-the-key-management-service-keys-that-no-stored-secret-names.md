@@ -110,4 +110,4 @@ every listed key that no stored secret names and that is older than a grace peri
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)
 - [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)
 - [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md)
-- Issue [#654](https://github.com/NCodeGroup/Identity/issues/654)
+- Issue [#654](https://github.com/NCodeGroup/identity/issues/654)

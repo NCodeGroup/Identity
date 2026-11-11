@@ -58,4 +58,4 @@ console shows it.**
 - RFC 9457 (problem details), RFC 9110 §10.2.3 (`Retry-After`)
 - `src/NCode.Identity.OpenId.Management/Endpoints/RetryAfterProblem.cs`,
   `frontend/packages/store/src/apiError.ts`
-- Issue [#571](https://github.com/NCodeGroup/Identity/issues/571)
+- Issue [#571](https://github.com/NCodeGroup/identity/issues/571)

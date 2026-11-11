@@ -12,7 +12,7 @@ The usage ledger keeps the days within its retention and removes the older ones
 with two `ExecuteDeleteAsync` calls. The Entity Framework InMemory provider, which the hermetic host uses, does not
 support them, so every prune failed, and the failure was retried and logged (`TenantUsagePruneFailed`) at every flush.
 [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) rejects a bulk update statement because not
-every provider supports it (issue [#264](https://github.com/NCodeGroup/Identity/issues/264)).
+every provider supports it (issue [#264](https://github.com/NCodeGroup/identity/issues/264)).
 
 ## Decision
 
@@ -47,7 +47,7 @@ every provider supports it (issue [#264](https://github.com/NCodeGroup/Identity/
 - A long backlog of expired days is pruned in many small units of work.
 - **Breaking:** `ITenantUsageStore.RemoveBeforeAsync` takes a `limit`, and removes the rows when the unit of work is
   saved.
-- This implements issue [#264](https://github.com/NCodeGroup/Identity/issues/264).
+- This implements issue [#264](https://github.com/NCodeGroup/identity/issues/264).
 
 ## References
 

@@ -20,7 +20,7 @@ requires every outbound call to carry a total timeout, a per-attempt timeout and
 
 That package depends on `Microsoft.Extensions.Telemetry.Abstractions`, which switches the `[LoggerMessage]` source
 generator of every project that references it, so a library that adds it changes the logging code of its consumers
-([#471](https://github.com/NCodeGroup/Identity/issues/471)).
+([#471](https://github.com/NCodeGroup/identity/issues/471)).
 
 ## Decision
 
@@ -89,6 +89,6 @@ generator of every project that references it, so a library that adds it changes
   [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md),
   [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)
-- Issues [#469](https://github.com/NCodeGroup/Identity/issues/469) and [#471](https://github.com/NCodeGroup/Identity/issues/471)
+- Issues [#469](https://github.com/NCodeGroup/identity/issues/469) and [#471](https://github.com/NCodeGroup/identity/issues/471)
 - `ProviderResilienceHandler.cs`, `ProviderResiliencePipelines.cs` and `OpenIdClientOptions.cs` in
   `NCode.Identity.OpenId.Client`

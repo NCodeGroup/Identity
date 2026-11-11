@@ -15,7 +15,7 @@ the private key under the owner's master key
 ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)) only to emit its public
 half. A read of public data therefore loaded the owner's master keys, possibly reached the key management service, and
 held private key material in memory ([ADR-1058](1058-asymmetric-public-key-material-read-path.md)). Issue
-[#176](https://github.com/NCodeGroup/Identity/issues/176) asks for the public half to be stored.
+[#176](https://github.com/NCodeGroup/identity/issues/176) asks for the public half to be stored.
 
 ## Decision
 
@@ -65,4 +65,4 @@ Registration creation keeps its protector because it generates the client secret
 - [ADR-1058](1058-asymmetric-public-key-material-read-path.md) — the public-key read path this amends.
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy.
 - [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — pre-release posture, no backfill.
-- [#176](https://github.com/NCodeGroup/Identity/issues/176) — the issue.
+- [#176](https://github.com/NCodeGroup/identity/issues/176) — the issue.

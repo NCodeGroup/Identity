@@ -43,7 +43,7 @@ state only the repository held protects no consumer:
    to close a gap, because a gap costs nothing and a renumbering changes every ID after it.
 3. **The first stable release's values are the baseline.** From the first stable tag, every version number and
    identifier the release carries is shipped, and the append-only and version-bump rules govern it.
-   [#535](https://github.com/NCodeGroup/Identity/issues/535) retires this decision then.
+   [#535](https://github.com/NCodeGroup/identity/issues/535) retires this decision then.
 
 ## Options considered
 

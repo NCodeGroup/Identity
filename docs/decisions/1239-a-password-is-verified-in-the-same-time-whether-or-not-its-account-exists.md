@@ -18,7 +18,7 @@ that verifies: no account has the user name, the account has no password, the AS
 (the adapter refuses the password of a locked-out user without verifying it,
 [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)), or the stored hash
 cannot be read. The sign-in, the password grant and the self-service change of a password would tell by their response
-time whether an account exists (issue [#298](https://github.com/NCodeGroup/Identity/issues/298)).
+time whether an account exists (issue [#298](https://github.com/NCodeGroup/identity/issues/298)).
 
 The limit on failed attempts ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md)) counts a user name
 that no account has like one that an account has, so its answer reveals nothing about the account, but it does not
@@ -76,7 +76,7 @@ the result.**
   rate ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)).
 - Tests record that the hasher verified the dummy hash, never the time, because elapsed time is flaky in a parallel run.
 - **Breaking:** `IPasswordHasher` gains `DummyPasswordHash`, which a custom hasher implements.
-- This implements issue [#298](https://github.com/NCodeGroup/Identity/issues/298).
+- This implements issue [#298](https://github.com/NCodeGroup/identity/issues/298).
 
 ## References
 

@@ -17,7 +17,7 @@ broadcaster let a handler's timeout reach the publisher, against
 [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md) decision 2.
 [project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md) decision 1 runs
 such inline effects on `CancellationToken.None` with their own timeout
-([#485](https://github.com/NCodeGroup/Identity/issues/485)).
+([#485](https://github.com/NCodeGroup/identity/issues/485)).
 
 ## Decision
 
@@ -68,7 +68,7 @@ such inline effects on `CancellationToken.None` with their own timeout
   [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)
-- Issue [#485](https://github.com/NCodeGroup/Identity/issues/485)
+- Issue [#485](https://github.com/NCodeGroup/identity/issues/485)
 - `PostCommitWork.cs` in `NCode.Identity.Persistence.Abstractions`, `TenantChangedHandler.cs` and
   `ServerSettingsChangedHandler.cs` in `NCode.Identity.OpenId.Core`,
   and `DefaultInProcessReplicaBroadcaster.cs` in `NCode.Identity.SharedState`

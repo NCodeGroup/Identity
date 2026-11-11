@@ -23,7 +23,7 @@ routes `/api` to the OP and every other path to the console. The console's key r
 deployable artifacts of a host
 ([ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md),
 [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Issue
-[#610](https://github.com/NCodeGroup/Identity/issues/610) asks for both.
+[#610](https://github.com/NCodeGroup/identity/issues/610) asks for both.
 
 ## Decision
 
@@ -73,4 +73,4 @@ host.**
   [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)
 - `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile`, `.github/workflows/console-image.yml`,
   `charts/ncode-identity-host`
-- Issue [#610](https://github.com/NCodeGroup/Identity/issues/610)
+- Issue [#610](https://github.com/NCodeGroup/identity/issues/610)

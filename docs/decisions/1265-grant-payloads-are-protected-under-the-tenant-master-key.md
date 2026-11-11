@@ -15,7 +15,7 @@ DCR tokens and continue envelopes — stored its payload as plaintext JSON in `G
 backup therefore exposed issued tokens, personal data and request parameters, even though
 [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) protects every stored
 secret under a key hierarchy. That ADR covers persisted secrets and the Data Protection key ring only, and lists
-grant-payload encryption as a follow-up ([#175](https://github.com/NCodeGroup/Identity/issues/175)). Nothing between
+grant-payload encryption as a follow-up ([#175](https://github.com/NCodeGroup/identity/issues/175)). Nothing between
 `IPersistedPayloadSerializer` and the store encrypted the payload.
 
 ## Decision
@@ -56,7 +56,7 @@ A grant's payload is stored only as an `nce1.` envelope under the master key of 
 ## Consequences
 
 - A database dump or backup no longer exposes any grant payload without the root key. Closes
-  [#175](https://github.com/NCodeGroup/Identity/issues/175).
+  [#175](https://github.com/NCodeGroup/identity/issues/175).
 - Deleting a tenant deletes its master keys, so its grant payloads are unreadable in the live database too
   ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 - Reading or writing a grant acquires a protector, which may reach the key management service the first time a tenant's

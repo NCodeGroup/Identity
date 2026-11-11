@@ -338,11 +338,17 @@ function Initialize-Fapi1Run {
     $seededClients = (Get-Content $settingsPath -Raw | ConvertFrom-Json -AsHashtable).ConformanceSeed.Clients
 
     # Request client certificates at the handshake, and advertise certificate-bound access tokens and the hybrid
-    # response type the plain_response variant uses; a FAPI client's security profile narrows both to itself.
+    # response type the plain_response variant uses; a FAPI client's security profile narrows both to itself. The
+    # hybrid response type returns an ID token from the authorization endpoint, so it also needs the implicit grant
+    # type (OpenID Connect Core §3.3): the server lists it beside its other grant types for this run.
     Set-RunEnvironment 'Kestrel__EndpointDefaults__ClientCertificateMode' 'AllowCertificate'
     Set-RunEnvironment 'OpenId__Platform__Settings__tls_client_certificate_bound_access_tokens' 'true'
     Set-RunEnvironment 'OpenId__Platform__Settings__response_types_supported__0' 'code'
     Set-RunEnvironment 'OpenId__Platform__Settings__response_types_supported__1' 'code id_token'
+    $grantTypes = @((Get-Content $settingsPath -Raw | ConvertFrom-Json -AsHashtable).OpenId.Platform.Settings.grant_types_supported) + 'implicit'
+    for ($index = 0; $index -lt $grantTypes.Count; $index++) {
+        Set-RunEnvironment "OpenId__Platform__Settings__grant_types_supported__$index" $grantTypes[$index]
+    }
 
     $templateText = Get-Content (Join-Path $ConfigDir $Fapi1Template) -Raw
     foreach ($configuration in $Fapi1Configurations) {

@@ -262,6 +262,44 @@ public sealed class JsonWebKey
             : new JsonWebKey(parsed, KeyTypeDescriptor);
     }
 
+    /// <summary>
+    /// Returns a copy of this key with every member of this key and its <c>kid</c> member set to the supplied value,
+    /// added when this key has none and replaced otherwise. The copy keeps the <see cref="KeyTypeDescriptor"/> of
+    /// this key, and this key is left unchanged.
+    /// </summary>
+    /// <param name="keyId">The <c>kid</c> of the copy.</param>
+    /// <returns>A <see cref="JsonWebKey"/> that carries the supplied <c>kid</c>.</returns>
+    /// <exception cref="ArgumentException">The <paramref name="keyId"/> is <c>null</c> or empty.</exception>
+    public JsonWebKey WithKeyId(string keyId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(keyId);
+
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            foreach (var member in Element.EnumerateObject())
+            {
+                if (
+                    !string.Equals(
+                        member.Name,
+                        JsonWebKeyParameterNames.KeyId,
+                        StringComparison.Ordinal
+                    )
+                )
+                    member.WriteTo(writer);
+            }
+
+            writer.WriteString(JsonWebKeyParameterNames.KeyId, keyId);
+            writer.WriteEndObject();
+        }
+
+        var parsed = JsonElement.Parse(buffer.WrittenSpan);
+        return KeyTypeDescriptor is null
+            ? new JsonWebKey(parsed)
+            : new JsonWebKey(parsed, KeyTypeDescriptor);
+    }
+
     private bool IsPrivateMember(string name) =>
         JsonWebKeyTypeDescriptors.StandardPrivateMembers.Contains(name)
         || (KeyTypeDescriptor?.PrivateMembers.Contains(name) ?? false);

@@ -1164,13 +1164,15 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **One public seam, `IClientKeyImporter`, imports a client key at every entry point.** Dynamic registration imports all
   or nothing, the `jwks_uri` fetch ignores keys it cannot use (RFC 7517 §5) and logs `ClientJwksKeyIgnored` (event
-  2038), and the management import applies the same policy. Every key of a JSON Web Key Set needs a `kid` unique within
-  the set, and a key keeps the `kid` it was registered with, stored in `KeyId` of `PersistedSecret`,
+  2038), and the management import applies the same policy. Every key of a JSON Web Key Set has a `kid` unique within
+  the set: a registered key keeps the `kid` it was registered with and a registered key without one is named by its
+  RFC 7638 thumbprint, and a published key without one is ignored. The `kid` is stored in `KeyId` of `PersistedSecret`,
   `SecretKeyImportRequest` and `SecretEntity` (a nullable column; a key without one is selected by its secret
   identifier). Key types are matched by their JSON Web Key `kty` through `ISecretKeyTypeDescriptor.JwkKeyType` and
   `ISecretKeyTypeCatalog.TryGetByJwkKeyType`, so a client may register `OKP` (EdDSA) and `AKP` (ML-DSA) keys as well as
   RSA and EC, and the key-to-algorithm rule is `IAlgorithmCollection.ValidateKeyAlgorithm` (`KeyAlgorithmDeclaration`)
-  ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  ([ADR-1497](docs/decisions/1497-a-registered-key-set-names-a-key-without-a-kid-by-its-thumbprint.md),
+  [ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
 
 - **A client secret is stored as a one-way verifier or as the UTF-8 bytes of the string it reveals, and a cryptographic
   key as raw bytes.** A symmetric `PersistedSecret` serves three purposes with three storage shapes: a shared secret an

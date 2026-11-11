@@ -147,13 +147,13 @@ internal class FrontendToolchainGuard(string frontendDirectory)
         if (nodeVersion is null)
         {
             problems.Add(
-                $"Node.js {pins.NodeMajor} (pinned in src/frontend/.node-version) was not found: NVS has no install of it and 'node' is not on PATH."
+                $"Node.js {pins.NodeMajor} (pinned in frontend/.node-version) was not found: NVS has no install of it and 'node' is not on PATH."
             );
         }
         else if (FrontendPins.ParseNodeMajor(nodeVersion) != pins.NodeMajor)
         {
             problems.Add(
-                $"Node.js {pins.NodeMajor} is pinned in src/frontend/.node-version, but 'node' on PATH is {nodeVersion}."
+                $"Node.js {pins.NodeMajor} is pinned in frontend/.node-version, but 'node' on PATH is {nodeVersion}."
             );
         }
 

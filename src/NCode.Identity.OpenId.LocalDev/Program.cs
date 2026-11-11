@@ -13,11 +13,13 @@ using NCode.Identity.OpenId.LocalDev.Frontend;
 // globally linked, the AppHost (launched by VS Code) does not inherit it, so the frontend resources fail to start.
 var builder = DistributedApplication.CreateBuilder(args);
 
-// The frontend's Node major is pinned once, in src/frontend/.node-version, which CI and NVS read too. The guard puts
+// The frontend's Node major is pinned once, in frontend/.node-version, which CI and NVS read too. The guard puts
 // the newest NVS-managed install of that major on this process's PATH (the child resources inherit it), then fails the
 // AppHost at startup, naming ./build/frontend-install.ps1, when no Node of the pinned major is available or
 // node_modules does not match the pnpm pin and lockfile (ADR-1287).
-new FrontendToolchainGuard(Path.Combine(builder.AppHostDirectory, "..", "frontend")).EnsureReady();
+new FrontendToolchainGuard(
+    Path.Combine(builder.AppHostDirectory, "..", "..", "frontend")
+).EnsureReady();
 
 // Every OP instance started below shares the one dev database, so they must all unwrap the same master keys: they are
 // handed the same development root key, as a key file (ADR-1235). The key is generated once per machine, outside the
@@ -138,13 +140,13 @@ var conformanceApi = builder
 // `install: false` — the pnpm workspace is installed ONCE out-of-band by build/frontend-install.ps1; letting each app
 // auto-install would run two `pnpm install` processes concurrently against the shared, symlinked node_modules and
 // collide (ERR_PNPM_EBUSY).
-builder.AddJavaScriptApp("auth", "../frontend/apps/auth").WithPnpm(install: false);
+builder.AddJavaScriptApp("auth", "../../frontend/apps/auth").WithPnpm(install: false);
 
 // The management console bundle (apps/mgmt) is a BFF-SERVED bundle, like `auth`: its `dev` script is `vite build
 // --watch`, which continuously rebuilds `dist` for the console host below to serve. It is a build-watcher with no HTTP
 // endpoint of its own, so it is a plain JavaScript app resource, not a Vite dev server. The console host serves
 // whatever `dist` exists; on a cold start give the first build a moment to finish.
-builder.AddJavaScriptApp("mgmt", "../frontend/apps/mgmt").WithPnpm(install: false);
+builder.AddJavaScriptApp("mgmt", "../../frontend/apps/mgmt").WithPnpm(install: false);
 
 // The management console's BFF host (`console`) is a confidential client of the `api` on https://localhost:5005 (the
 // origin the developer seed's `mgmt-console` redirect URIs assume). It serves the `mgmt` bundle, its own /bff/*
@@ -169,7 +171,7 @@ builder
 // stack. WithReference injects the service-discovery variable the proxy targets, WaitFor holds startup until the API is
 // healthy, and the un-proxied fixed port lets the OAuth redirect callback resolve.
 builder
-    .AddViteApp("playground", "../frontend/apps/playground")
+    .AddViteApp("playground", "../../frontend/apps/playground")
     .WithPnpm(install: false)
     .WithHttpsDeveloperCertificate()
     .WithEndpoint(
@@ -193,7 +195,7 @@ builder
 // issuer's discovery cross-origin (allowlisted by the Conformance overlay's Cors:AllowedOrigins). WaitFor holds startup
 // until that OP is healthy so the first discovery read cannot race it.
 builder
-    .AddViteApp("conformance", "../frontend/apps/conformance")
+    .AddViteApp("conformance", "../../frontend/apps/conformance")
     .WithPnpm(install: false)
     .WithHttpsDeveloperCertificate()
     .WithEndpoint(

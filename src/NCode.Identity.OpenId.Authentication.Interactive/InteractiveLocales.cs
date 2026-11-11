@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// locales in catalogs of its own, so the page the server renders and the page the bundle draws over it read the
 /// same.
 /// </remarks>
-// The bundle's catalogs are src/frontend/apps/auth/src/i18n/{en,de,es,fr}.ts. A change to a page's wording in one of
+// The bundle's catalogs are frontend/apps/auth/src/i18n/{en,de,es,fr}.ts. A change to a page's wording in one of
 // these locales is made in both: InteractiveLocalesTests reads the catalogs from the build output and fails when a
 // message of a shipped locale is missing from its catalog. See ADR-1402.
 [PublicAPI]

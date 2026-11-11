@@ -70,7 +70,7 @@ public class WorkspaceInstallTests : IDisposable
 
         var problem = Assert.Single(result);
         Assert.Equal(
-            "The pnpm workspace is not installed (src/frontend/node_modules/.modules.yaml is missing).",
+            "The pnpm workspace is not installed (frontend/node_modules/.modules.yaml is missing).",
             problem
         );
     }
@@ -84,7 +84,7 @@ public class WorkspaceInstallTests : IDisposable
 
         var problem = Assert.Single(result);
         Assert.Equal(
-            "src/frontend/node_modules/.modules.yaml is unreadable, so the workspace install cannot be verified.",
+            "frontend/node_modules/.modules.yaml is unreadable, so the workspace install cannot be verified.",
             problem
         );
     }

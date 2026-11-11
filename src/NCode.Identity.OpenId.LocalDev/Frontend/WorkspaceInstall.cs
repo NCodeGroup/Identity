@@ -25,7 +25,7 @@ internal static class WorkspaceInstall
         {
             return
             [
-                "The pnpm workspace is not installed (src/frontend/node_modules/.modules.yaml is missing).",
+                "The pnpm workspace is not installed (frontend/node_modules/.modules.yaml is missing).",
             ];
         }
 
@@ -40,7 +40,7 @@ internal static class WorkspaceInstall
         {
             return
             [
-                "src/frontend/node_modules/.modules.yaml is unreadable, so the workspace install cannot be verified.",
+                "frontend/node_modules/.modules.yaml is unreadable, so the workspace install cannot be verified.",
             ];
         }
 
@@ -56,7 +56,7 @@ internal static class WorkspaceInstall
         )
         {
             problems.Add(
-                $"node_modules was installed with {installedPackageManager ?? "an unknown pnpm"}, but src/frontend/package.json pins {expectedPackageManager}."
+                $"node_modules was installed with {installedPackageManager ?? "an unknown pnpm"}, but frontend/package.json pins {expectedPackageManager}."
             );
         }
 

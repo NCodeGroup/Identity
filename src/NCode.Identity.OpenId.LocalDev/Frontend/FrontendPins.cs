@@ -48,7 +48,7 @@ internal sealed record FrontendPins(int NodeMajor, string PnpmVersion)
         var nodeMajor =
             ParseNodeMajor(nodeVersionText)
             ?? throw new InvalidOperationException(
-                $"src/frontend/.node-version must start with the Node major number, found '{nodeVersionText.Trim()}'."
+                $"frontend/.node-version must start with the Node major number, found '{nodeVersionText.Trim()}'."
             );
 
         var jsonElement = JsonElement.Parse(packageJsonText);
@@ -69,7 +69,7 @@ internal sealed record FrontendPins(int NodeMajor, string PnpmVersion)
         )
         {
             throw new InvalidOperationException(
-                $"src/frontend/package.json must pin pnpm in its \"packageManager\" field, found '{packageManager ?? "missing"}'."
+                $"frontend/package.json must pin pnpm in its \"packageManager\" field, found '{packageManager ?? "missing"}'."
             );
         }
 

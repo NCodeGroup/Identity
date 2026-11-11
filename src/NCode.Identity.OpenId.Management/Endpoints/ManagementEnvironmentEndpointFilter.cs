@@ -3,7 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.Exceptions;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Mediator;
 

@@ -6,7 +6,7 @@
 
 ## Context
 
-The family already has a cross-cutting hierarchical registration primitive: `NCode.Registration`'s
+The family already has a cross-cutting hierarchical registration primitive: `NCode.Identity.Registration`'s
 `IServiceBuilder<TMarker>`. It is a thin wrapper over `IServiceCollection` plus a compile-time marker type;
 `NewBuilder<T>()` creates a sibling builder over the same collection and registers the marker (a presence singleton
 plus the builder's compile-time type) so cross-package dependencies are expressed as `IServiceBuilder<…>` receivers
@@ -28,16 +28,16 @@ and its namespace misrepresented its purpose.
 
 ## Decision
 
-**The hierarchical endpoint-group mechanism is its own cross-cutting package, `NCode.Registration.AspNetCore`, that
-depends on `NCode.Registration` and the ASP.NET Core shared framework. `IEndpointGroupBuilder` _is_ an `IServiceBuilder`
+**The hierarchical endpoint-group mechanism is its own cross-cutting package, `NCode.Identity.Registration.AspNetCore`, that
+depends on `NCode.Identity.Registration` and the ASP.NET Core shared framework. `IEndpointGroupBuilder` _is_ an `IServiceBuilder`
 (it inherits the interface) rather than merely holding an `IServiceCollection`, so the endpoint-group tree composes on
 top of the registration builder instead of paralleling it.**
 
 The two mechanisms now have clean, non-overlapping roles:
 
-- `IServiceBuilder<TMarker>` (`NCode.Registration`) is the **registration primitive** — _how_ services are registered,
+- `IServiceBuilder<TMarker>` (`NCode.Identity.Registration`) is the **registration primitive** — _how_ services are registered,
   with marker-scoped organization and cross-package dependency gating. It is pure DI with no ASP.NET Core dependency.
-- `IEndpointGroup` / `IEndpointGroupBuilder` (`NCode.Registration.AspNetCore`) is the **runtime routing tree** — a node
+- `IEndpointGroup` / `IEndpointGroupBuilder` (`NCode.Identity.Registration.AspNetCore`) is the **runtime routing tree** — a node
   owns its prefix, shared route filters (`ConfigureRoutes`), and its contents (`ConfigureServices`): the endpoints and
   child groups it declares and the services those endpoints depend on. Because the builder is an `IServiceBuilder`, a
   group registers everything — including `AddMessageFactory<T>()` — in one place, colocated with the endpoint.
@@ -61,7 +61,7 @@ move with it, as they are generic endpoint/operation results, not identity conce
 - **Collapse the endpoint tree into `IServiceBuilder` and drop `IEndpointGroup`.** Rejected: routing needs a runtime,
   string-keyed group tree (prefixes, filters, nested `RouteGroupBuilder`s) that compile-time markers cannot express — the
   two are genuinely different concepts, not duplicates.
-- **Extract a cross-cutting `NCode.Registration.AspNetCore` package and make `IEndpointGroupBuilder : IServiceBuilder`
+- **Extract a cross-cutting `NCode.Identity.Registration.AspNetCore` package and make `IEndpointGroupBuilder : IServiceBuilder`
   (chosen).** The mechanisms compose with one registration vocabulary, the duplicate listing disappears, and the generic
   routing toolkit is reusable with an honest namespace.
 
@@ -69,21 +69,21 @@ move with it, as they are generic endpoint/operation results, not identity conce
 
 - There is a single registration vocabulary. A group's `ConfigureServices` registers its endpoints, child groups, and
   their services (including message factories) through the one `IServiceBuilder` surface, colocated.
-- `NCode.Registration` stays pure DI (no ASP.NET Core dependency); the ASP.NET Core routing concern lives in its own
-  package that any `NCode.Registration` consumer can adopt.
-- The public types moved namespace (`NCode.Identity.Endpoints` → `NCode.Registration.AspNetCore`) and three symbols were
+- `NCode.Identity.Registration` stays pure DI (no ASP.NET Core dependency); the ASP.NET Core routing concern lives in its own
+  package that any `NCode.Identity.Registration` consumer can adopt.
+- The public types moved namespace (`NCode.Identity.Endpoints` → `NCode.Identity.Registration.AspNetCore`) and three symbols were
   renamed (`IIdentityEndpointRouteBuilder` → `IEndpointTreeRouteBuilder`, `MapIdentityEndpoints` → `MapEndpointGroups`,
   and the route-builder default implementation). This is a breaking change to the pre-release surface
   ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
-- An implementation package that maps endpoints now references `NCode.Registration.AspNetCore` (directly or transitively
+- An implementation package that maps endpoints now references `NCode.Identity.Registration.AspNetCore` (directly or transitively
   via `NCode.Identity.Abstractions`), which is an abstractions-only, framework-level dependency consistent with
   [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md).
 
 ## References
 
-- Code: `NCode.Registration.AspNetCore` (`IEndpointGroup`, `IEndpointGroupBuilder`, `IEndpointProvider`,
+- Code: `NCode.Identity.Registration.AspNetCore` (`IEndpointGroup`, `IEndpointGroupBuilder`, `IEndpointProvider`,
   `EndpointProviderRegistration`, `EndpointRouteBuilderExtensions`, `IEndpointTreeRouteBuilder`,
-  `DefaultEndpointTreeRouteBuilder`, the disposition types); `NCode.Registration`'s `IServiceBuilder<TMarker>`;
+  `DefaultEndpointTreeRouteBuilder`, the disposition types); `NCode.Identity.Registration`'s `IServiceBuilder<TMarker>`;
   `OpenIdEndpointGroup` and the Authentication endpoint-family registrations; the `ManagementRootGroup` hierarchy.
 - [ADR-1042](1042-management-api-route-driven-tenant-scope.md) — the declarative named-group mechanism this relocates
   and composes onto the registration builder.

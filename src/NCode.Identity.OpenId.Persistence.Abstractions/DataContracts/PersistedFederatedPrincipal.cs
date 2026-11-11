@@ -5,8 +5,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.Json;
 using NCode.Identity.Persistence;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 

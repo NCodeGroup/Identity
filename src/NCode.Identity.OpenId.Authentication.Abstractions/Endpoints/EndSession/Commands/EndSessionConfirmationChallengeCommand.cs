@@ -4,8 +4,8 @@
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 

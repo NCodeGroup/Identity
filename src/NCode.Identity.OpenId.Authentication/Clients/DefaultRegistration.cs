@@ -8,9 +8,9 @@ using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Clients.Coherence;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
 using NCode.Identity.OpenId.Teams;
+using NCode.Identity.Registration;
 using NCode.Identity.Settings;
 using NCode.Mediator;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 

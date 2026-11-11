@@ -24,7 +24,7 @@ outside the trust boundary. Reading them ad hoc creates three classes of defect:
 
 ## Decision
 
-**Every `NumericDate` is read through one strict, range-guarded policy in `NCode.Json`, and a present-but-invalid value
+**Every `NumericDate` is read through one strict, range-guarded policy in `NCode.Identity.Json`, and a present-but-invalid value
 fails closed.**
 
 - **Public, non-throwing conversions on `DateCoercion`.** `TryFromNumericDate(long seconds, …)` and
@@ -65,7 +65,7 @@ fails closed.**
 
 ## References
 
-- `src/NCode.Json/DateCoercion.cs`, `src/NCode.Json/JsonElements.cs`, `src/NCode.Json/ObjectGraphExtensions.cs`
+- `src/NCode.Identity.Json/DateCoercion.cs`, `src/NCode.Identity.Json/JsonElements.cs`, `src/NCode.Identity.Json/ObjectGraphExtensions.cs`
 - `src/NCode.Identity.Jwt/Validation/Handlers/TokenLifetimeRequirementHandler.cs`
 - [RFC 7519 §2 — `NumericDate`](https://datatracker.ietf.org/doc/html/rfc7519#section-2)
 - [RFC 9449 §4.3 — DPoP proof `iat`](https://datatracker.ietf.org/doc/html/rfc9449#section-4.3)

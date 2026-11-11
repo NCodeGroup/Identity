@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using NCode.Json;
+using NCode.Identity.Json;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Serialization;

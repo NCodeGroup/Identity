@@ -11,11 +11,11 @@ using NCode.Buffers;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Secrets;
 using NCode.Identity.Jose;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.RemoteKeys;
-using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Secrets;

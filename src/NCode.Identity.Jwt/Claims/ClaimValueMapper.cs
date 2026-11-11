@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Security.Claims;
 using System.Text.Json;
-using NCode.Json;
+using NCode.Identity.Json;
 
 namespace NCode.Identity.Jwt.Claims;
 

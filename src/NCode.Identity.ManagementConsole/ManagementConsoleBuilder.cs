@@ -7,11 +7,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Server;
 using NCode.Identity.ManagementConsole.Options;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.ManagementConsole;
 

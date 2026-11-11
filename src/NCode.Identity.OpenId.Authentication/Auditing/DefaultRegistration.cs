@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Auditing;
 

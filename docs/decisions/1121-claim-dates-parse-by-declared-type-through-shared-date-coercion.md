@@ -10,7 +10,7 @@ The JWT library maps claims in both directions: encoding turns each `Claim` into
 `Claim.ValueType`, and decoding turns each JSON payload member back into a `Claim`. Both directions live in one
 claim-value mapper ([ADR-1122](1122-jwt-claim-values-map-to-json-by-declared-type.md)), and both touch dates.
 
-`NCode.Json.DateCoercion` is the family's date/time coercion policy: the loosely-typed JSON mappers
+`NCode.Identity.Json.DateCoercion` is the family's date/time coercion policy: the loosely-typed JSON mappers
 (`ObjectJsonConverter`, `JsonElements`, `ObjectGraphExtensions`) parse through it so they accept the same formats and
 produce identical values. A claim mapping that parses dates with its own `DateTime(Offset).TryParse` calls duplicates
 that policy and drifts from it, and two hazards specific to the claim mapping shape the decision:
@@ -31,7 +31,7 @@ JSON has no date type. RFC 7519 represents time claims as `NumericDate` numbers,
 
 ## Decision
 
-**A date is parsed only where its type is declared, and always through the public `NCode.Json.DateCoercion` policy.**
+**A date is parsed only where its type is declared, and always through the public `NCode.Identity.Json.DateCoercion` policy.**
 
 - **`DateCoercion` is public.** Its string-parsing operations — `TryParseDateTimeOffset` and `TryParseDateTime` — are
   the public contract for turning a date/time string into a CLR value, so any package parses dates under the same
@@ -71,7 +71,7 @@ JSON has no date type. RFC 7519 represents time claims as `NumericDate` numbers,
 
 ## References
 
-- `src/NCode.Json/DateCoercion.cs`
+- `src/NCode.Identity.Json/DateCoercion.cs`
 - `src/NCode.Identity.Jwt/Claims/ClaimValueMapper.cs` (`ToJsonValue` / `ToClaim`)
 - [ADR-1122](1122-jwt-claim-values-map-to-json-by-declared-type.md) — the claim-value mapping this date rule is part of
 - [RFC 7519 §2 — `NumericDate`](https://datatracker.ietf.org/doc/html/rfc7519#section-2)

@@ -13,7 +13,7 @@ using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 using NCode.PropertyBag;
 using Xunit;
 

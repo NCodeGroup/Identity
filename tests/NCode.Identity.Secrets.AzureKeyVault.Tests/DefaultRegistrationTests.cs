@@ -4,12 +4,12 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets.AzureKeyVault.Facades;
 using NCode.Identity.Secrets.AzureKeyVault.Options;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.RemoteKeys;
-using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.Secrets.AzureKeyVault.Tests;

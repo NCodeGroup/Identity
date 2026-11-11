@@ -18,7 +18,7 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication.Abstractions\NCode.Identity.OpenId.Authentication.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication.Interactive.Abstractions\NCode.Identity.OpenId.Authentication.Interactive.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Persistence.Abstractions\NCode.Persistence.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Persistence.Abstractions\NCode.Identity.Persistence.Abstractions.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -5,11 +5,11 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Errors;
-using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;

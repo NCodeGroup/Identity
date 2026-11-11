@@ -6,9 +6,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Registration;
 using NCode.Identity.Server.ConformanceEnvironment;
 using NCode.Mediator;
-using NCode.Registration;
 
 namespace NCode.Identity.Server;
 

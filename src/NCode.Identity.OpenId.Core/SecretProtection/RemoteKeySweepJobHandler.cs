@@ -10,11 +10,11 @@ using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Persistence;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.RemoteKeys;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.SecretProtection;
 

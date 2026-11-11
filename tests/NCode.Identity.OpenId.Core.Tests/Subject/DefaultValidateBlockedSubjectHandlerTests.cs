@@ -11,8 +11,8 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Persistence.Stores;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Registration.AspNetCore;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Subject;

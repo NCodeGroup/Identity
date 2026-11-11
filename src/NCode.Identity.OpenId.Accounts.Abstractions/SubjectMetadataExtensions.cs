@@ -4,8 +4,8 @@
 using System.Security.Claims;
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Principals;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Accounts;
 

@@ -15,11 +15,11 @@ using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Registration;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.Frontend;
 using NCode.Identity.Server.SecretProtection;
-using NCode.Registration;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.Server;
 

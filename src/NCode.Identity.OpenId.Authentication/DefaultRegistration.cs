@@ -21,8 +21,8 @@ using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Usage;
+using NCode.Identity.Registration;
 using NCode.Mediator;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication;
 
@@ -32,8 +32,8 @@ namespace NCode.Identity.OpenId.Authentication;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <param name="builder">The <see cref="IdentityLibrary"/> builder this library extends.</param>
-    extension(IServiceBuilder<IdentityLibrary> builder)
+    /// <param name="builder">The <see cref="OpenIdCoreLibrary"/> builder this library extends.</param>
+    extension(IServiceBuilder<OpenIdCoreLibrary> builder)
     {
         /// <summary>
         /// Configures services and handlers for OpenId Authentication.

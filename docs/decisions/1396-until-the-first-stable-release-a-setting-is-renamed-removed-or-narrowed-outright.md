@@ -88,5 +88,5 @@ settings update to accept it, would carry a design with no instance in every `IS
 - [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md) — one
   initial migration per host database context.
 - `src/NCode.Identity.Settings.Abstractions/ISettingSerializer.cs`,
-  `src/NCode.Identity/Settings/DefaultSettingSerializer.cs` and
+  `src/NCode.Identity.Settings/DefaultSettingSerializer.cs` and
   `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingConfigurationReader.cs`.

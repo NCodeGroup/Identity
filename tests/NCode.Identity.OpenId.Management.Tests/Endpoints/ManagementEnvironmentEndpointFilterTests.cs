@@ -3,8 +3,8 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.Results;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;

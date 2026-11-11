@@ -1,0 +1,45 @@
+#nullable enable
+NCode.Identity.Registration.AspNetCore.DefaultRegistration
+NCode.Identity.Registration.AspNetCore.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Registration.AspNetCore.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEndpointGroupRouting() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Registration.AspNetCore.EndpointProviderRegistration
+NCode.Identity.Registration.AspNetCore.EndpointProviderRegistration.extension(NCode.Identity.Registration.IServiceBuilder!)
+NCode.Identity.Registration.AspNetCore.EndpointProviderRegistration.extension(NCode.Identity.Registration.IServiceBuilder!).AddEndpointGroup<T>() -> void
+NCode.Identity.Registration.AspNetCore.EndpointProviderRegistration.extension(NCode.Identity.Registration.IServiceBuilder!).AddEndpointProvider<T>() -> void
+NCode.Identity.Registration.AspNetCore.EndpointRouteBuilderExtensions
+NCode.Identity.Registration.AspNetCore.EndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
+NCode.Identity.Registration.AspNetCore.EndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapEndpointGroups() -> void
+NCode.Identity.Registration.AspNetCore.IEndpointGroup
+NCode.Identity.Registration.AspNetCore.IEndpointGroup.ConfigureRoutes(Microsoft.AspNetCore.Routing.RouteGroupBuilder! group) -> void
+NCode.Identity.Registration.AspNetCore.IEndpointGroup.ConfigureServices(NCode.Identity.Registration.AspNetCore.IEndpointGroupBuilder! builder) -> void
+NCode.Identity.Registration.AspNetCore.IEndpointGroup.GetPrefix(System.IServiceProvider! serviceProvider) -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
+NCode.Identity.Registration.AspNetCore.IEndpointGroup.Name.get -> string!
+NCode.Identity.Registration.AspNetCore.IEndpointGroupBuilder
+NCode.Identity.Registration.AspNetCore.IEndpointGroupBuilder.AddEndpoint<T>() -> void
+NCode.Identity.Registration.AspNetCore.IEndpointGroupBuilder.AddGroup<T>() -> void
+NCode.Identity.Registration.AspNetCore.IEndpointProvider
+NCode.Identity.Registration.AspNetCore.IEndpointProvider.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
+NCode.Identity.Registration.AspNetCore.IEndpointTreeRouteBuilder
+NCode.Identity.Registration.AspNetCore.IEndpointTreeRouteBuilder.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
+NCode.Identity.Registration.AspNetCore.OperationDisposition<TError>
+NCode.Identity.Registration.AspNetCore.OperationDisposition<TError>.Error.get -> TError?
+NCode.Identity.Registration.AspNetCore.OperationDisposition<TError>.Error.set -> void
+NCode.Identity.Registration.AspNetCore.OperationDisposition<TError>.HasError.get -> bool
+NCode.Identity.Registration.AspNetCore.OperationDisposition<TError>.OperationDisposition() -> void
+NCode.Identity.Registration.AspNetCore.OperationDisposition<TError>.Succeeded.get -> bool
+NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition
+NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition.HasHttpResult.get -> bool
+NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition.HttpResult.get -> Microsoft.AspNetCore.Http.IResult?
+NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition.HttpResult.init -> void
+NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition.ReadOnlyEndpointDisposition() -> void
+NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition.WasHandled.get -> bool
+NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition.WasHandled.init -> void
+NCode.Identity.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>
+NCode.Identity.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.Error.get -> TError?
+NCode.Identity.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.Error.init -> void
+NCode.Identity.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.HasError.get -> bool
+NCode.Identity.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.ReadOnlyOperationDisposition() -> void
+NCode.Identity.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.Succeeded.get -> bool
+static NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition.Handled() -> NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition
+static NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition.Handled(Microsoft.AspNetCore.Http.IResult! httpResult) -> NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition
+static NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition.UnHandled() -> NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition

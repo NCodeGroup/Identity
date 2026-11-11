@@ -21,7 +21,7 @@ This ADR covers phase 1a. Phase 1b remains: PAR, DPoP with nonces, mTLS client a
 `ClientRegistration` on every call, and the client's credentials come from a named key ring, not from configuration.**
 
 1. **Packages.** `.Abstractions` references `NCode.Identity.Jose.Abstractions`, `NCode.Identity.Secrets.Abstractions` and
-   `NCode.Registration`. `NCode.Identity.OpenId.Client` references `.Abstractions` and
+   `NCode.Identity.Registration`. `NCode.Identity.OpenId.Client` references `.Abstractions` and
    `NCode.Identity.Jwt.Abstractions` only, because an implementation package depends only on abstractions
    ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)). This is why the design table's
    `.Jose, .Jwt, .Secrets, .SharedState` becomes `.Jwt.Abstractions`; SharedState arrives in phase 1b for the

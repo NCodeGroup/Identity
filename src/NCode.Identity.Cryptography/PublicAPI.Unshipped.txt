@@ -1,0 +1,4 @@
+#nullable enable
+NCode.Identity.Cryptography.DefaultRegistration
+NCode.Identity.Cryptography.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Cryptography.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddCryptographyLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Cryptography.CryptographyLibrary>!

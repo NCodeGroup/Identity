@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Json;
 using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.Secrets;
@@ -15,7 +16,6 @@ using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
@@ -35,6 +35,9 @@ internal class DefaultClientKeyImporter(
     IAlgorithmCollectionProvider algorithmCollectionProvider
 ) : IClientKeyImporter
 {
+    private const string KeyTypeMemberError =
+        "Every key in the JSON Web Key Set must be a JSON object with a 'kty' member.";
+
     // RFC 7517 §4.3: the key operations that belong to each public key use. An operation outside both is not judged.
     private static FrozenSet<string> SignatureOperations { get; } =
         new[] { JsonWebKeyOperations.Sign, JsonWebKeyOperations.Verify }.ToFrozenSet(
@@ -78,17 +81,19 @@ internal class DefaultClientKeyImporter(
         {
             if (!TryGetKey(element, out var key))
             {
-                error =
-                    "Every key in the JSON Web Key Set must be a JSON object with a 'kty' member.";
+                error = KeyTypeMemberError;
                 return false;
             }
 
-            if (!TryImportSetKey(key, createdWhen, out var secret, out error))
+            if (!TryNameKey(key, out var named, out error))
                 return false;
 
-            if (!keyIds.Add(key.KeyId ?? string.Empty))
+            if (!TryImportSetKey(named, createdWhen, out var secret, out error))
+                return false;
+
+            if (!keyIds.Add(named.KeyId ?? string.Empty))
             {
-                error = DuplicateKeyIdError(key);
+                error = DuplicateKeyIdError(named);
                 return false;
             }
 
@@ -268,6 +273,68 @@ internal class DefaultClientKeyImporter(
         return false;
     }
 
+    /// <summary>
+    /// Names a key of a registered set that declares no <c>kid</c> (absent, JSON <c>null</c> or empty) by its RFC 7638
+    /// thumbprint, which any holder of the key computes. A key that declares a <c>kid</c>, a <c>kid</c> of another JSON
+    /// type, or a <c>kty</c> the server has no rules for is returned unchanged, so the import reports it.
+    /// </summary>
+    private static bool TryNameKey(
+        JsonWebKey key,
+        [NotNullWhen(true)] out JsonWebKey? named,
+        [NotNullWhen(false)] out string? error
+    )
+    {
+        named = key;
+        error = null;
+
+        if (key.KeyTypeDescriptor is null || DeclaresKeyId(key))
+            return true;
+
+        if (!TryComputeThumbprint(key, out var thumbprint, out error))
+        {
+            named = null;
+            return false;
+        }
+
+        named = key.WithKeyId(thumbprint);
+        return true;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the key declares a usable <c>kid</c>: a non-empty string, or a value of another
+    /// JSON type that the member validation reports. An absent member, JSON <c>null</c> and an empty string declare none.
+    /// </summary>
+    private static bool DeclaresKeyId(JsonWebKey key)
+    {
+        var element = key.AsElement();
+        if (element.TryGetPropertyValue<string>(JsonWebKeyParameterNames.KeyId, out var kid))
+            return kid.Length > 0;
+
+        return element.TryGetPropertyValue<JsonElement>(JsonWebKeyParameterNames.KeyId, out var raw)
+            && !raw.IsNullOrUndefined();
+    }
+
+    private static bool TryComputeThumbprint(
+        JsonWebKey key,
+        [NotNullWhen(true)] out string? thumbprint,
+        [NotNullWhen(false)] out string? error
+    )
+    {
+        try
+        {
+            thumbprint = key.ComputeThumbprint();
+            error = null;
+            return true;
+        }
+        catch (Exception exception)
+            when (exception is InvalidOperationException or ArgumentException)
+        {
+            thumbprint = null;
+            error = $"The key could not be named: {exception.Message}";
+            return false;
+        }
+    }
+
     private bool TryParseKey(string keyMaterial, [NotNullWhen(true)] out JsonWebKey? key)
     {
         JsonElement element;
@@ -309,7 +376,8 @@ internal class DefaultClientKeyImporter(
             return false;
         }
 
-        // Keys are selected by 'kid', which the client names its keys by; the server never invents one for it.
+        // Keys are selected by 'kid'. A registered set names an unnamed key by its thumbprint before this point, and a
+        // published set ignores a key without one.
         if (string.IsNullOrEmpty(key.KeyId))
         {
             error = "Every key in the JSON Web Key Set must have a 'kid'.";

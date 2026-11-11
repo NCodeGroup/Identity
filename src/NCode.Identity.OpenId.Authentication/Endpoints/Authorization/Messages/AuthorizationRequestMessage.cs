@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;

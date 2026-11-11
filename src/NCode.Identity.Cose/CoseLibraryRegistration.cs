@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.Cose.Algorithms;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.Cose;
 

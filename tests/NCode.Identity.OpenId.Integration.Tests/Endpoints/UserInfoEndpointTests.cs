@@ -188,6 +188,36 @@ public class UserInfoEndpointTests
     }
 
     [Fact]
+    public async Task GetUserInfo_WithFapiInteractionId_EchoesTheInteractionId()
+    {
+        using var factory = new HostApplicationFactory();
+        var client = CreateHttpClient(factory);
+        var interactionId = Guid.NewGuid().ToString("D");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, UserInfoPath);
+        request.Headers.Add("x-fapi-interaction-id", interactionId);
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(
+            interactionId,
+            Assert.Single(response.Headers.GetValues("x-fapi-interaction-id"))
+        );
+    }
+
+    [Fact]
+    public async Task GetUserInfo_WithoutFapiInteractionId_RepliesWithANewInteractionId()
+    {
+        using var factory = new HostApplicationFactory();
+        var client = CreateHttpClient(factory);
+
+        using var response = await client.GetAsync(UserInfoPath);
+
+        var value = Assert.Single(response.Headers.GetValues("x-fapi-interaction-id"));
+        Assert.True(Guid.TryParseExact(value, "D", out _));
+    }
+
+    [Fact]
     public async Task GetUserInfo_WithSessionButNoAccessToken_ReturnsUnauthorized()
     {
         // UserInfo is reached only with an access token (OpenID Connect Core 1.0 §5.3.1); an authenticated session is

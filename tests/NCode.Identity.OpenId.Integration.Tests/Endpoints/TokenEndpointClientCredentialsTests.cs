@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;

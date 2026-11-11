@@ -9,8 +9,8 @@ using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
+using NCode.Identity.Registration;
 using NCode.Identity.Settings;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Settings;
 

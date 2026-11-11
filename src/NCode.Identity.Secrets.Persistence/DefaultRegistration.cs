@@ -5,12 +5,12 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Secrets.Persistence.Verifiers;
 using NCode.Identity.Secrets.Verifiers;
-using NCode.Registration;
 
 namespace NCode.Identity.Secrets.Persistence;
 

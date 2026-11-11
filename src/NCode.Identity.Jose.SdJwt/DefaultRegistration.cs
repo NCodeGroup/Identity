@@ -11,7 +11,7 @@ using NCode.Identity.Jose.SdJwt.Options;
 using NCode.Identity.Jose.SdJwt.Presentation;
 using NCode.Identity.Jose.SdJwt.Verification;
 using NCode.Identity.Jwt;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.Jose.SdJwt;
 

@@ -6,11 +6,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets.AzureKeyVault.Facades;
 using NCode.Identity.Secrets.AzureKeyVault.Options;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence;
-using NCode.Registration;
 
 namespace NCode.Identity.Secrets.AzureKeyVault;
 

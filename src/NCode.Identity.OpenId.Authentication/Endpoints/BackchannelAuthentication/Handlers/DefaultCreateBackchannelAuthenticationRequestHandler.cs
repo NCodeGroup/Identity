@@ -9,8 +9,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
+using NCode.Identity.Time;
 using NCode.Mediator;
-using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Handlers;
 

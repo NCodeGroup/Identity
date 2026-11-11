@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 

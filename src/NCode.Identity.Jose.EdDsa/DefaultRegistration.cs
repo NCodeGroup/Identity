@@ -8,8 +8,8 @@ using NCode.Collections.Providers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.EdDsa.Algorithms;
 using NCode.Identity.Jose.EdDsa.KeyTypes;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets.KeyTypes;
-using NCode.Registration;
 
 namespace NCode.Identity.Jose.EdDsa;
 

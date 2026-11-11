@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using NCode.Buffers;
-using NCode.Json;
+using NCode.Identity.Json;
 
 namespace NCode.Identity.Jwk;
 

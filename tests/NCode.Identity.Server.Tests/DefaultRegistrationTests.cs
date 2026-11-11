@@ -18,11 +18,11 @@ using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

@@ -37,7 +37,7 @@ family's icon and leaves a tenant's own tab icon to a branding setting of its ow
    under which the policy admits its origin.
 2. **One tab icon is the page's whole icon set.** When a favicon is configured the host removes every `<link>` of the
    bundle's `index.html` whose `rel` tokens include `icon` or `apple-touch-icon`, and writes one
-   `<link rel="icon" href="<url>" />`. A tab icon is never mixed with the family's. `HtmlIconLinks` of `NCode.AspNetCore`
+   `<link rel="icon" href="<url>" />`. A tab icon is never mixed with the family's. `HtmlIconLinks` of `NCode.Identity.AspNetCore`
    holds `Remove(string html)` and `Create(string href)` for both hosts. The OP host removes the links once, when it
    splits a bundle's index into its shell, and the console host removes them once, when it parses its index.
 3. **The favicon is a server-side token.** `InteractiveBranding.FaviconUrl` is `[JsonIgnore]` and

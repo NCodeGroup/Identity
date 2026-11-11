@@ -13,3 +13,31 @@ NCode.Identity.Persistence.PostCommitWork
 NCode.Identity.Persistence.ResourceTypes
 static NCode.Identity.Persistence.PostCommitWork.RunAsync<TState>(System.TimeProvider! timeProvider, System.Func<TState, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! step, TState state) -> System.Threading.Tasks.ValueTask
 static NCode.Identity.Persistence.PostCommitWork.Timeout.get -> System.TimeSpan
+NCode.Identity.Persistence.StoreManagerLibrary
+NCode.Identity.Persistence.StoreManagerLibrary.StoreManagerLibrary() -> void
+NCode.Identity.Persistence.Stores.IStore
+NCode.Identity.Persistence.Stores.IStore<T>
+NCode.Identity.Persistence.Stores.IStore<T>.AddAsync(T item, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Persistence.Stores.IStore<T>.UpdateAsync(T item, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Persistence.Stores.IStoreManager
+NCode.Identity.Persistence.Stores.IStoreManager.SaveChangesAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Persistence.Stores.IStoreManagerFactory
+NCode.Identity.Persistence.Stores.IStoreManagerFactory.CreateAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Persistence.Stores.IStoreManager!>
+NCode.Identity.Persistence.Stores.IStoreProvider
+NCode.Identity.Persistence.Stores.IStoreProvider.GetStore<TStore>() -> TStore
+NCode.Identity.Persistence.Stores.PageRequest
+NCode.Identity.Persistence.Stores.PageRequest.Cursor.get -> string?
+NCode.Identity.Persistence.Stores.PageRequest.Cursor.init -> void
+NCode.Identity.Persistence.Stores.PageRequest.Limit.get -> int
+NCode.Identity.Persistence.Stores.PageRequest.Limit.init -> void
+NCode.Identity.Persistence.Stores.PageRequest.PageRequest() -> void
+NCode.Identity.Persistence.Stores.PagedResult<T>
+NCode.Identity.Persistence.Stores.PagedResult<T>.Items.get -> System.Collections.Generic.IReadOnlyList<T>!
+NCode.Identity.Persistence.Stores.PagedResult<T>.Items.init -> void
+NCode.Identity.Persistence.Stores.PagedResult<T>.NextCursor.get -> string?
+NCode.Identity.Persistence.Stores.PagedResult<T>.NextCursor.init -> void
+NCode.Identity.Persistence.Stores.PagedResult<T>.PagedResult() -> void
+NCode.Identity.Persistence.Stores.StoreConcurrencyException
+NCode.Identity.Persistence.Stores.StoreConcurrencyException.StoreConcurrencyException() -> void
+NCode.Identity.Persistence.Stores.StoreConcurrencyException.StoreConcurrencyException(string! message) -> void
+NCode.Identity.Persistence.Stores.StoreConcurrencyException.StoreConcurrencyException(string! message, System.Exception! inner) -> void

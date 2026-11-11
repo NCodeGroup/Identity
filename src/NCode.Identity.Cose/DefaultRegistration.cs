@@ -9,7 +9,7 @@ using NCode.Identity.Cose.Algorithms;
 using NCode.Identity.Cose.Keys;
 using NCode.Identity.Cose.Options;
 using NCode.Identity.Cose.Randomness;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.Cose;
 

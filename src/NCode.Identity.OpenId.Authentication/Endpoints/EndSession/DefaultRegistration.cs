@@ -9,8 +9,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 

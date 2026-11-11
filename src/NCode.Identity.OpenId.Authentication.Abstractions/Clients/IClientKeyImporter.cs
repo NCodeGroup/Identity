@@ -22,9 +22,10 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 public interface IClientKeyImporter
 {
     /// <summary>
-    /// Imports the JSON Web Key Set a client registers by value. Every key must satisfy the client-key policy and carry
-    /// a <c>kid</c> unique within the set; a key of a type or for an algorithm the server does not support is an error,
-    /// because the client would be registering a key that can never be used.
+    /// Imports the JSON Web Key Set a client registers by value. Every key must satisfy the client-key policy and have a
+    /// <c>kid</c> unique within the set: the <c>kid</c> it declares, or, for a key without one, its RFC 7638 thumbprint.
+    /// A key of a type or for an algorithm the server does not support is an error, because the client would be
+    /// registering a key that can never be used.
     /// </summary>
     /// <param name="keySet">The JSON Web Key Set document, an object with a <c>keys</c> array.</param>
     /// <param name="createdWhen">The instant the imported keys are created.</param>

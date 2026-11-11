@@ -1,10 +1,10 @@
 #nullable enable
 NCode.Identity.OpenId.Client.ClientAuthenticatorRegistration
-NCode.Identity.OpenId.Client.ClientAuthenticatorRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!)
-NCode.Identity.OpenId.Client.ClientAuthenticatorRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!).AddClientAuthenticator<TAuthenticator>() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!
+NCode.Identity.OpenId.Client.ClientAuthenticatorRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!)
+NCode.Identity.OpenId.Client.ClientAuthenticatorRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!).AddClientAuthenticator<TAuthenticator>() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!
 NCode.Identity.OpenId.Client.DefaultRegistration
-NCode.Identity.OpenId.Client.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!)
-NCode.Identity.OpenId.Client.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddOpenIdClientLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!
+NCode.Identity.OpenId.Client.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!)
+NCode.Identity.OpenId.Client.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddOpenIdClientLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.AttemptTimeout.get -> System.TimeSpan
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.AttemptTimeout.set -> void

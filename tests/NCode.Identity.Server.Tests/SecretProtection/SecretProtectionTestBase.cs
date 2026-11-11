@@ -5,6 +5,7 @@ using System.Buffers;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NCode.Buffers;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyWrapping;
@@ -13,7 +14,6 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Secrets.Verifiers;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

@@ -1,8 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 

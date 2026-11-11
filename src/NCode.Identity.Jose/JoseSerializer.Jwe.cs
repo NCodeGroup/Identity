@@ -10,8 +10,8 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Compression;
 using NCode.Identity.Jose.Encoders;
 using NCode.Identity.Jose.Exceptions;
+using NCode.Identity.Json;
 using NCode.Identity.Secrets.Keys;
-using NCode.Json;
 using Nerdbank.Streams;
 
 namespace NCode.Identity.Jose;

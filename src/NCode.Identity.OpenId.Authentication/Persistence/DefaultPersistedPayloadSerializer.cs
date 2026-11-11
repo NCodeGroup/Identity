@@ -6,7 +6,7 @@ using System.Collections.Frozen;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using NCode.Json;
+using NCode.Identity.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Persistence;
 

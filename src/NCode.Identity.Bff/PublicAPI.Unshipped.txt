@@ -8,11 +8,11 @@ NCode.Identity.Bff.Hardening.BffSecurityHeadersApplicationBuilderExtensions
 NCode.Identity.Bff.Hardening.BffSecurityHeadersApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
 NCode.Identity.Bff.Hardening.BffSecurityHeadersApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseBffSecurityHeaders() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
 NCode.Identity.Bff.BffLibraryRegistration
-NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!)
-NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!).AddBffConfiguration(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!
+NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!)
+NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!).AddBffConfiguration(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!
 NCode.Identity.Bff.DefaultRegistration
-NCode.Identity.Bff.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!)
-NCode.Identity.Bff.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!).AddBffLibrary(NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>! events) -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!
+NCode.Identity.Bff.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!)
+NCode.Identity.Bff.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!).AddBffLibrary(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>! events) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffApi() -> TBuilder

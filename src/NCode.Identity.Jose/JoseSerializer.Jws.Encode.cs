@@ -9,8 +9,8 @@ using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Encoders;
 using NCode.Identity.Jose.Exceptions;
+using NCode.Identity.Json;
 using NCode.Identity.Secrets.Keys;
-using NCode.Json;
 
 namespace NCode.Identity.Jose;
 

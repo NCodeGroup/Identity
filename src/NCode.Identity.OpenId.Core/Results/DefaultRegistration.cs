@@ -4,8 +4,8 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Results;
-using NCode.Registration;
+using NCode.Identity.AspNetCore;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.OpenId.Results;
 

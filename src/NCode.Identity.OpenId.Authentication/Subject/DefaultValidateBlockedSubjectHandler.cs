@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Subject;
 

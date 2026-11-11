@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.OpenId.Messages;
 

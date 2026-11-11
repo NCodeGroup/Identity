@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.Bff.Blazor;
 

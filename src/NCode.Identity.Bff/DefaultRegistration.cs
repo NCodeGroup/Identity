@@ -28,7 +28,7 @@ using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.Events;
 using NCode.Identity.OpenId.Client;
-using NCode.Registration;
+using NCode.Identity.Registration;
 using Yarp.ReverseProxy.Forwarder;
 
 namespace NCode.Identity.Bff;

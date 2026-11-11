@@ -129,6 +129,23 @@ public class RateLimitTests
         );
     }
 
+    [Fact]
+    public async Task Discovery_WhenTheTenantIsOverItsRateLimit_StillRepliesWithAFapiInteractionId()
+    {
+        // The rate-limit filter refuses the request before the endpoint runs, and the refusal still carries the header.
+        using var factory = CreateFactory(OpenIdSettingNames.RateLimitTenantPerMinute, "1");
+        var client = CreateClient(factory);
+
+        using var admitted = await GetDiscoveryAsync(client, null, CancellationToken.None);
+        Assert.Equal(HttpStatusCode.OK, admitted.StatusCode);
+
+        using var response = await GetDiscoveryAsync(client, null, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
+        var interactionId = Assert.Single(response.Headers.GetValues("x-fapi-interaction-id"));
+        Assert.True(Guid.TryParseExact(interactionId, "D", out _));
+    }
+
     #endregion
 
     #region Quota Tests

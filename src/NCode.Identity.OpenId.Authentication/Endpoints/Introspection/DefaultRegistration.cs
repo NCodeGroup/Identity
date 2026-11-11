@@ -7,8 +7,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 

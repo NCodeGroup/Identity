@@ -18,7 +18,7 @@ using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
 using NCode.Identity.OpenId.Client.UserInfo;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.OpenId.Client;
 

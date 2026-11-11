@@ -61,35 +61,29 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        serviceCollection.AddSingleton<ICollectionDataSource<SettingDescriptor>>(
+            sp => new DefaultSettingDescriptorDataSource(
+                sp.GetRequiredService<INullChangeToken>(),
+                sp.GetRequiredService<IAlgorithmCollectionProvider>(),
+                [],
+                [],
+                new DefaultUiLocaleCatalog([])
+            )
+        );
+        serviceCollection.AddSingleton<ICollectionDataSource<SettingScopeDescriptor>>(
+            sp => new DefaultSettingScopeDataSource(sp.GetRequiredService<INullChangeToken>())
+        );
+        serviceCollection.AddSettingsLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         var algorithmCollectionProvider =
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>();
-        var nullChangeToken = CreateStrictMock<INullChangeToken>().Object;
         MockContext = CreateStrictMock<OpenIdContext>();
 
-        Descriptors = new DefaultSettingDescriptorCollection(
-            new DefaultSettingDescriptorDataSource(
-                nullChangeToken,
-                algorithmCollectionProvider,
-                [],
-                [],
-                new DefaultUiLocaleCatalog([])
-            ).Collection
-        );
-
-        var mockDescriptorProvider = CreateLooseMock<ISettingDescriptorCollectionProvider>();
-        mockDescriptorProvider.SetupGet(x => x.Collection).Returns(Descriptors);
-        DescriptorProvider = mockDescriptorProvider.Object;
-
-        var mockScopeProvider = CreateLooseMock<ISettingScopeCollectionProvider>();
-        mockScopeProvider
-            .SetupGet(x => x.Collection)
-            .Returns(
-                new DefaultSettingScopeCollection(
-                    new DefaultSettingScopeDataSource(nullChangeToken).Collection
-                )
-            );
+        DescriptorProvider =
+            ServiceProvider.GetRequiredService<ISettingDescriptorCollectionProvider>();
+        Descriptors = DescriptorProvider.Collection;
+        var scopeProvider = ServiceProvider.GetRequiredService<ISettingScopeCollectionProvider>();
 
         var secretKeyFactory = ServiceProvider.GetRequiredService<ISecretKeyFactory>();
         TenantKey = secretKeyFactory.CreateRsa(new KeyMetadata { KeyId = "tenant" }, TenantRsa);
@@ -101,7 +95,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         Service = new DefaultAccessTokenPolicyService(
             algorithmCollectionProvider,
             ServiceProvider.GetRequiredService<ICredentialSelector>(),
-            mockScopeProvider.Object
+            scopeProvider
         );
     }
 
@@ -165,7 +159,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
                 : throw new InvalidOperationException($"'{pair.Key}' is not registered.")
         );
 
-        return new DefaultSettingCollection(DescriptorProvider, settings);
+        return ServiceProvider.GetRequiredService<ISettingCollectionFactory>().Create(settings);
     }
 
     private ISecretKeyCollection CreateKeys(params SecretKey[] keys) =>

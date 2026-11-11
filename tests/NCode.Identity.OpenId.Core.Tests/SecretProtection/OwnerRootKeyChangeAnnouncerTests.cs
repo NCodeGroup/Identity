@@ -7,10 +7,10 @@ using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.SecretProtection;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.SecretProtection;

@@ -42,7 +42,7 @@ bags are resolved at token/UserInfo issuance through a pluggable `IPrincipalMeta
 subject-claims projection pipeline ([ADR-1054](1054-local-account-metadata-projection.md)). The provider reads fresh on
 every issuance — cluster-consistent and matching Auth0's per-issuance behavior; caching, when a host wants it, is a
 replaceable-provider concern that must be distributed. The shared `JsonElements` helper the bags rely on is promoted to
-a dependency-free `NCode.Json` package.**
+a dependency-free `NCode.Identity.Json` package.**
 
 ### Inline the bags on the actor (`FederatedPrincipal`)
 
@@ -86,7 +86,7 @@ revocation hook) — a clean, opt-in extension of the same seam rather than a br
 The `JsonElements` helper (`EmptyObject` / `OrEmptyObject` / `IsNullOrUndefined`) the bags rely on lived in
 `NCode.Identity.Abstractions`, which carries the ASP.NET Core `FrameworkReference` and so cannot be referenced by the
 persistence layer (or by Jose/Secrets) without dragging ASP.NET Core into packages meant to stay framework-free. It is
-promoted to a new dependency-free `NCode.Json` package (namespace `NCode.Json`) that any package beneath
+promoted to a new dependency-free `NCode.Identity.Json` package (namespace `NCode.Identity.Json`) that any package beneath
 `NCode.Identity.*` can reference. The broader cleanup of `NCode.Identity.Abstractions` — splitting its ASP.NET Core HTTP
 surface and the Settings subsystem into their own packages so the core is lean and referenceable by anything, and Jose /
 Secrets stay standalone-reusable — is tracked in [GitHub issues](https://github.com/NCodeGroup/Identity/issues).
@@ -124,7 +124,7 @@ Secrets stay standalone-reusable — is tracked in [GitHub issues](https://githu
   flows.
 - Metadata is read fresh per issuance (cluster-consistent); there is no built-in freshness setting or cache. Host-side
   caching is a replaceable-provider concern that must be distributed.
-- The shared `JsonElements` helper is promoted to a dependency-free `NCode.Json` package.
+- The shared `JsonElements` helper is promoted to a dependency-free `NCode.Identity.Json` package.
 - The owner-vs-server trust boundary and whole-bag nesting of [ADR-1054](1054-local-account-metadata-projection.md) are
   retained; only the metadata's home and the resolution point change.
 - The `SystemMetadata` write-path invariant (never end-user-writable) remains the management layer's responsibility and

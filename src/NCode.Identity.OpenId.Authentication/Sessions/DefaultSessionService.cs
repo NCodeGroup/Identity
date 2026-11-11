@@ -8,8 +8,8 @@ using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Persistence.Stores;
-using NCode.Time;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;
 

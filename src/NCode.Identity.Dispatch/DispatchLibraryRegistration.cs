@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Dispatch.InProcess;
 using NCode.Identity.Dispatch.Options;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.Dispatch;
 

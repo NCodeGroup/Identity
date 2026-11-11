@@ -10,6 +10,7 @@ using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
+using NCode.Identity.OpenId.Serialization;
 using Xunit;
 using OpenIdUriParser = NCode.Identity.OpenId.Messages.Parsers.UriParser;
 
@@ -112,6 +113,75 @@ public class AdditionalParameterParserTests : BaseTests
         );
 
         Assert.Equal(expected, Assert.IsAssignableFrom<IParameter<string>>(parameter).ParsedValue);
+    }
+
+    [Fact]
+    public void StringListParser_Read_WhenOpenIdFormatAndJsonArray_ReadsEachElement()
+    {
+        // The 'aud' claim of a request object (RFC 7519) may be an array of strings.
+        var parser = new StringListParser();
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            Converters = { new StringValuesJsonConverter() },
+        };
+        var reader = new System.Text.Json.Utf8JsonReader(
+            SecureEncoding.UTF8.GetBytes("[\"https://op\",\"https://other\"]")
+        );
+        reader.Read();
+
+        var parameter = parser.Read(
+            ref reader,
+            Environment,
+            AllowMissingDescriptor,
+            SerializationFormat.OpenId,
+            options
+        );
+
+        var parsedValue = Assert.IsAssignableFrom<IParameter<List<string>>>(parameter).ParsedValue;
+        Assert.Equal(["https://op", "https://other"], parsedValue);
+    }
+
+    [Fact]
+    public void Read_WhenMessageHasArrayClaim_KeepsEveryValue()
+    {
+        var scopesParameter = OpenIdCommonParameters.Scopes;
+
+        MockEnvironment
+            .Setup(x => x.GetParameterDescriptor(It.IsAny<string>()))
+            .Returns(
+                (string name) =>
+                    name == scopesParameter.Name
+                        ? new ParameterDescriptor(scopesParameter)
+                        : new ParameterDescriptor(name, ParameterLoader.Default)
+            )
+            .Verifiable();
+        MockEnvironment
+            .Setup(x => x.CreateMessage("OpenIdMessage", It.IsAny<IEnumerable<IParameter>>()))
+            .Returns(
+                (string _, IEnumerable<IParameter> parameters) =>
+                    new OpenIdMessage(Environment, parameters)
+            )
+            .Verifiable();
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            Converters =
+            {
+                new StringValuesJsonConverter(),
+                new OpenIdMessageJsonConverterFactory(Environment),
+            },
+        };
+
+        var message = System.Text.Json.JsonSerializer.Deserialize<OpenIdMessage>(
+            "{\"aud\":[\"https://op\",\"https://other\"],\"scope\":\"openid\"}",
+            options
+        );
+
+        Assert.NotNull(message);
+        Assert.True(message.Parameters.TryGet("aud", out var audience));
+        var audienceValues = audience.GetStringValues(Environment);
+        var scopes = message.Parameters.GetValueOrDefault(scopesParameter);
+        Assert.Equal(new StringValues(["https://op", "https://other"]), audienceValues);
+        Assert.Equal(["openid"], scopes);
     }
 
     #endregion

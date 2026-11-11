@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
@@ -12,10 +13,9 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Serialization;
-using NCode.Identity.Results;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
 using NCode.Mediator.Middleware;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 

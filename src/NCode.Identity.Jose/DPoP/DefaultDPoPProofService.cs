@@ -9,11 +9,11 @@ using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
+using NCode.Identity.Json;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
-using NCode.Json;
 
 namespace NCode.Identity.Jose.DPoP;
 

@@ -7,8 +7,8 @@ using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.SecretProtection;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.Protection;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.SecretProtection;

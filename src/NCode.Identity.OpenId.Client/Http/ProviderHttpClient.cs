@@ -5,8 +5,8 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Client.Options;
-using NCode.Json;
 using Nerdbank.Streams;
 
 namespace NCode.Identity.OpenId.Client.Http;

@@ -38,7 +38,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     {
         // The real key-type catalog, secret importer, and algorithms are the policy's sources of truth.
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddIdentityLibrary();
+        serviceCollection.AddCryptographyLibrary();
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddPersistenceLibrary();
         secrets.AddJoseLibrary();
@@ -233,12 +233,91 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     }
 
     [Fact]
-    public void TryImportRegisteredKeySet_WhenKidIsMissing_ReturnsError()
+    public void TryImportRegisteredKeySet_WhenKidIsMissing_NamesTheKeyByItsThumbprint()
     {
-        var imported = TryImportRegistered(KeySet(RsaKey(kid: null)), out _, out var error);
+        var json = RsaKey(kid: null).ToJsonString();
+        var expected = JsonWebKey.Parse(json).ComputeThumbprint();
+
+        var imported = TryImportRegistered(
+            KeySet(RsaKey(kid: null)),
+            out var secrets,
+            out var error
+        );
+
+        Assert.True(imported, error);
+        Assert.NotNull(secrets);
+        var secret = Assert.Single(secrets);
+        Assert.Equal(expected, secret.KeyId);
+    }
+
+    [Fact]
+    public void TryImportRegisteredKeySet_WhenKidIsEmpty_NamesTheKeyByTheSameThumbprint()
+    {
+        var expected = JsonWebKey.Parse(RsaKey(kid: null).ToJsonString()).ComputeThumbprint();
+
+        var imported = TryImportRegistered(KeySet(RsaKey(kid: "")), out var secrets, out var error);
+
+        Assert.True(imported, error);
+        Assert.NotNull(secrets);
+        var secret = Assert.Single(secrets);
+        Assert.Equal(expected, secret.KeyId);
+    }
+
+    [Fact]
+    public void TryImportRegisteredKeySet_WhenKidIsNull_NamesTheKeyByItsThumbprint()
+    {
+        var expected = JsonWebKey.Parse(RsaKey(kid: null).ToJsonString()).ComputeThumbprint();
+        var keySet = KeySet(With(RsaKey(kid: null), "kid", null));
+
+        var imported = TryImportRegistered(keySet, out var secrets, out var error);
+
+        Assert.True(imported, error);
+        Assert.NotNull(secrets);
+        var secret = Assert.Single(secrets);
+        Assert.Equal(expected, secret.KeyId);
+    }
+
+    [Fact]
+    public void TryImportRegisteredKeySet_WhenAnUnnamedKeyTypeIsUnsupported_ReturnsError()
+    {
+        var keySet = KeySet(new JsonObject { ["kty"] = "XYZ" });
+
+        var imported = TryImportRegistered(keySet, out _, out var error);
 
         Assert.False(imported);
-        Assert.Contains("'kid'", error, StringComparison.Ordinal);
+        Assert.Contains("not supported", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryImportRegisteredKeySet_WhenTwoKeysHaveNoKidAndAreTheSameKey_ReturnsError()
+    {
+        var keySet = KeySet(RsaKey(kid: null), RsaKey(kid: null));
+
+        var imported = TryImportRegistered(keySet, out _, out var error);
+
+        Assert.False(imported);
+        Assert.Contains("is not unique", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryImportRegisteredKeySet_WhenAKeyDeclaresAnotherKeysThumbprint_ReturnsError()
+    {
+        var json = RsaKey(kid: null).ToJsonString();
+        var thumbprint = JsonWebKey.Parse(json).ComputeThumbprint();
+        Assert.True(
+            TryImportRegistered(KeySet(RsaKey(kid: null)), out _, out var rsaError),
+            rsaError
+        );
+        Assert.True(
+            TryImportRegistered(KeySet(EcKey(thumbprint)), out _, out var ecError),
+            ecError
+        );
+        var keySet = KeySet(RsaKey(kid: null), EcKey(thumbprint));
+
+        var imported = TryImportRegistered(keySet, out _, out var error);
+
+        Assert.False(imported);
+        Assert.Contains("is not unique", error, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -398,7 +477,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     )
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddIdentityLibrary();
+        serviceCollection.AddCryptographyLibrary();
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddPersistenceLibrary();
         secrets.AddJoseLibrary().AddEdDsa();

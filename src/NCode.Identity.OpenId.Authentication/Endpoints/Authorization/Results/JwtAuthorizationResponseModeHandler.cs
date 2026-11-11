@@ -6,7 +6,7 @@ using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 

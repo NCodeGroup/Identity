@@ -3,8 +3,8 @@
 
 using System.Text.Json;
 using NCode.Identity.Jose;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Errors;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Settings;
 

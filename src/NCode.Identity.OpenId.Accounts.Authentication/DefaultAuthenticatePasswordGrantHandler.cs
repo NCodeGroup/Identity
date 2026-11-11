@@ -10,8 +10,8 @@ using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Identity.Persistence.Stores;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Accounts.Authentication;
 

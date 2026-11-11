@@ -5,5 +5,5 @@ NCode.Identity.Bff.Blazor.BffRazorComponentsEndpointConventionBuilderExtensions
 NCode.Identity.Bff.Blazor.BffRazorComponentsEndpointConventionBuilderExtensions.extension(Microsoft.AspNetCore.Builder.RazorComponentsEndpointConventionBuilder!)
 NCode.Identity.Bff.Blazor.BffRazorComponentsEndpointConventionBuilderExtensions.extension(Microsoft.AspNetCore.Builder.RazorComponentsEndpointConventionBuilder!).AsBffComponents() -> Microsoft.AspNetCore.Builder.RazorComponentsEndpointConventionBuilder!
 NCode.Identity.Bff.Blazor.DefaultRegistration
-NCode.Identity.Bff.Blazor.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!)
-NCode.Identity.Bff.Blazor.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!).AddBffBlazorLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.Blazor.BffBlazorLibrary>!
+NCode.Identity.Bff.Blazor.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!)
+NCode.Identity.Bff.Blazor.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!).AddBffBlazorLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Bff.Blazor.BffBlazorLibrary>!

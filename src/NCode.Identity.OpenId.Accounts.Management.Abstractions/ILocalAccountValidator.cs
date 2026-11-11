@@ -4,7 +4,7 @@
 using System.Security.Claims;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Management;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Accounts.Management;
 

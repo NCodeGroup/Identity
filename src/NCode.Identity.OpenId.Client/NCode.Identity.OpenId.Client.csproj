@@ -11,7 +11,7 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Client.Abstractions\NCode.Identity.OpenId.Client.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jwt.Abstractions\NCode.Identity.Jwt.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.SharedState.Abstractions\NCode.Identity.SharedState.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Json\NCode.Identity.Json.csproj" />
     </ItemGroup>
 
     <ItemGroup>

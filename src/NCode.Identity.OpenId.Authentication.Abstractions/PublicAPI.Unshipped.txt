@@ -320,7 +320,7 @@ NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationMethodCatalog.
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationService
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationService.AuthenticateClientAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult>
 NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceReporter
-NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceReporter.FindIncoherentClientsAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! tenantId, NCode.Identity.Settings.IReadOnlySettingCollection! tenantSettings, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Authentication.Clients.IncoherentClient!>!>
+NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceReporter.FindIncoherentClientsAsync(NCode.Identity.Persistence.Stores.IStoreManager! storeManager, string! tenantId, NCode.Identity.Settings.IReadOnlySettingCollection! tenantSettings, NCode.Identity.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Authentication.Clients.IncoherentClient!>!>
 NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceRule
 NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceRule.FindViolations(NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceContext! context) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation>!
 NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceRule.SettingNames.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
@@ -655,13 +655,13 @@ NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult.Interval.get -> int
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult.Interval.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider
-NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider.ContinueAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Text.Json.JsonElement continuePayloadJson, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition>
+NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider.ContinueAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Text.Json.JsonElement continuePayloadJson, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition>
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider.ContinueCode.get -> string!
-NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider.RefuseAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Text.Json.JsonElement continuePayloadJson, NCode.Identity.OpenId.Messages.IOpenIdError! error, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition>
+NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider.RefuseAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Text.Json.JsonElement continuePayloadJson, NCode.Identity.OpenId.Messages.IOpenIdError! error, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition>
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProviderSelector
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProviderSelector.SelectProvider(string! continueCode) -> NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider!
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueRefusalService
-NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueRefusalService.RefuseAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! continueUrl, NCode.Identity.OpenId.Messages.IOpenIdError! error, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition>
+NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueRefusalService.RefuseAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! continueUrl, NCode.Identity.OpenId.Messages.IOpenIdError! error, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Registration.AspNetCore.ReadOnlyEndpointDisposition>
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueService
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueService.GetContinueUrlAsync<TPayload>(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! continueCode, string? clientId, string? subjectId, System.TimeSpan lifetime, TPayload payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand
@@ -1515,21 +1515,21 @@ NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationComman
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OpenIdContext.init -> void
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OpenIdRequest.get -> NCode.Identity.OpenId.Messages.IOpenIdRequest?
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OpenIdRequest.init -> void
-NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OperationDisposition.get -> NCode.Registration.AspNetCore.OperationDisposition<NCode.Identity.OpenId.Messages.IOpenIdError!>!
+NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OperationDisposition.get -> NCode.Identity.Registration.AspNetCore.OperationDisposition<NCode.Identity.OpenId.Messages.IOpenIdError!>!
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OperationDisposition.init -> void
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.SubjectAuthentication.get -> NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.SubjectAuthentication.init -> void
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.ValidateSubjectAuthenticationCommand() -> void
-NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.ValidateSubjectAuthenticationCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Messages.IOpenIdRequest? OpenIdRequest, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication SubjectAuthentication, NCode.Registration.AspNetCore.OperationDisposition<NCode.Identity.OpenId.Messages.IOpenIdError!>! OperationDisposition, bool EnforceAuthenticationAge) -> void
+NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.ValidateSubjectAuthenticationCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Messages.IOpenIdRequest? OpenIdRequest, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication SubjectAuthentication, NCode.Identity.Registration.AspNetCore.OperationDisposition<NCode.Identity.OpenId.Messages.IOpenIdError!>! OperationDisposition, bool EnforceAuthenticationAge) -> void
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.OpenIdContext.init -> void
-NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.OperationDisposition.get -> NCode.Registration.AspNetCore.OperationDisposition<NCode.Identity.OpenId.Messages.IOpenIdError!>!
+NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.OperationDisposition.get -> NCode.Identity.Registration.AspNetCore.OperationDisposition<NCode.Identity.OpenId.Messages.IOpenIdError!>!
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.OperationDisposition.init -> void
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.SubjectAuthentication.get -> NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.SubjectAuthentication.init -> void
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.ValidateSubjectStandingCommand() -> void
-NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.ValidateSubjectStandingCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication SubjectAuthentication, NCode.Registration.AspNetCore.OperationDisposition<NCode.Identity.OpenId.Messages.IOpenIdError!>! OperationDisposition) -> void
+NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectStandingCommand.ValidateSubjectStandingCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication SubjectAuthentication, NCode.Identity.Registration.AspNetCore.OperationDisposition<NCode.Identity.OpenId.Messages.IOpenIdError!>! OperationDisposition) -> void
 NCode.Identity.OpenId.Authentication.Tokens.Commands.AuthenticateAccessTokenCommand
 NCode.Identity.OpenId.Authentication.Tokens.Commands.AuthenticateAccessTokenCommand.AccessToken.get -> string!
 NCode.Identity.OpenId.Authentication.Tokens.Commands.AuthenticateAccessTokenCommand.AccessToken.init -> void
@@ -1649,7 +1649,7 @@ NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.Su
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.SubjectAuthentication.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.SecurityToken() -> void
-NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenLifetime.get -> NCode.Identity.Models.TimePeriod
+NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenLifetime.get -> NCode.Identity.Time.TimePeriod
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenLifetime.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenType.get -> string!
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenType.init -> void

@@ -6,10 +6,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets.AwsKms.Facades;
 using NCode.Identity.Secrets.AwsKms.Options;
 using NCode.Identity.Secrets.RemoteKeys;
-using NCode.Registration;
 
 namespace NCode.Identity.Secrets.AwsKms;
 

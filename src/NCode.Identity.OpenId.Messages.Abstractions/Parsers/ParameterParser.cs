@@ -58,7 +58,8 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
     /// <remarks>
     /// In the <see cref="SerializationFormat.OpenId"/> format a parameter's value is its string form, so a JSON string is
     /// parsed as that form, and so is a JSON number or boolean: a request object (<c>RFC 9101</c>) carries
-    /// <c>max_age</c> and the JWT's own numeric claims (<c>iat</c>, <c>exp</c>) as JSON numbers.
+    /// <c>max_age</c> and the JWT's own numeric claims (<c>iat</c>, <c>exp</c>) as JSON numbers. A JSON array of strings
+    /// is parsed as the values it holds, because the <c>aud</c> claim of a JWT (<c>RFC 7519</c>) may be an array.
     /// </remarks>
     public override IParameter Read(
         ref Utf8JsonReader reader,
@@ -73,6 +74,7 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
             switch (reader.TokenType)
             {
                 case JsonTokenType.String:
+                case JsonTokenType.StartArray:
                 {
                     var stringValues = Deserialize<StringValues>(ref reader, options);
                     var parsedValue = Parse(openIdEnvironment, descriptor, stringValues);

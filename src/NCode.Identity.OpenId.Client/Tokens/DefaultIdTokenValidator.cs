@@ -4,8 +4,8 @@
 using System.Text.Json;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Json;
 using NCode.Identity.Secrets.Keys;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
 

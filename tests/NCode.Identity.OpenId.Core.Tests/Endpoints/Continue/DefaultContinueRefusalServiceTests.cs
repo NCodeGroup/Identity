@@ -10,7 +10,7 @@ using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Continue;

@@ -4,8 +4,8 @@
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Handlers;
 

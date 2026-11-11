@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Blazor.Client.Options;
-using NCode.Registration;
+using NCode.Identity.Registration;
 using Xunit;
 
 namespace NCode.Identity.Bff.Blazor.Client.Tests;

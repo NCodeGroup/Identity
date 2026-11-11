@@ -8,7 +8,7 @@ using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Accounts.Management;
 

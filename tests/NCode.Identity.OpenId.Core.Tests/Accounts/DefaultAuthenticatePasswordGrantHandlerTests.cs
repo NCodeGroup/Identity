@@ -14,7 +14,7 @@ using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Accounts;

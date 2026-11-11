@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Registration.AspNetCore;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
 

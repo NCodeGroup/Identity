@@ -9,9 +9,9 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.Jose.SdJwt.Digests;
 using NCode.Identity.Jose.SdJwt.Options;
 using NCode.Identity.Jose.SdJwt.Processing;
+using NCode.Identity.Json;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.Secrets.Keys;
-using NCode.Json;
 
 namespace NCode.Identity.Jose.SdJwt.Verification;
 

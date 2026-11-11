@@ -17,10 +17,10 @@ serves the bundle's `assets` directory immutable. Two copies of that code drift 
 
 ## Decision
 
-**One `SinglePageBundle<TIndex>` in `NCode.AspNetCore` reads a bundle's index and serves its assets, and each surface
+**One `SinglePageBundle<TIndex>` in `NCode.Identity.AspNetCore` reads a bundle's index and serves its assets, and each surface
 registers one instance with its own index type.**
 
-1. **`NCode.AspNetCore` holds `SinglePageBundle<TIndex>` and `SinglePageBundleDefaults`.** The defaults name the
+1. **`NCode.Identity.AspNetCore` holds `SinglePageBundle<TIndex>` and `SinglePageBundleDefaults`.** The defaults name the
    `assets` directory and the `index.html` file. The bundle takes the absolute path of its root and a parser from the
    index's text to `TIndex`. It caches the parsed index for a version of the file, identified by last-write time and
    length, and its file provider is rooted at `assets`, so nothing outside `assets` is servable. `ServeAsset` answers a
@@ -44,7 +44,7 @@ registers one instance with its own index type.**
 
 ## Consequences
 
-- One implementation, tested in `NCode.AspNetCore.Tests`, serves both bundles.
+- One implementation, tested in `NCode.Identity.AspNetCore.Tests`, serves both bundles.
 - `assets` stays the contract with `@ncode/vite-config`
   ([ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
 - A surface adds only its index type and its parser.
@@ -53,5 +53,5 @@ registers one instance with its own index type.**
 
 - [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md),
   [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)
-- `src/NCode.AspNetCore/SinglePageBundle.cs`, `src/NCode.AspNetCore/SinglePageBundleDefaults.cs`
+- `src/NCode.Identity.AspNetCore/SinglePageBundle.cs`, `src/NCode.Identity.AspNetCore/SinglePageBundleDefaults.cs`
 - Issue [#612](https://github.com/NCodeGroup/Identity/issues/612)

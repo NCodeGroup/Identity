@@ -1,6 +1,6 @@
 # 1016. Implementation packages depend only on abstractions; composition wires them
 
-- **Status:** Accepted
+- **Status:** Accepted (refined by [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md))
 - **Date:** 2026-09-29
 - **Deciders:** NCode Group
 
@@ -25,7 +25,7 @@ Cross-implementation collaboration flows through an abstraction (an interface ow
 resolved from dependency injection. Each implementation package registers its own concrete types from a single
 [`DefaultRegistration.cs`](../../src/NCode.Identity.OpenId.Authentication/Tenants/DefaultRegistration.cs)
 `extension(IServiceBuilder<TMarker>)` block using `TryAdd*`, and the **composition root** (`AddIdentityServer()`,
-built on the [`NCode.Registration`](../../src/NCode.Registration) `IServiceBuilder<TMarker>` builder) is the single
+built on the [`NCode.Identity.Registration`](../../src/NCode.Identity.Registration) `IServiceBuilder<TMarker>` builder) is the single
 place that references the implementation packages and invokes their registrations to satisfy the abstractions.
 
 The rule applied to a shared capability `Foo` used by two implementations:
@@ -45,14 +45,14 @@ The rule applied to a shared capability `Foo` used by two implementations:
   of the contract is forced to also take the implementation and its dependencies — the same coupling in a smaller box —
   and it tempts the very implementation-to-implementation reference this ADR forbids.
 - **Abstraction seam + DI composition (chosen).** Consumers depend on the contract only; the concrete type is
-  registered once at the composition root via `NCode.Registration`. Each package stays independently buildable,
+  registered once at the composition root via `NCode.Identity.Registration`. Each package stays independently buildable,
   testable, and replaceable, and a shared capability has exactly one concrete binding.
 
 ## Consequences
 
 - A new cross-cutting capability shared by more than one implementation must ship as an abstraction/implementation
   **pair**; a lone implementation package would tempt a forbidden direct reference.
-- Wiring intra-family dependencies lives in the `NCode.Registration` composition, not in project files — the reference
+- Wiring intra-family dependencies lives in the `NCode.Identity.Registration` composition, not in project files — the reference
   graph of implementation packages stays a flat fan-out from the composition root rather than a web.
 - One extra abstraction package per shared capability, in exchange for package boundaries that hold their meaning and
   implementations that swap independently.

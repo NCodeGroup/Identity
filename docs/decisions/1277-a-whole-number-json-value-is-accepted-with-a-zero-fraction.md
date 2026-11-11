@@ -20,7 +20,7 @@ whole number of seconds. The client must still not invent a lifetime the provide
 
 ## Decision
 
-**A whole number a remote party sends is read through one shared reader in `NCode.Json`: any JSON number that holds a
+**A whole number a remote party sends is read through one shared reader in `NCode.Identity.Json`: any JSON number that holds a
 whole value in `int` range is accepted, and everything else is refused.**
 
 - **Non-throwing readers.** `JsonElement.TryGetWholeInt32(out int)` and `TryGetPropertyWholeInt32(name, out int)`
@@ -35,7 +35,7 @@ whole value in `int` range is accepted, and everything else is refused.**
   authorization response still rejects 0, and a zero token lifetime only makes the caller treat the token as expired.
 - **A public converter.** `WholeInt32JsonConverter : JsonConverter<int>` applies the same rule to a serialized member
   and writes a JSON integer; a value the reader refuses fails with a `JsonException`, which `DefaultTokenClient` wraps
-  in an `OpenIdProviderException`. It is public in `NCode.Json` rather than internal in
+  in an `OpenIdProviderException`. It is public in `NCode.Identity.Json` rather than internal in
   `NCode.Identity.OpenId.Client.Abstractions`: an `*.Abstractions` package holds no helper logic
   ([ADR-1188](1188-general-time-helpers-live-in-a-dependency-free-package.md)), and production assemblies never use
   cross-assembly `InternalsVisibleTo` ([project-template ADR-0104](project-template/0104-no-cross-assembly-internalsvisibleto.md)).
@@ -43,7 +43,7 @@ whole value in `int` range is accepted, and everything else is refused.**
   still be positive
   ([ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)).
   `TokenResponse.ExpiresIn` stays an `int?` read through `WholeInt32JsonConverter`; its positivity is not validated.
-  `NCode.Identity.OpenId.Client` and `NCode.Identity.OpenId.Client.Abstractions` both reference `NCode.Json`, and
+  `NCode.Identity.OpenId.Client` and `NCode.Identity.OpenId.Client.Abstractions` both reference `NCode.Identity.Json`, and
   neither holds a copy of the rule.
 
 ## Options considered
@@ -67,12 +67,12 @@ whole value in `int` range is accepted, and everything else is refused.**
   rejected with an `OpenIdProviderException`, and the token response fails deserialization.
 - Any whole number a remote party sends is read through these readers, never through `JsonElement.TryGetInt32` or the
   serializer's default `int` handling; the production coding conventions say so.
-- `NCode.Identity.OpenId.Client.Abstractions` gains a project reference to `NCode.Json` and a converter attribute, and
+- `NCode.Identity.OpenId.Client.Abstractions` gains a project reference to `NCode.Identity.Json` and a converter attribute, and
   no logic.
 
 ## References
 
-- `src/NCode.Json/JsonElements.cs`, `src/NCode.Json/WholeInt32JsonConverter.cs`
+- `src/NCode.Identity.Json/JsonElements.cs`, `src/NCode.Identity.Json/WholeInt32JsonConverter.cs`
 - `src/NCode.Identity.OpenId.Client/Authorization/DefaultAuthorizationRequestClient.cs`
 - `src/NCode.Identity.OpenId.Client.Abstractions/TokenResponse.cs`
 - [RFC 8259 §6 — Numbers](https://datatracker.ietf.org/doc/html/rfc8259#section-6)

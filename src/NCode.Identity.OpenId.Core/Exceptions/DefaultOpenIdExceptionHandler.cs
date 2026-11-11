@@ -8,9 +8,9 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
 using NCode.Mediator.Middleware;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Exceptions;
 

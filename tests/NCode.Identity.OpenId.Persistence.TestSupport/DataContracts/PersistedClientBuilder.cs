@@ -3,8 +3,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using NCode.Identity.Json;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 

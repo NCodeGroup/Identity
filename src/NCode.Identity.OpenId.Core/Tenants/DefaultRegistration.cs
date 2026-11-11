@@ -10,9 +10,9 @@ using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.OpenId.Tenants.Strategies;
+using NCode.Identity.Registration;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
-using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Tenants;
 

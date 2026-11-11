@@ -1,0 +1,21 @@
+#nullable enable
+const NCode.Identity.Registration.HealthCheckTags.Readiness = "ready" -> string!
+NCode.Identity.Registration.HealthCheckTags
+NCode.Identity.Registration.IRegistrationMarker<TMarker>
+NCode.Identity.Registration.IServiceBuilder
+NCode.Identity.Registration.IServiceBuilder.NewBuilder<TNewMarker>() -> NCode.Identity.Registration.IServiceBuilder<TNewMarker>!
+NCode.Identity.Registration.IServiceBuilder.ServiceCollection.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Registration.IServiceBuilder<TMarker>
+NCode.Identity.Registration.ServiceBuilder<TMarker>
+NCode.Identity.Registration.ServiceBuilder<TMarker>.NewBuilder<TNewMarker>() -> NCode.Identity.Registration.IServiceBuilder<TNewMarker>!
+NCode.Identity.Registration.ServiceBuilder<TMarker>.ServiceBuilder(Microsoft.Extensions.DependencyInjection.IServiceCollection! serviceCollection) -> void
+NCode.Identity.Registration.ServiceBuilder<TMarker>.ServiceCollection.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Registration.ServiceCollectionExtensions
+NCode.Identity.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddRegistrationMarker<TMarker>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).IsRegistered<TMarker>() -> bool
+NCode.Identity.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).NewBuilder<TNewMarker>() -> NCode.Identity.Registration.IServiceBuilder<TNewMarker>!
+NCode.Identity.Registration.StrictConfigurationBindingExtensions
+NCode.Identity.Registration.StrictConfigurationBindingExtensions.extension(Microsoft.Extensions.Configuration.IConfigurationSection!)
+NCode.Identity.Registration.StrictConfigurationBindingExtensions.extension(Microsoft.Extensions.Configuration.IConfigurationSection!).BindStrictly(object! instance) -> void
+NCode.Identity.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).TryAddEnumerableInstance<TService>(TService! instance) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

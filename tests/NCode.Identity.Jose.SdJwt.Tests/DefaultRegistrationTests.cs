@@ -11,9 +11,9 @@ using NCode.Identity.Jose.SdJwt.Options;
 using NCode.Identity.Jose.SdJwt.Presentation;
 using NCode.Identity.Jose.SdJwt.Verification;
 using NCode.Identity.Jwt;
+using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
-using NCode.Registration;
 
 namespace NCode.Identity.Jose.SdJwt.Tests;
 

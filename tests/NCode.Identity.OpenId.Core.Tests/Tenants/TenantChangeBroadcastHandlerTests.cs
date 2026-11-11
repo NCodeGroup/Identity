@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.Protection;
-using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 using Xunit;
 

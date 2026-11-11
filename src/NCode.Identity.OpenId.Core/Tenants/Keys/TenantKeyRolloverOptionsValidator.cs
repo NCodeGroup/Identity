@@ -4,7 +4,7 @@
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.OpenId.Tenants.Keys;
 

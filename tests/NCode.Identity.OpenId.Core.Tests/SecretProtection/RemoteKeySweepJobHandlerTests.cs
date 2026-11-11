@@ -12,11 +12,11 @@ using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.SecretProtection;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.RemoteKeys;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.SecretProtection;

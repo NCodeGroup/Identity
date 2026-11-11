@@ -5,7 +5,7 @@ using System.Security.Claims;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Authorization;
 

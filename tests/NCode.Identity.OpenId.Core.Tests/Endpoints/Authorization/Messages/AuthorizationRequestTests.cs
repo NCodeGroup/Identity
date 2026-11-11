@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Moq;
 using NCode.Collections.Providers;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 using NCode.Identity.OpenId.Authentication.Messages.Parameters;
@@ -14,7 +15,6 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
 using NCode.Identity.OpenId.Serialization;
-using NCode.Json;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Messages;
@@ -240,6 +240,96 @@ public class AuthorizationRequestTests : BaseTests
             requestObject.RequestObjectSource,
             result.OriginalRequestObject.RequestObjectSource
         );
+    }
+
+    [Fact]
+    public void Serialize_RoundTrip_WhenTheRequestObjectIsReadFromAJwtPayload()
+    {
+        var jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            Converters =
+            {
+                new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
+                new StringValuesJsonConverter(),
+                new OpenIdMessageJsonConverterFactory(MockOpenIdEnvironment.Object),
+                new AuthorizationRequestJsonConverter(),
+                new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
+                new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
+            },
+        };
+
+        var knownParameters = GetKnownParameters();
+
+        MockOpenIdEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(jsonSerializerOptions);
+
+        MockOpenIdEnvironment
+            .Setup(x => x.GetParameterDescriptor(It.IsAny<string>()))
+            .Returns(
+                (string parameterName) =>
+                    knownParameters.TryGetValue(parameterName, out var knownParameter)
+                        ? new ParameterDescriptor(knownParameter)
+                        : new ParameterDescriptor(parameterName, ParameterLoader.Default)
+            )
+            .Verifiable();
+
+        MockOpenIdEnvironment
+            .Setup(x =>
+                x.CreateMessage("AuthorizationRequestMessage", It.IsAny<IEnumerable<IParameter>>())
+            )
+            .Returns(
+                (string _, IEnumerable<IParameter> parameters) =>
+                    new AuthorizationRequestMessage(MockOpenIdEnvironment.Object, parameters)
+            )
+            .Verifiable();
+
+        MockOpenIdEnvironment
+            .Setup(x =>
+                x.CreateMessage("AuthorizationRequestObject", It.IsAny<IEnumerable<IParameter>>())
+            )
+            .Returns(
+                (string _, IEnumerable<IParameter> parameters) =>
+                    new AuthorizationRequestObject(MockOpenIdEnvironment.Object, parameters)
+            )
+            .Verifiable();
+
+        // a message without a type discriminator is created as a plain message
+        MockOpenIdEnvironment
+            .Setup(x => x.CreateMessage("OpenIdMessage", It.IsAny<IEnumerable<IParameter>>()))
+            .Returns(
+                (string _, IEnumerable<IParameter> parameters) =>
+                    new OpenIdMessage(MockOpenIdEnvironment.Object, parameters)
+            );
+
+        // the handler reads a request object from the payload of a JWT the same way
+        var payload = JsonElement.Parse("""{"scope":"openid profile","nonce":"nonce-value"}""");
+        var requestObject = payload.Deserialize<AuthorizationRequestObject>(jsonSerializerOptions);
+        Assert.NotNull(requestObject);
+        requestObject.RequestObjectSource = RequestObjectSource.Inline;
+
+        // the handler serializes the request object like the request message beside it
+        requestObject.SerializationFormat = SerializationFormat.Json;
+        var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
+        {
+            AuthorizationSourceType = AuthorizationSourceTypes.Form,
+            ClientId = "ClientId",
+        };
+        var authorizationRequest = new AuthorizationRequest(true, requestMessage, requestObject);
+
+        var json = JsonSerializer.Serialize<IAuthorizationRequest>(
+            authorizationRequest,
+            jsonSerializerOptions
+        );
+        var result = JsonSerializer.Deserialize<IAuthorizationRequest>(json, jsonSerializerOptions);
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.OriginalRequestObject);
+        Assert.Equal(
+            requestObject.RequestObjectSource,
+            result.OriginalRequestObject.RequestObjectSource
+        );
+        Assert.Equal(["openid", "profile"], result.OriginalRequestObject.Scopes);
+        Assert.Equal("nonce-value", result.OriginalRequestObject.Nonce);
+        AssertParameters(requestObject, result.OriginalRequestObject);
     }
 
     #region Request Object Values Tests

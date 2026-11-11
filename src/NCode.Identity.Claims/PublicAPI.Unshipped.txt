@@ -1,0 +1,4 @@
+#nullable enable
+NCode.Identity.Claims.DefaultRegistration
+NCode.Identity.Claims.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Claims.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddClaimsLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Claims.ClaimsLibrary>!

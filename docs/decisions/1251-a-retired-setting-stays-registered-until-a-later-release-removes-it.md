@@ -86,5 +86,5 @@ it, and a later release removes it from the stored documents together with its d
   request answers 409 for a stored settings document it cannot honor.
 - [ADR-1250](1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md): a
   migration classifies its data change.
-- `src/NCode.Identity/Settings/DefaultSettingSerializer.cs` and
+- `src/NCode.Identity.Settings/DefaultSettingSerializer.cs` and
   `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`.

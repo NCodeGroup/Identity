@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
 

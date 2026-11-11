@@ -7,10 +7,10 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using JetBrains.Annotations;
+using NCode.Identity.Json;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
-using NCode.Json;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 

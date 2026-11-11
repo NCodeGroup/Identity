@@ -1,7 +1,7 @@
 #nullable enable
 NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration
-NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Persistence.StoreManagerLibrary>!)
-NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Persistence.StoreManagerLibrary>!).AddAspNetIdentityLocalAccountStore<TUser>() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Accounts.LocalAccountLibrary>!
+NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Persistence.StoreManagerLibrary>!)
+NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Persistence.StoreManagerLibrary>!).AddAspNetIdentityLocalAccountStore<TUser>() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Accounts.LocalAccountLibrary>!
 NCode.Identity.OpenId.Accounts.AspNetIdentity.NormalizingPasswordHasher<TUser>
 NCode.Identity.OpenId.Accounts.AspNetIdentity.NormalizingPasswordHasher<TUser>.NormalizingPasswordHasher(Microsoft.AspNetCore.Identity.IPasswordHasher<TUser!>! innerHasher) -> void
 NCode.Identity.OpenId.Accounts.AspNetIdentity.NormalizingPasswordHasher<TUser>.HashPassword(TUser! user, string! password) -> string!

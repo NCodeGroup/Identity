@@ -4,8 +4,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using NCode.Identity.Jose;
-using NCode.Json;
-using NCode.Time;
+using NCode.Identity.Json;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.Jwt.Validation;
 

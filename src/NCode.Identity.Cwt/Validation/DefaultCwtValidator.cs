@@ -5,7 +5,7 @@ using System.Formats.Cbor;
 using NCode.Identity.Cose;
 using NCode.Identity.Cwt.Claims;
 using NCode.Identity.Secrets.Keys;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.Cwt.Validation;
 

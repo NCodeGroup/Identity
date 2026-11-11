@@ -7,9 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
-using NCode.Persistence;
-using NCode.Persistence.Stores;
-using NCode.Registration;
+using NCode.Identity.Persistence;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 

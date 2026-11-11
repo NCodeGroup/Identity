@@ -7,10 +7,19 @@ namespace NCode.Identity.Bff.Blazor.Client.Tests;
 
 public class BffBlazorClientPackageDependencyTests : BaseTests
 {
+    // The registration builder and the foundation packages are referenced by any package (ADR-1500).
+    private static string[] AllowedReferences { get; } =
+    [
+        "NCode.Identity.Bff.Protocol.Abstractions",
+        "NCode.Identity.Json",
+        "NCode.Identity.Registration",
+        "NCode.Identity.Time",
+    ];
+
     #region Assembly Tests
 
     [Fact]
-    public void Assembly_Always_ReferencesOnlyTheSharedBffPackage()
+    public void Assembly_Always_ReferencesOnlyTheSharedBffPackageAndTheFoundation()
     {
         foreach (var reference in typeof(BffBlazorClientLibrary).Assembly.GetReferencedAssemblies())
         {
@@ -18,7 +27,7 @@ public class BffBlazorClientPackageDependencyTests : BaseTests
             if (!name.StartsWith("NCode.Identity.", StringComparison.Ordinal))
                 continue;
 
-            Assert.Equal("NCode.Identity.Bff.Protocol.Abstractions", name);
+            Assert.Contains(name, AllowedReferences);
         }
     }
 

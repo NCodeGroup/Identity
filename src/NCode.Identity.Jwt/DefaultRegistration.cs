@@ -8,7 +8,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jwt.Claims;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Jwt.Validation;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.Jwt;
 

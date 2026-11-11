@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
-using NCode.Registration;
+using NCode.Identity.Registration;
 
 namespace NCode.Identity.Server;
 

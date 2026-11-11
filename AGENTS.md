@@ -35,7 +35,7 @@ compiles it and no gate tests it
   `NCode.Identity.Time` (`NumericDate` precision, timer and time periods) and `NCode.Identity.AspNetCore(.Abstractions)`
   (page and response security, front-channel metadata, host hardening and the HTTP result contracts), which any package
   may reference
-  ([ADR-1498](docs/decisions/1498-every-package-names-one-capability-under-the-ncode-identity-prefix.md))
+  ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md))
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.Jwt(.Abstractions)`, and the opt-in algorithm
   packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K), and the
   opt-in `NCode.Identity.Jose.SdJwt`, Selective Disclosure for JWTs (RFC 9901) over the JWT library with the SD-JWT

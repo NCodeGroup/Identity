@@ -1,4 +1,4 @@
-# 1498. Every package names one capability under the NCode.Identity prefix
+# 1500. Every package names one capability under the NCode.Identity prefix
 
 - **Status:** Accepted
 - **Date:** 2026-11-11

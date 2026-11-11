@@ -7,7 +7,7 @@ namespace NCode.Identity.Bff.Blazor.Client.Tests;
 
 public class BffBlazorClientPackageDependencyTests : BaseTests
 {
-    // The registration builder and the foundation packages are referenced by any package (ADR-1498).
+    // The registration builder and the foundation packages are referenced by any package (ADR-1500).
     private static string[] AllowedReferences { get; } =
     [
         "NCode.Identity.Bff.Protocol.Abstractions",

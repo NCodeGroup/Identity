@@ -20,7 +20,7 @@ public class BffBlazorPackageDependencyTests : BaseTests
             if (!name.StartsWith("NCode.Identity.", StringComparison.Ordinal))
                 continue;
 
-            // The registration builder is referenced by any package (ADR-1498).
+            // The registration builder is referenced by any package (ADR-1500).
             var isAllowed =
                 name.EndsWith(".Abstractions", StringComparison.Ordinal)
                 || name == "NCode.Identity.Registration";

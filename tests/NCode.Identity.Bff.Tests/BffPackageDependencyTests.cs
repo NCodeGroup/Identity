@@ -47,7 +47,7 @@ public class BffPackageDependencyTests : BaseTests
 
             // NCode.Identity.Jwk is the JWK model library the abstractions themselves expose (ADR-1119), not an
             // implementation package (ADR-1016).
-            // The registration builder and the foundation packages are referenced by any package (ADR-1498).
+            // The registration builder and the foundation packages are referenced by any package (ADR-1500).
             var isAllowed =
                 name.EndsWith(".Abstractions", StringComparison.Ordinal)
                 || name == "NCode.Identity.Jwk"

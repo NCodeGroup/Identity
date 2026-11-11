@@ -473,14 +473,15 @@ internal class DefaultSecretGenerator(
     }
 
     // What is stored is computed from the secret's UTF-8 octets, which is what a presented secret is compared as.
-    private static IDisposable RentUtf8(string secretMaterial, out Span<byte> utf8)
+    private static IDisposable RentUtf8(string secretMaterial, out ReadOnlySpan<byte> utf8)
     {
         var lease = BufferFactory.Rent(
             SecureEncoding.UTF8.GetByteCount(secretMaterial),
             isSensitive: true,
-            out utf8
+            out Span<byte> buffer
         );
-        SecureEncoding.UTF8.GetBytes(secretMaterial, utf8);
+        SecureEncoding.UTF8.GetBytes(secretMaterial, buffer);
+        utf8 = buffer;
         return lease;
     }
 

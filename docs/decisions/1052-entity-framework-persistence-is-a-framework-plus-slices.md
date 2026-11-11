@@ -102,7 +102,7 @@ tenant-scoped.
 - **One package, expose the framework pieces as `public` (in place).** Rejected: a satellite would still depend on the
   package that contains the core stores, so the dependency direction stays wrong and the framework/schema split is only
   cosmetic. Acceptable for a single satellite, but not once slices multiply.
-- **A generic, non-OpenID `NCode.Persistence.EntityFramework` framework.** Rejected: the framework is OpenID-flavored
+- **A generic, non-OpenID `NCode.Identity.Persistence.EntityFramework` framework.** Rejected: the framework is OpenID-flavored
   (the tenant-scoped `OpenIdDbContext`, `UseIdGenerator`, the OpenID model-contribution seam) and there is no goal to
   reuse it outside this family, so a context-agnostic layer would be speculative generality.
 - **Per-domain EF packages that each own a `DbContext`.** Rejected: separate contexts cannot share a unit of work, so a

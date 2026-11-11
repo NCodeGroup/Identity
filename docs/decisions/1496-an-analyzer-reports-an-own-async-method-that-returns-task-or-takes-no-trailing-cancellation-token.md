@@ -18,8 +18,7 @@ return `Task` and take no token, beside the production code that follows the rul
 - **Task is allowed only at a framework contract.** An xUnit test method returns `Task`, an ASP.NET Core middleware
   `InvokeAsync` returns `Task`, and an override or implementation of a member that a package outside the family
   declares has the shape that package declares. A method the family declares has the family's shape.
-- **The family's assemblies share one prefix.** `NCode.Identity.*`, `NCode.AspNetCore`, `NCode.Json`,
-  `NCode.Persistence.*`, `NCode.Registration.*` and `NCode.Time` are built from this repository, while `NCode.Mediator`
+- **The family's assemblies share one prefix.** `NCode.Identity` and `NCode.Identity.*` are built from this repository, while `NCode.Mediator`
   carries the same `NCode.` prefix and is not. A project reference reaches the compiler as metadata, so the compiler
   cannot tell a family member from a foreign one by where its symbol came from.
 - **A method group can reach the framework after its declaration.** A method that `MapGet` takes as a delegate has the
@@ -56,8 +55,7 @@ method that returns `Task` or `Task<T>` and with `NCID0003` on an own asynchrono
 
    Generated code is not analyzed. An explicit interface implementation is checked like any other method, so it is
    skipped only when the member it implements is declared outside the family.
-3. **The family test is by assembly name.** The family is `NCode.Identity.*`, `NCode.AspNetCore`, `NCode.Json`,
-   `NCode.Persistence.*`, `NCode.Registration.*`, `NCode.Time` and the assembly being compiled. A member declared in the
+3. **The family test is by assembly name.** The family is `NCode.Identity` and `NCode.Identity.*` and the assembly being compiled. A member declared in the
    family is the family's own, so its implementer has the family's shape. `NCode.Mediator` is outside the family, so an
    implementation of its handler contracts keeps the shape it declares.
 4. **A method that follows a committed change suppresses `NCID0003` with a justification.** The post-commit types and

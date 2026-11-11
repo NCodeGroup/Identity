@@ -23,8 +23,8 @@ reference to the packages that genuinely need HTTP types (issue
 The protocol client is a plain .NET library: no package of it references an ASP.NET Core shared framework.
 
 - `NCode.Identity.OpenId.Client` drops the `Microsoft.AspNetCore.App` framework reference. Its transitive closure is
-  already framework-free (`.Client.Abstractions`, `Jwt.Abstractions`, `SharedState.Abstractions`, `NCode.Json`,
-  `Jose.Abstractions`, `Protocol.Abstractions`, `Secrets.Abstractions`, `NCode.Registration`, `Jwk`).
+  already framework-free (`.Client.Abstractions`, `Jwt.Abstractions`, `SharedState.Abstractions`, `NCode.Identity.Json`,
+  `Jose.Abstractions`, `Protocol.Abstractions`, `Secrets.Abstractions`, `NCode.Identity.Registration`, `Jwk`).
 - It references five `Microsoft.Extensions.*` packages directly, exactly the ones its `using`s name:
   `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Http`,
   `Microsoft.Extensions.Logging.Abstractions`, `Microsoft.Extensions.Options` and `Microsoft.Extensions.Primitives`.

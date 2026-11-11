@@ -35,7 +35,7 @@ shape how the family adds it:
 1. **`NCode.Identity.Jose.SdJwt` is an opt-in package over the JWT library.** `AddSdJwt()` extends
    `IServiceBuilder<JwtLibrary>`, because the verifier validates the issuer-signed JWT and the KB-JWT through
    `IJwtValidator`, so a host cannot register it without the JWT library and the JOSE library beneath it. It
-   references the JOSE, JWT and Secrets abstractions, `NCode.Json` and `NCode.Time`, and no implementation package.
+   references the JOSE, JWT and Secrets abstractions, `NCode.Identity.Json` and `NCode.Identity.Time`, and no implementation package.
 
 2. **Three roles, three services.** `ISdJwtIssuer.Issue` takes a claims object and the JSON Pointers (RFC 6901) of
    the claims the holder may disclose selectively — object members and array elements at any depth — and walks the

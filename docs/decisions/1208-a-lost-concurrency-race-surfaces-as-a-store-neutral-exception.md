@@ -28,8 +28,8 @@ caller that wanted to handle the race would have to depend on the technology of 
 
 ## Decision
 
-1. **A lost race is a `StoreConcurrencyException`.** `NCode.Persistence.Stores.StoreConcurrencyException`
-   (`NCode.Persistence.Abstractions`, a `[PublicAPI] public class` with the three standard exception constructors) is
+1. **A lost race is a `StoreConcurrencyException`.** `NCode.Identity.Persistence.Stores.StoreConcurrencyException`
+   (`NCode.Identity.Persistence.Abstractions`, a `[PublicAPI] public class` with the three standard exception constructors) is
    thrown when a unit of work writes an entity that another unit of work changed after it was read, as the concurrency
    token of the entity shows. The caller lost the race and must not retry the same write.
 2. **The store manager translates a failed save.** `EntityStoreManager.SaveChangesAsync` catches Entity Framework's
@@ -84,6 +84,6 @@ caller that wanted to handle the race would have to depend on the technology of 
   row of its own.
 - [ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md) — an initial access
   token is spent through the grant row.
-- Code: `NCode.Persistence.Stores.StoreConcurrencyException`,
+- Code: `NCode.Identity.Persistence.Stores.StoreConcurrencyException`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManager`,
   `NCode.Identity.OpenId.Authentication.Persistence.DefaultPersistedGrantService`.

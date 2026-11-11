@@ -11,7 +11,7 @@
 
 - **Pure BCL primitives** — `Claims`, `Cryptography/ICryptoService` and its encoding/hash enums, `Models/TimePeriod`,
   `IsActiveResult*`, `ISupportClone`, `IdentityLibrary`. These need nothing beyond the base class library (plus the
-  `NCode.Registration` marker).
+  `NCode.Identity.Registration` marker).
 - **A self-contained Settings subsystem** — the 16 `NCode.Identity.Settings.*` types, which depend on
   `System.Text.Json` and `NCode.Collections.Providers`.
 - **An ASP.NET Core HTTP surface** — `Models/UriDescriptor`, `Exceptions/HttpResultException`, and the `Results/*`
@@ -33,14 +33,14 @@ cutover is `.csproj` + `PublicAPI` mechanics with no `using` churn in consumers:
 - **`NCode.Identity.Settings.Abstractions`** (new) owns the Settings subsystem and its
   `NCode.Collections.Providers.Abstractions` dependency.
 - **`NCode.Identity.Abstractions`** (slimmed) keeps only the framework-free BCL primitives. It drops the
-  `FrameworkReference`, `NCode.Json`, and `NCode.Collections.Providers.Abstractions`, and is now referenceable by
+  `FrameworkReference`, `NCode.Identity.Json`, and `NCode.Collections.Providers.Abstractions`, and is now referenceable by
   anything — including the crypto branch.
-- The JOSE `JsonElement` helper is folded into the dependency-free **`NCode.Json`** package: `TryGetPropertyValue<T>`
-  now lives on `NCode.Json.JsonElements` alongside `IsNullOrUndefined` / `OrEmptyObject` / `EmptyObject`, giving one
+- The JOSE `JsonElement` helper is folded into the dependency-free **`NCode.Identity.Json`** package: `TryGetPropertyValue<T>`
+  now lives on `NCode.Identity.Json.JsonElements` alongside `IsNullOrUndefined` / `OrEmptyObject` / `EmptyObject`, giving one
   universal home (resolves [#193](https://github.com/NCodeGroup/Identity/issues/193)). Detached parsing standardizes on `JsonElement.Parse(string)` at the convertible call
   sites (resolves [#194](https://github.com/NCodeGroup/Identity/issues/194)).
 
-The `NCode.Registration.AspNetCore` project reference, previously carried by the core and relied on **transitively** by
+The `NCode.Identity.Registration.AspNetCore` project reference, previously carried by the core and relied on **transitively** by
 `NCode.Identity.OpenId.Abstractions` (whose `IOpenIdExceptionHandler` returns a `ReadOnlyEndpointDisposition`), moves to
 that hub where it is genuinely consumed — it was not actually unused, only mis-located.
 
@@ -51,7 +51,7 @@ that hub where it is genuinely consumed — it was not actually unused, only mis
 - Consumers that use Settings or the HTTP surface pick up the new packages transitively through
   `NCode.Identity.OpenId.Abstractions`; the few direct consumers outside that tree (`NCode.Identity`, the abstractions
   test project) reference them directly.
-- One JSON helper home (`NCode.Json`) instead of two; the bespoke `NCode.Identity.Jose.Extensions.JsonElementExtensions`
+- One JSON helper home (`NCode.Identity.Json`) instead of two; the bespoke `NCode.Identity.Jose.Extensions.JsonElementExtensions`
   is removed.
 - Expected pre-release churn: new packages, moved `PublicAPI.Unshipped.txt` entries, and a clean cutover with no shims,
   consistent with the [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) posture.

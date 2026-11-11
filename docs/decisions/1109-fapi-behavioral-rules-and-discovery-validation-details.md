@@ -10,7 +10,7 @@
   `access_token_sender_constraint_required = true`, and `SenderConstrainedAccessTokenRequirement` is removed; the
   front-channel marker amended by
   [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md): it is
-  `NCode.AspNetCore`'s `IFrontChannelEndpointMetadata`, set by `WithFrontChannel()`)
+  `NCode.Identity.AspNetCore`'s `IFrontChannelEndpointMetadata`, set by `WithFrontChannel()`)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 

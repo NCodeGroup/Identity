@@ -86,5 +86,5 @@ resolved a tenant — after health checks had already reported the instance read
 - [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md) — the tenant route the validator checks.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — setting names and the remaining configuration inputs.
 - Code: `NCode.Identity.Server.IdentityServerBuilderExtensions.AddConfiguration`,
-  `NCode.Registration.StrictConfigurationBindingExtensions`,
+  `NCode.Identity.Registration.StrictConfigurationBindingExtensions`,
   `NCode.Identity.OpenId.Tenants.TenantResolutionOptionsValidator`.

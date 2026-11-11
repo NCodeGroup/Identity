@@ -26,7 +26,7 @@ sources, and the request-delegate wrapper that refuses a preflight. An `*.Abstra
 data only (issue [#513](https://github.com/NCodeGroup/Identity/issues/513)). None of them names an identity concept: a
 Content-Security-Policy and a page the user agent navigates to are HTTP notions that any ASP.NET Core application has.
 
-[ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) makes `NCode.AspNetCore` the home of
+[ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) makes `NCode.Identity.AspNetCore` the home of
 general ASP.NET Core helpers that name no identity concept, and says it references only the ASP.NET Core shared
 framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a script, and the strict-encoding rule
 ([ADR-1266](1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)) requires `SecureEncoding.UTF8` from
@@ -34,15 +34,15 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 
 ## Decision
 
-- **The HTML page security model and its writer live in `NCode.AspNetCore`, namespace `NCode.AspNetCore`.** This
+- **The HTML page security model and its writer live in `NCode.Identity.AspNetCore`, namespace `NCode.Identity.AspNetCore`.** This
   replaces the package and namespace in ADR-1256 decision 1; the model, its grammar, the headers and every page's
-  policy are unchanged. Every package that writes a page references `NCode.AspNetCore`, which references no identity
+  policy are unchanged. Every package that writes a page references `NCode.Identity.AspNetCore`, which references no identity
   package, so the reason ADR-1256 gives for one shared model still holds.
 - **`SetHtmlPageSecurity` writes `Cache-Control` and `Pragma` through `SetNoStore()`.** ADR-1256 decision 3's headers
   and values are unchanged; one writer owns the uncacheable headers
   ([ADR-1345](1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)), so a page and a
   secret-revealing response cannot drift apart.
-- **The front-channel marker is general endpoint metadata in `NCode.AspNetCore`.** `IOpenIdEndpointFrontChannelMetadata`
+- **The front-channel marker is general endpoint metadata in `NCode.Identity.AspNetCore`.** `IOpenIdEndpointFrontChannelMetadata`
   and `OpenIdEndpointFrontChannelMetadata` are `IFrontChannelEndpointMetadata` and `FrontChannelEndpointMetadata`;
   `OpenIdFrontChannelEndpointConventionBuilderExtensions` is `FrontChannelEndpointConventionBuilderExtensions`, and its
   `WithOpenIdFrontChannel()` and `Endpoint.IsOpenIdFrontChannel` are `WithFrontChannel()` and `Endpoint.IsFrontChannel`.
@@ -50,11 +50,11 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
   interactive bundle's asset route keeps the marker as
   [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md) decision
   1 says, through `WithFrontChannel()`. The `OpenId` prefix is dropped because the marker names no OpenID concept.
-- **`NCode.AspNetCore` may reference `NCode.Buffers`.** This amends ADR-1355's "references only the ASP.NET Core shared
+- **`NCode.Identity.AspNetCore` may reference `NCode.Buffers`.** This amends ADR-1355's "references only the ASP.NET Core shared
   framework": the package references the shared framework and the family's foundational `NCode.Buffers`, for the
-  strict encodings, as `NCode.Json` does. It still references no identity package, which is what lets every package in
+  strict encodings, as `NCode.Identity.Json` does. It still references no identity package, which is what lets every package in
   the family reference it.
-- **The tests move to `NCode.AspNetCore.Tests`.**
+- **The tests move to `NCode.Identity.AspNetCore.Tests`.**
 
 ## Options considered
 
@@ -64,7 +64,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
   writes pages and marks front-channel endpoints, and
   [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) forbids it to reference another
   implementation package.
-- **Keep `NCode.AspNetCore` free of `NCode.Buffers` and encode with `Encoding.UTF8`.** Rejected. It breaks the
+- **Keep `NCode.Identity.AspNetCore` free of `NCode.Buffers` and encode with `Encoding.UTF8`.** Rejected. It breaks the
   strict-encoding rule ([ADR-1266](1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)) for a hash that
   must match the script the browser runs.
 - **Keep the `OpenId` names.** Rejected. A general helper that carries an OpenID prefix tells a reader it is part of the
@@ -72,10 +72,10 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 
 ## Consequences
 
-- A consumer references `NCode.AspNetCore`, adds `using NCode.AspNetCore;` and calls `WithFrontChannel()`. The family
+- A consumer references `NCode.Identity.AspNetCore`, adds `using NCode.Identity.AspNetCore;` and calls `WithFrontChannel()`. The family
   is pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), so the move is a clean cutover with
   no forwarding types.
-- A package that references `NCode.AspNetCore` also references `NCode.Buffers`, which most of the family's packages
+- A package that references `NCode.Identity.AspNetCore` also references `NCode.Buffers`, which most of the family's packages
   already reference.
 - [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
   rejects building the BFF's policy from `HtmlPageSecurityPolicy` partly because the model lived in a package the BFF
@@ -84,8 +84,8 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 
 ## References
 
-- `src/NCode.AspNetCore/`
-- `tests/NCode.AspNetCore.Tests/`
+- `src/NCode.Identity.AspNetCore/`
+- `tests/NCode.Identity.AspNetCore.Tests/`
 - [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)
 - [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md)
 - [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)

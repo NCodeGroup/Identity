@@ -14,7 +14,7 @@ of tests and 1m23s of build plus packing. With compile-time delegates
 ([ADR-1262](1262-minimal-api-request-delegates-are-generated-at-compile-time.md)) the local fast gate takes about 1m36s
 with all tests, but its cost still grows with the whole suite, not with the change.
 
-Most changes touch a few projects. A change to `src/NCode.Time` reaches 5 test projects through the project graph, and a
+Most changes touch a few projects. A change to `src/NCode.Identity.Time` reaches 5 test projects through the project graph, and a
 docs-only change reaches none, yet every gate runs every test.
 
 [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) requires a pull request into
@@ -102,7 +102,7 @@ ADR-1261 stands.
 
 ## Consequences
 
-- A pull request runs only the tests its change reaches: a change to `src/NCode.Time` runs 5 test projects, and a
+- A pull request runs only the tests its change reaches: a change to `src/NCode.Identity.Time` runs 5 test projects, and a
   docs-only change runs none. A pull request no longer needs updating after every merge to `main`.
 - A merge waits in the merge queue for the full gate on the merged result. A dependency edge that `-Affected` misses,
   or a pair of pull requests that break each other, fails the queue's full gate before it reaches `main`.

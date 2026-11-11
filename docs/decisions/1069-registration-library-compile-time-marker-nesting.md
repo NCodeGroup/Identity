@@ -18,7 +18,7 @@ no package can see another's concrete registration to know whether its prerequis
 bolt-on added to a host that never registered the underlying library is a silent misconfiguration
 that surfaces far later as a confusing missing-handler, null, or "unsupported" response.
 
-`NCode.Registration` exists to make these prerequisites explicit. It is a thin layer over
+`NCode.Identity.Registration` exists to make these prerequisites explicit. It is a thin layer over
 `IServiceCollection`: a **marker** type per library (an empty `readonly struct` implementing
 `IRegistrationMarker<TMarker>` — it carries no data, its _type identity_ is the whole signal) and
 `IServiceBuilder<TMarker>` — a wrapper that holds the collection plus a compile-time marker
@@ -44,7 +44,7 @@ to provide.
 
 ## Decision
 
-**All DI registration is organized through `NCode.Registration`'s `IServiceBuilder<TMarker>`, and
+**All DI registration is organized through `NCode.Identity.Registration`'s `IServiceBuilder<TMarker>`, and
 every registration entry point — a library layer _and_ an opt-in bolt-on capability — is an extension
 on the `IServiceBuilder<TMarker>` of the library it requires, never on a naked `IServiceCollection`.
 The receiver marker is the compile-time proof that the prerequisite library is registered: a bolt-on
@@ -69,7 +69,7 @@ registrations build on owns a marker, minted by _every_ implementation registrat
 registration _returns_ as an `IServiceBuilder<…>` so dependents can require it, either as their receiver or as a required
 `IServiceBuilder<…>` parameter.** Two seams own a marker today:
 
-- **The persistence framework owns `StoreManagerLibrary`** (`NCode.Persistence.Abstractions`): `AddEntityFrameworkCorePersistence`
+- **The persistence framework owns `StoreManagerLibrary`** (`NCode.Identity.Persistence.Abstractions`): `AddEntityFrameworkCorePersistence`
   mints it and returns `IServiceBuilder<StoreManagerLibrary>`, and the store slices that register concrete stores against
   it — `AddLocalAccountEntityFramework` — take that builder as their receiver, so a store slice **cannot be written**
   without the persistence framework.
@@ -155,7 +155,7 @@ The marker receiver expresses a **framework prerequisite**. Two kinds of registr
 therefore correctly take a naked `IServiceCollection`:
 
 - **Chain roots.** The first link that establishes a marker and has no prerequisite library —
-  `AddIdentityLibrary()`, `AddSecretsLibrary()`, `AddEventServices()`, and the persistence-framework root
+  `AddSettingsLibrary()`, `AddClaimsLibrary()`, `AddCryptographyLibrary()`, `AddSecretsLibrary()`, `AddEventServices()`, and the persistence-framework root
   `AddEntityFrameworkCorePersistence<TDbContext>()` (which mints `StoreManagerLibrary`) — bootstraps from the
   bare collection and returns the new builder.
 - **Generic utility helpers.** A within-library convenience that registers one service
@@ -179,7 +179,7 @@ not merely the collection). These take the **non-generic `IServiceBuilder`** rec
 `IServiceCollection` (the caller must hold _some_ library builder) but library-agnostic. The real-world cases are
 `AddMessageFactory<TMessage>` (`NCode.Identity.OpenId.Messages.Abstractions`, called from both the Core-library builder
 and endpoint-group builders) and `AddEndpointProvider<T>` / `AddEndpointGroup<T>`
-(`NCode.Registration.AspNetCore`, called from every library that maps endpoints). This is the correct shape for a
+(`NCode.Identity.Registration.AspNetCore`, called from every library that maps endpoints). This is the correct shape for a
 cross-cutting helper; do **not** pin it to one marker (that would break the other callers) and do **not** drop to a
 naked collection (that would lose the in-a-builder guarantee).
 
@@ -250,7 +250,7 @@ calling capability methods on the bare `IServiceCollection`.
   builder so the chain continues on the primary library. The `OpenIdManagementLibrary` marker moves into
   `NCode.Identity.OpenId.Management.Abstractions` so a capability referencing only abstractions can name it. These are
   breaking surface changes, acceptable pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
-- The **persistence framework** owns `StoreManagerLibrary` (`NCode.Persistence.Abstractions`): the Entity Framework root
+- The **persistence framework** owns `StoreManagerLibrary` (`NCode.Identity.Persistence.Abstractions`): the Entity Framework root
   `AddEntityFrameworkCorePersistence<TDbContext>()` mints it, and the local-account store slices
   (`AddLocalAccountEntityFramework`, `AddAspNetIdentityLocalAccountStore`) receive `IServiceBuilder<StoreManagerLibrary>`
   and return `IServiceBuilder<LocalAccountLibrary>`, so a store slice cannot be registered without the persistence
@@ -277,7 +277,7 @@ calling capability methods on the bare `IServiceCollection`.
 
 ## References
 
-- `NCode.Registration`: `IServiceBuilder` / `IServiceBuilder<TMarker>`, `IRegistrationMarker<TMarker>`,
+- `NCode.Identity.Registration`: `IServiceBuilder` / `IServiceBuilder<TMarker>`, `IRegistrationMarker<TMarker>`,
   `ServiceCollectionExtensions` (`NewBuilder` / `AddRegistrationMarker` / `IsRegistered`).
 - [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — implementation packages
   depend only on abstractions (why markers must live in `.Abstractions`).

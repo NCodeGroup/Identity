@@ -83,7 +83,7 @@ base address exactly.**
   materialization.
 - [ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md) — the issuer as the single authoritative
   origin.
-- Code: `NCode.Registration.AspNetCore.IEndpointGroup.GetPrefix`,
+- Code: `NCode.Identity.Registration.AspNetCore.IEndpointGroup.GetPrefix`,
   `NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointGroup`,
   `NCode.Identity.OpenId.Authentication.Endpoints.OpenIdLinkGeneratorExtensions`,
   `NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantFactory.GetTenantBaseAddressAsync`.

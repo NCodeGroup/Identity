@@ -34,10 +34,10 @@ generator of every project that references it, so a library that adds it changes
    request, the read of the response body included; `AttemptTimeout` (10 seconds), `MaxRetryAttempts` (2) and
    `RetryDelay` (1 second) bound its attempts. The timeouts are between 10 milliseconds and 5 minutes, `AttemptTimeout`
    is not greater than `TotalTimeout`, the retries are between 0 and 10, and the delay is between 0 and 5 minutes.
-   These bounds lie inside the range every timer accepts (`NCode.Time.TimerPeriod`,
+   These bounds lie inside the range every timer accepts (`NCode.Identity.Time.TimerPeriod`,
    [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)), so a value the
    validator accepts is always a valid timer period; the validator checks the tighter bounds directly, and the client
-   package does not take a dependency on `NCode.Time` for a check they already imply. The names match
+   package does not take a dependency on `NCode.Identity.Time` for a check they already imply. The names match
    `OutboundHttpOptions`, so the family has one vocabulary. The default `TotalTimeout` is 15 seconds, so the BFF's
    default 40-second refresh lease covers two attempts of 15 seconds and 10 seconds
    ([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)).

@@ -4,7 +4,7 @@
 # Orchestration is owned by .NET Aspire now (see docs/decisions/1071): the `Aspire: Full stack (F5)` launch starts the
 # AppHost, which runs each app's own `dev` script with deterministic, health-gated ordering. This script no longer
 # runs `pnpm dev` — it only prepares the workspace so Aspire can spawn pnpm/node:
-#   - The Node major is pinned once, in src/frontend/.node-version (CI and the AppHost read it too). With NVS, this
+#   - The Node major is pinned once, in frontend/.node-version (CI and the AppHost read it too). With NVS, this
 #     script adds that major when it is missing, and the AppHost prepends the same install to its PATH, so no
 #     `nvs link` is needed. Any other version manager works as long as `node` on PATH is the pinned major.
 #   - pnpm is the exact version the workspace's "packageManager" field pins. Node no longer bundles Corepack, so this
@@ -94,14 +94,14 @@ function Test-FrontendNodeModulesIntact {
     return $true
 }
 
-$frontendDir = (Join-Path $PSScriptRoot '..' | Join-Path -ChildPath 'src' | Join-Path -ChildPath 'frontend')
+$frontendDir = (Join-Path $PSScriptRoot '..' | Join-Path -ChildPath 'frontend')
 $nodeMajor = Get-NodeMajor (Get-Content -LiteralPath (Join-Path $frontendDir '.node-version') -Raw)
 
 # Put the NVS-managed Node of the pinned major on PATH for this process (Node is not on the global PATH unless
 # `nvs link`ed), adding it through NVS first when it is missing.
 $nodeDir = Find-NvsNode $nodeMajor
 if (-not $nodeDir -and (Get-Command nvs -ErrorAction SilentlyContinue)) {
-    Write-Host "Adding Node $nodeMajor (src/frontend/.node-version) with NVS..." -ForegroundColor Yellow
+    Write-Host "Adding Node $nodeMajor (frontend/.node-version) with NVS..." -ForegroundColor Yellow
     nvs add $nodeMajor
     $nodeDir = Find-NvsNode $nodeMajor
 }
@@ -112,7 +112,7 @@ if ($nodeDir) {
 $nodeVersion = if (Get-Command node -ErrorAction SilentlyContinue) { node --version }
 if (-not $nodeVersion -or (Get-NodeMajor $nodeVersion) -ne $nodeMajor) {
     $found = if ($nodeVersion) { "'node' on PATH is $nodeVersion" } else { "'node' is not on PATH" }
-    throw ("Node.js $nodeMajor (pinned in src/frontend/.node-version) was not found; $found. Install NVS and " +
+    throw ("Node.js $nodeMajor (pinned in frontend/.node-version) was not found; $found. Install NVS and " +
         "re-run this script, which adds the pinned major ('nvs add $nodeMajor').")
 }
 
@@ -121,7 +121,7 @@ if (-not $nodeVersion -or (Get-NodeMajor $nodeVersion) -ne $nodeMajor) {
 $packageJsonPath = Join-Path $frontendDir 'package.json'
 $packageManager = (Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json).packageManager
 if ($packageManager -notmatch '^pnpm@(?<version>[^+]+)') {
-    throw "src/frontend/package.json must pin pnpm in its ""packageManager"" field (found '$packageManager')."
+    throw "frontend/package.json must pin pnpm in its ""packageManager"" field (found '$packageManager')."
 }
 $pnpmVersion = $Matches.version
 $installedPnpmManifest = Join-Path (npm root --global) 'pnpm/package.json'
@@ -162,7 +162,7 @@ if (-not (Test-FrontendNodeModulesIntact -Root $frontendDir)) {
     }
 
     if (-not (Test-FrontendNodeModulesIntact -Root $frontendDir)) {
-        throw "Frontend node_modules is still incomplete after a forced reinstall; inspect src/frontend manually."
+        throw "Frontend node_modules is still incomplete after a forced reinstall; inspect frontend manually."
     }
 }
 

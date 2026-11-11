@@ -6,7 +6,7 @@
     Checks that every web app's copy of a brand kit favicon file is byte for byte the kit's file.
 
 .DESCRIPTION
-    A frontend build reads only src/, so each web app under src/frontend/apps carries its own copies of the kit's
+    An image build's context holds no brand/, so each web app under frontend/apps carries its own copies of the kit's
     favicon files in its favicon folder (ADR-1492). A copy that drifts from brand/favicon/ shows a stale icon.
 
     Outputs one string per problem, and nothing when clean:
@@ -19,7 +19,7 @@
     The brand kit's favicon folder. Defaults to brand/favicon under the repository root.
 
 .PARAMETER Apps
-    The folder that holds the web apps. Defaults to src/frontend/apps under the repository root.
+    The folder that holds the web apps. Defaults to frontend/apps under the repository root.
 
 .EXAMPLE
     ./build/favicon-copies.ps1
@@ -27,7 +27,7 @@
 [CmdletBinding()]
 param(
     [string]$Kit = (Join-Path (Split-Path -Parent $PSScriptRoot) 'brand' 'favicon'),
-    [string]$Apps = (Join-Path (Split-Path -Parent $PSScriptRoot) 'src' 'frontend' 'apps')
+    [string]$Apps = (Join-Path (Split-Path -Parent $PSScriptRoot) 'frontend' 'apps')
 )
 
 Set-StrictMode -Version Latest

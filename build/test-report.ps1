@@ -20,7 +20,7 @@
 
 .PARAMETER Path
     One or more JUnit report paths. Relative paths are resolved against -Root; PowerShell wildcards are allowed in any
-    segment (for example 'src/frontend/*/*/test-results/junit.xml').
+    segment (for example 'frontend/*/*/test-results/junit.xml').
 
 .PARAMETER Title
     The heading for this group of results, for example '.NET tests'.

@@ -24,7 +24,7 @@ function Write-FixtureFile([string]$Path, [byte[]]$Bytes) {
 # path to the file's bytes.
 function New-Fixture([string]$Name, [hashtable]$KitFiles, [hashtable]$AppFiles) {
     $kit = Join-Path $fixtureRoot $Name 'brand' 'favicon'
-    $apps = Join-Path $fixtureRoot $Name 'src' 'frontend' 'apps'
+    $apps = Join-Path $fixtureRoot $Name 'frontend' 'apps'
     $null = [System.IO.Directory]::CreateDirectory($kit)
     $null = [System.IO.Directory]::CreateDirectory($apps)
     foreach ($relative in $KitFiles.Keys) {
@@ -110,7 +110,7 @@ try {
 
     Assert-Problems 'the repository kit and apps have no problems' `
         (Join-Path $PSScriptRoot '..' '..' 'brand' 'favicon') `
-        (Join-Path $PSScriptRoot '..' '..' 'src' 'frontend' 'apps') @()
+        (Join-Path $PSScriptRoot '..' '..' 'frontend' 'apps') @()
 
     Write-Host "$testCount favicon-copies checks passed."
 }

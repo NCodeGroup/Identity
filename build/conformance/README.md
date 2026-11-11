@@ -22,7 +22,7 @@ is slow, so it runs as an opt-in / nightly gate while the `dod.ps1` inner loop s
 
 The `conformance-user` login identity in the configs and the `client` credentials the pre-flight uses match the
 deterministic seed in
-[`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Host/appsettings.Conformance.json)
+[`appsettings.Conformance.json`](../../hosts/NCode.Identity.OpenId.Host/appsettings.Conformance.json)
 (`AddConformanceSeed`, issue [#127](https://github.com/NCodeGroup/Identity/issues/127)); the Basic OP plan registers its own client per module via Dynamic Client
 Registration. This is a local test harness, never production.
 
@@ -51,7 +51,7 @@ holds the script and the AppHost to the same file names, encoding and variable n
    does not count.
 3. **[NVS](https://github.com/jasongin/nvs)** for the pre-flight;
    [`build/frontend-install.ps1`](../frontend-install.ps1) adds the Node major pinned in
-   [`src/frontend/.node-version`](../../src/frontend/.node-version), puts it on PATH, and installs the pinned pnpm.
+   [`frontend/.node-version`](../../frontend/.node-version), puts it on PATH, and installs the pinned pnpm.
 4. Hosts-file entries so both origins resolve to loopback from the host:
     ```
     127.0.0.1  localhost.emobix.co.uk
@@ -88,7 +88,7 @@ if ($missing) { Add-Content -Path $hostsFile -Value (@('') + ($missing | ForEach
 ```
 
 To have NVS switch to the pinned Node automatically on `cd` (optional; the harness does not need it), see the
-shell-profile snippets in [`src/frontend/README.md`](../../src/frontend/README.md).
+shell-profile snippets in [`frontend/README.md`](../../frontend/README.md).
 
 ## Run
 
@@ -102,7 +102,7 @@ shell-profile snippets in [`src/frontend/README.md`](../../src/frontend/README.m
 # Against an OP you already started (e.g. the Conformance launch profile in another terminal), started with the
 # conformance seed's credentials in its environment:
 #   ./build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment
-#   dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance
+#   dotnet run --project hosts/NCode.Identity.OpenId.Host --launch-profile Conformance
 ./build/conformance/run-conformance.ps1 -UseRunningOp
 
 # Pre-flight only (launch OP + run the probe runner; no Docker/Python needed) — a fast local check:

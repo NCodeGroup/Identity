@@ -8,7 +8,7 @@
     No conformance credential is committed (project-template ADR-0119, ADR-1370): the client secrets of the conformance
     clients that authenticate with one, and the test user's password, are development secret files kept outside the
     repository, beside the development root key in `LocalApplicationData/NCode.Identity/LocalDev`. The LocalDev AppHost
-    (`src/NCode.Identity.OpenId.LocalDev/DevelopmentSecrets/ConformanceSeedSecrets.cs`) reads and generates the same
+    (`hosts/NCode.Identity.OpenId.LocalDev/DevelopmentSecrets/ConformanceSeedSecrets.cs`) reads and generates the same
     files, with the same names, so every launcher seeds the same credentials. The clients are the ones the conformance
     overlay (`appsettings.Conformance.json`) registers with a `client_secret_*` token-endpoint authentication method,
     and the shared fixture `tests/NCode.Identity.OpenId.LocalDev.Tests/DevelopmentSecrets/conformance-seed-golden.json`
@@ -36,7 +36,7 @@
 
 .EXAMPLE
     ./build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment
-    dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance
+    dotnet run --project hosts/NCode.Identity.OpenId.Host --launch-profile Conformance
 #>
 [CmdletBinding()]
 param(
@@ -44,7 +44,7 @@ param(
                 [Environment+SpecialFolder]::LocalApplicationData,
                 [Environment+SpecialFolderOption]::Create)) 'NCode.Identity' 'LocalDev'),
 
-    [string] $SettingsPath = (Join-Path $PSScriptRoot '..' '..' 'src' 'NCode.Identity.OpenId.Host' 'appsettings.Conformance.json'),
+    [string] $SettingsPath = (Join-Path $PSScriptRoot '..' '..' 'hosts' 'NCode.Identity.OpenId.Host' 'appsettings.Conformance.json'),
 
     [switch] $SetEnvironment
 )

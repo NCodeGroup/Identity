@@ -700,10 +700,16 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         DeriveKey(algorithm, apu, apv, sharedSecret.Span, destination.Span);
     }
 
+    /// <summary>
+    /// Exports the public key as a DER-encoded <c>SubjectPublicKeyInfo</c> into pooled memory.
+    /// </summary>
+    /// <param name="publicKey">The public key to export.</param>
+    /// <param name="subjectPublicKeyInfo">The exported bytes, which are valid until the returned lease is disposed.</param>
+    /// <returns>The lease that returns the memory to the pool, which the caller disposes.</returns>
     // The rental lives across the key agreement's await, so the caller disposes it once the service has answered.
     private static IDisposable RentSubjectPublicKeyInfo(
         AsymmetricSecretKey publicKey,
-        out Memory<byte> subjectPublicKeyInfo
+        out ReadOnlyMemory<byte> subjectPublicKeyInfo
     )
     {
         using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
@@ -712,9 +718,10 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var lease = BufferFactory.Rent(
             checked((int)buffer.Length),
             isSensitive: false,
-            out subjectPublicKeyInfo
+            out Memory<byte> rental
         );
-        buffer.AsReadOnlySequence.CopyTo(subjectPublicKeyInfo.Span);
+        buffer.AsReadOnlySequence.CopyTo(rental.Span);
+        subjectPublicKeyInfo = rental;
         return lease;
     }
 

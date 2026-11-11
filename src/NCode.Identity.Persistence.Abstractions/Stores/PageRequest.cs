@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Persistence.Stores;
+namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
 /// Describes the pagination window for a keyset-paginated store query: the continuation cursor and the maximum number

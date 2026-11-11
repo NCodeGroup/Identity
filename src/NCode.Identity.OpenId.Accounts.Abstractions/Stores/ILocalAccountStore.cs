@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Accounts.DataContracts;
-using NCode.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Accounts.Stores;
 

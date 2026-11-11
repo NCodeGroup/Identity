@@ -6,10 +6,10 @@ using System.Collections.Frozen;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logging;
 using NCode.Identity.Secrets.Persistence.Options;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 

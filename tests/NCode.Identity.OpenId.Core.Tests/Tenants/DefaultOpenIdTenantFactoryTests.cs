@@ -20,11 +20,11 @@ using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
-using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 using Xunit;
 

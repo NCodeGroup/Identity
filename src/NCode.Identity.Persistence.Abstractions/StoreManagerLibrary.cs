@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.Registration;
 
-namespace NCode.Persistence;
+namespace NCode.Identity.Persistence;
 
 /// <summary>
 /// A registration marker announcing that a persistence store-manager framework (an <c>IStoreManager</c> provider, such

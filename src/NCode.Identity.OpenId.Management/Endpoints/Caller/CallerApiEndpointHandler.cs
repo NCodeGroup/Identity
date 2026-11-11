@@ -18,8 +18,8 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Registration.AspNetCore;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Caller;
 

@@ -4,9 +4,9 @@
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.SharedState;
-using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants;

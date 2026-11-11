@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Persistence.Stores;
+namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
 /// Represents a single page of items returned by a keyset-paginated store query.

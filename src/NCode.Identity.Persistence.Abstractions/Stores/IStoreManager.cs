@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Persistence.Stores;
+namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
 /// Provides an abstraction for the unit-of-work pattern.

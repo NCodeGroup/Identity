@@ -8,8 +8,8 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Teams;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Settings;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 

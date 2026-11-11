@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Persistence.Stores;
+namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
 /// Provides the ability to get an <see cref="IStore{T}"/> instance of the specified type.

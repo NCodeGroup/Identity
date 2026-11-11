@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Persistence.Stores;
+namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
 /// Base interface for all store implementations.

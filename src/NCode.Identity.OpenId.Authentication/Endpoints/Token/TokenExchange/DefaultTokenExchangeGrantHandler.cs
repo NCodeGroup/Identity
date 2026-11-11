@@ -19,8 +19,8 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Time;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 

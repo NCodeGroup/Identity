@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.Persistence;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Registration;
-using NCode.Persistence;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 

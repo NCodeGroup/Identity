@@ -19,8 +19,8 @@ enforced quality bar.
   `.claude/worktrees/` adds enough depth that some paths pass Windows' 260-character limit, and without it
   `git worktree remove` fails with "Filename too long" and leaves the folder behind.
 - Frontend / full-stack (Aspire F5): [NVS](https://github.com/jasongin/nvs); `build/frontend-install.ps1` adds the
-  Node major pinned in `src/frontend/.node-version` and the pinned pnpm — see
-  [`src/frontend/README.md`](src/frontend/README.md).
+  Node major pinned in `frontend/.node-version` and the pinned pnpm — see
+  [`frontend/README.md`](frontend/README.md).
 - End-to-end suites only: a running Docker engine. `./build/e2e.ps1` installs the Playwright browsers.
 - Conformance harness only: Docker, Python 3, and hosts-file entries — see
   [`build/conformance/README.md`](build/conformance/README.md).
@@ -57,10 +57,10 @@ of a full run) and prints a test digest and a per-stage duration table; a full r
 report to `artifacts/coverage/` — open `index.html` to browse it. In CI the same results appear on the run's summary
 page, failed tests and the failing stage are annotated, and coverage is uploaded to Codecov
 ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md)). The frontend workspace's equivalent is
-`pnpm run test:report` (in `src/frontend`), which adds per-package JUnit and coverage output to `pnpm test`.
+`pnpm run test:report` (in `frontend`), which adds per-package JUnit and coverage output to `pnpm test`.
 
-The Definition of Done gates the .NET tier only. A change under `src/frontend` also runs that workspace's gates before
-it is pushed — `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` in `src/frontend` —
+The Definition of Done gates the .NET tier only. A change under `frontend` also runs that workspace's gates before
+it is pushed — `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` in `frontend` —
 the same gates CI's frontend workflow runs. Every text file is LF with a final newline (`.editorconfig`,
 `.gitattributes`), and the format gates read the working tree, not the normalized index: a file an editor or tool wrote
 with CRLF fails Prettier until it is converted.
@@ -71,9 +71,8 @@ point `GITHUB_STEP_SUMMARY` at an empty temporary file, then read that file. The
 nodes tore that file and failed the job
 ([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)).
 
-When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**`, `/tests/`
-for `tests/**` and `/benchmarks/` for `benchmarks/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`)
-— never at the solution root.
+When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**`, `/hosts/` for `hosts/**`, `/analyzers/` for `analyzers/**`, `/tests/` for `tests/**` and `/benchmarks/` for `benchmarks/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`)
+— never at the solution root. A published package goes under `src/` and packs; any other project goes under the folder of its role, whose `Directory.Build.props` turns packing off, and the build fails a project whose folder and packing disagree ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)).
 
 ## Benchmarks
 
@@ -237,7 +236,7 @@ would just bring back the same break.
 
 When the **update job itself** fails (the "Dependabot Updates" workflow run, before any pull request exists), its log
 names the exact command it ran (`gh run view <run-id> --log`; search for `with command:`). To reproduce a pnpm failure,
-run that command in a copy of `src/frontend` with `--config.cache-dir` and `--config.store-dir` pointing at empty
+run that command in a copy of `frontend` with `--config.cache-dir` and `--config.store-dir` pointing at empty
 directories. Dependabot starts with no cache, and a warm local metadata cache can hide the failure. Pushing a change to
 `dependabot.yml` starts an update run for every ecosystem right away, so expect one when you change it.
 
@@ -247,7 +246,7 @@ majors are held today
 ([ADR-1147](docs/decisions/1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Without the rule,
 every weekly group PR fails on the same package.
 
-The frontend has no lockfile-free path: after changing a `package.json`, run `pnpm install` in `src/frontend` and commit
+The frontend has no lockfile-free path: after changing a `package.json`, run `pnpm install` in `frontend` and commit
 `pnpm-lock.yaml`, because CI installs with `--frozen-lockfile`. Frontend versions must be three days old before anyone
 installs them: pnpm's `minimumReleaseAge` gates people and Dependabot's npm `cooldown` gates its updates. Keep the two
 windows equal, because Dependabot fails while the lockfile holds a version younger than its cooldown

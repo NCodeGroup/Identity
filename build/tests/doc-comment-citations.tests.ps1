@@ -3,7 +3,7 @@
 
 <#
 .SYNOPSIS
-    Checks build/doc-comment-citations.ps1 against fixture source folders and against the repository's own src/ and tests/.
+    Checks build/doc-comment-citations.ps1 against fixture source folders and against the repository's own src/, hosts/, analyzers/ and tests/.
 #>
 [CmdletBinding()]
 param()
@@ -98,6 +98,8 @@ try {
 
     Assert-Problems 'the repository source and tests have no problems' @(
         (Join-Path $PSScriptRoot '..' '..' 'src'),
+        (Join-Path $PSScriptRoot '..' '..' 'hosts'),
+        (Join-Path $PSScriptRoot '..' '..' 'analyzers'),
         (Join-Path $PSScriptRoot '..' '..' 'tests')
     ) @()
 

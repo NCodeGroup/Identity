@@ -69,6 +69,18 @@ try {
     $result = & $selector -Root $fixture -ChangedPath 'BannedSymbols.Encoding.txt'
     Assert-Selection 'banned-symbols file selects all' $result $true '' ''
 
+    $hostFixture = New-Fixture 'hosts'
+    Write-Project $hostFixture 'hosts/H/H.csproj' @('..\..\src\B\B.csproj')
+    Write-Project $hostFixture 'tests/H.Tests/H.Tests.csproj' @('..\..\hosts\H\H.csproj')
+    Write-Project $hostFixture 'analyzers/Z/Z.csproj' @()
+    Write-Project $hostFixture 'tests/Z.Tests/Z.Tests.csproj' @('..\..\analyzers\Z\Z.csproj')
+    $result = & $selector -Root $hostFixture -ChangedPath 'hosts/H/X.cs'
+    Assert-Selection 'a host project selects the tests that reference it' $result $false 'tests/H.Tests/H.Tests.csproj' ''
+    $result = & $selector -Root $hostFixture -ChangedPath 'src/B/X.cs'
+    Assert-Selection 'a package selects the tests of the hosts that reference it' $result $false 'tests/B.Tests/B.Tests.csproj,tests/H.Tests/H.Tests.csproj' $endToEnd
+    $result = & $selector -Root $hostFixture -ChangedPath 'analyzers/Z/X.cs'
+    Assert-Selection 'an analyzer project selects the tests that reference it' $result $false 'tests/Z.Tests/Z.Tests.csproj' ''
+
     $gitFixture = New-Fixture 'git'
     Invoke-Git $gitFixture @('init', '-q')
     Invoke-Git $gitFixture @('config', 'user.name', 'Affected Tests')

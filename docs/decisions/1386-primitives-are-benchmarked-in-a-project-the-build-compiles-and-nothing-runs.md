@@ -19,8 +19,8 @@ multiplication.
 1. **A package's benchmarks are a BenchmarkDotNet console project.** It is `benchmarks/<Package>.Benchmarks/` with
    `IsPackable=false`, listed in `NCode.Identity.slnx` under `/benchmarks/`. The solution build, and so the Definition
    of Done, compiles it; nothing runs it, because `dotnet test` skips a project that is not a test project and
-   `build/affected-tests.ps1` maps `src/`, `hosts/`, `analyzers/` and `tests/`, never `benchmarks/`. The first is `NCode.Identity.Jose.EdDsa.Benchmarks`, with
-   BenchmarkDotNet 0.15.8.
+   `build/affected-tests.ps1` maps `src/`, `hosts/`, `analyzers/` and `tests/`, never `benchmarks/`. The first is
+   `NCode.Identity.Jose.EdDsa.Benchmarks`, with BenchmarkDotNet 0.15.8.
 
 2. **The measured package grants `InternalsVisibleTo` to its `.Benchmarks` project.** A benchmark project is a
    non-shipping verification project like a test project, so the rule of

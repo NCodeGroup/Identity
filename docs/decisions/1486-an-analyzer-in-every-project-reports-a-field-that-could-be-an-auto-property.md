@@ -27,11 +27,11 @@ alone keeps the rule. The forces:
 with `NCID0001` on a field that a property could replace.**
 
 1. **The analyzer is the project `analyzers/NCode.Identity.Analyzers`.** It targets `netstandard2.0`, is not packable
-   (`analyzers/Directory.Build.props` sets `IsPackable` to false), and sets `IsRoslynComponent` and `EnforceExtendedAnalyzerRules`, so
-   `Microsoft.CodeAnalysis.Analyzers` checks the analyzer itself. No package ships it. It has no release tracking:
-   release tracking documents the rules of a published analyzer package, and its `RS2002` check finds a descriptor only
-   in a static field, which `NCID0001` forbids. The project suppresses `RS2008` and has no `AnalyzerReleases.*.md`
-   files.
+   (`analyzers/Directory.Build.props` sets `IsPackable` to false), and sets `IsRoslynComponent` and
+   `EnforceExtendedAnalyzerRules`, so `Microsoft.CodeAnalysis.Analyzers` checks the analyzer itself. No package ships
+   it. It has no release tracking: release tracking documents the rules of a published analyzer package, and its
+   `RS2002` check finds a descriptor only in a static field, which `NCID0001` forbids. The project suppresses `RS2008`
+   and has no `AnalyzerReleases.*.md` files.
 2. **It builds against Roslyn 5.0.0.** `Microsoft.CodeAnalysis.CSharp` 5.0.0 is the Roslyn of the oldest SDK
    `global.json` admits (10.0.100), so every SDK the build rolls forward to loads the analyzer. It is also exactly the
    version EF Core Design 10.0.14 depends on, which central transitive pinning would otherwise conflict with.

@@ -137,7 +137,7 @@ public sealed class ManagementConsoleApplicationFactory
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Resolve the content root to the host project so its appsettings.json is loaded.
-        builder.UseSolutionRelativeContentRoot("src/NCode.Identity.ManagementConsole.Host");
+        builder.UseSolutionRelativeContentRoot("hosts/NCode.Identity.ManagementConsole.Host");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
 
         builder.ConfigureAppConfiguration(configurationBuilder =>

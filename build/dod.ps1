@@ -240,8 +240,8 @@ try {
         dotnet ef migrations has-pending-model-changes `
             --no-build `
             --configuration $Configuration `
-            --project src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
-            --startup-project src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
+            --project hosts/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
+            --startup-project hosts/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
             --context OpenIdDbContext
         if ($LASTEXITCODE -ne 0) {
             throw "ef model drift (OpenIdDbContext) failed with exit code $LASTEXITCODE."
@@ -249,8 +249,8 @@ try {
         dotnet ef migrations has-pending-model-changes `
             --no-build `
             --configuration $Configuration `
-            --project src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
-            --startup-project src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
+            --project hosts/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
+            --startup-project hosts/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
             --context DeveloperDataProtectionDbContext
     }
 

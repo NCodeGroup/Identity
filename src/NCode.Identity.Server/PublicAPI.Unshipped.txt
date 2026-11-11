@@ -131,7 +131,9 @@ NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.S
 NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.Server.IIdentityServerBuilder!).AddFrontendBootstrap(Microsoft.Extensions.Configuration.IConfiguration! configuration, string? sectionName = null, System.Action<NCode.Identity.Server.Frontend.FrontendBootstrapOptions!>? configureOptions = null) -> NCode.Identity.Server.IIdentityServerBuilder!
 NCode.Identity.Server.IIdentityServerBuilder
 NCode.Identity.Server.IIdentityServerBuilder.DataProtectionBuilder.get -> Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder!
-NCode.Identity.Server.IIdentityServerBuilder.IdentityLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.SettingsLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Settings.SettingsLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.ClaimsLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Claims.ClaimsLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.CryptographyLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Cryptography.CryptographyLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.JoseLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.JwtLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.OpenIdAuthenticationLibraryBuilder.get -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!

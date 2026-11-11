@@ -24,7 +24,8 @@ namespace NCode.Identity.OpenId.Management;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    extension(IServiceBuilder<IdentityLibrary> builder)
+    /// <param name="builder">The <see cref="OpenIdCoreLibrary"/> builder this library extends.</param>
+    extension(IServiceBuilder<OpenIdCoreLibrary> builder)
     {
         /// <summary>
         /// Registers the OpenID management library, its authorization handlers, and API endpoints.

@@ -3,6 +3,8 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
+using NCode.Identity.Claims;
+using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
 using NCode.Identity.OpenId;
@@ -11,6 +13,7 @@ using NCode.Identity.OpenId.Management;
 using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 
 namespace NCode.Identity.Server;
@@ -54,9 +57,19 @@ public interface IIdentityServerBuilder : IServiceBuilder<IdentityServer>
     IServiceBuilder<JwtLibrary> JwtLibraryBuilder { get; }
 
     /// <summary>
-    /// Gets the builder for configuring the identity library.
+    /// Gets the builder for configuring the settings library.
     /// </summary>
-    IServiceBuilder<IdentityLibrary> IdentityLibraryBuilder { get; }
+    IServiceBuilder<SettingsLibrary> SettingsLibraryBuilder { get; }
+
+    /// <summary>
+    /// Gets the builder for configuring the claims library.
+    /// </summary>
+    IServiceBuilder<ClaimsLibrary> ClaimsLibraryBuilder { get; }
+
+    /// <summary>
+    /// Gets the builder for configuring the cryptography library.
+    /// </summary>
+    IServiceBuilder<CryptographyLibrary> CryptographyLibraryBuilder { get; }
 
     /// <summary>
     /// Gets the builder for configuring the OpenID core library.

@@ -1,8 +1,8 @@
 #nullable enable
 const NCode.Identity.OpenId.OpenIdOptions.DefaultSectionName = "OpenId" -> string!
 NCode.Identity.OpenId.DefaultRegistration
-NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
-NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdCoreLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
+NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Settings.SettingsLibrary>!)
+NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Settings.SettingsLibrary>!).AddOpenIdCoreLibrary(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Claims.ClaimsLibrary>! claimsBuilder, NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Cryptography.CryptographyLibrary>! cryptographyBuilder) -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
 NCode.Identity.OpenId.Principals.GetSubjectIdDelegate
 NCode.Identity.OpenId.Principals.GetSubjectIdentityDelegate
 NCode.Identity.OpenId.Principals.NormalizeSubjectIdDelegate

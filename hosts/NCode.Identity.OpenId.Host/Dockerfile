@@ -4,10 +4,10 @@
 # argument:
 #
 #   docker buildx build --platform linux/amd64,linux/arm64 \
-#     --file src/NCode.Identity.OpenId.Host/Dockerfile .
+#     --file hosts/NCode.Identity.OpenId.Host/Dockerfile .
 #
 # Every base image is pinned by tag and by the digest of its multi-architecture index, and Dependabot moves the digests
-# (ADR-1249). The Node major equals the single pin in src/frontend/.node-version, which the `Host image` workflow
+# (ADR-1249). The Node major equals the single pin in frontend/.node-version, which the `Host image` workflow
 # checks (ADR-1152).
 #
 # Every build stage runs on the build machine's own architecture and cross-publishes for the target, so a multi-arch
@@ -15,8 +15,8 @@
 
 # The interactive login and consent bundle (apps/auth). Its output is static files, identical on every architecture.
 FROM --platform=$BUILDPLATFORM node:26-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS frontend
-WORKDIR /source/src/frontend
-COPY src/frontend/ ./
+WORKDIR /source/frontend
+COPY frontend/ ./
 # pnpm is installed at the exact version package.json's packageManager field pins.
 RUN npm install --global --no-fund --no-audit "$(node --print "require('./package.json').packageManager")"
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
@@ -34,14 +34,14 @@ COPY . .
 # A multi-arch build runs this stage once per target at the same time. The NuGet cache is locked, not shared, because
 # NuGet extracts a package through a temporary file that a concurrent restore of the same package cannot see.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
-    dotnet publish src/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj \
+    dotnet publish hosts/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj \
         --configuration Release \
         --arch "$TARGETARCH" \
         --no-self-contained \
         --output /app/publish \
         -p:UseAppHost=false \
         -p:GeneratePackageOnBuild=false \
-    && dotnet publish src/NCode.Identity.OpenId.Host.MigrationService/NCode.Identity.OpenId.Host.MigrationService.csproj \
+    && dotnet publish hosts/NCode.Identity.OpenId.Host.MigrationService/NCode.Identity.OpenId.Host.MigrationService.csproj \
         --configuration Release \
         --arch "$TARGETARCH" \
         --no-self-contained \
@@ -64,7 +64,7 @@ WORKDIR /app
 COPY --from=build /app/publish ./
 # Run with the working directory /app/migrations and 'dotnet NCode.Identity.OpenId.Host.MigrationService.dll'.
 COPY --from=build /app/migrations ./migrations/
-COPY --from=frontend /source/src/frontend/apps/auth/dist ./auth/
+COPY --from=frontend /source/frontend/apps/auth/dist ./auth/
 ENV InteractiveAuthentication__BundleRootPath=/app/auth
 # The console writes one JSON object per line with a UTC timestamp, so a container log collector keeps an entry and its
 # exception in one record (ADR-1248).

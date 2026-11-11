@@ -4,10 +4,10 @@
 # no build argument:
 #
 #   docker buildx build --platform linux/amd64,linux/arm64 \
-#     --file src/NCode.Identity.ManagementConsole.Host/Dockerfile .
+#     --file hosts/NCode.Identity.ManagementConsole.Host/Dockerfile .
 #
 # Every base image is pinned by tag and by the digest of its multi-architecture index, and Dependabot moves the digests
-# (ADR-1249). The Node major equals the single pin in src/frontend/.node-version, which the `Console image` workflow
+# (ADR-1249). The Node major equals the single pin in frontend/.node-version, which the `Console image` workflow
 # checks (ADR-1152).
 #
 # Every build stage runs on the build machine's own architecture and cross-publishes for the target, so a multi-arch
@@ -15,8 +15,8 @@
 
 # The management console bundle (apps/mgmt). Its output is static files, identical on every architecture.
 FROM --platform=$BUILDPLATFORM node:26-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS frontend
-WORKDIR /source/src/frontend
-COPY src/frontend/ ./
+WORKDIR /source/frontend
+COPY frontend/ ./
 # pnpm is installed at the exact version package.json's packageManager field pins.
 RUN npm install --global --no-fund --no-audit "$(node --print "require('./package.json').packageManager")"
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
@@ -33,7 +33,7 @@ COPY . .
 # A multi-arch build runs this stage once per target at the same time. The NuGet cache is locked, not shared, because
 # NuGet extracts a package through a temporary file that a concurrent restore of the same package cannot see.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
-    dotnet publish src/NCode.Identity.ManagementConsole.Host/NCode.Identity.ManagementConsole.Host.csproj \
+    dotnet publish hosts/NCode.Identity.ManagementConsole.Host/NCode.Identity.ManagementConsole.Host.csproj \
         --configuration Release \
         --arch "$TARGETARCH" \
         --no-self-contained \
@@ -54,7 +54,7 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:a9298ccc39c6258ae71228479e2f3f8d2ceb6639a9927262a4b0ff7d319a0e7e AS final
 WORKDIR /app
 COPY --from=build /app/publish ./
-COPY --from=frontend /source/src/frontend/apps/mgmt/dist ./mgmt/
+COPY --from=frontend /source/frontend/apps/mgmt/dist ./mgmt/
 ENV ManagementConsole__BundleRootPath=/app/mgmt
 # The console writes one JSON object per line with a UTC timestamp, so a container log collector keeps an entry and its
 # exception in one record (ADR-1248).

@@ -21,6 +21,8 @@
 !version.json
 !src/
 !analyzers/
+!frontend/
+!hosts/
 
 # Build outputs and local state inside the allowed tree.
 **/bin/

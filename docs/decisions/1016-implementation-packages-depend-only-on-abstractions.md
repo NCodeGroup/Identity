@@ -1,6 +1,6 @@
 # 1016. Implementation packages depend only on abstractions; composition wires them
 
-- **Status:** Accepted
+- **Status:** Accepted (refined by [ADR-1498](1498-every-package-names-one-capability-under-the-ncode-identity-prefix.md))
 - **Date:** 2026-09-29
 - **Deciders:** NCode Group
 

@@ -1,6 +1,6 @@
 # 1188. General time helpers live in a dependency-free package
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-1498](1498-every-package-names-one-capability-under-the-ncode-identity-prefix.md)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

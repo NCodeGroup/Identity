@@ -1,6 +1,6 @@
 # 1056. `NCode.Identity.Abstractions` is split into framework-free, correctly-tiered packages
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1498](1498-every-package-names-one-capability-under-the-ncode-identity-prefix.md))
 - **Date:** 2026-10-09
 - **Deciders:** NCode Group
 

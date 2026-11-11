@@ -46,9 +46,9 @@ The product spans the repositories below.
     ([ADR-1495](docs/decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
     `ncodeid.net` is the platform domain that carries every issuer, `ncodeid.com` the brand domain; the redirect-only
     `ncodeidentity.com` and `ncodeidentity.net` guard the name.
-- **GitHub names.** Each repository's name on GitHub is the one the naming bullet gives, and GitHub resolves a
-  repository name without regard to case, so a link to `https://github.com/NCodeGroup/Identity` reaches
-  `NCodeGroup/identity`.
+- **GitHub names.** Each repository's name on GitHub is the one the naming bullet gives, and every link and reference
+  spells it that way, such as `https://github.com/NCodeGroup/identity`. GitHub resolves a repository name without
+  regard to case, so a link in any capitalization reaches the repository.
 
 See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md).
 

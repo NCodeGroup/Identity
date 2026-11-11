@@ -112,12 +112,32 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         return jsonElement.GetProperty("issuer").GetString()!;
     }
 
+    private ValueTask<string> CreateRequestObjectAsync(
+        HostApplicationFactory factory,
+        string clientId,
+        string algorithmCode,
+        string? audience,
+        RequestObjectOptions options,
+        CancellationToken cancellationToken
+    ) =>
+        CreateRequestObjectAsync(
+            factory,
+            clientId,
+            algorithmCode,
+            audience,
+            options,
+            prompt: "none",
+            cancellationToken
+        );
+
+    // A null prompt omits the claim, so a request without a session is sent to the login page.
     private async ValueTask<string> CreateRequestObjectAsync(
         HostApplicationFactory factory,
         string clientId,
         string algorithmCode,
         string? audience,
         RequestObjectOptions options,
+        string? prompt,
         CancellationToken cancellationToken
     )
     {
@@ -137,10 +157,11 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             ["response_type"] = "code",
             ["scope"] = "openid",
             ["state"] = State,
-            ["prompt"] = "none",
             ["code_challenge"] = TestPkce.CodeChallenge,
             ["code_challenge_method"] = "S256",
         };
+        if (prompt is not null)
+            claims["prompt"] = prompt;
         if (options.ResponseMode is not null)
             claims["response_mode"] = options.ResponseMode;
         if (options.RedirectUri is not null)
@@ -164,7 +185,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
 
     private static async ValueTask<HttpResponseMessage> AuthorizeAsync(
         HttpClient client,
-        string sessionCookie,
+        string? sessionCookie,
         string clientId,
         string requestObject,
         string outerParameters,
@@ -180,7 +201,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             + outerParameters;
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
-        request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        if (sessionCookie is not null)
+            request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
         return await client.SendAsync(request, cancellationToken);
     }
 
@@ -629,6 +651,65 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             error,
             StringComparison.Ordinal
         );
+    }
+
+    #endregion
+
+    #region Continue Tests
+
+    [Fact]
+    public async Task Continue_WhenTheRequestCarriesARequestObject_AfterTheUserSignsIn_IssuesTheCode()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password, CancellationToken.None);
+        var client = CreateClient(factory);
+        var clientId = await RegisterClientAsync(client, CancellationToken.None);
+        var issuer = await GetIssuerAsync(client, CancellationToken.None);
+        var requestObject = await CreateRequestObjectAsync(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            new RequestObjectOptions { RedirectUri = RedirectUri },
+            prompt: null,
+            CancellationToken.None
+        );
+
+        // Without a session the request is sent to the login page with the continue URL as its return URL.
+        using var authorizeResponse = await AuthorizeAsync(
+            client,
+            sessionCookie: null,
+            clientId,
+            requestObject,
+            outerParameters: "",
+            CancellationToken.None
+        );
+
+        Assert.Equal(HttpStatusCode.Found, authorizeResponse.StatusCode);
+        Assert.NotNull(client.BaseAddress);
+        Assert.NotNull(authorizeResponse.Headers.Location);
+        var loginLocation = new Uri(client.BaseAddress, authorizeResponse.Headers.Location);
+        var continueUrl = HttpUtility.ParseQueryString(loginLocation.Query)["ReturnUrl"];
+        Assert.False(string.IsNullOrEmpty(continueUrl));
+
+        var sessionCookie = await InteractiveLogin.SignInAsync(
+            client,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, continueUrl);
+        request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        using var continueResponse = await client.SendAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.SeeOther, continueResponse.StatusCode);
+        var location = continueResponse.Headers.Location;
+        Assert.NotNull(location);
+        Assert.Equal(RedirectUri, location.GetLeftPart(UriPartial.Path));
+        var parameters = HttpUtility.ParseQueryString(location.Query);
+        Assert.False(string.IsNullOrEmpty(parameters["code"]), location.ToString());
+        Assert.Equal(State, parameters["state"]);
     }
 
     #endregion

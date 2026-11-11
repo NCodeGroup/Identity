@@ -6,8 +6,8 @@ using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Time;
 using NCode.Persistence.Stores;
-using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Persistence;
 

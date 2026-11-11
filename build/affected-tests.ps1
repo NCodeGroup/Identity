@@ -30,7 +30,7 @@
     ./build/affected-tests.ps1
 
 .EXAMPLE
-    ./build/affected-tests.ps1 -ChangedPath 'src/NCode.Time/TimeProviderExtensions.cs'
+    ./build/affected-tests.ps1 -ChangedPath 'src/NCode.Identity.Time/TimeProviderExtensions.cs'
 #>
 [CmdletBinding()]
 param(

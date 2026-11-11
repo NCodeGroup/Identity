@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Time;
+namespace NCode.Identity.Time;
 
 /// <summary>
 /// Provides extension methods for <see cref="DateTimeOffset"/> to truncate to the nearest second.

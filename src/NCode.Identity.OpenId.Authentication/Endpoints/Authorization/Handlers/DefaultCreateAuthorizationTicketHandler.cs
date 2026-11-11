@@ -7,8 +7,8 @@ using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Time;
 using NCode.Mediator;
-using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 

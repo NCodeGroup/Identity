@@ -13,8 +13,8 @@ using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.Time;
 using NCode.Mediator;
-using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 

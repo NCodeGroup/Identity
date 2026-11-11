@@ -13,8 +13,8 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Time;
 using NCode.Persistence.Stores;
-using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Consent;
 

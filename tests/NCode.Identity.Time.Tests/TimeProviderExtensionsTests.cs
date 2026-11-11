@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Time.Testing;
 
-namespace NCode.Time.Tests;
+namespace NCode.Identity.Time.Tests;
 
 public sealed class TimeProviderExtensionsTests
 {

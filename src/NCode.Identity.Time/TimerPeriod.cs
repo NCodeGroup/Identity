@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Time;
+namespace NCode.Identity.Time;
 
 /// <summary>
 /// Provides the range of periods that a timer accepts: a <see cref="PeriodicTimer"/> refuses a period shorter than one

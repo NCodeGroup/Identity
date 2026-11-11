@@ -14,7 +14,7 @@ using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.Bff.Login;
 

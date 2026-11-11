@@ -18,7 +18,7 @@ using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Registration.AspNetCore;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 

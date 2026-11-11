@@ -3,7 +3,8 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>NCode.Time</RootNamespace>
+        <RootNamespace>NCode.Identity.Time</RootNamespace>
+        <Description>The time values the JWT, CWT and OAuth specifications and NCode.Identity's settings define: NumericDate whole-second precision, the periods a timer accepts and the span between two instants.</Description>
     </PropertyGroup>
 
     <ItemGroup>

@@ -32,7 +32,7 @@
     full gate that the merge queue, main and the release lines run (ADR-1263).
 
 .PARAMETER Filter
-    A `dotnet test --filter` expression; runs only the matching tests (for example `FullyQualifiedName~NCode.Time`).
+    A `dotnet test --filter` expression; runs only the matching tests (for example `FullyQualifiedName~NCode.Identity.Time`).
 
 .PARAMETER Affected
     Runs only the test projects that build/affected-tests.ps1 selects for the changes since the merge base of HEAD and

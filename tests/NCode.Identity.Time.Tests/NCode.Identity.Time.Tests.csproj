@@ -4,7 +4,7 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>NCode.Time.Tests</RootNamespace>
+        <RootNamespace>NCode.Identity.Time.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
@@ -23,6 +23,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\NCode.Time\NCode.Time.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Time\NCode.Identity.Time.csproj" />
     </ItemGroup>
 </Project>

@@ -21,6 +21,6 @@
         <ProjectReference Include="..\NCode.Identity.Bff.Protocol.Abstractions\NCode.Identity.Bff.Protocol.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Json\NCode.Identity.Json.csproj" />
         <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
-        <ProjectReference Include="..\NCode.Time\NCode.Time.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Time\NCode.Identity.Time.csproj" />
     </ItemGroup>
 </Project>

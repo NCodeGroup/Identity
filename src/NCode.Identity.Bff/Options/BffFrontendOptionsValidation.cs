@@ -6,7 +6,7 @@ using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.Bff.Options;
 

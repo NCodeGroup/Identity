@@ -1,0 +1,15 @@
+#nullable enable
+NCode.Identity.Time.DateTimeExtensions
+NCode.Identity.Time.DateTimeExtensions.extension(System.DateTime)
+NCode.Identity.Time.DateTimeExtensions.extension(System.DateTime).WithPrecisionInSeconds() -> System.DateTime
+NCode.Identity.Time.DateTimeOffsetExtensions
+NCode.Identity.Time.DateTimeOffsetExtensions.extension(System.DateTimeOffset)
+NCode.Identity.Time.DateTimeOffsetExtensions.extension(System.DateTimeOffset).WithPrecisionInSeconds() -> System.DateTimeOffset
+NCode.Identity.Time.TimeProviderExtensions
+NCode.Identity.Time.TimeProviderExtensions.extension(System.TimeProvider!)
+NCode.Identity.Time.TimeProviderExtensions.extension(System.TimeProvider!).GetTimestampWithPrecisionInSeconds() -> long
+NCode.Identity.Time.TimeProviderExtensions.extension(System.TimeProvider!).GetUtcNowWithPrecisionInSeconds() -> System.DateTimeOffset
+NCode.Identity.Time.TimerPeriod
+static NCode.Identity.Time.TimerPeriod.IsValid(System.TimeSpan period) -> bool
+static NCode.Identity.Time.TimerPeriod.MaxValue.get -> System.TimeSpan
+static NCode.Identity.Time.TimerPeriod.MinValue.get -> System.TimeSpan

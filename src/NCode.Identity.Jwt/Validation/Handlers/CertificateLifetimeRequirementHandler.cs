@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 using NCode.Identity.Secrets.Keys;
-using NCode.Time;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.Jwt.Validation;
 

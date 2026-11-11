@@ -1,0 +1,10 @@
+<Project>
+  <!-- MSBuild uses the first Directory.Build.props found walking up, so explicitly import the
+       repository-root one to inherit shared metadata, analyzers, and provenance settings. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- Benchmark projects: the build compiles them, and nothing runs or packs them (ADR-1386, ADR-1501). -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>

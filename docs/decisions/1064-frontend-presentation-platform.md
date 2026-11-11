@@ -11,7 +11,7 @@
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
   settings under `/api/platform`; and by
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the management
-  console is served by a BFF host of its own)
+  console is served by a BFF host of its own; and by [ADR-1501](1501-a-projects-top-level-folder-says-whether-it-ships.md): the platform lives in `frontend/` at the repository root)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 
@@ -49,7 +49,7 @@ Query, built with Vite, orchestrated by pnpm workspaces + Turborepo — that all
 clean layering — stateless presentational components, stateful container wiring, and UI-free
 services/logic — so every layer is independently testable.** Concretely:
 
-- **Placement.** The platform lives under [`src/frontend/`](../../src/frontend/) next to the .NET projects.
+- **Placement.** The platform lives under [`frontend/`](../../frontend/), a top-level folder of its own beside `src/`, which holds only the published packages.
   It is a self-contained pnpm workspace with its own toolchain; the .NET build (`.slnx`, `dod.ps1`,
   `Directory.Build.*`) only compiles `.csproj` projects and never sees it. `node_modules/`, `dist/`,
   `.turbo/`, and coverage output are git-ignored.
@@ -98,7 +98,7 @@ services/logic — so every layer is independently testable.** Concretely:
   feature ships now; the seam exists so it is additive later. (Per-tenant branding of the interactive surface
   landed in [ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md).)
 - **Monorepo now, clean split later.** Every shared concern is a scoped `@ncode/*` package consumed only
-  through its public entry point — no deep relative imports across package boundaries — so `src/frontend/`
+  through its public entry point — no deep relative imports across package boundaries — so `frontend/`
   can be extracted into its own repository at GA by moving the folder and repointing the workspace root,
   with no source rewrites.
 
@@ -125,21 +125,19 @@ services/logic — so every layer is independently testable.** Concretely:
   doubly undesirable given the anticipated GA repo split. Rejected PnP/zero-installs; pnpm's symlinked
   layout captures most of the strictness benefit without the compatibility tax. (pnpm's own
   experimental PnP mode is likewise left off for the same reason.)
-- **Placement `src/frontend/` vs. top-level `web/`.** `web/` keeps the toolchains visually separate, but
-  `src/frontend/` keeps all source under one root and the .NET build already ignores non-`.csproj`
-  content. Chose `src/frontend/` with clean package boundaries so a future repo split is still mechanical.
+- **Placement `frontend/` at the root vs. under `src/`.** `src/` holds only the published NuGet packages, so the workspace takes a top-level folder named for its role, and clean package boundaries keep a future repo split mechanical.
 - **Redux Toolkit vs. React Query/Zustand.** RTK + RTK Query gives one cohesive state model (server +
   client state, cache tags, devtools) and matches the stateless/stateful layering. Chosen.
 
 ## Consequences
 
 - The family gains its first UI and a new toolchain (Node/pnpm) in the repo. It is isolated under
-  `src/frontend/` and does not affect the .NET Definition of Done; it needs its own lint/test/build CI
+  `frontend/` and does not affect the .NET Definition of Done; it needs its own lint/test/build CI
   job, added separately.
 - All future surfaces ([#125](https://github.com/NCodeGroup/Identity/issues/125) login/consent, [#40](https://github.com/NCodeGroup/Identity/issues/40) consent, Playground, conformance) build on this platform
   instead of re-inventing a UI, and inherit the design system, API client, auth bootstrap, and discovery.
 - The stateless/stateful/service layering becomes a maintained convention (captured in
-  [`src/frontend/README.md`](../../src/frontend/README.md)); breaking it (state in presentational
+  [`frontend/README.md`](../../frontend/README.md)); breaking it (state in presentational
   components, logic in components) is a review failure because it breaks Storybook/unit isolation.
 - The runtime-discovery contract becomes a coupling between the serving host and the bundle: the host
   must publish a discovery document the bundle understands. The management REST contracts become a typed
@@ -162,4 +160,4 @@ services/logic — so every layer is independently testable.** Concretely:
   [`ClientApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs),
   [`ServerApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/Servers/ServerApiEndpointHandler.cs)
   (global scope).
-- Platform guide: [`src/frontend/README.md`](../../src/frontend/README.md).
+- Platform guide: [`frontend/README.md`](../../frontend/README.md).

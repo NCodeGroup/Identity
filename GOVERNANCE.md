@@ -18,6 +18,40 @@ any one host feature.
   composition.
 - **Out of scope:** application-specific policy and business rules. Consumers build those on top of the library.
 
+## Repositories and naming
+
+The product spans the repositories below.
+
+| Repository                     | Visibility | Holds |
+| ------------------------------ | ---------- | ----- |
+| `NCodeGroup/identity`          | Public     | The product: the NuGet packages (`src/`), the deployables (`hosts/`), the host and console images, the host chart (`charts/ncode-identity-host`), the web apps' pnpm workspace (`frontend/`), and the decisions and issues of the product and its platform ([ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)) |
+| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the platform's live configuration for `lab` and `production` ([ADR-1132](docs/decisions/1132-platform-infrastructure-as-code-is-public-on-github.md), [ADR-1133](docs/decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)) |
+| `NCodeGroup/identity-cloud`    | Private    | Only the managed offering's proprietary parts: billing and metering, sign-up, the customer portal, support tooling and private runbooks |
+
+- **Public or private.** Code is public when a self-hoster could use it. Anything in `identity-cloud` that a
+  self-hoster would want belongs in `identity` or `identity-platform`.
+- **Decisions and issues.** The decisions and issues of `identity-platform` live in `identity`. `identity-cloud` keeps
+  its private decisions and issues itself; a decision about a public contract it relies on is recorded in `identity`'s
+  [`docs/decisions/`](docs/decisions/).
+- **Naming.**
+  - Repositories: lowercase kebab-case, product first: `identity`, `identity-platform`, `identity-cloud`.
+  - NuGet packages: `NCode.Identity.*`
+    ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md)), under the
+    `NCode` ID prefix the NCode Group holds on nuget.org.
+  - The chart and the images: `ncode-identity-*`: the chart `ncode-identity-host`, the images
+    `ghcr.io/ncodegroup/ncode-identity-host` and `ghcr.io/ncodegroup/ncode-identity-management-console`.
+  - npm workspace packages: `@ncode/*`, every one `"private": true` and none published: the workspace root
+    `@ncode/frontend`, the packages such as `@ncode/ui` and `@ncode/api`, and the apps `@ncode/app-*`.
+  - Domains: `ncodeid.*`
+    ([ADR-1495](docs/decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
+    `ncodeid.net` is the platform domain that carries every issuer, `ncodeid.com` the brand domain; the redirect-only
+    `ncodeidentity.com` and `ncodeidentity.net` guard the name.
+- **GitHub names.** Each repository's name on GitHub is the one the naming bullet gives, and GitHub resolves a
+  repository name without regard to case, so a link to `https://github.com/NCodeGroup/Identity` reaches
+  `NCodeGroup/identity`.
+
+See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md).
+
 ## Change control
 
 - A change starts as a **GitHub issue**. A change that affects the **public outcome** (semantics, high-level logic,

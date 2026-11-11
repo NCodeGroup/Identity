@@ -16,17 +16,8 @@ internal static class MethodExemptions
     private const string FactAttributeName = "Xunit.FactAttribute";
     private const string HttpContextName = "Microsoft.AspNetCore.Http.HttpContext";
 
-    // The assemblies built from this repository. A member one of them declares is the family's own, so an implementer
-    // has the family's shape; a member any other assembly declares is a framework contract.
-    private static string[] FamilyAssemblyNames { get; } =
-    [
-        "NCode.Identity",
-        "NCode.AspNetCore",
-        "NCode.Json",
-        "NCode.Persistence",
-        "NCode.Registration",
-        "NCode.Time",
-    ];
+    // The assemblies built from this repository are NCode.Identity and NCode.Identity.*. A member one of them declares is the family's own, so an implementer has the family's shape; a member any other assembly declares is a framework contract.
+    private static string[] FamilyAssemblyNames { get; } = ["NCode.Identity"];
 
     /// <summary>
     /// Determines whether a framework contract fixes a method's shape.

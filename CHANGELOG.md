@@ -4153,6 +4153,11 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 ### Security
 
+- **The host accepts only TLS 1.2 and 1.3 with AEAD cipher suites.** When the host terminates TLS itself, the handshake
+  refuses TLS 1.0 and 1.1 on every platform, and on Linux and macOS negotiates only the six AEAD cipher suites with
+  forward secrecy that FAPI 1.0 Part 2 §8.5 permits. A Windows host leaves the cipher suites to SChannel
+  ([ADR-1499](docs/decisions/1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md)).
+
 - **The management console holds no token in the browser.** No access, refresh or ID token reaches the console's
   script; its calls carry the `__Host-Http-bff.mgmt` cookie and the anti-forgery header, and the console's origin is
   separate from the OP's login, consent and account pages

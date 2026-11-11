@@ -13,6 +13,11 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 ### Added
 
+- **Every OpenID protocol endpoint answers the `x-fapi-interaction-id` header.** A request that carries a UUID gets the
+  same value back, and a request that carries none, or a value that is not a UUID, gets a new UUID, on success and
+  error responses alike, as FAPI 1.0 Part 1 §6.2.1-11 requires
+  ([ADR-1498](docs/decisions/1498-protocol-endpoints-answer-the-x-fapi-interaction-id-header.md)).
+
 - **Every registration prerequisite is checked at compile time through marker builders.** `IServiceBuilder<TMarker>` is
   the one way a capability attaches, so adding a capability to a host that lacks its prerequisite library is a compile
   error, not a runtime failure. A registration with one prerequisite extends `IServiceBuilder<TMarker>`; one with a

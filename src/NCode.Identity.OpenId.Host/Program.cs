@@ -86,20 +86,20 @@ builder.WebHost.ConfigureKestrel(kestrel =>
     {
         https.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
         https.AllowAnyClientCertificate();
-        if (!OperatingSystem.IsWindows())
+        https.OnAuthenticate = (_, sslOptions) =>
         {
-            https.OnAuthenticate = (_, sslOptions) =>
-                sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(
-                    [
-                        TlsCipherSuite.TLS_AES_256_GCM_SHA384,
-                        TlsCipherSuite.TLS_AES_128_GCM_SHA256,
-                        TlsCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-                        TlsCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-                        TlsCipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-                        TlsCipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                    ]
-                );
-        }
+            if (!OperatingSystem.IsWindows())
+            {
+                sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy([
+                    TlsCipherSuite.TLS_AES_256_GCM_SHA384,
+                    TlsCipherSuite.TLS_AES_128_GCM_SHA256,
+                    TlsCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+                    TlsCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+                    TlsCipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                    TlsCipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                ]);
+            }
+        };
     })
 );
 

@@ -70,5 +70,36 @@
         }
       ]
     }
-  ]
+  ],
+  "override": {
+    "fapi1-advanced-final-user-rejects-authentication": {
+      "browser": [
+        {
+          "match": "{{issuer}}/oauth2/authorize*",
+          "tasks": [
+            {
+              "task": "Login",
+              "match": "{{issuer}}/account/login*",
+              "optional": true,
+              "commands": [
+                ["text", "id", "username", "{{test_user_name}}"],
+                ["text", "id", "password", "{{test_user_password}}"],
+                ["click", "id", "login"]
+              ]
+            },
+            {
+              "task": "Deny consent",
+              "match": "{{issuer}}/account/consent*",
+              "commands": [["click", "id", "consent-deny"]]
+            },
+            {
+              "task": "Verify Complete",
+              "match": "https://*/test/*/callback*",
+              "commands": [["wait", "id", "submission_complete", 10]]
+            }
+          ]
+        }
+      ]
+    }
+  }
 }

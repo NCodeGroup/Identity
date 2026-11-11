@@ -259,7 +259,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenId:TenantResolution:StaticSingle:Issuer`, so it byte-matches the suite's `server.discoveryUrl`. The profile uses
   the conformance seed ([#127](https://github.com/NCodeGroup/Identity/issues/127)) and the interactive login and consent
   UI ([#125](https://github.com/NCodeGroup/Identity/issues/125)). Run it with `dotnet run --project
-  src/NCode.Identity.OpenId.Host --launch-profile Conformance` after
+  hosts/NCode.Identity.OpenId.Host --launch-profile Conformance` after
   `build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment`; see
   [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
 
@@ -331,7 +331,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   root key.
 
 - **The AppHost fails fast when the frontend toolchain is stale.** Before any resource starts it requires a Node of the
-  major pinned in `src/frontend/.node-version` and a `node_modules` that matches the pinned pnpm and `pnpm-lock.yaml`,
+  major pinned in `frontend/.node-version` and a `node_modules` that matches the pinned pnpm and `pnpm-lock.yaml`,
   and otherwise stops with one message that names `./build/frontend-install.ps1`
   ([ADR-1287](docs/decisions/1287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md), issue
   [#401](https://github.com/NCodeGroup/Identity/issues/401)).
@@ -341,7 +341,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `playground` or `conformance` directly, so the seeded redirect URIs and developer CORS origins for ports
   5174–5175 are `https://` only (issue [#402](https://github.com/NCodeGroup/Identity/issues/402)).
 
-- **The host ships a production container image.** `src/NCode.Identity.OpenId.Host/Dockerfile` builds the host on the
+- **The host ships a production container image.** `hosts/NCode.Identity.OpenId.Host/Dockerfile` builds the host on the
   chiseled `aspnet:10.0-noble-chiseled-extra` runtime. The image has no shell, runs as the non-root `app` user (UID
   1654), and exposes only port 8080. It builds the `apps/auth` interactive bundle and serves it from `/app/auth`, so the
   container renders login and consent, and it carries the migration worker in `/app/migrations`. The SDK and Node stages
@@ -358,7 +358,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#265](https://github.com/NCodeGroup/Identity/issues/265)).
 
 - **The management console host ships a production container image.**
-  `src/NCode.Identity.ManagementConsole.Host/Dockerfile` builds the console host on the host image's pinned chiseled
+  `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile` builds the console host on the host image's pinned chiseled
   base images: no shell, the non-root `app` user, port 8080, the `apps/mgmt` bundle served from `/app/mgmt`, and
   one-line JSON logs; the `Console image` CI workflow builds it for `linux/amd64` and `linux/arm64`
   ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
@@ -467,7 +467,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The frontend toolchain is current and `pnpm audit` is clean.** It builds with Vite 8, Vitest 5, Storybook 10, ESLint
   10, jsdom 30 and TypeScript 6.0, the newest version typescript-eslint supports (issue
   [#147](https://github.com/NCodeGroup/Identity/issues/147) tracks TypeScript 7). Lint uses a flat
-  `src/frontend/eslint.config.js` with `@eslint-react/eslint-plugin` and `eslint-plugin-react-hooks` 7's React Compiler
+  `frontend/eslint.config.js` with `@eslint-react/eslint-plugin` and `eslint-plugin-react-hooks` 7's React Compiler
   checks, and presentational tables such as `GrantTable` and `SecretTable` take a `now` prop from their container rather
   than reading the clock during render. `@types/node` follows the Node runtime major, pinned workspace-wide by a pnpm
   override, `engines.node` states the toolchain's real floor, and Dependabot ignores TypeScript and `@types/node` majors
@@ -475,7 +475,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1147](docs/decisions/1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)).
 
 - **The frontend runs on Node 26, and its Node and pnpm versions are each set in one place.** Node 26 is in Active LTS
-  and supported until 2029-04-30. `src/frontend/.node-version` is the only place the Node major is set: CI reads it
+  and supported until 2029-04-30. `frontend/.node-version` is the only place the Node major is set: CI reads it
   (`node-version-file`), and so do the Aspire AppHost and `build/frontend-install.ps1`, which pick the NVS install by
   version, and the `Host image` workflow checks the Dockerfile's Node image against it. `engines.node` is `>=26.0.0` and
   `@types/node` is 26. `build/frontend-install.ps1` adds the pinned Node through NVS if it is missing and installs,
@@ -2113,14 +2113,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCode.Identity.AspNetCore` references `NCode.Buffers` ([#513](https://github.com/NCodeGroup/Identity/issues/513),
   [ADR-1388](docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md)).
 
-- **One TypeScript UI platform serves every frontend surface (`src/frontend`).** Management, login/consent, playground
+- **One TypeScript UI platform serves every frontend surface (`frontend`).** Management, login/consent, playground
   and OIDC conformance surfaces share React + Material UI, Redux Toolkit + RTK Query, Vite, Vitest + React Testing
   Library and Storybook, orchestrated by pnpm workspaces + Turborepo and pinned through Corepack. Shared `@ncode/*`
   packages (`config` runtime discovery, `api` RTK Query client with a global/tenant scope model, `store` Redux assembly,
   `ui` MUI design system) back thin per-surface app shells, including the management console (`@ncode/app-mgmt`) with
   global-vs-tenant boundary browsing. Bundles are tier-agnostic: all configuration is discovered at runtime from the
   serving host and nothing is baked in at build time, and a branding seam supports per-tenant theming. The toolchain is
-  isolated under `src/frontend` and is separate from the .NET Definition of Done. See
+  isolated under `frontend` and is separate from the .NET Definition of Done. See
   [ADR-1064](docs/decisions/1064-frontend-presentation-platform.md).
 
 - **The frontend runs on React 19 and Material UI 9.** This covers every surface, including the login and consent pages
@@ -3712,6 +3712,16 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#475](https://github.com/NCodeGroup/Identity/issues/475), [#476](https://github.com/NCodeGroup/Identity/issues/476),
   [#477](https://github.com/NCodeGroup/Identity/issues/477), [#490](https://github.com/NCodeGroup/Identity/issues/490)).
 
+- **A project's top-level folder says whether it ships, and the build holds every project to its folder.** `src/` holds
+  only the published NuGet packages, and every project there packs. `hosts/` holds the deployables
+  (`NCode.Identity.OpenId.Host`, `NCode.Identity.OpenId.Host.Database`, `NCode.Identity.OpenId.Host.MigrationService`,
+  `NCode.Identity.OpenId.LocalDev` and `NCode.Identity.ManagementConsole.Host`), `analyzers/` the repository's own
+  Roslyn analyzers, and `frontend/` the pnpm workspace of the web apps; `tests/` and `benchmarks/` hold the tests and
+  benchmarks. Each folder outside `src/` turns packing off in its `Directory.Build.props`, and the build fails a project
+  under `src/` that does not pack and a project outside it that does
+  ([#759](https://github.com/NCodeGroup/Identity/issues/759),
+  [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)).
+
 - **The build reports a field that could be an auto-property.** `NCode.Identity.Analyzers`, the repository's own Roslyn
   analyzer project, which every project of the solution loads and no package ships, fails the build with `NCID0001` on
   a field, instance or static, unless it is a `const`, a `ref` field, a `volatile` or fixed-size buffer field, a field
@@ -3773,7 +3783,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   repository-wide agent rules are in `.github/instructions/repository.instructions.md`. `.gitignore` ignores, and Claude
   Code denies reading, only the root `secrets/` folder, so a `Secrets/` source folder such as `Contracts/Secrets/` is
   committed on every platform; the template update runs on Windows when the repository's `.gitignore` ignores a folder
-  the template's does not, such as `src/frontend/node_modules`; and every checkout except `copilot-setup-steps.yml`'s sets
+  the template's does not, such as `frontend/node_modules`; and every checkout except `copilot-setup-steps.yml`'s sets
   `persist-credentials: false`, keeping the job's token out of `.git/config`
   ([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
 
@@ -3905,7 +3915,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   runs as an opt-in gate; a nightly CI pipeline for it is tracked in
   [#129](https://github.com/NCodeGroup/Identity/issues/129). The one-time Windows setup (Python install manager,
   per-user NVS, both hosts entries) is documented in [`build/conformance/README.md`](build/conformance/README.md),
-  persisting `nvs auto on` in the pwsh / Git Bash profiles in [`src/frontend/README.md`](src/frontend/README.md), and
+  persisting `nvs auto on` in the pwsh / Git Bash profiles in [`frontend/README.md`](frontend/README.md), and
   the harness in [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md).
 
 - **The browser-driven Basic OP conformance plan runs at `parallel=2`** (issue

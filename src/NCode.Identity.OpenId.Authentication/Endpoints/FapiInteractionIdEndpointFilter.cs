@@ -17,6 +17,8 @@ internal sealed class FapiInteractionIdEndpointFilter : IEndpointFilter
     /// </summary>
     public const string HeaderName = "x-fapi-interaction-id";
 
+    private const string UuidFormat = "D";
+
     /// <summary>
     /// Gets the singleton instance of <see cref="FapiInteractionIdEndpointFilter"/>.
     /// </summary>
@@ -31,9 +33,9 @@ internal sealed class FapiInteractionIdEndpointFilter : IEndpointFilter
         var httpContext = context.HttpContext;
         var requested = httpContext.Request.Headers[HeaderName].ToString();
 
-        var interactionId = Guid.TryParseExact(requested, "D", out _)
+        var interactionId = Guid.TryParseExact(requested, UuidFormat, out _)
             ? requested
-            : Guid.NewGuid().ToString("D");
+            : Guid.NewGuid().ToString(UuidFormat);
 
         httpContext.Response.Headers[HeaderName] = interactionId;
 

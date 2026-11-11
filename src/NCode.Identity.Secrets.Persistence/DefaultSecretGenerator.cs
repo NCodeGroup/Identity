@@ -472,6 +472,12 @@ internal class DefaultSecretGenerator(
         return Base64Url.Encode(entropy);
     }
 
+    /// <summary>
+    /// Encodes secret material as UTF-8 into sensitive pooled memory that is zeroed when the returned lease is disposed.
+    /// </summary>
+    /// <param name="secretMaterial">The secret material to encode.</param>
+    /// <param name="utf8">The UTF-8 bytes, which are valid until the returned lease is disposed.</param>
+    /// <returns>The lease that returns the memory to the pool, which the caller disposes.</returns>
     // What is stored is computed from the secret's UTF-8 octets, which is what a presented secret is compared as.
     private static IDisposable RentUtf8(string secretMaterial, out ReadOnlySpan<byte> utf8)
     {

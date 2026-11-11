@@ -243,6 +243,13 @@ public sealed class Disclosure
         return Base64Url.Encode(buffer.AsReadOnlySequence);
     }
 
+    /// <summary>
+    /// Decodes the base64url text of a disclosure into pooled memory.
+    /// </summary>
+    /// <param name="chars">The base64url text to decode.</param>
+    /// <param name="bytes">The decoded bytes, which are valid until the returned lease is disposed.</param>
+    /// <returns>The lease that returns the memory to the pool, which the caller disposes.</returns>
+    /// <exception cref="FormatException"><paramref name="chars"/> is not valid base64url text.</exception>
     private static IDisposable DecodeBase64Url(
         ReadOnlySpan<char> chars,
         out ReadOnlySpan<byte> bytes

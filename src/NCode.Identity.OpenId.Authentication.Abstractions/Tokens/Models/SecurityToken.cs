@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
-using NCode.Identity.Models;
+using NCode.Identity.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.Models;
 

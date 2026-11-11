@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Models;
+namespace NCode.Identity.Time;
 
 /// <summary>
 /// Represents a time period with a start time and an optional end time.

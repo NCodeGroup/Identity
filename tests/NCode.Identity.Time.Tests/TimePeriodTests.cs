@@ -1,7 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-namespace NCode.Identity.Models;
+namespace NCode.Identity.Time.Tests;
 
 public class TimePeriodTests
 {

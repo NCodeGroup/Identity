@@ -1649,7 +1649,7 @@ NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.Su
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.SubjectAuthentication.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.SecurityToken() -> void
-NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenLifetime.get -> NCode.Identity.Models.TimePeriod
+NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenLifetime.get -> NCode.Identity.Time.TimePeriod
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenLifetime.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenType.get -> string!
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken.TokenType.init -> void

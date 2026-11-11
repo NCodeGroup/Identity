@@ -13,3 +13,10 @@ NCode.Identity.Time.TimerPeriod
 static NCode.Identity.Time.TimerPeriod.IsValid(System.TimeSpan period) -> bool
 static NCode.Identity.Time.TimerPeriod.MaxValue.get -> System.TimeSpan
 static NCode.Identity.Time.TimerPeriod.MinValue.get -> System.TimeSpan
+NCode.Identity.Time.TimePeriod
+NCode.Identity.Time.TimePeriod.Duration.get -> System.TimeSpan?
+NCode.Identity.Time.TimePeriod.EndTime.get -> System.DateTimeOffset?
+NCode.Identity.Time.TimePeriod.EndTime.init -> void
+NCode.Identity.Time.TimePeriod.StartTime.get -> System.DateTimeOffset
+NCode.Identity.Time.TimePeriod.StartTime.init -> void
+NCode.Identity.Time.TimePeriod.TimePeriod() -> void

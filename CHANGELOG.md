@@ -13,6 +13,11 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 ### Added
 
+- **Every OpenID protocol endpoint answers the `x-fapi-interaction-id` header.** A request that carries a UUID gets the
+  same value back, and a request that carries none, or a value that is not a UUID, gets a new UUID, on success and
+  error responses alike, as FAPI 1.0 Part 1 §6.2.1-11 requires
+  ([ADR-1498](docs/decisions/1498-protocol-endpoints-answer-the-x-fapi-interaction-id-header.md)).
+
 - **Every registration prerequisite is checked at compile time through marker builders.** `IServiceBuilder<TMarker>` is
   the one way a capability attaches, so adding a capability to a host that lacks its prerequisite library is a compile
   error, not a runtime failure. A registration with one prerequisite extends `IServiceBuilder<TMarker>`; one with a
@@ -4147,6 +4152,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
 
 ### Security
+
+- **The host accepts only TLS 1.2 and 1.3 with AEAD cipher suites.** When the host terminates TLS itself, the handshake
+  refuses TLS 1.0 and 1.1 on every platform, and on Linux and macOS negotiates only the six AEAD cipher suites with
+  forward secrecy that FAPI 1.0 Part 2 §8.5 permits. A Windows host leaves the cipher suites to SChannel
+  ([ADR-1499](docs/decisions/1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md)).
 
 - **The management console holds no token in the browser.** No access, refresh or ID token reaches the console's
   script; its calls carry the `__Host-Http-bff.mgmt` cookie and the anti-forgery header, and the console's origin is

@@ -59,16 +59,19 @@ public sealed class DefaultTeamSettingsReconcilerTests : BaseTests
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
         MockMediator = CreateStrictMock<IMediator>();
 
-        Settings = new DefaultSettingCollection(
-            CreateLooseMock<ISettingDescriptorCollectionProvider>().Object,
-            [new Setting<bool>(FlagDescriptor, true)]
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(
+            CreateLooseMock<ISettingDescriptorCollectionProvider>().Object
         );
+        serviceCollection.AddSettingsLibrary();
+        serviceCollection.AddScoped(_ => MockMediator.Object);
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+
+        Settings = ServiceProvider
+            .GetRequiredService<ISettingCollectionFactory>()
+            .Create([new Setting<bool>(FlagDescriptor, true)]);
         Fingerprint = SettingsFingerprint.Compute(Settings, JsonOptions);
         SnapshotText = SettingsSnapshot.Write(Settings, JsonOptions).GetRawText();
-
-        ServiceProvider = new ServiceCollection()
-            .AddScoped(_ => MockMediator.Object)
-            .BuildServiceProvider();
 
         Reconciler = new DefaultTeamSettingsReconciler(
             MockStoreManagerFactory.Object,

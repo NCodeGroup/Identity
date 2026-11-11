@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using NCode.Buffers;
+using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
@@ -555,25 +556,26 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PostRegister_WhenAJwksKeyHasNoKid_ReturnsInvalidClientMetadata()
+    public async Task PostRegister_WhenAJwksKeyHasNoKid_ReportsItByItsThumbprint()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
         using var rsa = RSA.Create(2048);
+        var jwk = CreateRsaJwk(rsa, keyId: null);
+        var jwkJson = JsonSerializer.Serialize(jwk);
+        var expected = JsonWebKey.Parse(jwkJson).ComputeThumbprint();
 
         using var response = await client.PostAsJsonAsync(
             "/oauth2/register",
-            CreateKeyRegistration(CreateRsaJwk(rsa, keyId: null))
+            CreateKeyRegistration(jwk)
         );
 
-        await AssertRegistrationErrorAsync(
-            response,
-            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            "kid",
-            CancellationToken.None
-        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        var registration = JsonElement.Parse(body);
+        Assert.Equal([expected], GetKeyIds(registration));
     }
 
     [Fact]

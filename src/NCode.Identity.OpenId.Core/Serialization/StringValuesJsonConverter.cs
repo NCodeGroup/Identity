@@ -25,10 +25,39 @@ internal class StringValuesJsonConverter : JsonConverter<StringValues>
             return StringValues.Empty;
         }
 
+        if (reader.TokenType == JsonTokenType.StartArray)
+        {
+            return ReadArray(ref reader);
+        }
+
         var parsedValue = reader.GetString();
         return string.IsNullOrEmpty(parsedValue)
             ? StringValues.Empty
             : parsedValue.Split(OpenIdProtocol.ParameterSeparatorChar);
+    }
+
+    // A JSON array of strings (the 'aud' claim of RFC 7519) holds each element unchanged, without splitting it.
+    private static StringValues ReadArray(ref Utf8JsonReader reader)
+    {
+        var values = new List<string>();
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+            {
+                return values.Count == 0 ? StringValues.Empty : new StringValues([.. values]);
+            }
+
+            if (reader.TokenType != JsonTokenType.String)
+            {
+                throw new JsonException(
+                    "Every element of a JSON array of values must be a string."
+                );
+            }
+
+            values.Add(reader.GetString() ?? string.Empty);
+        }
+
+        throw new JsonException("The JSON array of values is not complete.");
     }
 
     /// <inheritdoc />

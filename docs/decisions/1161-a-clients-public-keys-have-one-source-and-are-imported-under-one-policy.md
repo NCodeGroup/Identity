@@ -4,7 +4,9 @@
   [ADR-1186](1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md); amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
-  migration rewrites stored data)
+  migration rewrites stored data; decision 3 amended by
+  [ADR-1497](1497-a-registered-key-set-names-a-key-without-a-kid-by-its-thumbprint.md): a key of a registered set
+  without a `kid` is named by its RFC 7638 thumbprint)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

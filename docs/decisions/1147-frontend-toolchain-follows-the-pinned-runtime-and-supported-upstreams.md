@@ -81,8 +81,8 @@ rules need to live in the repository rather than be rediscovered per update.
 
 ## References
 
-- [`src/frontend/eslint.config.js`](../../src/frontend/eslint.config.js),
-  [`src/frontend/package.json`](../../src/frontend/package.json), [`.github/dependabot.yml`](../../.github/dependabot.yml)
+- [`frontend/eslint.config.js`](../../frontend/eslint.config.js),
+  [`frontend/package.json`](../../frontend/package.json), [`.github/dependabot.yml`](../../.github/dependabot.yml)
 - [ADR-1064](1064-frontend-presentation-platform.md) (frontend platform),
   [ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md) (frontend CI reports)
 - ESLint: [configuration migration guide](https://eslint.org/docs/latest/use/configure/migration-guide);

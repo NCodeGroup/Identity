@@ -107,12 +107,12 @@ pin by pnpm's own tooling, not by Corepack.
 
 ## References
 
-- [`src/frontend/.node-version`](../../src/frontend/.node-version),
-  [`src/frontend/package.json`](../../src/frontend/package.json),
-  [`src/frontend/pnpm-workspace.yaml`](../../src/frontend/pnpm-workspace.yaml),
+- [`frontend/.node-version`](../../frontend/.node-version),
+  [`frontend/package.json`](../../frontend/package.json),
+  [`frontend/pnpm-workspace.yaml`](../../frontend/pnpm-workspace.yaml),
   [`.github/workflows/frontend.yml`](../../.github/workflows/frontend.yml),
   [`build/frontend-install.ps1`](../../build/frontend-install.ps1),
-  [`src/NCode.Identity.OpenId.LocalDev/Program.cs`](../../src/NCode.Identity.OpenId.LocalDev/Program.cs)
+  [`hosts/NCode.Identity.OpenId.LocalDev/Program.cs`](../../hosts/NCode.Identity.OpenId.LocalDev/Program.cs)
 - Node.js: [release schedule](https://github.com/nodejs/Release#release-schedule);
   [`build: stop distributing Corepack`](https://github.com/nodejs/node/pull/57617) (Node 25)
 - pnpm: [installation](https://pnpm.io/installation);

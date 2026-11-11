@@ -16,7 +16,7 @@ calls `httpContext.ChallengeAsync(scheme)`, where `scheme` resolves from the
 `authorization_authenticate_scheme` / `authorization_challenge_scheme` settings (default
 `IdentityConstants.ApplicationScheme`, `"Identity.Application"`, declared in
 [`DefaultSettingDescriptorDataSource`](../../src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs)).
-The reference [`Host`](../../src/NCode.Identity.OpenId.Host/Program.cs) calls
+The reference [`Host`](../../hosts/NCode.Identity.OpenId.Host/Program.cs) calls
 `UseAuthentication()` / `UseAuthorization()` but registers **no** authentication scheme, so a challenge
 today has nowhere to redirect. Integration tests sidestep this entirely with
 [`TestSubjectAuthenticationHandler`](../../tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/TestSubjectAuthenticationHandler.cs),
@@ -129,4 +129,4 @@ seeder, the data-driven discovery handler) and need no architectural decision of
   [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) (subject-authentication seam).
 - Code: [`DefaultAuthenticateHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthenticateHandler.cs),
   [`DefaultChallengeHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultChallengeHandler.cs),
-  [`Host/Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs).
+  [`Host/Program.cs`](../../hosts/NCode.Identity.OpenId.Host/Program.cs).

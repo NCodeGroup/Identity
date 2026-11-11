@@ -31,7 +31,7 @@ go. Two converging needs make this a concrete gap rather than a host's problem:
 contract** (`id=username` / `password` / `login` / `consent-allow` / `consent-deny`) and deliberately
 left two things open: the **rendering technology** (server-rendered HTML vs. React + MUI) and whether the
 module is **dev-only** or a first-class surface. [ADR-1064](1064-frontend-presentation-platform.md)
-established the cohesive React + Material UI frontend platform under [`src/frontend/`](../../src/frontend/)
+established the cohesive React + Material UI frontend platform under [`frontend/`](../../frontend/)
 and already names **`apps/auth`** as one of its planned surfaces. This ADR closes the two open questions
 by binding them to that platform.
 
@@ -137,5 +137,5 @@ Concretely:
   [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) (subject-authentication seam).
 - Issues: [#133](https://github.com/NCodeGroup/Identity/issues/133), [#139](https://github.com/NCodeGroup/Identity/issues/139), [#125](https://github.com/NCodeGroup/Identity/issues/125), [#135](https://github.com/NCodeGroup/Identity/issues/135); plan
   [`login-consent-ui.md`](../conformance/login-consent-ui.md).
-- Code: [`Host/Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs),
+- Code: [`Host/Program.cs`](../../hosts/NCode.Identity.OpenId.Host/Program.cs),
   [`BootstrapAdminSeedHandler`](../../src/NCode.Identity.Server/BootstrapAdminSeedHandler.cs).

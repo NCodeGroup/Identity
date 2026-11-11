@@ -4,7 +4,7 @@
   now also orchestrates a PostgreSQL database and a migration-worker resource, so a **container runtime (Docker or
   Podman) is required** — reversing this ADR's original "no container-runtime prerequisite" note; amended by
   [ADR-1152](1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): the AppHost prepends the
-  newest NVS install of the major pinned in `src/frontend/.node-version`, where `build/frontend-install.ps1` installs
+  newest NVS install of the major pinned in `frontend/.node-version`, where `build/frontend-install.ps1` installs
   the pinned pnpm, and Corepack is no longer involved; amended by
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the AppHost runs
   the management console's BFF host on `https://localhost:5005` and build-watches `apps/mgmt`)
@@ -36,7 +36,7 @@ orchestration must preserve those ports, not allocate them dynamically.
 ## Decision
 
 Adopt **.NET Aspire** as the local dev orchestrator through a new **sibling** AppHost project,
-[`NCode.Identity.OpenId.LocalDev`](../../src/NCode.Identity.OpenId.LocalDev/). It models
+[`NCode.Identity.OpenId.LocalDev`](../../hosts/NCode.Identity.OpenId.LocalDev/). It models
 the whole local stack as one resource graph and becomes the single one-stop entry to build, run, and debug
 everything (the `Aspire: Full stack (F5)` launch).
 

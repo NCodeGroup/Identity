@@ -76,9 +76,9 @@ surface needs it.
 
 ## References
 
-- [`src/frontend/packages/shell`](../../src/frontend/packages/shell),
-  [`packages/ui/src/components/BootstrapScreen.tsx`](../../src/frontend/packages/ui/src/components/BootstrapScreen.tsx),
-  [`packages/config/src/loader.ts`](../../src/frontend/packages/config/src/loader.ts), each standalone app's
+- [`frontend/packages/shell`](../../frontend/packages/shell),
+  [`packages/ui/src/components/BootstrapScreen.tsx`](../../frontend/packages/ui/src/components/BootstrapScreen.tsx),
+  [`packages/config/src/loader.ts`](../../frontend/packages/config/src/loader.ts), each standalone app's
   `src/main.tsx`
 - [ADR-1064](1064-frontend-presentation-platform.md) (platform layering),
   [ADR-1082](1082-playground-and-conformance-surfaces.md) (surface-aware bootstrap),

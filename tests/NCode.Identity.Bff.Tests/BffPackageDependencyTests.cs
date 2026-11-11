@@ -35,7 +35,7 @@ public class BffPackageDependencyTests : BaseTests
     }
 
     [Fact]
-    public void BffAssembly_ReferencesOnlyAbstractionAndModelPackages()
+    public void BffAssembly_ReferencesOnlyAbstractionModelFoundationAndRegistrationPackages()
     {
         var assembly = Assembly.Load(new AssemblyName("NCode.Identity.Bff"));
 
@@ -47,9 +47,14 @@ public class BffPackageDependencyTests : BaseTests
 
             // NCode.Identity.Jwk is the JWK model library the abstractions themselves expose (ADR-1119), not an
             // implementation package (ADR-1016).
+            // The registration builder and the foundation packages are referenced by any package (ADR-1498).
             var isAllowed =
                 name.EndsWith(".Abstractions", StringComparison.Ordinal)
-                || name == "NCode.Identity.Jwk";
+                || name == "NCode.Identity.Jwk"
+                || name == "NCode.Identity.Registration"
+                || name == "NCode.Identity.Json"
+                || name == "NCode.Identity.Time"
+                || name == "NCode.Identity.AspNetCore";
 
             Assert.True(isAllowed, name);
         }

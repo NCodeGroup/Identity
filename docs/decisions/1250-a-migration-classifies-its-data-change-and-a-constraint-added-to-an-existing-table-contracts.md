@@ -113,7 +113,7 @@ release writes, and it requires a marker that states what a data change does to 
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md): setting names are a closed vocabulary.
 - [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md): a retired setting stays
   registered until a later release removes it.
-- `src/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
-  `src/NCode.Identity.OpenId.Host.Database/ExpandMigrationAttribute.cs`,
-  `src/NCode.Identity.OpenId.Host.Database/ContractMigrationAttribute.cs`, and
+- `hosts/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
+  `hosts/NCode.Identity.OpenId.Host.Database/ExpandMigrationAttribute.cs`,
+  `hosts/NCode.Identity.OpenId.Host.Database/ContractMigrationAttribute.cs`, and
   `tests/NCode.Identity.OpenId.Host.Database.Tests/ExpandOnlyRuleTests.cs`.

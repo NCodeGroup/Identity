@@ -95,8 +95,8 @@ the tenant's branding in the page, and the bundle reads the branding and the pag
   the tenant route.
 - [ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md): a tenant brands its interactive surface
   through settings.
-- Code: `src/frontend/apps/auth/src/mount.tsx`, `src/frontend/apps/auth/src/serverPage.ts`,
-  `src/frontend/apps/auth/src/branding.ts`, `src/frontend/apps/auth/src/routes.tsx`,
-  `src/frontend/apps/auth/src/LoginForm.tsx`, `src/frontend/apps/auth/src/AuthorizationErrorPage.tsx`,
+- Code: `frontend/apps/auth/src/mount.tsx`, `frontend/apps/auth/src/serverPage.ts`,
+  `frontend/apps/auth/src/branding.ts`, `frontend/apps/auth/src/routes.tsx`,
+  `frontend/apps/auth/src/LoginForm.tsx`, `frontend/apps/auth/src/AuthorizationErrorPage.tsx`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs` and
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBranding.cs`.

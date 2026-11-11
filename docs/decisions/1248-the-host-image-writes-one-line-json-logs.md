@@ -62,5 +62,5 @@ so every log entry is one JSON object on one line.**
 - [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) — the host image.
 - [project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md) — logs go to standard output, and their format is
   configuration.
-- Code: `src/NCode.Identity.OpenId.Host/Dockerfile`, `.github/workflows/host-image.yml`,
+- Code: `hosts/NCode.Identity.OpenId.Host/Dockerfile`, `.github/workflows/host-image.yml`,
   `tests/NCode.Identity.OpenId.Integration.Tests/ProgramTests.cs`.

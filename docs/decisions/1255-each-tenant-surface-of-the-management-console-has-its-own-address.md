@@ -62,5 +62,5 @@ tab.**
 - [ADR-1064](1064-frontend-presentation-platform.md): a single cohesive frontend presentation platform.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md): tenant usage is a daily ledger that replicas
   add to.
-- Code: `src/frontend/apps/mgmt/src/routes.ts`, `src/frontend/apps/mgmt/src/App.tsx` and
-  `src/frontend/apps/mgmt/src/containers/TenantDetailPage.tsx`.
+- Code: `frontend/apps/mgmt/src/routes.ts`, `frontend/apps/mgmt/src/App.tsx` and
+  `frontend/apps/mgmt/src/containers/TenantDetailPage.tsx`.

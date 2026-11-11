@@ -42,8 +42,8 @@ on `main` and on the release lines.**
    - A global build input selects all tests: anything under `build/` or `.config/`, `global.json`, `nuget.config`,
      `version.json`, `NCode.Identity.slnx`, `.editorconfig`, any `BannedSymbols*.txt` file, any `Directory.*` file and
      any `.runsettings` file.
-   - Every other path maps to the `.csproj` under `src/` or `tests/` whose directory is its longest prefix. A path under
-     no project (`docs/`, `charts/`, `src/frontend/`, `.github/`) selects nothing; the checks of Frontend CI, the host
+   - Every other path maps to the `.csproj` under `src/`, `hosts/`, `analyzers/` or `tests/` whose directory is its longest prefix. A path under
+     no project (`docs/`, `charts/`, `frontend/`, `.github/`) selects nothing; the checks of Frontend CI, the host
      chart and the host image gate those paths.
    - The selected tests are the reverse `ProjectReference` closure of the mapped projects, restricted to `tests/`.
 4. **Each place runs one gate tier.**

@@ -9,11 +9,11 @@ version: 0.0.1-alpha
 appVersion: "0.0.1-alpha"
 # The preStop drain uses the sleep lifecycle action, on by default since Kubernetes 1.30.
 kubeVersion: ">=1.30.0-0"
-home: https://github.com/NCodeGroup/Identity
+home: https://github.com/NCodeGroup/identity
 # The family's logo on its blue tile, from the brand kit under brand/ (ADR-1491).
-icon: https://raw.githubusercontent.com/NCodeGroup/Identity/main/brand/tile/ncode-identity-tile-blue-256.png
+icon: https://raw.githubusercontent.com/NCodeGroup/identity/main/brand/tile/ncode-identity-tile-blue-256.png
 sources:
-  - https://github.com/NCodeGroup/Identity
+  - https://github.com/NCodeGroup/identity
 keywords:
   - openid-connect
   - oauth2

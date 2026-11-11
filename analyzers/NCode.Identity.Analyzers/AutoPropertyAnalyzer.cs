@@ -30,7 +30,7 @@ public sealed class AutoPropertyAnalyzer : DiagnosticAnalyzer
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: "A field is allowed only where a property cannot be: a const, a ref field, a volatile or fixed-size buffer field, a field of a [StructLayout] or [InlineArray] struct, or a field passed as ref, out or in, taken with ref or &, or mutated in place as a struct.",
-            helpLinkUri: "https://github.com/NCodeGroup/Identity/blob/main/docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md",
+            helpLinkUri: "https://github.com/NCodeGroup/identity/blob/main/docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md",
             customTags: WellKnownDiagnosticTags.CompilationEnd
         );
 

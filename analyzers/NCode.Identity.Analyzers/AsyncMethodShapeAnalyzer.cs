@@ -29,7 +29,7 @@ public sealed class AsyncMethodShapeAnalyzer : DiagnosticAnalyzer
     public const string CancellationTokenDiagnosticId = "NCID0003";
 
     private const string HelpLinkUri =
-        "https://github.com/NCodeGroup/Identity/blob/main/docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md";
+        "https://github.com/NCodeGroup/identity/blob/main/docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md";
 
     private static DiagnosticDescriptor TaskReturnRule { get; } =
         new(

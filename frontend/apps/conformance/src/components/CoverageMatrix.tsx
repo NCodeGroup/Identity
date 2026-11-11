@@ -11,7 +11,7 @@ import Typography from '@mui/material/Typography';
 import type { CoverageChannel, CoverageReport, CoverageStatus } from '@ncode/conformance-core';
 import { CoverageStatusChip } from './CoverageStatusChip.js';
 
-const ISSUE_URL = 'https://github.com/NCodeGroup/Identity/issues/';
+const ISSUE_URL = 'https://github.com/NCodeGroup/identity/issues/';
 
 export type CoverageMatrixProps = {
   readonly report: CoverageReport;

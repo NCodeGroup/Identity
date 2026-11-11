@@ -41,7 +41,7 @@ describe('CoverageMatrix', () => {
     expect(getByTestId('issue-41')).toBeInTheDocument();
     expect(getByTestId('issue-41')).toHaveAttribute(
       'href',
-      'https://github.com/NCodeGroup/Identity/issues/41',
+      'https://github.com/NCodeGroup/identity/issues/41',
     );
     expect(getByTestId('channel-probe-runner')).toBeInTheDocument();
   });

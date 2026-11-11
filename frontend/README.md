@@ -4,10 +4,10 @@ A single, cohesive TypeScript presentation platform shared by every NCode.Identi
 Management, Auth/Consent/Login, Playground, and OIDC conformance. Decision record:
 [ADR-1064](../docs/decisions/1064-frontend-presentation-platform.md).
 
-> **One monorepo, split-ready.** This lives in the monorepo under `frontend/`. At GA the repo
-> may be reorganized, so every shared concern is a scoped `@ncode/*` package consumed only
-> through its public entry point (no deep cross-package imports). Extraction should be a folder move,
-> not a refactor.
+> **One workspace of scoped packages.** It lives under `frontend/` in the product's repository
+> ([ADR-1502](../docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)),
+> and every shared concern is a scoped `@ncode/*` package consumed only through its public entry point (no deep
+> cross-package imports).
 
 ## Stack
 

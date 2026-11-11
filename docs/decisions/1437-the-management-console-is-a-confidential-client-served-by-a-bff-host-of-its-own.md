@@ -112,5 +112,5 @@ forwarded management API share that host's origin.**
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.15 and §11
 - [RFC 10017](https://datatracker.ietf.org/doc/html/rfc10017)
 - [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)
-- `src/NCode.Identity.ManagementConsole/` and `src/NCode.Identity.ManagementConsole.Host/`
+- `src/NCode.Identity.ManagementConsole/` and `hosts/NCode.Identity.ManagementConsole.Host/`
 - Issue [#158](https://github.com/NCodeGroup/Identity/issues/158)

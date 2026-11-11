@@ -46,7 +46,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
 
 4. **Playwright for .NET, driven by xUnit.** The BFF, the origin pages and the fixtures run in the test process, in
    one language and one runner, with the existing JUnit logger. The suites do not use Node Playwright in
-   `src/frontend`, which is the console's workspace.
+   `frontend`, which is the console's workspace.
 
 5. **Browsers.** Tests are theories over `BrowserNames.All`: Chromium and Firefox on every operating system, and WebKit
    except on Windows. Playwright's Windows WebKit port does not use Safari's cookie stack and mishandles `SameSite` and
@@ -100,7 +100,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
   excludes its tests.
 - **Running the suites in the Definition of Done.** Rejected: Docker and about 500 MB of browsers become prerequisites
   of the gate every developer, agent and CI run uses.
-- **Node Playwright in `src/frontend`.** Rejected: it splits the suites across two languages and two runners, and the
+- **Node Playwright in `frontend`.** Rejected: it splits the suites across two languages and two runners, and the
   BFF host, the origin pages and the container fixtures would have to start from Node.
 - **The NCode OP in the tier, through a shared host library.** Rejected: it needs a host library extracted from the
   integration tests, and an NCode OP proves the BFF only against its own implementation of the standards.

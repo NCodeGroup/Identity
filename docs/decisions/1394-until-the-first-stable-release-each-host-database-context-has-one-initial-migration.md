@@ -74,7 +74,7 @@ chain is that history kept in code.
    names it (`Migrations/OpenId` for `OpenIdDbContext`, `Migrations/DeveloperDataProtection` for
    `DeveloperDataProtectionDbContext`), runs `dotnet ef migrations add InitialCreate` with `--context` naming the
    context, `--output-dir` naming that folder, and `--project` and `--startup-project` both naming
-   `src/NCode.Identity.OpenId.Host.Database`, which carries the design-time factories, then strips the byte-order mark
+   `hosts/NCode.Identity.OpenId.Host.Database`, which carries the design-time factories, then strips the byte-order mark
    from the generated files. The scaffolder gives the migration a fresh timestamp identifier on each re-scaffold. The
    model-drift gate (`dotnet ef migrations has-pending-model-changes`) checks that the model and the snapshot agree.
 3. **No migration rewrites stored data.** No migration carries `Sql`, `InsertData`, `UpdateData` or `DeleteData`, and
@@ -152,10 +152,10 @@ item 8 for the reference host's two contexts: a re-scaffolded migration ships wi
   [ADR-1250](1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md) —
   the expand-and-contract rule.
 - [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md).
-- `src/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/`,
-  `src/NCode.Identity.OpenId.Host.Database/Migrations/DeveloperDataProtection/`,
-  `src/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
-  `src/NCode.Identity.OpenId.Host.Database/MigrationRunner.cs`,
+- `hosts/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/`,
+  `hosts/NCode.Identity.OpenId.Host.Database/Migrations/DeveloperDataProtection/`,
+  `hosts/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
+  `hosts/NCode.Identity.OpenId.Host.Database/MigrationRunner.cs`,
   `tests/NCode.Identity.OpenId.Host.Database.Tests/ExpandOnlyRuleTests.cs`,
   `tests/NCode.Identity.OpenId.Host.Database.Tests/InitialCreateTests.cs` and
   `tests/NCode.Identity.OpenId.Host.Database.Tests/MigrationRunnerTests.cs`.

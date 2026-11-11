@@ -357,16 +357,17 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
 
     /// <summary>
     /// Encodes a refresh lease's owner token as UTF-8 into sensitive pooled memory that is zeroed when the returned
-    /// lease is disposed. The bytes live in <see cref="Memory{T}"/> because they cross an <c>await</c>.
+    /// lease is disposed. The bytes live in <see cref="ReadOnlyMemory{T}"/> because they cross an <c>await</c>.
     /// </summary>
     /// <param name="owner">The owner token to encode.</param>
     /// <param name="bytes">The owner token's UTF-8 bytes.</param>
     /// <returns>The lease that returns the memory to the pool.</returns>
-    private static IDisposable RentOwnerBytes(string owner, out Memory<byte> bytes)
+    private static IDisposable RentOwnerBytes(string owner, out ReadOnlyMemory<byte> bytes)
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(owner);
-        var lease = BufferFactory.Rent(byteCount, isSensitive: true, out bytes);
-        SecureEncoding.UTF8.GetBytes(owner, bytes.Span);
+        var lease = BufferFactory.Rent(byteCount, isSensitive: true, out Memory<byte> buffer);
+        SecureEncoding.UTF8.GetBytes(owner, buffer.Span);
+        bytes = buffer;
         return lease;
     }
 

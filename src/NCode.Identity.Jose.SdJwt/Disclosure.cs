@@ -243,16 +243,26 @@ public sealed class Disclosure
         return Base64Url.Encode(buffer.AsReadOnlySequence);
     }
 
-    private static IDisposable DecodeBase64Url(ReadOnlySpan<char> chars, out Span<byte> bytes)
+    /// <summary>
+    /// Decodes the base64url text of a disclosure into pooled memory.
+    /// </summary>
+    /// <param name="chars">The base64url text to decode.</param>
+    /// <param name="bytes">The decoded bytes, which are valid until the returned lease is disposed.</param>
+    /// <returns>The lease that returns the memory to the pool, which the caller disposes.</returns>
+    /// <exception cref="FormatException"><paramref name="chars"/> is not valid base64url text.</exception>
+    private static IDisposable DecodeBase64Url(
+        ReadOnlySpan<char> chars,
+        out ReadOnlySpan<byte> bytes
+    )
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
-        var lease = BufferFactory.Rent(byteCount, isSensitive: false, out bytes);
+        var lease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> buffer);
         try
         {
             // The disclosure is wire input, so one that does not decode whole is refused rather than read from a
             // buffer the decoder filled only in part.
             if (
-                !Base64Url.TryDecode(chars, bytes, out var bytesWritten)
+                !Base64Url.TryDecode(chars, buffer, out var bytesWritten)
                 || bytesWritten != byteCount
             )
                 throw new FormatException("The disclosure is not valid base64url.");
@@ -263,6 +273,7 @@ public sealed class Disclosure
             throw;
         }
 
+        bytes = buffer;
         return lease;
     }
 }

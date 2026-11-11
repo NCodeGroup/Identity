@@ -12,7 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.AspNetCore\NCode.AspNetCore.csproj" />
+        <ProjectReference Include="..\NCode.Identity.AspNetCore\NCode.Identity.AspNetCore.csproj" />
         <ProjectReference Include="..\NCode.Identity.Bff\NCode.Identity.Bff.csproj" />
         <ProjectReference Include="..\NCode.Identity.Bff.Server\NCode.Identity.Bff.Server.csproj" />
         <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />

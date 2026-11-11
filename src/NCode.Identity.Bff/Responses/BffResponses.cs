@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Serialization;
 
 namespace NCode.Identity.Bff.Responses;

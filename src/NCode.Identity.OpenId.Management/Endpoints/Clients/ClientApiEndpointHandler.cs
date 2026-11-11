@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;

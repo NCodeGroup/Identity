@@ -18,7 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.AspNetCore\NCode.AspNetCore.csproj" />
+        <ProjectReference Include="..\NCode.Identity.AspNetCore\NCode.Identity.AspNetCore.csproj" />
         <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj" />

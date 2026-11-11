@@ -4,7 +4,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Authentication.Interactive;

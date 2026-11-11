@@ -1,7 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Antiforgery;
 using NCode.Identity.Bff.Hardening;
 using NCode.Identity.ManagementConsole;

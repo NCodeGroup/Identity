@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Json;
 using NCode.Identity.Jwk;

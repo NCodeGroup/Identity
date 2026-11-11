@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 
 namespace NCode.Identity.ManagementConsole;
 

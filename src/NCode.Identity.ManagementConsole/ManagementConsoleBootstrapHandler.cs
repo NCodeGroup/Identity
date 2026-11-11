@@ -4,7 +4,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff;
 using NCode.Identity.ManagementConsole.Options;
 

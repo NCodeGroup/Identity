@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Identity.AspNetCore</RootNamespace>
+        <Description>The HTTP building blocks of NCode.Identity on ASP.NET Core: page and response security (Content-Security-Policy, icon links, no-store), front-channel endpoint metadata, single-page bundles, form reads, and host hardening with Strict-Transport-Security, trusted forwarded headers and health probes.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- https://learn.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="NCode.Buffers" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
+    </ItemGroup>
+</Project>

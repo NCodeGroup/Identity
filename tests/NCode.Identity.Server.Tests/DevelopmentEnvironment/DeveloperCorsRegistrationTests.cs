@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

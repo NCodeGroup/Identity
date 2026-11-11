@@ -4,7 +4,7 @@
 using System.Buffers;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using NCode.AspNetCore;
+using NCode.Identity.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 

@@ -31,6 +31,11 @@ A project under `tests/` whose name does not end in `.Tests` is a support projec
 compiles it and no gate tests it
 ([ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
 
+- **Foundation** — `NCode.Identity.Json` (the JSON value model of JOSE, OAuth and OpenID Connect),
+  `NCode.Identity.Time` (`NumericDate` precision, timer and time periods) and `NCode.Identity.AspNetCore(.Abstractions)`
+  (page and response security, front-channel metadata, host hardening and the HTTP result contracts), which any package
+  may reference
+  ([ADR-1498](docs/decisions/1498-every-package-names-one-capability-under-the-ncode-identity-prefix.md))
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.Jwt(.Abstractions)`, and the opt-in algorithm
   packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K), and the
   opt-in `NCode.Identity.Jose.SdJwt`, Selective Disclosure for JWTs (RFC 9901) over the JWT library with the SD-JWT
@@ -88,13 +93,17 @@ compiles it and no gate tests it
   `NCode.Identity.ManagementConsole` composes the management console's BFF host, and
   `NCode.Identity.ManagementConsole.Host` is its reference host
   ([ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md))
-- **Persistence** — `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`
+- **Settings, claims and cryptography** — `NCode.Identity.Settings(.Abstractions)`,
+  `NCode.Identity.Claims(.Abstractions)` and `NCode.Identity.Cryptography(.Abstractions)`, each registered by its own
+  `Add…Library()` and composed under `AddOpenIdCoreLibrary`
+- **Persistence** — `NCode.Identity.Persistence.Abstractions` (every persistence contract)
 - **Infrastructure ports** — `NCode.Identity.Dispatch(.Abstractions)` (background jobs),
   `NCode.Identity.Events(.Abstractions)`, `NCode.Identity.SharedState(.Abstractions)` (state every replica sees) and its
   opt-in `NCode.Identity.SharedState.Valkey` adapter
   ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md))
-- **Composition / host** — `NCode.Registration` (the `IServiceBuilder<TMarker>` builder), `NCode.Identity`,
-  `NCode.Identity.Server` (`AddIdentityServer()`), `NCode.Identity.OpenId.Host` (ASP.NET Core reference host),
+- **Composition / host** — `NCode.Identity.Registration` (the `IServiceBuilder<TMarker>` builder) and
+  `NCode.Identity.Registration.AspNetCore` (endpoint registration), `NCode.Identity.Server` (`AddIdentityServer()`),
+  `NCode.Identity.OpenId.Host` (ASP.NET Core reference host),
   `NCode.Identity.OpenId.LocalDev` (.NET Aspire local-dev orchestrator — [ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md))
 - **Build analyzers** — `NCode.Identity.Analyzers`, the repository's own Roslyn analyzers, which every project's build
   loads and no package ships: `NCID0001` reports a field that could be an auto-property

@@ -21,6 +21,11 @@ It holds until the first stable release.
 
 ## Layout
 
+This repository, `NCodeGroup/identity`, holds the product: packages, hosts, images, the chart, the frontend, and the
+decisions and issues of the product and its platform. `NCodeGroup/identity-platform` holds the platform's
+infrastructure, and the private `NCodeGroup/identity-cloud` only the managed offering's proprietary parts
+([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)).
+
 A project's top-level folder says whether it ships
 ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)): `src/` holds only the published
 NuGet packages, and every project there packs; `hosts/` holds the deployables; `analyzers/` holds the repository's own

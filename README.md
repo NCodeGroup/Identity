@@ -32,11 +32,11 @@ through public contracts.
 | **Stability**  | None promised; public API, schema, and token formats are all free to change                       |
 | **Certified**  | Not yet — OpenID Foundation conformance work is in progress ([#124](https://github.com/NCodeGroup/Identity/issues/124))  |
 | **Target**     | .NET 10                                                                                           |
-| **Repository** | A **monorepo** for now; the packages may split into separate repositories at GA                   |
+| **Repository** | The product's public repository; the platform's infrastructure is [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform) ([Repositories](#repositories)) |
 
-The whole family is versioned in lockstep from a single
-[`version.json`](version.json) ([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)), which
-is part of why it currently lives in one repository. That is a convenience of the pre-release phase, not a commitment.
+The whole family is versioned in lockstep from a single [`version.json`](version.json)
+([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)), and its packages, hosts, images
+and chart, with the frontend the console image builds, live together in this repository.
 
 ## Why
 
@@ -121,6 +121,23 @@ The deployables under `hosts/` are `NCode.Identity.OpenId.Host` with its `.Host.
 
 The extensibility model — **service** vs **strategy collection** vs **mediator** — is
 [ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md).
+
+## Repositories
+
+The product spans the repositories below, and code is public when a self-hoster could use it.
+
+| Repository                     | Visibility | Holds |
+| ------------------------------ | ---------- | ----- |
+| `NCodeGroup/identity`          | Public     | The product: the NuGet packages (`src/`), the deployables (`hosts/`), the host and console images, the host chart (`charts/ncode-identity-host`), the web apps' pnpm workspace (`frontend/`), and the decisions and issues of the product and its platform ([ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)) |
+| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the platform's live configuration for `lab` and `production` ([ADR-1132](docs/decisions/1132-platform-infrastructure-as-code-is-public-on-github.md), [ADR-1133](docs/decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)) |
+| `NCodeGroup/identity-cloud`    | Private    | Only the managed offering's proprietary parts: billing and metering, sign-up, the customer portal, support tooling and private runbooks |
+
+The decisions and issues of `identity-platform` live here, and `identity-cloud` keeps its private ones itself.
+
+Repositories, packages (`NCode.Identity.*`), the chart and images (`ncode-identity-*`), the npm workspace packages
+(`@ncode/*`, all private) and the domains (`ncodeid.*`) follow one naming scheme
+([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md),
+[GOVERNANCE.md](GOVERNANCE.md#repositories-and-naming)).
 
 ## Running the reference server
 

@@ -3722,6 +3722,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#759](https://github.com/NCodeGroup/Identity/issues/759),
   [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)).
 
+- **Code a self-hoster could use is public, and the product's repositories and artifacts follow one naming scheme.**
+  `NCodeGroup/identity` holds the packages, hosts, images, the host chart, the frontend, and the decisions and issues
+  of the product and its platform; `NCodeGroup/identity-platform` holds the reusable OpenTofu modules, Kustomize
+  components and stacks and the platform's live configuration for `lab` and `production`; and the private
+  `NCodeGroup/identity-cloud` holds only the managed offering's proprietary parts. NuGet packages are named
+  `NCode.Identity.*`, the chart and images `ncode-identity-*`, the npm workspace packages `@ncode/*`, all private,
+  and the platform's domains `ncodeid.*` ([#760](https://github.com/NCodeGroup/Identity/issues/760),
+  [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)).
+
 - **The build reports a field that could be an auto-property.** `NCode.Identity.Analyzers`, the repository's own Roslyn
   analyzer project, which every project of the solution loads and no package ships, fails the build with `NCID0001` on
   a field, instance or static, unless it is a `const`, a `ref` field, a `volatile` or fixed-size buffer field, a field

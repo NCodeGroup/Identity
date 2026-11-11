@@ -1,6 +1,6 @@
 # 1307. identity-platform records its decisions and pending work in this repository
 
-- **Status:** Accepted
+- **Status:** Accepted (refined by [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md))
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0010](project-template/0010-a-change-consumers-can-observe-is-decided-before-it-is-built.md)

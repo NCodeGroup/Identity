@@ -61,8 +61,11 @@ internal sealed class OpenIdEndpointGroup : IEndpointGroup
         // The environment filter is outermost so the ambient tenant scope it opens is still active while the exception
         // filter renders an error. The rate-limit filter needs the tenant the environment resolves and sits outside the
         // exception filter, so a refused request is answered before any endpoint work and is not audited. The metrics
-        // filter wraps them all, so even a request the environment refuses is tagged with its endpoint.
+        // filter wraps them all, so even a request the environment refuses is tagged with its endpoint. The
+        // interaction-id filter sits just inside the metrics filter, so every response, including a refused request's,
+        // carries the x-fapi-interaction-id header.
         group.AddEndpointFilter<RouteGroupBuilder, OpenIdMetricsEndpointFilter>();
+        group.AddEndpointFilter(FapiInteractionIdEndpointFilter.Instance);
         group.AddEndpointFilter<RouteGroupBuilder, OpenIdEnvironmentEndpointFilter>();
         group.AddEndpointFilter<RouteGroupBuilder, RateLimitEndpointFilter>();
         group.AddEndpointFilter<RouteGroupBuilder, OpenIdExceptionEndpointFilter>();

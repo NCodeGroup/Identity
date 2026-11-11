@@ -8,6 +8,7 @@ using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Authentication.Interactive;
+using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
@@ -75,9 +76,11 @@ serviceCollection.AddStrictTransportSecurity(configuration);
 // (Kestrel:EndpointDefaults:ClientCertificateMode) accepts any certificate at the handshake, and the client-
 // authentication handlers and certificate-bound tokens validate it (RFC 8705, ADR-1202). Kestrel's own validation
 // would refuse every self-signed or tenant-PKI certificate first. Inert while no endpoint requests one. The host owns
-// this hook: ConfigureHttpsDefaults keeps only the last action, so every HTTPS default belongs in this one call.
+// this hook: ConfigureHttpsDefaults keeps only the last action, so every HTTPS default belongs in this one call, which
+// HostHttpsDefaults holds. The handshake also accepts only TLS 1.2 and 1.3, and only AEAD cipher suites with forward
+// secrecy where the platform lets a process choose them (ADR-1499).
 builder.WebHost.ConfigureKestrel(kestrel =>
-    kestrel.ConfigureHttpsDefaults(https => https.AllowAnyClientCertificate())
+    kestrel.ConfigureHttpsDefaults(HostHttpsDefaults.Configure)
 );
 
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");

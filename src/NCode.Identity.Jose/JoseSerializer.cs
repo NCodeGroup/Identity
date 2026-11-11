@@ -33,18 +33,19 @@ internal partial class JoseSerializer(
     /// </summary>
     /// <param name="chars">The base64url data to decode.</param>
     /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
-    /// <param name="bytes">When this method returns, contains the buffer with the decoded data.</param>
+    /// <param name="bytes">When this method returns, contains the decoded data.</param>
     /// <returns>An <see cref="IDisposable"/> that manages the lifetime of the lease.</returns>
     /// <exception cref="JoseException"><paramref name="chars"/> is not valid base64url.</exception>
     public static IDisposable DecodeBase64Url(
         ReadOnlySpan<char> chars,
         bool isSensitive,
-        out Span<byte> bytes
+        out ReadOnlySpan<byte> bytes
     )
     {
         var byteCount = GetDecodedByteCount(chars);
-        var lease = BufferFactory.Rent(byteCount, isSensitive, out bytes);
-        DecodeInto(chars, bytes, lease);
+        var lease = BufferFactory.Rent(byteCount, isSensitive, out Span<byte> buffer);
+        DecodeInto(chars, buffer, lease);
+        bytes = buffer;
         return lease;
     }
 
@@ -54,18 +55,19 @@ internal partial class JoseSerializer(
     /// </summary>
     /// <param name="chars">The base64url data to decode.</param>
     /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
-    /// <param name="bytes">When this method returns, contains the buffer with the decoded data.</param>
+    /// <param name="bytes">When this method returns, contains the decoded data.</param>
     /// <returns>An <see cref="IDisposable"/> that manages the lifetime of the lease.</returns>
     /// <exception cref="JoseException"><paramref name="chars"/> is not valid base64url.</exception>
     internal static IDisposable DecodeBase64UrlToMemory(
         ReadOnlySpan<char> chars,
         bool isSensitive,
-        out Memory<byte> bytes
+        out ReadOnlyMemory<byte> bytes
     )
     {
         var byteCount = GetDecodedByteCount(chars);
-        var lease = BufferFactory.Rent(byteCount, isSensitive, out bytes);
-        DecodeInto(chars, bytes.Span, lease);
+        var lease = BufferFactory.Rent(byteCount, isSensitive, out Memory<byte> buffer);
+        DecodeInto(chars, buffer.Span, lease);
+        bytes = buffer;
         return lease;
     }
 

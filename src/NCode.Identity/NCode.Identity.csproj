@@ -9,7 +9,7 @@
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Identity.Settings.Abstractions\NCode.Identity.Settings.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Settings\NCode.Identity.Settings.csproj" />
         <ProjectReference Include="..\NCode.Identity.Json\NCode.Identity.Json.csproj" />
         <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
         <ProjectReference Include="..\NCode.Identity.Registration.AspNetCore\NCode.Identity.Registration.AspNetCore.csproj" />

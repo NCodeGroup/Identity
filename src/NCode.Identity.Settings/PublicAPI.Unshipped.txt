@@ -1,0 +1,4 @@
+#nullable enable
+NCode.Identity.Settings.DefaultRegistration
+NCode.Identity.Settings.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Settings.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddSettingsLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Settings.SettingsLibrary>!

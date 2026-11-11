@@ -5,10 +5,15 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>NCode.Identity.Settings</RootNamespace>
+        <Description>The contracts of NCode.Identity's settings: setting descriptors, scopes, rules and merges, setting collections and their providers and factories, and the setting serializer.</Description>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
         <PackageReference Include="NCode.Collections.Providers.Abstractions" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Registration\NCode.Identity.Registration.csproj" />
     </ItemGroup>
 </Project>

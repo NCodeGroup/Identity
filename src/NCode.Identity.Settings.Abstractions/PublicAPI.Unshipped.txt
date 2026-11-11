@@ -134,3 +134,5 @@ virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Create(TValue value) -
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity.Settings.Setting<TValue>! setting) -> object!
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Merge(NCode.Identity.Settings.Setting<TValue>! current, NCode.Identity.Settings.Setting<TValue>! other) -> NCode.Identity.Settings.Setting<TValue>!
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.TryValidate(TValue value, out string? failure) -> bool
+NCode.Identity.Settings.SettingsLibrary
+NCode.Identity.Settings.SettingsLibrary.SettingsLibrary() -> void

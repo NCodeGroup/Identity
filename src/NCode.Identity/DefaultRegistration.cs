@@ -53,23 +53,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ICryptoService, DefaultCryptoService>();
 
             // Settings
-            serviceCollection.TryAddSingleton<
-                ISettingDescriptorCollectionProvider,
-                DefaultSettingDescriptorCollectionProvider
-            >();
-            serviceCollection.TryAddSingleton<
-                ISettingScopeCollectionProvider,
-                DefaultSettingScopeCollectionProvider
-            >();
-            serviceCollection.TryAddSingleton<
-                IReadOnlySettingCollectionProviderFactory,
-                DefaultReadOnlySettingCollectionProviderFactory
-            >();
-            serviceCollection.TryAddSingleton<
-                ISettingCollectionFactory,
-                DefaultSettingCollectionFactory
-            >();
-            serviceCollection.TryAddSingleton<ISettingSerializer, DefaultSettingSerializer>();
+            serviceCollection.AddSettingsLibrary();
 
             return serviceCollection.NewBuilder<IdentityLibrary>();
         }

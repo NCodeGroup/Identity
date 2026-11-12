@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Formats.Asn1;
 using System.Security.Cryptography;
 using NCode.Identity.AspNetCore.TransportSecurity;
 using Xunit;
@@ -121,6 +122,94 @@ public sealed class TransportCertificateInspectorTests
             StringComparison.Ordinal
         );
         Assert.StartsWith("expired at ", failures[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FindFailures_WhenTheCertificateIsSignedWithPssAndSha256_ReturnsNone()
+    {
+        using var certificate = TransportSecurityTestCertificates.CreateRsa(
+            2048,
+            HashAlgorithmName.SHA256,
+            Now,
+            RSASignaturePadding.Pss
+        );
+
+        Assert.Empty(TransportCertificateInspector.FindFailures(certificate, Now));
+    }
+
+    #endregion
+
+    #region IsStrongPssHash Tests
+
+    [Fact]
+    public void IsStrongPssHash_WhenTheHashIsSha256_ReturnsTrue()
+    {
+        var parameters = CreatePssParameters("2.16.840.1.101.3.4.2.1");
+
+        Assert.True(TransportCertificateInspector.IsStrongPssHash(parameters));
+    }
+
+    [Fact]
+    public void IsStrongPssHash_WhenTheHashIsSha384_ReturnsTrue()
+    {
+        var parameters = CreatePssParameters("2.16.840.1.101.3.4.2.2");
+
+        Assert.True(TransportCertificateInspector.IsStrongPssHash(parameters));
+    }
+
+    [Fact]
+    public void IsStrongPssHash_WhenTheHashIsSha1_ReturnsFalse()
+    {
+        var parameters = CreatePssParameters("1.3.14.3.2.26");
+
+        Assert.False(TransportCertificateInspector.IsStrongPssHash(parameters));
+    }
+
+    [Fact]
+    public void IsStrongPssHash_WhenTheParametersAreAbsent_ReturnsFalse()
+    {
+        Assert.False(TransportCertificateInspector.IsStrongPssHash(ReadOnlyMemory<byte>.Empty));
+    }
+
+    [Fact]
+    public void IsStrongPssHash_WhenTheParametersHoldNoHash_ReturnsFalse()
+    {
+        var writer = new AsnWriter(AsnEncodingRules.DER);
+        using (writer.PushSequence()) { }
+
+        Assert.False(TransportCertificateInspector.IsStrongPssHash(writer.Encode()));
+    }
+
+    [Fact]
+    public void IsStrongPssHash_WhenTheParametersAreMalformed_ReturnsFalse()
+    {
+        byte[] parameters = [0x01, 0x02];
+
+        Assert.False(TransportCertificateInspector.IsStrongPssHash(parameters));
+    }
+
+    #endregion
+
+    #region Helpers
+
+    // RSASSA-PSS-params with only the hash algorithm: SEQUENCE { [0] { SEQUENCE { OID hash } } }.
+    private static byte[] CreatePssParameters(string hashOid)
+    {
+        var writer = new AsnWriter(AsnEncodingRules.DER);
+        using (writer.PushSequence())
+        {
+            using (
+                writer.PushSequence(new Asn1Tag(TagClass.ContextSpecific, 0, isConstructed: true))
+            )
+            {
+                using (writer.PushSequence())
+                {
+                    writer.WriteObjectIdentifier(hashOid);
+                }
+            }
+        }
+
+        return writer.Encode();
     }
 
     #endregion

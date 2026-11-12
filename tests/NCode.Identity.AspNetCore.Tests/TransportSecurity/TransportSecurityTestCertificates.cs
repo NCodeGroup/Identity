@@ -34,13 +34,14 @@ internal static class TransportSecurityTestCertificates
     ) => Create(notBefore, notAfter, extension: null);
 
     /// <summary>
-    /// An RSA certificate with the given key size and signature hash, valid from a day before <paramref name="now"/>
-    /// for 90 days.
+    /// An RSA certificate with the given key size, signature hash and signature padding, valid from a day before
+    /// <paramref name="now"/> for 90 days. The padding defaults to PKCS#1.
     /// </summary>
     internal static X509Certificate2 CreateRsa(
         int keySizeInBits,
         HashAlgorithmName signatureHash,
-        DateTimeOffset now
+        DateTimeOffset now,
+        RSASignaturePadding? signaturePadding = null
     )
     {
         using var rsa = RSA.Create(keySizeInBits);
@@ -48,7 +49,7 @@ internal static class TransportSecurityTestCertificates
             "CN=localhost",
             rsa,
             signatureHash,
-            RSASignaturePadding.Pkcs1
+            signaturePadding ?? RSASignaturePadding.Pkcs1
         );
         var notBefore = now.AddDays(-1);
         var notAfter = now.AddDays(90);

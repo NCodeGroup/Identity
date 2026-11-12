@@ -1,10 +1,6 @@
 # 1236. A password is judged by one policy wherever it is set
 
-- **Status:** Accepted (amended by
-  [ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md): the policy judges the NFC form of a
-  password, and the ASP.NET Core Identity adapter stores a password without Identity's password validators; amended by
-  [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md): the developer
-  seed's administrator password is generated per machine, never committed)
+- **Status:** Accepted
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -14,7 +10,7 @@ Four paths set the password of a local account: the management API's create and 
 ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), the
 self-service change ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)), and the
 developer and conformance seeders. Each of them accepts any non-empty value, so an account can hold a password that
-anyone guesses at the first attempt (issue [#292](https://github.com/NCodeGroup/identity/issues/292)).
+anyone guesses at the first attempt.
 
 NIST SP 800-63B-4 §3.1.1.2 sets what a verifier requires of a password:
 
@@ -85,7 +81,7 @@ lists.**
    `password_blocklisted`, and a replacement policy may report other codes
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)). The description names the requirement, such as
    "The password must have at least 15 characters." The management API returns the description, and the change page
-   maps the code to a message of its own.
+   maps the code to a message of its own ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)).
 7. **Each entry point answers in its own form, and the policy runs before the store hashes the password.**
    - The management API's create and reset answer a refusal with a `400` problem that carries the description.
      `LocalAccountApiEndpointHandler` resolves the tenant's settings from the stored tenant document with
@@ -98,15 +94,6 @@ lists.**
      that names the kind of account, its user name and the description.
 
    A refused password is never hashed, and a store need not repeat the rules.
-8. **The change result carries the error code that the page shows.** `InteractivePasswordChangeResult` is a sealed
-   class with the static results `Changed`, `NotSupported` and `CurrentPasswordInvalid`, `Refused(string error)`,
-   `Error` and `IsChanged`, which is `[MemberNotNullWhen(false, nameof(Error))]`. `InteractivePasswordChangeErrors`
-   names the codes that the page knows: `invalid_request`, `password_mismatch`, `invalid_current_password` and
-   `not_supported`. The vocabulary is open, so the page shows a general message for a code it does not know, and the
-   endpoint redirects with `?error=` and the result's error code.
-9. **The page offers guidance.** The new-password field of the change page shows helper text that advises a long
-   passphrase that the end user uses nowhere else, and the page maps `password_too_short`, `password_too_long` and
-   `password_blocklisted` to messages that say what to do.
 
 ## Options considered
 
@@ -128,17 +115,9 @@ lists.**
   tenant with its settings or refuses more passwords with a blocklist.
 - A password that an account holds is judged only when it is next set; no stored password is re-validated.
 - The bundled list adds about 450 KB to the Authentication package.
-- The developer seed's administrator password is `dev-admin-password`, because a password of 12 characters fails the
-  policy.
 - The ASP.NET Core Identity adapter stores a password through the user store without Identity's password validators, so
   the policy is the only judge of a password the server sets there too
   ([ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)).
-- **Breaking:**
-  - `InteractivePasswordChangeResult` is a sealed class that carries an error code, so a custom
-    `IInteractivePasswordChanger` returns its static results or `Refused(code)`.
-  - `IPasswordPolicy`, `IPasswordBlocklist`, `PasswordPolicyContext`, `PasswordPolicyResult`, `PasswordPolicyErrors` and
-    `InteractivePasswordChangeErrors` are added.
-- This implements issue [#292](https://github.com/NCodeGroup/identity/issues/292).
 
 ## References
 

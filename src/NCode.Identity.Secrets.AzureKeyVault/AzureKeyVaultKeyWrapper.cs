@@ -44,7 +44,7 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 /// key.
 /// </para>
 /// </remarks>
-// See ADR-1260, ADR-1415 and ADR-1429.
+// See ADR-1260, ADR-1414.
 internal class AzureKeyVaultKeyWrapper(
     IAzureKeyVaultClientFactory clientFactory,
     IOptions<AzureKeyVaultKeyWrapperOptions> options
@@ -99,7 +99,7 @@ internal class AzureKeyVaultKeyWrapper(
 
         // A reference that a caller names must stay on a Key Vault or Managed HSM host, so that the server's identity is
         // never presented to another endpoint. The configured root key is not restricted.
-        // See ADR-1415.
+        // See ADR-1414.
         var hostSuffixes = RootKeyOptions.Value.ReferencedKeyHostSuffixes;
         if (!AzureKeyVaultKeyId.IsOnHostEndingWith(keyReference, hostSuffixes))
         {

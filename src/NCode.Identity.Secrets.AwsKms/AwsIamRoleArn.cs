@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// Contains the rules for the ARN of an AWS IAM role, which the wrapper assumes to reach a KMS key that the holder of
 /// the key grants the role access to.
 /// </summary>
-// See ADR-1429.
+// See ADR-1414.
 internal static partial class AwsIamRoleArn
 {
     // '\z' rather than '$', which also matches before a trailing newline, and ASCII classes rather than '\d' and

@@ -4154,9 +4154,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   key the caller names, implemented by the AWS KMS, Google Cloud KMS and Azure Key Vault wrappers, and
   `IOwnerRootKeyManager` sets, removes and validates a root key
   ([#174](https://github.com/NCodeGroup/identity/issues/174), [#574](https://github.com/NCodeGroup/identity/issues/574),
-  [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
-  [ADR-1429](docs/decisions/1429-a-tenant-root-key-can-be-reached-through-an-identity-the-tenant-grants.md)).
+  [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)).
 
 - **A package maps the exceptions it owns to protocol errors.** `IOpenIdExceptionTranslator` implementations, registered
   as a collection, turn an exception into the error a protocol endpoint answers with; the endpoint filters and the
@@ -5887,7 +5885,6 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#573](https://github.com/NCodeGroup/identity/issues/573),
   [#579](https://github.com/NCodeGroup/identity/issues/579),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
   [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md),
   [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md)).
 - **An imported elliptic-curve public key is checked against its curve.** A JWK's `x` and `y` must each be the curve's

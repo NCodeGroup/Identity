@@ -260,8 +260,6 @@ The records are grouped by area; within an area they are in number order.
 | [1407](./1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md) | A master key rotates, its data keys are rewrapped, and it is destroyed once unnamed | Accepted |
 | [1408](./1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) | An offline host command rewraps every master key under the configured root and recovery keys | Accepted |
 | [1414](./1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md) | A tenant can wrap its master keys under a root key it controls | Accepted |
-| [1415](./1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md) | A key wrapper can wrap under a key the caller names | Accepted |
-| [1429](./1429-a-tenant-root-key-can-be-reached-through-an-identity-the-tenant-grants.md) | A tenant root key can be reached through an identity the tenant grants | Accepted |
 | [1471](./1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) | A tenant's signing keys can be held in a key management service that signs every token | Accepted |
 | [1472](./1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md) | Signing is asynchronous from the signature algorithm to every caller | Accepted |
 | [1474](./1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md) | A remote key provider is described by data, creates a key once and signs into the caller's buffer | Accepted |

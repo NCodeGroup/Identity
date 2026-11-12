@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// Contains the rules for the email address of a Google Cloud service account, which the wrapper impersonates to reach a
 /// Cloud KMS crypto key that the holder of the key grants the service account access to.
 /// </summary>
-// See ADR-1429.
+// See ADR-1414.
 internal static partial class GoogleServiceAccountEmail
 {
     // '\z' rather than '$', which also matches before a trailing newline, and ASCII classes.

@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.AzureKeyVault.Facades;
 /// which requests tokens for that directory, so the deployment's multi-tenant application reaches a key in a directory
 /// that consented to it. The cache keeps the credential and clients of a directory once a call through it succeeds.
 /// </remarks>
-// See ADR-1260 and ADR-1429.
+// See ADR-1260 and ADR-1414.
 internal sealed class DefaultAzureKeyVaultClientFactory(TimeProvider timeProvider)
     : IAzureKeyVaultClientFactory,
         IDisposable

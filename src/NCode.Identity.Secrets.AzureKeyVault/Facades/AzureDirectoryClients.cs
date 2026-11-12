@@ -19,7 +19,7 @@ namespace NCode.Identity.Secrets.AzureKeyVault.Facades;
 /// A client first requests a token on its first call, so creating a client never fails for lack of credentials; the
 /// first call that uses one does.
 /// </remarks>
-// See ADR-1260 and ADR-1429.
+// See ADR-1260 and ADR-1414.
 internal sealed class AzureDirectoryClients
 {
     private DefaultAzureCredential Credential { get; }

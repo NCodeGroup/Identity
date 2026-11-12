@@ -160,7 +160,7 @@ internal class MasterKeyFactory(
         }
         else
         {
-            // See ADR-1429.
+            // See ADR-1414.
             var access = new KeyAccess(
                 row.RootKeyAccessIdentity,
                 OwnerRootKeyAccess.GetBinding(owner)
@@ -315,7 +315,7 @@ internal class MasterKeyFactory(
     /// <see langword="true"/> when the master key is under the key that the root key names, even when it is reached
     /// through another access identity.
     /// </returns>
-    // See ADR-1429.
+    // See ADR-1414.
     public static bool IsUnderKey(PersistedMasterKey row, PersistedOwnerRootKey? rootKey)
     {
         ArgumentNullException.ThrowIfNull(row);

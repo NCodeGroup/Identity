@@ -11,6 +11,6 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 /// <param name="KeyReference">The reference to the key encryption key, in the format that the key wrapper defines.</param>
 /// <param name="Access">The identity that reaches the key, or <see langword="null"/> to reach it with the identity
 /// of the deployment.</param>
-// See ADR-1429.
+// See ADR-1414.
 [PublicAPI]
 public sealed record ReferencedKey(string KeyReference, KeyAccess? Access);

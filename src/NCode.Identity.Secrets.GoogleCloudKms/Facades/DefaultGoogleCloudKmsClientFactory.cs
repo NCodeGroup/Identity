@@ -28,7 +28,7 @@ namespace NCode.Identity.Secrets.GoogleCloudKms.Facades;
 /// succeeds.
 /// </para>
 /// </remarks>
-// See ADR-1260 and ADR-1429.
+// See ADR-1260 and ADR-1414.
 [ExcludeFromCodeCoverage(
     Justification = "Creates the Google Cloud SDK client; a passthrough to Google.Cloud.Kms.V1."
 )]

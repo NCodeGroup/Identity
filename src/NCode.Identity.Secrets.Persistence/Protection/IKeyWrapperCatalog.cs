@@ -11,7 +11,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// wrapper. A wrapped key records the name of the key wrapper that wrapped it, so the catalog resolves the key wrapper
 /// that can unwrap it as well as the one that the options select for wrapping new keys.
 /// </summary>
-// See ADR-1235 and ADR-1415.
+// See ADR-1235 and ADR-1414.
 internal interface IKeyWrapperCatalog
 {
     /// <summary>

@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.GoogleCloudKms.Facades;
 /// Runs calls with the Google Cloud Key Management Service client, so the code that wraps and unwraps keys can be
 /// tested without calling Google Cloud.
 /// </summary>
-// See ADR-1260 and ADR-1429.
+// See ADR-1260 and ADR-1414.
 internal interface IGoogleCloudKmsClientFactory
 {
     /// <summary>

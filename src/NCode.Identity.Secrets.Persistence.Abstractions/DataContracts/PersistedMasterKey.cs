@@ -79,7 +79,7 @@ public sealed class PersistedMasterKey : ISupportConcurrencyToken
     /// Gets or sets the identity the root key that wraps <see cref="RootWrappedKey"/> is reached through, or
     /// <c>null</c> for the deployment's own identity. Unwrapping uses it.
     /// </summary>
-    // See ADR-1429.
+    // See ADR-1414.
     public string? RootKeyAccessIdentity { get; set; }
 
     /// <summary>

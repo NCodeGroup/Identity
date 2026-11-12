@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Management.Endpoints.Caller;
 using NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -23,6 +24,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// <c>409</c> and <c>503</c> problems that its settings and root-key filters answer. It also describes the problem
 /// responses that every route shares in the OpenAPI document, and answers a thrown request-binding failure with its
 /// status.
+/// Its endpoints have confidential bodies, so HTTP logging never writes their request or response bodies.
 /// </summary>
 internal sealed class ManagementRootGroup : IEndpointGroup
 {
@@ -47,12 +49,14 @@ internal sealed class ManagementRootGroup : IEndpointGroup
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group)
     {
+        // Every management endpoint's body can carry a credential or personal data, so HTTP logging never writes one (ADR-1503).
         group
             .AddEndpointFilter<RouteGroupBuilder, ManagementEnvironmentEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, ManagementAuthenticationEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, StoreConcurrencyEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, UnreadableSettingsEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, OwnerRootKeyUnavailableEndpointFilter>()
+            .WithConfidentialBodies()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
             .AddOpenApiOperationTransformer(

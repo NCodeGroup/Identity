@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Registration.AspNetCore;
@@ -20,6 +21,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// it adds no exception filter: the interactive endpoints render HTML pages and redirects, not OpenID error responses.
 /// It mirrors the protocol endpoints' registration so the surface flows through the same
 /// <c>MapEndpointGroups</c> discovery as every other endpoint instead of a bespoke mapping call.
+/// Its endpoints have confidential bodies, so HTTP logging never writes their request or response bodies.
 /// </summary>
 // See ADR-1138 and ADR-1193.
 internal sealed class InteractiveAuthenticationEndpointGroup : IEndpointGroup
@@ -38,7 +40,9 @@ internal sealed class InteractiveAuthenticationEndpointGroup : IEndpointGroup
 
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group) =>
-        group.AddEndpointFilter<RouteGroupBuilder, OpenIdEnvironmentEndpointFilter>();
+        group
+            .AddEndpointFilter<RouteGroupBuilder, OpenIdEnvironmentEndpointFilter>()
+            .WithConfidentialBodies();
 
     /// <inheritdoc />
     public void ConfigureServices(IEndpointGroupBuilder builder) =>

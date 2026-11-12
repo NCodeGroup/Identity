@@ -1,0 +1,34 @@
+# A release whose pods' certificate comes from the organization's cert-manager ClusterIssuer, behind a controller the chart does not configure.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  recovery:
+    publicKeyConfigMap: identity-recovery-key
+  # Names this release's keys, so a render that sets a remote key provider on top of these values passes the
+  # deployment check; with no provider set, nothing uses it.
+  remoteKeys:
+    deployment: ci-single-replica
+backendTls:
+  ingressController: none
+  certManager:
+    issuerRef:
+      name: corp-ca
+      kind: ClusterIssuer
+    dnsNames:
+      - id.internal.example.com
+ingress:
+  enabled: true
+  className: haproxy
+  hosts:
+    - host: id.example.com
+      paths:
+        - path: /
+          pathType: Prefix

@@ -44,8 +44,10 @@ var serviceCollection = builder.Services;
 builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger();
 
 // SAFETY GATE: refuse to start a Production deployment that still has development-only conveniences enabled
-// (developer signing keys, a wildcard host filter, developer CORS configuration, seeded accounts). Every one of them is
-// silent — the server would start, serve traffic, and look healthy — so this fails before the port is bound.
+// (developer signing keys, a wildcard host filter, developer CORS configuration, seeded accounts) or that does not serve
+// HTTPS only with a usable certificate. Every one of them is silent — the server would start, serve traffic, and look
+// healthy — so the configuration checks fail before the port is bound and the transport check fails as the host
+// finishes starting, before any probe passes.
 // Inert in every non-Production environment.
 serviceCollection.AddProductionSafety(configuration, hostEnvironment);
 
@@ -206,7 +208,9 @@ if (app.Environment.IsDevelopment())
 // Turnkey OpenAPI document + Scalar API reference, owned by the composition layer (prod and dev).
 app.MapIdentityServerApiReference();
 
-app.UseHttpsRedirection();
+// Production binds HTTPS endpoints only (AddProductionSafety refuses to start otherwise), so it adds no redirect;
+// every other environment keeps it.
+app.UseHttpsRedirectionOutsideProduction();
 
 app.UseRouting();
 

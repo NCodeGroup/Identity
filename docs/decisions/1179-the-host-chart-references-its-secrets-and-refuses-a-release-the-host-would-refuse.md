@@ -6,7 +6,9 @@
   key-protection certificates, and refuses a Production release without a root key held outside the pod or a recovery
   decision; and by
   [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md): the
-  chart deploys the management console as an opt-in component)
+  chart deploys the management console as an opt-in component; and by
+  [ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md):
+  the pods serve HTTPS, and the chart's Certificate, Service, Ingress and probes follow)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0128](project-template/0128-liveness-never-checks-dependencies-readiness-does.md)

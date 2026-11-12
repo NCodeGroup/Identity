@@ -7,6 +7,8 @@
 # that routes every path to the console, call the management API at its authority's origin, stay opt-in (ADR-1458,
 # ADR-1488), and hold its key rings in a key management service under its own identity (ADR-1485). A server remote key
 # provider is registered only when enabled, with or without its location (ADR-1490).
+# The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
+# the certificate, and the chosen controller verifies it (ADR-1504).
 # Publishing the chart belongs to the release workflow.
 name: Host chart
 
@@ -106,6 +108,12 @@ jobs:
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
           refuse --set unknownSetting=true
+          refuse --set backendTls.ingressController=haproxy
+          refuse --set backendTls.certManager.issuerRef.kind=Deployment
+          refuse --set backendTls.certManager.duration=90d
+          refuse --set backendTls.certManager.renewBefore=2160h
+          refuse --set backendTls.certManager.privateKey.size=1024
+          refuse --set backendTls.certManager.privateKey.algorithm=RSA --set backendTls.certManager.privateKey.size=256
 
       - name: Migrate before the rollout unless disabled
         run: |
@@ -192,6 +200,71 @@ jobs:
             echo "::error::A release without Valkey must use the Recreate strategy."
             exit 1
           fi
+
+      - name: Serve HTTPS and verify the pods' certificate
+        run: |
+          base="$CHART/ci/single-replica-values.yaml"
+          expect() {
+            local rendered="$1"; shift
+            for expected in "$@"; do
+              if ! grep -q -- "$expected" <<< "$rendered"; then
+                echo "::error::The release lacks: $expected"
+                exit 1
+              fi
+            done
+          }
+          reject() {
+            local rendered="$1"; shift
+            for unexpected in "$@"; do
+              if grep -q -- "$unexpected" <<< "$rendered"; then
+                echo "::error::The release renders what it must not: $unexpected"
+                exit 1
+              fi
+            done
+          }
+          # The pods listen on the TLS port, the host binds it from the environment, and the certificate is mounted.
+          deployment=$(helm template release "$CHART" --values "$base" --show-only templates/deployment.yaml)
+          expect "$deployment" 'containerPort: 8443' 'value: "https://+:8443"' 'mountPath: /etc/ncode-identity/tls'
+          reject "$deployment" 'containerPort: 8080'
+          # The startup, liveness and readiness probes all use HTTPS.
+          if [ "$(grep -c 'scheme: HTTPS' <<< "$deployment")" -ne 3 ]; then
+            echo "::error::The server's three probes must use HTTPS."
+            exit 1
+          fi
+          # Without a Secret of the operator's, cert-manager issues the certificate from a private CA of the release.
+          expect "$(helm template release "$CHART" --values "$base")" 'kind: Certificate' \
+            'name: release-ncode-identity-host-tls' 'selfSigned: {}' 'name: release-ncode-identity-host-ca'
+          # A Secret of the operator's replaces the Certificate. The whole chart is rendered because --show-only fails on
+          # a template that renders nothing.
+          existing=$(helm template release "$CHART" --values "$base" --set backendTls.existingSecret=my-tls)
+          reject "$existing" 'kind: Certificate'
+          expect "$existing" 'secretName: my-tls'
+          # An issuer of the operator's replaces the private CA.
+          reject "$(helm template release "$CHART" --values "$base" --set backendTls.certManager.issuerRef.name=corp-ca)" \
+            'selfSigned'
+          # The controller verifies the pods' certificate: Traefik through a ServersTransport, ingress-nginx through
+          # annotations, and any other controller through the operator's own configuration.
+          ha="$CHART/ci/high-availability-values.yaml"
+          expect "$(helm template release "$CHART" --values "$ha")" 'kind: ServersTransport'
+          nginx=$(helm template release "$CHART" --values "$ha" --set backendTls.ingressController=ingress-nginx)
+          expect "$nginx" 'backend-protocol: HTTPS' 'proxy-ssl-verify: "on"' \
+            'proxy-ssl-secret: default/release-ncode-identity-host-tls'
+          reject "$nginx" 'ServersTransport'
+          reject "$(helm template release "$CHART" --values "$ha" --set backendTls.ingressController=none)" \
+            'ServersTransport' 'nginx.ingress.kubernetes.io'
+          # The console's Certificate needs the private CA even when the server's Secret is the operator's.
+          console_only=$(helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" \
+            --set backendTls.existingSecret=my-tls)
+          expect "$console_only" 'selfSigned: {}' 'kind: Issuer' 'name: release-ncode-identity-host-management-console-tls'
+          # Secrets of the operator's for every component leave no Certificate that needs the private CA.
+          reject "$(helm template release "$CHART" --values "$CHART/ci/backend-tls-existing-secret-values.yaml")" 'selfSigned'
+          # The management console serves HTTPS with a certificate of its own.
+          console=$(helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml")
+          if [ "$(grep -c 'scheme: HTTPS' <<< "$console")" -ne 6 ]; then
+            echo "::error::The server's and the management console's probes must all use HTTPS."
+            exit 1
+          fi
+          expect "$console" 'name: release-ncode-identity-host-management-console-tls'
 
       - name: Deploy the management console on its own host
         run: |

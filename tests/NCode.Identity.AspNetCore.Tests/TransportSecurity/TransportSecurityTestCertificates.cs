@@ -1,0 +1,200 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using System.Net;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using NCode.Buffers;
+using NCode.Identity.AspNetCore.TransportSecurity;
+
+namespace NCode.Identity.AspNetCore.Tests.TransportSecurity;
+
+/// <summary>
+/// Creates self-signed certificates for the transport security tests. Each certificate that carries a private key
+/// went through a PFX round-trip, because on Windows Kestrel and <see cref="System.Net.Security.SslStream"/> cannot
+/// use the key of a freshly created certificate.
+/// </summary>
+internal static class TransportSecurityTestCertificates
+{
+    private const string ServerAuthenticationOid = "1.3.6.1.5.5.7.3.1";
+
+    /// <summary>
+    /// A certificate that passes every rule: ECDSA P-256, SHA-256, valid from a day before <paramref name="now"/> for
+    /// 90 days.
+    /// </summary>
+    internal static X509Certificate2 CreateValid(DateTimeOffset now) =>
+        CreateWithValidity(now.AddDays(-1), now.AddDays(90));
+
+    /// <summary>
+    /// An ECDSA P-256 certificate with SHA-256 that is valid for the given period.
+    /// </summary>
+    internal static X509Certificate2 CreateWithValidity(
+        DateTimeOffset notBefore,
+        DateTimeOffset notAfter
+    ) => Create(notBefore, notAfter, extension: null);
+
+    /// <summary>
+    /// An RSA certificate with the given key size, signature hash and signature padding, valid from a day before
+    /// <paramref name="now"/> for 90 days. The padding defaults to PKCS#1.
+    /// </summary>
+    internal static X509Certificate2 CreateRsa(
+        int keySizeInBits,
+        HashAlgorithmName signatureHash,
+        DateTimeOffset now,
+        RSASignaturePadding? signaturePadding = null
+    )
+    {
+        using var rsa = RSA.Create(keySizeInBits);
+        var request = new CertificateRequest(
+            "CN=localhost",
+            rsa,
+            signatureHash,
+            signaturePadding ?? RSASignaturePadding.Pkcs1
+        );
+        var notBefore = now.AddDays(-1);
+        var notAfter = now.AddDays(90);
+
+        // The framework's signature generator does not sign with SHA-1, so that certificate uses a generator of its
+        // own.
+        return signatureHash == HashAlgorithmName.SHA1
+            ? FinishWithGenerator(
+                request,
+                rsa,
+                new Sha1RsaSignatureGenerator(rsa),
+                notBefore,
+                notAfter
+            )
+            : Finish(request, notBefore, notAfter);
+    }
+
+    /// <summary>
+    /// A 2048-bit RSA certificate signed with RSASSA-PSS and SHA-1, valid from a day before <paramref name="now"/> for
+    /// 90 days.
+    /// </summary>
+    internal static X509Certificate2 CreateRsaPssWithSha1(DateTimeOffset now)
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            "CN=localhost",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+
+        return FinishWithGenerator(
+            request,
+            rsa,
+            new Sha1PssSignatureGenerator(rsa),
+            now.AddDays(-1),
+            now.AddDays(90)
+        );
+    }
+
+    /// <summary>
+    /// A valid certificate that carries the extension that marks the ASP.NET Core HTTPS development certificate.
+    /// </summary>
+    internal static X509Certificate2 CreateDevelopmentMarked(DateTimeOffset now) =>
+        Create(
+            now.AddDays(-1),
+            now.AddDays(90),
+            new X509Extension(
+                new Oid(TransportCertificateInspector.AspNetCoreDevelopmentCertificateOid),
+                [1],
+                critical: false
+            )
+        );
+
+    /// <summary>
+    /// Writes the certificate as <c>tls.crt</c> and its ECDSA private key as PKCS#8 <c>tls.key</c>, the PEM files that
+    /// Kestrel reads from <c>Kestrel:Certificates:Default:Path</c> and <c>KeyPath</c>, and returns the two paths.
+    /// </summary>
+    internal static (string CertificatePath, string KeyPath) WritePemFiles(
+        X509Certificate2 certificate,
+        string directory
+    )
+    {
+        using var key =
+            certificate.GetECDsaPrivateKey()
+            ?? throw new InvalidOperationException("The certificate has no ECDSA private key.");
+
+        var certificatePath = Path.Combine(directory, "tls.crt");
+        var keyPath = Path.Combine(directory, "tls.key");
+        File.WriteAllText(certificatePath, certificate.ExportCertificatePem(), SecureEncoding.UTF8);
+        File.WriteAllText(keyPath, key.ExportPkcs8PrivateKeyPem(), SecureEncoding.UTF8);
+        return (certificatePath, keyPath);
+    }
+
+    private static X509Certificate2 Create(
+        DateTimeOffset notBefore,
+        DateTimeOffset notAfter,
+        X509Extension? extension
+    )
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var request = new CertificateRequest("CN=localhost", ecdsa, HashAlgorithmName.SHA256);
+        if (extension is not null)
+        {
+            request.CertificateExtensions.Add(extension);
+        }
+
+        return Finish(request, notBefore, notAfter);
+    }
+
+    private static X509Certificate2 Finish(
+        CertificateRequest request,
+        DateTimeOffset notBefore,
+        DateTimeOffset notAfter
+    )
+    {
+        AddServerExtensions(request);
+
+        using var selfSigned = request.CreateSelfSigned(notBefore, notAfter);
+        return Reload(selfSigned);
+    }
+
+    private static X509Certificate2 FinishWithGenerator(
+        CertificateRequest request,
+        RSA rsa,
+        X509SignatureGenerator signatureGenerator,
+        DateTimeOffset notBefore,
+        DateTimeOffset notAfter
+    )
+    {
+        AddServerExtensions(request);
+
+        var subject = new X500DistinguishedName("CN=localhost");
+        var serialNumber = new byte[8];
+        RandomNumberGenerator.Fill(serialNumber);
+        serialNumber[0] &= 0x7F;
+        serialNumber[0] |= 0x01;
+
+        using var publicOnly = request.Create(
+            subject,
+            signatureGenerator,
+            notBefore,
+            notAfter,
+            serialNumber
+        );
+        using var selfSigned = publicOnly.CopyWithPrivateKey(rsa);
+        return Reload(selfSigned);
+    }
+
+    private static void AddServerExtensions(CertificateRequest request)
+    {
+        var subjectAlternativeNames = new SubjectAlternativeNameBuilder();
+        subjectAlternativeNames.AddDnsName("localhost");
+        subjectAlternativeNames.AddIpAddress(IPAddress.Loopback);
+        subjectAlternativeNames.AddIpAddress(IPAddress.IPv6Loopback);
+        request.CertificateExtensions.Add(subjectAlternativeNames.Build());
+        request.CertificateExtensions.Add(
+            new X509EnhancedKeyUsageExtension([new Oid(ServerAuthenticationOid)], critical: false)
+        );
+    }
+
+    private static X509Certificate2 Reload(X509Certificate2 certificate) =>
+        X509CertificateLoader.LoadPkcs12(
+            certificate.Export(X509ContentType.Pfx),
+            password: null,
+            keyStorageFlags: X509KeyStorageFlags.Exportable
+        );
+}

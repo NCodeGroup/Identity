@@ -1,8 +1,8 @@
 # ncode-identity-host
 
 The Helm chart for `NCode.Identity.OpenId.Host`, the OpenID Connect and OAuth 2.0 server. It runs the host image as a
-non-root deployment that meets the restricted Pod Security Standard, probes `/health/live` and `/health/ready`, and
-drains each pod before stopping it
+non-root deployment that meets the restricted Pod Security Standard, serves HTTPS only, probes `/health/live` and
+`/health/ready` over HTTPS, and drains each pod before stopping it
 ([ADR-1179](../../docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
 Setting `managementConsole.enabled` also deploys the management console host on a host name of its own
 ([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
@@ -22,6 +22,9 @@ The chart takes no secret values. It references Secrets you create in the releas
 - `valkey.existingSecret`, for more than one replica: the Valkey connection string, under the `connection-string` key.
 - `migrations.database.existingSecret`, optional: a connection string with the right to change the schema, used only
   by the migration Job. It defaults to `database.existingSecret`.
+- cert-manager, unless `backendTls.existingSecret` names a Secret: the chart creates the `Certificate` (and, without
+  `backendTls.certManager.issuerRef.name`, a private CA) that issues the pods' serving certificate; see
+  [Transport security](#transport-security).
 
 ## Install
 
@@ -43,6 +46,9 @@ Rendering fails, before anything is applied, when:
 - `allowedHosts` is empty or contains `*`;
 - the probes would send a wildcard `Host` header: when the first allowed host is a wildcard such as `*.example.com`,
   set `probes.host` to a concrete host it accepts;
+- `backendTls.certManager.renewBefore` is not shorter than `duration`, or the key size does not fit its algorithm
+  (ECDSA 256, 384 or 521; RSA 2048 or more), or `backendTls.ingressController` is not `ingress-nginx`, `traefik` or
+  `none`;
 - `database.existingSecret` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
@@ -684,14 +690,70 @@ service and the request rate fits the service's quota
 
 `ci/management-console-remote-keys-values.yaml` shows a release.
 
+## Transport security
+
+The pods serve HTTPS only, on port 8443. The Service listens on `service.port` (443 by default) with
+`appProtocol: https`, and the Ingress backend names the Service's `https` port. The host refuses to start in
+Production unless Kestrel serves only HTTPS endpoints whose certificate loads, is valid now, has an RSA key of at least
+2048 bits or an ECDSA key, is signed with SHA-256 or stronger, and is not the ASP.NET Core development certificate. A
+TLS-terminating proxy that speaks plain HTTP to the pods is not supported
+([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+
+The probes use HTTPS, and the kubelet does not verify the certificate a probe meets. The host checks its certificate as
+it starts, and Kestrel loads renewed certificate files it watches.
+
+### The serving certificate
+
+By default the chart creates a cert-manager `Certificate` for each component from a private CA it also creates: a
+self-signed Issuer, the CA `Certificate` `<release>-ca`, and an Issuer backed by that CA. The key is ECDSA P-256, the
+`duration` is 2160h and `renewBefore` is 720h. The DNS names are `<service>`, `<service>.<namespace>`,
+`<service>.<namespace>.svc` and `<service>.<namespace>.svc.cluster.local`, plus `backendTls.certManager.dnsNames`.
+
+- `backendTls.certManager.issuerRef` names your own Issuer or ClusterIssuer, so the chart creates no private CA.
+- `backendTls.existingSecret` and `managementConsole.backendTls.existingSecret` name `kubernetes.io/tls` Secrets you
+  create, so the chart creates no `Certificate` for the component whose Secret you name. The private CA is still
+  created while another component needs a `Certificate` from it. Each Secret must also hold `ca.crt`, which the
+  ingress controller verifies the pods against.
+
+### The ingress controller
+
+`backendTls.ingressController` chooses what the chart renders so the controller speaks HTTPS to the Service and
+verifies the pods' certificate:
+
+| Value                     | What the chart renders                                                                       |
+|---------------------------|----------------------------------------------------------------------------------------------|
+| `ingress-nginx` (default) | Ingress annotations: `backend-protocol: HTTPS`, `proxy-ssl-verify: "on"`, `proxy-ssl-secret`, `proxy-ssl-name`, `proxy-ssl-server-name`. |
+| `traefik`                 | A `ServersTransport` with `rootCAsSecrets` and `serverName`, and the Service annotations `service.serversscheme` and `service.serverstransport`. |
+| `none`                    | Neither. You configure the controller to speak HTTPS to the Service and to verify the pods' certificate. |
+
+`ingress.annotations` override the chart's annotations, and `managementConsole.ingress.annotations` override the
+console's the same way.
+
+The `proxy-ssl-secret` annotation of ingress-nginx also loads the Secret's `tls.crt` and `tls.key` as a client
+certificate that the pods do not ask for. By default the controller's verification Secret is the serving Secret, which
+holds the pods' private key, because cert-manager issues no CA-only Secret, so the controller, which reads Secrets
+cluster-wide, receives that key. `backendTls.ingressCaSecret` names a Secret in the release namespace that holds only
+`ca.crt`, and the chart then names it in place of the serving Secret (`proxy-ssl-secret` for ingress-nginx, the
+`rootCAsSecrets` entry of the `ServersTransport` for Traefik), so the controller never receives the pods' key. Create it
+with `kubectl create secret generic <name> --from-file=ca.crt=<ca.pem>`, or have a trust distribution tool such as
+trust-manager write it. `managementConsole.backendTls.ingressCaSecret` does the same for the console and, when empty,
+falls back to `backendTls.ingressCaSecret` and then to the console's serving Secret.
+
+### Trust
+
+1. A private CA run by cert-manager or a mesh, verified by the proxy, is preferred and is the default.
+2. A pinned self-signed certificate, whose `ca.crt` is the certificate itself, is acceptable.
+3. A self-signed certificate with proxy verification off is unauthenticated encryption, which stops passive
+   eavesdropping and nothing else, and is discouraged. The chart never renders it.
+
 ## Strict-Transport-Security
 
 Outside Development, the host sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
 to a request that reached it over HTTPS
-([ADR-1258](../../docs/decisions/1258-the-server-sends-strict-transport-security-outside-development.md)). Behind the
-ingress the pod serves plain HTTP, so the host sees HTTPS only through the `X-Forwarded-Proto` header of a proxy that
-`forwardedHeaders` trusts: set `forwardedHeaders.knownNetworks` or `forwardedHeaders.knownProxies` to cover the ingress
-controller, or the header is not sent.
+([ADR-1258](../../docs/decisions/1258-the-server-sends-strict-transport-security-outside-development.md)). The pods
+serve HTTPS, so the host sees HTTPS on every request and sends the header whether or not `forwardedHeaders` trusts the
+ingress. Trusting the ingress (`forwardedHeaders.knownNetworks` or `forwardedHeaders.knownProxies`) is how the host
+learns the client's address and the original host, so set it to cover the ingress controller.
 
 When the ingress controller sends the header itself, set `StrictTransportSecurity__Enabled=false` in `extraEnv`, so
 one component owns it. Change the policy the same way with `StrictTransportSecurity__MaxAge` (for example

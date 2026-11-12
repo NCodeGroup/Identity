@@ -176,9 +176,43 @@ secretProtection:
     backoffLimit: 0
     activeDeadlineSeconds: 3600
 
+# TLS between the ingress and the pods (ADR-1504). The pods serve HTTPS only, and the host refuses to start in
+# Production without a certificate it can serve. The chart mounts the certificate at /etc/ncode-identity/tls and points
+# the probes, the Service and the Ingress at the pods' HTTPS port.
+backendTls:
+  # The ingress controller whose backend TLS settings the chart renders: ingress-nginx (Ingress annotations), traefik
+  # (a ServersTransport and Service annotations) or none. With none, the controller must speak HTTPS to the Service and
+  # verify the pods' certificate against the ca.crt of the serving Secret, which the operator configures.
+  ingressController: ingress-nginx
+  # A kubernetes.io/tls Secret the operator created, with tls.crt, tls.key and ca.crt. Its certificate names the
+  # Service's DNS names: <service>, <service>.<namespace>, <service>.<namespace>.svc and
+  # <service>.<namespace>.svc.cluster.local. Empty makes the chart create a cert-manager Certificate.
+  existingSecret: ""
+  # The name of a Secret in the release namespace that holds only ca.crt, the CA that signs the pods' certificate. The
+  # ingress controller reads it to verify the pods (ingress-nginx proxy-ssl-secret, Traefik rootCAsSecrets), so it
+  # never receives the pods' private key. Empty names the serving Secret, which holds tls.key too, because cert-manager
+  # issues no CA-only Secret. Create one with: kubectl create secret generic <name> --from-file=ca.crt=<ca.pem>
+  ingressCaSecret: ""
+  certManager:
+    # The issuer of the pods' certificate. An empty name makes the chart create a private CA: a self-signed Issuer, a CA
+    # Certificate and a CA Issuer, which signs the pods' certificate. Name an Issuer or ClusterIssuer of your own, such
+    # as one backed by your organization's CA, to use it instead.
+    issuerRef:
+      name: ""
+      kind: Issuer
+      group: cert-manager.io
+    # Hours, because the chart passes them to cert-manager as they are.
+    duration: 2160h
+    renewBefore: 720h
+    privateKey:
+      algorithm: ECDSA
+      size: 256
+    # DNS names beyond the Service's own.
+    dnsNames: []
+
 service:
   type: ClusterIP
-  port: 80
+  port: 443
 
 ingress:
   enabled: false
@@ -319,9 +353,16 @@ managementConsole:
   valkey:
     existingSecret: ""
     connectionStringKey: connection-string
+  # The console's serving certificate: a kubernetes.io/tls Secret with tls.crt, tls.key and ca.crt, or empty for a
+  # cert-manager Certificate from the issuer of backendTls.certManager.
+  backendTls:
+    existingSecret: ""
+    # A Secret in the release namespace that holds only ca.crt, for the ingress controller to verify the console's pods.
+    # Empty uses backendTls.ingressCaSecret, and then the console's serving Secret.
+    ingressCaSecret: ""
   service:
     type: ClusterIP
-    port: 80
+    port: 443
   # Routes every path to the console.
   ingress:
     enabled: false

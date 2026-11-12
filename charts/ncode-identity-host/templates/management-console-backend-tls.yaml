@@ -1,0 +1,3 @@
+{{- if and .Values.managementConsole.enabled (not .Values.managementConsole.backendTls.existingSecret) }}
+{{ include "identity-host.backendTls.certificate" (dict "root" . "name" (include "identity-host.managementConsole.backendTls.secretName" .) "secretName" (include "identity-host.managementConsole.backendTls.secretName" .) "service" (include "identity-host.managementConsole.fullname" .) "extra" (list) "labels" (include "identity-host.managementConsole.labels" .)) }}
+{{- end }}

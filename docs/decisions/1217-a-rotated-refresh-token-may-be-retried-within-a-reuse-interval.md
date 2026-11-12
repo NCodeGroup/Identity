@@ -107,7 +107,7 @@ a reuse.**
   its successor, and a lost spend is a reuse.
 - [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — a revocation reads again and retries when it loses a race.
 - [ADR-1216](1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) — which refresh tokens rotate.
-- [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — the revocation endpoint revokes refresh tokens.
+- [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) — the revocation endpoint revokes refresh tokens.
 - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) — OAuth 2.0 Security Best Current Practice (§4.14.2).
 - [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009) — OAuth 2.0 Token Revocation (§2.1).
 - [FAPI 2.0 Security Profile](https://openid.net/specs/fapi-security-profile-2_0-final.html) (§5.3.2.1).

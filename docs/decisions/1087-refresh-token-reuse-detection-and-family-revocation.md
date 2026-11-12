@@ -11,7 +11,7 @@
 ## Context
 
 With refresh-token rotation enabled, each use of a refresh token issues a replacement and revokes the one presented
-([ADR-1028](1028-token-revocation-refresh-tokens-only.md) covers the revocation column these grants carry). If a refresh
+([ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) covers the revocation column these grants carry). If a refresh
 token leaks, both the attacker and the legitimate client eventually present the same token value; whichever arrives
 second presents an **already-revoked** token. The server cannot tell which party is legitimate, but that replay is an
 unambiguous signal that the token was compromised.
@@ -90,7 +90,7 @@ Concretely:
 
 - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) — OAuth 2.0 Security Best Current Practice (§4.14.2, refresh-token
   rotation and reuse detection)
-- [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — token revocation revokes refresh tokens only
+- [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) — token revocation revokes refresh tokens only
 - [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) — the load-and-mutate bulk-revocation pattern this reuses
 - [ADR-1077](1077-session-scoped-grant-revocation-on-logout.md) — session-scoped grant revocation on logout
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the concurrency-token interceptor that stamps changed rows

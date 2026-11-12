@@ -72,5 +72,5 @@ and to UserInfo through a stateful server-side grant — never by inflating the 
   `DefaultAuthorizationCodeGrantHandler`, `DefaultTokenService`, `DefaultUserInfoEndpointProvider`,
   `GetUserInfoClaimsCommand`, `IPersistedGrantService`.
 - Prior art: [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) (UserInfo enricher seam),
-  [ADR-1028](1028-token-revocation-refresh-tokens-only.md) (persisted grants).
+  [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) (persisted grants).
 - Spec: [OIDC Core 5.5 — Requesting Claims using the "claims" Request Parameter](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter).

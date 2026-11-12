@@ -15,7 +15,7 @@ and, if so, obtain its metadata (scope, subject, audience, expiry, …). The res
 required boolean `active` member and any number of optional claims; an inactive token returns just `{"active": false}`
 so the endpoint never leaks why a token failed.
 
-This server issues two token shapes with different natures (see [ADR-1028](1028-token-revocation-refresh-tokens-only.md)):
+This server issues two token shapes with different natures (see [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)):
 an **access token** is a self-contained, signed JWT whose active state is a function of its signature, issuer, and
 lifetime; a **refresh token** is a persisted grant whose active state is the `Status` of a server-side row. Introspection
 must answer for both. The server already has the building blocks — `IJsonWebTokenService.ValidateJwtAsync` for the JWT
@@ -69,7 +69,7 @@ Three rules shape the design:
 - A client can introspect an access token (getting its full claim set) or a refresh token (getting `client_id`, `scope`,
   and `sub`); anything else is reported inactive. The endpoint auto-advertises as `introspection_endpoint` in discovery.
 - Introspection reflects the same lifetimes and revocation state as the rest of the server: a revoked refresh token
-  (see [ADR-1028](1028-token-revocation-refresh-tokens-only.md)) reports inactive, while an unexpired access token
+  (see [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)) reports inactive, while an unexpired access token
   reports active until it expires — the server does not consult a denylist for access tokens.
 - The result is extensible: new claims or richer policies arrive as additional `ICommandHandler<IntrospectTokenCommand>`
   registrations, not as changes to the endpoint or the response type.
@@ -82,5 +82,5 @@ Three rules shape the design:
   follows.
 - [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) — the audience-bound access tokens introspection
   validates.
-- [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — the sibling client-facing endpoint whose token-shape
+- [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) — the sibling client-facing endpoint whose token-shape
   analysis (stateless JWT vs persisted grant) this ADR reuses.

@@ -49,7 +49,7 @@ Concretely:
 
 ## Options considered
 
-- **Keep stateless access tokens with no revocation check ([ADR-1028](1028-token-revocation-refresh-tokens-only.md)).**
+- **Keep stateless access tokens with no revocation check ([ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)).**
   Rejected now: it leaves the RFC 6749 §4.1.2 SHOULD unmet and the conformance warning standing.
 - **A global access-token denylist / reference tokens.** Rejected: it reintroduces per-access-token server state and a
   lookup on **every** resource-server call — the cost a stateless JWT exists to avoid.
@@ -80,7 +80,7 @@ Concretely:
 - [RFC 6749 §4.1.2](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2),
   [RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700),
   [RFC 9068 §2.2.1](https://datatracker.ietf.org/doc/html/rfc9068#section-2.2.1).
-- [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — revocation-endpoint scope, refined here for the
+- [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) — revocation-endpoint scope, refined here for the
   code-replay path.
 - [ADR-1077](1077-session-scoped-grant-revocation-on-logout.md) — session-scoped grant revocation.
 - [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — the analogous reuse-detection response for

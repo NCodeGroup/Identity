@@ -1777,7 +1777,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   an unknown or non-revocable token (a stateless JWT access token included) is a no-op, and the endpoint always responds
   `200 OK`, so it never reveals token state. The endpoint is a thin `IOpenIdEndpointProvider` that authenticates the
   client, parses a typed `ITokenRevocationRequest` and delegates to the `RevokeTokenCommand` mediator handler
-  ([ADR-1028](docs/decisions/1028-token-revocation-refresh-tokens-only.md)).
+  ([ADR-1028](docs/decisions/1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)).
 
 - **An OpenID Connect UserInfo endpoint** (`GET`/`POST /oauth2/userinfo`, [OpenID Connect Core
   5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo), advertised as `userinfo_endpoint` in discovery).
@@ -5183,7 +5183,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   first-party access-token authentication; external resource servers treat the JWT as self-contained (issue
   [#131](https://github.com/NCodeGroup/identity/issues/131),
   [ADR-1112](docs/decisions/1112-authorization-code-replay-revokes-session.md), which refines
-  [ADR-1028](docs/decisions/1028-token-revocation-refresh-tokens-only.md)).
+  [ADR-1028](docs/decisions/1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)).
 
 - **A concurrent second spend of a single-use grant is answered as a second spend.** Of two requests that spend one
   authorization code, device code, CIBA request, pushed authorization request, initial access token, or `state` of a

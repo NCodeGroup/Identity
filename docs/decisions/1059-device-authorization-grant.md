@@ -131,7 +131,7 @@ Concretely:
   advertisement.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) —
   the settings descriptor and merge conventions the new settings follow.
-- [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — the `PersistedGrant` revoke/consume semantics reused here.
+- [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) — the `PersistedGrant` revoke/consume semantics reused here.
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) — why avoiding a new migration matters.
 - [ADR-1085](1085-ciba-grant.md) — the CIBA grant that reuses this pending-authorization pattern.
 - <see href="https://datatracker.ietf.org/doc/html/rfc8628">RFC 8628</see> — the OAuth 2.0 Device Authorization Grant.

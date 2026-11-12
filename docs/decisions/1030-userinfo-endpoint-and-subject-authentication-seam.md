@@ -85,5 +85,5 @@ Two naming consequences of introducing a second subject-authentication path were
 
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator command/handler + overridable-default
   shape this endpoint follows.
-- [ADR-1028](1028-token-revocation-refresh-tokens-only.md) / [ADR-1029](1029-token-introspection-endpoint.md) — the
+- [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) / [ADR-1029](1029-token-introspection-endpoint.md) — the
   sibling client-facing endpoints whose thin-shell + extensible-result conventions UserInfo reuses.

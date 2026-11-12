@@ -145,7 +145,7 @@ Each module below exercises OP behavior that a specification requires; the OP be
   carries `sid`. There is no global access-token denylist and no per-token store: one indexed session lookup on
   first-party access-token authentication and one session-scoped revocation on the rare replay path. External resource
   servers treat the JWT as self-contained. See [ADR-1112](../decisions/1112-authorization-code-replay-revokes-session.md)
-  (refines [ADR-1028](../decisions/1028-token-revocation-refresh-tokens-only.md)).
+  (refines [ADR-1028](../decisions/1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)).
 
 ### Codified intentional deviations
 

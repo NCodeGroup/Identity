@@ -188,7 +188,7 @@ The records are grouped by area; within an area they are in number order.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [1026](./1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) | Resource servers own scopes, settings and keys, and decide a client's scopes and token audiences | Accepted |
-| [1028](./1028-token-revocation-refresh-tokens-only.md) | Token revocation revokes refresh tokens only; stateless access tokens expire | Accepted |
+| [1028](./1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) | The revocation endpoint revokes refresh tokens and their families, and always answers 200 | Accepted |
 | [1029](./1029-token-introspection-endpoint.md) | Token introspection resolves JWT access tokens and refresh-token grants | Accepted |
 | [1030](./1030-userinfo-endpoint-and-subject-authentication-seam.md) | UserInfo is backed by a reusable subject-authentication seam; claims come from enrichers | Accepted |
 | [1039](./1039-claims-request-parameter.md) | The OpenID Connect `claims` request parameter is honored end-to-end | Accepted |

@@ -281,13 +281,12 @@ The records are grouped by area; within an area they are in number order.
 | [1270](./1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted |
 | [1272](./1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [1273](./1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) | The protocol client validates ID tokens and their token hashes under OpenID Connect Core | Accepted |
-| [1274](./1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) | The protocol client validates logout tokens and rejects replays | Accepted |
+| [1274](./1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) | The protocol client validates logout tokens and records each only after the client handles it | Accepted |
 | [1275](./1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) | The protocol client pushes authorization requests whenever the provider offers PAR | Accepted |
 | [1276](./1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md) | The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package | Accepted |
 | [1278](./1278-token-validation-failures-carry-a-machine-readable-code.md) | Token validation failures carry a machine-readable code | Accepted |
 | [1280](./1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) | The protocol client decrypts ID and logout tokens with its key ring | Accepted |
 | [1282](./1282-the-jose-library-does-not-implement-rsa1-5.md) | The JOSE library does not implement RSA1_5 | Accepted |
-| [1284](./1284-a-logout-token-is-recorded-only-after-the-client-handles-it.md) | A logout token is recorded only after the client handles it | Accepted |
 | [1285](./1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) | The OpenID protocol client needs no ASP.NET Core runtime | Accepted |
 | [1286](./1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) | The protocol client binds tokens with DPoP whenever the provider supports it | Accepted |
 | [1288](./1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) | The protocol client authenticates with a TLS client certificate from its key ring | Accepted |

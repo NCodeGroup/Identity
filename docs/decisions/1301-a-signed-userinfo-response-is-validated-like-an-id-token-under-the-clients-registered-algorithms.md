@@ -17,7 +17,7 @@ could not be used with the BFF's UserInfo option (issue #421).
 
 The protocol client already validates two kinds of JWT from the provider the same way: the ID token
 ([ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md)) and the logout token
-([ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)), each decrypted with the client's key ring
+([ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md)), each decrypted with the client's key ring
 when the client registered encryption
 ([ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)). The two validators were
 copies of each other, and a third copy for UserInfo would have drifted.

@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 /// (OpenID Connect Back-Channel Logout 1.0 §2.6) and refuses a token whose <c>jti</c> is already recorded;
 /// <see cref="TryRecordHandledAsync"/> records it.
 /// </summary>
-// See ADR-1274 and ADR-1284.
+// See ADR-1274.
 internal class DefaultLogoutTokenValidator(
     IProviderMetadataResolver metadataResolver,
     ProviderJwtValidator providerJwtValidator,

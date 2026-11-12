@@ -27,7 +27,7 @@ client registration demands it, and returns a PAR endpoint's OAuth error as data
 2. **PAR is required** when the provider advertises `require_pushed_authorization_requests` (RFC 9126 §5) or
    `ClientRegistration.RequirePushedAuthorizationRequests` is `true`, which mirrors the registered client metadata of
    the same name (RFC 9126 §6), as `BackchannelLogoutSessionRequired` mirrors its metadata
-   ([ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)). Required but no PAR endpoint
+   ([ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md)). Required but no PAR endpoint
    throws `OpenIdProviderException` and nothing is sent.
 3. **Code flow and PKCE `S256` only** (RFC 9700). The client always writes `response_type=code` and
    `code_challenge_method=S256`. The caller passes the `code_verifier` in `AuthorizationRequest` and the client derives
@@ -87,7 +87,7 @@ client registration demands it, and returns a PAR endpoint's OAuth error as data
 - [ADR-1089](1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md) — the OP's PAR endpoint
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
-- [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) — logout-token validation
+- [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) — logout-token validation
 - RFC 9126 §2.1, §2.2, §2.3, §4, §5 and §6 (pushed authorization requests)
 - RFC 7636 §4.1 and §4.2 (PKCE)
 - RFC 9700 (OAuth 2.0 security best current practice)

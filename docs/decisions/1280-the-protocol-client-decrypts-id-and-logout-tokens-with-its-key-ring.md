@@ -7,7 +7,7 @@
 ## Context
 
 [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) (point 8) and
-[ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) (point 8) refuse an encrypted ID
+[ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) (point 8) refuse an encrypted ID
 token and an encrypted logout token: the validators pass no decryption keys, so the JWT validator rejects a JWE
 ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)).
 
@@ -92,7 +92,7 @@ registered encryption.**
 - Tokens from an OP that does not encrypt are refused for such a client.
 - A client that registers no encryption keeps refusing an encrypted token, now with `algorithm_not_permitted`.
 - This amends [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) point 8,
-  [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) point 8 and
+  [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) point 8 and
   [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code.md) points 7 and 8, through their status lines
   only.
 - An end-to-end test against the in-process OP remains.
@@ -111,7 +111,7 @@ registered encryption.**
   key rings
 - [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) — the ID-token
   validator this amends
-- [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) — the logout-token validator this
+- [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) — the logout-token validator this
   amends
 - [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code.md) — the failure codes this extends
 - Issues [#347](https://github.com/NCodeGroup/identity/issues/347) and

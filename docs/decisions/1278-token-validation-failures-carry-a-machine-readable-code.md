@@ -14,7 +14,7 @@ callers act on a stable, snake_case machine-readable code, set where the failure
 layers above. This record applies it to token validation.
 
 [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) and
-[ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) report an invalid ID token or
+[ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) report an invalid ID token or
 logout token only as `FailureReason` text. The backend-for-frontend design ([§5.2](../backend-for-frontend.md)) names a
 failed login from an open vocabulary (`id_token_invalid`, `nonce_mismatch`, …), so a caller that has only the text can
 tell one failure from another only by matching it (issue #343).
@@ -136,6 +136,6 @@ one of its own from `TokenValidationFailureCodes`.**
   only through `IJwtValidator`
 - [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) — the ID-token
   validator this amends
-- [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) — the logout-token validator this
+- [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) — the logout-token validator this
   amends
 - Issue [#343](https://github.com/NCodeGroup/identity/issues/343)

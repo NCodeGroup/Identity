@@ -17,7 +17,7 @@ ways: it expires, a refresh fails
 at the BFF, or the provider ends the user's session and tells the BFF through OpenID Connect Back-Channel Logout. The
 design (§5.8) asked for RP-initiated logout that cannot be forced cross-site, and for a back-channel receiver that ends
 the session on every replica. Phase 2 (issue #394) builds both on the protocol client's logout-token validator
-([ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)) and on the store's `sid` and
+([ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md)) and on the store's `sid` and
 `sub` indexes. This ADR records how.
 
 ## Decision
@@ -56,7 +56,7 @@ indexes, ends them, and only then records the token.**
    and one provider session never ends every BFF session of the user. Setting it to `false` accepts `sub`-only tokens
    and ends all of the user's sessions at that issuer.
 9. **Record after handling.** The token's `jti` is recorded as handled only after the sessions it names have ended
-   ([ADR-1284](1284-a-logout-token-is-recorded-only-after-the-client-handles-it.md)), so a provider retry after a
+   ([ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md)), so a provider retry after a
    store failure is not refused as a replay.
 10. **Responses.** The receiver answers `200` with `Cache-Control: no-store`, and `400` when the request or token is
     invalid, the provider's keys cannot be read (`provider_unavailable`) or a session cannot be ended
@@ -72,7 +72,7 @@ indexes, ends them, and only then records the token.**
   way; the refresh token expires at the provider.
 - **Finding back-channel sessions by scanning the store.** Rejected: it does not scale and needs a store that can list
   keys; the `sid` and `sub` membership indexes answer the lookup directly.
-- **Recording the `jti` before ending the sessions.** Rejected by ADR-1284: a failure would turn the provider's retry
+- **Recording the `jti` before ending the sessions.** Rejected by ADR-1274: a failure would turn the provider's retry
   into a replay.
 
 ## Consequences
@@ -87,8 +87,8 @@ indexes, ends them, and only then records the token.**
 ## References
 
 - [Backend-for-frontend design](../backend-for-frontend.md) §5.8
-- [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) — logout-token validation
-- [ADR-1284](1284-a-logout-token-is-recorded-only-after-the-client-handles-it.md) — record after handling
+- [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) — logout-token validation
+- [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) — record after handling
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) — the session record and indexes
 - OpenID Connect RP-Initiated Logout 1.0, OpenID Connect Back-Channel Logout 1.0, RFC 7009 (revocation)
 - Issues #123 and #394

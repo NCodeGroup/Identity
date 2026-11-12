@@ -2650,8 +2650,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `jti` is recorded in `IExpiringKeySet`, and `TryRecordHandledAsync` records it once the client has ended the token's
   sessions, so a delivery the client failed to handle validates again when the OP retries it; that needs a SharedState
   adapter registered
-  ([ADR-1274](docs/decisions/1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md),
-  [ADR-1284](docs/decisions/1284-a-logout-token-is-recorded-only-after-the-client-handles-it.md), issues
+  ([ADR-1274](docs/decisions/1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md), issues
   [#123](https://github.com/NCodeGroup/identity/issues/123), [#349](https://github.com/NCodeGroup/identity/issues/349)).
 
 - **The protocol client's token validation failures carry a machine-readable code.** `IdTokenValidationResult` and

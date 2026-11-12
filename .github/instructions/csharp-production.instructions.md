@@ -1294,7 +1294,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 
 - 👁 **Measure a signal once, through its owner** — template
   [Metrics and Traces](csharp.instructions.md#metrics-and-traces) and
-  [ADR-1197](../../docs/decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md):
+  [ADR-1197](../../docs/decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md):
   enrich `http.server.request.duration` through `IHttpMetricsTagsFeature`, count domain outcomes through the event
   seam's counter, and add a family instrument only for a mechanism such as rate limiting or shared state.
 - 👁 **Create meters through `IMeterFactory`** — template [Metrics and Traces](csharp.instructions.md#metrics-and-traces);
@@ -1315,7 +1315,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 
 - 👁 **Trace only your own mechanisms, through one `ActivitySource` named like your meter** — template
   [Metrics and Traces](csharp.instructions.md#metrics-and-traces) and
-  [ADR-1298](../../docs/decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md);
+  [ADR-1197](../../docs/decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md);
   a span never carries a handle, subject or client id either.
 
 ## 12. Configuration & options

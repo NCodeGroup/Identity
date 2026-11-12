@@ -2,7 +2,7 @@
 
 Every meter, instrument, and attribute the NCode.Identity family emits, with each attribute's allowed values. It is the
 reviewed contract that dashboards and alerts are built against: adding or renaming an instrument or attribute changes
-this catalog in the same change ([ADR-1197](decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)).
+this catalog in the same change ([ADR-1197](decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
 
 No attribute carries a tenant, client, subject, or network address. Those belong to traces and logs, where cardinality
 costs nothing per series.
@@ -156,7 +156,7 @@ cancels records nothing.
 ## Traces
 
 A package that traces its own mechanisms does it through one `ActivitySource` named like its meter
-([ADR-1298](decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md)). A
+([ADR-1197](decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)). A
 host adds them to its tracing pipeline, for example with OpenTelemetry's `AddSource("NCode.Identity.*")`.
 
 | Activity source      | Spans                                                                                                                     | Public name constant              |

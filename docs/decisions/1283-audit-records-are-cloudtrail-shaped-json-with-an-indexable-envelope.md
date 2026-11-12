@@ -104,7 +104,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
     OpenTelemetry log exporter then emits indexable fields. The span event carries the same `audit.*` tags. The metric
     attributes are `ncode.identity.audit.event_name`, `ncode.identity.audit.event_category` and
     `ncode.identity.audit.outcome`, the bounded fields only
-    ([ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)). The event ids `14003`
+    ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)). The event ids `14003`
     and `14004` are reserved and never reused.
 14. **The audit handler calls `ILogger.Log` directly.** This is an exception to the `[LoggerMessage]`-only rule of the
     [production conventions](../../.github/instructions/csharp-production.instructions.md) (§11): a source-generated
@@ -176,7 +176,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
 - [ADR-1116](1116-memory-allocations-and-buffer-operations.md) — the writer uses buffer writers and allocates no
   `byte[]`
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
-- [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — bounded metric
+- [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — bounded metric
   dimensions
 - AWS CloudTrail record contents — the identity, request, resources and error structure
 - Auth0 log event schema — the snake_case names and the stable event type

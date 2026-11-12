@@ -22,7 +22,7 @@ instead of refusing at the quota. That needs a durable record of each tenant's u
 management API can read.
 
 Usage must stay out of metric series: a tenant attribute on a metric creates a series per tenant
-([ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) §6). Two sources were
+([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) §6). Two sources were
 proposed: rolling the day's quota counter up into storage, or appending a record per request through the event seam.
 
 ## Decision
@@ -92,7 +92,7 @@ default and the management API reads it.**
 ## References
 
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
-- [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — protocol metrics
+- [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — protocol metrics
 - [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — daily quotas
 - [ADR-1209](1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) — a replica adds each usage batch once
 - `src/NCode.Identity.OpenId.Authentication/Usage/`,

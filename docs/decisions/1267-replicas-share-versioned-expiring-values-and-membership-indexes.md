@@ -69,7 +69,7 @@ both have an in-process default and a Valkey adapter.**
 6. **Failure.** A store failure throws, so a caller fails closed; the BFF maps it to `503`. A session that cannot be read
    is not treated as absent.
 7. **Metrics.** The new operations `value_set.*` and `index_set.*` are recorded under the shared-state meter
-   ([ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)).
+   ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
 
 ## Options considered
 
@@ -98,7 +98,7 @@ both have an in-process default and a Valkey adapter.**
 
 - [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the shared key set
 - [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — the shared counter set
-- [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — metrics
+- [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — metrics
 - [Backend for frontend](../backend-for-frontend.md)
 - `src/NCode.Identity.SharedState.Abstractions/IExpiringValueSet.cs`, `ExpiringValue.cs`, `IExpiringIndexSet.cs`,
   `src/NCode.Identity.SharedState/InProcess/DefaultInProcessExpiringValueSet.cs`,

@@ -68,7 +68,7 @@ tenant that declares nothing is `production`.**
    type), and the `apps/auth` bundle shows a warning `Alert`, "<name or type> environment — not for production use"
    (`EnvironmentBanner`).
 9. **Telemetry carries only the registered type name.** The name is bounded by registration
-   ([ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)); `environment_name` is
+   ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)); `environment_name` is
    never emitted. The audit record gains the field `tenant_environment_type`, written after `tenant_id`
    ([ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md)), as
    `IAuditEvent.TenantEnvironmentType` and `AuditRecordFields.TenantEnvironmentType`, and
@@ -148,7 +148,7 @@ tenant that declares nothing is `production`.**
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) — settings declare their scopes
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed
 - [ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md) — tenant branding
-- [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — bounded metric
+- [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — bounded metric
   dimensions
 - [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — plan-tier quotas; dev and test
   tenants run on the production platform

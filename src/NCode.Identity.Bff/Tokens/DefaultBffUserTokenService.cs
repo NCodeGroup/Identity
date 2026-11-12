@@ -134,7 +134,7 @@ internal class DefaultBffUserTokenService(
     }
 
     // The refresh is measured as the request experienced it: refreshed when it presented the refresh token, joined when
-    // another request or replica refreshed the session for it, failed otherwise. See ADR-1197 and ADR-1298.
+    // another request or replica refreshed the session for it, failed otherwise. See ADR-1197.
     private void RefreshCompleted(
         Activity? activity,
         long startTimestamp,

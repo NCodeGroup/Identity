@@ -3194,7 +3194,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   exported over OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; the exporter is added to the metrics pipeline only, so
   logs and traces stay the host's choice. Every meter comes from `IMeterFactory`. The catalog is
   [`docs/metrics.md`](docs/metrics.md)
-  ([ADR-1197](docs/decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md), issue
+  ([ADR-1197](docs/decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md), issue
   [#119](https://github.com/NCodeGroup/identity/issues/119)).
 
 - **The outbound clients count their retries and timeouts.** The guarded outbound client records
@@ -3217,7 +3217,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ncode.identity.bff.reason` to `ncode.identity.events.published`, which counts logins, session ends, refresh failures
   and rejections. `BffTelemetry` names the meter and the source; a package traces its own mechanisms through one
   activity source named like its meter
-  ([ADR-1298](docs/decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md),
+  ([ADR-1197](docs/decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md),
   issue [#416](https://github.com/NCodeGroup/identity/issues/416)).
 
 - **A replica adds each usage batch to the ledger once, and its final flush runs once.** A replica numbers its batches,

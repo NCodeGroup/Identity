@@ -135,7 +135,7 @@ client, against per-minute limits that are settings bounded by the merge lattice
   [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
 - Every judged partition is counted in `ncode.identity.rate_limiting.requests` by partition and result (`admitted`,
   `rejected`, `store_unavailable`), per
-  [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md), and the `429` itself
+  [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md), and the `429` itself
   is visible on `http.server.request.duration` with `ncode.identity.openid.error=temporarily_unavailable`.
 - A deployment behind a proxy must forward the client's address (`UseForwardedHeaders`) for the address limit to count
   callers rather than the proxy.

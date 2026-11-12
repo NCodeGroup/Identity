@@ -170,7 +170,7 @@ billed.**
   and its tenant-scoped keys.
 - [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — the counter set and the sliding
   estimate.
-- [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — the rate-limiting and
+- [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — the rate-limiting and
   shared-state metrics.
 - [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — daily quotas.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger.

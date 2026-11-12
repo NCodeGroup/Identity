@@ -71,7 +71,7 @@ ceiling.**
    the tenant, the partition `daily_requests` or `daily_token_requests`, and the day's start). A counter store that
    fails admits the request and logs a warning, as a limit does; each judgement is counted in
    `ncode.identity.rate_limiting.requests` under its partition
-   ([ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)).
+   ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
 
 ## Options considered
 
@@ -105,6 +105,6 @@ ceiling.**
 
 - [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — unset means unrestricted
 - [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — rate limits and the counter set
-- [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — protocol metrics
+- [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — protocol metrics
 - `src/NCode.Identity.OpenId.Authentication/RateLimiting/DefaultRequestRateLimiter.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/DefaultTokenEndpointProvider.cs`

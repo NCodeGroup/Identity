@@ -1188,8 +1188,7 @@ Reason names are open string constants, so a new reason never breaks a consumer.
 
 **Metrics and traces** use one meter and one `ActivitySource`, both named `NCode.Identity.Bff`
 (`BffTelemetry.MeterName`, `BffTelemetry.ActivitySourceName`), and each signal has one owner
-([ADR-1197](decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md),
-[ADR-1298](decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md)):
+([ADR-1197](decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)):
 
 - Logins, session ends, refresh failures and rejections are audit events, so `ncode.identity.events.published` counts
   them, by event name and by the event's reason (`ncode.identity.bff.reason`).

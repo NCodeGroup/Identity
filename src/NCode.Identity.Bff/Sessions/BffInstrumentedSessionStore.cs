@@ -11,7 +11,7 @@ namespace NCode.Identity.Bff.Sessions;
 /// operation the BFF performs is timed and traced the same way. The BFF's components depend on this type, never on the
 /// registered store directly.
 /// </summary>
-// See ADR-1197 and ADR-1298.
+// See ADR-1197.
 internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMetrics metrics)
     : IBffSessionStore
 {

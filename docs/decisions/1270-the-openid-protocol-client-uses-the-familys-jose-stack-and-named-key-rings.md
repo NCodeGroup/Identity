@@ -92,7 +92,7 @@ This ADR covers phase 1a. Phase 1b remains: PAR, DPoP with nonces, mTLS client a
     authorization-code request requires a PKCE `code_verifier`.
 13. **Observability.** Two warning logs, `ProviderMetadataFetchFailed` and `ProviderKeySetFetchFailed`, in the event-ID
     band 18000–18999. There are no metrics: `System.Net.Http` already measures outbound calls, and a signal has one
-    owner ([ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)).
+    owner ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
 
 ## Options considered
 
@@ -121,6 +121,6 @@ This ADR covers phase 1a. Phase 1b remains: PAR, DPoP with nonces, mTLS client a
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) — JWT validation
   policy
-- [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — metrics
+- [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — metrics
 - [Backend for frontend](../backend-for-frontend.md)
 - `src/NCode.Identity.OpenId.Client.Abstractions/`, `src/NCode.Identity.OpenId.Client/`

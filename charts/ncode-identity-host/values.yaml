@@ -43,10 +43,20 @@ apiReference:
   documentEnabled: false
   pageEnabled: false
 
-# The Postgres database (ConnectionStrings:openiddb). It also persists the Data Protection key ring. Required.
+# The Postgres database (ConnectionStrings:openiddb). It also persists the Data Protection key ring. Required: name
+# either existingSecret, a Secret holding the finished Npgsql connection string, or parts.existingSecret, a Secret
+# holding the connection's parts, as a Postgres operator writes it; never both.
 database:
   existingSecret: ""
   connectionStringKey: connection-string
+  # The defaults are the keys of a CloudNativePG <cluster>-app Secret. An empty portKey leaves the port out.
+  parts:
+    existingSecret: ""
+    hostKey: host
+    portKey: port
+    databaseKey: dbname
+    usernameKey: user
+    passwordKey: password
 
 # The pre-install and pre-upgrade Job that applies the database migrations before the rollout (ADR-1180). Every
 # migration must stay compatible with the previous release, which keeps serving until the rollout finishes.
@@ -57,6 +67,15 @@ migrations:
   database:
     existingSecret: ""
     connectionStringKey: ""
+    # Used when its existingSecret or parts.existingSecret is set, else the migration Job uses database. An empty key
+    # falls back to database.parts.
+    parts:
+      existingSecret: ""
+      hostKey: ""
+      portKey: ""
+      databaseKey: ""
+      usernameKey: ""
+      passwordKey: ""
   backoffLimit: 1
   activeDeadlineSeconds: 600
   resources:

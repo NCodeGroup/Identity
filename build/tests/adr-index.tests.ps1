@@ -91,7 +91,7 @@ try {
     Assert-Problems 'a row with the wrong column count is reported' $fixture @('table row has 2 columns, expected 3')
 
     $fixture = New-Fixture 'link-missing' @('1001-a.md') @('1001|1001-a.md')
-    Add-FixtureFile $fixture 'notes.md' "See [ADR-1003](docs/decisions/1003-c.md).`n"
+    Add-FixtureFile $fixture 'notes.md' "See [the record](docs/decisions/1003-c.md).`n"
     Assert-Problems 'a link to a missing record is reported' $fixture @('notes.md(1) names 1003-c.md, which is in neither')
 
     $fixture = New-Fixture 'link-template' @('1001-a.md') @('1001|1001-a.md')
@@ -103,6 +103,18 @@ try {
     Add-FixtureFile $fixture 'docs/decisions/project-template/0001-t.md' "# 0001-t.md`n"
     Add-FixtureFile $fixture 'notes.md' "See [0001](docs/decisions/0001-t.md).`n"
     Assert-Problems 'a family path with a template number is reported' $fixture @('notes.md(1) points docs/decisions/0001-t.md at docs/decisions/')
+
+    $fixture = New-Fixture 'cite-missing' @('1001-a.md') @('1001|1001-a.md')
+    Add-FixtureFile $fixture 'notes.md' "See ADR-1003.`n"
+    Assert-Problems 'a citation of a missing record is reported' $fixture @('notes.md(1) cites ADR-1003, which names no record')
+
+    $fixture = New-Fixture 'cite-present' @('1001-a.md') @('1001|1001-a.md')
+    Add-FixtureFile $fixture 'notes.md' "See ADR-1001.`n"
+    Assert-Problems 'a citation of an existing record resolves' $fixture @()
+
+    $fixture = New-Fixture 'cite-template-owned' @('1001-a.md') @('1001|1001-a.md')
+    Add-FixtureFile $fixture '.claude/commands/plan.md' "Cite ADR-1007.`n"
+    Assert-Problems 'a template-owned file may cite a sample number' $fixture @()
 
     Assert-Problems 'the repository has no problems' (Join-Path $PSScriptRoot '..' '..') @()
 

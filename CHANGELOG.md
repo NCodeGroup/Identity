@@ -4194,6 +4194,19 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 ### Security
 
+- **HTTP logging writes a body only for an endpoint that opts in, and never a credential.** `AddGuardedHttpLogging()`
+  (`NCode.Identity.AspNetCore`) registers ASP.NET Core HTTP logging that writes the request and response properties, the
+  allow-listed headers and the duration, and never a request or response body, a query string, a trailer, or the value
+  of an `Authorization`, `Proxy-Authorization`, `Cookie`, `DPoP`, `Set-Cookie` or `Location` header, whatever the log
+  level. It also caps the hosting layer's request lines, which carry the query string, at warnings. An endpoint or
+  route group opts in to its own request or response body with `WithRequestBodyLogging()` or
+  `WithResponseBodyLogging()`; `WithConfidentialBodies()` marks one whose bodies carry credentials or personal data,
+  which never logs a body and refuses an opt-in. The OpenID protocol endpoints, the management API, the interactive
+  sign-in surface and the BFF's endpoints are marked. A host whose `HttpLoggingOptions` enable a body, the query string
+  or a trailer, or allow-list a credential header, refuses to start in every environment. The reference host composes it
+  and runs HTTP logging right after routing ([#778](https://github.com/NCodeGroup/identity/issues/778),
+  [ADR-1503](docs/decisions/1503-http-logging-writes-a-body-only-for-an-endpoint-that-opts-in-and-never-for-one-that-carries-credentials.md)).
+
 - **The host accepts only TLS 1.2 and 1.3 with AEAD cipher suites.** When the host terminates TLS itself, the handshake
   refuses TLS 1.0 and 1.1 on every platform, and on Linux and macOS negotiates only the six AEAD cipher suites with
   forward secrecy that FAPI 1.0 Part 2 §8.5 permits. A Windows host leaves the cipher suites to SChannel

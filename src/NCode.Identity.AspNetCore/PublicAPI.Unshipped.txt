@@ -115,3 +115,15 @@ NCode.Identity.AspNetCore.TransportSecurityRegistration.extension(Microsoft.Exte
 NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions
 NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
 NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseHttpsRedirectionOutsideProduction() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?)
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?).HasConfidentialBodies.get -> bool
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?).LoggableBodyFields.get -> Microsoft.AspNetCore.HttpLogging.HttpLoggingFields
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithConfidentialBodies() -> TBuilder
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithRequestBodyLogging() -> TBuilder
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithResponseBodyLogging() -> TBuilder
+NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration
+NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddGuardedHttpLogging() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

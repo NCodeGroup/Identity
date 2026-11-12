@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Logout;
@@ -27,11 +28,13 @@ public static class BffEndpointRouteBuilderExtensions
     extension(IEndpointRouteBuilder endpoints)
     {
         /// <summary>
-        /// Maps the <c>login</c>, <c>callback</c>, <c>user</c>, <c>logout</c> and <c>backchannel-logout</c> endpoints of
-        /// each frontend under its <see cref="BffFrontendOptions.PathPrefix"/>, limited to that frontend, and the
+        /// Maps the <c>login</c>, <c>callback</c>, <c>user</c>, <c>logout</c> and <c>backchannel-logout</c> endpoints
+        /// of each frontend under its <see cref="BffFrontendOptions.PathPrefix"/>, limited to that frontend, and the
         /// <c>jwks</c> endpoint of each frontend whose <see cref="BffJwksOptions.Enabled"/> is <c>true</c>.
         /// The endpoints follow the frontends: a configuration change that adds, changes or removes a frontend maps
         /// them again, and conventions added to the returned group apply to every frontend's endpoints.
+        /// Every endpoint it maps has confidential bodies, so HTTP logging never writes their request or response
+        /// bodies.
         /// </summary>
         /// <returns>The <see cref="RouteGroupBuilder"/> of the endpoints, so that the application can add a rate
         /// limiter or exclude them from the API description.</returns>
@@ -41,7 +44,11 @@ public static class BffEndpointRouteBuilderExtensions
 
             var catalog = endpoints.ServiceProvider.GetRequiredService<BffFrontendCatalog>();
 
-            var group = endpoints.MapGroup(string.Empty).AllowAnonymous().WithTags(Tag);
+            var group = endpoints
+                .MapGroup(string.Empty)
+                .AllowAnonymous()
+                .WithTags(Tag)
+                .WithConfidentialBodies();
 
             ((IEndpointRouteBuilder)group).DataSources.Add(
                 new BffFrontendEndpointDataSource(

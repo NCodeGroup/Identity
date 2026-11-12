@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication;
 using NCode.Identity.OpenId.Authentication.Endpoints.CheckSession;
@@ -37,6 +38,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// tenant's ambient scope) and the <see cref="OpenIdExceptionEndpointFilter"/> that renders exceptions as standard
 /// OpenID error responses. The group declares the protocol endpoints it contains by invoking each endpoint family's own
 /// registration, which adds the endpoint provider and the services it depends on.
+/// Its endpoints have confidential bodies, so HTTP logging never writes their request or response bodies.
 /// </summary>
 internal sealed class OpenIdEndpointGroup : IEndpointGroup
 {
@@ -58,6 +60,10 @@ internal sealed class OpenIdEndpointGroup : IEndpointGroup
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group)
     {
+        // Every protocol endpoint's body can carry a credential or personal data, so HTTP logging never writes one
+        // (ADR-1503).
+        group.WithConfidentialBodies();
+
         // The environment filter is outermost so the ambient tenant scope it opens is still active while the exception
         // filter renders an error. The rate-limit filter needs the tenant the environment resolves and sits outside the
         // exception filter, so a refused request is answered before any endpoint work and is not audited. The metrics

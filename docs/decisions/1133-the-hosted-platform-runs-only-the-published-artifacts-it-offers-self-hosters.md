@@ -36,7 +36,7 @@ small components composed into opinionated stacks, and the supported set is limi
    because it encodes the host's configuration surface (settings, ports, probes) and must change atomically with it
    ([ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)). It is
    versioned with the host image and released as a signed OCI chart on GHCR with provenance
-   ([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
+   ([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-the-chart-and-the-openapi-document-at-one-prerelease-version.md)).
 2. **Layered building blocks** in `NCodeGroup/identity-platform`, so users can take a single component, a whole stack,
    or a stack as a template to fork:
 
@@ -98,8 +98,8 @@ small components composed into opinionated stacks, and the supported set is limi
   process; stacks stay thin wiring over them.
 - Self-hosting documentation is part of the product, and issues from other environments are triaged within the
   supported tiers.
-- The Publish artifacts workflow publishes the images and the chart to GHCR
-  ([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)); publishing the rest of the artifacts is tracked in
+- The Publish artifacts workflow publishes the images, the chart and the OpenAPI document to GHCR
+  ([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-the-chart-and-the-openapi-document-at-one-prerelease-version.md)); publishing the rest of the artifacts is tracked in
   [#87](https://github.com/NCodeGroup/identity/issues/87).
 
 ## References

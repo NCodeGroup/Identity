@@ -50,6 +50,24 @@ public static class IdentityServerBuilderExtensions
             InProcessJobDispatcherOptions.SectionName
         );
 
+    private static void ThrowOnUnknownSubsection(IConfigurationSection openIdSection)
+    {
+        var unknownPaths = openIdSection
+            .GetChildren()
+            .Where(child => !OpenIdSubsections.Contains(child.Key))
+            .Select(child => $"'{child.Path}'")
+            .ToList();
+
+        if (unknownPaths.Count == 0)
+            return;
+
+        throw new InvalidOperationException(
+            $"The configuration section '{openIdSection.Path}' contains unrecognized key(s): "
+                + $"{string.Join(", ", unknownPaths)}. Its recognized subsections are "
+                + $"{string.Join(", ", OpenIdSubsections.Order(StringComparer.Ordinal))}."
+        );
+    }
+
     /// <param name="builder">The <see cref="IIdentityServerBuilder"/> to configure.</param>
     extension(IIdentityServerBuilder builder)
     {
@@ -283,23 +301,5 @@ public static class IdentityServerBuilderExtensions
 
             return builder;
         }
-    }
-
-    private static void ThrowOnUnknownSubsection(IConfigurationSection openIdSection)
-    {
-        var unknownPaths = openIdSection
-            .GetChildren()
-            .Where(child => !OpenIdSubsections.Contains(child.Key))
-            .Select(child => $"'{child.Path}'")
-            .ToList();
-
-        if (unknownPaths.Count == 0)
-            return;
-
-        throw new InvalidOperationException(
-            $"The configuration section '{openIdSection.Path}' contains unrecognized key(s): "
-                + $"{string.Join(", ", unknownPaths)}. Its recognized subsections are "
-                + $"{string.Join(", ", OpenIdSubsections.Order(StringComparer.Ordinal))}."
-        );
     }
 }

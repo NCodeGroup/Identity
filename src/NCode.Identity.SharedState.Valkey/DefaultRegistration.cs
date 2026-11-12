@@ -26,6 +26,30 @@ public static class DefaultRegistration
     private const string ConnectionStringPath =
         $"ConnectionStrings:{ValkeyOptions.ConnectionStringName}";
 
+    private static ConfigurationOptions ParseConnectionString(string connectionString)
+    {
+        const string name = ConnectionStringPath;
+
+        ConfigurationOptions configurationOptions;
+        try
+        {
+            configurationOptions = ConfigurationOptions.Parse(connectionString);
+        }
+        catch (ArgumentException exception)
+        {
+            // The message names the offending setting; the connection string itself may hold a password.
+            throw new InvalidOperationException(
+                $"The '{name}' connection string is malformed: {exception.Message}",
+                exception
+            );
+        }
+
+        if (configurationOptions.EndPoints.Count == 0)
+            throw new InvalidOperationException($"The '{name}' connection string names no server.");
+
+        return configurationOptions;
+    }
+
     /// <param name="builder">The shared-state-library builder returned by <c>AddSharedStateServices</c>.</param>
     extension(IServiceBuilder<SharedStateLibrary> builder)
     {
@@ -129,29 +153,5 @@ public static class DefaultRegistration
 
             return builder;
         }
-    }
-
-    private static ConfigurationOptions ParseConnectionString(string connectionString)
-    {
-        const string name = ConnectionStringPath;
-
-        ConfigurationOptions configurationOptions;
-        try
-        {
-            configurationOptions = ConfigurationOptions.Parse(connectionString);
-        }
-        catch (ArgumentException exception)
-        {
-            // The message names the offending setting; the connection string itself may hold a password.
-            throw new InvalidOperationException(
-                $"The '{name}' connection string is malformed: {exception.Message}",
-                exception
-            );
-        }
-
-        if (configurationOptions.EndPoints.Count == 0)
-            throw new InvalidOperationException($"The '{name}' connection string names no server.");
-
-        return configurationOptions;
     }
 }

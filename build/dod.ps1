@@ -18,6 +18,10 @@
     The test stage tests every test project under tests/ except the end-to-end suites (the *.EndToEnd.Tests projects),
     which ./build/e2e.ps1 runs.
 
+    The openapi script stage runs the fixture test of ./build/openapi.ps1, and a full run's openapi document stage
+    generates the host's OpenAPI document at artifacts/openapi/v1.json from the build output, which CI uploads
+    (ADR-1505).
+
 .PARAMETER Configuration
     The build configuration. Defaults to Release.
 
@@ -26,10 +30,10 @@
 
 .PARAMETER Fast
     Local inner-loop accelerator (NOT a CI-parity gate; the local pre-push gate is -Fast -Affected): parallelizes
-    project builds and skips the non-correctness stages (coverage collection and NuGet packing). Test assemblies run in
-    parallel in every mode, so -Fast does not change that. Compile warnings-as-errors and analyzers stay on, but NuGet
-    vulnerability advisories (NU1901-1904) are warnings instead of errors. The plain ./build/dod.ps1 (no -Fast) is the
-    full gate that the merge queue, main and the release lines run (ADR-1263).
+    project builds and skips the non-correctness stages (coverage collection, NuGet packing and the OpenAPI document).
+    Test assemblies run in parallel in every mode, so -Fast does not change that. Compile warnings-as-errors and
+    analyzers stay on, but NuGet vulnerability advisories (NU1901-1904) are warnings instead of errors. The plain
+    ./build/dod.ps1 (no -Fast) is the full gate that the merge queue, main and the release lines run (ADR-1263).
 
 .PARAMETER Filter
     A `dotnet test --filter` expression; runs only the matching tests (for example `FullyQualifiedName~NCode.Identity.Time`).
@@ -230,6 +234,12 @@ try {
         $global:LASTEXITCODE = 0
     }
 
+    # The OpenAPI document script's fixture test is build-free as well, so it runs before the slow stages.
+    Invoke-Step 'openapi script' {
+        & (Join-Path $PSScriptRoot 'tests\openapi.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
+
     Invoke-Step 'restore' { dotnet restore $solution }
     # Build also PACKS: GeneratePackageOnBuild (Directory.Build.targets) emits each shippable .nupkg + .snupkg to
     # artifacts/packages as part of the build, so there is no separate pack step. -Fast builds projects in parallel
@@ -264,6 +274,13 @@ try {
             --project hosts/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
             --startup-project hosts/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
             --context DeveloperDataProtectionDbContext
+    }
+
+    # Writes artifacts/openapi/v1.json from the build output, which CI uploads as the openapi artifact (ADR-1505).
+    if (-not $Fast) {
+        Invoke-Step 'openapi document' {
+            & (Join-Path $PSScriptRoot 'openapi.ps1') -Configuration $Configuration -NoBuild
+        }
     }
 
     if (-not $SkipTests) {

@@ -160,7 +160,7 @@ explorer, and the conformance posture dashboard. See [`frontend/README.md`](fron
 green run means the same thing in both places. It prints `Definition of Done: PASSED` as its final line.
 
 ```pwsh
-./build/dod.ps1                                               # full gate: format check, build + pack, EF model drift, tests + coverage
+./build/dod.ps1                                               # full gate: format check, build + pack, EF model drift, OpenAPI document, tests + coverage
 ./build/dod.ps1 -Fast -Affected                               # pre-push gate: parallel builds, skips coverage + packing, runs only affected tests
 ./build/dod.ps1 -Fast -Filter 'FullyQualifiedName~MyTests'    # inner loop: only the matching tests
 ```

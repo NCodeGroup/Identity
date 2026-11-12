@@ -34,12 +34,13 @@ The chart takes no secret values. It references Secrets you create in the releas
 
 ## Published artifacts
 
-Every merge to `main` and every release tag `v*.*.*` publishes three artifacts to GHCR at one version
-(`0.0.1-alpha.<n>` for a merge to `main`, the tag's version for a release tag), through the Publish artifacts workflow ([ADR-1505](../../docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)):
+Every merge to `main` and every release tag `v*.*.*` publishes four artifacts to GHCR at one version
+(`0.0.1-alpha.<n>` for a merge to `main`, the tag's version for a release tag), through the Publish artifacts workflow ([ADR-1505](../../docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-the-chart-and-the-openapi-document-at-one-prerelease-version.md)):
 
 - `ghcr.io/ncodegroup/ncode-identity-host:<version>`, the host image.
 - `ghcr.io/ncodegroup/ncode-identity-management-console:<version>`, the management console image.
 - `oci://ghcr.io/ncodegroup/charts/ncode-identity-host`, this chart, at version `<version>`.
+- `oci://ghcr.io/ncodegroup/openapi/ncode-identity-host` at version `<version>`, the host's OpenAPI document (`v1.json`), which `oras pull` fetches.
 
 The chart pins its image tags to its own `appVersion`, so following the chart follows the images. A stable version also tags both images `latest`. A Flux `HelmRelease`
 or `helm install` takes a semver range that includes prereleases, such as `>=0.0.1-alpha`, to follow them.
@@ -59,8 +60,8 @@ gh attestation verify oci://ghcr.io/ncodegroup/ncode-identity-host:<version> --r
 Each package's access is set once, in GitHub: no API sets a package's Actions access, its repository link or its
 visibility. A package the workflow creates is linked to this repository and the workflow can write to it, but it starts
 private. A package first pushed by hand is neither linked nor writable by the workflow, and the workflow's push to it
-fails. For each of `ncode-identity-host`, `ncode-identity-management-console` and `charts/ncode-identity-host`, open the
-package from the organization's **Packages** tab and:
+fails. For each of `ncode-identity-host`, `ncode-identity-management-console`, `charts/ncode-identity-host` and
+`openapi/ncode-identity-host`, open the package from the organization's **Packages** tab and:
 
 1. In **Package settings**, under **Manage Actions access**, click **Add repository**, choose `NCodeGroup/identity`
    and give it the **Write** role.
@@ -959,7 +960,8 @@ Both are anonymous once on: the document lists every management route, schema an
 still requires a management access token
 ([ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md)).
 To serve them on an internal host only, route `/openapi/` and `/scalar/` to the pods only from that host at the
-ingress.
+ingress. The published `openapi/ncode-identity-host` artifact holds the same document, so a client generator reads it
+without a release enabling it.
 
 ## Database and Valkey
 

@@ -122,10 +122,10 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-id
   workflow, and approve the `nuget` environment. Its publishing job holds only a short-lived key from nuget.org trusted
   publishing, and it refuses a version already published
   ([ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md)).
-- The host image, the management console image and the host chart publish to GHCR through the `Publish artifacts`
-  workflow (`.github/workflows/publish-artifacts.yml`) on every merge to `main` and every release tag, at one version,
-  signed and with provenance
-  ([ADR-1505](docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
+- The host image, the management console image, the host chart and the host's OpenAPI document publish to GHCR through
+  the `Publish artifacts` workflow (`.github/workflows/publish-artifacts.yml`) on every merge to `main` and every
+  release tag, at one version, signed and with provenance
+  ([ADR-1505](docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-the-chart-and-the-openapi-document-at-one-prerelease-version.md)).
 
 ## Definition of Done
 

@@ -11,16 +11,6 @@ namespace NCode.Identity.OpenId.Principals;
 /// </summary>
 internal static class DefaultSubjectDelegates
 {
-    extension(ClaimsPrincipal subject)
-    {
-        /// <summary>
-        /// Returns the default implementation of <see cref="GetSubjectIdentityDelegate"/> that extracts the primary <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.
-        /// </summary>
-        /// <returns>The <see cref="ClaimsIdentity"/> from the <see cref="ClaimsPrincipal"/>.</returns>
-        public ClaimsIdentity GetSubjectIdentity() =>
-            subject.Identity as ClaimsIdentity ?? subject.Identities.First();
-    }
-
     /// <summary>
     /// The default <see cref="GetSubjectIdDelegate"/>: returns the value of the first non-empty claim whose type matches
     /// one of the supplied claim types, honoring the order of the supplied claim types (so an earlier claim type takes
@@ -77,4 +67,14 @@ internal static class DefaultSubjectDelegates
 
             return new ClaimsPrincipal(identities);
         };
+
+    extension(ClaimsPrincipal subject)
+    {
+        /// <summary>
+        /// Returns the default implementation of <see cref="GetSubjectIdentityDelegate"/> that extracts the primary <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.
+        /// </summary>
+        /// <returns>The <see cref="ClaimsIdentity"/> from the <see cref="ClaimsPrincipal"/>.</returns>
+        public ClaimsIdentity GetSubjectIdentity() =>
+            subject.Identity as ClaimsIdentity ?? subject.Identities.First();
+    }
 }

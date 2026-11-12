@@ -332,6 +332,30 @@ jobs:
             exit 1
           fi
 
+      - name: Pass the API reference switches to the host
+        run: |
+          base="$CHART/ci/single-replica-values.yaml"
+          # The document alone leaves the page off.
+          document=$(helm template release "$CHART" --values "$base" --set apiReference.documentEnabled=true \
+            --show-only templates/deployment.yaml)
+          if ! grep -A1 'name: ApiReference__DocumentEnabled' <<< "$document" | grep -q 'value: "true"'; then
+            echo "::error::apiReference.documentEnabled=true must set ApiReference__DocumentEnabled to true."
+            exit 1
+          fi
+          if ! grep -A1 'name: ApiReference__PageEnabled' <<< "$document" | grep -q 'value: "false"'; then
+            echo "::error::The page must stay off when only apiReference.documentEnabled is true."
+            exit 1
+          fi
+          # The page needs the document, and both switches reach the host.
+          page=$(helm template release "$CHART" --values "$base" --set apiReference.documentEnabled=true \
+            --set apiReference.pageEnabled=true --show-only templates/deployment.yaml)
+          for switch in ApiReference__DocumentEnabled ApiReference__PageEnabled; do
+            if ! grep -A1 "name: $switch" <<< "$page" | grep -q 'value: "true"'; then
+              echo "::error::The release must set $switch to true when both API reference switches are on."
+              exit 1
+            fi
+          done
+
       - name: Serve HTTPS and verify the pods' certificate
         run: |
           base="$CHART/ci/single-replica-values.yaml"

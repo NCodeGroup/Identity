@@ -24,6 +24,44 @@ namespace NCode.Identity.Server;
 [PublicAPI]
 public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
 {
+    /// <summary>
+    /// The <c>data:</c> source the page's images may load, for the icons Scalar inlines.
+    /// </summary>
+    private const string DataSource = "data:";
+
+    /// <summary>
+    /// Builds the page's Content-Security-Policy: scripts and styles only with the response's nonce, images from its
+    /// own origin and <c>data:</c>, and connections only to its own origin.
+    /// </summary>
+    /// <param name="nonce">The nonce generated for the response.</param>
+    /// <returns>The <see cref="HtmlPageSecurityPolicy"/> to apply to the page's response.</returns>
+    // See ADR-1256 and ADR-1481.
+    private static HtmlPageSecurityPolicy CreatePagePolicy(string nonce) =>
+        new()
+        {
+            Directives =
+            [
+                new ContentSecurityPolicyDirective(
+                    ContentSecurityPolicyDirectives.ScriptSrc,
+                    ContentSecurityPolicySources.Nonce(nonce),
+                    ContentSecurityPolicySources.StrictDynamic
+                ),
+                new ContentSecurityPolicyDirective(
+                    ContentSecurityPolicyDirectives.StyleSrc,
+                    ContentSecurityPolicySources.Nonce(nonce)
+                ),
+                new ContentSecurityPolicyDirective(
+                    ContentSecurityPolicyDirectives.ImgSrc,
+                    ContentSecurityPolicySources.Self,
+                    DataSource
+                ),
+                new ContentSecurityPolicyDirective(
+                    ContentSecurityPolicyDirectives.ConnectSrc,
+                    ContentSecurityPolicySources.Self
+                ),
+            ],
+        };
+
     extension(IEndpointRouteBuilder endpoints)
     {
         /// <summary>
@@ -106,33 +144,4 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
             return endpoints;
         }
     }
-
-    private const string DataSource = "data:";
-
-    // See ADR-1256 and ADR-1481.
-    private static HtmlPageSecurityPolicy CreatePagePolicy(string nonce) =>
-        new()
-        {
-            Directives =
-            [
-                new ContentSecurityPolicyDirective(
-                    ContentSecurityPolicyDirectives.ScriptSrc,
-                    ContentSecurityPolicySources.Nonce(nonce),
-                    ContentSecurityPolicySources.StrictDynamic
-                ),
-                new ContentSecurityPolicyDirective(
-                    ContentSecurityPolicyDirectives.StyleSrc,
-                    ContentSecurityPolicySources.Nonce(nonce)
-                ),
-                new ContentSecurityPolicyDirective(
-                    ContentSecurityPolicyDirectives.ImgSrc,
-                    ContentSecurityPolicySources.Self,
-                    DataSource
-                ),
-                new ContentSecurityPolicyDirective(
-                    ContentSecurityPolicyDirectives.ConnectSrc,
-                    ContentSecurityPolicySources.Self
-                ),
-            ],
-        };
 }

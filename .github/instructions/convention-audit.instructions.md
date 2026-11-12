@@ -70,6 +70,14 @@ Fast mechanical checks (grep production `.cs`, adapt as needed):
   `X = x;` assignments (or param-derived initializers) should be a primary constructor — **including** an `abstract`
   class with a `protected` pure-assignment ctor. Non-candidates: multiple ctors / `this()` delegation, a body with a
   guard/loop/branch or side-effecting call, a shared intermediate local used by ≥2 members, exceptions, records.
+- **Statics after an extension block** (§1): in a static class with C# 14 `extension(...)` blocks, every const, static
+  field, static property and static method sits before the first `extension(` block. The sweep lists each file that
+  breaks it:
+
+  ```pwsh
+  Get-ChildItem src,hosts,analyzers -Recurse -Filter *.cs | ? { $_.FullName -notmatch '\\(obj|bin)\\' } | % { $l = Get-Content $_.FullName; $m = $l | Select-String '^    extension\(' | Select-Object -First 1; if ($m -and ($l[$m.LineNumber..($l.Count-1)] | Select-String '^    (\[[^\]]+\]\s*)?(private|internal|public|protected)\s+(static|const)\b')) { $_.FullName } }
+  ```
+
 - **Unbuffered stored collections** (§2): a ctor/method that assigns a collection parameter (or DI `IEnumerable<T>`)
   straight to a field/property with no `.ToArray()` / `.ToFrozenSet()` / `.ToFrozenDictionary()` / `[.. x]`.
 - **Before sealing, confirm it's a leaf** (§2): grep `:\s*TypeName\b` for real inheritance — a `TypeName? Bar { get; }`

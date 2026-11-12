@@ -5,6 +5,7 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -81,6 +82,20 @@ public class ProgramTests
         var timestamp = jsonElement.GetProperty("Timestamp").GetString();
         Assert.Contains("second line", exceptionText);
         Assert.EndsWith("+00:00", timestamp);
+    }
+
+    #endregion
+
+    #region Server Header Tests
+
+    [Fact]
+    public async Task Kestrel_WhenTheHostIsBuilt_SendsNoServerHeader()
+    {
+        await using var factory = new HostApplicationFactory();
+
+        var options = factory.Services.GetRequiredService<IOptions<KestrelServerOptions>>().Value;
+
+        Assert.False(options.AddServerHeader);
     }
 
     #endregion

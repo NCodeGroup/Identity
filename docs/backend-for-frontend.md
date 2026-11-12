@@ -1022,6 +1022,7 @@ bff.SecretsLibraryBuilder.AddAwsKmsRemoteKeyProvider(builder.Configuration); // 
 //     "orders-web-client-key", (serviceProvider, _) => LoadClientKeys(serviceProvider));
 builder.Services.AddTrustedForwardedHeaders(builder.Configuration); // NCode.Identity.AspNetCore; "ForwardedHeaders"
 builder.Services.AddStrictTransportSecurity(builder.Configuration);   // "StrictTransportSecurity"
+builder.Services.AddServerHeaderSuppression();            // no Server header
 
 var app = builder.Build();
 app.UseTrustedForwardedHeaders();

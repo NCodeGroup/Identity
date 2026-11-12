@@ -21,6 +21,23 @@ namespace NCode.Identity.AspNetCore;
 [PublicAPI]
 public static class GuardedHttpLoggingRegistration
 {
+    private static void CapHostingDiagnostics(LoggerFilterOptions options)
+    {
+        var providerNames = options.Rules.Select(rule => rule.ProviderName).Distinct().ToList();
+        providerNames.Add(null);
+
+        foreach (var providerName in providerNames.Distinct())
+        {
+            var rule = new LoggerFilterRule(
+                providerName,
+                GuardedHttpLoggingDefaults.HostingDiagnosticsCategory,
+                LogLevel.Warning,
+                filter: null
+            );
+            options.Rules.Add(rule);
+        }
+    }
+
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
@@ -58,23 +75,6 @@ public static class GuardedHttpLoggingRegistration
             loggerFilterBuilder.PostConfigure(CapHostingDiagnostics);
 
             return serviceCollection;
-        }
-    }
-
-    private static void CapHostingDiagnostics(LoggerFilterOptions options)
-    {
-        var providerNames = options.Rules.Select(rule => rule.ProviderName).Distinct().ToList();
-        providerNames.Add(null);
-
-        foreach (var providerName in providerNames.Distinct())
-        {
-            var rule = new LoggerFilterRule(
-                providerName,
-                GuardedHttpLoggingDefaults.HostingDiagnosticsCategory,
-                LogLevel.Warning,
-                filter: null
-            );
-            options.Rules.Add(rule);
         }
     }
 }

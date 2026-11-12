@@ -54,85 +54,6 @@ public static class ProductionSafetyRegistration
         "Refusing to start in the Production environment: the Data Protection key ring has no XmlEncryptor. "
         + "Configure the 'SecretProtection' section: its root key protects the key ring and every stored secret.";
 
-    extension(IServiceCollection serviceCollection)
-    {
-        /// <summary>
-        /// Validates that the current configuration is safe to expose publicly, and throws when it is not. The check
-        /// runs only in a Production environment; every other environment (Development, Conformance, Staging, and any
-        /// custom name) is left alone so local and test hosts keep their conveniences. It also refuses a secret
-        /// protection configuration that cannot keep stored secrets readable and private, and, as the host starts, a
-        /// Data Protection key ring that has no repository or is not encrypted at rest, a work factor for supplied
-        /// client secrets below the recommended one, and configured platform settings whose <c>environment_type</c> is
-        /// a registered non-production type. It also refuses, as the host finishes starting, a server that binds a
-        /// plain-HTTP endpoint or serves an unusable certificate.
-        /// </summary>
-        /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
-        /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that decides whether to validate at all.</param>
-        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        /// <exception cref="InvalidOperationException">
-        /// The environment is Production and at least one development-only convenience is still enabled, or the secret
-        /// protection configuration is unsafe. The message lists every finding at once, so a misconfigured deployment
-        /// is fixed in one pass rather than one restart per problem.
-        /// </exception>
-        public IServiceCollection AddProductionSafety(
-            IConfiguration configuration,
-            IHostEnvironment hostEnvironment
-        )
-        {
-            ArgumentNullException.ThrowIfNull(configuration);
-            ArgumentNullException.ThrowIfNull(hostEnvironment);
-
-            if (!hostEnvironment.IsProduction())
-                return serviceCollection;
-
-            // Kestrel serves HTTPS only, with a certificate that passes the transport checks (ADR-1504); inert outside Production, checked as the host finishes starting.
-            serviceCollection.AddTransportSecurity(hostEnvironment);
-
-            // Data Protection is composed after this gate runs, so the key ring is checked as the host starts.
-            serviceCollection
-                .AddOptions<KeyManagementOptions>()
-                .Validate(
-                    options => options.XmlRepository is not null,
-                    KeyRingRepositoryMissingMessage
-                )
-                .Validate(options => options.XmlEncryptor is not null, KeyRingUnprotectedMessage)
-                .ValidateOnStart();
-
-            // A supplied client secret's verifier keeps at least the recommended work factor (ADR-1391). The options
-            // are configured in code, so they are checked as the host starts.
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    IValidateOptions<Pbkdf2SecretVerifierOptions>,
-                    ProductionPbkdf2IterationsValidator
-                >()
-            );
-            serviceCollection.AddOptions<Pbkdf2SecretVerifierOptions>().ValidateOnStart();
-
-            // The platform-wide environment type needs the registered types, so it is checked as the host starts too.
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    IValidateOptions<OpenIdOptions>,
-                    ProductionEnvironmentTypeValidator
-                >()
-            );
-            serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
-
-            var violations = ProductionSafetyRegistration.FindViolations(configuration);
-            if (violations.Count == 0)
-                return serviceCollection;
-
-            var detail = string.Join(
-                Environment.NewLine,
-                violations.Select(violation => $"  - {violation}")
-            );
-            throw new InvalidOperationException(
-                $"Refusing to start in the Production environment: {violations.Count} setting(s) are unsafe "
-                    + $"for a production deployment.{Environment.NewLine}{detail}{Environment.NewLine}"
-                    + "Fix them for this deployment, or run under a non-Production environment name."
-            );
-        }
-    }
-
     /// <summary>
     /// Returns every unsafe-for-production finding in <paramref name="configuration"/>, regardless of environment.
     /// </summary>
@@ -264,6 +185,85 @@ public static class ProductionSafetyRegistration
                     $"Configure a recovery public key, or set '{RecoveryDisabledConfigurationKey}' to true to "
                         + "accept that risk."
                 )
+            );
+        }
+    }
+
+    extension(IServiceCollection serviceCollection)
+    {
+        /// <summary>
+        /// Validates that the current configuration is safe to expose publicly, and throws when it is not. The check
+        /// runs only in a Production environment; every other environment (Development, Conformance, Staging, and any
+        /// custom name) is left alone so local and test hosts keep their conveniences. It also refuses a secret
+        /// protection configuration that cannot keep stored secrets readable and private, and, as the host starts, a
+        /// Data Protection key ring that has no repository or is not encrypted at rest, a work factor for supplied
+        /// client secrets below the recommended one, and configured platform settings whose <c>environment_type</c> is
+        /// a registered non-production type. It also refuses, as the host finishes starting, a server that binds a
+        /// plain-HTTP endpoint or serves an unusable certificate.
+        /// </summary>
+        /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
+        /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that decides whether to validate at all.</param>
+        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The environment is Production and at least one development-only convenience is still enabled, or the secret
+        /// protection configuration is unsafe. The message lists every finding at once, so a misconfigured deployment
+        /// is fixed in one pass rather than one restart per problem.
+        /// </exception>
+        public IServiceCollection AddProductionSafety(
+            IConfiguration configuration,
+            IHostEnvironment hostEnvironment
+        )
+        {
+            ArgumentNullException.ThrowIfNull(configuration);
+            ArgumentNullException.ThrowIfNull(hostEnvironment);
+
+            if (!hostEnvironment.IsProduction())
+                return serviceCollection;
+
+            // Kestrel serves HTTPS only, with a certificate that passes the transport checks (ADR-1504); inert outside Production, checked as the host finishes starting.
+            serviceCollection.AddTransportSecurity(hostEnvironment);
+
+            // Data Protection is composed after this gate runs, so the key ring is checked as the host starts.
+            serviceCollection
+                .AddOptions<KeyManagementOptions>()
+                .Validate(
+                    options => options.XmlRepository is not null,
+                    KeyRingRepositoryMissingMessage
+                )
+                .Validate(options => options.XmlEncryptor is not null, KeyRingUnprotectedMessage)
+                .ValidateOnStart();
+
+            // A supplied client secret's verifier keeps at least the recommended work factor (ADR-1391). The options
+            // are configured in code, so they are checked as the host starts.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<Pbkdf2SecretVerifierOptions>,
+                    ProductionPbkdf2IterationsValidator
+                >()
+            );
+            serviceCollection.AddOptions<Pbkdf2SecretVerifierOptions>().ValidateOnStart();
+
+            // The platform-wide environment type needs the registered types, so it is checked as the host starts too.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<OpenIdOptions>,
+                    ProductionEnvironmentTypeValidator
+                >()
+            );
+            serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
+
+            var violations = ProductionSafetyRegistration.FindViolations(configuration);
+            if (violations.Count == 0)
+                return serviceCollection;
+
+            var detail = string.Join(
+                Environment.NewLine,
+                violations.Select(violation => $"  - {violation}")
+            );
+            throw new InvalidOperationException(
+                $"Refusing to start in the Production environment: {violations.Count} setting(s) are unsafe "
+                    + $"for a production deployment.{Environment.NewLine}{detail}{Environment.NewLine}"
+                    + "Fix them for this deployment, or run under a non-Production environment name."
             );
         }
     }

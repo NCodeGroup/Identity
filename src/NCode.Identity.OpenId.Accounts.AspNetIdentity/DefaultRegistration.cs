@@ -18,50 +18,6 @@ namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <param name="builder">The builder proving the store-manager framework (the Entity Framework persistence) is
-    /// registered — the adapter registers a factory the store manager resolves.</param>
-    extension(IServiceBuilder<StoreManagerLibrary> builder)
-    {
-        /// <summary>
-        /// Registers an <see cref="ILocalAccountStore"/> that adapts the ASP.NET Core Identity
-        /// <c>UserManager&lt;TUser&gt;</c> for the specified user type, together with the <see cref="LocalAccountLibrary"/>
-        /// marker that the opt-in local-account capabilities require as a compile-time argument. The host is responsible
-        /// for registering ASP.NET Core Identity (<c>AddIdentityCore&lt;TUser&gt;</c> or <c>AddIdentity</c>) and its
-        /// stores. It wraps the host's <c>IPasswordHasher&lt;TUser&gt;</c> registration, made before or after this call,
-        /// in <see cref="NormalizingPasswordHasher{TUser}"/>, so the adapter and the host's own ASP.NET Core Identity
-        /// pages hash and verify a password's NFC form; a hasher that the host registers after this call must be wrapped
-        /// by the host.
-        /// </summary>
-        /// <typeparam name="TUser">The ASP.NET Core Identity user type.</typeparam>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> proving a local-account store is registered.</returns>
-        public IServiceBuilder<LocalAccountLibrary> AddAspNetIdentityLocalAccountStore<TUser>()
-            where TUser : IdentityUser, new()
-        {
-            var serviceCollection = builder.ServiceCollection;
-
-            var newBuilder = serviceCollection.NewBuilder<LocalAccountLibrary>();
-
-            // See ADR-1239.
-            serviceCollection.TryAddSingleton<AspNetIdentityDummyPasswordHash<TUser>>();
-
-            // See ADR-1238.
-            AddNormalizingPasswordHasher<TUser>(serviceCollection);
-
-            // The store is backing-store-agnostic, so it registers the DbContext-less factory the store manager falls
-            // back to; the scoped UserManager is resolved per operation from a fresh scope.
-            serviceCollection.AddSingleton<Func<IStoreProvider, ILocalAccountStore>>(
-                serviceProvider =>
-                    storeProvider =>
-                        ActivatorUtilities.CreateInstance<AspNetIdentityLocalAccountStore<TUser>>(
-                            serviceProvider,
-                            storeProvider
-                        )
-            );
-
-            return newBuilder;
-        }
-    }
-
     // Replaces the last registration of the host's hasher in place with one that wraps it, so the order of this call
     // and of ASP.NET Core Identity's registration, which keeps a registration that exists, does not matter. See
     // ADR-1238.
@@ -132,4 +88,48 @@ public static class DefaultRegistration
         where TUser : class =>
         innerHasher as NormalizingPasswordHasher<TUser>
         ?? new NormalizingPasswordHasher<TUser>(innerHasher);
+
+    /// <param name="builder">The builder proving the store-manager framework (the Entity Framework persistence) is
+    /// registered — the adapter registers a factory the store manager resolves.</param>
+    extension(IServiceBuilder<StoreManagerLibrary> builder)
+    {
+        /// <summary>
+        /// Registers an <see cref="ILocalAccountStore"/> that adapts the ASP.NET Core Identity
+        /// <c>UserManager&lt;TUser&gt;</c> for the specified user type, together with the <see cref="LocalAccountLibrary"/>
+        /// marker that the opt-in local-account capabilities require as a compile-time argument. The host is responsible
+        /// for registering ASP.NET Core Identity (<c>AddIdentityCore&lt;TUser&gt;</c> or <c>AddIdentity</c>) and its
+        /// stores. It wraps the host's <c>IPasswordHasher&lt;TUser&gt;</c> registration, made before or after this call,
+        /// in <see cref="NormalizingPasswordHasher{TUser}"/>, so the adapter and the host's own ASP.NET Core Identity
+        /// pages hash and verify a password's NFC form; a hasher that the host registers after this call must be wrapped
+        /// by the host.
+        /// </summary>
+        /// <typeparam name="TUser">The ASP.NET Core Identity user type.</typeparam>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> proving a local-account store is registered.</returns>
+        public IServiceBuilder<LocalAccountLibrary> AddAspNetIdentityLocalAccountStore<TUser>()
+            where TUser : IdentityUser, new()
+        {
+            var serviceCollection = builder.ServiceCollection;
+
+            var newBuilder = serviceCollection.NewBuilder<LocalAccountLibrary>();
+
+            // See ADR-1239.
+            serviceCollection.TryAddSingleton<AspNetIdentityDummyPasswordHash<TUser>>();
+
+            // See ADR-1238.
+            AddNormalizingPasswordHasher<TUser>(serviceCollection);
+
+            // The store is backing-store-agnostic, so it registers the DbContext-less factory the store manager falls
+            // back to; the scoped UserManager is resolved per operation from a fresh scope.
+            serviceCollection.AddSingleton<Func<IStoreProvider, ILocalAccountStore>>(
+                serviceProvider =>
+                    storeProvider =>
+                        ActivatorUtilities.CreateInstance<AspNetIdentityLocalAccountStore<TUser>>(
+                            serviceProvider,
+                            storeProvider
+                        )
+            );
+
+            return newBuilder;
+        }
+    }
 }

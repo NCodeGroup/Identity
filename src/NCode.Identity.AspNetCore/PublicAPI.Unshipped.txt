@@ -123,6 +123,9 @@ const NCode.Identity.AspNetCore.HealthProbeDefaults.LivenessEndpointName = "heal
 const NCode.Identity.AspNetCore.HealthProbeDefaults.LivenessPath = "/health/live" -> string!
 const NCode.Identity.AspNetCore.HealthProbeDefaults.ReadinessEndpointName = "health_ready_endpoint" -> string!
 const NCode.Identity.AspNetCore.HealthProbeDefaults.ReadinessPath = "/health/ready" -> string!
+NCode.Identity.AspNetCore.ServerHeaderRegistration
+NCode.Identity.AspNetCore.ServerHeaderRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.AspNetCore.ServerHeaderRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddServerHeaderSuppression() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.AspNetCore.SinglePageBundleDefaults
 const NCode.Identity.AspNetCore.SinglePageBundleDefaults.AssetsDirectory = "assets" -> string!
 const NCode.Identity.AspNetCore.SinglePageBundleDefaults.IndexFileName = "index.html" -> string!

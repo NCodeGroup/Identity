@@ -1,10 +1,11 @@
 # Publish artifacts - publishes the host image, the management console image and the host chart to GHCR (issue #773, ADR-1503).
 #
-# Every push to main (and a manual run on main) publishes three artifacts at one unique prerelease version: the host
-# image, the management console image and the host chart. The version comes from build/artifact-version.ps1:
-# `<version.json prerelease>.<first-parent commit count>`, for example 0.0.1-alpha.57.
+# Every push to main (and a manual run on main) and every release tag v*.*.* publishes three artifacts at one version:
+# the host image, the management console image and the host chart. The version comes from build/artifact-version.ps1:
+# `<version.json prerelease>.<first-parent commit count>`, for example 0.0.1-alpha.57, on main, and the tag itself on a
+# release tag.
 #
-# The signing identity of every signature and attestation is this workflow on main:
+# The signing identity of every signature and attestation is this workflow on main or on the release tag:
 # https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main
 #
 # Package visibility and the Actions access of a package are owner settings in GitHub that no workflow can change; see
@@ -14,6 +15,7 @@ name: Publish artifacts
 on:
   push:
     branches: [main]
+    tags: ['v*.*.*']
   workflow_dispatch:
 
 permissions:
@@ -27,11 +29,12 @@ concurrency:
 jobs:
   version:
     name: Compute the version
-    if: github.repository == 'NCodeGroup/identity' && github.ref == 'refs/heads/main'
+    if: github.repository == 'NCodeGroup/identity' && (github.ref == 'refs/heads/main' || github.ref_type == 'tag')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       version: ${{ steps.version.outputs.version }}
+      stable: ${{ steps.version.outputs.stable }}
 
     steps:
       - name: Checkout
@@ -41,13 +44,28 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # A tag must name a commit that main or a release line already holds, so a tag pushed on an unreviewed commit
+      # publishes nothing.
+      - name: Check the tagged commit is on a protected line
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $lines = @(git for-each-ref --format='%(refname)' refs/remotes/origin/main 'refs/remotes/origin/release/v*')
+          $onLine = $lines | Where-Object { git merge-base --is-ancestor HEAD $_; $LASTEXITCODE -eq 0 }
+          if (-not $onLine) { throw "The tag names a commit that is on neither main nor a release line." }
+
       - name: Compute the version
         id: version
         shell: pwsh
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: |
-          $version = ./build/artifact-version.ps1
+          $version = ./build/artifact-version.ps1 -Tag $env:TAG
+          $stable = if ($version.Contains('-')) { 'false' } else { 'true' }
           "version=$version" >> $env:GITHUB_OUTPUT
-          "Publishing **$version**." >> $env:GITHUB_STEP_SUMMARY
+          "stable=$stable" >> $env:GITHUB_OUTPUT
+          $kind = if ($stable -eq 'true') { 'stable' } else { 'prerelease' }
+          "Publishing **$version** ($kind)." >> $env:GITHUB_STEP_SUMMARY
 
   publish:
     name: Publish

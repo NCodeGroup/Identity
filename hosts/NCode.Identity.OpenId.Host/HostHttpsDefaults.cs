@@ -5,6 +5,8 @@ using System.Net.Security;
 using System.Security.Authentication;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
+using NCode.Identity.AspNetCore;
+using NCode.Identity.AspNetCore.Options;
 
 namespace NCode.Identity.OpenId.Host;
 
@@ -30,14 +32,21 @@ internal static class HostHttpsDefaults
     ];
 
     /// <summary>
-    /// Configures the HTTPS defaults of the host's endpoints.
+    /// Configures the HTTPS defaults of the host's endpoints, including the request for the reverse proxy's client
+    /// certificate when <see cref="ProxyClientCertificateOptions.Required"/> is true.
     /// </summary>
     /// <param name="https">The <see cref="HttpsConnectionAdapterOptions"/> to configure.</param>
-    internal static void Configure(HttpsConnectionAdapterOptions https)
+    /// <param name="proxyClientCertificate">The <see cref="ProxyClientCertificateOptions"/> that decide whether the
+    /// endpoints request the proxy's client certificate.</param>
+    internal static void Configure(
+        HttpsConnectionAdapterOptions https,
+        ProxyClientCertificateOptions proxyClientCertificate
+    )
     {
         https.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
         https.AllowAnyClientCertificate();
         https.OnAuthenticate = OnAuthenticate;
+        https.RequestProxyClientCertificate(proxyClientCertificate);
     }
 
     private static void OnAuthenticate(

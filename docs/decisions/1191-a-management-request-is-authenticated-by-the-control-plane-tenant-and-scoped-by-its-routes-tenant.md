@@ -18,8 +18,7 @@ questions decide how a call is handled, and the answers must not depend on the h
   ([ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so the tenant that context carries
   must be the one that issued the token. A tenant resolved from the request's host or path is not: under
   `DynamicByPath`, `/api` is beneath no tenant route and a collection route has no `tenantId` to resolve, and under
-  `DynamicByHost`, a host that names no tenant, such as `manage.<apex>`
-  ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)),
+  `DynamicByHost`, a host that names no tenant
   resolves none, and a workload tenant's host resolves that tenant, not the issuer of the caller's token.
 - **Which tenant's data does a call act on?** Tenant-bound data is kept leak-proof by a persistence-layer query filter
   keyed on an ambient tenant scope
@@ -79,7 +78,7 @@ are independent: the first is the security domain that issued the caller's token
   configuration, and under `StaticSingle` a tenant other than the served one cannot issue a token, so a second setting
   is redundant or wrong. A strategy that needs another answer overrides both control-plane members.
 - **Serve the API beneath the root tenant's route or host.** Rejected: it ties the API's address to the strategy and
-  leaves the `manage.<apex>` host unserved.
+  to the root tenant's route or host.
 - **Require the caller to use the issuing tenant's address.** Rejected: the routes already carry the tenant they act
   on, so the address would encode the tenant twice, and a collection route has no tenant to address.
 - **Authenticate by the control-plane tenant and scope by the route (chosen).** Deterministic across every strategy,
@@ -87,8 +86,9 @@ are independent: the first is the security domain that issued the caller's token
 
 ## Consequences
 
-- The management API answers under every strategy: on any host under `DynamicByHost` (including `manage.<apex>`) and
-  at `/api` under `DynamicByPath`, with tokens the root tenant issues. Integration tests drive both dynamic strategies.
+- The management API answers under every strategy: on any host under `DynamicByHost`, such as the root tenant's
+  `auth.<apex>`, and at `/api` under `DynamicByPath`, with tokens the root tenant issues. Integration tests drive both
+  dynamic strategies.
 - A token a workload tenant issues does not authenticate the management API. Administration of a workload tenant is
   delegated to control-plane principals through role assignments.
 - An administrator can act on any tenant's clients by route, while the persistence query filter guarantees that no
@@ -105,7 +105,7 @@ are independent: the first is the security domain that issued the caller's token
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the
   ambient-scope query filter.
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)
-  — the management host.
+  — the hosted platform's host layout.
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — one
   provisioning pipeline.
 - [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) — issued-token validation.

@@ -1304,7 +1304,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Response types are whole values, enforced exactly and kept consistent with grant types.** `response_types_supported`
   lists whole `response_type` values (`code`, `id_token`, `token`, `code id_token`, `code token`, `id_token token`,
-  `code id_token token`, all in `OpenIdConstants.ResponseTypes`) in canonical form (names in ordinal order), the shape
+  `code id_token token`, all in `OpenIdProtocol.ResponseTypes`) in canonical form (names in ordinal order), the shape
   OpenID Connect Discovery, RFC 8414 and RFC 7591 define; a non-canonical value such as `id_token code` is outside the
   domain. Discovery advertises the list as configured, and the authorization endpoint accepts exactly a listed value
   (its names in any order), so an operator enables one implicit or hybrid flow by listing it. A response type needs the
@@ -1584,8 +1584,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   well as `Cert`, honoring quoted values. The resolver returns a `PresentedClientCertificate`: the client's certificate
   and the other certificates it sent, as untrusted `Intermediates` for chain building, resolved once per request.
   Formats are an open vocabulary: each is an `IClientCertificateHeaderDecoder` registered under a `Format` name (the
-  known names are `ClientCertificateHeaderFormats`), `MutualTlsForwardingOptions.Format` is a string, and the host
-  refuses to start when `OpenId:MutualTls:Format` names no registered decoder. `IClientCertificateResolver` and
+  known names are `ClientCertificateHeaderFormats`), `MutualTlsForwardingOptions.Format` is a string, and, when
+  `CertificateHeaderName` is configured, the host refuses to start when `OpenId:MutualTls:Format` names no registered
+  decoder. `IClientCertificateResolver` and
   `MutualTlsForwardingOptions` live in `NCode.Identity.OpenId.Authentication.ClientCertificates`, registered by
   `AddClientCertificateServices()`, and `ResolveCertificateAsync` takes an `OpenIdContext`
   ([ADR-1097](docs/decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md),
@@ -5477,7 +5478,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The management API authenticates every caller against the control-plane tenant and takes its data scope from the
   route.** Whatever host or path it is reached on (a collection route such as `POST /api/teams/{teamId}/tenants` under `DynamicByPath`,
-  a `/api/tenants/{tenantId}/…` route, or the `manage.<apex>` host under `DynamicByHost`), the caller's token is
+  a `/api/tenants/{tenantId}/…` route, or any host under `DynamicByHost`), the caller's token is
   validated with the control-plane tenant (the root tenant, or a static strategy's own tenant). `ITenantStrategy` and
   `ITenantResolver` expose `ResolveControlPlaneTenantAsync`, `IOpenIdTenantFactory` exposes
   `CreateControlPlaneTenantAsync`, and `IOpenIdContextFactory` exposes `CreateForControlPlaneAsync`

@@ -2685,7 +2685,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   fraction such as `60.5` is rejected with `OpenIdProviderException`. `NCode.Identity.Json` provides
   `JsonElement.TryGetWholeInt32`, `TryGetPropertyWholeInt32` and `WholeInt32JsonConverter` for such values, and
   `NCode.Identity.OpenId.Client.Abstractions` references `NCode.Identity.Json`
-  ([ADR-1277](docs/decisions/1277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md), issue
+  ([ADR-1123](docs/decisions/1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md), issue
   [#352](https://github.com/NCodeGroup/identity/issues/352)).
 
 - **The backend-for-frontend core (`NCode.Identity.Bff`).** The `NCode.Identity.Bff` and
@@ -4512,7 +4512,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   date string, or validation fails, so an unreadable `nbf` never lets a token be used early and an unreadable `exp`
   never makes it immortal. `DateTimeOffset.FromUnixTimeSeconds` / `FromUnixTimeMilliseconds` are banned in shipping code
   (`RS0030`) ([#33](https://github.com/NCodeGroup/identity/issues/33),
-  [ADR-1123](docs/decisions/1123-numeric-date-is-read-strictly-and-range-guarded.md)).
+  [ADR-1123](docs/decisions/1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md)).
 
 - **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
   are banned (`RS0030`) in production and test code, which parse with `JsonElement.Parse` and read a stream with
@@ -5545,7 +5545,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The protocol client fails a token with an out-of-range NumericDate with `invalid_claim`.** An ID token's
   `auth_time`, checked under `max_age`, and a logout token's `exp` are read as strict NumericDates, so a value such as
   `1e300` or one near the end of time fails the token with `invalid_claim` and never throws
-  ([ADR-1123](docs/decisions/1123-numeric-date-is-read-strictly-and-range-guarded.md), issue
+  ([ADR-1123](docs/decisions/1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md), issue
   [#367](https://github.com/NCodeGroup/identity/issues/367)).
 
 - **The BFF keeps tokens off the browser and accepts its cookie only where it should.** The browser holds only the

@@ -36,7 +36,7 @@ Several forces shape the bound:
 kind of client-signed JWT uses it through a lattice-bounded setting.**
 
 - **`iat` is a validated time claim.** `TokenLifetimeRequirement` validates `iat` like `nbf`: a present `iat` must be a
-  valid `NumericDate` (fail closed, per [ADR-1123](1123-numeric-date-is-read-strictly-and-range-guarded.md)) and may not
+  valid `NumericDate` (fail closed, per [ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md)) and may not
   be later than the clock skew in the future. This holds for every `ValidateTokenLifeTime` consumer.
 - **Optional maximum lifetime.** `MaxLifetime` (set through `ValidateTokenLifeTimeOptions.MaxLifetime`; `null` means no
   maximum) bounds `exp − start`, where the start is the earlier of `iat` and `nbf`, or the validation time plus the

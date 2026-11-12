@@ -70,7 +70,7 @@ value's declared type alone.**
   `TryParseDateTimeOffset` and `TryParseDateTime` are the contract for turning a date or time string into a CLR value.
   The production coding conventions forbid hand-rolled `DateTime(Offset).TryParse`. Its RFC 7519 `NumericDate`
   conversions are public too, under the strict, range-guarded rules of
-  [ADR-1123](1123-numeric-date-is-read-strictly-and-range-guarded.md).
+  [ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md).
 - **A lenient coercion stays separate and opt-in.** `ObjectJsonConverterOptions.DateString` is a different, explicitly
   configured coercion for loosely typed `object` deserialization; this mapping does not use it.
 
@@ -118,7 +118,7 @@ value's declared type alone.**
 - `src/NCode.Identity.Jwt/Claims/ClaimValueMapper.cs` (`ToClaim` and `ToJsonValue`)
 - `src/NCode.Identity.Jwt/Claims/DefaultClaimsIdentityFactory.cs`, `src/NCode.Identity.Jwt/Encoding/DefaultJwtEncoder.cs`
 - `src/NCode.Identity.Json/DateCoercion.cs`
-- [ADR-1123](1123-numeric-date-is-read-strictly-and-range-guarded.md): the strict `NumericDate` rules
+- [ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md): the strict `NumericDate` rules
 - [XML Schema Part 2: Datatypes](https://www.w3.org/TR/xmlschema-2/): the `ClaimValueTypes` lexical spaces
 - [RFC 7519 §2: `NumericDate`](https://datatracker.ietf.org/doc/html/rfc7519#section-2)
 - [RFC 8259 §6: Numbers](https://datatracker.ietf.org/doc/html/rfc8259#section-6)

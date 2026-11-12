@@ -103,7 +103,7 @@ registered encryption.**
 - OpenID Connect Core 1.0 §3.1.3.7 step 1; OpenID Connect Back-Channel Logout 1.0 §2.4 and §2.6 step 1; OpenID Connect
   Dynamic Client Registration 1.0 §2
 - RFC 7519 §5.3 (replicating claims as header parameters); RFC 8725 §3.2 and §3.6 (`RSA1_5`; compression)
-- [ADR-1123](1123-numeric-date-is-read-strictly-and-range-guarded.md) — the strict NumericDate read that the same two
+- [ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md) — the strict NumericDate read that the same two
   validators use for `auth_time` and the logout `exp`
 - [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) — JWTs are validated
   only through `IJwtValidator` under explicit algorithm and key policy

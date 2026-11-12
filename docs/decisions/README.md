@@ -276,7 +276,7 @@ The records are grouped by area; within an area they are in number order.
 | [1119](./1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md) | A DI-free JWK package models keys, sets and thumbprints, and key types register their rules | Accepted |
 | [1120](./1120-jwt-validation-requirements-and-handlers.md) | JWT validation is modeled as ASP.NET Core-style requirements and handlers | Accepted |
 | [1122](./1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md) | JWT claim values map to and from JSON by their declared type alone | Accepted |
-| [1123](./1123-numeric-date-is-read-strictly-and-range-guarded.md) | RFC 7519 NumericDate is read strictly, range-guarded, through `DateCoercion` | Accepted |
+| [1123](./1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md) | A NumericDate and a whole number a remote party sends are read strictly through shared readers | Accepted |
 | [1126](./1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md) | The ECDH-ES Concat KDF digest is SHA-256, and third-party oracles must be RFC-conforming | Accepted |
 | [1154](./1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) | JWTs are validated as signed tokens under explicit algorithm and key policy | Accepted |
 | [1270](./1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted |
@@ -285,7 +285,6 @@ The records are grouped by area; within an area they are in number order.
 | [1274](./1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) | The protocol client validates logout tokens and rejects replays | Accepted |
 | [1275](./1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) | The protocol client pushes authorization requests whenever the provider offers PAR | Accepted |
 | [1276](./1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md) | The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package | Accepted |
-| [1277](./1277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md) | A whole-number JSON value is accepted with a zero fraction | Accepted |
 | [1278](./1278-token-validation-failures-carry-a-machine-readable-code.md) | Token validation failures carry a machine-readable code | Accepted |
 | [1280](./1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) | The protocol client decrypts ID and logout tokens with its key ring | Accepted |
 | [1282](./1282-the-jose-library-does-not-implement-rsa1-5.md) | The JOSE library does not implement RSA1_5 | Accepted |

@@ -17,7 +17,7 @@ allow-list checked first
 ([ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)); the SD-JWT verifier
 requires its algorithm list at a trust boundary
 ([ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)); and `NumericDate` values
-are read strictly and range-guarded ([ADR-1123](1123-numeric-date-is-read-strictly-and-range-guarded.md)). A CWT
+are read strictly and range-guarded ([ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md)). A CWT
 carries the same claims in CBOR, and its `NumericDate` may be an integer or a floating-point number.
 
 ## Decision
@@ -93,7 +93,7 @@ carries the same claims in CBOR, and its `NumericDate` may be an integer or a fl
 
 - [RFC 8392](https://datatracker.ietf.org/doc/html/rfc8392), [RFC 8747](https://datatracker.ietf.org/doc/html/rfc8747),
   [RFC 9596](https://datatracker.ietf.org/doc/html/rfc9596), [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519)
-- [ADR-1123](1123-numeric-date-is-read-strictly-and-range-guarded.md),
+- [ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md),
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
   [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
   [ADR-1409](1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md)

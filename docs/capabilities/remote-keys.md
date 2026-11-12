@@ -440,7 +440,7 @@ the ECDH shared secret of one message passes through the replica, never the key.
   [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-1468](../decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)
+  [ADR-1351](../decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)
 - Code: [`RemoteKeys`](../../src/NCode.Identity.Secrets.Abstractions/RemoteKeys),
   [`RemoteKeySigning`](../../src/NCode.Identity.Secrets/RemoteKeys/RemoteKeySigning.cs),
   [`IRemoteKeyResolver`](../../src/NCode.Identity.Secrets.Abstractions/RemoteKeys/IRemoteKeyResolver.cs),

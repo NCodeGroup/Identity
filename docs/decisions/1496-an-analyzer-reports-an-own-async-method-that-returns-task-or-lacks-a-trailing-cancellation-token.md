@@ -23,9 +23,7 @@ enforces the return and token shape in every project, production and tests alike
 - **A method group can reach the framework after its declaration.** A method that `MapGet` takes as a delegate has the
   delegate's shape, and the call that hands it over can sit in another file than the method.
 - **Some work must not be cancelled.** Work that follows a committed change
-  ([ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md),
-  [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md),
-  [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)) runs on its own
+  ([ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)) runs on its own
   bounded token, so no caller can pass a token that drops it. Work a decision makes uncancellable runs on
   `CancellationToken.None`, because a caller's abort must not drop it
   ([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
@@ -101,9 +99,7 @@ method that returns `Task` or `Task<T>` and with `NCID0003` on an own asynchrono
 - [#744](https://github.com/NCodeGroup/identity/issues/744)
 - [ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md):
   the analyzer project
-- [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md),
-  [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md) and
-  [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md): the post-commit
+- [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md): the post-commit
   rule that the justifications cite
 - [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) and

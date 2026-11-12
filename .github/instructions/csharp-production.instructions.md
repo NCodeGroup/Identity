@@ -37,9 +37,7 @@ than inlining the rationale.
   The first exception is a method whose whole work follows a committed change and runs on its own bounded token
   through `PostCommitWork`, such as every `IManagementAuditRecorder` and `IPostCommitSecurityEffects` method: it takes
   no `CancellationToken`, so no caller can pass one that drops the effect
-  ([ADR-1351](../../docs/decisions/1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md),
-  [ADR-1464](../../docs/decisions/1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md),
-  [ADR-1468](../../docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
+  ([ADR-1351](../../docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
   The second is a method an ADR makes uncancellable: its whole awaited work runs on `CancellationToken.None` because a
   caller's abort must not drop it
   ([ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
@@ -697,7 +695,7 @@ than inlining the rationale.
   [ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
   and
-  [ADR-1468](../../docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md).
+  [ADR-1351](../../docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md).
 - 👁 **A cookie authentication handler authenticates only the endpoints its guard checked.** The BFF's handler
   authenticates the cookie on a guarded endpoint (an API, `/bff/user`, a page) and returns no result everywhere else, so
   a cookie the browser attaches to an unguarded endpoint is never a credential there. See
@@ -782,7 +780,7 @@ than inlining the rationale.
   count of a run of events that ends is cleared with `IExpiringCounterSet.RemoveAsync`
   ([ADR-1237](../../docs/decisions/1237-failed-password-attempts-are-limited-per-account.md),
   [ADR-1244](../../docs/decisions/1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md),
-  [ADR-1468](../../docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
+  [ADR-1351](../../docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 - 👁 **A password is judged, hashed and verified in its Unicode Normalization Form C (NFC), and a failed verification
   takes as long whether or not the account exists.** `DefaultPasswordPolicy` judges the NFC form and every
   `IPasswordHasher` hashes and verifies it, verifying the submitted form as a fallback that reports

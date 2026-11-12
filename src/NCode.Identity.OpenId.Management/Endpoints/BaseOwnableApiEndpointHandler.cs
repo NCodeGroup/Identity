@@ -49,7 +49,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     [SuppressMessage(
         "Design",
         "NCID0003",
-        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351)."
     )]
     protected internal virtual ValueTask RecordRoleAssignmentChangedAsync(
         HttpContext httpContext,

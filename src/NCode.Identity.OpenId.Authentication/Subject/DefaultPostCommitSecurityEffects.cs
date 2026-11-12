@@ -15,11 +15,11 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// Provides the default implementation of <see cref="IPostCommitSecurityEffects"/> that runs each effect in its
 /// own <see cref="PostCommitWork.RunAsync{TState}"/> step, logs a failure and never throws it.
 /// </summary>
-// See ADR-1468.
+// See ADR-1351.
 [SuppressMessage(
     "Design",
     "NCID0003",
-    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351)."
 )]
 internal sealed class DefaultPostCommitSecurityEffects(
     ISessionService sessionService,

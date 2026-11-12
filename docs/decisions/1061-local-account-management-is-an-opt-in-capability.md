@@ -1,6 +1,6 @@
 # 1061. Local-account management is an opt-in capability that plugs into the Management slice
 
-- **Status:** Accepted (amended by [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md))
+- **Status:** Accepted (amended by [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md))
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

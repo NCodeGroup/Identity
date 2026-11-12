@@ -327,7 +327,7 @@ internal class LocalAccountApiEndpointHandler(
 
         // The password an administrator sets replaces the one being guessed, so its failed attempts start over. The
         // change is committed, so clearing them runs on its own bounded token, a failure is logged, and the audit
-        // record follows. See ADR-1237 and ADR-1468.
+        // record follows. See ADR-1237 and ADR-1351.
         await PostCommitSecurityEffects.ResetPasswordAttemptsAsync(tenantId, request.UserName);
 
         var resource = ToLocalAccountResource(account);
@@ -646,7 +646,7 @@ internal class LocalAccountApiEndpointHandler(
         {
             // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying
             // parties. The change is committed, so the termination runs on its own bounded token, a failure is
-            // logged, and the audit record follows. See ADR-1224 and ADR-1468.
+            // logged, and the audit record follows. See ADR-1224 and ADR-1351.
             await PostCommitSecurityEffects.TerminateSessionsAsync(
                 tenantContext,
                 principalId,
@@ -735,7 +735,7 @@ internal class LocalAccountApiEndpointHandler(
         {
             // A reset password ends the sessions of the account's principal and revokes its grants, so the tokens of a
             // compromised account stop at once. The change is committed, so the termination runs on its own bounded
-            // token, a failure is logged, and the audit record follows. See ADR-1226 and ADR-1468.
+            // token, a failure is logged, and the audit record follows. See ADR-1226 and ADR-1351.
             await PostCommitSecurityEffects.TerminateSessionsAsync(
                 tenantContext,
                 principalId,
@@ -745,7 +745,7 @@ internal class LocalAccountApiEndpointHandler(
 
         // The password an administrator sets replaces the one being guessed, so its failed attempts start over. The
         // change is committed, so clearing them runs on its own bounded token, a failure is logged, and the audit
-        // record follows. See ADR-1237 and ADR-1468.
+        // record follows. See ADR-1237 and ADR-1351.
         await PostCommitSecurityEffects.ResetPasswordAttemptsAsync(tenantId, account.UserName);
 
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(

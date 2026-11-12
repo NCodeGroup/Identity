@@ -125,7 +125,7 @@ rest.
 The durable adapter is unbuilt and tracked in issue [#25](https://github.com/NCodeGroup/identity/issues/25): a
 transactional outbox that writes the serialized job with the change and drains it after commit, at least once, for
 compliance-grade audit and guaranteed push. The management audit records publish inline on their own bounded token
-([ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)), and the event seam stays
+([ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)), and the event seam stays
 best effort ([ADR-1047](1047-auditing-and-events-observation-seam.md)).
 
 ## Options considered
@@ -188,7 +188,7 @@ best effort ([ADR-1047](1047-auditing-and-events-observation-seam.md)).
   dispatcher generalizes.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) —
   configuration binds strictly and is validated when the host starts.
-- [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) — the inline, bounded
+- [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md) — the inline, bounded
   publication of management audit records.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the
   service-versus-strategy model the job and handler split follows.

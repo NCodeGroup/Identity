@@ -91,7 +91,7 @@ public keys without calling the service.**
    key type or its size or curve differs from the row, hands the record it would return to `IRemoteSecretDestroyer`,
    which destroys the key it created, and fails; otherwise it returns the remote record of rule 3.
 9. **A key the server created is destroyed after the commit that removes its record.** `IRemoteSecretDestroyer`
-   takes the removed secrets and takes no token ([ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
+   takes the removed secrets and takes no token ([ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
    `DefaultRemoteSecretDestroyer` skips every secret that is not `remote` or whose `Origin` is not `generated`, runs
    each `DestroyKeyAsync` through `PostCommitWork.RunAsync`, never throws, and logs a malformed reference, an
    unregistered provider or a failure with the secret id and provider name only. The seed, the rollover pass, the
@@ -233,5 +233,5 @@ public keys without calling the service.**
   [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md).
+  [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md).
 - [#165](https://github.com/NCodeGroup/identity/issues/165)

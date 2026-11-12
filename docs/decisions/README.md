@@ -161,13 +161,11 @@ The records are grouped by area; within an area they are in number order.
 | [1205](./1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md) | Replicas announce changes to each other through a best-effort broadcast port | Accepted |
 | [1242](./1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) | Deferred work runs through a replaceable job-dispatch port with a concurrent in-process default | Accepted |
 | [1246](./1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) | Rate limits are registered descriptors counted in a shared expiring counter set | Accepted |
-| [1351](./1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) | A committed change is applied and announced on its own bounded token | Accepted |
+| [1351](./1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md) | Work that follows a committed change runs on its own bounded token | Accepted |
 | [1411](./1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) | The platform is the deployment root and a team groups a customer's tenants | Accepted |
 | [1425](./1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md) | A team promotes one tenant's configuration to another, and environment-bound values stay | Accepted |
 | [1426](./1426-a-team-can-nest-beneath-a-parent-team.md) | A team can nest beneath a parent team | Accepted |
 | [1455](./1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md) | A team's subtree is walked depth first, one page of child teams per level | Accepted |
-| [1464](./1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md) | A management audit record runs on its own bounded token and takes no request token | Accepted |
-| [1468](./1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md) | A security effect that follows a committed change runs on its own bounded token | Accepted |
 
 ### Management API
 

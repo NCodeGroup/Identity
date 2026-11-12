@@ -720,7 +720,7 @@ internal sealed class DefaultOwnerRootKeyManager(
     [SuppressMessage(
         "Design",
         "NCID0003",
-        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351)."
     )]
     private async ValueTask<(
         MasterKeyRotation? Rotation,
@@ -751,7 +751,7 @@ internal sealed class DefaultOwnerRootKeyManager(
     [SuppressMessage(
         "Design",
         "NCID0003",
-        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351)."
     )]
     private async ValueTask<(
         OwnerRootKeyInfo? Remaining,
@@ -784,7 +784,7 @@ internal sealed class DefaultOwnerRootKeyManager(
     [SuppressMessage(
         "Design",
         "NCID0003",
-        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+        Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351)."
     )]
     private async ValueTask NotifyAsync(SecretOwner key)
     {

@@ -3170,7 +3170,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   own 30-second token, so a client that disconnects does not skip the announcement and a store or Valkey timeout does
   not fail a write that has already committed; a failed refresh or announcement is logged, and a failed eviction is
   still announced ([#485](https://github.com/NCodeGroup/identity/issues/485),
-  [ADR-1351](docs/decisions/1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)).
+  [ADR-1351](docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 
 - **Protocol-endpoint metrics.** The protocol endpoints tag ASP.NET Core's `http.server.request.duration` with
   `ncode.identity.openid.endpoint` (the endpoint's registered name, stable when routes or tenant routing change),
@@ -5515,7 +5515,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   30-second token, so a client that disconnects after the commit drops no audit event; a record that fails or times
   out is logged and never fails the committed write, and the recorder's methods take no `CancellationToken`
   ([#621](https://github.com/NCodeGroup/identity/issues/621),
-  [ADR-1464](docs/decisions/1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md)).
+  [ADR-1351](docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 
 - **A security effect that follows a committed change is bounded and never fails the change.** Ending a principal's
   or an account's sessions after a block, a disable, an administrator's password reset or a self-service password
@@ -5524,7 +5524,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   a client that disconnects skips none of them, a hung store holds the response at most 30 seconds, and an effect that
   fails or times out is logged (`PostCommitSessionTerminationFailed`, `PostCommitPasswordAttemptResetFailed`) and never
   fails the committed change or skips its audit record ([#626](https://github.com/NCodeGroup/identity/issues/626),
-  [ADR-1468](docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
+  [ADR-1351](docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 
 - **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
   account's principal is terminated with the `password_reset` reason (`SessionTerminationReasons.PasswordReset`): its

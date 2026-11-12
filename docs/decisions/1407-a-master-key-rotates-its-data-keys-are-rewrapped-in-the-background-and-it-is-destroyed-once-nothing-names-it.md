@@ -103,7 +103,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
     runs every `MaintenanceInterval` (one day). One replica takes the lease `master-key-maintenance:{serverId}` for half the
     interval and rotates every active key older than `RotationPeriod` (365 days), then rewraps and destroys for every
     owner that has retired keys, which it reads in keyset pages that carry only the owner of each retired row. Each owner runs in its own try block, and the audit event of a change is published after
-    its commit through `PostCommitWork` ([ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)).
+    its commit through `PostCommitWork` ([ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
     The pass never runs on the dispatcher.
 11. **Options are validated when the host starts.** `SecretProtection:MasterKeys` binds strictly:
     `RotationPeriod` (at least one day), `RefreshInterval` (one second to one hour), `RetirementGrace` (at least twice

@@ -8,7 +8,7 @@
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names; amended by
-  [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md): a termination
+  [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md): a termination
   that follows a committed change runs through `IPostCommitSecurityEffects` on its own bounded token, and a failure is
   logged)
 - **Date:** 2026-10-23

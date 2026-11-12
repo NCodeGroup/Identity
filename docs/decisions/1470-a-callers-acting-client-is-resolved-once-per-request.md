@@ -13,7 +13,7 @@ the caller's principal through `IPrincipalResolver`, which consults it, and the 
 every change it records.
 
 The recorder asks after the change is committed
-([ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md)). A machine
+([ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)). A machine
 client that deletes itself is gone from the store when it asks, the read finds no client, and the record names an
 administrator, not the client ([#632](https://github.com/NCodeGroup/identity/issues/632)). Each of those callers also
 reads the same client again ([#633](https://github.com/NCodeGroup/identity/issues/633)).
@@ -64,7 +64,7 @@ resolver.**
   `DefaultUserInfoEndpointProvider.cs`
 - [ADR-1450](1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md) — a
   client-credentials access token names the client's principal as its subject
-- [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md) — a management
+- [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md) — a management
   audit record runs on its own bounded token and takes no request token
 - [#632](https://github.com/NCodeGroup/identity/issues/632), [#633](https://github.com/NCodeGroup/identity/issues/633),
   [#634](https://github.com/NCodeGroup/identity/issues/634)

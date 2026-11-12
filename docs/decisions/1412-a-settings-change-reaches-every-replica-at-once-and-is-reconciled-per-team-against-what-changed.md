@@ -30,7 +30,7 @@ the cache lifetime and the per-team reconciliation pass that refine
    `PlatformSettingsChangedCommand`. `PlatformSettingsChangedHandler` re-reads the committed document on this replica
    before the response returns and announces `platform` on the `platform-settings-changed` channel. Every replica's
    `PlatformSettingsChangeBroadcastHandler` refreshes on a message and on missed messages. Both run on their own
-   bounded token ([ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)), and a
+   bounded token ([ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)), and a
    failure is logged and never fails the write. The broadcast contract is
    [ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md)'s.
 2. **The message is a hint.** The platform's persisted settings poll on an interval and refresh on demand through
@@ -119,7 +119,7 @@ what it was last reconciled against, under a lease.
   team
 - [ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md) — replicas announce changes through a broadcast
   port
-- [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) — a committed change is
+- [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md) — a committed change is
   applied and announced on its own bounded token
 - [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md) —
   missed team announcements

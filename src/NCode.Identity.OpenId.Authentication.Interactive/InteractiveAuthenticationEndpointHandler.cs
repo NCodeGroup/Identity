@@ -1179,7 +1179,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         // A change keeps the current session, ends every other one and revokes the grants issued under no session.
         // The password is saved, so the termination runs on its own bounded token and a failure is logged.
-        // See ADR-1230 and ADR-1468.
+        // See ADR-1230 and ADR-1351.
         await PostCommitSecurityEffects.TerminateOtherSessionsAsync(
             openIdContext,
             subjectId,

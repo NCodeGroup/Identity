@@ -101,7 +101,7 @@ change the server makes to a tenant's key on its own is an audit event.**
    as the management plane records its own changes after its save: the pass publishes them after its save, and the
    seed queues them on `TenantSeedContext.RunAfterCommit`, whose steps the provisioner runs once the seed has
    committed, so a change a lost race discarded is never in the audit trail. The publishing follows a committed
-   change, so it runs on its own bounded token ([ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)):
+   change, so it runs on its own bounded token ([ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)):
    the pass runs the publishing and then the announcement through `PostCommitWork`, the announcement whatever the
    publishing did, and logs a failed publish; the provisioner runs each queued step the same way, logs one that fails
    and runs the rest, because the seed has committed and the tenant must materialize. The audit event is the one

@@ -142,7 +142,7 @@ to take effect within a bounded period across replicas without a KMS call per re
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md),
   [ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)
+  [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)
 - `src/NCode.Identity.Secrets.Persistence/Protection/DefaultOwnerRootKeyManager.cs`,
   `src/NCode.Identity.Secrets.Persistence/Protection/MasterKeyFactory.cs`,
   `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRing.cs`,

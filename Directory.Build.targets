@@ -48,9 +48,12 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- Bans disallowed APIs (RS0030) on top of build/BannedSymbols.txt, which build/ProjectTemplate.props adds to every project: BannedSymbols.Encoding.txt in every project (ADR-1266), BannedSymbols.txt on shipping code only (ADR-1127). -->
+  <!-- Bans disallowed APIs (RS0030) on top of build/BannedSymbols.txt, which build/ProjectTemplate.props adds to every project: BannedSymbols.Encoding.txt in every project (ADR-1266), BannedSymbols.Buffers.txt in every project that is not a test project (ADR-1266), BannedSymbols.txt on shipping code only (ADR-1127). -->
   <ItemGroup>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Encoding.txt" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Buffers.txt" />
   </ItemGroup>
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />

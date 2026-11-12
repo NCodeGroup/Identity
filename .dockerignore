@@ -9,6 +9,7 @@
 !.editorconfig
 !BannedSymbols.txt
 !BannedSymbols.Encoding.txt
+!BannedSymbols.Buffers.txt
 !build/ProjectTemplate.props
 !build/ProjectTemplate.globalconfig
 !build/ProjectTemplate.Tests.globalconfig

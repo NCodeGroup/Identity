@@ -29,7 +29,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`AddMessageFactory<TMessage>`, `AddEndpointProvider<T>`, `AddEndpointGroup<T>`) take the non-generic
   `IServiceBuilder` receiver ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md),
-  [ADR-1061](docs/decisions/1061-local-account-management-is-an-opt-in-capability.md)).
+  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md)).
 
 - **The library chain composes off typed builders.** `AddJoseLibrary()` extends `IServiceBuilder<SecretsLibrary>` and
   `AddJwtLibrary()` extends `IServiceBuilder<JoseLibrary>`, each returning its own library builder, so the
@@ -2423,9 +2423,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Operations`, `TenantScopeResource`, the `ManagementEndpointGroups.Tenant` group-name constant for attaching a keyed
   `IEndpointProvider` to the tenant group, and the generic audit seam
   `RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent)`. See
-  [ADR-1057](docs/decisions/1057-local-account-eager-provisioning-and-management-seam.md),
+  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md),
   [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) and
-  [ADR-1061](docs/decisions/1061-local-account-management-is-an-opt-in-capability.md).
+  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md).
 
 - **The management API looks up audit records.** `GET api/tenants/{tenantId}/audit-records` lists the tenant's records
   from the audit store, newest first by event time with ties broken by id, filtered by `startTime`/`endTime`,

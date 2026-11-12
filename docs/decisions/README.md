@@ -305,8 +305,7 @@ The records are grouped by area; within an area they are in number order.
 | [1047](./1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md) | Observation is a fault-isolated event seam that audit specializes and protocol errors reach once | Accepted |
 | [1051](./1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) | A local account is a self-issued connection behind one pluggable store seam | Accepted |
 | [1055](./1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md) | Subject metadata lives on the principal and projects into tokens as nested claims at issuance | Accepted |
-| [1057](./1057-local-account-eager-provisioning-and-management-seam.md) | Local accounts are provisioned eagerly with their principal, and the provisioner is the account write seam | Accepted |
-| [1061](./1061-local-account-management-is-an-opt-in-capability.md) | Local-account management is an opt-in capability that plugs into the Management slice | Accepted |
+| [1057](./1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md) | Local-account management is an opt-in capability that provisions the principal eagerly and authorizes per tenant | Accepted |
 | [1062](./1062-opt-in-interactive-login-consent-ui.md) | An opt-in interactive login/consent UI for the OpenID Provider | Accepted |
 | [1065](./1065-interactive-login-consent-op-hosted-auth-surface.md) | Interactive login/consent as the OP-hosted `apps/auth` surface | Accepted |
 | [1070](./1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md) | Interactive login/consent is a leaf capability package with a pluggable credential verifier | Accepted |

@@ -114,7 +114,7 @@ distributed cache keyed by `(tenant, principalId)`.
 
 `SystemMetadata` is never end-user-writable. Its only write paths are the administrator-gated management create and
 metadata endpoints
-([ADR-1057](1057-local-account-eager-provisioning-and-management-seam.md)).
+([ADR-1057](1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md)).
 
 ## Options considered
 
@@ -156,7 +156,7 @@ metadata endpoints
   `FederatedPrincipal` actor whose `PrincipalId` keys the provider.
 - [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md): the local account
   that holds `Claims`.
-- [ADR-1057](1057-local-account-eager-provisioning-and-management-seam.md): the management endpoints that write
+- [ADR-1057](1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md): the management endpoints that write
   `SystemMetadata`.
 - [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md):
   the UserInfo endpoint that one projection handler extends.

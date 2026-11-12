@@ -11,7 +11,7 @@ bolt-on capabilities that only make sense layered on another package's services:
 the OpenId Authentication library, local-account management over the Management slice, and the interactive
 login/consent surface over the OpenID server
 ([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md),
-[ADR-1061](1061-local-account-management-is-an-opt-in-capability.md),
+[ADR-1057](1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md),
 [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md)). Because an implementation package depends only
 on abstractions ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), no package can see another's
 concrete registration to know whether its prerequisites are present. A bolt-on added to a host that never registered the
@@ -165,6 +165,6 @@ methods on the bare `IServiceCollection`.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): the service,
   strategy and mediator model these registrations wire up.
 - [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md),
-  [ADR-1061](1061-local-account-management-is-an-opt-in-capability.md) and
+  [ADR-1057](1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md) and
   [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md): the opt-in capabilities that gate on these
   builders.

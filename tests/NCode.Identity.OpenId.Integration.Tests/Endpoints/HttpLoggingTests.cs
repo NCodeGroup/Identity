@@ -82,6 +82,13 @@ public sealed class HttpLoggingTests
                 x.Category == HttpLoggingCategory
                 && x.Message.Contains(OpenIdConstants.EndpointPaths.Token, StringComparison.Ordinal)
         );
+        // The response record is written, so the absence of a response body is the guard's doing.
+        Assert.Contains(
+            records,
+            x =>
+                x.Category == HttpLoggingCategory
+                && x.Message.Contains("StatusCode:", StringComparison.Ordinal)
+        );
         Assert.DoesNotContain(
             records,
             x => x.Message.Contains("RequestBody:", StringComparison.Ordinal)

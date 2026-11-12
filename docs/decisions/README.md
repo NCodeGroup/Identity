@@ -272,7 +272,7 @@ The records are grouped by area; within an area they are in number order.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [1117](./1117-eddsa-clean-room-implementation-opt-in-package.md) | EdDSA (Ed25519 / Ed448) is a clean-room implementation in an opt-in package | Accepted |
-| [1118](./1118-ml-dsa-post-quantum-signatures-in-core.md) | ML-DSA (post-quantum) signatures ship in the core libraries via the BCL | Accepted |
+| [1118](./1118-ml-dsa-post-quantum-signatures-ship-in-the-core-libraries-over-the-bcl-mldsa-type.md) | ML-DSA post-quantum signatures ship in the core libraries over the BCL MLDsa type | Accepted |
 | [1119](./1119-first-class-jwk-jwks-and-thumbprint.md) | First-class JWK / JWKS / thumbprint live in a dedicated logic-bearing package | Accepted |
 | [1120](./1120-jwt-validation-requirements-and-handlers.md) | JWT validation is modeled as ASP.NET Core-style requirements and handlers | Accepted |
 | [1121](./1121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md) | Claim dates parse only by declared type, through the shared `DateCoercion` policy | Accepted |

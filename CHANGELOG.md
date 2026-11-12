@@ -543,7 +543,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   advertised only where `MLDsa.IsSupported` (OpenSSL 3.5+ / recent Windows 11), so discovery and JWKS never offer an
   algorithm the running OS cannot fulfill; discovery lists them in the asymmetric token-signing metadata automatically
   (the signing-algorithm partition keys on `AsymmetricSecretKey`)
-  ([ADR-1118](docs/decisions/1118-ml-dsa-post-quantum-signatures-in-core.md)).
+  ([ADR-1118](docs/decisions/1118-ml-dsa-post-quantum-signatures-ship-in-the-core-libraries-over-the-bcl-mldsa-type.md)).
 
 - **EdDSA signing over Ed25519 and Ed448, and ECDH-ES over X25519 and X448, are available as the opt-in
   `NCode.Identity.Jose.EdDsa` package.** It registers the fully-specified JWA `alg` values `Ed25519` and `Ed448` (RFC

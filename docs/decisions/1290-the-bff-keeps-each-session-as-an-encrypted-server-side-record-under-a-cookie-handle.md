@@ -40,7 +40,7 @@ without the cookie.**
    spans login, cookie sessions, CSRF and token forwarding, so it is not under `OpenId`. The abstractions reference the
    ASP.NET Core shared framework, because their contracts take `HttpContext` and `BffApiAttribute` derives from
    `AuthorizeAttribute`. `NCode.Identity.Bff` references only abstractions of the family
-   ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)): the host registers the protocol client, the events
+   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)): the host registers the protocol client, the events
    pipeline and the shared-state adapters. `AddBffLibrary(events)` extends `IServiceBuilder<OpenIdClientLibrary>` and
    mints `IServiceBuilder<BffLibrary>`; `AddBffConfiguration(configuration)` binds the `Bff` section strictly. The
    `NCode.Identity.Bff.Server` composition root, the one package that references the implementations, composes all of it
@@ -130,7 +130,7 @@ without the cookie.**
 ## References
 
 - [Backend-for-frontend design](../backend-for-frontend.md) §5.2–§5.4, §5.7, §5.11, §11.5, D1, D2 and D4
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — abstractions-only dependencies
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — abstractions-only dependencies
 - [ADR-1122](1122-jwt-claim-values-map-to-json-by-declared-type.md) — claim mapping
 - [ADR-1267](1267-replicas-share-versioned-expiring-values-and-membership-indexes.md) — versioned values and indexes
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client

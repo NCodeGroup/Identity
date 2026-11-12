@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
-  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md),
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md) and
   [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md))
 - **Date:** 2026-11-02
@@ -15,7 +15,7 @@ decision 1 places the HTML page security model and its writer in `NCode.Identity
 namespace `NCode.Identity.OpenId.Authentication.Endpoints`: `ContentSecurityPolicyDirective`,
 `ContentSecurityPolicyDirectives`, `ContentSecurityPolicySources`, `HtmlPageSecurityPolicy` and
 `HtmlPageSecurityResponseExtensions.SetHtmlPageSecurity`. Its context gives the reason: the packages that write pages
-share only Abstractions ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)).
+share only Abstractions ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md)'s 2026-10-21 amendment puts the front-channel
 marker in the same package: `IOpenIdEndpointFrontChannelMetadata`, `OpenIdEndpointFrontChannelMetadata` and
 `WithOpenIdFrontChannel()`, which keep the CORS middleware off an endpoint the user agent navigates to and refuse a
@@ -26,7 +26,7 @@ sources, and the request-delegate wrapper that refuses a preflight. An `*.Abstra
 data only (issue [#513](https://github.com/NCodeGroup/identity/issues/513)). None of them names an identity concept: a
 Content-Security-Policy and a page the user agent navigates to are HTTP notions that any ASP.NET Core application has.
 
-[ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) makes `NCode.Identity.AspNetCore` the home of
+[ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) makes `NCode.Identity.AspNetCore` the home of
 general ASP.NET Core helpers that name no identity concept, and says it references only the ASP.NET Core shared
 framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a script, and the strict-encoding rule
 ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)) requires `SecureEncoding.UTF8` from
@@ -50,7 +50,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
   interactive bundle's asset route keeps the marker as
   [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md) decision
   1 says, through `WithFrontChannel()`. The `OpenId` prefix is dropped because the marker names no OpenID concept.
-- **`NCode.Identity.AspNetCore` may reference `NCode.Buffers`.** This amends ADR-1355's "references only the ASP.NET Core shared
+- **`NCode.Identity.AspNetCore` may reference `NCode.Buffers`.** This amends ADR-1500's "references only the ASP.NET Core shared
   framework": the package references the shared framework and the family's foundational `NCode.Buffers`, for the
   strict encodings, as `NCode.Identity.Json` does. It still references no identity package, which is what lets every package in
   the family reference it.
@@ -62,7 +62,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
   contracts and data only, and these types hold logic.
 - **Move them to `NCode.Identity.OpenId.Authentication`.** Rejected. `NCode.Identity.OpenId.Authentication.Interactive`
   writes pages and marks front-channel endpoints, and
-  [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) forbids it to reference another
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) forbids it to reference another
   implementation package.
 - **Keep `NCode.Identity.AspNetCore` free of `NCode.Buffers` and encode with `Encoding.UTF8`.** Rejected. It breaks the
   strict-encoding rule ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)) for a hash that
@@ -86,12 +86,12 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 
 - `src/NCode.Identity.AspNetCore/`
 - `tests/NCode.Identity.AspNetCore.Tests/`
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
 - [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md)
 - [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)
 - [ADR-1345](1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)
-- [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
 - [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
 - Issue [#513](https://github.com/NCodeGroup/identity/issues/513)

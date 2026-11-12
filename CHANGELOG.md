@@ -92,8 +92,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCode.Identity.Persistence.Abstractions` holds every persistence contract, and `NCode.Identity.OpenId.Abstractions`
   references `NCode.Identity.Registration.AspNetCore` directly because it exposes `ReadOnlyEndpointDisposition` on its
   public surface ([#758](https://github.com/NCodeGroup/identity/issues/758),
-  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
-  [ADR-1056](docs/decisions/1056-abstractions-split-into-framework-free-tiered-packages.md)).
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 - **The `NCode.Identity.Json` foundation package holds the shared `JsonElement` helpers.** `JsonElements` (`EmptyObject`,
   `OrEmptyObject`, `IsNullOrUndefined`, `TryGetPropertyValue<T>`, namespace `NCode.Identity.Json`) is the single home for
@@ -101,15 +100,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   Core framework reference. Detached JSON parsing uses `JsonElement.Parse(string)`
   ([ADR-1055](docs/decisions/1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md),
   [#758](https://github.com/NCodeGroup/identity/issues/758),
-  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
-  [ADR-1056](docs/decisions/1056-abstractions-split-into-framework-free-tiered-packages.md)).
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 - **General ASP.NET Core helpers live in the `NCode.Identity.AspNetCore` foundation package.** `.WithNoStore()` and
   `HttpResponse.SetNoStore()` are in the `NCode.Identity.AspNetCore` namespace, because an Abstractions package holds contracts
   only ([#492](https://github.com/NCodeGroup/identity/issues/492),
   [#758](https://github.com/NCodeGroup/identity/issues/758),
-  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
-  [ADR-1355](docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 - **Minimal-API request delegates are generated at compile time, so a host starts fast.** Every package builds with the
   Request Delegate Generator, so a host does not compile each endpoint's expression trees before it answers its first
@@ -3631,8 +3628,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCode.Identity.AspNetCore.FormRequestExtensions.TryReadFormAsync` reads a request's form, or returns `null` when it has none
   or its body is malformed or over the form limits ([#517](https://github.com/NCodeGroup/identity/issues/517),
   [#758](https://github.com/NCodeGroup/identity/issues/758),
-  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
-  [ADR-1355](docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 - **`NCode.Identity.Json.ObjectJsonConverter` deserializes loosely-typed JSON.** The public `System.Text.Json` converter in the
   `NCode.Identity.Json` foundation package reads JSON into an `object` graph (objects → `Dictionary<string, object?>`,
@@ -3677,7 +3673,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The `NCode.Identity.Time` foundation package holds the whole-second time helpers.** `DateTimeExtensions`,
   `DateTimeOffsetExtensions` and `TimeProviderExtensions` (`WithPrecisionInSeconds`, `GetUtcNowWithPrecisionInSeconds`,
   `GetTimestampWithPrecisionInSeconds`) live in namespace `NCode.Identity.Time`, so `NCode.Identity.Jose.Abstractions` holds no
-  logic ([ADR-1188](docs/decisions/1188-general-time-helpers-live-in-a-dependency-free-package.md), issue
+  logic ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md), issue
   [#31](https://github.com/NCodeGroup/identity/issues/31)).
 
 - **Every namespace is named for its purpose, and a contract, its DTOs and its default implementation share it** (issue

@@ -55,7 +55,7 @@ ADR-1139: name, type, and domain are checked together, at the same entry points,
    (ordinal), `NonEmpty`, `EmptyOr` (the empty string a string setting uses for "unset"), `AtLeast`, `Between`, and
    `Each` (a list whose every value satisfies a rule; the failure names the first offending value). The rule vocabulary
    lives in `NCode.Identity.Settings.Abstractions` beside `SettingMerge`: every package that authors descriptors
-   references only abstractions ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)), and the
+   references only abstractions ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), and the
    rules are pure functions over values with no services.
 2. **A domain defined by registered strategies consults them.**
    - `security_profile` is empty or the name of a registered `ISecurityProfile`.

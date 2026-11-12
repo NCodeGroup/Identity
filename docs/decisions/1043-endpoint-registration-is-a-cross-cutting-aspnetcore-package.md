@@ -77,7 +77,7 @@ move with it, as they are generic endpoint/operation results, not identity conce
   ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - An implementation package that maps endpoints now references `NCode.Identity.Registration.AspNetCore` (directly or transitively
   via `NCode.Identity.Abstractions`), which is an abstractions-only, framework-level dependency consistent with
-  [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md).
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md).
 
 ## References
 
@@ -88,4 +88,4 @@ move with it, as they are generic endpoint/operation results, not identity conce
 - [ADR-1042](1042-management-api-route-driven-tenant-scope.md) — the declarative named-group mechanism this relocates
   and composes onto the registration builder.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — service vs strategy vs mediator registration shapes.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — implementations depend only on abstractions.
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — implementations depend only on abstractions.

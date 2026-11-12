@@ -211,7 +211,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
 - [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) — the subject-authentication seam and claims
   enrichers the account source feeds.
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) — opaque server-generated ids the `LocalAccount` follows.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — why the EF reference and the ASP.NET Core
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — why the EF reference and the ASP.NET Core
   Identity adapter are opt-in satellites depending only on abstractions.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service-vs-mediator model under which the
   default handlers delegate to the `ILocalAccountSource` service.

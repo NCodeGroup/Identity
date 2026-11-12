@@ -21,7 +21,7 @@ as `ES256`.
 Three facts shape how it is added:
 
 - The ECDSA signature algorithm lives, `internal`, in `NCode.Identity.Jose`, and an implementation package references
-  only `*.Abstractions` packages ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)). An opt-in
+  only `*.Abstractions` packages ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)). An opt-in
   package can therefore neither construct it nor reference the JOSE library.
 - .NET's ECDSA serves secp256k1 only where the platform's cryptography does: OpenSSL on Linux and CNG on Windows
   support it, Apple's platform cryptography on macOS does not, and `ECDsa.Create` throws there.
@@ -80,7 +80,7 @@ Three facts shape how it is added:
 - **The package implements ECDSA itself.** Rejected: it would copy the ECDSA signing, verification and curve check of
   the JOSE library, and the two copies could drift. A specification keeps one implementation.
 - **Making the ECDSA algorithm public.** Rejected: the package would then reference the JOSE library, which
-  [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) forbids, or the class would move into an
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) forbids, or the class would move into an
   abstractions package, which holds no logic.
 - **Putting `ES256K` in the core JOSE library.** Rejected: secp256k1 has a narrow audience, no OpenID or FAPI profile
   asks for it, and the core library would carry a platform-dependent algorithm. It stays opt-in, as
@@ -110,7 +110,7 @@ Three facts shape how it is added:
 
 - [RFC 8812](https://datatracker.ietf.org/doc/html/rfc8812), [RFC 7518 §3.4](https://datatracker.ietf.org/doc/html/rfc7518#section-3.4),
   SEC 2 §2.4.1
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md),
   [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),

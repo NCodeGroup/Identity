@@ -48,7 +48,7 @@ Intended shape:
 - **Back-pressure never drops a durable record** (contrast best-effort, which may): the outbox is the
   durable buffer, so a slow sink delays delivery rather than losing data.
 - The outbox lives in the **persistence layer** and is wired by composition, consistent with
-  [ADR-1016](./1016-implementation-packages-depend-only-on-abstractions.md) and the EF Core persistence
+  [ADR-1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) and the EF Core persistence
   package; hosts that do not need durable audit do not register it.
 
 ## Options considered
@@ -68,7 +68,7 @@ best-effort seam stays unchanged for everything else._
 
 - [ADR-1047](./1047-auditing-and-events-observation-seam.md) — the event/observation seam this builds on,
   including the unique event id used for de-duplication.
-- [ADR-1016](./1016-implementation-packages-depend-only-on-abstractions.md) — persistence-layer placement
+- [ADR-1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — persistence-layer placement
   and composition wiring.
 - [ADR-1041](./1041-host-owned-ef-migrations-deliberate-outside-development.md) — the host owns schema, so
   the outbox table is a host-owned migration.

@@ -13,7 +13,7 @@ login/consent surface over the OpenID server
 ([ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md),
 [ADR-1061](1061-local-account-management-is-an-opt-in-capability.md),
 [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md)). Because an implementation package depends only
-on abstractions ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)), no package can see another's
+on abstractions ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), no package can see another's
 concrete registration to know whether its prerequisites are present. A bolt-on added to a host that never registered the
 underlying library is a silent misconfiguration that surfaces far later as a confusing missing handler, a null, or an
 "unsupported" response.
@@ -44,7 +44,7 @@ registration.
 
 A library's marker lives in its `.Abstractions` package, so an abstractions-only consumer can name
 `IServiceBuilder<ThatLibrary>` as a receiver without a forbidden implementation reference
-([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)). The markers are `JwtLibrary`,
+([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)). The markers are `JwtLibrary`,
 `OpenIdCoreLibrary` (in `NCode.Identity.OpenId.Abstractions`), `OpenIdManagementLibrary` (in
 `NCode.Identity.OpenId.Management.Abstractions`), `StoreManagerLibrary`, `EventsLibrary` and `LocalAccountLibrary`.
 
@@ -158,7 +158,7 @@ methods on the bare `IServiceCollection`.
 
 - `NCode.Identity.Registration`: `IServiceBuilder`, `IServiceBuilder<TMarker>`, `IRegistrationMarker<TMarker>` and
   `ServiceCollectionExtensions` (`NewBuilder`, `AddRegistrationMarker`, `IsRegistered`).
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md): implementation packages depend only on
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md): implementation packages depend only on
   abstractions, which is why markers live in `.Abstractions`.
 - [ADR-1043](1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md): the builder hierarchy is
   registration-time only; the runtime routing tree is a separate mechanism.

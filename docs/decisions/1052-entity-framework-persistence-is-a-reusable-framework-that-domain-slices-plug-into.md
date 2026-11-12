@@ -136,7 +136,7 @@ A non-Entity-Framework adapter is not a slice and keeps domain-first naming, as 
   requirement the framework serves.
 - [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md): the tenant scoping that the framework applies
   to every slice's `ISupportTenantEntity`.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md): the dependency discipline that slices follow
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md): the dependency discipline that slices follow
   by depending on the framework and not on each other.
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md): the opaque-id generation that `UseIdGeneratorAttribute`
   provides to every slice.

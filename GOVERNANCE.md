@@ -36,7 +36,7 @@ The product spans the repositories below.
 - **Naming.**
   - Repositories: lowercase kebab-case, product first: `identity`, `identity-platform`, `identity-cloud`.
   - NuGet packages: `NCode.Identity.*`
-    ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md)), under the
+    ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), under the
     `NCode` ID prefix the NCode Group holds on nuget.org.
   - The chart and the images: `ncode-identity-*`: the chart `ncode-identity-host`, the images
     `ghcr.io/ncodegroup/ncode-identity-host` and `ghcr.io/ncodegroup/ncode-identity-management-console`.

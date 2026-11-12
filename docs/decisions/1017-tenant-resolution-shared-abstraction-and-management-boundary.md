@@ -31,7 +31,7 @@ boundary on top of it.**
   contracts live in `NCode.Identity.OpenId.Abstractions` (namespace `NCode.Identity.OpenId.Tenants`); the default
   implementation lives in `NCode.Identity.OpenId.Core`, mirroring the `OpenIdEnvironment` → `DefaultOpenIdEnvironment`
   precedent. Both consumers depend only on the abstraction and receive the concrete selector through DI, never through
-  a cross-implementation reference ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)). Selection
+  a cross-implementation reference ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)). Selection
   returns the persisted tenant directly (no intermediate descriptor); an unresolvable tenant is a `404`.
 - **Materialization (runtime only).** A single `DefaultOpenIdTenantFactory` composes `ITenantResolver` for selection
   and builds the runtime `OpenIdTenant` (issuer, base address, settings/secrets providers, caching) from the resolved
@@ -52,7 +52,7 @@ boundary on top of it.**
   an _optional_ boundary, not a mandatory routing change, and this would not mirror the runtime's host/path/none model.
 - **Reuse the runtime tenant provider directly from the management API.** Rejected: it is welded to runtime
   materialization and would drag the authentication runtime into the management surface — and an implementation
-  referencing another implementation violates [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md).
+  referencing another implementation violates [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md).
 - **A blanket authorization handler over every `ISupportTenantId` resource.** Rejected: tenant secrets are also
   `ISupportTenantId`, yet tenant administration is central-admin; a blanket handler would wrongly scope them, and an
   authorization failure yields `403` (revealing existence) rather than the `404` this boundary requires.
@@ -79,7 +79,7 @@ boundary on top of it.**
   for addressing.
 - [ADR-1015](1015-management-core-validation-via-validators.md) — the management validator seam the boundary sits
   alongside.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — the reference-direction rule the
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — the reference-direction rule the
   abstraction/implementation split honors.
 - Code: `NCode.Identity.OpenId.Tenants.ITenantResolver`, `NCode.Identity.OpenId.Core` tenant strategies
   (`ITenantStrategy`), `NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory`,

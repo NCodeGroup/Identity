@@ -1,7 +1,7 @@
 # 1345. A response that reveals a secret is marked uncacheable by its endpoint
 
 - **Status:** Accepted (amended by
-  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md): `.WithNoStore()` and
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md): `.WithNoStore()` and
   `HttpResponse.SetNoStore()` live in the dependency-free `NCode.Identity.AspNetCore` package)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
@@ -64,7 +64,7 @@ handler runs, so success and error responses alike carry `Cache-Control: no-stor
 
 - The secret-revealing responses are never cached by a client or an intermediary.
 - `.WithNoStore()` and `HttpResponse.SetNoStore()` are public in the dependency-free `NCode.Identity.AspNetCore` package
-  ([ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)); the token endpoint and the
+  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)); the token endpoint and the
   authorization response writer call `SetNoStore()` too.
 - The pushed authorization (`DefaultPushedAuthorizationRequestEndpointHandler`), device authorization
   (`DefaultDeviceAuthorizationEndpointHandler`) and backchannel authentication
@@ -93,7 +93,7 @@ handler runs, so success and error responses alike carry `Cache-Control: no-stor
   [`BackchannelAuthenticationEndpointTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/BackchannelAuthenticationEndpointTests.cs)
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md),
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
-  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
 - Issues [#473](https://github.com/NCodeGroup/identity/issues/473), [#488](https://github.com/NCodeGroup/identity/issues/488)
   and [#492](https://github.com/NCodeGroup/identity/issues/492)
 - RFC [7591](https://www.rfc-editor.org/rfc/rfc7591), [7592](https://www.rfc-editor.org/rfc/rfc7592),

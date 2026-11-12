@@ -65,7 +65,7 @@ than inlining the rationale.
   `UnreadableForm.CreateError` (`400 invalid_request`) when it returns `null`; a later reader gets the cached form. Every
   package reads a form through that one method, `NCode.Identity.AspNetCore.FormRequestExtensions.TryReadFormAsync` (`null` for no
   form or an unreadable one) — the OpenID endpoints and the BFF alike — never through a copy of its own
-  ([ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md)).
+  ([ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 - 👁 **A background loop treats an `OperationCanceledException` as a failure unless its own stopping token is
   cancelled** — template [Language and Async](csharp.instructions.md#language-and-async) (`JobDispatchWorker`,
   [ADR-1232](../../docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md)).
@@ -214,9 +214,9 @@ than inlining the rationale.
   place — the composition root (`AddIdentityServer()` on the `NCode.Identity.Registration` `IServiceBuilder<TMarker>` builder). A
   new capability shared by more than one implementation therefore ships as an abstraction/implementation **pair**. An
   implementation `.csproj` whose `ProjectReference` names a non-`Abstractions` package is a violation. See
-  [ADR-1016](../../docs/decisions/1016-implementation-packages-depend-only-on-abstractions.md). A foundation package
+  [ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md). A foundation package
   (`NCode.Identity.Json`, `NCode.Identity.Time`, `NCode.Identity.AspNetCore`) is the exception: any package may
-  reference it ([ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md)).
+  reference it ([ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 - 👁 **Mark infrastructure-public types** — template [Public API](csharp.instructions.md#public-api), with the summary
   _"This API supports the NCode.Identity infrastructure and is not intended to be used directly from your code."_
 - ⏳ The public surface is deliberate and tracked by `PublicApiAnalyzers` (`RS0016` / `RS0017` / `RS0024`): a public
@@ -834,7 +834,7 @@ than inlining the rationale.
   where a response rather than a route carries the secret, as the authorization response writer does. Reference the
   `NCode.Identity.AspNetCore` foundation package. See
   [ADR-1345](../../docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md),
-  [ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md) and
+  [ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) and
   [ADR-1388](../../docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Identity.Registration` builder sets this
@@ -966,7 +966,7 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   throws `InvalidOperationException` on anything but an object, so JSON parsed from wire input — a token's header or
   payload, a request body — is rejected unless `ValueKind == JsonValueKind.Object` before its members are read.
   Reference the **`NCode.Identity.Json`** foundation package — the shared home for these helpers
-  ([ADR-1056](../../docs/decisions/1056-abstractions-split-into-framework-free-tiered-packages.md)).
+  ([ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 - **Parse a date/time string with `NCode.Identity.Json.DateCoercion`, never a hand-rolled `DateTime(Offset).TryParse`.**
   `TryParseDateTimeOffset` / `TryParseDateTime` are the family's single lenient, invariant-culture date policy (zone-less
   → UTC, explicit offset honored, an out-of-range instant fails instead of clamping), so every package accepts the same
@@ -993,7 +993,7 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   `TimeProvider.GetUtcNowWithPrecisionInSeconds()` (or `GetTimestampWithPrecisionInSeconds()` for ticks) and
   `WithPrecisionInSeconds()`, so a stored time equals the `NumericDate` it round-trips through. Reference the
   the **`NCode.Identity.Time`** foundation package, the home for general time helpers. A helper with a method body never lives
-  in an `*.Abstractions` package. See [ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md).
+  in an `*.Abstractions` package. See [ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md).
 - **Bound a received JWT's lifetime through the lifetime requirement, never with ad-hoc `exp` arithmetic.** Cap a
   client-supplied JWT (assertion, request object) with `ValidateTokenLifeTime(o => o.MaxLifetime = …)`, fed from a
   `Min`-merged `*_max_lifetime` setting; it measures from the earliest asserted `iat`/`nbf` (or now plus skew), so the

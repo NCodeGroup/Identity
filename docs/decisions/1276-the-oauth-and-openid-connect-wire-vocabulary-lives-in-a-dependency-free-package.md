@@ -26,7 +26,7 @@ read it from there.**
    namespace `NCode.Identity.OpenId`, the namespace of `OpenIdConstants`, so a call site changes only the class name. The
    package has no project reference and no framework reference. It follows the family's contract-only packages, such as
    `NCode.Identity.Jose.Abstractions`, and implementation packages depend on it
-   ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)).
+   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 2. **Wire vocabulary only.** `OpenIdProtocol` holds the names that cross the wire: `ParameterSeparatorChar`,
    `ParameterSeparatorString`, `PushedAuthorizationRequestUriPrefix`, and the groups `Parameters`, `ErrorCodes`,
    `GrantTypes`, `ResponseTypes`, `ResponseModes`, `CodeChallengeMethods`, `TokenTypes`, `TokenTypeIdentifiers`,

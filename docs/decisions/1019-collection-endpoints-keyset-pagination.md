@@ -55,7 +55,7 @@ no ad-hoc query protocol.**
 - **A query protocol — OData (`$filter`/`$orderby`/`$select`/`$expand`/`$top`/`$skip`) or JSON:API (chosen: none).**
   Rejected. (a) It needs an `IQueryable` surfaced to the web layer to translate arbitrary expressions into SQL, which
   either leaks `IQueryable` out of the persistence layer — breaking the intent-specific store boundary of
-  [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — or demands a partial, leaky
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — or demands a partial, leaky
   protocol-to-store translator. (b) Arbitrary filter/sort/expand over a security database is a denial-of-service and
   complexity surface (unindexed sorts, expensive predicates, N+1 expands) at odds with a correct-by-default admin API.
   (c) It is a large, versioned public contract and a heavyweight dependency, against the repository's minimal-surface
@@ -76,7 +76,7 @@ no ad-hoc query protocol.**
 
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) — opaque server-generated identifiers, the basis for
   ordering on the normalized natural key.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — the intent-specific store boundary that a
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — the intent-specific store boundary that a
   query protocol would violate.
 - [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the query filter that scopes the client list
   to the ambient tenant for free.

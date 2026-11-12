@@ -31,7 +31,7 @@ response, the front-channel logout page and the `check_session_iframe`. Five for
   at run time. A policy can admit both without `'unsafe-inline'`, which would admit every injected script and style as
   well, only by marking them with a nonce.
 - The packages that write pages share only Abstractions
-  ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)), and CSP directive names are an open
+  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), and CSP directive names are an open
   vocabulary ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).
 
 ## Decision
@@ -172,7 +172,7 @@ model, writer, headers, nonce and framing rules. It differs in one default, and 
 - Vite, `html.cspNonce`: <https://vite.dev/config/shared-options#html-cspnonce>
 - Front-Channel Logout 1.0: <https://openid.net/specs/openid-connect-frontchannel-1_0.html>
 - Session Management 1.0: <https://openid.net/specs/openid-connect-session-1_0.html>
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md): implementation packages depend only on
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md): implementation packages depend only on
   abstractions.
 - [ADR-1088](1088-opt-in-front-channel-logout-and-session-management.md): opt-in front-channel logout and session
   management.

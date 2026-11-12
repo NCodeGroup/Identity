@@ -50,7 +50,7 @@ data.**
 5. **The replay check is in the validator.** The validator adds the `jti` to `IExpiringKeySet`
    ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)), so a token replayed to
    any replica fails. The client package references only `NCode.Identity.SharedState.Abstractions`
-   ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)).
+   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
    - **Key.** `logout_token_jti:` followed by the lowercase hexadecimal SHA-256 of the UTF-8 text
      `$"{issuer.Length}:{issuer}{clientId.Length}:{clientId}{jti}"`. A `jti` is therefore scoped to its issuer and
      client, distinct component lists never collide, and request text never reaches the store. There is no hash tag,
@@ -97,7 +97,7 @@ data.**
 
 ## References
 
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — implementation packages depend only on
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — implementation packages depend only on
   abstractions
 - [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the atomic expiring key set
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client

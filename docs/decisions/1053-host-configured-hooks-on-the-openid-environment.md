@@ -16,7 +16,7 @@ start-up option.
 
 The question is **how a consumer reaches that configured behavior**. `OpenIdOptions` lives in the core slice, so a
 consumer that injects `IOptions<OpenIdOptions>` takes a dependency on core. The management slice may depend only on
-`*.Abstractions` ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)), so it cannot inject the
+`*.Abstractions` ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), so it cannot inject the
 options at all. Left unaddressed, each surface re-implements the hook its own way: the protocol handlers read
 `OpenIdOptions.GetSubjectId`, while the management audit recorder hardcodes a subset (`sub ?? nameidentifier`). The
 behaviors then drift — a host that customizes the delegate sees it honored on one surface but not the other — and the
@@ -76,14 +76,14 @@ _output_ of resolution, so having `GetSubjectId` return it would be circular.
 ## Options considered
 
 - **Layered: per-tenant data setting + host-replaceable environment algorithm + context seam (chosen).** Reuses the
-  existing shared environment and tenant-settings seams; no new DI service, options type, or package; satisfies ADR-1016
+  existing shared environment and tenant-settings seams; no new DI service, options type, or package; satisfies ADR-1500
   because abstractions declare the members and core configures them. One source of truth that every surface honors,
   while each dimension (which-claims data vs. how-to-extract logic) lives where ADR-1036 says it should.
 - **Demote the per-tenant claim choice to host-level logic (no data setting).** Simpler — fold the subject claim into
   the host `GetSubjectId` delegate and delete `principal_source_claim` — but it trades away per-tenant, data-driven
   configurability (counter to ADR-1036/ADR-1025) and splits a matched `(issuer, subject)` pair across two scopes. The
   layered option keeps the data knob _and_ the single seam.
-- **A dedicated DI service (e.g. `ISubjectIdAccessor`) registered by core.** Also works and respects ADR-1016, but adds
+- **A dedicated DI service (e.g. `ISubjectIdAccessor`) registered by core.** Also works and respects ADR-1500, but adds
   a second request-scoped abstraction for something the environment already models, and every consumer must inject one
   more dependency. More surface for no extra capability.
 - **A public static helper in abstractions.** Shares the _default logic_ but not the _configured_ behavior: a consumer
@@ -127,6 +127,6 @@ _output_ of resolution, so having `GetSubjectId` return it would be circular.
   the core wiring from `OpenIdOptions`.
 - `src/NCode.Identity.OpenId.Core/Options/OpenIdOptions.cs` — the host knobs.
 - `src/NCode.Identity.OpenId.Management/Auditing/DefaultManagementAuditRecorder.cs` — a cross-package consumer.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1035](1035-federated-principals-and-identity-resolution.md),
   [ADR-1036](1036-unified-openid-request-environment.md).

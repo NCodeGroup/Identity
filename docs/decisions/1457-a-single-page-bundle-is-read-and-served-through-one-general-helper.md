@@ -52,6 +52,6 @@ registers one instance with its own index type.**
 ## References
 
 - [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md),
-  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
 - `src/NCode.Identity.AspNetCore/SinglePageBundle.cs`, `src/NCode.Identity.AspNetCore/SinglePageBundleDefaults.cs`
 - Issue [#612](https://github.com/NCodeGroup/identity/issues/612)

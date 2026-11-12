@@ -1,7 +1,7 @@
 # 1447. Forwarded-header trust and Strict-Transport-Security are general ASP.NET Core helpers each host composes
 
 - **Status:** Accepted (amends
-  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md),
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md) decisions 1 and 6,
   [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) decision 1,
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) decision 6 and
@@ -46,7 +46,7 @@ Issue [#611](https://github.com/NCodeGroup/identity/issues/611) describes the ne
 
 - **Keep them in `NCode.Identity.Server`.** Rejected: the management console host must not reference it.
 - **A separate hosting package.** Rejected: `NCode.Identity.AspNetCore` is the package that
-  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) names for general ASP.NET Core
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) names for general ASP.NET Core
   helpers.
 - **The `ReverseProxy` section name.** Rejected: YARP's routes live in that section, and strict binding of trust options
   from it would refuse YARP's keys.
@@ -64,7 +64,7 @@ Issue [#611](https://github.com/NCodeGroup/identity/issues/611) describes the ne
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md),
-  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md),
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
 - `src/NCode.Identity.AspNetCore/`
 - Issue [#611](https://github.com/NCodeGroup/identity/issues/611)

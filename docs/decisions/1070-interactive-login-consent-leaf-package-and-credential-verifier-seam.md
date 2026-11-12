@@ -84,4 +84,4 @@ The three UI extensibility seams are now explicit and symmetric: the **bundle** 
 - [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md) — the interactive surface decision this extracts.
 - [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) — the dependency-inverted local-account authentication pattern the verifier seam follows.
 - [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) — the registration marker pattern the capability's opt-ins use.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — why the seam lives in `.Abstractions`.
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — why the seam lives in `.Abstractions`.

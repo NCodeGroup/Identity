@@ -111,7 +111,7 @@ the `GlobalAdmin` role claim:
   configuration** so a stale or undecryptable stored secret (for example after a data-protection key-ring change) is
   healed rather than leaving the bootstrap client permanently unable to authenticate. It writes through the normal
   persistence path so the credential is DbContext-agnostic
-  ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
+  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)) and visible to the management API like any
   other client ([ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md) is the precedent for
   seed-through-persistence). The secret is protected with Data Protection before it is stored and is never emitted to a

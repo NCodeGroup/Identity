@@ -75,7 +75,7 @@ influence the result, and a handler throwing is swallowed (logged) rather than p
 ### The abstraction
 
 A new low-level package **`NCode.Identity.Events.Abstractions`** (with the default implementation in
-**`NCode.Identity.Events`**, per [ADR-1016](./1016-implementation-packages-depend-only-on-abstractions.md))
+**`NCode.Identity.Events`**, per [ADR-1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md))
 defines:
 
 - **`IEvent`** — a marker interface for any event payload. Payloads are immutable
@@ -430,7 +430,7 @@ example.
 
 - [ADR-1001](./1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service / strategy-collection
   / mediator ladder this decision extends.
-- [ADR-1016](./1016-implementation-packages-depend-only-on-abstractions.md) — abstractions vs.
+- [ADR-1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — abstractions vs.
   implementation package split for `NCode.Identity.Events(.Abstractions)`.
 - [ADR-1048](./1048-durable-audit-delivery-outbox.md) — durable, at-least-once audit delivery (outbox,
   retry, publish-after-commit) layered on this seam.

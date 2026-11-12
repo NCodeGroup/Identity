@@ -46,7 +46,7 @@ makes the intent true:
 
 `SettingMerge` lives in `NCode.Identity.Settings.Abstractions` (namespace `NCode.Identity.Settings`) so host-authored
 descriptors reuse the same vocabulary; the default implementations that consume it stay internal
-([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)).
+([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 The built-in catalog is mapped by polarity:
 
@@ -99,4 +99,4 @@ The built-in catalog is mapped by polarity:
   `NCode.Identity.OpenId.Authentication.Settings.DefaultClientSettingDescriptorDataSource`,
   `NCode.Identity.OpenId.Authentication.Subject.DefaultValidateSubjectAuthenticationHandler`.
 - Prior art: [ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
-  [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md).
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md).

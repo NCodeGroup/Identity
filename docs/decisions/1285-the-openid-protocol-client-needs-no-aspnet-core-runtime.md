@@ -14,7 +14,7 @@ factory, logging, options and primitives).
 The client does no ASP.NET Core work. The reference buys a constants class and a query-string helper, yet it makes every
 console app or worker that uses the client install the ASP.NET Core runtime. The
 [backend-for-frontend design](../backend-for-frontend.md) (§4.1) calls the client useful to any server-side client, and
-[ADR-1056](1056-abstractions-split-into-framework-free-tiered-packages.md) scopes the framework
+[ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) scopes the framework
 reference to the packages that genuinely need HTTP types (issue
 [#321](https://github.com/NCodeGroup/identity/issues/321)).
 
@@ -69,7 +69,7 @@ the BCL and `Microsoft.Extensions.*`.
 
 ## References
 
-- [ADR-1056](1056-abstractions-split-into-framework-free-tiered-packages.md)
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md)
 - [`src/NCode.Identity.OpenId.Client/`](../../src/NCode.Identity.OpenId.Client/)

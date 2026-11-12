@@ -36,7 +36,7 @@ Four forces shape both:
 - The DPoP key ring, `Bff:DPoP:KeyRing`, is different: a DPoP proof carries its own public key, so no party needs it
   in advance ([ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)).
 - `NCode.Identity.Bff` references only abstraction packages
-  ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)).
+  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 ## Decision
 
@@ -104,7 +104,7 @@ Four forces shape both:
 ## References
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.7 and §5.9
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md),
   [ADR-1119](1119-first-class-jwk-jwks-and-thumbprint.md),
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),

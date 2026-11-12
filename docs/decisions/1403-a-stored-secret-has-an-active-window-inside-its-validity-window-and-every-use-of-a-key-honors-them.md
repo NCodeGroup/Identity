@@ -100,7 +100,7 @@ secret keeps the instants its creator gave it.
 - **Keep the lifecycle rule out of the abstractions packages.** Rejected: the rule guards the data contract's own
   invariant and has one implementation every path calls, and its callers, the secret generator and importer, the
   management validator and the tenant key rollover, are implementation packages that reference only abstractions
-  ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)), so `SecretLifecycle`, `KeyLifecycle`
+  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), so `SecretLifecycle`, `KeyLifecycle`
   and the `IsActive`, `IsExpired` and `GetLifecycleState` extensions are the deliberate exception that
   `PersistedSecretExtensions.HasPublicKey` already is
   ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md)): a pure

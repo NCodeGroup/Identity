@@ -40,7 +40,7 @@ The two hashes EdDSA needs â€” **SHA-512** (Ed25519) and **SHAKE256** (Ed448) â€
 3. **EdDSA ships as a separate, opt-in package `NCode.Identity.Jose.EdDsa`** rather than being folded into the core
    JOSE library. The package depends **only on abstractions** (`NCode.Identity.Jose.Abstractions`,
    `NCode.Identity.Secrets.Abstractions`) plus foundational utilities, never a concrete sibling implementation
-   ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)). A host turns it on with a single
+   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)). A host turns it on with a single
    `serviceCollection.AddEdDsa()`, which registers the OKP key-type descriptor and the EdDSA signature algorithm via
    `TryAddEnumerable`. Because discovery enumerates the live algorithm collection and partitions signing algorithms by
    `typeof(AsymmetricSecretKey).IsAssignableFrom(KeyType)`, EdDSA is advertised in the asymmetric signing metadata

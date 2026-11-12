@@ -21,7 +21,7 @@ names that cross between them:
 The WebAssembly client runs in the browser. It cannot reference `NCode.Identity.Bff.Abstractions`, which needs the
 ASP.NET Core shared framework, so a name defined there is out of the client's reach. An implementation package keeps
 its references to abstractions
-([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)), so the server half of Blazor cannot reach
+([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), so the server half of Blazor cannot reach
 into the client package for the names either.
 
 ## Decision
@@ -53,7 +53,7 @@ runtime. The server packages and the client package both read them from there.**
 - **The client references `NCode.Identity.Bff.Abstractions`.** Rejected: the ASP.NET Core shared framework does not run
   in the browser.
 - **The server half of Blazor references the client package, as an exception to
-  [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md).** Rejected: an implementation package that
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md).** Rejected: an implementation package that
   references a sibling implementation package gives up the rule that keeps each package replaceable.
 - **A dependency-free package.** Chosen: the one definition is reachable from the server and from the browser, and the
   boundary is checkable by reading an assembly's references.
@@ -72,7 +72,7 @@ runtime. The server packages and the client package both read them from there.**
 
 ## References
 
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1276](1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md),
   [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)

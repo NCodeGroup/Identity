@@ -23,7 +23,7 @@ This ADR covers phase 1a. Phase 1b remains: PAR, DPoP with nonces, mTLS client a
 1. **Packages.** `.Abstractions` references `NCode.Identity.Jose.Abstractions`, `NCode.Identity.Secrets.Abstractions` and
    `NCode.Identity.Registration`. `NCode.Identity.OpenId.Client` references `.Abstractions` and
    `NCode.Identity.Jwt.Abstractions` only, because an implementation package depends only on abstractions
-   ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)). This is why the design table's
+   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)). This is why the design table's
    `.Jose, .Jwt, .Secrets, .SharedState` becomes `.Jwt.Abstractions`; SharedState arrives in phase 1b for the
    logout-token `jti` replay check. The implementation package also references the ASP.NET Core shared framework, as
    the family's other server packages do, for `StatusCodes` and the `Microsoft.Extensions.*` abstractions, so a consumer
@@ -114,7 +114,7 @@ This ADR covers phase 1a. Phase 1b remains: PAR, DPoP with nonces, mTLS client a
 
 ## References
 
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — implementation packages depend only on
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — implementation packages depend only on
   abstractions
 - [ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md) — runtime `jwks_uri` resolution and
   the shared SSRF guard

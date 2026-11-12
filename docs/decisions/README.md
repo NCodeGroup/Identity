@@ -76,10 +76,8 @@ The records are grouped by area; within an area they are in number order.
 | [1001](./1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) | Behavior is a service, a strategy collection or a mediator seam, chosen by one ladder | Accepted |
 | [1003](./1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md) | The family versions in lockstep from one version.json and ships source-linked symbol packages | Accepted |
 | [1012](./1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) | Concurrency tokens are interceptor-managed, and a lost race surfaces as a store-neutral exception | Accepted |
-| [1016](./1016-implementation-packages-depend-only-on-abstractions.md) | Implementation packages depend only on abstractions; composition wires them | Accepted |
 | [1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) | The family is greenfield and pre-release, tracks its public API, and models Auth0-parity-plus | Accepted |
 | [1052](./1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md) | Entity Framework persistence is a reusable framework that domain slices plug into | Accepted |
-| [1056](./1056-abstractions-split-into-framework-free-tiered-packages.md) | `NCode.Identity.Abstractions` is split into framework-free, correctly-tiered packages | Accepted |
 | [1069](./1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) | DI registration proves every prerequisite at compile time through marker builders | Accepted |
 | [1080](./1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) | Filtered reads are intent-named store methods, and growing criteria are init-only DTOs | Accepted |
 | [1127](./1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md) | Every project builds with zero warnings, and the family's own banned APIs bind shipping code | Accepted |
@@ -88,7 +86,6 @@ The records are grouped by area; within an area they are in number order.
 | [1143](./1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) | CI presents test results and hand-written-code coverage through job summaries, annotations and Codecov | Accepted |
 | [1150](./1150-vocabularies-are-open-unless-provably-closed.md) | Vocabularies are open unless provably closed | Accepted |
 | [1170](./1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md) | Agent work is planned on Claude Opus and executed step by step on Claude Sonnet | Accepted |
-| [1188](./1188-general-time-helpers-live-in-a-dependency-free-package.md) | General time helpers live in a dependency-free package | Superseded |
 | [1190](./1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md) | Hashing names the framework algorithm, and binary encodings are registered strategies | Accepted |
 | [1197](./1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) | Telemetry has one owner per signal, bounded attributes, and spans that mirror their histograms | Accepted |
 | [1261](./1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) | The main branch takes only reviewed pull requests, squash-merged by the merge queue past required checks | Accepted |
@@ -99,14 +96,13 @@ The records are grouped by area; within an area they are in number order.
 | [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
 | [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |
 | [1309](./1309-c-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
-| [1355](./1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) | General ASP.NET Core helpers live in a dependency-free package | Superseded |
 | [1385](./1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md) | No shipping package replaces its consumers' logging generator or carries Microsoft.Extensions.Http.Resilience | Accepted |
 | [1386](./1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md) | Primitives are benchmarked in a project the build compiles and nothing runs | Accepted |
 | [1428](./1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md) | A package translates the exceptions it owns into protocol errors through registered translators | Accepted |
 | [1486](./1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md) | The repository's own analyzer project fails the build on a field an auto-property could replace | Accepted |
 | [1493](./1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md) | global.json requires the newest .NET SDK release past the cooldown | Accepted |
 | [1496](./1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md) | An analyzer reports an own async method that returns Task or lacks a trailing cancellation token | Accepted |
-| [1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md) | Every package names one capability under the NCode.Identity prefix | Accepted |
+| [1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) | Every package names one capability under the NCode.Identity prefix, as an abstractions and implementation pair | Accepted |
 | [1501](./1501-a-projects-top-level-folder-says-whether-it-ships.md) | A project's top-level folder says whether it ships | Accepted |
 | [1502](./1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md) | Code a self-hoster could use is public, and the product's repositories and artifacts follow one naming scheme | Accepted |
 | [1503](./1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md) | A decision record is rewritten when its decision changes and relates only to template records | Accepted |

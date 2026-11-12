@@ -46,7 +46,7 @@ lists.**
    seeders and a consumer's own verifier. `PasswordPolicyContext` carries the tenant's effective settings, the account's
    user name and its email. The defaults are internal classes in `NCode.Identity.OpenId.Authentication`, in the folder
    `Passwords/`, registered by `AddPasswordServices()`, which `AddOpenIdAuthenticationLibrary` calls, so the composition
-   root wires them ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)) and a host replaces any of
+   root wires them ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)) and a host replaces any of
    them.
 2. **Two tenant settings set the length.** Both apply to tenants and neither is discoverable
    ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)).
@@ -144,7 +144,7 @@ lists.**
 
 - [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b/authenticators/) §3.1.1.2 — the length, the blocklist
   and the guidance for a password.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — the composition root wires the defaults.
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — the composition root wires the defaults.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — the domains of the length settings.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — the error codes are an open vocabulary.
 - [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) — the self-service change.

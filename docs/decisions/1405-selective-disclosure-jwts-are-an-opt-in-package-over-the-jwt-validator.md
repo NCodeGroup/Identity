@@ -22,7 +22,7 @@ shape how the family adds it:
   ([ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). An SD-JWT
   verifier that verified the issuer-signed JWT or the KB-JWT itself would copy that policy.
 - An implementation package references only `*.Abstractions` packages
-  ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)), and an opt-in capability extends the
+  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), and an opt-in capability extends the
   marker of the library it consumes ([ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)).
 - Every vocabulary is open unless provably closed ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).
   The `_sd_alg` hash algorithm names come from the IANA Named Information Hash Algorithm Registry, and the `cnf`
@@ -128,7 +128,7 @@ shape how the family adds it:
 
 - [RFC 9901](https://datatracker.ietf.org/doc/html/rfc9901), [RFC 7800](https://datatracker.ietf.org/doc/html/rfc7800),
   [RFC 6901](https://datatracker.ietf.org/doc/html/rfc6901)
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),

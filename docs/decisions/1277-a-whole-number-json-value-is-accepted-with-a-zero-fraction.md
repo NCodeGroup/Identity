@@ -37,7 +37,7 @@ whole value in `int` range is accepted, and everything else is refused.**
   and writes a JSON integer; a value the reader refuses fails with a `JsonException`, which `DefaultTokenClient` wraps
   in an `OpenIdProviderException`. It is public in `NCode.Identity.Json` rather than internal in
   `NCode.Identity.OpenId.Client.Abstractions`: an `*.Abstractions` package holds no helper logic
-  ([ADR-1188](1188-general-time-helpers-live-in-a-dependency-free-package.md)), and production assemblies never use
+  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), and production assemblies never use
   cross-assembly `InternalsVisibleTo` ([project-template ADR-0104](project-template/0104-no-cross-assembly-internalsvisibleto.md)).
 - **Call sites.** The pushed authorization response's `expires_in` is read with `TryGetPropertyWholeInt32` and must
   still be positive
@@ -57,7 +57,7 @@ whole value in `int` range is accepted, and everything else is refused.**
 - **Widen `TryGetValue<int>`.** Silently changes the result for every existing caller. Rejected.
 - **A private reader in each client package, or an internal converter in `NCode.Identity.OpenId.Client.Abstractions`.**
   Two copies of one rule, and an `*.Abstractions` package holds no helper logic
-  ([ADR-1188](1188-general-time-helpers-live-in-a-dependency-free-package.md)). Rejected.
+  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)). Rejected.
 
 ## Consequences
 
@@ -80,7 +80,7 @@ whole value in `int` range is accepted, and everything else is refused.**
 - [RFC 6749 §5.1 — Successful Response](https://datatracker.ietf.org/doc/html/rfc6749#section-5.1)
 - [project-template ADR-0104](project-template/0104-no-cross-assembly-internalsvisibleto.md) — no cross-assembly `InternalsVisibleTo`
 - [ADR-1123](1123-numeric-date-is-read-strictly-and-range-guarded.md) — the `NumericDate` readers this mirrors
-- [ADR-1188](1188-general-time-helpers-live-in-a-dependency-free-package.md) — an `*.Abstractions` package holds no
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — an `*.Abstractions` package holds no
   logic
 - [ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) — the pushed
   authorization request this amends

@@ -40,7 +40,7 @@ packages and domains follow one naming scheme.**
 5. **Naming.**
    - Repositories: lowercase kebab-case, product first: `identity`, `identity-platform`, `identity-cloud`.
    - NuGet packages: `NCode.Identity.*`
-     ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md)), under the `NCode` ID
+     ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), under the `NCode` ID
      prefix the NCode Group holds on nuget.org.
    - The chart and the images: `ncode-identity-*`: the chart `ncode-identity-host`, the images
      `ghcr.io/ncodegroup/ncode-identity-host` and `ghcr.io/ncodegroup/ncode-identity-management-console`.
@@ -83,5 +83,5 @@ packages and domains follow one naming scheme.**
   [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md),
   [ADR-1307](1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md),
   [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md),
-  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1501](1501-a-projects-top-level-folder-says-whether-it-ships.md)

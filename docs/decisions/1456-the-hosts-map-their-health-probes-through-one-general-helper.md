@@ -14,7 +14,7 @@ readiness probes. A copy of the probe options in each host drifts from the other
 - The readiness tag must be reachable by a package that registers a check without ASP.NET Core, such as the Valkey
   adapter.
 - `NCode.Identity.AspNetCore` names no identity concept
-  ([ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 - `NCode.Identity.AspNetCore` references `NCode.Identity.Registration`
   ([ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
 - The chart's probes and the AppHost's `WithHttpHealthCheck` call the same two paths.
@@ -35,7 +35,7 @@ readiness probes. A copy of the probe options in each host drifts from the other
 
 - **Inline copies in each host.** Rejected: the copies drift.
 - **The tag stays in `NCode.Identity.Abstractions` and `NCode.Identity.AspNetCore` references it.** Rejected: `NCode.Identity.AspNetCore`
-  names no identity concept ([ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+  names no identity concept ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 - **The tag in `NCode.Identity.AspNetCore`.** Rejected: the Valkey adapter would take the ASP.NET Core shared framework to tag
   its check.
 - **A tag parameter on `MapHealthProbes`.** Rejected: every caller passes the same constant.
@@ -49,7 +49,7 @@ readiness probes. A copy of the probe options in each host drifts from the other
 
 ## References
 
-- [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md),
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)
 - `src/NCode.Identity.AspNetCore/HealthProbeEndpointRouteBuilderExtensions.cs`,
   `src/NCode.Identity.AspNetCore/HealthProbeDefaults.cs`, `src/NCode.Identity.Registration/HealthCheckTags.cs`

@@ -32,7 +32,7 @@ so a cross-tenant row is never materialized.** "Never fetch what you cannot see"
   static-single / dynamic-by-host / dynamic-by-path, and `TenantResolutionOptions`) resolves a request to a
   `PersistedTenant`. Contracts live in `NCode.Identity.OpenId.Abstractions`; the default implementation lives in
   `NCode.Identity.OpenId.Core`. Both the runtime and the management API depend only on the abstraction and receive the
-  implementation through dependency injection ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)).
+  implementation through dependency injection ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 - **Ambient scope (shared).** `IAmbientTenantAccessor` (in `NCode.Identity.OpenId.Persistence.Abstractions`) holds the
   request's tenant scope. The default implementation stores it in an `AsyncLocal<T>` so the scope flows across
   asynchronous calls — including data-access components created outside the current dependency-injection scope (the
@@ -105,7 +105,7 @@ so a cross-tenant row is never materialized.** "Never fetch what you cannot see"
   tenant is not derivable from the request.
 - [ADR-1015](1015-management-core-validation-via-validators.md) — the management validator seam that enforces the
   create-time tenant scope.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — the reference-direction rule the
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — the reference-direction rule the
   abstraction/implementation split honors.
 - [ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md) — the superseded shared-selection +
   post-fetch-boundary decision.

@@ -11,7 +11,9 @@ It requires Kubernetes 1.30 or later.
 
 The chart takes no secret values. It references Secrets you create in the release's namespace:
 
-- `database.existingSecret`: the Postgres connection string, under the `connection-string` key.
+- `database.existingSecret` or `database.parts.existingSecret`: the Postgres database, as a Secret holding the finished
+  Npgsql connection string under the `connection-string` key, or as the Secret your Postgres operator writes, with no
+  Secret of your own to build; see [Database](#database).
 - `secretProtection.local.keySecret`: a Secret holding the local root key under the `key` key (base64url, 32 bytes).
   The root key encrypts every stored secret and the Data Protection key ring, so back it up and never change it in
   place; see [Secret protection](#secret-protection).
@@ -19,8 +21,8 @@ The chart takes no secret values. It references Secrets you create in the releas
   `recovery-public.pem` key, so losing the root key does not lose every stored secret; see
   [Secret protection](#secret-protection).
 - `valkey.existingSecret`, for more than one replica: the Valkey connection string, under the `connection-string` key.
-- `migrations.database.existingSecret`, optional: a connection string with the right to change the schema, used only
-  by the migration Job. It defaults to `database.existingSecret`.
+- `migrations.database`, optional: a connection with the right to change the schema, used only by the migration Job,
+  in either form (`existingSecret` or `parts.existingSecret`). It defaults to `database`.
 - cert-manager, unless `backendTls.existingSecret` names a Secret: the chart creates the `Certificate` (and, without
   `backendTls.certManager.issuerRef.name`, a private CA) that issues the pods' serving certificate; see
   [Transport security](#transport-security). The chart also creates the ingress `Certificate` `<release>-ingress`
@@ -98,7 +100,9 @@ Rendering fails, before anything is applied, when:
 - `backendTls.caPublisher.enabled` is `true`, the management console is enabled with a certificate of your own in
   `managementConsole.backendTls.existingSecret`, and `managementConsole.backendTls.caConfigMap` is empty, because the
   console's CA ConfigMap would fall back to the one the publisher writes, which holds only the chart's private CA;
-- `database.existingSecret` is empty;
+- neither `database.existingSecret` nor `database.parts.existingSecret` is set, a connection (`database` or
+  `migrations.database`) sets both, or a parts Secret leaves `hostKey`, `databaseKey`, `usernameKey` or `passwordKey`
+  empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
 - `environment` is `Production` and `secretProtection.rootKeyProvider` is `ephemeral`, which would leave no root key
@@ -932,6 +936,51 @@ still requires a management access token
 ([ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md)).
 To serve them on an internal host only, route `/openapi/` and `/scalar/` to the pods only from that host at the
 ingress.
+
+## Database
+
+The Postgres database takes one of two forms, and a connection never takes both:
+
+- `database.existingSecret` names a Secret that holds the finished Npgsql connection string under
+  `database.connectionStringKey` (`connection-string` by default). The pods receive it as `ConnectionStrings__openiddb`.
+- `database.parts.existingSecret` names a Secret that holds the connection's parts, as a Postgres operator writes it.
+  The pods receive each part from a `secretKeyRef` as an `OpenIdDatabase__*` environment variable, and the host
+  assembles the connection from them.
+
+The key that holds each part is a value, and the defaults are the keys of a CloudNativePG `<cluster>-app` Secret:
+
+| Value                          | Default    | Environment variable        | Part                        |
+|--------------------------------|------------|-----------------------------|-----------------------------|
+| `database.parts.hostKey`       | `host`     | `OpenIdDatabase__Host`      | the server's host name      |
+| `database.parts.portKey`       | `port`     | `OpenIdDatabase__Port`      | the server's port, optional |
+| `database.parts.databaseKey`   | `dbname`   | `OpenIdDatabase__Name`      | the database's name         |
+| `database.parts.usernameKey`   | `user`     | `OpenIdDatabase__Username`  | the role's name             |
+| `database.parts.passwordKey`   | `password` | `OpenIdDatabase__Password`  | the role's password         |
+
+An empty `portKey` leaves the port out, and Npgsql uses 5432. The host, database, user and password keys must name a key.
+
+For a CloudNativePG cluster named `pg`, its `pg-app` Secret works as it is:
+
+```shell
+--set database.parts.existingSecret=pg-app
+```
+
+To give the migration Job the Secret of a role with the right to change the schema, name it under
+`migrations.database.parts`. Its keys default to the ones under `database.parts`, so a Secret of the same shape needs
+only its name:
+
+```yaml
+migrations:
+  database:
+    parts:
+      existingSecret: pg-schema
+```
+
+The host assembles the connection with the password quoted, so any password works, including one that holds `;`, `'`
+or `"`. The Secrets are read when a pod starts, so a rotated password reaches the pods at their next restart. A setting
+the connection needs beyond the parts, such as a CA bundle, goes through `extraEnv` and `extraVolumes` as under
+[Other settings](#other-settings). The decision is recorded in
+[ADR-1509](../../docs/decisions/1509-the-host-chart-passes-a-postgres-operators-secret-as-the-connections-parts-and-the-host-assembles-the-npgsql-connection.md).
 
 ## Other settings
 

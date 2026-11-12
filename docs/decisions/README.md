@@ -313,11 +313,10 @@ The records are grouped by area; within an area they are in number order.
 | [1229](./1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) | A blocked, disabled or deleted end user loses its sessions and is refused with access_denied | Accepted |
 | [1230](./1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md) | An end user changes their password through an optional seam and keeps only the current session | Accepted |
 | [1236](./1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) | A password is judged by one policy wherever it is set | Accepted |
-| [1237](./1237-failed-password-attempts-are-limited-per-account.md) | Failed password attempts are limited per account | Accepted |
+| [1237](./1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md) | Failed password attempts are limited per account, and a refusal costs what a wrong password costs | Accepted |
 | [1238](./1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md) | A password is judged, hashed and verified in its NFC form | Accepted |
 | [1239](./1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md) | A password is verified in the same time whether or not its account exists | Accepted |
 | [1243](./1243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md) | Every ASP.NET Core Identity path hashes and verifies the NFC form of a password | Accepted |
-| [1244](./1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md) | A password refused at the attempt limit costs what a wrong one costs | Accepted |
 | [1253](./1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md) | The interactive bundle mounts at once over the page the host rendered | Accepted |
 | [1283](./1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) | Audit records are CloudTrail-shaped JSON with an indexable envelope | Accepted |
 | [1303](./1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md) | Audit records are kept in an indexed store that each replica writes in batches | Accepted |

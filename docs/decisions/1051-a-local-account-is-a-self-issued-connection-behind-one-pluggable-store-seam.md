@@ -71,7 +71,7 @@ Credentials are first-class operations, and the contract exposes no password has
   and rotates the security stamp.
 - `VerifyCredentialAsync(userName, password, isRefusedAsync, ct)`, returning a `LocalAccountVerificationResult`, where
   the store performs the comparison and may upgrade a stored hash on success
-  ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md)).
+  ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)).
 - `UpdateAsync`, `GetByIdOrDefaultAsync`, `GetByUserNameOrDefaultAsync`, `GetPageAsync`, `RemoveAsync` and
   `ReplaceClaimsAsync` for profile, lookup, paging and claim management.
 
@@ -183,7 +183,7 @@ plus its self-issued identity.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   pre-release, Auth0-parity-plus posture.
 - [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md): marker builders.
-- [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md),
+- [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md),
   [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md): credential verification, refusal and
   disabled accounts.
 - ASP.NET Core Identity (`Microsoft.AspNetCore.Identity`): prior art for store segregation, `SecurityStamp` and the

@@ -88,7 +88,7 @@ limit until its window ends, the way a rate limit refuses.**
    narrower scope may only lower a limit or lengthen the window. The ceiling of 100 on
    `client_authentication_failed_attempts_limit` is NIST SP 800-63B-4 §3.2.2's bound on the consecutive failures
    against one account's secret, as it is on `password_failed_attempts_limit`
-   ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md)); the address limit bounds an aggregate
+   ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)); the address limit bounds an aggregate
    across clients, each of which the narrower limit already caps, so its ceiling of 10,000 admits the confidential
    clients behind one large NAT gateway or proxy without raising the guesses one client's credential is exposed to. A
    successful authentication clears nothing: clearing would cost a write on every authentication, and a client that
@@ -173,7 +173,7 @@ limit until its window ends, the way a rate limit refuses.**
 - [NIST SP 800-63B-4 §3.2.2](https://pages.nist.gov/800-63-4/sp800-63b/authenticators/), rate limiting.
 - [OWASP Credential Stuffing Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html).
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
-  [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md),
+  [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md),
   [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
   [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationAttemptLimiter`,

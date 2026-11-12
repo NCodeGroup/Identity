@@ -1,7 +1,7 @@
 # 1239. A password is verified in the same time whether or not its account exists
 
 - **Status:** Accepted (amended by
-  [ADR-1244](1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md): a password refused at the
+  [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md): a password refused at the
   attempt limit is verified against the dummy hash and counted, and the verification's own lookup names the counted
   user name)
 - **Date:** 2026-10-23
@@ -20,7 +20,7 @@ that verifies: no account has the user name, the account has no password, the AS
 cannot be read. The sign-in, the password grant and the self-service change of a password would tell by their response
 time whether an account exists (issue [#298](https://github.com/NCodeGroup/identity/issues/298)).
 
-The limit on failed attempts ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md)) counts a user name
+The limit on failed attempts ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)) counts a user name
 that no account has like one that an account has, so its answer reveals nothing about the account, but it does not
 change how long a verification takes.
 
@@ -51,7 +51,7 @@ the result.**
    submitted ([ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), against the dummy as
    against a stored hash, so a wrong password costs the same number of hash verifications on every path.
 6. **Some differences stay.** A password refused at the limit of failed attempts takes the work of a wrong one
-   ([ADR-1244](1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)), and these remain:
+   ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)), and these remain:
    - A stored hash with weaker parameters than the current ones costs less to verify until its next successful
      verification replaces it.
    - The adapter verifies a stored hash with the host's ASP.NET Core Identity hasher, which refuses a non-empty hash
@@ -68,7 +68,7 @@ the result.**
   verification that the hasher makes of a password that is not in NFC would not be mirrored.
 - **Verifying the password of an account that reached its limit against its stored hash.** Rejected: a right password
   would take another number of verifications or a rehash, so the refusal would tell it; a refused password is verified
-  against the dummy hash ([ADR-1244](1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)).
+  against the dummy hash ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)).
 
 ## Consequences
 
@@ -87,7 +87,7 @@ the result.**
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — the request rate limiter.
 - [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — a locked-out user's
   password is not verified.
-- [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts.
+- [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md) — the limit on failed attempts.
 - [ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md) — the form of a password that is hashed
   and verified.
 - Code: `NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher`,

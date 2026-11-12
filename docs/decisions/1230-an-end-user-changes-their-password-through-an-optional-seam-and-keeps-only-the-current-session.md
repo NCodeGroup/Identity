@@ -90,7 +90,7 @@ user but the current one and revokes every grant that was issued under no sessio
   post-commit effects run on.
 - [ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) — the password policy that judges the new
   password.
-- [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts that the
+- [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md) — the limit on failed attempts that the
   verification of the current password observes.
 - [NIST SP 800-63B](https://pages.nist.gov/800-63-3/sp800-63b.html) — a change of an authenticator ends the sessions
   that it authenticated.

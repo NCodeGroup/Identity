@@ -5393,8 +5393,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   a store that never calls `isRefusedAsync` fails every verification. A password refused at the limit is verified
   against the dummy hash and counted as a failed attempt, so neither the answer nor the work tells whether an account
   has the user name under any spelling a database collation matches
-  ([ADR-1237](docs/decisions/1237-failed-password-attempts-are-limited-per-account.md),
-  [ADR-1244](docs/decisions/1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md), issues
+  ([ADR-1237](docs/decisions/1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md), issues
   [#293](https://github.com/NCodeGroup/identity/issues/293), [#300](https://github.com/NCodeGroup/identity/issues/300)).
 
 - **A wrong password takes as long whether or not an account has the user name.** When no account has the user name, the

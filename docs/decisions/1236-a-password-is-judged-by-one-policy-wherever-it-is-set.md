@@ -105,7 +105,7 @@ lists.**
 - **A store's own validators.** Rejected: each store differs, the defaults of ASP.NET Core Identity impose composition
   rules, and a custom store would skip them.
 - **A much larger list.** Rejected: the limit on failed attempts
-  ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md)) throttles guessing, so a larger list is of
+  ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)) throttles guessing, so a larger list is of
   little benefit, and the list is embedded in the package.
 - **Per-client settings.** Rejected: an account belongs to its tenant, not to a client.
 
@@ -127,7 +127,7 @@ lists.**
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — the domains of the length settings.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — the error codes are an open vocabulary.
 - [ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md) — the self-service change.
-- [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts.
+- [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md) — the limit on failed attempts.
 - Code: `NCode.Identity.OpenId.Authentication.Passwords.IPasswordPolicy`,
   `NCode.Identity.OpenId.Authentication.Passwords.DefaultPasswordPolicy`,
   `NCode.Identity.OpenId.Authentication.Passwords.CommonPasswordBlocklist`,

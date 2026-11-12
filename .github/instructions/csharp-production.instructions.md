@@ -777,8 +777,7 @@ than inlining the rationale.
   a verified password, call `ResetAsync`; after a password an administrator sets commits, clear the count through
   `IPostCommitSecurityEffects.ResetPasswordAttemptsAsync`. Never look the account up a second time to name the count. A
   count of a run of events that ends is cleared with `IExpiringCounterSet.RemoveAsync`
-  ([ADR-1237](../../docs/decisions/1237-failed-password-attempts-are-limited-per-account.md),
-  [ADR-1244](../../docs/decisions/1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md),
+  ([ADR-1237](../../docs/decisions/1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md),
   [ADR-1351](../../docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 - 👁 **A password is judged, hashed and verified in its Unicode Normalization Form C (NFC), and a failed verification
   takes as long whether or not the account exists.** `DefaultPasswordPolicy` judges the NFC form and every

@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// Asks the limit on failed password attempts on behalf of a local-account store's verification and remembers the
 /// answer, so a store that does not ask it, or verifies a password it refused, cannot lift the limit.
 /// </summary>
-// See ADR-1237 and ADR-1244.
+// See ADR-1237.
 internal sealed class PasswordAttemptGate(
     IPasswordAttemptLimiter passwordAttemptLimiter,
     OpenIdContext openIdContext

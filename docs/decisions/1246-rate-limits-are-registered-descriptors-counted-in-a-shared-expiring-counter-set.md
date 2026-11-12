@@ -105,7 +105,7 @@ The counter store fails open at a bounded cost.**
      or expired counter at one with the given expiry (one fixed window); a past expiry records nothing and returns 0;
    - `GetAsync(key)`, which reads a count without incrementing it;
    - `RemoveAsync(key)`, which removes a counter, so the count of a run of events that has ended starts again
-     ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md));
+     ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md));
    - `IncrementUntilExceededAsync(IReadOnlyList<ExpiringCounterIncrement>, CancellationToken)`, which increments the
      counters in order and stops after the first whose `Count + ReferenceWeight × ReferenceCount` exceeds its `Limit`.
      Each `ExpiringCounterIncrement` names a `Key`, `ExpiresWhen`, `Limit`, and optionally a `ReferenceKey` and
@@ -197,7 +197,7 @@ The counter store fails open at a bounded cost.**
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger
 - [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md) — registered descriptors and
   their catalog
-- [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — `RemoveAsync` and the password limiter
+- [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md) — `RemoveAsync` and the password limiter
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — who
   writes a limit
 - Code: `NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor`, `IRequestRateLimiter`,

@@ -706,6 +706,7 @@ jobs:
 
       # A controller that verifies against a CA that did not sign the pods' certificate must not reach them.
       # The Secret holds a certificate and key as well as the CA, so Traefik loads the ServersTransport and the 502 comes from the failed verification.
+      # The controller's own answer to a failed verification is 502 for ingress-nginx and 500 for Traefik, and the pods would answer 200.
       - name: Refuse a controller that verifies against the wrong CA
         run: |
           set -euo pipefail
@@ -717,16 +718,17 @@ jobs:
           helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
             --set backendTls.ingressController=${{ matrix.controller }} --set ingress.className=${{ matrix.class }} \
             --set backendTls.clientCertificate.required=true --set backendTls.ingressSecret=wrong-ca --wait --timeout 10m
+          if [ "${{ matrix.controller }}" = ingress-nginx ]; then refused=502; else refused=500; fi
           code=000
           for attempt in $(seq 1 12); do
             code=$(through_ingress /health/ready)
-            if [ "$code" = 502 ]; then
+            if [ "$code" = "$refused" ]; then
               break
             fi
             sleep 5
           done
-          if [ "$code" != 502 ]; then
-            echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code with a foreign CA in its verification Secret; expected 502, so the controller did not verify the pods' certificate."
+          if [ "$code" != "$refused" ]; then
+            echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code with a foreign CA in its verification Secret; expected $refused, so the controller did not verify the pods' certificate."
             exit 1
           fi
 

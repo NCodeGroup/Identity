@@ -35,7 +35,7 @@ session ends unless it is used again, and a request that finds an ended session 
    ([ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
 2. **The `sid` is a claim.** It is emitted in the ID token, in every subject-bound access token (RFC 9068 section
    2.2.1) and in the `logout_token`. A token issued with no session omits it
-   ([ADR-1074](1074-session-management-and-logout.md)).
+   ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
 3. **Both bounds always apply.** `session_absolute_lifetime` is between one second and 365 days and defaults to 30
    days. `session_idle_timeout` is between one second and 100 days and defaults to 3 days. Both apply to tenants and use
    `SettingRules.Between`
@@ -98,7 +98,7 @@ session ends unless it is used again, and a request that finds an ended session 
 
 ## References
 
-- [ADR-1074](1074-session-management-and-logout.md) — end-user sessions, the `sid` claim and logout.
+- [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) — end-user sessions, the `sid` claim and logout.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the
   termination seam that an ended session dispatches.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — setting values are

@@ -18,7 +18,7 @@ defers its meaning and its set of values to the deployment; the conventions are 
 such as `http://schemas.openid.net/pape/policies/2007/06/multi-factor`. `amr` (RFC 8176) lists the methods performed,
 and only the authenticating component knows them. `auth_time` is mandatory in the ID token only when a `max_age`
 request is made or `auth_time` is requested as an essential claim; otherwise it is optional. RFC 9068 includes it in the
-access token only when available. The session ([ADR-1074](1074-session-management-and-logout.md)) already carries
+access token only when available. The session ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)) already carries
 `auth_time`, `amr` and `idp` on the `SessionGrant`, so the authentication context extends it.
 
 ## Decision
@@ -97,7 +97,7 @@ authentication happens, and emit `auth_time` when it is known or required.**
 - Issues: [#49](https://github.com/NCodeGroup/identity/issues/49), [#57](https://github.com/NCodeGroup/identity/issues/57).
 - Records: [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) (the UserInfo enricher seam),
   [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)
-  (persisted grants), [ADR-1074](1074-session-management-and-logout.md) (the session),
+  (persisted grants), [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) (the session),
   [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) (the session's lifetime).
 - Specifications: [OIDC Core 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter), OpenID
   Connect Core 1.0 §2 and §5.5.1.1, RFC 8176, RFC 9068.

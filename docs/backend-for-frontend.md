@@ -86,7 +86,7 @@ asset. When the application holds OAuth tokens, that code can:
 
 The browser platform has moved too. Safari blocks third-party cookies, Firefox partitions them, and Chrome is
 deprecating them. Silent renewal with `prompt=none` in an iframe therefore fails for a growing share of users. This is
-the same reason [ADR-1074](decisions/1074-session-management-and-logout.md) prefers back-channel logout over the iframe
+the same reason [ADR-1380](decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) prefers back-channel logout over the iframe
 mechanisms.
 
 ### 1.2 Where NCode stands today
@@ -100,7 +100,7 @@ The **OpenID Provider side** already provides everything a BFF needs:
 | Sender-constrained tokens                    | DPoP, including `dpop_jkt` and refresh-token binding continuity ([ADR-1097](decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md))                    |
 | Audience-restricted tokens per API           | RFC 8707 resource indicators, including down-scoping on refresh ([ADR-1158](decisions/1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)) |
 | Safe refresh tokens                          | Rotation with reuse detection that revokes the family ([ADR-1217](decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md))                         |
-| Sessions the server can end                  | `sid`, RP-initiated logout, and back-channel logout ([ADR-1074](decisions/1074-session-management-and-logout.md), [ADR-1112](decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)) |
+| Sessions the server can end                  | `sid`, RP-initiated logout, and back-channel logout ([ADR-1380](decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md), [ADR-1112](decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)) |
 | Revocation and exchange                      | Refresh-token revocation ([ADR-1028](decisions/1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)) and token exchange ([ADR-1101](decisions/1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md))   |
 
 The family's relying-party library is `NCode.Identity.Bff`, which helps an application consume the OP. Its own
@@ -177,7 +177,7 @@ access token to the browser**. It is not offered, because the token still reache
 - **The token-mediating backend** (RFC 10017 §6.2), and **implicit, hybrid, or password flows**.
 - **Adapters for one identity provider.** Anything a standard OP needs is metadata-driven.
 - **Front-channel logout and session-management iframes**, for the same reasons as
-  [ADR-1074](decisions/1074-session-management-and-logout.md).
+  [ADR-1380](decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md).
 
 ### 3.3 Constraints
 
@@ -825,7 +825,7 @@ Every answer carries `Cache-Control: no-store`. The client is registered with `b
 always sends `sid`.
 
 The two paths combine: when the user logs out of **another** application at the NCode OP, the OP revokes the session's
-grants and posts a logout token to this BFF ([ADR-1074](decisions/1074-session-management-and-logout.md)). The BFF then ends
+grants and posts a logout token to this BFF ([ADR-1380](decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)). The BFF then ends
 its session on every replica at once.
 
 ### 5.9 Browser-facing hardening
@@ -1674,7 +1674,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
   — the `__Host-` and `__Host-Http-` prefixes and `SameSite`.
 - [Fetch Metadata Request Headers](https://www.w3.org/TR/fetch-metadata/).
 - Family ADRs: [1001](decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
-  [1074](decisions/1074-session-management-and-logout.md), [1112](decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
+  [1380](decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md), [1112](decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
   [1217](decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md),
   [1089](decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md),
   [1097](decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md),

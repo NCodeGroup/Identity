@@ -62,7 +62,7 @@ between tabs.**
   saw, and never learns of a back-channel logout, an expired idle window or a failed refresh. It is part of the pattern
   and does not replace the poll.
 - **The OpenID session-management iframe.** Rejected: it depends on third-party cookies, which browsers block
-  ([ADR-1074](1074-session-management-and-logout.md)).
+  ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
 
 ## Consequences
 
@@ -76,7 +76,7 @@ between tabs.**
 ## References
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.7, §5.8 and §11
-- [ADR-1074](1074-session-management-and-logout.md),
+- [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md),
   [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
   [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
 - Issue [#523](https://github.com/NCodeGroup/identity/issues/523)

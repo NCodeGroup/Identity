@@ -56,7 +56,7 @@ forms submit as native HTML form POSTs, so the browser, and Selenium with it, fo
   control for the negative tests. The conformance `browser` config marks its `Consent` task `optional` for the same
   reason.
 - **Logout confirmation** (`/account/logout/confirm`,
-  [ADR-1380](../decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)) is
+  [ADR-1380](../decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)) is
   served the same way and exposes `logout-confirm` and `logout-cancel`.
 
 The host opts in ([`Program.cs`](../../hosts/NCode.Identity.OpenId.Host/Program.cs)), and integration and unit tests cover

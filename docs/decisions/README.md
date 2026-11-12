@@ -192,13 +192,11 @@ The records are grouped by area; within an area they are in number order.
 | [1030](./1030-userinfo-endpoint-and-subject-authentication-seam.md) | UserInfo is backed by a reusable subject-authentication seam; claims come from enrichers | Accepted |
 | [1039](./1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md) | Requested claims, acr and auth_time follow the request and the authentication event | Accepted |
 | [1059](./1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) | The device authorization grant is a pending request in the grant store, approved out of band | Accepted |
-| [1074](./1074-session-management-and-logout.md) | End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout | Accepted |
 | [1081](./1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) | Consent is a durable record of decided and granted scopes, enforced at the authorization endpoint | Accepted |
 | [1085](./1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) | CIBA is a pending request in the grant store, delivered by poll, ping or push | Accepted |
 | [1088](./1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md) | Front-channel logout and session management are available but disabled by default | Accepted |
 | [1089](./1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md) | A pushed authorization request is a single-use, client-bound grant expanded before anything is trusted | Accepted |
 | [1093](./1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md) | A pairwise subject is a one-way projection of the principal over a verified sector | Accepted |
-| [1096](./1096-end-session-subject-from-server-state.md) | End-session resolves the stable subject from server-owned state, never by reversing a pairwise `sub` | Accepted |
 | [1097](./1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) | Access tokens are sender-constrained by DPoP or mutual TLS through one proof-of-possession seam | Accepted |
 | [1101](./1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) | Token exchange issues delegation and impersonation tokens from tokens the tenant issued | Accepted |
 | [1112](./1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) | Every end of a session runs one termination seam, once, revoking the grants issued under it | Accepted |
@@ -223,7 +221,7 @@ The records are grouped by area; within an area they are in number order.
 | [1225](./1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) | Every grant that issues tokens for a subject validates it | Accepted |
 | [1297](./1297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md) | A refresh token family expires at a fixed horizon that the token response announces | Accepted |
 | [1314](./1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md) | Protocol endpoints keep the HTTP methods their specifications require | Accepted |
-| [1380](./1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md) | A logout without a valid `id_token_hint` for the current session is confirmed by the end-user | Accepted |
+| [1380](./1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) | Logout ends the session found in server state, confirmed when unsure, and notifies relying parties | Accepted |
 | [1395](./1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md) | A stored record that lacks what the serving code writes is malformed and fails closed | Accepted |
 | [1401](./1401-userinfo-access-is-audited-when-a-tenant-or-client-opts-in.md) | UserInfo access is audited when a tenant or client opts in | Accepted |
 | [1498](./1498-protocol-endpoints-answer-the-x-fapi-interaction-id-header.md) | Protocol endpoints answer the x-fapi-interaction-id header | Accepted |

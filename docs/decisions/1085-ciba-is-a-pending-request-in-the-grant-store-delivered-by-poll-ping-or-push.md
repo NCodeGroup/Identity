@@ -76,7 +76,7 @@ poll, ping or push.**
    because the approval happens on the separate device.
 7. **The authentication-device transport is a seam.** `ICibaNotificationService.NotifyAuthenticationDeviceAsync`
    notifies the user's authentication device. Its default is inert, and a deployment supplies the transport, as it does
-   for `IBackChannelLogoutNotifier` ([ADR-1074](1074-session-management-and-logout.md)).
+   for `IBackChannelLogoutNotifier` ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
 8. **Client delivery is durable.** A `CibaDeliveryJob` on `IJobDispatcher` carries each delivery and retries it
    ([ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)).
    - Ping `POST`s `auth_req_id` to `client_notification_endpoint`, with `client_notification_token` as the bearer
@@ -155,7 +155,7 @@ poll, ping or push.**
   redemption.
 - [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md):
   the delivery job.
-- [ADR-1074](1074-session-management-and-logout.md): the injectable-transport seam that the notifier mirrors.
+- [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md): the injectable-transport seam that the notifier mirrors.
 - [ADR-1070](1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md): the credential-verifier
   seam.
 - Code: `NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.DefaultCibaRequestService`,

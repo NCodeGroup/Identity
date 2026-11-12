@@ -73,7 +73,7 @@ verifies.**
 - **Both types are advertised.** `subject_types_supported` defaults to `["public", "pairwise"]`, and `subject_type`
   defaults to `public`, so an unconfigured client receives the public subject.
 - **Server-side state recovers the stable subject** wherever the OP acts on a presented pseudonym: end session
-  ([ADR-1380](1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)) and token exchange
+  ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)) and token exchange
   ([ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)). A pseudonym is never reversed.
 
 ### Registration and the sector document
@@ -144,5 +144,5 @@ verifies.**
   [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)
   (setting merges),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) (the guarded client),
-  [ADR-1380](1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md) (end session) and
+  [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) (end session) and
   [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) (token exchange).

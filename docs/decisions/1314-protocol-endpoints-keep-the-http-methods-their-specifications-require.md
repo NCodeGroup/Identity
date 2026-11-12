@@ -27,7 +27,7 @@ the template's rule says about state changes on a `GET`.
 - At the authorization endpoint the protections are the protocol's own: PKCE, exact redirect URIs and `state`.
 - At the `end_session_endpoint` they are `id_token_hint`, registered `post_logout_redirect_uris`, and the end user's
   confirmation of a logout that arrives without a valid hint for the current session
-  ([ADR-1380](1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)).
+  ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
 - Interactive login, consent and logout, the account pages' revocations and the BFF's logout
   ([ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)) use `POST`
   with antiforgery.

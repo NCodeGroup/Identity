@@ -103,7 +103,7 @@ requested scopes narrowed to the granted subset.**
 - [ADR-1062](1062-opt-in-interactive-login-consent-ui.md),
   [ADR-1070](1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md): the interactive surface that
   serves the consent screen
-- [ADR-1074](1074-session-management-and-logout.md): the session whose logout leaves consent in place
+- [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md): the session whose logout leaves consent in place
 - [ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md),
   [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)
 - Issue [#40](https://github.com/NCodeGroup/identity/issues/40)

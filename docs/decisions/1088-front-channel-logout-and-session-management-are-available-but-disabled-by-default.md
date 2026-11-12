@@ -8,7 +8,7 @@
 
 The OP's cookie-independent logout mechanisms are RP-Initiated Logout (`end_session_endpoint`) and Back-Channel Logout
 (the signed `logout_token` POST), built on the end-user session model of
-[ADR-1074](1074-session-management-and-logout.md). Two browser-mediated mechanisms remain:
+[ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md). Two browser-mediated mechanisms remain:
 
 - **Front-Channel Logout 1.0**: the OP renders one hidden `<iframe>` per relying party so each one clears its own
   cookie in the user agent.
@@ -101,7 +101,7 @@ cascade root
 
 - Front-Channel Logout 1.0: <https://openid.net/specs/openid-connect-frontchannel-1_0.html>
 - Session Management 1.0: <https://openid.net/specs/openid-connect-session-1_0.html>
-- [ADR-1074](1074-session-management-and-logout.md): the end-user session model and the two cookie-independent logout
+- [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md): the end-user session model and the two cookie-independent logout
   mechanisms.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md):
   greenfield, best-long-term-design posture.

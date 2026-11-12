@@ -6,7 +6,7 @@
 
 ## Context
 
-A session ([ADR-1074](1074-session-management-and-logout.md)) ends for many causes: a logout, an idle timeout, an
+A session ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)) ends for many causes: a logout, an idle timeout, an
 absolute expiry, the concurrent-session limit, an administrator, a subject-wide sign-out, the deletion or disabling of
 an account, a password change or reset, and the replay of an authorization code. Each cause has three obligations: the
 grants issued under the session must stop working, the relying parties that took part in it must hear that it ended,
@@ -165,7 +165,7 @@ check rejects them.
 - [OpenID Connect Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html) — the logout
   notification a termination sends.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
-  [ADR-1074](1074-session-management-and-logout.md),
+  [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md),
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md) and

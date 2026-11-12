@@ -1870,7 +1870,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The OP establishes a server-side end-user session at interactive sign-in and emits its `sid`** (issue
   [#39](https://github.com/NCodeGroup/identity/issues/39), the `sid` portion of
   [#49](https://github.com/NCodeGroup/identity/issues/49),
-  [ADR-1074](docs/decisions/1074-session-management-and-logout.md)). The session is a `PersistedGrant` of type `session`
+  [ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)). The session is a `PersistedGrant` of type `session`
   keyed by an opaque `sid`, with no table of its own; the `sid` is minted onto the login cookie and emitted in ID
   tokens. A session spans every client, so its lifecycle controls are tenant settings (issue
   [#63](https://github.com/NCodeGroup/identity/issues/63)): `session_absolute_lifetime`; `session_idle_timeout`, a
@@ -1916,7 +1916,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **RP-Initiated Logout is served at the discovery-advertised `end_session_endpoint`, and Back-Channel Logout notifies
   relying parties server to server** (issue [#39](https://github.com/NCodeGroup/identity/issues/39),
-  [ADR-1074](docs/decisions/1074-session-management-and-logout.md)). The endpoint loads a typed `IEndSessionRequest`
+  [ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)). The endpoint loads a typed `IEndSessionRequest`
   through `LoadEndSessionRequestCommand`, validates the `id_token_hint`, clears the OP login, ends the session through
   the termination seam and redirects to a validated `post_logout_redirect_uri`, echoing `state`. The pluggable
   `IBackChannelLogoutNotifier` delivers a signed `logout_token`, typed `logout+jwt` (`JoseTokenTypes.LogoutJwt` is the
@@ -2032,7 +2032,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `refresh_token`; the end-user unchecks a scope to grant fewer.
 
 - **The OP's interactive surface has a first-party account page at `/account` with a Sign out that runs the full
-  server-side logout** ([ADR-1074](docs/decisions/1074-session-management-and-logout.md)). The page reads the
+  server-side logout** ([ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)). The page reads the
   same-origin `/account/me` JSON endpoint and shows the current session (subject, `auth_time`, `amr`, `idp`, `sid`).
   Sign out POSTs, antiforgery-protected, to `/account/logout`, which runs the same `EndSessionCommand` as the
   `end_session_endpoint`, identified by the cookie rather than an `id_token_hint`, so a first-party sign-out revokes the
@@ -5299,7 +5299,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   so a custom subject resolver states whether the end-user must confirm. `ParkEndSessionRequestCommand` parks a logout
   that needs confirmation and `EndSessionConfirmationChallengeCommand` asks for it, and when an OP login is present its
   session takes precedence over the `id_token_hint`'s `sid` ([#494](https://github.com/NCodeGroup/identity/issues/494),
-  [ADR-1380](docs/decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)).
+  [ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
 
 - **RP-Initiated Logout reads and clears the login in the OP login scheme.** The end-session endpoint reads the
   end-user's login from, and clears it from, the tenant's `authorization_authenticate_scheme` and, when the logout names
@@ -5316,7 +5316,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   when there is no grant. Subject-keyed revocation therefore matches the subject's grants, and each relying party's
   back-channel `logout_token` carries the pairwise `sub` that party knows. A presented value is matched forward and
   never reversed, so no pseudonym-to-principal map exists to correlate subjects across sectors
-  ([ADR-1096](docs/decisions/1096-end-session-subject-from-server-state.md)).
+  ([ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
 
 - **The interactive surface's cookies are host-only, and tenants that share an origin keep separate sessions.** The
   session cookie is `__Host-NCode.Identity.Interactive`, the antiforgery cookie `__Host-NCode.Identity.Antiforgery`, the

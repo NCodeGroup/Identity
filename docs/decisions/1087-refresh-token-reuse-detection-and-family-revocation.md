@@ -54,7 +54,7 @@ Concretely:
   (idempotent: already-revoked rows are untouched, so the concurrency interceptor bumps only the rows it changes, per
   [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)). It loads and mutates the matched rows rather than issuing
   a set-based `ExecuteUpdate`, matching the established bulk-revocation pattern
-  ([ADR-1022](1022-grant-filters-and-bulk-revocation.md)) so the interceptor still stamps each changed row;
+  ([ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md)) so the interceptor still stamps each changed row;
   `IPersistedGrantService.RevokeByRefreshTokenLineageAsync` wraps it for the grant handler. The handler calls it, after
   the replay audit, for a presented token that is revoked and for one whose spend a concurrent request won
   ([ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md)).
@@ -91,7 +91,7 @@ Concretely:
 - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) — OAuth 2.0 Security Best Current Practice (§4.14.2, refresh-token
   rotation and reuse detection)
 - [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — token revocation revokes refresh tokens only
-- [ADR-1022](1022-grant-filters-and-bulk-revocation.md) — the load-and-mutate bulk-revocation pattern this reuses
+- [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) — the load-and-mutate bulk-revocation pattern this reuses
 - [ADR-1077](1077-session-scoped-grant-revocation-on-logout.md) — session-scoped grant revocation on logout
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the concurrency-token interceptor that stamps changed rows
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — greenfield, secure-by-default, Auth0-parity-plus posture

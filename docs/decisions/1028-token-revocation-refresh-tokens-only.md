@@ -67,7 +67,7 @@ Two further rules:
 
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator command/handler shape the endpoint
   follows.
-- [ADR-1020](1020-grant-management-read-surface.md) / [ADR-1022](1022-grant-filters-and-bulk-revocation.md) — the
+- [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) / [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) — the
   management-side grant soft-revoke this client-facing endpoint reuses (`RevokedWhen`).
 - [ADR-1027](1027-access-token-audience-from-resource-servers.md) — the audience-bound access tokens whose statelessness
   motivates "refresh tokens only."

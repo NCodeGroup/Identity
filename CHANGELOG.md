@@ -2394,8 +2394,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Revocation sets `RevokedWhen` and keeps the row for audit, and is idempotent. Grants are addressed by an opaque,
   server-generated `GrantId` (`PersistedGrant.GrantId` / `GrantEntity.GrantId`), and `GrantResource` projects metadata
   only, including the grant's session id: the internal `HashedKey` and the grant `PayloadJson` are never exposed. See
-  [ADR-1020](docs/decisions/1020-grant-management-read-surface.md),
-  [ADR-1022](docs/decisions/1022-grant-filters-and-bulk-revocation.md) and
+  [ADR-1020](docs/decisions/1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) and
   [ADR-1080](docs/decisions/1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md).
 
 - **`/api/tenants/{tenantId}/sessions` lets an administrator list and revoke a subject's sessions** (issue

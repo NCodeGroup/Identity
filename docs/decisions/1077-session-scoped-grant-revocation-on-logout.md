@@ -24,7 +24,7 @@ exactly the terminating session.
 **A grant records the `sid` of the session it was issued under, and logout revokes by that `sid` — the terminating
 session's grants only (including the session grant itself) — rather than the whole subject. `sid` becomes a first-class
 grant-filter dimension alongside subject and client; a subject-wide ("sign out everywhere") revocation remains
-available as the deliberate opt-in it already was (the management bulk-revoke of [ADR-1022](1022-grant-filters-and-bulk-revocation.md)).**
+available as the deliberate opt-in it already was (the management bulk-revoke of [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md)).**
 
 - **`SessionId` is a first-class grant column.** `PersistedGrant` (and the typed `PersistedGrant<TPayload>` envelope)
   gains a nullable `SessionId`; `GrantEntity` gains a `SessionId` column and a `(TenantId, SessionId)` lookup index. The
@@ -46,7 +46,7 @@ available as the deliberate opt-in it already was (the management bulk-revoke of
   non-interactive `id_token_hint` carrying only a `sub` — it falls back to the subject-wide revocation so logout still
   invalidates server-side state. This makes the former subject-wide behavior the fallback, not the default.
 - **Global sign-out stays an explicit, separate operation.** "Sign user X out everywhere" is the management
-  bulk-revoke ([ADR-1022](1022-grant-filters-and-bulk-revocation.md)) keyed by `subjectId`; it is a deliberate
+  bulk-revoke ([ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md)) keyed by `subjectId`; it is a deliberate
   administrative action, not a side effect of a single session's logout. Durable consent is unaffected — it is its own
   aggregate, not a grant ([ADR-1076](1076-consent-persistence-and-enforcement.md)).
 
@@ -83,7 +83,7 @@ removed: session revocation is now the session-scoped grant revocation, which is
 ## References
 
 - [ADR-1074](1074-session-management-and-logout.md) — sessions, the `sid` claim, and the logout pipeline this refines.
-- [ADR-1022](1022-grant-filters-and-bulk-revocation.md) — the subject/client grant filters and bulk revocation that the
+- [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) — the subject/client grant filters and bulk revocation that the
   `sessionId` filter joins, and the management "sign out everywhere" path.
 - [ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md) — the normalized-companion vs.
   verbatim-indexed-key convention that governs the `SessionId` column.

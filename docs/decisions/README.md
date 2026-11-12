@@ -173,8 +173,7 @@ The records are grouped by area; within an area they are in number order.
 | [1013](./1013-management-precondition-mediator-pipeline.md) | Management preconditions are a mediator validation pipeline | Superseded |
 | [1014](./1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) | Management resources carry opaque server identifiers and list one keyset page at a time | Accepted |
 | [1015](./1015-management-core-validation-via-validators.md) | Management core validation via replaceable validators | Accepted |
-| [1020](./1020-grant-management-read-surface.md) | Grant administration is a tenant-scoped, metadata-only read surface with opaque ids | Accepted |
-| [1022](./1022-grant-filters-and-bulk-revocation.md) | Grant administration gains specific subject/client filters and bulk revocation | Accepted |
+| [1020](./1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) | A tenant's grants are listed, inspected and revoked by opaque identifier, never by their key | Accepted |
 | [1031](./1031-control-plane-management-resource-server-and-root-tenant-seeding.md) | The control-plane management resource server is a planed system resource server seeded only into the root tenant | Accepted |
 | [1033](./1033-authorization-model-scopes-roles-and-ownership.md) | Authorization model: granular scopes, roles as bundles, and resource-scoped assignments (ownership) | Accepted |
 | [1034](./1034-persisted-role-assignments-and-ownership.md) | Persisted resource-scoped role assignments and ownership | Accepted |

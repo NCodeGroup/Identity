@@ -11,7 +11,8 @@ tenantResolution:
   staticSingle:
     issuer: https://id.example.com
 database:
-  existingSecret: identity-database
+  parts:
+    existingSecret: postgres-app
 secretProtection:
   rootKeyProvider: local
   local:

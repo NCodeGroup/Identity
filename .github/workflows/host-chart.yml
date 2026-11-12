@@ -639,15 +639,16 @@ jobs:
           helm install traefik traefik --repo https://traefik.github.io/charts --version 42.3.1 \
             --namespace traefik --create-namespace --set service.spec.type=ClusterIP --wait --timeout 5m
 
-      # The release reads the database and the root key from Secrets, which are generated here and never stored.
+      # The release reads the database from a Secret shaped like a Postgres operator's `<cluster>-app` Secret and the root
+      # key from another; both are generated here and never stored.
       - name: Create the database and its Secrets
         run: |
           set -euo pipefail
           kubectl create namespace "$NAMESPACE"
           password=$(openssl rand -hex 16)
-          kubectl -n "$NAMESPACE" create secret generic postgres --from-literal=password="$password"
-          kubectl -n "$NAMESPACE" create secret generic identity-database \
-            --from-literal=connection-string="Host=postgres;Port=5432;Database=openiddb;Username=postgres;Password=$password"
+          kubectl -n "$NAMESPACE" create secret generic postgres-app \
+            --from-literal=host=postgres --from-literal=port=5432 --from-literal=dbname=openiddb \
+            --from-literal=user=postgres --from-literal=password="$password"
           kubectl -n "$NAMESPACE" create secret generic identity-root-key \
             --from-literal=key="$(head -c 32 /dev/urandom | basenc --base64url -w0 | tr -d '=')"
           kubectl -n "$NAMESPACE" apply -f "$CHART/ci/kind-postgres.yaml"

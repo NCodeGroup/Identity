@@ -132,6 +132,7 @@ The records are grouped by area; within an area they are in number order.
 | [1505](./1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md) | Every merge to main publishes the host image, the console image and the chart at one prerelease version | Accepted |
 | [1506](./1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md) | The ingress controller holds a client certificate the pods can require and never read as an end client's | Accepted |
 | [1507](./1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md) | The host chart routes to its HTTPS-only pods through Gateway API, a Traefik Ingress or the operator's own ingress | Accepted |
+| [1509](./1509-the-hosts-send-no-server-header.md) | The hosts send no Server header | Accepted |
 
 ### Settings
 

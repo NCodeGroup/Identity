@@ -88,7 +88,7 @@ administrator-gated, so the bag is never writable by an end user.
 
 Delete ends the principal's sessions first, then removes the account, its self-issued identity, and the principal when
 that was its last identity. Disable and password reset end sessions after the commit
-([ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)). Create and reset judge
+([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)). Create and reset judge
 the password with `IPasswordPolicy` and answer a refusal with a `400` problem
 ([ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md)).
 
@@ -155,7 +155,7 @@ enforced at compile time. A local-account store registration (`AddLocalAccountEn
   keyed endpoint providers and the group tree.
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md):
   how a management route authorizes.
-- [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md): ending sessions after a
+- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md): ending sessions after a
   refusal.
 - [ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md): the password policy.
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md): why this

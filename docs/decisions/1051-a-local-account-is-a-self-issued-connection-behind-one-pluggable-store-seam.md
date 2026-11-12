@@ -116,9 +116,9 @@ presence of the capability handler, not a flag: a rejected credential is a failu
 `AddLocalAccountAuthentication` and `AddLocalAccountInteractiveAuthentication` each register, once through
 `TryAddEnumerable`, the account-sourced UserInfo enricher `DefaultGetLocalAccountUserInfoClaimsHandler` (OpenID Connect
 Core section 5.4) and `DefaultValidateLocalAccountSubjectHandler`
-([ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)), which refuses a
+([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), which refuses a
 subject whose account is disabled or gone
-([ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md)).
+([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)).
 
 ### Borrowed from ASP.NET Core Identity
 
@@ -184,8 +184,7 @@ plus its self-issued identity.
   pre-release, Auth0-parity-plus posture.
 - [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md): marker builders.
 - [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md),
-  [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) and
-  [ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md): credential verification, refusal and
+  [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md): credential verification, refusal and
   disabled accounts.
 - ASP.NET Core Identity (`Microsoft.AspNetCore.Identity`): prior art for store segregation, `SecurityStamp` and the
   hasher shape.

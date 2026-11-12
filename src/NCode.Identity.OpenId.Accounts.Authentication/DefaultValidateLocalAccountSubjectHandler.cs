@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// accounts cannot judge, because it has no local account and was not authenticated by one, is left to the other
 /// handlers.
 /// </summary>
-// See ADR-1224 and ADR-1229.
+// See ADR-1229.
 internal class DefaultValidateLocalAccountSubjectHandler(IStoreManagerFactory storeManagerFactory)
     : ICommandHandler<ValidateSubjectStandingCommand>
 {

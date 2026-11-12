@@ -48,7 +48,7 @@ existing challenge and authenticate seam; it is never wired by default and it ad
   as native HTML POSTs, not `fetch` calls.
 - The challenge seam is unchanged. `DefaultChallengeHandler` challenges into login. The login POST verifies the
   credential, resolves the principal ([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)),
-  validates its standing ([ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)),
+  validates its standing ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)),
   creates the session, calls `SignInAsync` and redirects to a validated local `ReturnUrl`.
 - The consent page is a front end over persisted consent
   ([ADR-1081](1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)):
@@ -144,7 +144,7 @@ a full browser round trip needs the bundle built.
 - [`docs/conformance-testing.md`](../conformance-testing.md): the `browser` config and its Appendices B and D.
 - [ADR-1064](1064-frontend-presentation-platform.md): the frontend platform that `apps/auth` belongs to.
 - [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md),
-  [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) and
+  [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) and
   [ADR-1081](1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md):
   the principal, the standing check and the consent the login and consent pages use.
 - [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) and

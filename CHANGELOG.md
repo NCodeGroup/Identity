@@ -2399,7 +2399,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   principal whatever its connections, `POST api/tenants/{tenantId}/principals/{principalId}/unblock` lifts the block,
   and `GET api/tenants/{tenantId}/principals/{principalId}` reports it (`PersistedFederatedPrincipal.IsBlocked`, stored
   on the federated principals table). The endpoints carry `OpenIdConstants.EndpointTags.Principals`
-  ([ADR-1226](docs/decisions/1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md),
   issues [#284](https://github.com/NCodeGroup/identity/issues/284),
   [#289](https://github.com/NCodeGroup/identity/issues/289)).
 
@@ -5136,7 +5136,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`SessionTerminationReasons.UserBlocked`), which revokes its grants and sends back-channel logout, and keeps its
   consents; every grant refuses a blocked principal with `access_denied`, and the authorization request and the
   interactive sign-in refuse it with `access_denied`
-  ([ADR-1226](docs/decisions/1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md),
   issue [#289](https://github.com/NCodeGroup/identity/issues/289)).
 
 - **Every grant that issues tokens for a subject validates it.** The device-code grant, the CIBA grant (at the token
@@ -5353,7 +5353,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   request answers a signed-in end user whose standing is refused with `access_denied` for every `prompt`, a consent
   denial answers the request with `access_denied`, and the self-service pages serve a cookie only while the session it
   names is active
-  ([ADR-1229](docs/decisions/1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md), issue
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md), issue
   [#289](https://github.com/NCodeGroup/identity/issues/289)).
 
 - **Deleting or disabling a local account ends its sessions, and every token request checks the account.** Disabling an
@@ -5365,7 +5365,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with `access_denied` at the authorization request and at the authorization-code, refresh-token and password grants,
   whichever connection the subject signed in through. `NCode.Identity.OpenId.Accounts.Management` references
   `NCode.Identity.OpenId.Authentication.Abstractions`
-  ([ADR-1224](docs/decisions/1224-deleting-or-disabling-an-account-ends-its-sessions.md), issue
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md), issue
   [#280](https://github.com/NCodeGroup/identity/issues/280)).
 
 - **Every password a local account is given meets the password policy.** The management API's create and reset, the
@@ -5502,7 +5502,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
   account's principal is terminated with the `password_reset` reason (`SessionTerminationReasons.PasswordReset`): its
   grants and refresh tokens are revoked, its relying parties receive back-channel logout, and its consents are kept
-  ([ADR-1226](docs/decisions/1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md),
   issue [#285](https://github.com/NCodeGroup/identity/issues/285)).
 
 - **Deleting an owner removes the role assignments it anchors.** Deleting a client or a resource server, also when a

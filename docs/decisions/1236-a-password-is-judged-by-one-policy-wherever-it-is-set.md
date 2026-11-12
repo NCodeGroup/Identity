@@ -11,7 +11,7 @@
 ## Context
 
 Four paths set the password of a local account: the management API's create and reset
-([ADR-1226](1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md)), the
+([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), the
 self-service change ([ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)), and the
 developer and conformance seeders. Each of them accepts any non-empty value, so an account can hold a password that
 anyone guesses at the first attempt (issue [#292](https://github.com/NCodeGroup/identity/issues/292)).

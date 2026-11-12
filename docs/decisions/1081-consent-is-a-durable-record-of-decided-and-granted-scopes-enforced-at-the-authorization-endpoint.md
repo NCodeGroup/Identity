@@ -65,7 +65,7 @@ requested scopes narrowed to the granted subset.**
   request through `ResolvePendingConsentAsync` without consuming the continuation. `POST /account/consent` resolves it
   again and never trusts posted scopes. Allow records the decision for the subject the cookie names and resumes the
   continuation. Deny answers the parked authorization request with `access_denied` at the client's redirect URI
-  ([ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)).
+  ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)).
 - **The consent subsystem owns presentation.** The consent screen shows the client's `client_name` and each scope's
   description from `IScopeDescriptionService`, with a checkbox per scope that is pre-checked for the granted scopes and
   the `consent-allow` and `consent-deny` locators. It lives in the `apps/auth` bundle.
@@ -104,5 +104,5 @@ requested scopes narrowed to the granted subset.**
   serves the consent screen
 - [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md): the session whose logout leaves consent in place
 - [ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md),
-  [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)
+  [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)
 - Issue [#40](https://github.com/NCodeGroup/identity/issues/40)

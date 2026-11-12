@@ -109,7 +109,7 @@ validator judges a password the server sets.**
 - [UAX #15](https://unicode.org/reports/tr15/) — the Unicode normalization forms.
 - [RFC 8265](https://www.rfc-editor.org/rfc/rfc8265#section-4.2) §4.2 — the OpaqueString profile normalizes to NFC.
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) — sensitive buffers.
-- [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) — a locked-out user's
+- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — a locked-out user's
   password is not verified.
 - [ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) — the password policy.
 - [ADR-1239](1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md) — a verification takes

@@ -56,7 +56,7 @@ leaves a dependent behind (issue [#250](https://github.com/NCodeGroup/identity/i
    principal's, in every tenant, because the identifier of a principal is global. `TenantStore.RemoveAsync` also removes
    the assignments that the principals of the deleted tenant hold in other tenants. A principal is also removed with
    its consents and grants in its tenant, after the termination of its sessions
-   ([ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md)).
+   ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)).
 8. **The last owner of a resource can be deleted.** Deletion is erasure, and the resource stays manageable through roles
    at the nodes of its ancestors.
 
@@ -105,7 +105,7 @@ leaves a dependent behind (issue [#250](https://github.com/NCodeGroup/identity/i
   tenant-bound data access is scoped at the persistence layer.
 - [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) —
   resource servers and their deletion.
-- [ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md) — a deleted account's sessions end first.
+- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — a deleted account's sessions end first.
 - [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) — the grant prune.
 - Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.ClientStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.ResourceServerStore`,

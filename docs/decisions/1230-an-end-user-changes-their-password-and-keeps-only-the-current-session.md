@@ -10,7 +10,7 @@
 
 ## Context
 
-[ADR-1226](1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md) decision 7
+[ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) decision 7
 decides what a self-service password change does: it terminates every other session of the principal and keeps the
 current one. The server offered no such change (issue [#290](https://github.com/NCodeGroup/identity/issues/290)). The interactive surface is backend-agnostic
 ([ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)), so a password change cannot
@@ -43,7 +43,7 @@ user but the current one and revokes every grant that was issued under no sessio
    page with `?error=` and `invalid_request`, `password_mismatch`, or the result's error code, such as
    `invalid_current_password`, `not_supported` or `password_too_short`, or with `?status=changed`. Both methods require
    an active session
-   ([ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)) and redirect to the
+   ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)) and redirect to the
    login page otherwise.
 4. **A change ends the other sessions and the sessionless grants.** After `Changed`, the post calls
    `ISessionService.RevokeAllExceptAsync` with the principal, the `sid` of the cookie and the reason `password_changed`
@@ -62,7 +62,7 @@ user but the current one and revokes every grant that was issued under no sessio
 - **A member of `IInteractiveCredentialVerifier`.** Rejected: a passwordless or external backend has no password to
   change, and the verifier would need a member that most implementations cannot answer.
 - **End every session.** Rejected by
-  [ADR-1226](1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md): it signs
+  [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md): it signs
   the end user out of the session that proved the change.
 - **Revoke every grant outside the current session with one exclusion filter.** Rejected: it revokes a session that has
   ended and awaits the background pass without notifying its relying parties.
@@ -82,7 +82,7 @@ user but the current one and revokes every grant that was issued under no sessio
 
 - [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) — the interactive surface and
   its credential verifier.
-- [ADR-1226](1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md) — a
+- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — a
   self-service change keeps the current session.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — every termination of a named session claims
   it.

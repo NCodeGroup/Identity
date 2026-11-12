@@ -603,9 +603,9 @@ than inlining the rationale.
   the authorization request answers with `access_denied` instead of a login challenge; a capability with its own reason
   to refuse an end user adds a `ValidateSubjectStandingCommand` handler with `TryAddEnumerable`. See
   [ADR-1225](../../docs/decisions/1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md),
-  [ADR-1226](../../docs/decisions/1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md)
+  [ADR-1229](../../docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)
   and
-  [ADR-1229](../../docs/decisions/1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md).
+  [ADR-1229](../../docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md).
 - 👁 **A refresh-token rotation spends the presented token and stores its successor in one unit of work**
   (`ITokenService.RotateRefreshTokenAsync` over `IPersistedGrantService.ReplaceOnceOrDefault`), after every check and
   before any token is minted. A spend that loses to a spend or a revocation is answered as a reuse, and one that loses
@@ -690,7 +690,7 @@ than inlining the rationale.
   request wins a single-use lease (the BFF refresh lease), the guarded operation and its write-back run with
   `CancellationToken.None`, bounded by the client's own timeout, and a logout removes the session before any outbound
   call it makes. See
-  [ADR-1226](../../docs/decisions/1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  [ADR-1229](../../docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md),
   [ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
   and
@@ -703,7 +703,7 @@ than inlining the rationale.
   authenticates its cookie through the handler's `AuthenticateSessionAsync`, never `AuthenticateAsync` directly, and a
   refusal that resumes a parked authorization request answers it through `IContinueRefusalService`, which delivers the
   error to the client, never a redirect elsewhere. See
-  [ADR-1229](../../docs/decisions/1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md).
+  [ADR-1229](../../docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md).
 - 👁 **A page the bundle draws over carries the state the bundle starts from.** The host writes what the bundle needs
   into the page, such as the tenant's branding as a `<script type="application/json" id="branding">` block serialized
   with `JsonSerializerOptions.Web`, whose encoder escapes `<`, `>` and `&`. The bundle reads it, and the server form's

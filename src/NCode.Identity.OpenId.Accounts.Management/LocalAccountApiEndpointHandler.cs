@@ -532,7 +532,7 @@ internal class LocalAccountApiEndpointHandler(
         );
         if (identity is not null)
         {
-            // The principal's sessions end before the deletion commits, while they can still be listed to notify their relying parties. See ADR-1224.
+            // The principal's sessions end before the deletion commits, while they can still be listed to notify their relying parties. See ADR-1229.
             await TerminateSessionsAsync(
                 tenantContext,
                 identity.PrincipalId,
@@ -646,7 +646,7 @@ internal class LocalAccountApiEndpointHandler(
         {
             // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying
             // parties. The change is committed, so the termination runs on its own bounded token, a failure is
-            // logged, and the audit record follows. See ADR-1224 and ADR-1351.
+            // logged, and the audit record follows. See ADR-1229 and ADR-1351.
             await PostCommitSecurityEffects.TerminateSessionsAsync(
                 tenantContext,
                 principalId,
@@ -735,7 +735,7 @@ internal class LocalAccountApiEndpointHandler(
         {
             // A reset password ends the sessions of the account's principal and revokes its grants, so the tokens of a
             // compromised account stop at once. The change is committed, so the termination runs on its own bounded
-            // token, a failure is logged, and the audit record follows. See ADR-1226 and ADR-1351.
+            // token, a failure is logged, and the audit record follows. See ADR-1229 and ADR-1351.
             await PostCommitSecurityEffects.TerminateSessionsAsync(
                 tenantContext,
                 principalId,

@@ -189,7 +189,7 @@ internal class PrincipalApiEndpointHandler(
 
         // A blocked principal's sessions end, which revokes its grants and notifies its relying parties. The change is
         // committed, so the termination runs on its own bounded token and a failure is logged; the audit record
-        // follows. See ADR-1226 and ADR-1351.
+        // follows. See ADR-1229 and ADR-1351.
         await PostCommitSecurityEffects.TerminateSessionsAsync(
             tenantContext,
             principal.PrincipalId,

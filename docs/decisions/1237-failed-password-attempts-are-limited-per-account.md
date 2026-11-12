@@ -23,7 +23,7 @@ it.
 
 No store limits the attempts. The Entity Framework store has no lockout, and the ASP.NET Core Identity adapter treats
 Identity's lockout as a disabled account and refuses a locked-out user without verifying the password
-([ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)); it does not count a
+([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)); it does not count a
 failed password.
 
 NIST SP 800-63B-4 §3.2.2 requires a verifier to limit the failed attempts on an account: the number of consecutive
@@ -99,7 +99,7 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
    control, and an outage of the shared state must not lift it.
 10. **The ASP.NET Core Identity adapter keeps its own meaning of lockout.** It does not call `AccessFailedAsync`, and
     Identity's lockout means that the account is disabled
-    ([ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)). The limit applies
+    ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)). The limit applies
     to it because the limiter sits above the store.
 11. **A refusal is logged and audited without telling the client.** `DefaultPasswordAttemptLimiter` logs
     `PasswordAttemptLimitReached` at `Information` with the tenant's identifier and the limit, each time it refuses a
@@ -144,7 +144,7 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
   replicas use.
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — the counter set and its
   increment.
-- [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) — the lockout of
+- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — the lockout of
   ASP.NET Core Identity is a disabled account.
 - [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) — the self-service change.
 - [ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) — the password policy.

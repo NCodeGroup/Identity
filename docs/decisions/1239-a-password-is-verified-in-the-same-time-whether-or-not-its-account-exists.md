@@ -16,7 +16,7 @@ Verifying a password costs a password hash, which takes hundreds of milliseconds
 account costs a lookup. A store that holds no hash to verify for the submitted user name would answer sooner than one
 that verifies: no account has the user name, the account has no password, the ASP.NET Core Identity user is locked out
 (the adapter refuses the password of a locked-out user without verifying it,
-[ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)), or the stored hash
+[ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), or the stored hash
 cannot be read. The sign-in, the password grant and the self-service change of a password would tell by their response
 time whether an account exists (issue [#298](https://github.com/NCodeGroup/identity/issues/298)).
 
@@ -44,7 +44,7 @@ the result.**
    internal singleton that `AddAspNetIdentityLocalAccountStore<TUser>()` registers. It holds a hash that the user
    manager's hasher made of a random password of 32 characters, and the adapter gets it before the lookup, so the first
    verification costs the same on every path. An unknown user name, a locked-out user, whose own hash stays unverified
-   ([ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)), and a user without
+   ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), and a user without
    a password, whose stored hash is absent or empty, are verified against it through the routine that verifies a stored
    hash, and refused.
 5. **The dummy takes the steps of a stored hash.** A password that is not in NFC is verified in its NFC form and then as
@@ -85,7 +85,7 @@ the result.**
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) —
   the responses to a failed authentication are the same whether or not the account exists.
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — the request rate limiter.
-- [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) — a locked-out user's
+- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — a locked-out user's
   password is not verified.
 - [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts.
 - [ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md) — the form of a password that is hashed

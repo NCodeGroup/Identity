@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// administrator blocked, whatever connection it signed in through, so no session, authorization code or grant of such
 /// a principal issues a token. A subject without a principal is left to the other handlers.
 /// </summary>
-// See ADR-1226 and ADR-1229.
+// See ADR-1229.
 internal class DefaultValidateBlockedSubjectHandler(
     IStoreManagerFactory storeManagerFactory,
     ILogger<DefaultValidateBlockedSubjectHandler> logger

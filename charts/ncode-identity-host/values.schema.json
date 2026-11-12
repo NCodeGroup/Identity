@@ -476,18 +476,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "ingressController": {
-          "type": "string",
-          "enum": [
-            "ingress-nginx",
-            "traefik",
-            "none"
-          ]
-        },
         "existingSecret": {
-          "type": "string"
-        },
-        "ingressCaSecret": {
           "type": "string"
         },
         "caConfigMap": {
@@ -977,9 +966,6 @@
           "additionalProperties": false,
           "properties": {
             "existingSecret": {
-              "type": "string"
-            },
-            "ingressCaSecret": {
               "type": "string"
             },
             "caConfigMap": {

@@ -5,7 +5,11 @@
   [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md): its base images are
   pinned by digest, and the Node major is a literal the workflow checks; and by
   [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md): a
-  Production deployment sets no `DeveloperKeys` section, which replaces `DeveloperKeys:Mode=None`)
+  Production deployment sets no `DeveloperKeys` section, which replaces `DeveloperKeys:Mode=None`; and by
+  [ADR-1503](1503-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md):
+  the Publish artifacts workflow publishes the image on every merge to `main` and every release tag, and the build
+  stage writes the optional `VERSION` build argument over `version.json`, so the assemblies report the published
+  version)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

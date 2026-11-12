@@ -9,7 +9,8 @@
 # provider is registered only when enabled, with or without its location (ADR-1490).
 # The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
 # the certificate, and the chosen controller verifies it (ADR-1504). The pods can require the ingress controller's
-# client certificate, and the chart's ingress certificate and its Secret are checked.
+# client certificate, and the chart's ingress certificate and its Secret are checked. The job installs the chart in kind
+# behind each controller (ADR-1505).
 # Publishing the chart belongs to the release workflow.
 name: Host chart
 
@@ -617,3 +618,108 @@ jobs:
             echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code; expected 200, so the controller did not verify and reach the pods."
             exit 1
           fi
+
+      # The controller presents the client certificate of the chart's ingress Secret, and the pods' probes need none.
+      - name: Require the ingress controller's certificate
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
+            --set backendTls.ingressController=${{ matrix.controller }} --set ingress.className=${{ matrix.class }} \
+            --set backendTls.clientCertificate.required=true --wait --timeout 10m
+          code=000
+          for attempt in $(seq 1 12); do
+            code=$(through_ingress /health/ready)
+            if [ "$code" = 200 ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "$code" != 200 ]; then
+            echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code with the client certificate required; expected 200, so the controller did not present its certificate."
+            exit 1
+          fi
+
+      # A request that reaches the pods' Service without the ingress controller's certificate is refused, except the probes.
+      - name: Refuse a request that carries no proxy certificate
+        run: |
+          set -euo pipefail
+          kubectl -n "$NAMESPACE" port-forward svc/release-ncode-identity-host 8443:443 > /dev/null 2>&1 &
+          forward=$!
+          trap 'kill "$forward" 2> /dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if (exec 3<> /dev/tcp/127.0.0.1/8443) 2> /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          # direct prints the HTTP status code of a request straight to the pods, or 000 when the request fails. The
+          # arguments after the path go to curl.
+          direct() {
+            local path="$1"
+            shift
+            curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 --insecure \
+              -H 'Host: id.example.com' "$@" "https://127.0.0.1:8443$path" || true
+          }
+
+          # expect_direct requires the expected status code within 12 attempts five seconds apart.
+          expect_direct() {
+            local expected="$1"
+            local path="$2"
+            local description="$3"
+            shift 3
+            local code=000
+            local attempt
+            for attempt in $(seq 1 12); do
+              code=$(direct "$path" "$@")
+              if [ "$code" = "$expected" ]; then
+                return 0
+              fi
+              sleep 5
+            done
+            echo "::error::$description answered $code; expected $expected."
+            exit 1
+          }
+
+          expect_direct 200 /health/live 'A request to /health/live without a certificate'
+          expect_direct 403 / 'A request to / without a certificate'
+
+          kubectl -n "$NAMESPACE" get secret release-ncode-identity-host-ingress -o jsonpath='{.data.tls\.crt}' | base64 -d > "$RUNNER_TEMP/proxy.crt"
+          kubectl -n "$NAMESPACE" get secret release-ncode-identity-host-ingress -o jsonpath='{.data.tls\.key}' | base64 -d > "$RUNNER_TEMP/proxy.key"
+          code=$(direct / --cert "$RUNNER_TEMP/proxy.crt" --key "$RUNNER_TEMP/proxy.key")
+          if [ "$code" = 403 ] || [ "$code" = 000 ]; then
+            echo "::error::A request to / with the ingress Secret's certificate answered $code; expected a code other than 403 and 000, so the pods did not accept the proxy's certificate."
+            exit 1
+          fi
+
+      # A controller that verifies against a CA that did not sign the pods' certificate must not reach them.
+      - name: Refuse a controller that verifies against the wrong CA
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj /CN=wrong-ca -days 1 \
+            -keyout /dev/null -out "$RUNNER_TEMP/wrong-ca.pem"
+          kubectl -n "$NAMESPACE" create secret generic wrong-ca --from-file=ca.crt="$RUNNER_TEMP/wrong-ca.pem"
+          helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
+            --set backendTls.ingressController=${{ matrix.controller }} --set ingress.className=${{ matrix.class }} \
+            --set backendTls.clientCertificate.required=true --set backendTls.ingressSecret=wrong-ca --wait --timeout 10m
+          code=000
+          for attempt in $(seq 1 12); do
+            code=$(through_ingress /health/ready)
+            if [ "$code" = 502 ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "$code" != 502 ]; then
+            echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code with a foreign CA in its verification Secret; expected 502, so the controller did not verify the pods' certificate."
+            exit 1
+          fi
+
+      - name: Show the cluster when a step fails
+        if: failure()
+        run: |
+          kubectl get pods,certificates,issuers,ingress,serversTransport -A || true
+          kubectl -n "$NAMESPACE" describe pods || true
+          kubectl -n "$NAMESPACE" logs -l app.kubernetes.io/component=server --tail=200 || true

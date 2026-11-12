@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// <summary>
 /// Describes one decryption for a <see cref="IRemoteKeyProvider"/> to perform.
 /// </summary>
-// See ADR-1477.
+// See ADR-1471.
 [PublicAPI]
 public sealed class RemoteDecryptionRequest
 {

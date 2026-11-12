@@ -508,7 +508,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   remote key's signature before a token carries it
   ([#75](https://github.com/NCodeGroup/identity/issues/75),
   [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md),
-  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md)).
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 
 - **`IJoseSerializer` works on a parsed `JoseToken`, defined in a contracts-only abstractions package.** `Parse(string)`
   returns a `JoseToken` once, exposing the JOSE header through `JoseToken.Header` before validation or decryption, and
@@ -1001,12 +1001,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#690](https://github.com/NCodeGroup/identity/issues/690), [#691](https://github.com/NCodeGroup/identity/issues/691),
   [#721](https://github.com/NCodeGroup/identity/issues/721),
   [#725](https://github.com/NCodeGroup/identity/issues/725),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
   [ADR-1475](docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
   [ADR-1476](docs/decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md),
-  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1489](docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md),
   [ADR-1485](docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)).
 
@@ -5919,8 +5919,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#654](https://github.com/NCodeGroup/identity/issues/654),
   [#659](https://github.com/NCodeGroup/identity/issues/659),
   [#651](https://github.com/NCodeGroup/identity/issues/651),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
-  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
   [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).

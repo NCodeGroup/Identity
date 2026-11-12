@@ -39,7 +39,7 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 /// </para>
 /// </remarks>
 // See ADR-1471.
-// See ADR-1477.
+// See ADR-1471.
 internal class AzureKeyVaultRemoteKeyProvider(
     IAzureKeyVaultClientFactory clientFactory,
     IOptions<AzureKeyVaultRemoteKeyProviderOptions> options

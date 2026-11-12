@@ -17,7 +17,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// </summary>
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="hashAlgorithmName">The hash function that <c>OAEP</c> and its <c>MGF1</c> mask generation function use.</param>
-// See ADR-1477.
+// See ADR-1471.
 internal class RsaOaepKeyManagementAlgorithm(string code, HashAlgorithmName hashAlgorithmName)
     : CommonKeyManagementAlgorithm
 {

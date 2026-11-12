@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// vocabulary that selects how the key management service signs.
 /// </summary>
 // See ADR-1471.
-// See ADR-1477.
+// See ADR-1471.
 [PublicAPI]
 public sealed class RemoteKeyBinding
 {

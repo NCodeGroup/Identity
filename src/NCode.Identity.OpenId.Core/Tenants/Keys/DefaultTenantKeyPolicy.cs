@@ -273,7 +273,7 @@ internal class DefaultTenantKeyPolicy(
         ArgumentNullException.ThrowIfNull(specifications);
         ArgumentNullException.ThrowIfNull(settings);
 
-        // See ADR-1471 and ADR-1477: an empty setting keeps every key in the server's store; otherwise the provider holds
+        // See ADR-1471: an empty setting keeps every key in the server's store; otherwise the provider holds
         // every provisioned key.
         if (
             !settings.TryGetValue(OpenIdSettingKeys.TenantKeyProvider, out var provider)
@@ -375,7 +375,7 @@ internal class DefaultTenantKeyPolicy(
 
     // A tenant that opts into a provider has every provisioned key held there, so a provider without a row for one of
     // them, or whose row holds the key for another use, stops the host instead of leaving the tenant's seed or
-    // rollover without that key (ADR-1471, ADR-1477). A provider that creates no keys never holds a provisioned key,
+    // rollover without that key (ADR-1471). A provider that creates no keys never holds a provisioned key,
     // so it is not checked.
     private void AddUnsupportedProviderErrors(
         List<TenantKeySpecification> specifications,

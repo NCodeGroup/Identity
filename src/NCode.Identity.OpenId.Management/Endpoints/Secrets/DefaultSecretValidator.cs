@@ -167,7 +167,7 @@ internal sealed class DefaultSecretValidator(
 
     /// <inheritdoc />
     // See ADR-1476.
-    // See ADR-1477.
+    // See ADR-1471.
     public SecretCreateValidation ValidateRemoteKey(RemoteKeyAlgorithmSelector selector)
     {
         var secretType = selector.SecretType;
@@ -230,7 +230,7 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        // See ADR-1477.
+        // See ADR-1471.
         if (!string.Equals(row.Use, impliedUse, StringComparison.Ordinal))
         {
             return Invalid(

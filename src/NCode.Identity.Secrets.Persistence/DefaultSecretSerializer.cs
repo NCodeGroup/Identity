@@ -341,7 +341,7 @@ internal class DefaultSecretSerializer(
             throw CreateRefusal(secretId, exception);
         }
 
-        // See ADR-1477.
+        // See ADR-1471.
         if (persistedSecret.Use is { } use && use != resolution.Algorithm.Use)
         {
             throw new InvalidOperationException(

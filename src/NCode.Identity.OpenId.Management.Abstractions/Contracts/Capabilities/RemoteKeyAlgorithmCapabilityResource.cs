@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 /// type, size and curve of the key, which a request that creates or binds a key in the provider names.
 /// </summary>
 // See ADR-1476.
-// See ADR-1477.
+// See ADR-1471.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class RemoteKeyAlgorithmCapabilityResource

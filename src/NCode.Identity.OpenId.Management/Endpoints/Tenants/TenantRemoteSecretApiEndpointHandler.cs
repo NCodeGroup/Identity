@@ -35,7 +35,7 @@ POST api/tenants/{tenantId}/secrets/remote/import
 /// service of a registered remote key provider. The private half of such a key never leaves the service.
 /// </summary>
 // See ADR-1475.
-// See ADR-1477.
+// See ADR-1471.
 internal class TenantRemoteSecretApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,

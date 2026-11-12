@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// </summary>
 // See ADR-1475.
 // See ADR-1476.
-// See ADR-1477.
+// See ADR-1471.
 internal class DefaultRemoteSecretImporter(
     ISecretGenerator secretGenerator,
     ISecretSerializer secretSerializer,

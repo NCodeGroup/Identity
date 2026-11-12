@@ -13,7 +13,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// </summary>
 // See ADR-1474.
 // See ADR-1476.
-// See ADR-1477.
+// See ADR-1471.
 internal sealed class DefaultRemoteKeyDescriptorCatalog : IRemoteKeyDescriptorCatalog
 {
     /// <summary>

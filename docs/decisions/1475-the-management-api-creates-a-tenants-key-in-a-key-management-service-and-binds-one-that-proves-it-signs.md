@@ -1,6 +1,6 @@
 # 1475. The management API creates a tenant's key in a key management service and binds one that proves it signs
 
-- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md); amended by [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md): the secret validator and the capabilities read `IRemoteKeyDescriptorCatalog`; amended by [ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md): the bind reads the key's public half from the KMS, the capabilities list each provider's algorithms, and the console creates and binds remote keys; amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md); amended by
+- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md); amended by [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md): the secret validator and the capabilities read `IRemoteKeyDescriptorCatalog`; amended by [ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md): the bind reads the key's public half from the KMS, the capabilities list each provider's algorithms, and the console creates and binds remote keys; amended by [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md); amended by
   [ADR-1489](1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md):
   the management API creates a key only in a provider that creates keys, and the capabilities say which do)
 - **Date:** 2026-11-08
@@ -10,7 +10,7 @@
 
 A tenant's signing keys can be held in a key management service (KMS), and the host provisions them there through the
 tenant setting `tenant_key_provider`
-([ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)). An
+([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)). An
 operator who manages a tenant through the management API needs more than that setting gives:
 
 - **Reading custody.** The secrets of a tenant list a `remote` secret like any other, and nothing in the resource says
@@ -118,7 +118,7 @@ public half the operator supplied.**
 
 ## References
 
-- [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md): the remote
+- [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md): the remote
   keys this decision manages.
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md): authorization
   before any read.

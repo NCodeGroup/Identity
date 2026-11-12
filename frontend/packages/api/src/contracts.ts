@@ -441,7 +441,7 @@ export type RotateSecretRequest = {
  * Mirror of `CreateRemoteSecretRequest`. `POST /api/tenants/{tenantId}/secrets/remote` creates the key in the
  * provider's key management service (KMS), which keeps its private half, and reveals nothing.
  */
-// See ADR-1475, ADR-1476 and ADR-1477.
+// See ADR-1475, ADR-1476 and ADR-1471.
 export type CreateRemoteSecretRequest = {
   readonly remoteKeyProvider: string;
   readonly secretType: string;
@@ -458,7 +458,7 @@ export type CreateRemoteSecretRequest = {
  * half from the KMS, checks it is a key of the named type, size and curve, stores it once the key signs a challenge
  * that half verifies, or decrypts a challenge encrypted to that half, and never destroys a bound key.
  */
-// See ADR-1475, ADR-1476 and ADR-1477.
+// See ADR-1475, ADR-1476 and ADR-1471.
 export type ImportRemoteSecretRequest = {
   readonly remoteKeyProvider: string;
   readonly remoteKeyId: string;

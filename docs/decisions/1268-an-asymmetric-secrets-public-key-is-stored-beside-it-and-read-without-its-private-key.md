@@ -43,7 +43,7 @@ sub-resource of the secret that answers both JWK and PEM.**
 - The descriptor that generates the key sets it through `required string? GeneratedSecretKeyMaterial.PublicKey`, because
   only the generating descriptor holds the unprotected key. `required` makes every descriptor, a third-party one
   included, decide. The public key of a `remote` key comes from its service
-  ([ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+  ([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 - It is `null` for symmetric and verifier secrets and for `spki` and `x509` secrets. The `EncodedValue` of the last two
   is already public, a duplicate would only repeat it, and an `x509` secret would lose its certificate.
 - Every update path copies `PublicKey` into the rebuilt record.
@@ -120,6 +120,6 @@ creation keeps its protector only to generate the client secret.
   key hierarchy a derive-on-read path would load.
 - [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md): the
   descriptor seam that exports the public key.
-- [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md): the remote
+- [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md): the remote
   key whose service supplies its public key.
 - RFC 7517 (JSON Web Key), RFC 7468 (PEM), RFC 7591 and RFC 7592 (dynamic client registration).

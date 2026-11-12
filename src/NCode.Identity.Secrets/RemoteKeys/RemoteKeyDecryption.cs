@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// <summary>
 /// Decrypts and agrees keys through the <see cref="IRemoteKeyProvider"/> of a <see cref="RemoteKeyBinding"/>.
 /// </summary>
-// See ADR-1477.
+// See ADR-1471.
 internal static class RemoteKeyDecryption
 {
     /// <summary>

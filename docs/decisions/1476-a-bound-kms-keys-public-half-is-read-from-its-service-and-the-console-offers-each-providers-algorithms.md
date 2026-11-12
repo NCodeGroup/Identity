@@ -1,6 +1,6 @@
 # 1476. A bound KMS key's public half is read from its service, and the console offers each provider's algorithms
 
-- **Status:** Accepted (amends [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md); amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md); amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md): IRemoteKeyResolver reads a key's public half, IRemoteKeyProver proves it, and RemoteKeyRefusedException signals a refusal)
+- **Status:** Accepted (amends [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md); amended by [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md); amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md): IRemoteKeyResolver reads a key's public half, IRemoteKeyProver proves it, and RemoteKeyRefusedException signals a refusal)
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 

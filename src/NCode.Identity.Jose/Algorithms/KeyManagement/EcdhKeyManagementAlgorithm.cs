@@ -28,7 +28,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// the algorithm.
 /// </summary>
 // See ADR-1389.
-// See ADR-1477.
+// See ADR-1471.
 internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
@@ -542,7 +542,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    // See ADR-1477.
+    // See ADR-1471.
     public override ValueTask<int> UnwrapKeyAsync(
         SecretKey secretKey,
         JsonElement header,
@@ -640,7 +640,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// <param name="header">The JOSE header of the token, which carries the <c>epk</c>.</param>
     /// <param name="destination">The destination for the derived key, whose length is the key's size.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    // See ADR-1477.
+    // See ADR-1471.
     protected async ValueTask ReceiveAndDeriveRemoteKeyAsync(
         SecretKey secretKey,
         IRemoteSecretKey remoteKey,

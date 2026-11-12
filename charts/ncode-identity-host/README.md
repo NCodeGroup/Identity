@@ -442,8 +442,7 @@ without removing it first, loses every value written or rewrapped under it, in t
 
 A tenant's signing and encryption keys can be held in a key management service, which signs every token and decrypts
 every content key, so the private key never reaches the server
-([ADR-1471](../../docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-[ADR-1477](../../docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md)).
+([ADR-1471](../../docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 The operator registers the providers a tenant may choose from, and the host reaches each with the deployment's own
 workload identity. The values are:
 

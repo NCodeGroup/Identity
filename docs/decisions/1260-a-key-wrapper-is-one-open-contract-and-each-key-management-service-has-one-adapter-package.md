@@ -24,7 +24,7 @@ the issuer must be publicly discoverable, while a Google workload identity pool 
 uploaded JWKS, so its issuer need not be public.
 
 One package per service holds both of the service's roles: its key wrapper and its remote key provider
-([ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)). A package
+([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)). A package
 named for one role would be named for half of what it does.
 
 ## Decision
@@ -151,7 +151,7 @@ one adapter package named for the service, `NCode.Identity.Secrets.<Vendor>`.**
 
 - [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the
   key hierarchy and the root role.
-- [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) and
+- [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md) and
   [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md) —
   the remote key provider that shares each adapter package.
 - [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md) —

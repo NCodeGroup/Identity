@@ -9,7 +9,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// Describes a key for a <see cref="IRemoteKeyProvider"/> to create.
 /// </summary>
 // See ADR-1474.
-// See ADR-1477.
+// See ADR-1471.
 // See ADR-1478.
 [PublicAPI]
 public sealed class RemoteKeyCreationRequest

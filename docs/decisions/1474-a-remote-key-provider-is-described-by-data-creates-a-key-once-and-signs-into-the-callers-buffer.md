@@ -1,6 +1,6 @@
 # 1474. A remote key provider is described by data, creates a key once and signs into the caller's buffer
 
-- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) and [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md); amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md); amended by [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md); amended by
+- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md) and [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md); amended by [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md); amended by [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md); amended by
   [ADR-1489](1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md):
   a provider's descriptor says whether it creates keys)
 - **Date:** 2026-11-08
@@ -8,7 +8,7 @@
 
 ## Context
 
-[ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) defines the
+[ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md) defines the
 remote key provider contract and its vendor packages. Five of its rules (2, 7, 8, 16 and 17) leave these forces:
 
 - **Validators reach providers.** The setting data source and `DefaultTenantKeyPolicy` ask
@@ -95,7 +95,7 @@ key it created and could not keep.**
 
 ## References
 
-- [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)
+- [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)
 - [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)
 - Issues [#653](https://github.com/NCodeGroup/identity/issues/653), [#655](https://github.com/NCodeGroup/identity/issues/655), [#656](https://github.com/NCodeGroup/identity/issues/656), [#657](https://github.com/NCodeGroup/identity/issues/657), [#659](https://github.com/NCodeGroup/identity/issues/659), [#663](https://github.com/NCodeGroup/identity/issues/663), [#664](https://github.com/NCodeGroup/identity/issues/664)

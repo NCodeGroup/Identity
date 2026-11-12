@@ -14,7 +14,7 @@ namespace NCode.Identity.Secrets.Keys;
 /// by asking the service.
 /// </summary>
 // See ADR-1471.
-// See ADR-1477.
+// See ADR-1471.
 internal sealed class RemoteEccSecretKey(
     KeyMetadata metadata,
     string? curveName,

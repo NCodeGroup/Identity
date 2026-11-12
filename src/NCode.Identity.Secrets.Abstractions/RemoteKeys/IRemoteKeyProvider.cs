@@ -101,7 +101,7 @@ public interface IRemoteKeyProvider
     /// The response names another key or algorithm than requested, or fails a checksum.
     /// </exception>
     /// <exception cref="NotSupportedException">The provider's service has no decryption operation.</exception>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<int> DecryptAsync(
         RemoteDecryptionRequest request,
         Memory<byte> plaintext,
@@ -124,7 +124,7 @@ public interface IRemoteKeyProvider
     /// The response names another key or algorithm than requested, or fails a checksum.
     /// </exception>
     /// <exception cref="NotSupportedException">The provider's service has no key agreement operation.</exception>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<int> DeriveSharedSecretAsync(
         RemoteKeyAgreementRequest request,
         Memory<byte> sharedSecret,

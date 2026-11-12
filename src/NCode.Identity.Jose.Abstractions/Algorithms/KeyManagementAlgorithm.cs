@@ -123,7 +123,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm
     /// <returns>The number of bytes written to <paramref name="contentKey"/>.</returns>
     /// <exception cref="JoseInvalidAlgorithmException">The algorithm cannot unwrap a content key with a remote key.</exception>
     /// <exception cref="JoseException">The content key buffer is too small.</exception>
-    // See ADR-1477.
+    // See ADR-1471.
     public virtual ValueTask<int> UnwrapKeyAsync(
         SecretKey secretKey,
         JsonElement header,

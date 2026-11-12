@@ -274,7 +274,7 @@ Every key lifecycle event writes the same `details`: `reason` (one of `TenantKey
 `key_id` (the `kid` the key is published under), `secret_type`, `algorithm` and `use` (when the key declares them), and
 the instants `activates_when`, `retires_when` and `expires_when` (RFC 3339), as the key stands after the change. A key
 held in a key management service also writes `remote_key_provider`, the name of its provider
-([ADR-1471](decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+([ADR-1471](decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 Only a key the rollover provisioned (`managed_by` is `tenant_key_rollover` on the stored secret) is the subject of these events;
 a key an operator creates, imports, updates or deletes through the management API is recorded as a `tenant.secret.*`
 resource-change event with the `administrator` actor instead.

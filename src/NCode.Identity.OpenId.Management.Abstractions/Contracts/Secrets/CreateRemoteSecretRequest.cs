@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 /// Represents the request body to create a tenant's signing or encryption key in the key management service of a
 /// registered remote key provider. The private key never leaves the key management service.
 /// </summary>
-// See ADR-1477.
+// See ADR-1471.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class CreateRemoteSecretRequest

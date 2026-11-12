@@ -70,7 +70,7 @@ management API read that one source.**
    - its `alg` is null or matches the specification;
    - its encoding is not public (`spki` and `x509` never count);
    - its custody matches the specification's
-     ([ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md));
+     ([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md));
    - its `SecretType` is the configured one;
    - its stored public half reads and is on the specification's curve.
 

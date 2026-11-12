@@ -184,7 +184,7 @@ internal class DefaultSecretGenerator(
         var metadata = new KeyMetadata
         {
             KeyId = request.SecretId,
-            // See ADR-1477.
+            // See ADR-1471.
             Use = resolution.Algorithm.Use,
             Algorithm = request.Algorithm,
             ActivatesWhen = activatesWhen,

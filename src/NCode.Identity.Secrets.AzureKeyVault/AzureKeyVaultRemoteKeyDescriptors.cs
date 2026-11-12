@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 /// <c>ECDH-ES</c> key.
 /// </remarks>
 // See ADR-1471.
-// See ADR-1477.
+// See ADR-1471.
 internal sealed class AzureKeyVaultRemoteKeyDescriptors(
     IOptions<AzureKeyVaultRemoteKeyProviderOptions> options
 ) : IRemoteKeyDescriptorSource

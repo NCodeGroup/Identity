@@ -45,7 +45,7 @@ public interface IRemoteSecretKey
     /// <param name="plaintext">The buffer that receives the plaintext.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The number of bytes written to <paramref name="plaintext"/>.</returns>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<int> DecryptAsync(
         string algorithm,
         ReadOnlyMemory<byte> ciphertext,
@@ -62,7 +62,7 @@ public interface IRemoteSecretKey
     /// <param name="sharedSecret">The buffer that receives the shared secret.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The number of bytes written to <paramref name="sharedSecret"/>.</returns>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<int> DeriveSharedSecretAsync(
         string algorithm,
         ReadOnlyMemory<byte> peerSubjectPublicKeyInfo,

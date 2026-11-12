@@ -1,13 +1,13 @@
 # 1472. Signing is asynchronous from the signature algorithm to every caller
 
-- **Status:** Accepted (amends [ADR-1120](1120-jwt-validation-requirements-and-handlers.md), [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md), [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md), [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md); amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md))
+- **Status:** Accepted (amends [ADR-1120](1120-jwt-validation-requirements-and-handlers.md), [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md), [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md), [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md); amended by [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md))
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 
 ## Context
 
 A signature can come from a remote service
-([ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)): the
+([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)): the
 private key is in a key management service, and signing is a network call that can wait, fail and be cancelled. A
 signing primitive that fills a caller's span and returns cannot make that call without blocking its thread on a task,
 and `RS0030` bans blocking on a task.
@@ -71,7 +71,7 @@ asynchronous at the bottom is asynchronous at every caller.
 
 ## References
 
-- [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md): the
+- [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md): the
   remote key that signs through this seam.
 - [ADR-1120](1120-jwt-validation-requirements-and-handlers.md),
   [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md),

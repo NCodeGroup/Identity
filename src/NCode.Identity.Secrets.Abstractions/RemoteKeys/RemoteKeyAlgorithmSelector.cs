@@ -9,7 +9,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// Identifies the <see cref="RemoteKeyAlgorithm"/> row that applies to a key.
 /// </summary>
 // See ADR-1471.
-// See ADR-1477.
+// See ADR-1471.
 [PublicAPI]
 public readonly record struct RemoteKeyAlgorithmSelector
 {

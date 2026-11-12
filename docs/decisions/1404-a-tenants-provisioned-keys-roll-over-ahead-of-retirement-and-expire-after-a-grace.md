@@ -97,7 +97,7 @@ makes to a tenant's key on its own is an audit event.**
    - The settings reconciliation counts a tenant as lacking a key when no serving key satisfies the specification, so a
      tenant whose only key for an algorithm retired is seeded like one that never held it. The planner also hands a
      tenant's keys over on a change of custody
-     ([ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+     ([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
    - The pass runs only while key provisioning is enabled; a deployment that brings its own keys manages their
      lifecycle. It never runs on the in-process job dispatcher, whose bounded workers a pass over every tenant would
      hold.
@@ -196,4 +196,4 @@ makes to a tenant's key on its own is an audit event.**
 - [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md),
   [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
-  [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)
+  [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)

@@ -109,6 +109,43 @@ public sealed class ApiReferenceEndpointTests
         Assert.Contains($"<meta property=\"csp-nonce\" content=\"{nonce}\"", body);
     }
 
+    [Fact]
+    public async Task GetApiReferencePage_InDevelopment_NamesNoExternalOrigin()
+    {
+        using var factory = new HostApplicationFactory();
+        using var client = CreateClient(factory);
+
+        using var response = await client.GetAsync("/scalar/v1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        var externalUrls = Regex
+            .Matches(body, "https?://[^\"'\\s<>]+")
+            .Select(match => match.Value)
+            .Where(url => !url.StartsWith("https://op.integration.test", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Empty(externalUrls);
+    }
+
+    [Fact]
+    public async Task GetApiReferencePage_InDevelopment_DisablesTelemetryAgentMcpAndDefaultFonts()
+    {
+        using var factory = new HostApplicationFactory();
+        using var client = CreateClient(factory);
+
+        using var response = await client.GetAsync("/scalar/v1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"withDefaultFonts\":false", body);
+        Assert.Contains("\"telemetry\":false", body);
+        Assert.Contains("\"agent\":{\"disabled\":true}", body);
+        Assert.Contains("\"mcp\":{\"disabled\":true}", body);
+    }
+
     #endregion
 
     private static HttpClient CreateClient(WebApplicationFactory<HostApiMarker> factory) =>

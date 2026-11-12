@@ -139,7 +139,7 @@ carries nothing else; a brand domain carries the site, docs, status page and ope
 ## References
 
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)
-- [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)
+- [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)
 - [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)
 - [`docs/hosting-analysis.md`](../hosting-analysis.md), [`docs/platform-bootstrap.md`](../platform-bootstrap.md)
 - [RFC 8705 section 5](https://www.rfc-editor.org/rfc/rfc8705#section-5), mutual-TLS endpoint aliases

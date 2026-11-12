@@ -12,7 +12,7 @@ JWS whose protected header embeds the public `jwk` it is signed with, and whose 
 (`htm`, `htu`), one moment (`iat`), one identity (`jti`), optionally one access token (`ath`), and optionally one
 server nonce (`nonce`). The token's `cnf.jkt` is the RFC 7638 thumbprint of that `jwk`.
 
-[ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) put proof validation inside the OpenId
+[ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) put proof validation inside the OpenId
 authentication stack. `DefaultDPoPProofValidator` split the compact JWS by hand and verified the signature with raw
 `RSA`/`ECDsa` primitives built from the JWK's public parameters. That was a second cryptographic code path next to the
 JOSE library's. It supported only the key types it spelled out, RSA and EC, so an Ed25519 proof failed even though the
@@ -59,5 +59,5 @@ proof, so a client, a test, or a sibling package had to build one by hand. The D
 - **Breaking:** `OpenIdConstants.DPoP.ProofJwtType`, `.HttpMethodClaim`, `.HttpUriClaim`, and `.AccessTokenHashClaim`
   are removed in favor of `JoseTokenTypes.DPoPJwt` and `JoseClaimNames.Payload.Htm`/`.Htu`/`.Ath`.
 - This supersedes the signature-verification paragraph of
-  [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md). Its binding, `cnf`, nonce, and replay
+  [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md). Its binding, `cnf`, nonce, and replay
   decisions stand.

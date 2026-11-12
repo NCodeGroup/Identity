@@ -15,7 +15,7 @@ authentication** ([RFC 8705](https://datatracker.ietf.org/doc/html/rfc8705) §2)
 
 The server already **binds** access tokens to a presented client certificate (`cnf.x5t#S256`, gated by the client's
 `require_tls_client_certificate_bound_access_tokens`,
-[ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)) and already resolves the presented certificate
+[ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)) and already resolves the presented certificate
 through the deployment-agnostic `IClientCertificateResolver` (direct TLS or a trusted forwarded header). What was
 missing is using that certificate to **authenticate** the client at the token endpoint. RFC 8705 defines two methods:
 

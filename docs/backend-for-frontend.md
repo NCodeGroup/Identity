@@ -97,7 +97,7 @@ The **OpenID Provider side** already provides everything a BFF needs:
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Confidential-client authentication           | `private_key_jwt` ([ADR-1102](decisions/1102-jwt-bearer-client-authentication.md)) and mutual TLS ([ADR-1107](decisions/1107-mutual-tls-client-authentication.md))      |
 | Authorization requests kept off the URL      | Pushed authorization requests (PAR) ([ADR-1089](decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md))                                                                 |
-| Sender-constrained tokens                    | DPoP, including `dpop_jkt` and refresh-token binding continuity ([ADR-1097](decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md))                    |
+| Sender-constrained tokens                    | DPoP, including `dpop_jkt` and refresh-token binding continuity ([ADR-1097](decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md))                    |
 | Audience-restricted tokens per API           | RFC 8707 resource indicators, including down-scoping on refresh ([ADR-1158](decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)) |
 | Safe refresh tokens                          | Rotation with reuse detection that revokes the family ([ADR-1087](decisions/1087-refresh-token-reuse-detection-and-family-revocation.md))                         |
 | Sessions the server can end                  | `sid`, RP-initiated logout, and back-channel logout ([ADR-1074](decisions/1074-session-management-and-logout.md), [ADR-1077](decisions/1077-session-scoped-grant-revocation-on-logout.md)) |
@@ -571,7 +571,7 @@ remote API:
   separation is the point: tokens live in the store and the key lives elsewhere, possibly as a non-exportable key in a
   key-management service.
 - **Rotation.** Each session records the `jkt` it was bound with. The NCode OP keeps a refresh token bound to its
-  original key across rotation ([ADR-1097](decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md)), so a session
+  original key across rotation ([ADR-1097](decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)), so a session
   keeps using its original key until it ends. New sessions use the current key, and retired keys are kept for at
   least the maximum session lifetime.
 - **Proofs.** A fresh proof (`htm`, `htu`, `iat`, `jti`, `ath`) accompanies every token-endpoint call and resource
@@ -1677,7 +1677,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
   [1074](decisions/1074-session-management-and-logout.md), [1077](decisions/1077-session-scoped-grant-revocation-on-logout.md),
   [1087](decisions/1087-refresh-token-reuse-detection-and-family-revocation.md),
   [1089](decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md),
-  [1097](decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md),
+  [1097](decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md),
   [1150](decisions/1150-vocabularies-are-open-unless-provably-closed.md),
   [1154](decisions/1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
   [1158](decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md),

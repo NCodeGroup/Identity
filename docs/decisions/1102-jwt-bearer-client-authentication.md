@@ -78,4 +78,4 @@ family, validated against the client's registered keys, and single-use by `jti`.
 - New public surface: `OpenIdConstants.ClientAssertionTypes.JwtBearer` and the
   `IClientAssertionReplayCache` seam (a cluster swaps in a shared `IDistributedCache`).
 - The replay guard is correct per-instance and across a cluster only when a distributed cache is registered — the same
-  operational note as DPoP proof replay ([ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)).
+  operational note as DPoP proof replay ([ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)).

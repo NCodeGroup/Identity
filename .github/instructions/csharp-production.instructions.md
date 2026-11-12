@@ -476,7 +476,7 @@ than inlining the rationale.
   `require_tls_client_certificate_bound_access_tokens`; `dpop_signing_alg_values_supported` and
   `require_dpop_bound_access_tokens`). A requirement is named `require_` plus its RFC client metadata member
   (`tls_client_certificate_bound_access_tokens`, `dpop_bound_access_tokens`). See
-  [ADR-1097](../../docs/decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md).
+  [ADR-1097](../../docs/decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md).
 - 👁 **A value nobody chose sits beneath a security profile's default.** At the platform root the descriptor defaults, the
   computed `*_supported` values and the default-settings providers are the baseline passed to
   `ISecurityProfileCatalog.Expand(scopeSettings, OpenIdSettingScopes.Platform, baselineSettings)`, and only the

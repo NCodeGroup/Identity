@@ -57,7 +57,7 @@ lowers is a violation.**
    - `TokenEndpointAuthMethodCoherenceRule`: `token_endpoint_auth_method` against the supported methods.
    - `CertificateBoundAccessTokenCoherenceRule` and `DPoPBoundAccessTokenCoherenceRule`: a client that requires a
      sender-constrained access token needs the effective support for it
-     ([ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)).
+     ([ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)).
    - `RegisteredValueCoherenceRule`: a registered value survives into the effective settings (decision 3).
    - `IdTokenEncryptionCoherenceRule`: a client that requires ID token encryption has an
      `id_token_encrypted_response_alg`.

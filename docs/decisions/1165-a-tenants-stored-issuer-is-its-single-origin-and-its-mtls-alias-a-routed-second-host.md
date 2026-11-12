@@ -115,7 +115,7 @@ A custom domain is an explicit issuer. The frontend bootstrap `issuer` is the se
   index lookup. Two tenants that come to hold the same host serve no request on it until an operator fixes one of them,
   and the next write to either tenant reports the conflict.
 - Moving a tenant to another host is a deliberate change of its issuer, which changes the `iss` of the tokens it issues
-  ([ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)).
+  ([ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)).
 - A strategy implements two defaults, the issuer and the alias, and the startup checks fail a template that a strategy
   cannot serve before the first request.
 
@@ -125,7 +125,7 @@ A custom domain is an explicit issuer. The frontend bootstrap `issuer` is the se
 - [RFC 6570](https://www.rfc-editor.org/rfc/rfc6570) — URI templates, level 1.
 - [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md) — published URLs
   come from a configured origin.
-- [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) — sender-constrained access tokens.
+- [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) — sender-constrained access tokens.
 - [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — a tenant's
   address is validated by the strategy that serves it.
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — the root tenant and the

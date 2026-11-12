@@ -1582,7 +1582,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   refuses to start when `OpenId:MutualTls:Format` names no registered decoder. `IClientCertificateResolver` and
   `MutualTlsForwardingOptions` live in `NCode.Identity.OpenId.Authentication.ClientCertificates`, registered by
   `AddClientCertificateServices()`, and `ResolveCertificateAsync` takes an `OpenIdContext`
-  ([ADR-1097](docs/decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md),
+  ([ADR-1097](docs/decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md),
   [ADR-1172](docs/decisions/1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
 
 - **A client's public keys resolve at runtime from its `jwks_uri`** (issue
@@ -1718,7 +1718,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1167](docs/decisions/1167-the-server-validates-the-tokens-it-issued-under-one-policy.md)).
 
 - **DPoP and mTLS binding are governed by client and tenant settings and advertised in discovery**
-  ([ADR-1097](docs/decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md)).
+  ([ADR-1097](docs/decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)).
   `require_dpop_bound_access_tokens` and `require_tls_client_certificate_bound_access_tokens` are a client's
   requirements that its access tokens be bound; they are named `require_` plus the RFC 9449 §5.2 client metadata member
   `dpop_bound_access_tokens` and the RFC 8705 §3.4 member `tls_client_certificate_bound_access_tokens`, apply to clients
@@ -5014,7 +5014,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Access tokens can be sender-constrained by DPoP (RFC 9449) or mutual TLS (RFC 8705)** (issue
   [#45](https://github.com/NCodeGroup/identity/issues/45),
-  [ADR-1097](docs/decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md)). `IProofOfPossessionService`
+  [ADR-1097](docs/decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)). `IProofOfPossessionService`
   evaluates, once per token request, an optional DPoP proof (the `DPoP` header: a `typ: dpop+jwt` JWS with an embedded
   public JWK, validated for signature, `htm`, `htu`, `iat`, `jti` and replay against the asymmetric
   `dpop_signing_alg_values_supported` set) and/or a mutual-TLS client certificate, and binds the issued token's

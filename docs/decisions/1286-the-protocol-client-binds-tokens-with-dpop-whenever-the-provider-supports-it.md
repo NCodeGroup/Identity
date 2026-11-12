@@ -12,7 +12,7 @@ challenge is retried. [ADR-1270](1270-the-openid-protocol-client-uses-the-family
 and [ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) left DPoP
 to phase 1b. The JOSE stack already provides `IDPoPProofService`
 ([ADR-1176](1176-dpop-proofs-are-a-jose-building-block.md)), and the OP keeps a refresh token's
-binding continuous across rotation ([ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)). This ADR records
+binding continuous across rotation ([ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)). This ADR records
 how `NCode.Identity.OpenId.Client` creates the proofs, pins the keys, sends `dpop_jkt` and handles nonces.
 
 ## Decision
@@ -38,7 +38,7 @@ key says so, and it never accepts a downgrade.**
    ring's key type decides.
 4. **A key is pinned by its `jkt`.** The `jkt` is the RFC 7638 SHA-256 thumbprint that the OP binds as `cnf.jkt`.
    `TokenRequest.DPoPJwkThumbprint` pins the key, so a session keeps the key it was bound with across rotation (design
-   §5.5, [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)). `TokenResult.DPoPJwkThumbprint` and
+   §5.5, [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)). `TokenResult.DPoPJwkThumbprint` and
    `AuthorizationRequestResult.DPoPJwkThumbprint` report the `jkt` used, and are `null` when no proof or `dpop_jkt` was
    sent. Thumbprints are computed per call, which is cheap for the few keys a ring holds.
 5. **Token endpoint.** Every token request carries a fresh proof whenever DPoP applies: `htm` is `POST`, `htu` is the
@@ -80,7 +80,7 @@ key says so, and it never accepts a downgrade.**
 
 ## References
 
-- [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) — refresh-token binding
+- [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) — refresh-token binding
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1176](1176-dpop-proofs-are-a-jose-building-block.md) — the JOSE DPoP service
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client

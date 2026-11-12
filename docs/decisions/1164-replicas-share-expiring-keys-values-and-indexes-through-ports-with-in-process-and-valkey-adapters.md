@@ -168,7 +168,7 @@ composition root chooses: in-process for one replica, Valkey for several.**
 
 - [ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md), principle 4: shared
   ephemeral state lives in the shared-state port, backed by Valkey
-- [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) and
+- [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) and
   [ADR-1102](1102-jwt-bearer-client-authentication.md): the nonce and replay records
 - [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md),
   [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),

@@ -149,5 +149,5 @@ certificate.**
 - Certificate-bound access tokens are a client's registered requirement
   (`require_tls_client_certificate_bound_access_tokens`), and the advertised support
   (`tls_client_certificate_bound_access_tokens`) never forces a client
-  ([ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)).
+  ([ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)).
 - Parsing the PEM anchors costs a little on each `tls_client_auth` request; anchor lists are short.

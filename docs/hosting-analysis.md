@@ -152,7 +152,7 @@ flowchart LR
   certificate; PROXY protocol v2 preserves the client IP.
 - Traefik terminates TLS, **requests** the client certificate on the mTLS host, and forwards it with the
   `passTLSClientCert` middleware; the server reads it via `OpenId:MutualTls:CertificateHeaderName`
-  ([ADR-1097](decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md)).
+  ([ADR-1097](decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)).
 - RFC 8705 §5 mTLS endpoint aliases map naturally to a dedicated mTLS hostname (the tenant's
   `mtlsEndpointAliasAuthority`), so only that host asks for client certificates; per-tenant alias hosts route to their
   tenant ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).

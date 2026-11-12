@@ -7,7 +7,7 @@
 ## Context
 
 Mutual-TLS client authentication ([ADR-1107](1107-mutual-tls-client-authentication.md)) and certificate-bound access
-tokens ([ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)) read the certificate a client presented
+tokens ([ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)) read the certificate a client presented
 through `IClientCertificateResolver`. When TLS terminates at the application, the certificate is on the connection.
 Usually it terminates at a reverse proxy, load balancer, or service mesh, which forwards the certificate in a request
 header, and every product encodes it its own way:
@@ -89,7 +89,7 @@ the only source of the certificate, and a value that cannot be decoded fails the
 
 ## References
 
-- [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) — certificate-bound access tokens and the
+- [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) — certificate-bound access tokens and the
   certificate-ingestion seam.
 - [ADR-1107](1107-mutual-tls-client-authentication.md) — mutual-TLS client authentication.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — configuration is validated when the

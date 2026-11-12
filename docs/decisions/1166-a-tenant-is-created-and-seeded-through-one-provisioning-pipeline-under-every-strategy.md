@@ -105,7 +105,7 @@ on their next seed:
 - `ManagementResourceServerSeedHandler` seeds the management resource server, with the control-plane families only
   when `Plane == Root`.
 - `TenantKeySeedHandler` provisions the tenant's keys
-  ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)).
+  ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
 - `BootstrapAdminSeedHandler` seeds the bootstrap administrator.
 - The opt-in `DeveloperSecretPruningSeedHandler`, `DeveloperInteractiveSeedHandler` and `ConformanceSeedHandler`.
 
@@ -164,7 +164,7 @@ on the bootstrap client in the bootstrap tenant.
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md): the bootstrap administrator.
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md): the issuer
   judged on every write.
-- [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md): the key seed handler.
+- [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md): the key seed handler.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the team and the create
   route.
 - [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md):

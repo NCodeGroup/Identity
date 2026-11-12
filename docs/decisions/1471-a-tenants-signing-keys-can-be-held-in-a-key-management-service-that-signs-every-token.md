@@ -9,7 +9,7 @@
 ## Context
 
 Every tenant is provisioned with a persisted key for each algorithm its settings use
-([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)), and those keys roll over on a schedule
+([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)), and those keys roll over on a schedule
 ([ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)). A stored
 private key is protected under a master key ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)),
 but a running replica holds every key it loaded in memory, so a process that is read holds every private key its
@@ -229,7 +229,7 @@ public keys without calling the service.**
   seam a remote key signs through.
 - [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md): the rollover
   a custody change reuses.
-- [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
+- [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),

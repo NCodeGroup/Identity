@@ -7,7 +7,7 @@
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), the construction
-  of the `ES*` algorithms; [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md), how a provisioned key is
+  of the `ES*` algorithms; [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md), how a provisioned key is
   generated and when a stored key satisfies it
 
 ## Context
@@ -26,7 +26,7 @@ Three facts shape how it is added:
 - .NET's ECDSA serves secp256k1 only where the platform's cryptography does: OpenSSL on Linux and CNG on Windows
   support it, Apple's platform cryptography on macOS does not, and `ECDsa.Create` throws there.
 - The `ecc` key type picks P-256 for a 256-bit key, so a key generated for `ES256K` from its key type and size alone,
-  as tenant key provisioning ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)) and the management
+  as tenant key provisioning ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)) and the management
   API generate keys, would be a P-256 key that `ES256K` refuses, and a stored key judged by its type and size alone
   would satisfy `ES256K` on P-256. The same holds for `OKP` keys, where Ed25519 and X25519 share a size.
 
@@ -114,7 +114,7 @@ Three facts shape how it is added:
   [ADR-1068](1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md),
   [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
-  [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)

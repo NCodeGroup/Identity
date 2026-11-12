@@ -8,7 +8,7 @@
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**         | Available: the keys the server provisions for every tenant                                                                                                                                                                                                                         |
 | **Packages**       | `NCode.Identity.OpenId.Core` (the planner, the rollover and the background pass), `NCode.Identity.Secrets.Persistence.Abstractions` (the lifecycle on the stored secret), `NCode.Identity.Jose` and `NCode.Identity.Jwt` (selection and validation), `NCode.Identity.OpenId.Authentication` (the key set) |
-| **Key decisions**  | [ADR-1403](../decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md), [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md) |
+| **Key decisions**  | [ADR-1403](../decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md), [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md) |
 | **Operator guide** | The tenant settings `tenant_key_lifetime`, `tenant_key_activation_delay` and `tenant_key_retirement_grace`; the configuration section `OpenId:Tenant:KeyRollover`                                                                                                                |
 
 ## The promises
@@ -167,7 +167,7 @@ change is committed. See [audit records](../audit-records.md).
 - Decisions: [ADR-1403](../decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1412](../decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
-  [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
   [ADR-1320](../decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)
 - Code: [`Tenants/Keys`](../../src/NCode.Identity.OpenId.Core/Tenants/Keys),

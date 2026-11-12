@@ -26,7 +26,7 @@ leaves a dependent behind (issue [#250](https://github.com/NCodeGroup/identity/i
    CIBA grants, and its registration access token. Only authorization blocks the delete.
 2. **A tenant is refused while it holds an operator's records, and is otherwise removed with everything it owns.** A
    tenant that holds a client or a non-system resource server is refused with `409 Conflict`
-   ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)). Everything else the tenant owns is removed in
+   ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)). Everything else the tenant owns is removed in
    the same unit of work, the data of its end users included: local accounts and their claims, federated principals and
    identities, sessions, and grants. The usage ledger is kept
    ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)), and the
@@ -71,7 +71,7 @@ leaves a dependent behind (issue [#250](https://github.com/NCodeGroup/identity/i
 - **A confirmation parameter on the delete.** Rejected: the `409` for operator-created records and the confirmation of
   the console already guard it.
 - **Refuse a client while it has secrets.** Rejected: the secrets of a client exist only for it, as the keys of a tenant
-  do ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)), and Auth0 and Keycloak delete them with it.
+  do ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)), and Auth0 and Keycloak delete them with it.
 - **Remove what the owner owns in the stores' own unit of work (chosen).** The deleting store removes every dependent
   through the change tracker, so a delete either removes the owner with everything it owns or fails whole.
 
@@ -93,7 +93,7 @@ leaves a dependent behind (issue [#250](https://github.com/NCodeGroup/identity/i
 - Issues [#250](https://github.com/NCodeGroup/identity/issues/250),
   [#266](https://github.com/NCodeGroup/identity/issues/266) and
   [#273](https://github.com/NCodeGroup/identity/issues/273).
-- [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) — a tenant's keys and system records are removed
+- [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md) — a tenant's keys and system records are removed
   with it, and a client or a resource server that an operator created blocks the delete.
 - [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — the identifier and
   the issuer of a deleted tenant are retired.

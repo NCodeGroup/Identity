@@ -92,7 +92,7 @@ tenant's policy for that kind of token. A system resource server never holds key
   exchange accept them.
 - A tenant encrypts access tokens to itself only with an encryption key it holds. None is provisioned by default, so
   such a tenant lists a key-management algorithm in `OpenId:Tenant:KeyProvisioning:Keys` or imports a key
-  ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)).
+  ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
 - Each reader enforces the token type, the tenant's algorithm allow-lists and session revocation: introspection reports
   neither an ID token nor a revoked-session token as active, and token exchange accepts neither an introspection
   response nor a logout token.

@@ -898,7 +898,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the tenant holds that serves an algorithm, or will, suppresses generation; a key an operator supplied is never
   overwritten or removed, and a key the tenant cannot unprotect fails the tenant with a message naming the tenant and
   the master key or root key to restore, rather than being regenerated
-  ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [#327](https://github.com/NCodeGroup/identity/issues/327), [#534](https://github.com/NCodeGroup/identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
   [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
@@ -1056,7 +1056,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant's keys under another setting adds its name. A `fapi2` tenant holds and publishes no RS256 key it never signs
   with, and a key the tenant already holds is kept. A platform or team settings change that permits a configured algorithm
   provisions its key in every running tenant without a restart: a background job re-seeds each tenant that names the
-  algorithm ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  algorithm ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [#241](https://github.com/NCodeGroup/identity/issues/241)).
 
 - **A Development host can recover from keys it cannot read.** `DeveloperKeys:PruneUnreadableKeys`
@@ -2313,7 +2313,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **Deleting a tenant removes its keys, its system resource servers and its role assignments.** They are deleted with
   the tenant in one unit of work, so a tenant with provisioned keys can be deleted and only a client or a resource
   server the tenant did not seed blocks the delete with `409`
-  ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md), issue
+  ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md), issue
   [#242](https://github.com/NCodeGroup/identity/issues/242)).
 
 - **The tenant usage query validates its range.** `GET /api/tenants/{tenantId}/usage` answers a `400` validation problem
@@ -3433,7 +3433,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   for an algorithm the settings permit is provisioned before the write returns. The platform provider evicts every cached
   tenant whenever the platform's settings change, so a platform-wide setting such as `environment_type` reaches tenants at
   once. `Ephemeral` developer mode keeps one key per tenant for the life of the process, so the eviction does not
-  invalidate issued tokens ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  invalidate issued tokens ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1205](docs/decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md), issues
   [#240](https://github.com/NCodeGroup/identity/issues/240) and
   [#409](https://github.com/NCodeGroup/identity/issues/409)).
@@ -3506,7 +3506,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **Concurrent seeds of one tenant converge.** When two replicas, or two requests that miss the tenant cache together,
   seed the same tenant, a seed whose commit fails runs once more in a fresh unit of work; seed contributors are
   idempotent, so it adds only what the other seed did not, and both requests succeed with one set of keys and resource
-  servers ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)).
+  servers ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
 
 - **A tenant the deployment requires cannot be deleted.** `DELETE /api/tenants/{tenantId}` answers `409 Conflict` for
   the root tenant or the static single-tenant strategy's tenant, because a deleted tenant identifier is never reissued.
@@ -3543,7 +3543,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenants only; `PersistedTeam.ReconciledSettings` and `ReconciledSettingsFingerprint` record what was reconciled, so a
   pass a restart interrupted runs again and a start that changes nothing runs none
   ([ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
-  [ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 
 - **Rate limits and quotas are registered descriptors judged in one round trip per stage.** Each limit is a

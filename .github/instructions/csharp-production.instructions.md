@@ -328,7 +328,7 @@ than inlining the rationale.
   first, `Low` (-100) last. When one handler depends on another's effect, state it with priorities, never with
   registration order. A handler that observes or repairs state for the rest runs `High` (the default validators, the
   development secret pruner), and a handler that consumes what the others leave runs `Low` (tenant key provisioning,
-  [ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)).
+  [ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
 - 👁 **A change other replicas must observe is announced, not only applied locally.** An in-process cache or
   materialized object is invalidated on every replica through `IReplicaBroadcaster`, with a registered
   `IReplicaBroadcastHandler` per channel. Apply the change locally first, publish after, and log rather than throw a

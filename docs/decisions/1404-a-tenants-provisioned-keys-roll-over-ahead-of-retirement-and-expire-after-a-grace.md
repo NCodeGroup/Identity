@@ -5,7 +5,7 @@
   a provisioned key has a custody, and a change of custody hands the tenant's keys over after the activation delay)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md), decision 3's key lifetime and
+- **Amends:** [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md), decision 3's key lifetime and
   decisions 4, 8 and 9's rule that the server never removes, replaces or rotates a key: a provisioned key has a
   lifetime, its successor is generated ahead of its retirement, a key the tenant's settings do not use is retired,
   and an expired key the server generated is removed; [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md):
@@ -14,7 +14,7 @@
 ## Context
 
 Every tenant is provisioned with a persisted key for each algorithm its settings use
-([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)), and a stored key has an active window inside
+([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)), and a stored key has an active window inside
 its validity window ([ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)).
 A key that signs forever is a key whose compromise is never bounded, and NIST SP 800-57 bounds the cryptoperiod of a
 signing key, so the major providers roll their signing keys over on a schedule: Microsoft Entra ID about every six
@@ -182,7 +182,7 @@ change the server makes to a tenant's key on its own is an audit event.**
 - [Key rollover](../capabilities/key-rollover.md), the capability page
 - [OpenID Connect Core 1.0 §10.1.1](https://openid.net/specs/openid-connect-core-1_0.html#RotateSigKeys),
   [NIST SP 800-57 Part 1 §5.3](https://csrc.nist.gov/pubs/sp/800/57/pt1/r5/final)
-- [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
+- [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)
 - Issue [#166](https://github.com/NCodeGroup/identity/issues/166)

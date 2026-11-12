@@ -251,7 +251,7 @@ The records are grouped by area; within an area they are in number order.
 | [1068](./1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md) | Elliptic curves are one extensible catalog, and an imported point is checked against its curve | Accepted |
 | [1104](./1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md) | A key type is one registered descriptor, and public keys are imported and stored by encoding | Accepted |
 | [1110](./1110-shared-secret-vs-cryptographic-key-storage.md) | A shared secret is stored as the UTF-8 bytes of its opaque string, distinct from a cryptographic key | Accepted |
-| [1169](./1169-every-tenant-is-provisioned-with-persisted-keys.md) | Every tenant is provisioned with persisted keys | Accepted |
+| [1169](./1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md) | Every tenant is provisioned with a persisted key for each configured algorithm it uses | Accepted |
 | [1183](./1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) | A client secret is rotated by replacing it in one change | Superseded |
 | [1235](./1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) | Stored secrets are protected by a key hierarchy under an external root key | Accepted |
 | [1260](./1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) | Azure Key Vault and Google Cloud KMS are root key providers | Accepted |

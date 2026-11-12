@@ -10,7 +10,7 @@
 A tenant is materialized once and then served from `IOpenIdTenantCache`. Every management write to a tenant (its
 record, its settings, a secret or its deletion) sends a `TenantChangedCommand` after it commits, and the default handler
 evicts the tenant from the cache of the replica that handled the write
-([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)).
+([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
 
 Any replica may serve the next request
 ([ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md)), and an eviction on
@@ -118,7 +118,7 @@ lifetime of a cached tenant is
 - [ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) — any replica serves any request
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — channels are an open vocabulary
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the shared-state ports
-- [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) — the tenant-changed command
+- [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md) — the tenant-changed command
 - [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) — the `master-key-changed` channel
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the cached tenant's lifetime
 - [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md) — reconciliation of missed announcements

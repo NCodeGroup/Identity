@@ -294,7 +294,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   signing keys, and a tenant reads its settings and keys once, when it is first served, so neither can be added after a
   request reaches it. List a key-management
   algorithm such as `RSA-OAEP-256` beside a signing algorithm in `OpenId:Tenant:KeyProvisioning:Keys`
-  ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)), and persist the settings the
+  ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)), and persist the settings the
   tenant needs with `HostApplicationFactory.SeedTenantSettingsAsync` before the first request. Assert that the token is
   a JWE (five segments), so a key that was never provisioned fails the test (`TokenIntrospectionEndpointTests`).
 - 👁 **Drive the authorization endpoint the way a conforming client does.** Every authorization code is bound to an

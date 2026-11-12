@@ -7,7 +7,7 @@
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md), the shape of the
-  `algorithms` capability section, and [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  `algorithms` capability section, and [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   decision 2's rule that a key's type follows from its algorithm
 
 ## Context
@@ -165,7 +165,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
   [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1126](1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md)
 - Issue [#327](https://github.com/NCodeGroup/identity/issues/327)
 - `KeyedAlgorithm`, `AlgorithmKeyType`, `KeyAlgorithmDeclaration`, `KeyGenerationDeclaration` and `IEcdhKeyAgreement`

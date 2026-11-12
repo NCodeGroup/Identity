@@ -78,7 +78,7 @@ and reset the database together. A host started without the AppHost selects `eph
 in-memory database: its stored secrets do not survive a restart. The server never discards or replaces a key it cannot
 unprotect: a tenant whose keys were protected under another root key is not served, and its error says that the key
 that protected them is missing or has changed
-([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)). Restore the root key, or
+([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)). Restore the root key, or
 reset the database with it.
 
 ### Remote keys

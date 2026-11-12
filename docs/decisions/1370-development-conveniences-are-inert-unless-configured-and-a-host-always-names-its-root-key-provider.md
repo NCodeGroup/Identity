@@ -45,7 +45,7 @@ and no development credential is committed.
 ### Keys come from the production path
 
 - Every host signs with the persisted keys that tenant provisioning creates through the store
-  ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)), read back through the production path. The
+  ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)), read back through the production path. The
   runtime, the JWKS endpoint and the management API's tenant secrets endpoints show the same keys.
 - A test host stays hermetic through its own in-memory database and `ephemeral` root key. Tests provision RS256, PS256
   and ES256 keys per host.
@@ -133,7 +133,7 @@ and no development credential is committed.
   and [`DevelopmentSecretFile.cs`](../../hosts/NCode.Identity.OpenId.LocalDev/DevelopmentSecrets/DevelopmentSecretFile.cs).
 - `hosts/NCode.Identity.OpenId.Host/appsettings.Development.json` and
   `tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/DeveloperSpaClientSeedingTests.cs`.
-- [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) and
+- [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md) and
   [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md).
 - [NCodeGroup/identity#98](https://github.com/NCodeGroup/identity/issues/98),
   [#441](https://github.com/NCodeGroup/identity/issues/441),

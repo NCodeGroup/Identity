@@ -112,3 +112,6 @@ NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.TryReadIndexAsync(System.Thre
 NCode.Identity.AspNetCore.TransportSecurityRegistration
 NCode.Identity.AspNetCore.TransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.AspNetCore.TransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddTransportSecurity(Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions
+NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseHttpsRedirectionOutsideProduction() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!

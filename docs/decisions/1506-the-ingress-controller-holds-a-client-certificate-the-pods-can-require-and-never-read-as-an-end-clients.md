@@ -89,7 +89,7 @@ client's.**
    ingress-nginx and behind Traefik, one cluster each, with cert-manager, the controller and a Postgres stub, from the
    host image built from the `host-image` build cache. It proves that:
    - the pods become Ready over HTTPS, and a request through the controller succeeds;
-   - a controller whose verification Secret holds a foreign CA answers `502`;
+   - a controller whose verification Secret holds a foreign CA refuses the request, with `502` from ingress-nginx and `500` from Traefik;
    - with `clientCertificate.required`, a request through the controller still succeeds, a direct request without a
      certificate answers `403` on `/` and `200` on `/health/live`, and a direct request with the ingress Secret's
      certificate is not `403`.

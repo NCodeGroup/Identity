@@ -815,7 +815,7 @@ controller forwards the end client's certificate in that header
 
 The `cluster` job of the `Host chart` workflow installs the chart in a kind cluster behind ingress-nginx and behind
 Traefik. It proves that the pods become Ready over HTTPS, that a request through the controller succeeds, that a
-controller whose verification Secret holds a foreign CA gets `502`, and, with `backendTls.clientCertificate.required`,
+controller whose verification Secret holds a foreign CA is refused (`502` from ingress-nginx, `500` from Traefik), and, with `backendTls.clientCertificate.required`,
 that a direct request without a certificate gets `403` on `/` and `200` on `/health/live`, while a request with the
 ingress Secret's certificate is not refused.
 

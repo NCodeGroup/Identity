@@ -2906,8 +2906,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   reads a page of settings documents without their secrets and without change tracking, for a pass over every tenant or
   client (issue [#212](https://github.com/NCodeGroup/identity/issues/212)).
 
-- **A tenant's issuer is optional and, when present, unique.** Its unique index is filtered (`WHERE "NormalizedIssuer"
-  IS NOT NULL`), so on relational providers any number of tenants may omit it.
+- **A tenant's stored issuer is unique.** Its unique index is filtered (`WHERE "NormalizedIssuer" IS NOT NULL`), so on
+  relational providers any number of tenants that no strategy serves may hold none; a tenant without an issuer is not
+  served.
 
 - **A lost optimistic-concurrency race surfaces as the store-neutral `StoreConcurrencyException`.** The store manager
   throws it from `IStoreManager.SaveChangesAsync` when another unit of work changed an entity after it was read, and

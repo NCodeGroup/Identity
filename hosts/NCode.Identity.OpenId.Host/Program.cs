@@ -204,8 +204,8 @@ if (secretProtectionCommand is not null)
 app.UseProxyClientCertificate();
 
 // Right after the proxy check: everything downstream that reads the scheme or host — the HTTPS redirect, request
-// logging's client IP, and the tenant's base address — has to observe the original request rather than the
-// proxy-to-application hop. A no-op unless 'ForwardedHeaders' names a trusted proxy.
+// logging's client IP, host-based tenant selection and the choice among the tenant's own origins — has to observe the
+// original request rather than the proxy-to-application hop. A no-op unless 'ForwardedHeaders' names a trusted proxy.
 app.UseTrustedForwardedHeaders();
 
 // Right after the forwarded headers, so a request a trusted proxy received over HTTPS counts as HTTPS. A no-op in

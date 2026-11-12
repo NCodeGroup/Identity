@@ -671,7 +671,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#337](https://github.com/NCodeGroup/identity/issues/337), [#534](https://github.com/NCodeGroup/identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
   [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
-  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+  [ADR-1398](docs/decisions/1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)).
 
 - **A key type refuses a curve requested with another size, and a size two of its curves share.** The `ecc`, `okp`
   and `AKP` secret key types refuse generation parameters that name a curve, or an ML-DSA parameter set, whose keys
@@ -681,7 +681,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   share it, as P-256 and secp256k1 do with `AddSecp256k1()`; an `okp` key is generated only on a named curve.
   Management secret creation, tenant key provisioning and every other caller of the key types meet the same checks
   ([#534](https://github.com/NCodeGroup/identity/issues/534),
-  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+  [ADR-1398](docs/decisions/1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)).
 
 - **The EdDsa primitives have benchmarks.** `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks` measures the field, scalar
   and group arithmetic and the Ed25519 and Ed448 signing and verification of `NCode.Identity.Jose.EdDsa` with
@@ -900,7 +900,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [#327](https://github.com/NCodeGroup/identity/issues/327), [#534](https://github.com/NCodeGroup/identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
-  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+  [ADR-1398](docs/decisions/1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)).
 
 - **Every stored secret has an active window inside its validity window, and every use of a key honors them.** A
   `PersistedSecret` carries `CreatedWhen`, `ActivatesWhen`, `RetiresWhen` and `ExpiresWhen`, in that order
@@ -4455,7 +4455,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#336](https://github.com/NCodeGroup/identity/issues/336), [#337](https://github.com/NCodeGroup/identity/issues/337),
   [#534](https://github.com/NCodeGroup/identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
-  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md),
+  [ADR-1398](docs/decisions/1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md),
   [ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 
 - **ECDH-ES publishes only the public half of its ephemeral key and refuses a degenerate agreement.** The `ECDH-ES`

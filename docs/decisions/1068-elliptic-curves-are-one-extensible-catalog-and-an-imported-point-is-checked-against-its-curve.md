@@ -36,7 +36,7 @@ before the platform imports it.
    platform supports, such as brainpoolP256r1.
 3. **Curves are selected by identity.** `TryGetByName` and `TryGetByCurve` (the key's actual named-curve OID) name a
    key's `crv` unambiguously. A size (`GetByCurveSizeBits`) selects a curve only when no other curve shares it
-   ([ADR-1398](1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+   ([ADR-1398](1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)).
 4. **Generation takes the curve.** `SecretKeyGenerationParameters { KeySizeBits, Curve? }` carries the request. The
    ECC descriptor resolves the curve by name and refuses a size that differs from it; a non-ECC descriptor refuses a
    curve. `Curve` flows from `CreateSecretRequest` to `GenerateSecretRequest` to the descriptor.
@@ -82,6 +82,6 @@ before the platform imports it.
   [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
-  [ADR-1398](1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)
+  [ADR-1398](1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)
 - `src/NCode.Identity.Secrets/KeyTypes/EccSecretKeyTypeDescriptor.cs`,
   `src/NCode.Identity.Secrets.Abstractions/KeyTypes/EccCurveDomain.cs`

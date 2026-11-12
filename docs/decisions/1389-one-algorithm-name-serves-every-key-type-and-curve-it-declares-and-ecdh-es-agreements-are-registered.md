@@ -78,7 +78,7 @@ accepts it.
     `IsKeyCompatible` when the key is registered, the check the cryptographic runtime makes before it uses the key: an
     Ed25519 key declared for `ECDH-ES` or a P-256 key declared for `ES256K` is refused at registration, not when it is
     first used. Key generation and size declarations are decided in
-    [ADR-1398](1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md).
+    [ADR-1398](1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md).
 11. **The decryption key check reads only the configured key.** The JWE decryption-key check asks `IsKeyCompatible`
     too, so a decryption key on the wrong curve is reported as the caller's configuration error, and it never reads
     the token ([RFC 7516 §11.5](https://datatracker.ietf.org/doc/html/rfc7516#section-11.5)). A policy that needs a
@@ -139,7 +139,7 @@ accepts it.
   [ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md),
   [ADR-1126](1126-the-ecdh-es-concat-kdf-digest-is-sha-256-and-a-test-oracle-must-conform-to-the-rfc.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1398](1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)
+  [ADR-1398](1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)
 - Issue [#327](https://github.com/NCodeGroup/identity/issues/327)
 - `KeyedAlgorithm`, `AlgorithmKeyType`, `AlgorithmCurve`, `KeyAlgorithmDeclaration` and `IEcdhKeyAgreement` in
   `NCode.Identity.Jose.Abstractions`; `AsymmetricSecretKey.CurveName` in `NCode.Identity.Secrets.Abstractions`;

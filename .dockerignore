@@ -13,6 +13,7 @@
 !build/ProjectTemplate.globalconfig
 !build/ProjectTemplate.Tests.globalconfig
 !build/BannedSymbols.txt
+!build/stamp-version.ps1
 !Directory.Build.props
 !Directory.Build.targets
 !Directory.Packages.props

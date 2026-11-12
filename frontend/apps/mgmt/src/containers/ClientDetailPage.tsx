@@ -28,7 +28,7 @@ function machineClientLabel(client: ClientResource): string {
  * Container: drills into a single client to manage its secrets, settings and owners. The parent
  * {@link import('./ClientsPage.js').ClientsPage} supplies the client and owns the drill-in selection.
  * The container addresses the client through the client's own tenant, so a machine client opened from the
- * platform or a team reaches the control-plane tenant's routes (ADR-1421, ADR-1466).
+ * platform or a team reaches the control-plane tenant's routes (ADR-1257, ADR-1466).
  * Secrets honor the one-time reveal (ADR-1050) and settings are a top-level JSON Patch diff; the owner-generic
  * {@link OwnerSecretsTab}/{@link OwnerSettingsTab} render both for the client, and {@link OwnerAccessTab} lists
  * and edits the client's owners. Owns only tab state.

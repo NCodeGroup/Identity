@@ -28,7 +28,7 @@ itself, and that holds roles only at its owning node or beneath it.**
    from the route before any read
    ([ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md)). A machine client is otherwise
    managed through the control-plane tenant's client routes
-   ([ADR-1421](1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md)).
+   ([ADR-1257](1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md)).
 3. **It obtains tokens only for itself.** Its stored `grant_types_supported` is exactly `["client_credentials"]`,
    written when it is created, and a settings write that leaves anything else is refused `400`. It acts for no resource
    server, which is refused `400`.
@@ -71,7 +71,7 @@ itself, and that holds roles only at its owning node or beneath it.**
   [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
-  [ADR-1421](1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md),
+  [ADR-1257](1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md),
   [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
   [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md)

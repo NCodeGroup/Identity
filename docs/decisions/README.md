@@ -182,11 +182,10 @@ The records are grouped by area; within an area they are in number order.
 | [1086](./1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) | Endpoints compose as a declarative group tree, and a protocol endpoint is a thin mediator-driven provider | Accepted |
 | [1191](./1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md) | A management request is authenticated by the control-plane tenant and scoped by its route's tenant | Accepted |
 | [1214](./1214-a-management-write-that-loses-a-race-is-answered-412.md) | A management write that loses a concurrency race is answered 412 | Accepted |
-| [1257](./1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md) | The management console reaches every owner's secrets and settings through one endpoint per operation | Accepted |
+| [1257](./1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md) | The management console addresses every owner's secrets, settings and roles through one owner value | Accepted |
 | [1417](./1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) | A tenant administrator is a role assignment at the tenant's node | Accepted |
 | [1419](./1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) | A client acting for itself is a principal that holds role assignments | Accepted |
 | [1420](./1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md) | A caller's teams and tenants are discovered from its role assignments | Accepted |
-| [1421](./1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md) | The management console addresses a client and a resource server through their tenant | Accepted |
 | [1422](./1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md) | A management problem that asks the caller to wait carries the wait in retryAfterSeconds | Accepted |
 | [1424](./1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) | A management route authorizes the caller at the node it names before it reads | Accepted |
 | [1449](./1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md) | Every role assignment the management API grants or revokes is audited | Accepted |

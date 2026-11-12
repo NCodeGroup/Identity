@@ -2485,7 +2485,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Its `ClientResource` mirrors the server's shape, and writes send `concurrencyToken` as `If-Match` over a
   `replace`-only JSON Patch. Selecting a client opens its detail page with Secrets and Settings tabs (issue
   [#134](https://github.com/NCodeGroup/identity/issues/134),
-  [ADR-1421](docs/decisions/1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md)).
+  [ADR-1257](docs/decisions/1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md)).
 
 - **The management console manages resource servers and their scopes.** Within a tenant the console creates, edits and
   deletes resource servers (APIs) and their nested scopes (permissions) through RTK Query mutations addressed by the
@@ -2499,14 +2499,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   Resource-server edits send `concurrencyToken` as `If-Match` over a `replace`-only JSON Patch, a scope update is a
   whole-resource `PUT`, and system resource servers and their scopes expose no delete control and no Secrets tab (issue
   [#134](https://github.com/NCodeGroup/identity/issues/134),
-  [ADR-1421](docs/decisions/1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md)).
+  [ADR-1257](docs/decisions/1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md)).
 
 - **The management console reaches every owner's secrets and settings through one endpoint per operation.**
   `@ncode/store` exposes `useListSecretsQuery`, `useCreateSecretMutation`, `useDeleteSecretMutation`,
   `useRotateSecretMutation`, `useLazyGetSecretPublicKeyQuery`, `useGetSettingsQuery`, `useGetEffectiveSettingsQuery` and
   `useUpdateSettingsMutation`, each taking a `ManagementOwner` from `@ncode/api`, and `OwnerSecretsTab` and
   `OwnerSettingsTab` serve every detail page: clients, resource servers, the tenant's own surfaces, teams and the platform
-  ([ADR-1257](docs/decisions/1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
+  ([ADR-1257](docs/decisions/1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md),
   issue [#236](https://github.com/NCodeGroup/identity/issues/236)).
 
 - **The management console manages owners and administrators.** A team's and a tenant's Access surface lists, grants

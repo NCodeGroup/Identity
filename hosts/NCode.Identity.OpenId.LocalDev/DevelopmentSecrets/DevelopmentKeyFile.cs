@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -143,7 +142,7 @@ internal static class DevelopmentKeyFile
         key.ImportFromPem(chars[..charsWritten]);
         var parameters = key.ExportParameters(includePrivateParameters: false);
 
-        var writer = new ArrayBufferWriter<byte>();
+        var writer = BufferFactory.CreateArrayBufferWriter();
         using (var json = new Utf8JsonWriter(writer))
         {
             json.WriteStartObject();

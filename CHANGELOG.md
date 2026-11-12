@@ -5258,7 +5258,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   of `/account/sessions/list` are the time the session ends unless it is used again, never `null`. An authorize
   request that finds an ended session terminates it with `absolute_expiry` or `idle_timeout`, which revokes the grants
   issued under it and notifies its relying parties
-  ([ADR-1220](docs/decisions/1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md),
+  ([ADR-1220](docs/decisions/1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md),
   [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
   issue [#271](https://github.com/NCodeGroup/identity/issues/271)).
 

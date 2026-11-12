@@ -20,7 +20,7 @@ replaced its payload, so the concurrency token guarded only the time between tha
 that landed between the two reads was overwritten:
 
 - the touch of a session, which the authorize request that resolves the session performs at most once a minute
-  ([ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md)), removed a client that a
+  ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md)), removed a client that a
   concurrent authorize request added to the session, and two concurrent additions of a client lost one, so a client
   that was missing from the session received no back-channel logout when the session was terminated;
 - a poll of a device-code grant or of a CIBA grant replaced the payload that it read with a copy that records the poll,
@@ -91,7 +91,7 @@ caller to the grant as it is stored and reads again when its write loses a race.
   `StoreConcurrencyException`.
 - [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — the revocations that read again and retry, up to three
   attempts.
-- [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) — the session bounds that the
+- [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) — the session bounds that the
   touch advances.
 - Code: `NCode.Identity.OpenId.Authentication.Persistence.DefaultPersistedGrantService`,
   `NCode.Identity.OpenId.Authentication.Sessions.DefaultSessionService`,

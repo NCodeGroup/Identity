@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends
   [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md),
-  [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) and
+  [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) and
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md))
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
@@ -24,7 +24,7 @@ gives it:
   writes it, and the protected payload of every grant is an `nce1.` envelope over that output
   ([ADR-1265](1265-grant-payloads-are-protected-under-the-tenant-master-key.md)). A document without `$ver` is
   therefore corrupt or foreign, and reading it as version 1 deserializes a document of unknown origin as a grant.
-- [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) decisions 2 and 3 make
+- [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) decisions 2 and 3 make
   `SessionGrant.AbsoluteExpiresWhen` and `SessionGrant.IdleTimeout` nullable, read a session without an absolute end
   as ending at its grant's expiry, and stamp that end on its first touch. `ISessionService.CreateAsync` stamps both
   bounds on every session, and `CreateSessionRequest.IdleTimeout` and `CreateSessionRequest.AbsoluteLifetime` are
@@ -111,7 +111,7 @@ gives it:
 - [project-template ADR-0108](project-template/0108-persisted-documents-are-versioned-and-additive.md)
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)
 - [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)
-- [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md)
+- [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md)
 - [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)
 - [ADR-1265](1265-grant-payloads-are-protected-under-the-tenant-master-key.md)
 - [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)

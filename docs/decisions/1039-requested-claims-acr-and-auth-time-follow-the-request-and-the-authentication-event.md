@@ -98,6 +98,6 @@ authentication happens, and emit `auth_time` when it is known or required.**
 - Records: [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) (the UserInfo enricher seam),
   [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)
   (persisted grants), [ADR-1074](1074-session-management-and-logout.md) (the session),
-  [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) (the session's lifetime).
+  [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) (the session's lifetime).
 - Specifications: [OIDC Core 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter), OpenID
   Connect Core 1.0 §2 and §5.5.1.1, RFC 8176, RFC 9068.

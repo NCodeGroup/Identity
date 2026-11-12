@@ -82,7 +82,7 @@ only once it has claimed the session, and which revokes every grant issued under
    helper, `TerminateOnceAsync`, which claims, dispatches and reports whether it claimed. The paths are
    `ISessionService.RevokeAsync`, `RevokeAllExceptAsync` ([ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)
    states what it revokes), the eviction, the RP-initiated logout (through `RevokeAsync`) and the termination of an
-   ended session ([ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md),
+   ended session ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md),
    [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)).
 2. **The termination names what the claim returned.** The `SessionTermination` of a named session takes its subject and
    the `ClientIds` of the claimed grant's payload. The list is complete: a concurrent `AddClientAsync` changes the
@@ -161,7 +161,7 @@ check rejects them.
 - [RFC 6749 §4.1.2](https://www.rfc-editor.org/rfc/rfc6749#section-4.1.2) and
   [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) — a replayed code is denied and its tokens revoked.
 - [RFC 9068 §2.2.1](https://www.rfc-editor.org/rfc/rfc9068#section-2.2.1) — the `sid` of an access token, which
-  [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) states.
+  [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) states.
 - [OpenID Connect Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html) — the logout
   notification a termination sends.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),

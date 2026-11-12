@@ -737,7 +737,7 @@ than inlining the rationale.
   `ProtectedPayload` directly.** A grant's `ProtectedPayload` is an `nce1.` envelope over the schema-versioned document
   (`$ver`, `$payload`), so reading it as the payload yields no members and throws for a `required` one; a session
   listing that did so failed for every stored session. See
-  [ADR-1220](../../docs/decisions/1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) and
+  [ADR-1220](../../docs/decisions/1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) and
   [ADR-1265](../../docs/decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md).
 - 👁 **A fetch of a URL a tenant or certificate supplies uses a named client whose primary handler has the
   `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use

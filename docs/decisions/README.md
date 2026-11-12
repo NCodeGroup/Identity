@@ -218,7 +218,7 @@ The records are grouped by area; within an area they are in number order.
 | [1216](./1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) | A refresh token rotates unless it is bound, and rotation spends it with its successor atomically | Accepted |
 | [1217](./1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md) | A reused refresh token revokes its family unless it is a retry within an opt-in interval | Accepted |
 | [1218](./1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) | Ended grants are removed after a retention period in bounded batches | Accepted |
-| [1220](./1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) | An end-user session always ends, and its grant expires when it does | Accepted |
+| [1220](./1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) | An end-user session is a grant keyed by its sid, bounded by idle and absolute lifetimes | Accepted |
 | [1222](./1222-a-grants-payload-is-changed-by-a-read-modify-write.md) | A grant's payload is changed by a read-modify-write that loses no concurrent write | Accepted |
 | [1223](./1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md) | A session that ends unused is terminated once, in the background | Accepted |
 | [1225](./1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) | Every grant that issues tokens for a subject validates it | Accepted |

@@ -21,7 +21,7 @@
 
 ## Context
 
-[ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) terminates an ended session
+[ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) terminates an ended session
 only when a request finds it, through the termination seam
 ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)). A session that ends while no request uses it was therefore
 only pruned:
@@ -70,7 +70,7 @@ interval, and the grant prune keeps a session until it is terminated.**
    `(GrantType, RevokedWhen, ExpiresWhen)` of the grants table, which the `AddGrantTypeRevokedWhenExpiresWhenIndex`
    migration adds, serves the query. A session grant without an expiration, which the release before the session
    bounds wrote, has ended
-   ([ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) decision 3) and is
+   ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) decision 3) and is
    terminated with `absolute_expiry`.
 5. **A background context has no request.**
    `IOpenIdContextFactory.CreateForBackgroundAsync(serviceProvider, tenantId, cancellationToken)` builds a
@@ -155,7 +155,7 @@ interval, and the grant prune keeps a session until it is terminated.**
   is terminated.
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the materialized server
   that background work waits for.
-- [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) — the session bounds and the
+- [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) — the session bounds and the
   termination by a request.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — the options that
   are validated when the host starts.

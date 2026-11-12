@@ -9,7 +9,7 @@
 [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) (point 8) and
 [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) (point 8) refuse an encrypted ID
 token and an encrypted logout token: the validators pass no decryption keys, so the JWT validator rejects a JWE
-([ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)).
+([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)).
 
 The NCode OP encrypts both kinds of token to a client that registers `id_token_encrypted_response_alg`
 (`ClientJwtProtectionSettings.IdToken`, used by `DefaultBackChannelLogoutNotifier` for the logout token). A protocol
@@ -18,7 +18,7 @@ step 1 requires the client to decrypt an ID token with the key and algorithms it
 Back-Channel Logout 1.0 §2.6 step 1 requires the same for a logout token (issue #347).
 
 The conventions require a received JWT to be validated only through `IJwtValidator` under an explicit allow-list of
-algorithms and keys ([ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)).
+algorithms and keys ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)).
 Decryption keys are the client's own private keys, which the client holds in a named key ring
 ([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)).
 
@@ -74,7 +74,7 @@ registered encryption.**
 - **Single-valued properties** (`IdTokenKeyManagementAlgorithm`, `IdTokenContentEncryptionAlgorithm`). The lists match
   `IdTokenSigningAlgorithms` and the OP's own settings. Rejected.
 - **A null list permits every algorithm.** The conventions use explicit allow-lists
-  ([ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)); an empty list
+  ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)); an empty list
   permits nothing. Rejected.
 - **Shared-key encryption** (`dir`, AES key wrap, PBES2). The OP encrypts only to a public key the client published,
   and a `private_key_jwt` client has no shared secret. Rejected.
@@ -105,7 +105,7 @@ registered encryption.**
 - RFC 7519 §5.3 (replicating claims as header parameters); RFC 8725 §3.2 and §3.6 (`RSA1_5`; compression)
 - [ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md) — the strict NumericDate read that the same two
   validators use for `auth_time` and the logout `exp`
-- [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) — JWTs are validated
+- [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) — JWTs are validated
   only through `IJwtValidator` under explicit algorithm and key policy
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the client's named
   key rings

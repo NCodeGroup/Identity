@@ -20,12 +20,12 @@ failed login from an open vocabulary (`id_token_invalid`, `nonce_mismatch`, …)
 tell one failure from another only by matching it (issue #343).
 
 Issuer, audience and lifetime are checked inside `IJwtValidator`, as requirements
-([ADR-1120](1120-jwt-validation-requirements-and-handlers.md)). A handler's failure is text, and the validator joins
+([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)). A handler's failure is text, and the validator joins
 every failure into one `JwtValidationException`, so a failed requirement has no identity that a caller can read.
 
 The conventions forbid validating a received JWT outside `IJwtValidator`, and bounding its lifetime by hand
 ([ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md),
-[ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). The protocol client
+[ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)). The protocol client
 therefore cannot re-check `iss`, `aud` or `exp` to learn which one failed.
 
 ## Decision
@@ -128,11 +128,11 @@ one of its own from `TokenValidationFailureCodes`.**
 - `src/NCode.Identity.OpenId.Client/Tokens/DefaultIdTokenValidator.cs`,
   `src/NCode.Identity.OpenId.Client/Tokens/DefaultLogoutTokenValidator.cs`
 - [Backend-for-frontend design §5.2](../backend-for-frontend.md) — the login failure names
-- [ADR-1120](1120-jwt-validation-requirements-and-handlers.md) — requirements and handlers; this adds the code a
+- [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) — requirements and handlers; this adds the code a
   handler fails with
 - [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md) — the lifetime requirement
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
-- [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) — JWTs are validated
+- [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) — JWTs are validated
   only through `IJwtValidator`
 - [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) — the ID-token
   validator this amends

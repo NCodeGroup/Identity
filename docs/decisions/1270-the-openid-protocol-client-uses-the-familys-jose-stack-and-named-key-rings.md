@@ -97,7 +97,7 @@ This ADR covers phase 1a. Phase 1b remains: PAR, DPoP with nonces, mTLS client a
 ## Options considered
 
 - **`Microsoft.IdentityModel` or the ASP.NET Core OpenID Connect handler.** Rejected per D5 and
-  [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md): it is a second JOSE
+  [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md): it is a second JOSE
   stack with a second key and algorithm policy.
 - **Credentials in configuration.** Rejected: it gives no rotation and puts secrets in configuration.
 - **`aud` equal to the token endpoint URL.** Rejected: RFC 7523bis and FAPI 2.0 require the issuer.
@@ -119,7 +119,7 @@ This ADR covers phase 1a. Phase 1b remains: PAR, DPoP with nonces, mTLS client a
 - [ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md) — runtime `jwks_uri` resolution and
   the shared SSRF guard
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
-- [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) — JWT validation
+- [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) — JWT validation
   policy
 - [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — metrics
 - [Backend for frontend](../backend-for-frontend.md)

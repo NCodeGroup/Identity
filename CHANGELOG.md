@@ -785,7 +785,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `…Jwt.Validation`, `…Jwt.Claims`), and the evaluator, handlers, key resolver and claims factory in the implementation
   package; `NCode.Identity.OpenId.Authentication` references `NCode.Identity.Jwt.Abstractions` only
   ([#28](https://github.com/NCodeGroup/identity/issues/28),
-  [ADR-1120](docs/decisions/1120-jwt-validation-requirements-and-handlers.md),
+  [ADR-1154](docs/decisions/1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
   [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
 
 - **A JWT validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
@@ -4402,14 +4402,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   for the `use` and `alg` its metadata declares; the JSON serializations are rejected. `DecodedJwt.SigningKey` reports
   the verifying key, and a Nested JWT also reports its `EncryptionHeader` and `DecryptionKey`. The encoder marks a
   Nested JWT with `cty` `JWT`
-  ([ADR-1154](docs/decisions/1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)).
+  ([ADR-1154](docs/decisions/1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)).
 
 - **The JOSE library does not implement the unsecured `none` algorithm, and the JWT validator rejects an unsigned
   token.** The default algorithm registry has no `none` signature algorithm, a JWS that names it fails as an unsupported
   algorithm, and every policy refuses `none` by name. The JWT validator rejects an unsigned (`alg:none`) token at every
   level, with no option to accept one, so such a token authenticates nowhere: not at UserInfo, introspection, token
   exchange or the management API
-  ([ADR-1154](docs/decisions/1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
+  ([ADR-1154](docs/decisions/1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
   [ADR-1295](docs/decisions/1295-the-jose-library-does-not-implement-the-none-algorithm.md),
   [#379](https://github.com/NCodeGroup/identity/issues/379)).
 

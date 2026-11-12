@@ -15,7 +15,7 @@ left ID-token validation open, and issue #335 asked for the `at_hash`, `c_hash` 
 ID-token validator the client did not yet have. This ADR records the validator itself, `IIdTokenValidator` in
 `NCode.Identity.OpenId.Client`, and the hash check it shares with the server.
 
-Two earlier decisions shape it. [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)
+Two earlier decisions shape it. [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)
 requires a JWT to be validated under an explicit algorithm and key policy, and
 [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) makes
 `SignatureAlgorithm.GetTokenHashFunction` the source of the hash each signing algorithm defines: SHA-512 for Ed25519
@@ -102,7 +102,7 @@ OpenID Connect claims, and returns an invalid token as data.**
 
 ## References
 
-- [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) — JWT validation
+- [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) — JWT validation
   policy
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) — fully specified signature

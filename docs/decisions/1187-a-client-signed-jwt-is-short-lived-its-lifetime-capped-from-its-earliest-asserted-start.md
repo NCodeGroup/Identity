@@ -42,7 +42,7 @@ kind of client-signed JWT uses it through a lattice-bounded setting.**
   maximum) bounds `exp − start`, where the start is the earlier of `iat` and `nbf`, or the validation time plus the
   clock skew when the token asserts neither. A set maximum requires `exp`, since a token without one has an unbounded
   lifetime. Lifetime policy lives in the JWT validation requirement
-  ([ADR-1120](1120-jwt-validation-requirements-and-handlers.md)), where every consumer reuses it.
+  ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)), where every consumer reuses it.
 - **A requirement can make `nbf` and `iat` mandatory.** `RequireNotBefore` and `RequireIssuedAt` on
   `TokenLifetimeRequirement` and `ValidateTokenLifeTimeOptions` make those claims mandatory, and a token without a
   required claim fails with a message that names it.

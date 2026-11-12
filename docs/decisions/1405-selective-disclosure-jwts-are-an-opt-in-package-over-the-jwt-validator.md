@@ -19,7 +19,7 @@ shape how the family adds it:
 
 - The JOSE library signs and verifies compact JWS tokens, and the JWT library validates a received JWT under one
   policy — the keys, the signature algorithms it may use, its `typ`, issuer and lifetime
-  ([ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). An SD-JWT
+  ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)). An SD-JWT
   verifier that verified the issuer-signed JWT or the KB-JWT itself would copy that policy.
 - An implementation package references only `*.Abstractions` packages
   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), and an opt-in capability extends the
@@ -131,7 +131,7 @@ shape how the family adds it:
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
+  [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
   [ADR-1406](1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md)
 - Issue [#73](https://github.com/NCodeGroup/identity/issues/73)
 - `NCode.Identity.Jose.SdJwt`: `DefaultSdJwtIssuer`, `DefaultSdJwtHolder`, `DefaultSdJwtVerifier`,

@@ -14,7 +14,7 @@ same draft deprecates `RSA1_5`, which this library no longer implements
 
 The default algorithm registry still registered a `none` signature algorithm. It verified only against the empty key
 (a key of zero bits), so a caller verifying with its own keys never accepted an unsigned token by accident
-([ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). Every consumer in the
+([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)). Every consumer in the
 family already refuses `none` by name: `SettingAlgorithms`, `DefaultJwtValidator`,
 `ClientAssertionClientAuthenticationHandler`, `DefaultLoadAuthorizationRequestHandler`, `ProviderSignaturePolicy`, the
 protocol client's `ClientRegistration` and `OpenIdClientOptionsValidator`. No component of the family produces or
@@ -57,7 +57,7 @@ away from accepting a forged token for a direct consumer of `IJoseSerializer`.
 ## References
 
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
-- [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)
+- [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)
 - [ADR-1282](1282-the-jose-library-does-not-implement-rsa1-5.md)
 - RFC 7518 §3.6 (using the algorithm `none`)
 - RFC 8725 §3.2 (use appropriate algorithms)

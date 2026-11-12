@@ -274,11 +274,10 @@ The records are grouped by area; within an area they are in number order.
 | [1117](./1117-eddsa-clean-room-implementation-opt-in-package.md) | EdDSA (Ed25519 / Ed448) is a clean-room implementation in an opt-in package | Accepted |
 | [1118](./1118-ml-dsa-post-quantum-signatures-ship-in-the-core-libraries-over-the-bcl-mldsa-type.md) | ML-DSA post-quantum signatures ship in the core libraries over the BCL MLDsa type | Accepted |
 | [1119](./1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md) | A DI-free JWK package models keys, sets and thumbprints, and key types register their rules | Accepted |
-| [1120](./1120-jwt-validation-requirements-and-handlers.md) | JWT validation is modeled as ASP.NET Core-style requirements and handlers | Accepted |
 | [1122](./1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md) | JWT claim values map to and from JSON by their declared type alone | Accepted |
 | [1123](./1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md) | A NumericDate and a whole number a remote party sends are read strictly through shared readers | Accepted |
 | [1126](./1126-the-ecdh-es-concat-kdf-digest-is-sha-256-and-a-test-oracle-must-conform-to-the-rfc.md) | The ECDH-ES Concat KDF digest is SHA-256, and a test oracle must conform to the RFC | Accepted |
-| [1154](./1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) | JWTs are validated as signed tokens under explicit algorithm and key policy | Accepted |
+| [1154](./1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) | JWTs are validated only as signed tokens, by requirements and handlers under the caller's stated policy | Accepted |
 | [1270](./1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted |
 | [1272](./1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [1273](./1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) | The protocol client validates ID tokens under an asymmetric algorithm policy | Accepted |

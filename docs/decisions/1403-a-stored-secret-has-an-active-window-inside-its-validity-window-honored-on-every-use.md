@@ -125,6 +125,6 @@ secret keeps the instants its creator gave it.
 - [OpenID Connect Core 1.0 §10.1.1](https://openid.net/specs/openid-connect-core-1_0.html#RotateSigKeys),
   [RFC 7517 §5](https://datatracker.ietf.org/doc/html/rfc7517#section-5),
   [RFC 8725 §3.1](https://datatracker.ietf.org/doc/html/rfc8725#section-3.1)
-- [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
+- [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
   [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)

@@ -76,7 +76,7 @@ never compresses.**
    - The selector returns the tenant key for the registered signature algorithm and an asymmetric public key from the
      client's `jwks` or `jwks_uri` (`IClientKeyResolver`) for the registered key-management and content-encryption
      algorithms. A token both signed and encrypted is a Nested JWT
-     ([ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)).
+     ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)).
    - Every issuer of a client-addressed JWT resolves the selector. A replacement `ITokenService` protects its ID tokens
      with the credentials the selector returns for `ClientJwtProtectionSettings.IdToken`.
    - The default, `DefaultClientJwtCredentialSelector`, is internal and registered only when no other is, so a
@@ -170,7 +170,7 @@ never compresses.**
   [OpenID Connect Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html) §2.4;
   [CIBA Core 1.0](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) §4, §7.1.1;
   [RFC 9101](https://www.rfc-editor.org/rfc/rfc9101); [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725) §3.2, §3.6.
-- [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) (the validator the
+- [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) (the validator the
   inbound policies configure),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
   [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),

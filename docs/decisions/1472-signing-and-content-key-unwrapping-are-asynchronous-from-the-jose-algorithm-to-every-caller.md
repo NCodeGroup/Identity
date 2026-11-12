@@ -91,7 +91,7 @@ signs.**
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md): the remote key
   that signs and decrypts through these seams.
 - [ADR-1282](1282-the-jose-library-does-not-implement-rsa1-5.md): the random content key on a failed unwrap.
-- [ADR-1120](1120-jwt-validation-requirements-and-handlers.md),
+- [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
   [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
   [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),

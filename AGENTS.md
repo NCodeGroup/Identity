@@ -177,7 +177,7 @@ so a bare ADR number names one record. Ten family records override template reco
 
 - [ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
-- [ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) supersedes
+- [ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md) supersedes
   project-template ADR-0007, because a Markdown file links an issue by its address, which GitHub doesn't autolink in a
   file.
 - [ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
@@ -232,7 +232,7 @@ The build scripts' PowerShell conventions are in
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
 [GitHub issues](https://github.com/NCodeGroup/identity/issues), the single source of truth for it
-([ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)). Record a pending item as an issue labeled by
+([ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md)). Record a pending item as an issue labeled by
 its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
 ([project-template ADR-0001](docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an issue
 closes it with `Closes #<number>`. The same issues and [`docs/decisions/`](docs/decisions/) also hold the pending work

@@ -125,7 +125,7 @@ during a task into the instruction files or an ADR as part of the same change. S
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
 [GitHub issues](https://github.com/NCodeGroup/identity/issues), the single source of truth for it
-([ADR-1306](../../docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)). Record a pending item as an issue
+([ADR-1306](../../docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md)). Record a pending item as an issue
 labeled by its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
 ([project-template ADR-0001](../../docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an
 issue closes it with `Closes #<number>`. Read open issues with `gh issue list`; reference one as

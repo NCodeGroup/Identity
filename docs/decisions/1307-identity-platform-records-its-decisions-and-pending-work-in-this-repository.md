@@ -32,7 +32,7 @@ identity-platform, whose `AGENTS.md` lists them as overrides, that supersedes th
    identity-platform pull request that builds it. identity-platform's `docs/decisions/` holds only the template's
    records, and `/analyze-decision` is not used there.
 2. **Pending work (project-template ADR-0007).** identity-platform's pending work is issues here, under
-   [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md). Its `/ship-plan` files a
+   [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md). Its `/ship-plan` files a
    plan's follow-ups here (`follow-ups: NCodeGroup/identity`), and its pull requests end with
    `Closes NCodeGroup/identity#<number>` or `Refs NCodeGroup/identity#<number>`.
 3. **Merge method (project-template ADR-0013).** identity-platform's `main` takes only squash merges, with linear
@@ -67,7 +67,7 @@ serve identity-platform.
 - [ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md) — identity-platform is a repository of its
   own.
 - [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) and
-  [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) — this repository's merge
+  [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md) — this repository's merge
   method and pending-work records.
 - identity-platform's [`AGENTS.md`](https://github.com/NCodeGroup/identity-platform/blob/main/AGENTS.md), which lists
   the overrides.

@@ -94,10 +94,9 @@ The records are grouped by area; within an area they are in number order.
 | [1261](./1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) | The main branch takes only reviewed pull requests, squash-merged by the merge queue past required checks | Accepted |
 | [1262](./1262-minimal-api-request-delegates-are-generated-at-compile-time.md) | Minimal-API request delegates are generated at compile time | Accepted |
 | [1263](./1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) | Branches and pull requests run an affected gate, and the merge queue runs the full gate | Accepted |
-| [1264](./1264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Superseded |
 | [1266](./1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) | Binary data uses BufferFactory rentals with explicit sensitivity, and text only strict encodings | Accepted |
 | [1302](./1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md) | The main branch is the trunk, release lines service shipped versions, and prereleases use trusted publishing | Accepted |
-| [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
+| [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
 | [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |
 | [1309](./1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
 | [1355](./1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) | General ASP.NET Core helpers live in a dependency-free package | Superseded |

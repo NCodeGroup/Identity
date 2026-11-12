@@ -99,7 +99,8 @@ A reviewer checks these by hand:
   PodDisruptionBudget selects it.
 - The Job uses the namespace's `default` service account unless `serviceAccount.create` is false, because the chart's own
   account does not exist when a first install runs the hook.
-- `migrations.database.existingSecret` may name a connection with schema rights; it defaults to the database Secret. A
+- `migrations.database` may name a connection with schema rights, as a connection-string Secret (`existingSecret`) or a
+  parts Secret (`parts.existingSecret`); it defaults to the database Secret. A
   deployment that separates the two runs the host without the right to change its own schema.
 - `migrations.enabled: false` removes the Job for a deployment whose DBA or pipeline applies a generated idempotent
   script.

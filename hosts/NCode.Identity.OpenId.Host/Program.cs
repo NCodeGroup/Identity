@@ -68,6 +68,10 @@ serviceCollection.AddGuardedHttpLogging();
 // section. Inert when none are configured, which is the correct posture for a direct-TLS deployment.
 serviceCollection.AddTrustedForwardedHeaders(configuration);
 
+// The pods can require the reverse proxy's client certificate on the proxy-to-pod hop, as configured by the
+// 'ProxyClientCertificate' section (ADR-1506). Inert unless 'ProxyClientCertificate:Required' is true.
+serviceCollection.AddProxyClientCertificate(configuration);
+
 // Send Strict-Transport-Security on every HTTPS response outside Development, as configured by the
 // 'StrictTransportSecurity' section (one year with includeSubDomains by default). A deployment whose TLS-terminating
 // proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-1258.
@@ -80,8 +84,11 @@ serviceCollection.AddStrictTransportSecurity(configuration);
 // this hook: ConfigureHttpsDefaults keeps only the last action, so every HTTPS default belongs in this one call, which
 // HostHttpsDefaults holds. The handshake also accepts only TLS 1.2 and 1.3, and only AEAD cipher suites with forward
 // secrecy where the platform lets a process choose them (ADR-1499).
+var proxyClientCertificate = configuration.GetProxyClientCertificateOptions();
 builder.WebHost.ConfigureKestrel(kestrel =>
-    kestrel.ConfigureHttpsDefaults(HostHttpsDefaults.Configure)
+    kestrel.ConfigureHttpsDefaults(https =>
+        HostHttpsDefaults.Configure(https, proxyClientCertificate)
+    )
 );
 
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
@@ -191,7 +198,12 @@ await using var app = builder.Build();
 if (secretProtectionCommand is not null)
     return await secretProtectionCommand.RunAsync(app.Services, CancellationToken.None);
 
-// MUST be the first middleware: everything downstream that reads the scheme or host — the HTTPS redirect, request
+// MUST be the first middleware, before even the forwarded headers: it refuses a request whose connection does not carry
+// the reverse proxy's client certificate (except the liveness and readiness probes) before anything else reads it. A
+// no-op unless 'ProxyClientCertificate:Required' is true (ADR-1506).
+app.UseProxyClientCertificate();
+
+// Right after the proxy check: everything downstream that reads the scheme or host — the HTTPS redirect, request
 // logging's client IP, and the tenant's base address — has to observe the original request rather than the
 // proxy-to-application hop. A no-op unless 'ForwardedHeaders' names a trusted proxy.
 app.UseTrustedForwardedHeaders();

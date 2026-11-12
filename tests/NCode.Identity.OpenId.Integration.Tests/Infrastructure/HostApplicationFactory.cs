@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Buffers;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
@@ -91,6 +93,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// background worker, so a test polls the queue after the request that terminates the session.
     /// </summary>
     internal ConcurrentQueue<RecordedHttpExchange>? BackChannelLogoutExchanges { get; set; }
+
+    /// <summary>
+    /// Gets or sets the certificate that, when set, every request carries in an
+    /// <see cref="IProxyClientCertificateFeature"/>, and the same certificate on its connection, before the host's
+    /// pipeline runs, as a request does when a reverse proxy that authenticates to the host with it forwards the
+    /// request. The certificate is the proxy's, never an end client's.
+    /// </summary>
+    public X509Certificate2? VerifiedProxyCertificate { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether the developer clients of the Development overlay are seeded. They are seeded
@@ -1503,6 +1513,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 );
             }
 
+            // The feature is set before the host's pipeline, the way the proxy certificate middleware sets it.
+            if (VerifiedProxyCertificate is { } verifiedProxyCertificate)
+            {
+                serviceCollection.AddSingleton<IStartupFilter>(
+                    new VerifiedProxyStartupFilter(verifiedProxyCertificate)
+                );
+            }
+
             // The TestServer terminates no TLS, so mutual-TLS client authentication is exercised by forwarding the
             // client certificate in a header (the reverse-proxy path the default resolver already supports).
             serviceCollection.Configure<MutualTlsForwardingOptions>(options =>
@@ -1517,4 +1535,29 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     protected override Microsoft.Extensions.Hosting.IHost CreateHost(
         Microsoft.Extensions.Hosting.IHostBuilder builder
     ) => new ApplicationRunLoopHost(base.CreateHost(builder));
+
+    private sealed class VerifiedProxyStartupFilter(X509Certificate2 certificate) : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) =>
+            app =>
+            {
+                app.Use(
+                    (context, nextMiddleware) =>
+                    {
+                        context.Features.Set<IProxyClientCertificateFeature>(
+                            new VerifiedProxyCertificateFeature(certificate)
+                        );
+                        context.Connection.ClientCertificate = certificate;
+                        return nextMiddleware(context);
+                    }
+                );
+                next(app);
+            };
+    }
+
+    private sealed class VerifiedProxyCertificateFeature(X509Certificate2 certificate)
+        : IProxyClientCertificateFeature
+    {
+        public X509Certificate2 Certificate { get; } = certificate;
+    }
 }

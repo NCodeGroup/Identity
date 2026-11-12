@@ -24,7 +24,8 @@ The chart takes no secret values. It references Secrets you create in the releas
   by the migration Job. It defaults to `database.existingSecret`.
 - cert-manager, unless `backendTls.existingSecret` names a Secret: the chart creates the `Certificate` (and, without
   `backendTls.certManager.issuerRef.name`, a private CA) that issues the pods' serving certificate; see
-  [Transport security](#transport-security).
+  [Transport security](#transport-security). The chart also creates the ingress `Certificate` `<release>-ingress`
+  with cert-manager, whenever an enabled Ingress has no `ingressSecret` of yours.
 
 ## Published artifacts
 
@@ -751,8 +752,9 @@ self-signed Issuer, the CA `Certificate` `<release>-ca`, and an Issuer backed by
 - `backendTls.certManager.issuerRef` names your own Issuer or ClusterIssuer, so the chart creates no private CA.
 - `backendTls.existingSecret` and `managementConsole.backendTls.existingSecret` name `kubernetes.io/tls` Secrets you
   create, so the chart creates no `Certificate` for the component whose Secret you name. The private CA is still
-  created while another component needs a `Certificate` from it. Each Secret must also hold `ca.crt`, which the
-  ingress controller verifies the pods against.
+  created while another component needs a `Certificate` from it. Each Secret must also hold `ca.crt`, the CA that
+  signed the certificate: the pods trust it for the ingress controller's certificate, and with
+  `backendTls.ingressController: none` the controller verifies the pods against it.
 
 ### The ingress controller
 
@@ -768,15 +770,39 @@ verifies the pods' certificate:
 `ingress.annotations` override the chart's annotations, and `managementConsole.ingress.annotations` override the
 console's the same way.
 
-The `proxy-ssl-secret` annotation of ingress-nginx also loads the Secret's `tls.crt` and `tls.key` as a client
-certificate that the pods do not ask for. By default the controller's verification Secret is the serving Secret, which
-holds the pods' private key, because cert-manager issues no CA-only Secret, so the controller, which reads Secrets
-cluster-wide, receives that key. `backendTls.ingressCaSecret` names a Secret in the release namespace that holds only
-`ca.crt`, and the chart then names it in place of the serving Secret (`proxy-ssl-secret` for ingress-nginx, the
-`rootCAsSecrets` entry of the `ServersTransport` for Traefik), so the controller never receives the pods' key. Create it
-with `kubectl create secret generic <name> --from-file=ca.crt=<ca.pem>`, or have a trust distribution tool such as
-trust-manager write it. `managementConsole.backendTls.ingressCaSecret` does the same for the console and, when empty,
-falls back to `backendTls.ingressCaSecret` and then to the console's serving Secret.
+The controller reads one Secret, `<release>-ingress`, which cert-manager issues from the issuer of the pods'
+certificates as a client certificate for the common name `backendTls.clientCertificate.commonName`. Its `ca.crt` is
+what the controller verifies the pods against (`proxy-ssl-secret` for ingress-nginx, the `rootCAsSecrets` entry of the
+`ServersTransport` for Traefik). Its `tls.crt` and `tls.key` are the controller's own client certificate, which
+authenticates it to the pods; they are never a pod's key, and the serving Secret is never the controller's Secret, so
+the controller, which reads Secrets cluster-wide, never receives a pod's private key. The chart issues the Secret when
+`backendTls.ingressController` is not `none` and an enabled Ingress has no `ingressSecret` of yours.
+`backendTls.ingressSecret` names a Secret of your own in the release namespace that holds `ca.crt` and, when
+`backendTls.clientCertificate.required` is `true`, `tls.crt` and `tls.key`; the chart then names it in place of
+`<release>-ingress`. `managementConsole.backendTls.ingressSecret` does the same for the console and, when empty, falls
+back to `backendTls.ingressSecret` and then to `<release>-ingress`. Rendering fails when the controller is not `none`, an
+enabled Ingress's component sets `existingSecret`, and neither `backendTls.certManager.issuerRef.name` nor an
+`ingressSecret` for it is set, because the chart cannot know the CA that signed your certificate.
+
+### Requiring the ingress controller's certificate
+
+By default the pods accept a connection from any client. `backendTls.clientCertificate.required: true` makes the server
+and the console require the ingress controller's certificate: a pod answers `403` to every request whose connection
+carries no certificate that chains to the CA in the serving Secret's `ca.crt`, has the `client auth` usage, is valid and
+has the subject `CN=<backendTls.clientCertificate.commonName>` (`ncode-identity-ingress` by default), except
+`/health/live` and `/health/ready`, which the kubelet sends without one. The chart sets
+`ProxyClientCertificate__Required`, `__CertificateAuthorityPath` (`/etc/ncode-identity/tls/ca.crt`) and
+`__AllowedSubjects__0`, so the pods need no further mount. For Traefik, the chart adds `certificatesSecrets` to each
+`ServersTransport`, so Traefik presents the Secret's certificate; ingress-nginx presents it through `proxy-ssl-secret`.
+
+With `backendTls.ingressController: none`, or with an `ingressSecret` of your own, you configure the controller's
+certificate yourself: it must have the subject `CN=<commonName>` and be issued by the CA in the serving Secret's
+`ca.crt`.
+
+A pod whose connection carries the controller's certificate never reads it as an end client's. A deployment with
+protocol mutual TLS (RFC 8705) therefore sets `OpenId__MutualTls__CertificateHeaderName` through `extraEnv`, and the
+controller forwards the end client's certificate in that header
+([ADR-1506](../../docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
 ### Trust
 
@@ -784,6 +810,14 @@ falls back to `backendTls.ingressCaSecret` and then to the console's serving Sec
 2. A pinned self-signed certificate, whose `ca.crt` is the certificate itself, is acceptable.
 3. A self-signed certificate with proxy verification off is unauthenticated encryption, which stops passive
    eavesdropping and nothing else, and is discouraged. The chart never renders it.
+
+### What CI proves
+
+The `cluster` job of the `Host chart` workflow installs the chart in a kind cluster behind ingress-nginx and behind
+Traefik. It proves that the pods become Ready over HTTPS, that a request through the controller succeeds, that a
+controller whose verification Secret holds a foreign CA is refused (`502` from ingress-nginx, `500` from Traefik), and, with `backendTls.clientCertificate.required`,
+that a direct request without a certificate gets `403` on `/` and `200` on `/health/live`, while a request with the
+ingress Secret's certificate is not refused.
 
 ## Strict-Transport-Security
 

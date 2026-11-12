@@ -487,8 +487,22 @@
         "existingSecret": {
           "type": "string"
         },
-        "ingressCaSecret": {
+        "ingressSecret": {
           "type": "string"
+        },
+        "clientCertificate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "commonName": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          }
         },
         "certManager": {
           "type": "object",
@@ -917,7 +931,7 @@
             "existingSecret": {
               "type": "string"
             },
-            "ingressCaSecret": {
+            "ingressSecret": {
               "type": "string"
             }
           }

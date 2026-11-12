@@ -375,8 +375,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   Service and PodDisruptionBudget never select the migration Job. The pods serve HTTPS from a certificate that a
   cert-manager `Certificate` issues, by default from a private CA the chart creates (`backendTls`), or from a Secret the
   operator provides, and the chart renders the ingress-nginx or Traefik settings that make the ingress controller speak
-  HTTPS to the pods and verify their certificate, against the serving Secret or, when `backendTls.ingressCaSecret` names
-  one, a Secret that holds only the CA, so the controller never receives the pods' private key. The database and Valkey
+  HTTPS to the pods and verify their certificate, against the Secret `<release>-ingress` that cert-manager issues for it,
+  or the `ingressSecret` the operator names, so the controller never receives a pod's private key. The database and Valkey
   connection strings and the local root key are
   referenced as existing Secrets and the recovery public key as a ConfigMap, never passed as values. Rendering fails
   for a release the host would refuse to start (an empty or wildcard `allowedHosts`, a missing database Secret, a
@@ -384,8 +384,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   without its Secret in Production, a Production release with no recovery decision), for more than one replica without
   Valkey, and for unknown values. Without Valkey the chart uses the `Recreate` deployment strategy, which waits for the
   old pod to terminate before starting the next, so it never runs two replicas at once. The `Host chart` CI workflow
-  lints the chart, renders each example release, and checks that each unsafe release is refused
-  ([ADR-1179](docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+  lints the chart, renders each example release, and checks that each unsafe release is refused; the workflow also
+  installs the chart in a kind cluster behind ingress-nginx and Traefik and proves the pods are Ready over HTTPS, that
+  the controller verifies their certificate and that a controller holding the wrong CA is refused
+  ([ADR-1179](docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md),
+  [ADR-1506](docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
 - **The host chart deploys the management console on a host of its own.** With `managementConsole.enabled`,
   `charts/ncode-identity-host` runs the console host under the restricted Pod Security Standard with its own
@@ -4351,6 +4354,20 @@ Until the first stable release, the [Unreleased] section describes the product a
   unauthenticated encryption)
   ([#774](https://github.com/NCodeGroup/identity/issues/774),
   [ADR-1504](docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+
+- **The pods can require the reverse proxy's client certificate.** The `ProxyClientCertificate` section (`Required`,
+  `CertificateAuthorityPath`, `AllowedSubjects`) of `NCode.Identity.AspNetCore` makes the OpenID host and the management
+  console host answer `403` to every request whose connection carries no certificate that chains to the configured
+  authorities, has the `client auth` usage, is valid and has an allowed subject, except the liveness and readiness
+  probes, which the kubelet sends without one. The connection's certificate is the proxy's and is never read as an end
+  client's: protocol mutual TLS (RFC 8705) behind the proxy reads the forwarded header. The chart enables it with
+  `backendTls.clientCertificate.required`, issues the ingress controller's certificate from the issuer of the pods'
+  certificates, and gives Traefik `certificatesSecrets`
+  ([#788](https://github.com/NCodeGroup/identity/issues/788),
+  [#789](https://github.com/NCodeGroup/identity/issues/789),
+  [#790](https://github.com/NCodeGroup/identity/issues/790),
+  [#791](https://github.com/NCodeGroup/identity/issues/791),
+  [ADR-1506](docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
 - **The Data Protection key ring is encrypted at rest under a root key outside the database.** The host persists the key
   ring to the same database as the secrets it unprotects, and encrypts it under the platform master key, whose root key

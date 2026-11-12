@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -74,6 +75,12 @@ public sealed class DefaultClientCertificateResolverTests : BaseTests
         var mockTlsFeature = CreateStrictMock<ITlsConnectionFeature>();
         mockTlsFeature.SetupGet(x => x.ClientCertificate).Returns(certificate).Verifiable();
         HttpContext.Features.Set(mockTlsFeature.Object);
+    }
+
+    private void SetupProxyFeature()
+    {
+        var mockFeature = CreateStrictMock<IProxyClientCertificateFeature>();
+        HttpContext.Features.Set(mockFeature.Object);
     }
 
     #region CreateDecoderCatalog Tests
@@ -186,6 +193,37 @@ public sealed class DefaultClientCertificateResolverTests : BaseTests
         Assert.NotNull(resolved);
         Assert.Same(certificate, resolved.Certificate);
         Assert.Empty(resolved.Intermediates);
+    }
+
+    [Fact]
+    public async Task ResolveCertificateAsync_WhenProxyFeatureSetAndNoHeader_ReturnsNull()
+    {
+        using var proxyCertificate = TestCertificates.CreateSelfSigned("CN=proxy");
+        HttpContext.Connection.ClientCertificate = proxyCertificate;
+        SetupProxyFeature();
+        var context = CreateContext();
+        var resolver = CreateResolver(headerName: null);
+
+        var resolved = await resolver.ResolveCertificateAsync(context, CancellationToken.None);
+
+        Assert.Null(resolved);
+    }
+
+    [Fact]
+    public async Task ResolveCertificateAsync_WhenProxyFeatureSetAndHeaderConfigured_ReturnsHeaderCertificate()
+    {
+        using var proxyCertificate = TestCertificates.CreateSelfSigned("CN=proxy");
+        using var clientCertificate = TestCertificates.CreateSelfSigned("CN=client");
+        HttpContext.Connection.ClientCertificate = proxyCertificate;
+        SetupProxyFeature();
+        HttpContext.Request.Headers[HeaderName] = TestCertificates.ToBase64Der(clientCertificate);
+        var context = CreateContext();
+        var resolver = CreateResolver(HeaderName);
+
+        var resolved = await resolver.ResolveCertificateAsync(context, CancellationToken.None);
+
+        Assert.NotNull(resolved);
+        Assert.Equal(clientCertificate.RawData, resolved.Certificate.RawData);
     }
 
     [Fact]

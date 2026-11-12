@@ -8,7 +8,9 @@
 # ADR-1488), and hold its key rings in a key management service under its own identity (ADR-1485). A server remote key
 # provider is registered only when enabled, with or without its location (ADR-1490).
 # The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
-# the certificate, and the chosen controller verifies it (ADR-1504).
+# the certificate, and the chosen controller verifies it (ADR-1504). The pods can require the ingress controller's
+# client certificate, and the chart's ingress certificate and its Secret are checked. The job installs the chart in kind
+# behind each controller (ADR-1506).
 # The Publish artifacts workflow publishes the chart (ADR-1505).
 name: Host chart
 
@@ -114,6 +116,20 @@ jobs:
           refuse --set backendTls.certManager.renewBefore=2160h
           refuse --set backendTls.certManager.privateKey.size=1024
           refuse --set backendTls.certManager.privateKey.algorithm=RSA --set backendTls.certManager.privateKey.size=256
+          refuse --set backendTls.clientCertificate.commonName=
+          refuse --set 'backendTls.clientCertificate.commonName=a b'
+          refuse --set backendTls.clientCertificate.required=yes
+          # The chart cannot know the CA behind a serving Secret of the operator's, so the controller's Secret is required.
+          refuse_console() {
+            if helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" "$@" > /dev/null 2>&1; then
+              echo "::error::The chart rendered a release it must refuse: $*"
+              exit 1
+            fi
+          }
+          refuse_console --set backendTls.existingSecret=my-tls
+          refuse_console --set managementConsole.backendTls.existingSecret=my-console-tls
+          helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" \
+            --set backendTls.existingSecret=my-tls --set backendTls.ingressSecret=my-ingress > /dev/null
 
       - name: Migrate before the rollout unless disabled
         run: |
@@ -248,13 +264,13 @@ jobs:
           expect "$(helm template release "$CHART" --values "$ha")" 'kind: ServersTransport'
           nginx=$(helm template release "$CHART" --values "$ha" --set backendTls.ingressController=ingress-nginx)
           expect "$nginx" 'backend-protocol: HTTPS' 'proxy-ssl-verify: "on"' \
-            'proxy-ssl-secret: default/release-ncode-identity-host-tls'
+            'proxy-ssl-secret: default/release-ncode-identity-host-ingress'
           reject "$nginx" 'ServersTransport'
           reject "$(helm template release "$CHART" --values "$ha" --set backendTls.ingressController=none)" \
             'ServersTransport' 'nginx.ingress.kubernetes.io'
           # The console's Certificate needs the private CA even when the server's Secret is the operator's.
           console_only=$(helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" \
-            --set backendTls.existingSecret=my-tls)
+            --set backendTls.existingSecret=my-tls --set backendTls.ingressSecret=my-ingress)
           expect "$console_only" 'selfSigned: {}' 'kind: Issuer' 'name: release-ncode-identity-host-management-console-tls'
           # Secrets of the operator's for every component leave no Certificate that needs the private CA.
           reject "$(helm template release "$CHART" --values "$CHART/ci/backend-tls-existing-secret-values.yaml")" 'selfSigned'
@@ -265,6 +281,59 @@ jobs:
             exit 1
           fi
           expect "$console" 'name: release-ncode-identity-host-management-console-tls'
+          # The pods require the ingress controller's client certificate only when asked: the server and the console
+          # receive the requirement, and Traefik names the certificate in each ServersTransport.
+          console_values="$CHART/ci/management-console-values.yaml"
+          reject "$(helm template release "$CHART" --values "$console_values")" 'ProxyClientCertificate'
+          required=$(helm template release "$CHART" --values "$console_values" --set backendTls.clientCertificate.required=true)
+          expect "$required" 'ProxyClientCertificate__Required' 'ProxyClientCertificate__CertificateAuthorityPath' \
+            'ProxyClientCertificate__AllowedSubjects__0' 'certificatesSecrets:'
+          if [ "$(grep -c 'ProxyClientCertificate__Required' <<< "$required")" -ne 2 ]; then
+            echo "::error::The server and the management console must both require the ingress controller's certificate."
+            exit 1
+          fi
+          # ingress-nginx reads the client certificate from the same Secret as the CA.
+          expect "$(helm template release "$CHART" --values "$console_values" --set backendTls.clientCertificate.required=true \
+            --set backendTls.ingressController=ingress-nginx)" 'proxy-ssl-secret: default/release-ncode-identity-host-ingress'
+          # A Secret the operator names is the only Secret a controller verifies against, and the default is the chart's
+          # ingress Secret, never a serving Secret. Traefik lists the Secret as "- <name>" in each ServersTransport and
+          # ingress-nginx renders "proxy-ssl-secret: default/<name>" unquoted.
+          count() {
+            local actual
+            actual=$(grep -c -- "$2" <<< "$1" || true)
+            if [ "$actual" -ne "$3" ]; then
+              echo "::error::The release renders '$2' $actual times, not $3."
+              exit 1
+            fi
+          }
+          traefik=$(helm template release "$CHART" --values "$console_values")
+          nginx=$(helm template release "$CHART" --values "$console_values" --set backendTls.ingressController=ingress-nginx)
+          count "$traefik" '- release-ncode-identity-host-ingress' 2
+          reject "$traefik" '- release-ncode-identity-host-tls' '- release-ncode-identity-host-management-console-tls'
+          count "$nginx" 'proxy-ssl-secret: default/release-ncode-identity-host-ingress' 2
+          reject "$nginx" 'proxy-ssl-secret: default/release-ncode-identity-host-tls' \
+            'proxy-ssl-secret: default/release-ncode-identity-host-management-console-tls'
+          # Secrets of the operator's for the server and the console are the only ones either controller verifies against.
+          both_args=(--set backendTls.ingressSecret=server-ca --set managementConsole.backendTls.ingressSecret=console-ca)
+          traefik=$(helm template release "$CHART" --values "$console_values" "${both_args[@]}")
+          nginx=$(helm template release "$CHART" --values "$console_values" "${both_args[@]}" \
+            --set backendTls.ingressController=ingress-nginx)
+          for rendered in "$traefik" "$nginx"; do
+            expect "$rendered" 'server-ca' 'console-ca'
+            reject "$rendered" '- release-ncode-identity-host-tls' '- release-ncode-identity-host-management-console-tls' \
+              'proxy-ssl-secret: default/release-ncode-identity-host-tls' \
+              'proxy-ssl-secret: default/release-ncode-identity-host-management-console-tls' \
+              'release-ncode-identity-host-ingress'
+          done
+          # The console falls back to the server's Secret, never to its own serving Secret.
+          traefik=$(helm template release "$CHART" --values "$console_values" --set backendTls.ingressSecret=server-ca)
+          nginx=$(helm template release "$CHART" --values "$console_values" --set backendTls.ingressSecret=server-ca \
+            --set backendTls.ingressController=ingress-nginx)
+          for rendered in "$traefik" "$nginx"; do
+            count "$rendered" 'server-ca' 2
+            reject "$rendered" '- release-ncode-identity-host-management-console-tls' \
+              'proxy-ssl-secret: default/release-ncode-identity-host-management-console-tls'
+          done
 
       - name: Deploy the management console on its own host
         run: |
@@ -405,3 +474,273 @@ jobs:
             --show-only templates/management-console-deployment.yaml \
             --set managementConsole.secretProtection.awsKms.webIdentity.roleArn=arn:aws:iam::111122223333:role/x)
           reject "$pem" 'AWS_ROLE_ARN' 'RemoteKeyProviders'
+
+  # Rendering cannot prove what only a cluster does: cert-manager issuing the certificates, the controller reading the
+  # annotations the chart renders, and the controller verifying the pods' certificate. This job installs the chart in a kind
+  # cluster behind each supported ingress controller to prove them.
+  cluster:
+    name: Install the host chart in kind (${{ matrix.controller }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - controller: ingress-nginx
+            class: nginx
+          - controller: traefik
+            class: traefik
+
+    env:
+      CHART: charts/ncode-identity-host
+      NAMESPACE: identity
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing in this job pushes, so the token stays out of .git/config, where later steps could read it.
+          persist-credentials: false
+
+      # A third-party action, so it is pinned to a commit; Dependabot moves the pin and its version comment together.
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build the host image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: hosts/NCode.Identity.OpenId.Host/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ncode-identity-host:kind
+          cache-from: type=gha,scope=host-image
+
+      - name: Create the cluster
+        uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
+        with:
+          version: v0.33.0
+          node_image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+          cluster_name: identity
+
+      - name: Load the host image into the cluster
+        run: kind load docker-image ncode-identity-host:kind --name identity
+
+      - name: Install cert-manager
+        run: |
+          helm install cert-manager oci://quay.io/jetstack/charts/cert-manager --version v1.21.3 \
+            --namespace cert-manager --create-namespace --set crds.enabled=true --wait --timeout 5m
+
+      - name: Install the ingress controller
+        run: |
+          if [ "${{ matrix.controller }}" = ingress-nginx ]; then
+            helm install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --version 4.15.1 \
+              --namespace ingress-nginx --create-namespace --set controller.service.type=ClusterIP \
+              --set controller.admissionWebhooks.enabled=false --wait --timeout 5m
+          else
+            helm install traefik traefik --repo https://traefik.github.io/charts --version 42.3.1 \
+              --namespace traefik --create-namespace --set service.spec.type=ClusterIP --wait --timeout 5m
+          fi
+
+      # The release reads the database and the root key from Secrets, which are generated here and never stored.
+      - name: Create the database and its Secrets
+        run: |
+          set -euo pipefail
+          kubectl create namespace "$NAMESPACE"
+          password=$(openssl rand -hex 16)
+          kubectl -n "$NAMESPACE" create secret generic postgres --from-literal=password="$password"
+          kubectl -n "$NAMESPACE" create secret generic identity-database \
+            --from-literal=connection-string="Host=postgres;Port=5432;Database=openiddb;Username=postgres;Password=$password"
+          kubectl -n "$NAMESPACE" create secret generic identity-root-key \
+            --from-literal=key="$(head -c 32 /dev/urandom | basenc --base64url -w0 | tr -d '=')"
+          kubectl -n "$NAMESPACE" apply -f "$CHART/ci/kind-postgres.yaml"
+          kubectl -n "$NAMESPACE" rollout status deployment/postgres --timeout=3m
+
+      # The chart's pre-install migration Job and the pods' readiness probes over HTTPS prove that the pods serve HTTPS.
+      - name: Install the chart
+        run: |
+          set -euo pipefail
+          helm install release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
+            --set backendTls.ingressController=${{ matrix.controller }} --set ingress.className=${{ matrix.class }} \
+            --wait --timeout 10m
+
+      # through_ingress sends one request to the pods' Host through the ingress controller's Service and prints the HTTP
+      # status code, or 000 when the request fails. Later steps source the file.
+      - name: Verify the pods' certificate through the controller
+        run: |
+          set -euo pipefail
+          helpers="$RUNNER_TEMP/kind-helpers.sh"
+          if [ "${{ matrix.controller }}" = ingress-nginx ]; then
+            controller_namespace=ingress-nginx
+            controller_service=svc/ingress-nginx-controller
+          else
+            controller_namespace=traefik
+            controller_service=svc/traefik
+          fi
+          printf 'CONTROLLER_NAMESPACE=%s\nCONTROLLER_SERVICE=%s\n' "$controller_namespace" "$controller_service" > "$helpers"
+          cat >> "$helpers" <<'EOF'
+          through_ingress() {
+            local path="${1:-/health/ready}"
+            local code=000
+            local forward
+            kubectl -n "$CONTROLLER_NAMESPACE" port-forward "$CONTROLLER_SERVICE" 8080:80 > /dev/null 2>&1 &
+            forward=$!
+            local attempt
+            for attempt in $(seq 1 30); do
+              if (exec 3<> /dev/tcp/127.0.0.1/8080) 2> /dev/null; then
+                break
+              fi
+              sleep 1
+            done
+            code=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
+              -H 'Host: id.example.com' "http://127.0.0.1:8080$path" || true)
+            kill "$forward" 2> /dev/null || true
+            wait "$forward" 2> /dev/null || true
+            printf '%s' "$code"
+          }
+          EOF
+          source "$helpers"
+          code=000
+          for attempt in $(seq 1 12); do
+            code=$(through_ingress /health/ready)
+            if [ "$code" = 200 ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "$code" != 200 ]; then
+            echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code; expected 200, so the controller did not verify and reach the pods."
+            exit 1
+          fi
+
+      # The controller presents the client certificate of the chart's ingress Secret, and the pods' probes need none.
+      # A probe and a non-probe path are both requested through the controller.
+      - name: Require the ingress controller's certificate
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
+            --set backendTls.ingressController=${{ matrix.controller }} --set ingress.className=${{ matrix.class }} \
+            --set backendTls.clientCertificate.required=true --wait --timeout 10m
+          code=000
+          for attempt in $(seq 1 12); do
+            code=$(through_ingress /health/ready)
+            if [ "$code" = 200 ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "$code" != 200 ]; then
+            echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code with the client certificate required; expected 200, so the controller did not present its certificate."
+            exit 1
+          fi
+          code=000
+          for attempt in $(seq 1 12); do
+            code=$(through_ingress /.well-known/openid-configuration)
+            if [ "$code" = 200 ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "$code" != 200 ]; then
+            echo "::error::A request to /.well-known/openid-configuration through the ${{ matrix.controller }} controller answered $code with the client certificate required; expected 200, so the controller did not present its certificate on a path the pods do not exempt (a 403 means the pods refused the controller)."
+            exit 1
+          fi
+
+      # A request that reaches the pods' Service without the ingress controller's certificate is refused, except the probes.
+      - name: Refuse a request that carries no proxy certificate
+        run: |
+          set -euo pipefail
+          kubectl -n "$NAMESPACE" port-forward svc/release-ncode-identity-host 8443:443 > /dev/null 2>&1 &
+          forward=$!
+          trap 'kill "$forward" 2> /dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if (exec 3<> /dev/tcp/127.0.0.1/8443) 2> /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          # direct prints the HTTP status code of a request straight to the pods, or 000 when the request fails. The
+          # arguments after the path go to curl.
+          direct() {
+            local path="$1"
+            shift
+            curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 --insecure \
+              -H 'Host: id.example.com' "$@" "https://127.0.0.1:8443$path" || true
+          }
+
+          # expect_direct requires the expected status code within 12 attempts five seconds apart.
+          expect_direct() {
+            local expected="$1"
+            local path="$2"
+            local description="$3"
+            shift 3
+            local code=000
+            local attempt
+            for attempt in $(seq 1 12); do
+              code=$(direct "$path" "$@")
+              if [ "$code" = "$expected" ]; then
+                return 0
+              fi
+              sleep 5
+            done
+            echo "::error::$description answered $code; expected $expected."
+            exit 1
+          }
+
+          expect_direct 200 /health/live 'A request to /health/live without a certificate'
+          expect_direct 403 / 'A request to / without a certificate'
+          expect_direct 403 /.well-known/openid-configuration 'A request to the discovery document without a certificate'
+
+          kubectl -n "$NAMESPACE" get secret release-ncode-identity-host-ingress -o jsonpath='{.data.tls\.crt}' | base64 -d > "$RUNNER_TEMP/proxy.crt"
+          kubectl -n "$NAMESPACE" get secret release-ncode-identity-host-ingress -o jsonpath='{.data.tls\.key}' | base64 -d > "$RUNNER_TEMP/proxy.key"
+          expect_direct 200 /.well-known/openid-configuration 'A request to the discovery document with the certificate of the ingress Secret' \
+            --cert "$RUNNER_TEMP/proxy.crt" --key "$RUNNER_TEMP/proxy.key"
+
+      # A controller that verifies against a CA that did not sign the pods' certificate must not reach them.
+      # The Secret holds a certificate and key as well as the CA, so Traefik loads the ServersTransport and the answer comes from the failed verification.
+      # The controller's own answer to a failed verification is 502 for ingress-nginx and 500 for Traefik, and the pods would answer 200.
+      - name: Refuse a controller that verifies against the wrong CA
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj /CN=wrong-ca -days 1 \
+            -keyout "$RUNNER_TEMP/wrong-ca.key" -out "$RUNNER_TEMP/wrong-ca.pem"
+          kubectl -n "$NAMESPACE" create secret generic wrong-ca --from-file=ca.crt="$RUNNER_TEMP/wrong-ca.pem" \
+            --from-file=tls.crt="$RUNNER_TEMP/wrong-ca.pem" --from-file=tls.key="$RUNNER_TEMP/wrong-ca.key"
+          helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
+            --set backendTls.ingressController=${{ matrix.controller }} --set ingress.className=${{ matrix.class }} \
+            --set backendTls.clientCertificate.required=true --set backendTls.ingressSecret=wrong-ca --wait --timeout 10m
+          if [ "${{ matrix.controller }}" = ingress-nginx ]; then refused=502; else refused=500; fi
+          code=000
+          for attempt in $(seq 1 12); do
+            code=$(through_ingress /health/ready)
+            if [ "$code" = "$refused" ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "$code" != "$refused" ]; then
+            echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code with a foreign CA in its verification Secret; expected $refused, so the controller did not verify the pods' certificate."
+            exit 1
+          fi
+
+      - name: Show the cluster when a step fails
+        if: failure()
+        run: |
+          kubectl get pods -A || true
+          kubectl get certificates -A || true
+          kubectl get issuers -A || true
+          kubectl get ingress -A || true
+          kubectl get serverstransports.traefik.io -A || true
+          kubectl -n "$NAMESPACE" describe pods || true
+          kubectl -n "$NAMESPACE" logs -l app.kubernetes.io/component=server --tail=200 || true
+          kubectl -n "$NAMESPACE" logs --all-containers --tail=200 -l app.kubernetes.io/component=migrations || true
+          kubectl -n "${{ matrix.controller }}" logs --all-containers --tail=200 -l app.kubernetes.io/name="${{ matrix.controller }}" || true

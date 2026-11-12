@@ -10,4 +10,8 @@ spec:
   serverName: {{ include "identity-host.backendTls.serverName" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .)) | quote }}
   rootCAsSecrets:
     - {{ include "identity-host.backendTls.verificationSecretName" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .)) }}
+{{- if .Values.backendTls.clientCertificate.required }}
+  certificatesSecrets:
+    - {{ include "identity-host.backendTls.verificationSecretName" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .)) }}
+{{- end }}
 {{- end }}

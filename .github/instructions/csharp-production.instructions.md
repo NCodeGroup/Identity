@@ -137,7 +137,7 @@ than inlining the rationale.
       `OpenIdProtocol.GrantTypes`), compared ordinally and documented as the **known** values, never as all of them.
     - **Registered data or strategies**, when a member carries behavior or relationships (a rule, a parent, an
       implementation) — a descriptor contributed through `ICollectionDataSource<T>` or a strategy collection from DI
-      ([ADR-1001](../../docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md)), resolved by name through a
+      ([ADR-1001](../../docs/decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)), resolved by name through a
       catalog that validates the whole set when it is composed (duplicate names, dangling references, cycles) — the
       pattern of `SettingDescriptor`, `SettingScopeDescriptor`, `ISecurityProfile`, and the client-authentication
       handlers. Input naming an unregistered member is **rejected** (the vocabulary of _registered_ values is closed,
@@ -297,7 +297,7 @@ than inlining the rationale.
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods).
 - 👁 **Choose the DI shape deliberately** — template
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods) and
-  [ADR-1001](../../docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md). The mediator is
+  [ADR-1001](../../docs/decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md). The mediator is
   `NCode.Mediator`'s `ICommandHandler<T>`, and each built-in strategy of an open vocabulary is its own class (the
   redirect URI kinds).
 - 👁 **A relationship between a client's settings is a registered coherence rule.** When a value a client registers must

@@ -34,7 +34,7 @@ sign-out**. The first implementations performed _bare_ grant revocations directl
 2. **Observability:** there was no audit record and no structured log for any session lifecycle transition.
 3. **Extensibility:** consumers had no seam to react to a termination they did not initiate.
 
-Per the extensibility ladder in [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md), "many contributors
+Per the extensibility ladder in [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md), "many contributors
 react to a state change" is the canonical shape for a **mediator** seam, and a service may drive the mediator at that
 seam (as `DefaultTokenService` drives the claims seam).
 
@@ -73,7 +73,7 @@ seam (as `DefaultTokenService` drives the claims seam).
     ([ADR-1227](1227-a-session-is-terminated-at-most-once-on-every-path.md)).
 
 - **Creation → inline.** A session is established by exactly one owner (interactive sign-in); it is not a fan-out
-  concern, so per [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) ("the mediator must be earned") it
+  concern, so per [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) ("the mediator must be earned") it
   stays a direct capability. `DefaultSessionService.CreateAsync` records the `session.created` audit event and a
   structured log inline — no seam.
 
@@ -104,7 +104,7 @@ seam (as `DefaultTokenService` drives the claims seam).
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the service / strategy-collection / mediator
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service / strategy-collection / mediator
   ladder this decision applies.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — why the termination reason is a name, not an
   `enum`.

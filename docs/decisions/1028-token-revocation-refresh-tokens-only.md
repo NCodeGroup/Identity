@@ -29,7 +29,7 @@ Two further rules:
 - **Ownership.** Only the client the refresh token was issued to may revoke it (RFC 7009 section 2.1): the handler loads
   the grant and compares its `ClientId` to the authenticated client before setting `RevokedWhen`.
 - **Shape.** The endpoint follows the established OAuth-endpoint and mediator conventions
-  ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)): a thin `IOpenIdEndpointProvider` authenticates
+  ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)): a thin `IOpenIdEndpointProvider` authenticates
   the client and parses the form into a typed `ITokenRevocationRequest`, then delegates to a `RevokeTokenCommand`
   mediator handler that owns the revocation logic — mirroring the token endpoint. The endpoint auto-advertises as
   `revocation_endpoint` in discovery.
@@ -65,7 +65,7 @@ Two further rules:
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the mediator command/handler shape the endpoint
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator command/handler shape the endpoint
   follows.
 - [ADR-1020](1020-grant-management-read-surface.md) / [ADR-1022](1022-grant-filters-and-bulk-revocation.md) — the
   management-side grant soft-revoke this client-facing endpoint reuses (`RevokedWhen`).

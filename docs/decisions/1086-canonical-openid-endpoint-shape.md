@@ -10,7 +10,7 @@ Every OAuth / OpenID Connect protocol endpoint performs the same orchestration: 
 authenticate the client, parse the request parameters, validate them, do the protocol work, and render a result or an
 error. The repository already has the building blocks for doing this cohesively — strongly-typed messages
 (`OpenIdMessage<T>` with `KnownParameter`s and a static `Load`), the mediator (`ICommand` / `ICommandHandler`,
-`ICommand<TResponse>` / `ICommandResponseHandler`, [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)),
+`ICommand<TResponse>` / `ICommandResponseHandler`, [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)),
 self-registering endpoint families ([ADR-1009](1009-endpoint-families-own-their-route-group.md),
 [ADR-1069](1069-registration-library-compile-time-marker-nesting.md)), and an exception filter that renders any
 `IOpenIdError` thrown as `OpenIdException`.
@@ -57,7 +57,7 @@ FooDisposition>`. When a step is a **capability seam** a deployment supplies (re
 - **Transports stay injectable services, invoked from handlers.** A side-effecting transport (back-channel-logout
   delivery, CIBA notification) is an injectable service interface (`IBackChannelLogoutNotifier`,
   `ICibaNotificationService`), not a mediator command — it is called **from** a mediator handler, keeping the
-  "decision" in the pipeline and the "delivery" in a replaceable service ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)
+  "decision" in the pipeline and the "delivery" in a replaceable service ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)
   litmus: mediator only for a genuine pipeline seam).
 
 The reference exemplars are the **token** and **end-session** endpoints and the **CIBA** backchannel endpoint
@@ -94,7 +94,7 @@ been migrated to this shape (`DeviceAuthorizationRequest : OpenIdMessage<…>` +
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — service vs strategy-collection vs mediator; the
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — service vs strategy-collection vs mediator; the
   litmus this shape applies (mediator for pipeline seams, services for transports).
 - [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their route group and discovery
   advertisement.

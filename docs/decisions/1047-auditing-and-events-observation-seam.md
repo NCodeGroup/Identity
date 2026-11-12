@@ -23,7 +23,7 @@ The forces that shape the design, in priority order:
    configure. The failure of an observer is the observer's problem, not the request's.
 
 2. **It must be coherent with the existing extensibility ladder.**
-   [ADR-1001](./1001-mediator-vs-dependency-injection-logic-classes.md) defines three shapes —
+   [ADR-1001](./1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) defines three shapes —
    **service**, **strategy collection**, and **mediator** — and reserves the mediator for _request-
    pipeline seams that shape the result_ (validation that can reject, claim collections that are
    mutated, grant selection that returns a value). Pure observation is a different thing, and the type
@@ -59,7 +59,7 @@ in raw capability.
 Introduce a **fourth, deliberately narrow shape: the event**, as a dedicated observation seam that
 sits **below** the mediator and is usable from every layer. Events are published through a thin
 publish/subscribe service; handlers are a strategy collection of subscribers invoked with **fault
-isolation**. The mediator remains exactly as [ADR-1001](./1001-mediator-vs-dependency-injection-logic-classes.md)
+isolation**. The mediator remains exactly as [ADR-1001](./1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)
 describes it; events do not replace it.
 
 ### Litmus test (extends ADR-1001)
@@ -428,7 +428,7 @@ example.
 
 ## References
 
-- [ADR-1001](./1001-mediator-vs-dependency-injection-logic-classes.md) — the service / strategy-collection
+- [ADR-1001](./1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service / strategy-collection
   / mediator ladder this decision extends.
 - [ADR-1016](./1016-implementation-packages-depend-only-on-abstractions.md) — abstractions vs.
   implementation package split for `NCode.Identity.Events(.Abstractions)`.

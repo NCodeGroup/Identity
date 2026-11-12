@@ -87,5 +87,5 @@ move with it, as they are generic endpoint/operation results, not identity conce
   `OpenIdEndpointGroup` and the Authentication endpoint-family registrations; the `ManagementRootGroup` hierarchy.
 - [ADR-1042](1042-management-api-route-driven-tenant-scope.md) — the declarative named-group mechanism this relocates
   and composes onto the registration builder.
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — service vs strategy vs mediator registration shapes.
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — service vs strategy vs mediator registration shapes.
 - [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — implementations depend only on abstractions.

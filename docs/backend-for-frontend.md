@@ -991,7 +991,7 @@ a token of the client before it. A back-channel logout token ends only the sessi
 
 ### 5.11 Extensibility seams
 
-Each seam follows [ADR-1001](decisions/1001-mediator-vs-dependency-injection-logic-classes.md): a **service** where there is
+Each seam follows [ADR-1001](decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): a **service** where there is
 one answer, a **strategy collection** where several named members exist, and a **mediator** command where a pipeline
 runs.
 
@@ -1674,7 +1674,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 - [Cookies: HTTP State Management Mechanism (RFC 6265bis)](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/)
   — the `__Host-` and `__Host-Http-` prefixes and `SameSite`.
 - [Fetch Metadata Request Headers](https://www.w3.org/TR/fetch-metadata/).
-- Family ADRs: [1001](decisions/1001-mediator-vs-dependency-injection-logic-classes.md),
+- Family ADRs: [1001](decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [1074](decisions/1074-session-management-and-logout.md), [1077](decisions/1077-session-scoped-grant-revocation-on-logout.md),
   [1087](decisions/1087-refresh-token-reuse-detection-and-family-revocation.md),
   [1089](decisions/1089-pushed-authorization-requests.md),

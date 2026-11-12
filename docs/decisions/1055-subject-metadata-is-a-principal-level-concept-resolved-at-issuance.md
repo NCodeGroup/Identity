@@ -66,7 +66,7 @@ settings, and emit each enabled bag as one nested JSON-object claim. Nothing is 
 interactive login (local **or** external IdP), and refresh all project identically — the handler never needs to know
 which flow produced the subject. The provider is the pluggable seam (default `DefaultPrincipalMetadataProvider` over
 `IFederatedPrincipalStore`); a host replaces it to source metadata from anywhere. This is the same first-class mediator
-extension pipeline claim-shaping already uses ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md),
+extension pipeline claim-shaping already uses ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
 [ADR-1054](1054-local-account-metadata-projection.md)).
 
 ### Always fresh; caching is a host concern, and must be distributed
@@ -140,7 +140,7 @@ Secrets stay standalone-reusable — is tracked in [GitHub issues](https://githu
   and whose resolved `PrincipalId` keys the provider.
 - [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) — the UserInfo endpoint and claims-enricher seam
   one of the projection handlers extends.
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the mediator pipeline that makes projection a
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator pipeline that makes projection a
   first-class extension seam.
 - [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus posture: per-user metadata
   available across all connection types.

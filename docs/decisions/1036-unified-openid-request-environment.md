@@ -124,5 +124,5 @@ expressed this way, so a tenant can override the server default at runtime.
   control philosophy this consolidation serves.
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the principal-resolution and linking knobs that
   become tenant settings on the shared environment.
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the service / strategy / mediator extensibility
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service / strategy / mediator extensibility
   model the consolidated pipeline follows.

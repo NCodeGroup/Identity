@@ -44,7 +44,7 @@ on a shared _context_ — and segregate the service along its two independent re
   record, so they carry no logic and live in `.Abstractions`.
 - **Handlers are logic, keyed by requirement type.** Each requirement is executed by an `IJwtValidationHandler`
   (`JwtValidationHandler<TRequirement>` filters the pending requirements to its type), resolved from DI as a plain
-  collection — the family's strategy-collection pattern ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)).
+  collection — the family's strategy-collection pattern ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)).
   Built-in handlers ship in the implementation package; **external code registers its own via
   `AddJwtValidationHandler<T>()`**, satisfying force 1 without forking.
 - **Succeed/Fail voting replaces throwing.** Handlers vote on a shared `JwtValidationContext` via `Succeed(requirement)`

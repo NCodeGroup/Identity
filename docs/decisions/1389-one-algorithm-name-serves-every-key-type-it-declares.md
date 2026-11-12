@@ -48,7 +48,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
    `AlgorithmKeyType` declares: it generates the ephemeral key pair on the recipient's curve and returns the shared
    secret `Z` and the ephemeral public key as a `SubjectPublicKeyInfo`, and on the recipient's side agrees from a
    `SecretKey`. The four ECDH-ES algorithms are a strategy collection over every registered agreement
-   ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md),
+   ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
    [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)), and the agreement is chosen per key, not per key
    type: a key is agreed by the one agreement whose `AlgorithmKeyType` accepts it, and a key that two agreements accept
    is refused as ambiguous. Several agreements may therefore serve one key type, each over its own curves, so a package
@@ -160,7 +160,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
   [RFC 8037 §3.2](https://datatracker.ietf.org/doc/html/rfc8037#section-3.2),
   [RFC 7748 §6](https://datatracker.ietf.org/doc/html/rfc7748#section-6),
   [RFC 7638 §3.2](https://datatracker.ietf.org/doc/html/rfc7638#section-3.2)
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md),
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md),
   [ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md),
   [ADR-1126](1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md),

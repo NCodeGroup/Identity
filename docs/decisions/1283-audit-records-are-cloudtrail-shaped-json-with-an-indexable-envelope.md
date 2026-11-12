@@ -168,7 +168,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
 - `src/NCode.Identity.Events.Abstractions/Audit/AuditRecordWriter.cs`
 - [Audit records](../audit-records.md) — the fields, vocabularies, event catalog, indexing and incident lookups
 - [Metrics](../metrics.md) — the audit metric attributes
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the service, strategy-collection and mediator
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service, strategy-collection and mediator
   shapes; an audit sink stays an event handler
 - [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — breaking changes are acceptable before release
 - [ADR-1047](1047-auditing-and-events-observation-seam.md) — the event seam and the envelope this amends

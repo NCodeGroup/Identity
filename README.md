@@ -120,7 +120,7 @@ A project's top-level folder says whether it ships ([ADR-1501](docs/decisions/15
 The deployables under `hosts/` are `NCode.Identity.OpenId.Host` with its `.Host.Database` and `.Host.MigrationService`, `NCode.Identity.ManagementConsole.Host` and `NCode.Identity.OpenId.LocalDev`.
 
 The extensibility model — **service** vs **strategy collection** vs **mediator** — is
-[ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md).
+[ADR-1001](docs/decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md).
 
 ## Repositories
 

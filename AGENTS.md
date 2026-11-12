@@ -151,7 +151,7 @@ compiles it and no gate tests it
   ([ADR-1491](docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md))
 
 The central extensibility model — **service** vs **strategy collection** vs **mediator** — is captured in
-[ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md). Extensibility is the family's goal: a
+[ADR-1001](docs/decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md). Extensibility is the family's goal: a
 consumer or sibling package extends any vocabulary (settings, setting scopes, profiles, grant types, methods) by
 registering into it, so vocabularies are **open by default** and a closed construct such as an `enum` must be provably
 closed ([ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)).

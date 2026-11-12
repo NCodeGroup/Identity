@@ -213,7 +213,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) — opaque server-generated ids the `LocalAccount` follows.
 - [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — why the EF reference and the ASP.NET Core
   Identity adapter are opt-in satellites depending only on abstractions.
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the service-vs-mediator model under which the
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service-vs-mediator model under which the
   default handlers delegate to the `ILocalAccountSource` service.
 - [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture: a database
   connection to `FederatedIdentity`'s social/enterprise connection.

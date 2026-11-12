@@ -155,7 +155,7 @@ services/logic — so every layer is independently testable.** Concretely:
 - Related: [ADR-1062](1062-opt-in-interactive-login-consent-ui.md) (opt-in login/consent UI and its
   stable-locator contract — the Auth surface of this platform must honor it),
   [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) (greenfield posture),
-  [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) (service/strategy/mediator model the
+  [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) (service/strategy/mediator model the
   API this UI drives is built on).
 - Management REST surface:
   [`TenantApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/Tenants/TenantApiEndpointHandler.cs),

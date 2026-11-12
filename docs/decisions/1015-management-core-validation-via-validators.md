@@ -37,7 +37,7 @@ Replace the mediator pipeline with a single **replaceable validator service per 
 `ITenantValidator`, `IClientValidator`, `IServerValidator` — public interfaces with a `ValidateCreateAsync` /
 `ValidateUpdateAsync` / `ValidateDeleteAsync` method (server has no update), each returning a
 `ManagementError?` (`null` = valid). This is the **service** shape of
-[ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md), not the strategy-collection/mediator shape.
+[ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md), not the strategy-collection/mediator shape.
 
 - **Fast, ordered, cohesive.** The `Default{Entity}Validator` runs the intrinsic checks in order, short-circuiting
   on the first `ManagementError`. The whole "what must hold to update a tenant" reads in one place. Shared
@@ -83,7 +83,7 @@ with no scoped-service workaround.
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the service vs strategy-collection vs
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service vs strategy-collection vs
   mediator litmus test this decision re-applies.
 - [ADR-1013](1013-management-precondition-mediator-pipeline.md) — the superseded mediator pipeline, whose
   "decide on queried facts, not caught exceptions" analysis is retained.

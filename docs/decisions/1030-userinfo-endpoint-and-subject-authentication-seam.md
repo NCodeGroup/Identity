@@ -30,7 +30,7 @@ _subject-authentication_ command that resolves the caller, and a _claims-enriche
   authentication scheme — **the same mechanism the management API uses** — and maps the ticket to the existing
   `SubjectAuthentication` type. Applications replace the handler (or configure the scheme — e.g. JWT bearer) to change
   how credentials are validated, exactly as off-the-shelf password-grant support requires overriding
-  `DefaultAuthenticatePasswordGrantHandler` ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)). The
+  `DefaultAuthenticatePasswordGrantHandler` ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)). The
   endpoint maps the disposition to HTTP: no subject → `401 invalid_token`; a failed authentication → its error; a
   resolved subject → the claims response.
 - **Claims — an enricher pipeline.** A `GetUserInfoClaimsCommand` carries the resolved `SubjectAuthentication` and the
@@ -83,7 +83,7 @@ Two naming consequences of introducing a second subject-authentication path were
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the mediator command/handler + overridable-default
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator command/handler + overridable-default
   shape this endpoint follows.
 - [ADR-1028](1028-token-revocation-refresh-tokens-only.md) / [ADR-1029](1029-token-introspection-endpoint.md) — the
   sibling client-facing endpoints whose thin-shell + extensible-result conventions UserInfo reuses.

@@ -70,7 +70,7 @@ unit of work, for every tenancy strategy.**
 ## Options considered
 
 - **One provisioner service plus one mediator fan-out (chosen).** Matches the service-vs-mediator split of
-  [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md): orchestration (ensure the row, own the unit of
+  [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): orchestration (ensure the row, own the unit of
   work, order and commit) is a replaceable service; the open-ended "who contributes to a tenant" set is a mediator
   fan-out. One pattern to implement, one lifecycle rule, one transaction, plane handled once.
 - **Make provisioning a mediator command too.** Rejected: provisioning is single-dispatch orchestration, not fan-out,
@@ -102,7 +102,7 @@ unit of work, for every tenancy strategy.**
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the service / strategy-collection / mediator
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service / strategy-collection / mediator
   extensibility model this pipeline applies (orchestration as a service, contribution as a mediator fan-out).
 - [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the control-plane / workload-plane model the `TenantPlane`
   classification realizes.

@@ -10,7 +10,7 @@
 ## Context
 
 The family exists to be extended easily and without restriction. Its extension points are registrations: a package
-adds a strategy to a collection resolved from DI ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)),
+adds a strategy to a collection resolved from DI ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)),
 contributes descriptors through `ICollectionDataSource<T>` (settings, [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)),
 or registers a named implementation (security profiles, client-authentication methods, PKCE transformations). The
 Auth0-parity-plus posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) asks for data-driven,
@@ -96,7 +96,7 @@ relationships in a mask or a chain, closes the behavior and the topology even wh
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — services, strategy collections, and mediators,
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — services, strategy collections, and mediators,
   the registration seams an open vocabulary uses.
 - [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — a vocabulary of registered values is closed to unregistered

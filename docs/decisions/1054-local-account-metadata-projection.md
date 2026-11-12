@@ -88,7 +88,7 @@ data by accident.
 
 Projection is three ordinary `ICommandHandler<…>` handlers on the existing
 `Get{AccessToken,IdToken}SubjectClaimsCommand` / `GetUserInfoClaimsCommand` commands — the same priority-ordered
-mediator pipeline every claim already flows through ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)).
+mediator pipeline every claim already flows through ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)).
 A host adds an `ICommandHandler` to read anything (including the structured bags, via the public
 `ClaimsPrincipal.TryGetMetadata` helper) and emit, transform, or drop arbitrary claims. That pipeline **is** the NCode
 equivalent of Auth0 Actions; the built-in whole-bag projection is just its off-the-shelf default. A richer first-class
@@ -150,7 +150,7 @@ protects `app_metadata`. It is called out here and tracked as management work in
   carried claims resolve through.
 - [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) — the UserInfo endpoint and claims-enricher
   seam one of the projection handlers extends.
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the mediator pipeline that is the claim-shaping
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator pipeline that is the claim-shaping
   (Actions-equivalent) extension seam.
 - [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus posture: database-connection
   metadata (`user_metadata` / `app_metadata`) surfaced as opt-in, namespaced-or-nested claims.

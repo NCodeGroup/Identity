@@ -25,7 +25,7 @@ and `IPersistedGrantService` for the grant — so introspection is a composition
 
 **The introspection endpoint (`/oauth2/introspect`) resolves active state for both token shapes and returns a
 discovery-style, extensible JSON result.** The endpoint follows the established OAuth-endpoint and mediator conventions
-([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)): a thin `IOpenIdEndpointProvider` authenticates the
+([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)): a thin `IOpenIdEndpointProvider` authenticates the
 client and parses the form into a typed `ITokenIntrospectionRequest`, then delegates to an `IntrospectTokenCommand`
 mediator handler. A missing `token` parameter is the one hard error (`400 invalid_request`); every other authenticated
 request returns `200 OK` with an `IntrospectionResult`.
@@ -78,7 +78,7 @@ Three rules shape the design:
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the mediator command/handler shape the endpoint
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator command/handler shape the endpoint
   follows.
 - [ADR-1027](1027-access-token-audience-from-resource-servers.md) — the audience-bound access tokens introspection
   validates.

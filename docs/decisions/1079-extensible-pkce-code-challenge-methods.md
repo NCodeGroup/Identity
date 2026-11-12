@@ -19,7 +19,7 @@ though [OpenID Connect Discovery / RFC 8414](https://datatracker.ietf.org/doc/ht
 
 ## Decision
 
-Replace the hardcoded switch with a **strategy collection** ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md))
+Replace the hardcoded switch with a **strategy collection** ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md))
 and the single boolean with the standard discoverable set.
 
 - **Strategy seam.** `ICodeChallengeMethod` (abstraction in

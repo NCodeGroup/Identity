@@ -56,7 +56,7 @@ Concretely:
   requires certificate binding) the mutual-TLS certificate, enforces the client's
   `require_dpop_bound_access_tokens` / `require_tls_client_certificate_bound_access_tokens` policies, and returns a
   `ProofOfPossessionBinding` (the `token_type` plus the `TokenConfirmation`). This is a **service**, not a mediator
-  command ([ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)): it is a capability called for an answer.
+  command ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)): it is a capability called for an answer.
 
 - **First-class threading, no ambient state.** The binding is passed explicitly to
   `ITokenGrantHandler.HandleAsync`, each grant handler sets the response `token_type` from it and carries its

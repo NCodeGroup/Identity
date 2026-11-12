@@ -27,7 +27,7 @@ different reasons; catching it and labelling it "duplicate" or "missing parent" 
 the token) and deciding on the fact — not by catching an exception you _hope_ corresponds to it.
 
 The preconditions are also a natural **extension seam**: a deployment may want to add its own business rules
-(e.g. tenant-specific policies) to an operation. [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md)'s
+(e.g. tenant-specific policies) to an operation. [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)'s
 litmus test — _"a deliberate extension/override/observation seam on the request pipeline → mediator"_ —
 places this squarely in the mediator shape, and the authentication stack already implements exactly this
 pattern with its `Validate…Command` fan-outs.
@@ -68,7 +68,7 @@ methods, and their remove methods no longer overload a broad exception to signal
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — seam-vs-capability litmus test that
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — seam-vs-capability litmus test that
   places these preconditions in the mediator.
 - [ADR-1011](1011-secret-management-api.md) — the secret/owner management endpoints these preconditions guard.
 - [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the concurrency tokens the `If-Match` and race

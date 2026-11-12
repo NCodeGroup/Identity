@@ -171,7 +171,7 @@ Concretely:
 
 ## References
 
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the service/strategy/mediator extensibility
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service/strategy/mediator extensibility
   model the endpoint family and the validator seam follow.
 - [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their routes and discovery
   advertisement.

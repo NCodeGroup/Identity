@@ -68,5 +68,5 @@ the create form), deleting its hard-coded list.
   abstractions, new capability contracts in the management abstractions, and the removed per-type
   switches.
 - The capability/strategy-collection model is consistent with
-  [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md): the catalog is a strategy
+  [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): the catalog is a strategy
   collection; the discovery composition is a mediator fan-out.

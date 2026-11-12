@@ -73,7 +73,7 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1001](./1001-mediator-vs-dependency-injection-logic-classes.md) | Mediator (commands & handlers) vs. dependency-injected logic classes | Accepted |
+| [1001](./1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) | Behavior is a service, a strategy collection or a mediator seam, chosen by one ladder | Accepted |
 | [1003](./1003-central-package-management-and-lockstep-versioning.md) | Central Package Management and lockstep versioning | Accepted |
 | [1005](./1005-public-api-surface-is-tracked-and-evolves-compatibly.md) | The public API surface is tracked and evolves backward-compatibly | Accepted |
 | [1007](./1007-provenance-sourcelink-and-symbols.md) | Provenance — SourceLink to GitHub and a portable symbol package | Accepted |

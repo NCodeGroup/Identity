@@ -155,7 +155,7 @@ JWE's key-management `alg` was previously checked against the _signing_ set.
   default notifier dispatches a delivery job rather than `POST`ing inline).
 - [ADR-1047](1047-auditing-and-events-observation-seam.md) — the events background-delivery pattern the in-process
   dispatcher generalizes.
-- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the service-vs-strategy extensibility model the
+- [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service-vs-strategy extensibility model the
   job/handler split follows.
 - [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the greenfield posture that makes the clean cutover
   (removing the notifier's HTTP methods) preferable to a shim.

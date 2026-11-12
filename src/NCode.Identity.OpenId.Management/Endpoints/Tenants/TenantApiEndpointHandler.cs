@@ -2242,7 +2242,7 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetOwnerList(tenantId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
@@ -2313,7 +2313,7 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetAdminList(tenantId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
@@ -2338,7 +2338,7 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetAdminList(tenantId);
         return await ProcessRemoveRoleAssignmentAsync(
             httpContext,

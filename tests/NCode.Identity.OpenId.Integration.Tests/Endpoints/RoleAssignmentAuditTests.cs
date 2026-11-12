@@ -17,7 +17,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // Every role assignment the management API grants or revokes is audited as role_assignment.created or
-// role_assignment.deleted, naming the acting administrator or client (ADR-1449).
+// role_assignment.deleted, naming the acting administrator or client (ADR-1465).
 public class RoleAssignmentAuditTests
 {
     private const string RootIssuer = "http://localhost";

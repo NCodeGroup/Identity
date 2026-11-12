@@ -4,7 +4,7 @@ import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@n
  * The console's URL is its navigation state (ADR-1174). The path names the security boundary first and the surface
  * within it second, so the platform ↔ team ↔ tenant boundaries (ADR-1064) stay explicit in every address:
  *
- * - `/home` — the caller's home: the places it holds authority (ADR-1420);
+ * - `/home` — the caller's home: the places it holds authority (ADR-1465);
  * - `/teams`, `/clients`, `/settings`, `/encryption-keys` — the platform scope's surfaces;
  * - `/teams/{teamId}/{surface}` — a team scope's surfaces (`tenants`, `teams`, `clients`, `settings`, `access` and
  *   `usage`), the team id percent-encoded as one segment;

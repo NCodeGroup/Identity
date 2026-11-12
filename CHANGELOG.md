@@ -2202,7 +2202,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   serves every team and tenant the caller administers and names none of them
   ([#566](https://github.com/NCodeGroup/identity/issues/566),
   [#715](https://github.com/NCodeGroup/identity/issues/715),
-  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md),
+  [ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
 
 - **The management console opens on the caller's home.** `/home` lists the platform for a caller with platform
@@ -2210,7 +2210,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   A team administrator signs in with the same token as a platform administrator and works within its teams; a
   platform route sends a caller without platform authority home, and a scope's back control leads home when the
   caller holds no role at the scope above it ([#566](https://github.com/NCodeGroup/identity/issues/566),
-  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md)).
+  [ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md)).
 
 - **Collection endpoints page through management resources by keyset.** A collection `GET`, such as `GET api/teams`,
   `GET api/tenants` or `GET api/tenants/{tenantId}/clients`, returns a page of resources (`CollectionResource<T>`, with
@@ -2515,7 +2515,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   shows itself read-only otherwise, and every role list refreshes after any grant or revoke
   ([#582](https://github.com/NCodeGroup/identity/issues/582),
   [#623](https://github.com/NCodeGroup/identity/issues/623),
-  [ADR-1465](docs/decisions/1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md)).
+  [ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md)).
 
 - **The management console manages secrets with a one-time reveal.** An owner's Secrets tab creates, lists and deletes
   secrets; generated key material is shown exactly once in a `RevealSecretDialog` with a copy affordance and is never
@@ -4015,9 +4015,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   takes `AddRoleHolderRequest` and answers the `RoleHolderResource` it grants, or `409` for a client's principal that
   cannot hold the role there, and every list grants and revokes its role through one flow, so every role answers the
   same statuses and records the same audit events
-  ([ADR-1465](docs/decisions/1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md),
+  ([ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [ADR-1467](docs/decisions/1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md),
-  [ADR-1469](docs/decisions/1469-every-role-list-shares-role-neutral-contracts-and-one-grant-and-revoke-flow.md),
+  [ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [#623](https://github.com/NCodeGroup/identity/issues/623), [#627](https://github.com/NCodeGroup/identity/issues/627),
   [#628](https://github.com/NCodeGroup/identity/issues/628)).
 
@@ -5502,7 +5502,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (resource type `principal`, `ManagementResourceTypes.Principal`), `LocalAccountChangedAuditEvent` for a local
   account and `RoleAssignmentChangedAuditEvent` (`role_assignment.created` / `role_assignment.deleted`) for every role
   the management API grants or revokes, the creator's included, naming the acting administrator
-  ([ADR-1449](docs/decisions/1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md),
+  ([ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [#583](https://github.com/NCodeGroup/identity/issues/583)).
 
 - **A management audit record survives the request's cancellation.** Every `IManagementAuditRecorder` method records a

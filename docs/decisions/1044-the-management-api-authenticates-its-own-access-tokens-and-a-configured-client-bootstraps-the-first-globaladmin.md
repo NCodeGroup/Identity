@@ -19,7 +19,7 @@ The management API under `/api` is a resource server for its own issuer. The for
   and a session cookie is such a principal that a browser also sends on a cross-site navigation.
 - **The who-am-I routes describe a caller.** `GET /api/me`, `/api/me/teams`, `/api/me/tenants` and
   `/api/capabilities` report a caller's principal, platform authority, role assignments and deployment capabilities
-  ([ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md),
+  ([ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md)). A principal from
   another scheme is not a management caller.
 - **A protected resource answers a missing or invalid token `401`.** RFC 6750 section 3 defines the response of a
@@ -140,7 +140,7 @@ seeds.**
   platform settings.
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md): the 401/403/404
   rule.
-- [ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md),
+- [ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
   [ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md): the
   authenticated-caller routes.

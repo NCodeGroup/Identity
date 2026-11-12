@@ -45,7 +45,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
-    // See ADR-1449.
+    // See ADR-1465.
     [SuppressMessage(
         "Design",
         "NCID0003",
@@ -199,7 +199,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
     /// </returns>
-    // See ADR-1469.
+    // See ADR-1465.
     protected internal virtual async ValueTask<IResult> ProcessAddRoleAssignmentAsync(
         HttpContext httpContext,
         RoleList roleList,
@@ -278,7 +278,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
     /// </returns>
-    // See ADR-1469.
+    // See ADR-1465.
     protected internal virtual async ValueTask<IResult> ProcessRemoveRoleAssignmentAsync(
         HttpContext httpContext,
         RoleList roleList,
@@ -339,7 +339,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
     /// </returns>
-    // See ADR-1469.
+    // See ADR-1465.
     protected internal virtual async ValueTask<IResult> ProcessRemoveOwnerAsync(
         HttpContext httpContext,
         RoleList roleList,

@@ -94,7 +94,7 @@ settings cascade and in authority.**
     and tenant surfaces under `/tenants/{tenantId}/…`
     ([ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md)); it opens on the caller's
     `/home`
-    ([ADR-1465](1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md)).
+    ([ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md)).
 14. **The words.** "Platform" is the deployment root; the platform environments of ADR-1495 (`production`, `lab`, `ci`)
     are where a platform runs. "Team" is the grouping. "Organization" stays free for the in-tenant B2B feature.
 
@@ -156,7 +156,7 @@ settings cascade and in authority.**
   the platform master key
 - [ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md) — console addresses
 - [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — nested teams
-- [ADR-1465](1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md) — the caller's home
+- [ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md) — the caller's home
 - [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md) — machine clients
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)
   — platform environments

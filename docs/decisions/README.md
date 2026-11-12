@@ -180,15 +180,12 @@ The records are grouped by area; within an area they are in number order.
 | [1257](./1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md) | The management console addresses every owner's secrets, settings and roles through one owner value | Accepted |
 | [1417](./1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) | Management authority is a role assignment at a node of the platform, team and tenant hierarchy | Accepted |
 | [1419](./1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) | A client acting for itself is a principal that holds role assignments | Accepted |
-| [1420](./1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md) | A caller's teams and tenants are discovered from its role assignments | Accepted |
 | [1422](./1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md) | A management problem that asks the caller to wait carries the wait in retryAfterSeconds | Accepted |
 | [1424](./1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) | A management route authorizes at the node it names before it reads, through replaceable validators | Accepted |
-| [1449](./1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md) | Every role assignment the management API grants or revokes is audited | Accepted |
 | [1450](./1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md) | A client-credentials access token names the client's principal as its subject | Accepted |
-| [1465](./1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md) | A role list tells its reader whether it may grant and revoke the role | Accepted |
+| [1465](./1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md) | Role lists share one audited grant and revoke flow, and a caller discovers its own assignments | Accepted |
 | [1466](./1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md) | A machine client belongs to the platform or a team and acts only within it | Accepted |
 | [1467](./1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md) | Custody of a machine client needs creation authority at the node that owns it | Accepted |
-| [1469](./1469-every-role-list-shares-role-neutral-contracts-and-one-grant-and-revoke-flow.md) | Every role list shares role-neutral contracts and one grant and revoke flow | Accepted |
 | [1470](./1470-a-callers-acting-client-is-resolved-once-per-request.md) | A caller's acting client is resolved once per request | Accepted |
 | [1480](./1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md) | A management route answers from what it read and declares every problem it answers | Accepted |
 | [1481](./1481-a-management-routes-problem-responses-say-when-each-occurs.md) | A management route's problem responses say when each occurs | Accepted |

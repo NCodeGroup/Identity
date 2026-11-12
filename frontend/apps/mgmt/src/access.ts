@@ -2,7 +2,7 @@ import type { CallerResource, TeamResource, TenantResource } from '@ncode/api';
 import { HOME_ROUTE, platformRoute, teamRoute, tenantRoute, type ConsoleRoute } from './routes.js';
 
 /**
- * Where the signed-in caller holds authority (ADR-1420): whether it administers the platform, and the teams and
+ * Where the signed-in caller holds authority (ADR-1465): whether it administers the platform, and the teams and
  * tenants at which it holds a role assignment. Authority stays per resource; the console only uses this to decide
  * where to send the caller and what its back controls lead to.
  *

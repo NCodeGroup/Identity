@@ -2723,7 +2723,7 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetOwnerList(tenantId, clientId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,

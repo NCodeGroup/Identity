@@ -1250,7 +1250,7 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetOwnerList(httpContext, teamId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
@@ -1319,7 +1319,7 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetAdminList(httpContext, teamId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
@@ -1343,7 +1343,7 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetAdminList(httpContext, teamId);
         return await ProcessRemoveRoleAssignmentAsync(
             httpContext,

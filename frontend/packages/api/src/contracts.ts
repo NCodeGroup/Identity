@@ -208,7 +208,7 @@ export type AddRoleHolderRequest = {
 };
 
 /**
- * Mirror of `CallerResource`: where the signed-in caller holds authority (ADR-1420). `principalId` is
+ * Mirror of `CallerResource`: where the signed-in caller holds authority (ADR-1465). `principalId` is
  * `null` when the caller resolves to no principal.
  */
 export type CallerResource = {

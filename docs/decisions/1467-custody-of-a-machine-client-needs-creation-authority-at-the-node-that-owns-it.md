@@ -28,7 +28,7 @@ that node.**
 2. **A role is granted to a client's principal only within the machine client's owning node.** The client must be a
    machine client and the node must be its owning node or a node beneath it. The ownership service answers a refused
    `RoleAssignmentGrant` (`IsRefused`), every grant route answers `409` and records no role-assignment event
-   ([ADR-1449](1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md)), and a creator that
+   ([ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md)), and a creator that
    cannot hold `Owner` at what it creates is assigned none.
 3. **Custody does not depend on when a credential was set.** Every role a machine client can hold lies within its owning
    node, and custody needs creation authority there, so whoever can set its credentials could grant every role it holds
@@ -54,7 +54,7 @@ that node.**
 ## References
 
 - [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
-  [ADR-1449](1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md),
+  [ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md),
   [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)
 - PR review <https://github.com/NCodeGroup/identity/pull/585#discussion_r4485655771>

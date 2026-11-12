@@ -1009,7 +1009,7 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetOwnerList(tenantId, resourceServerId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,

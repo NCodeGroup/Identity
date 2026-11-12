@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// Describes one role list of a resource: the role whose holders the list names, the node of the resource hierarchy
 /// the role is assigned at, the operation that authorizes a grant or revoke there, and where the list is served.
 /// </summary>
-// See ADR-1469.
+// See ADR-1465.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class RoleList

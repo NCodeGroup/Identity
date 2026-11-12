@@ -45,9 +45,22 @@ cosign verify ghcr.io/ncodegroup/charts/ncode-identity-host:<version> --certific
 gh attestation verify oci://ghcr.io/ncodegroup/ncode-identity-host:<version> --repo NCodeGroup/identity
 ```
 
-Package access: a package the workflow creates is linked to this repository and is public with it. A package created by
-hand must be made public, and the repository needs write access under the package's "Manage Actions access". Both are
-set in GitHub, which no workflow can change.
+### Package access
+
+Each package's access is set once, in GitHub: no API sets a package's Actions access, its repository link or its
+visibility. A package the workflow creates is linked to this repository and the workflow can write to it, but it starts
+private. A package first pushed by hand is neither linked nor writable by the workflow, and the workflow's push to it
+fails. For each of `ncode-identity-host`, `ncode-identity-management-console` and `charts/ncode-identity-host`, open the
+package from the organization's **Packages** tab and:
+
+1. In **Package settings**, under **Manage Actions access**, click **Add repository**, choose `NCodeGroup/identity`
+   and give it the **Write** role.
+2. When the package page shows no linked repository, click **Connect repository** and choose `NCodeGroup/identity`.
+3. In **Package settings**, under **Danger Zone**, use **Change visibility** to make the package **Public**, so a
+   cluster pulls it without credentials.
+
+The `verify` job pulls every artifact anonymously, so a package that is still private fails the run with a hint that
+points here.
 
 ## Install
 

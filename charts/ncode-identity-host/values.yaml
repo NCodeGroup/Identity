@@ -85,10 +85,21 @@ migrations:
     limits:
       memory: 256Mi
 
-# Valkey (ConnectionStrings:valkey), shared by every replica. Required when replicaCount is greater than 1.
+# Valkey (ConnectionStrings:valkey), shared by every replica. Required when replicaCount is greater than 1: name either
+# existingSecret, a Secret holding the finished connection string, or parts.existingSecret, a Secret holding the
+# server's address and password, as a Valkey operator writes it; never both.
 valkey:
   existingSecret: ""
   connectionStringKey: connection-string
+  # The keys of the Secret. An empty portKey leaves the port at 6379, an empty usernameKey and an empty passwordKey
+  # leave them out, and ssl connects over TLS.
+  parts:
+    existingSecret: ""
+    hostKey: host
+    portKey: port
+    usernameKey: ""
+    passwordKey: password
+    ssl: false
 
 # Stored secrets and the Data Protection key ring are encrypted under a root key held outside the database; see "Secret
 # protection" in the chart's README.
@@ -417,6 +428,14 @@ managementConsole:
   valkey:
     existingSecret: ""
     connectionStringKey: connection-string
+    # An empty key falls back to valkey.parts; ssl is the console's own.
+    parts:
+      existingSecret: ""
+      hostKey: ""
+      portKey: ""
+      usernameKey: ""
+      passwordKey: ""
+      ssl: false
   # The console's serving certificate: a kubernetes.io/tls Secret with tls.crt, tls.key and ca.crt, or empty for a
   # cert-manager Certificate from the issuer of backendTls.certManager.
   backendTls:

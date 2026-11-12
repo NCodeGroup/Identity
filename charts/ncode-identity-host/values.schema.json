@@ -329,6 +329,30 @@
         "connectionStringKey": {
           "type": "string",
           "minLength": 1
+        },
+        "parts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            },
+            "hostKey": {
+              "type": "string"
+            },
+            "portKey": {
+              "type": "string"
+            },
+            "usernameKey": {
+              "type": "string"
+            },
+            "passwordKey": {
+              "type": "string"
+            },
+            "ssl": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },
@@ -1072,6 +1096,30 @@
             "connectionStringKey": {
               "type": "string",
               "minLength": 1
+            },
+            "parts": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "existingSecret": {
+                  "type": "string"
+                },
+                "hostKey": {
+                  "type": "string"
+                },
+                "portKey": {
+                  "type": "string"
+                },
+                "usernameKey": {
+                  "type": "string"
+                },
+                "passwordKey": {
+                  "type": "string"
+                },
+                "ssl": {
+                  "type": "boolean"
+                }
+              }
             }
           }
         },

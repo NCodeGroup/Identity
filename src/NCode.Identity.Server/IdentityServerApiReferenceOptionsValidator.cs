@@ -22,7 +22,8 @@ internal sealed class IdentityServerApiReferenceOptionsValidator
         return ValidateOptionsResult.Fail(
             $"{IdentityServerApiReferenceOptions.DefaultSectionName}:{nameof(options.PageEnabled)} requires "
                 + $"{IdentityServerApiReferenceOptions.DefaultSectionName}:{nameof(options.DocumentEnabled)}: "
-                + "the API reference page renders the OpenAPI document this host serves."
+                + "the API reference page renders the OpenAPI document this host serves; "
+                + $"{nameof(options.PageEnabled)} is true and {nameof(options.DocumentEnabled)} is false."
         );
     }
 }

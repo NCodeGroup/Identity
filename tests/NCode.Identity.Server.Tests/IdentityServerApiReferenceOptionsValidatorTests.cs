@@ -51,15 +51,9 @@ public sealed class IdentityServerApiReferenceOptionsValidatorTests
         );
 
         Assert.True(result.Failed);
-        Assert.Contains(
-            "ApiReference:PageEnabled",
-            result.FailureMessage,
-            StringComparison.Ordinal
-        );
-        Assert.Contains(
-            "ApiReference:DocumentEnabled",
-            result.FailureMessage,
-            StringComparison.Ordinal
+        Assert.Equal(
+            "ApiReference:PageEnabled requires ApiReference:DocumentEnabled: the API reference page renders the OpenAPI document this host serves; PageEnabled is true and DocumentEnabled is false.",
+            result.FailureMessage
         );
     }
 

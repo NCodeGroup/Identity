@@ -761,7 +761,7 @@ than inlining the rationale.
   counts the stage's limits in one `IncrementUntilExceededAsync` call; never call the counter set for a limit from an
   endpoint. See
   [ADR-1196](../../docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-  [ADR-1198](../../docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) and
+  [ADR-1198](../../docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) and
   [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
 - 👁 **A password is judged by `IPasswordPolicy` wherever it is set.** The management API's create and reset, an
   `IInteractivePasswordChanger`, and a configuration seeder pass the tenant's effective settings, the account's user
@@ -818,7 +818,7 @@ than inlining the rationale.
   records them after the endpoint runs unless a stage refused it, so a meter is a descriptor's `UsageMeter` or
   `OverageUsageMeter`, never an `ITenantUsageRecorder.Record` call beside a limit; answer a refusal with
   `RateLimitErrors.Refuse`. See
-  [ADR-1198](../../docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
+  [ADR-1198](../../docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
   [ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) and
   [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
 - 👁 **A response that reveals a secret is marked `.WithNoStore()`.** Map every endpoint whose response can carry

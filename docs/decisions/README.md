@@ -159,9 +159,8 @@ The records are grouped by area; within an area they are in number order.
 | [1165](./1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) | A tenant's stored issuer is its single origin, and its mTLS alias a routed second host | Accepted |
 | [1166](./1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) | A tenant is created and seeded through one provisioning pipeline under every strategy | Accepted |
 | [1196](./1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted |
-| [1198](./1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) | Plan-tier quotas are daily UTC counts enforced at the quota | Accepted |
+| [1198](./1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) | A daily quota counts a UTC day and a tier may admit a bounded billed overage | Accepted |
 | [1199](./1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) | Tenant usage is a daily ledger that replicas add to | Accepted |
-| [1200](./1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md) | A tier admits a bounded overage past its quota and bills it from the ledger | Accepted |
 | [1205](./1205-replicas-announce-changes-through-a-broadcast-port.md) | Replicas announce changes through a broadcast port | Accepted |
 | [1209](./1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) | A replica adds each usage batch to the ledger once | Accepted |
 | [1213](./1213-the-usage-ledger-is-pruned-in-bounded-batches.md) | The usage ledger is pruned in bounded batches that every provider supports | Accepted |

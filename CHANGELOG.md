@@ -3584,7 +3584,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   writes a plan tier's quotas on a team, and a team's administrators may set lower ones on its tenants. They are
   counted in the shared `IExpiringCounterSet` and reported under the rate-limiting partitions `daily_requests` and
   `daily_token_requests`
-  ([ADR-1198](docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
+  ([ADR-1198](docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
   [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
@@ -3596,7 +3596,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   request admitted past a quota is recorded in the usage ledger under the meters `requests_overage` and
   `token_requests_overage`, which the usage report and the admin UI's Usage tab show with the others, and is counted in
   `ncode.identity.rate_limiting.requests` with the result `overage`
-  ([ADR-1200](docs/decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md),
+  ([ADR-1198](docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
   [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
@@ -5869,9 +5869,9 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **Anonymous discovery and JSON Web Key Set requests cannot spend a tenant's daily request quota.** The two endpoints
   are not metered: they count only against the per-minute rate limits and are not recorded as `requests` usage, so no
   anonymous caller can exhaust a tenant's quota, run up billable overage, or have the tenant's clients refused until
-  midnight UTC ([ADR-1198](docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
+  midnight UTC ([ADR-1198](docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
   [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
-  [ADR-1200](docs/decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md)).
+  [ADR-1198](docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)).
 
 - **Agent attribution stays out of commits by rule and setting, and no check enforces it.** The instructions tell every
   agent never to add a `Co-authored-by:` trailer naming an agent, a `Claude-Session:` trailer or a "Generated with"

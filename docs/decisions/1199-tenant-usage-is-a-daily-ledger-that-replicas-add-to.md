@@ -15,7 +15,7 @@
 
 ## Context
 
-The daily quotas of [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) keep only the
+The daily quotas of [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) keep only the
 current UTC day's count, in a shared counter that expires at midnight. The hosted platform needs more: it bills a plan
 on what a tenant consumed over a period, reports that usage to the customer, and may later admit and bill an overage
 instead of refusing at the quota. That needs a durable record of each tenant's usage, with its own retention, that the
@@ -44,7 +44,7 @@ default and the management API reads it.**
    refused when they answer it `429`. A token request is counted once a confidential client's token request is
    admitted by the token quota. Public clients do not count as token requests, as they do not spend the quota. A
    refused request is not usage, and neither is a request for public metadata (discovery and the JSON Web Key Set,
-   [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)).
+   [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)).
 3. **Replicas count in memory and add to the ledger.** `ITenantUsageRecorder.Record` increments an in-memory count
    under a lock and costs no I/O on the request path. `TenantUsageFlushService` drains the counts every
    `TenantUsageOptions.FlushInterval` (one minute) and adds them in batches of 256 rows, each read with one query per
@@ -85,7 +85,7 @@ default and the management API reads it.**
   usage. Billing tolerates both; a quota, which must be exact, keeps using the shared counter.
 - Overage billing — admitting a request past the quota and billing it — is built on the ledger: the admitted overage
   is recorded under its own meters
-  ([ADR-1200](1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md)).
+  ([ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)).
 - The ledger is not exposed as a metric; dashboards that need per-tenant usage read the management API. The admin UI
   shows it on the tenant page's Usage tab, one column per meter present, so a new meter appears without a UI change.
 
@@ -93,7 +93,7 @@ default and the management API reads it.**
 
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — protocol metrics
-- [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — daily quotas
+- [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — daily quotas
 - [ADR-1209](1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) — a replica adds each usage batch once
 - `src/NCode.Identity.OpenId.Authentication/Usage/`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Stores/TenantUsageStore.cs`,

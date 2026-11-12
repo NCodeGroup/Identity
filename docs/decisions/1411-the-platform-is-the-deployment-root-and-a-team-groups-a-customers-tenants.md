@@ -28,7 +28,7 @@
   [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md),
   [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md),
   [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
-  [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
+  [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
   [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md),
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),

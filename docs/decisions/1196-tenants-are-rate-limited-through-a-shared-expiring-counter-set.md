@@ -117,7 +117,7 @@ client, against per-minute limits that are settings bounded by the merge lattice
      store that is slow but still answering.
 9. **Quotas are a separate decision.** Daily request and token quotas for plan tiers count over far longer windows and
    need billing semantics (reset time zone, overage handling); they reuse the counter port and are decided in
-   [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
+   [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md).
 
 ## Options considered
 
@@ -132,7 +132,7 @@ client, against per-minute limits that are settings bounded by the merge lattice
 ## Consequences
 
 - Every protocol endpoint is limited once a tenant sets a limit; nothing is limited by default. Daily quotas are
-  [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
+  [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md).
 - Every judged partition is counted in `ncode.identity.rate_limiting.requests` by partition and result (`admitted`,
   `rejected`, `store_unavailable`), per
   [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md), and the `429` itself

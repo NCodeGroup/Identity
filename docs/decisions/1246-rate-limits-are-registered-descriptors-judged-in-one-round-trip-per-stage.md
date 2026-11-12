@@ -9,9 +9,9 @@
 ## Context
 
 [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-[ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
+[ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
 [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) and
-[ADR-1200](1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md) define five limits: a
+[ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) define five limits: a
 per-minute limit for a remote address, for a tenant and for an authenticated client, and a daily quota for requests and
 for token requests, each quota with a bounded overage and a usage meter. The limiter holds them in code. Each has its
 own method, window, settings and call site, and the endpoint filter and the token endpoint record the usage meters
@@ -66,7 +66,7 @@ billed.**
    each usage meter at most once, however many descriptors or stages add it. A meter is a descriptor's `UsageMeter` or
    `OverageUsageMeter`; no code records one beside a limit. `RateLimitErrors` stays internal and only builds the `429`.
 3. **The built-in limits are registered descriptors.** `DefaultRateLimitDescriptorDataSource` registers the five with
-   the settings, keys and metrics of ADR-1196, ADR-1198 and ADR-1200:
+   the settings, keys and metrics of ADR-1196, ADR-1198:
 
    | Name                   | Stage                   | Order | Window         | Limit setting                         |
    |------------------------|-------------------------|-------|----------------|---------------------------------------|
@@ -90,7 +90,7 @@ billed.**
    its counter lives for two windows, and the previous window's counter is read with the weight
    `1 − elapsed / window`. A fixed window counts exactly and expires when it ends. Only a fixed window may carry an
    overage, because the overage compares the exact count with the limit and with the limit plus the allowance
-   (ADR-1200). A limit is read from the client's effective settings when the context names a client, because they merge
+   (ADR-1198). A limit is read from the client's effective settings when the context names a client, because they merge
    the tenant's, and from the tenant's settings otherwise.
 5. **A stage is one call to the counter store.**
    `IExpiringCounterSet.IncrementUntilExceededAsync(IReadOnlyList<ExpiringCounterIncrement>, CancellationToken)`
@@ -172,9 +172,9 @@ billed.**
   estimate.
 - [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — the rate-limiting and
   shared-state metrics.
-- [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — daily quotas.
+- [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — daily quotas.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger.
-- [ADR-1200](1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md) — the bounded
+- [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — the bounded
   overage.
 - [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md) — registered descriptors and
   their catalog.

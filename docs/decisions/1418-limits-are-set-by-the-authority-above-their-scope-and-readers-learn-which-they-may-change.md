@@ -17,7 +17,7 @@ rate limit a tenant wrote on the client. A value set above is advice, not a limi
 The settings merge declares which scopes a setting applies to
 ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). It does not
 declare who may write the setting in a given scope's document, and the plan tier's quotas
-([ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) and the tenant rate limits
+([ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)) and the tenant rate limits
 ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)) are the settings that most need a
 writer above their scope.
 
@@ -98,7 +98,7 @@ change them.**
   declare the scopes they apply to
 - [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — tenants are rate limited through
   a shared expiring counter set
-- [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — plan-tier quotas are daily UTC
+- [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — plan-tier quotas are daily UTC
   counts enforced at the quota
 - [ADR-1257](1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md)
   — the management console reaches every owner's secrets and settings through one endpoint per operation

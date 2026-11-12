@@ -106,7 +106,7 @@ tenant, client or subject.
 - **Rate limiting** (`NCode.Identity.OpenId.Authentication`): counter `ncode.identity.rate_limiting.requests`
   (`{request}`) with `ncode.identity.rate_limiting.partition` (`tenant`, `address`, `client`, and the daily quotas'
   `daily_requests` and `daily_token_requests` of
-  [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) and
+  [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)) and
   `ncode.identity.rate_limiting.result` (`admitted`, `rejected`, `store_unavailable`), recorded once per judged
   partition, mirroring ASP.NET Core's `aspnetcore.rate_limiting.requests`. `store_unavailable` makes the fail-open path
   of [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) alertable.

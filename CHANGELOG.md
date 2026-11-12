@@ -2098,7 +2098,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   front-channel marker is general endpoint metadata: `IFrontChannelEndpointMetadata`, `FrontChannelEndpointMetadata` and
   `FrontChannelEndpointConventionBuilderExtensions`, with `WithFrontChannel()` and `Endpoint.IsFrontChannel`.
   `NCode.Identity.AspNetCore` references `NCode.Buffers` ([#513](https://github.com/NCodeGroup/identity/issues/513),
-  [ADR-1388](docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md)).
+  [ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
 
 - **One TypeScript UI platform serves every frontend surface (`frontend`).** Management, login/consent, playground
   and OIDC conformance surfaces share React + Material UI, Redux Toolkit + RTK Query, Vite, Vitest + React Testing

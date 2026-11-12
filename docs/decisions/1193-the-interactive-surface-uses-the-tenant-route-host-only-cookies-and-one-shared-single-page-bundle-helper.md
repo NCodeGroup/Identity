@@ -84,7 +84,7 @@ named for its tenant, and one general helper reads a single-page bundle and serv
 9. **Assets are served by their own group.** `InteractiveBundleAssetEndpointGroup` serves
    `GET|HEAD {tenant route}/account/assets/{**asset}` with the surface's prefix and no `OpenIdEnvironmentEndpointFilter`,
    so no tenant is resolved: any tenant segment, known or not, gets the same public files. It keeps the front-channel
-   marker (`WithFrontChannel()`, [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md)).
+   marker (`WithFrontChannel()`, [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
 10. **Only the `assets` directory is servable.** The bundle's file provider is rooted at `assets`, so a path that leaves
     it, a hidden file and a file of an unknown content type answer `404`, and `index.html` is never served.
 11. **`ServeAsset` sends `Cache-Control: public, max-age=31536000, immutable`** with `ETag`, `Last-Modified` and range
@@ -148,7 +148,7 @@ named for its tenant, and one general helper reads a single-page bundle and serv
   into vendor and surface chunks.
 - [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md): the bundle mounts over the
   page the host rendered.
-- [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md): the
+- [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md): the
   front-channel marker.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md):
   every package names one capability.

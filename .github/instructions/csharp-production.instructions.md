@@ -827,7 +827,7 @@ than inlining the rationale.
   `NCode.Identity.AspNetCore` foundation package. See
   [ADR-1050](../../docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md),
   [ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) and
-  [ADR-1388](../../docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md).
+  [ADR-1256](../../docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Identity.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.

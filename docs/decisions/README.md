@@ -340,7 +340,6 @@ The records are grouped by area; within an area they are in number order.
 | [1311](./1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md) | The BFF logs out by a form post that carries the session's logout guard | Accepted |
 | [1381](./1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md) | The BFF serves its own and exchanged tokens without a lease and forwards remote APIs through YARP | Accepted |
 | [1382](./1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md) | The BFF sends browser security headers and publishes its client keys only when the host opts in | Accepted |
-| [1388](./1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md) | The HTML page security model and the front-channel marker are general ASP.NET Core helpers | Accepted |
 | [1431](./1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md) | The BFF requests offline access only when its deployment lists it | Accepted |
 | [1432](./1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) | One BFF serves several frontends, each selected per request by an open rule | Accepted |
 | [1433](./1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md) | A BFF host refuses to start when an endpoint's BFF metadata is incomplete | Accepted |

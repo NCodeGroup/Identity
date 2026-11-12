@@ -2811,8 +2811,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#605](https://github.com/NCodeGroup/identity/issues/605),
   [#613](https://github.com/NCodeGroup/identity/issues/613),
   [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md),
-  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
-  [ADR-1445](docs/decisions/1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md)).
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 
 - **The management console is served by a BFF host of its own.** `NCode.Identity.ManagementConsole`
   (`AddManagementConsole(configuration)`, `MapManagementConsole()`) and `NCode.Identity.ManagementConsole.Host` serve
@@ -2864,7 +2863,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#418](https://github.com/NCodeGroup/identity/issues/418), [#419](https://github.com/NCodeGroup/identity/issues/419),
   [#603](https://github.com/NCodeGroup/identity/issues/603),
   [ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md),
-  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 
 - **Entity Framework persistence is a reusable framework plus domain slices.** The framework package
   `NCode.Identity.OpenId.Persistence.EntityFramework` provides a `DbSet`-less `OpenIdDbContext` that slices plug into
@@ -5549,7 +5548,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1292](docs/decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
   [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md),
   [ADR-1292](docs/decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
-  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md),
   [ADR-1292](docs/decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)).
 
 - **BFF logout is a form POST.** `POST /bff/logout` takes `sid` and `returnUrl` in a form body and is the only logout

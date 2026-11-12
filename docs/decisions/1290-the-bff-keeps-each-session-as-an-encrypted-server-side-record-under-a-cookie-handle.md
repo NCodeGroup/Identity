@@ -80,7 +80,7 @@ without the cookie.**
    expires at the earlier of the idle and absolute expiry, and the index members at the absolute expiry. The idle window
    slides on API, page and hub requests and on connection activity
    ([ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md),
-   [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)), never on
+   [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)), never on
    `/bff/user`, and only once a tenth of `IdleTimeout` has passed since the last write, so polling the user endpoint
    cannot keep a session alive and a busy session does not write on every call. Every session write is a
    read-modify-write with `TryReplaceAsync`, retried up to five times on a version conflict.

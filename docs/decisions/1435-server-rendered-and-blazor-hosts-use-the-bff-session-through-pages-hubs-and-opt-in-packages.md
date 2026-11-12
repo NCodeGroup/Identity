@@ -63,8 +63,8 @@ package that depends on nothing but the runtime.**
 4. **A hub filter keeps the connection current.** `BffHubFilter`, registered for every hub, revalidates a connection on
    an invocation once the interval has passed, slides the session from the invocation and makes the connection current
    for `AddBffAccessTokenHandler` through `IBffConnectionSessionAccessor`. How a connection ends with its session is
-   [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)'s and
-   [ADR-1445](1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md)'s.
+   [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)'s and
+   [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)'s.
 5. **`NCode.Identity.Bff.Blazor` serves the server half.** `AddBffBlazorLibrary()` registers the revalidating server
    `AuthenticationStateProvider`, which revalidates a circuit's connection every `RevalidationInterval` and signs the
    circuit out when the session ended, or when revalidating it fails for any reason but an unavailable store, and a
@@ -150,8 +150,7 @@ package that depends on nothing but the runtime.**
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md),
   [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md),
   [ADR-1434](1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md),
-  [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
-  [ADR-1445](1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md),
+  [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1276](1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md)
 - [RFC 10017](https://datatracker.ietf.org/doc/html/rfc10017)

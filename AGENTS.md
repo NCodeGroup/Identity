@@ -40,7 +40,7 @@ End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./buil
 ([ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 A project under `tests/` whose name does not end in `.Tests` is a support project that a suite references: the solution
 compiles it and no gate tests it
-([ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+([ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 
 - **Foundation** — `NCode.Identity.Json` (the JSON value model of JOSE, OAuth and OpenID Connect),
   `NCode.Identity.Time` (`NumericDate` precision, timer and time periods) and `NCode.Identity.AspNetCore(.Abstractions)`

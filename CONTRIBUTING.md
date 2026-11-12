@@ -105,7 +105,7 @@ The suite also runs a Blazor Web App (interactive server and WebAssembly) from t
 from another origin is refused, that an idle hub connection closes once its session ends, and that a WebAssembly
 component's traffic carries no token. A project under `tests/` whose name does not end in `.Tests` is a support project:
 the solution compiles it and no gate tests it
-([ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+([ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 
 ```pwsh
 # Run every end-to-end suite (installs the Playwright browsers and pulls the Keycloak image on the first run):

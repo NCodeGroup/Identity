@@ -644,8 +644,7 @@ session, slides it from the connection's activity, and obtains tokens without an
   ended. It returns at once when the connection's `SessionEnded` token is cancelled: a connection session cancels it
   once any use finds the session ended, and from then on reports the session ended without reading the store. It
   retries when the store is unavailable and fails closed on any other failure
-  ([ADR-1441](decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
-  [ADR-1445](decisions/1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md)).
+  ([ADR-1441](decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 - `BffHubFilter`, registered for every hub, watches each connection from connect to disconnect through the revalidator
   and aborts the connection once the session has ended, idle or not. An invocation revalidates the connection once the
   interval has passed, slides the session from the invocation, aborts the connection when the session has ended, and
@@ -654,7 +653,7 @@ session, slides it from the connection's activity, and obtains tokens without an
   it and never closes its connection: an invocation that finds the session ended fails with a `HubException`, and once
   the session ended the connection's invocations run without the session. `AsBffComponents()` puts it on the Blazor
   hub, whose circuit waits on the same revalidator and signs out instead of closing
-  ([ADR-1445](decisions/1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md)).
+  ([ADR-1441](decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 
 **Remote APIs** are forwarded to an allow-listed destination. `MapBffRemoteApi("/api/orders", destination, options)`
 binds a local path prefix to **one** destination base URL. The forwarder:

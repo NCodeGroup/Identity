@@ -22,7 +22,7 @@ namespace NCode.Identity.Bff.Hubs;
 /// <param name="revalidator">The revalidator that waits for the session of an idle connection to end.</param>
 /// <param name="timeProvider">The time provider.</param>
 /// <param name="logger">The logger.</param>
-// See ADR-1445.
+// See ADR-1441.
 internal sealed class BffHubFilter(
     IBffConnectionSessionAccessor connections,
     IBffConnectionRevalidator revalidator,

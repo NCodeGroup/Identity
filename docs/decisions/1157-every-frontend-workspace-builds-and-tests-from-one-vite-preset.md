@@ -39,7 +39,7 @@ configuration file is a single call to it with that workspace's coverage floors.
      references, falling back to a fixed origin outside Aspire.
    - `defineBackendServedSurfaceConfig({ coverage })` builds a bundle the OpenID Provider host serves. The bundle has
      a relative base; the host sets the document's `<base href>` to where it serves the bundle
-     ([ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md)).
+     ([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)).
 2. **Node loads the preset directly.** Vite bundles a configuration file but leaves its bare imports external, so Node
    imports the preset as TypeScript source by stripping its types. The preset is therefore one module
    (`src/preset.ts`):

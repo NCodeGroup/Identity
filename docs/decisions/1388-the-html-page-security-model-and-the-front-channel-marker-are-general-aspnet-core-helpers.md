@@ -4,7 +4,7 @@
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) and
-  [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md))
+  [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md))
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 
@@ -48,7 +48,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
   `WithOpenIdFrontChannel()` and `Endpoint.IsOpenIdFrontChannel` are `WithFrontChannel()` and `Endpoint.IsFrontChannel`.
   The behavior ADR-1148's amendment describes, the CORS branch and the refused preflight, is unchanged, and the
   interactive bundle's asset route keeps the marker as
-  [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md) decision
+  [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md) decision
   1 says, through `WithFrontChannel()`. The `OpenId` prefix is dropped because the marker names no OpenID concept.
 - **`NCode.Identity.AspNetCore` may reference `NCode.Buffers`.** This amends ADR-1500's "references only the ASP.NET Core shared
   framework": the package references the shared framework and the family's foundational `NCode.Buffers`, for the
@@ -88,7 +88,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 - `tests/NCode.Identity.AspNetCore.Tests/`
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)
-- [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
+- [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)
 - [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)

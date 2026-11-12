@@ -172,7 +172,7 @@ public static class DefaultRegistration
             builder.AddEndpointGroup<InteractiveAuthenticationEndpointGroup>();
 
             // The bundle's content-hashed files are served beneath the tenant route by a group that resolves no tenant
-            // (ADR-1254).
+            // (ADR-1193).
             builder.AddEndpointGroup<InteractiveBundleAssetEndpointGroup>();
 
             // Replace the core no-op consent-challenge handler with one that redirects to the interactive consent page.
@@ -201,7 +201,7 @@ public static class DefaultRegistration
                 antiforgery.Cookie.Name = InteractiveAuthenticationDefaults.AntiforgeryCookieName;
                 antiforgery.Cookie.Path = "/";
                 // 'Always' would make antiforgery refuse every non-HTTPS request, and the '__Host-' prefix already
-                // makes a browser refuse the cookie without 'Secure' (ADR-1310).
+                // makes a browser refuse the cookie without 'Secure' (ADR-1193).
                 antiforgery.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             });
 
@@ -225,7 +225,7 @@ public static class DefaultRegistration
                 );
 
             // The surface is served under the tenant route (ADR-1193): the session cookie is host-only and named for
-            // the tenant (ADR-1310), and a challenge redirects to the login page of the tenant that issued it.
+            // the tenant (ADR-1193), and a challenge redirects to the login page of the tenant that issued it.
             serviceCollection
                 .AddOptions<CookieAuthenticationOptions>(
                     InteractiveAuthenticationDefaults.CookieSchemeName

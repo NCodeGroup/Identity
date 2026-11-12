@@ -108,7 +108,7 @@ forms carry on.**
   carrying the preference on the redirect and the forms costs nothing and reaches the end-session and account pages
   the parked request does not cover.
 - **Remember the selected locale in a cookie.** Rejected: a cookie is state the tenant route must scope
-  ([ADR-1310](1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md)) and a second source of truth beside the
+  ([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)) and a second source of truth beside the
   request's preference; the hidden field and the query carry the choice exactly as far as it applies.
 - **Let the bundle negotiate from `navigator.languages`.** Rejected: the no-JavaScript pages would stay in one
   language, the first frame would flash another, and the document's `lang` would not match what the user reads. The

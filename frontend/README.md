@@ -178,7 +178,7 @@ served:
   .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ coverage })`, which
   builds with a relative base: the host serves the bundle beneath each tenant's route and sets the document's
   `<base href>` there. The host serves only the bundle's `assets` directory, its content-hashed files, and marks them
-  immutable, so the preset pins `build.assetsDir` to `assets` (ADR-1254).
+  immutable, so the preset pins `build.assetsDir` to `assets` (ADR-1193).
 - **BFF-served SPAs** — served by their own BFF host from a static `dist` at the root of its origin (`apps/mgmt`,
   which `NCode.Identity.ManagementConsole.Host` serves) — use **`vite build --watch`**, like the backend-served SPAs. Their
   config is `defineBffServedSurfaceConfig({ coverage })`, which builds with the base `/` and writes the nonce placeholder

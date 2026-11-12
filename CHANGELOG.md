@@ -1976,14 +1976,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   `<base href="{tenant path}/account/">`; the `apps/auth` bundle builds with a relative base and resolves its API and
   page paths against `document.baseURI`, so one build works beneath any tenant. The host adds no middleware for the
   bundle, and `defineBackendServedSurfaceConfig` in `@ncode/vite-config` takes no `base`. See
-  [ADR-1193](docs/decisions/1193-the-interactive-surface-is-served-under-the-tenant-route.md).
+  [ADR-1193](docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md).
 
 - **The `apps/auth` bundle's files are cached for a year and served without resolving the tenant.** The host serves only
   the bundle's content-hashed `assets` directory, at `GET|HEAD {tenant}/account/assets/{**asset}`, with
   `Cache-Control: public, max-age=31536000, immutable` and its `ETag` and `Last-Modified` validators, from a route group
   that resolves no tenant, so a returning browser loads the bundle without a request. Other files of the bundle's
   directory, such as `index.html`, are not served, and `@ncode/vite-config` pins `build.assetsDir` to `assets`
-  ([ADR-1254](docs/decisions/1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md),
+  ([ADR-1193](docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md),
   issue [#221](https://github.com/NCodeGroup/identity/issues/221)).
 
 - **The interactive login and consent pages work without JavaScript, and the bundle mounts at once over the page the
@@ -2013,7 +2013,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   time and length, resolves only the files of its `assets` directory, and serves them with
   `Cache-Control: public, max-age=31536000, immutable`, validators and range requests; the interactive surface and the
   management console each register one
-  ([ADR-1457](docs/decisions/1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md), issue
+  ([ADR-1193](docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md), issue
   [#612](https://github.com/NCodeGroup/identity/issues/612)).
 
 - **The consent screen shows the real client and a per-scope choice with friendly names, every requested scope
@@ -5310,8 +5310,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Path=/` without `Domain`, so a sibling subdomain cannot set them, and a tenant's session cookie name is qualified by
   the tenant's path. Separate cookies are not an isolation boundary within an origin; tenants that must be isolated are
   selected by host ([#442](https://github.com/NCodeGroup/identity/issues/442),
-  [ADR-1310](docs/decisions/1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md),
-  [ADR-1193](docs/decisions/1193-the-interactive-surface-is-served-under-the-tenant-route.md)).
+  [ADR-1193](docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)).
 
 - **Every page the server writes has a strict Content-Security-Policy and cannot be framed, except the
   `check_session_iframe` and, by its client's origin, the `form_post` response.**

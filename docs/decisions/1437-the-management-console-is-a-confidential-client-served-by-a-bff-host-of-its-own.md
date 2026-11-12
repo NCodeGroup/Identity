@@ -30,7 +30,7 @@ The forces:
 
 - Every frontend of the family is served from an origin of its own
   ([ADR-1064](1064-frontend-presentation-platform.md)), and a path prefix is no security boundary
-  ([ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md)).
+  ([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)).
 - The management API authenticates sender-constrained bearer tokens of the control-plane tenant
   ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)); a console that reaches it must
   keep that one authentication model.

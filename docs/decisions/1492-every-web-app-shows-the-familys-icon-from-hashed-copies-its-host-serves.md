@@ -9,7 +9,7 @@
 
 The four web apps under `frontend/apps` are served in two ways. `auth` is the sign-in and account bundle: the OP
 host serves it beneath each tenant's route, with a relative base
-([ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md)). `mgmt` is the management console: its
+([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)). `mgmt` is the management console: its
 BFF host serves it at its origin's root, and writes each response's nonce into the page
 ([ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)). `conformance` and
 `playground` are developer surfaces that run on their own Vite servers.
@@ -21,8 +21,7 @@ The kit's README describes a site that serves the files at its root.
 
 Neither host serves a file at the root of a bundle. Each serves only the bundle's `assets/` directory, with an immutable
 cache
-([ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md),
-[ADR-1457](1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md)). Every page the server writes
+([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)). Every page the server writes
 carries a content security policy with `img-src 'self'` and no `manifest-src`
 ([ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
 The image builds' context holds only `src/`, `hosts/`, `analyzers/`, `frontend/` and the root build files
@@ -52,7 +51,7 @@ into the `assets/` its host already serves.**
 3. **The hosts serve them.** The OP host (`{tenant}/account/assets/…`) and the console host (`/assets/…`) serve the
    hashed files through their assets routes, immutable, as `image/x-icon`, `image/svg+xml` and `image/png`, under the
    pages' existing `img-src 'self'`. No host route, policy or code changes, and
-   [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)'s rule that
+   [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)'s rule that
    only the assets directory is servable holds.
 4. **No web manifest.** The fourth tag of the kit's README is not used and no app carries `site.webmanifest` or the
    192 and 512 pixel icons. A manifest makes a page installable as an app named "NCode Identity": every tenant's sign-in
@@ -78,7 +77,7 @@ into the `assets/` its host already serves.**
 
 - **`public/` and root URLs, as the kit's README describes for a site.** Rejected: neither host serves a file at the
   root of a bundle, so serving `/favicon.ico` needs new routes with a revalidated cache, outside the assets directory
-  that [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
+  that [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
   limits serving to.
 - **One shared copy and a preset plugin.** Rejected: a link into another package resolves in a build but not on a dev
   server ([ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
@@ -100,9 +99,9 @@ into the `assets/` its host already serves.**
 - `brand/README.md`
 - [ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)
 - [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)
-- [ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md)
-- [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
+- [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
+- [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
 - [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
-- [ADR-1457](1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md)
+- [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
 - [ADR-1491](1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md)

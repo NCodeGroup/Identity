@@ -715,9 +715,9 @@ than inlining the rationale.
   `assets`, so nothing outside `assets`, the bundle's `index.html` included, is servable, and `ServeAsset` sends a
   served file `Cache-Control: public, max-age=31536000, immutable`. Every surface that serves a built bundle registers
   its own `SinglePageBundle<TIndex>`. See
-  [ADR-1254](../../docs/decisions/1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
+  [ADR-1193](../../docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
   and
-  [ADR-1457](../../docs/decisions/1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md).
+  [ADR-1193](../../docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md).
 - 👁 **Every HTML page the server writes sets its headers through `SetHtmlPageSecurity`.** Build the page's
   `HtmlPageSecurityPolicy` from the strict default (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`,
   `frame-ancestors 'none'` with `X-Frame-Options: DENY`) and list only the sources the page needs — an inline script by

@@ -128,7 +128,7 @@ export function failOnOversizedChunks(): Plugin {
 function buildOptions(): BuildConfig {
   return {
     outDir: 'dist',
-    // The host serves only this directory of a backend-served bundle, as immutable content-hashed files (ADR-1254).
+    // The host serves only this directory of a backend-served bundle, as immutable content-hashed files (ADR-1193).
     assetsDir: 'assets',
     sourcemap: true,
     chunkSizeWarningLimit: CHUNK_SIZE_LIMIT_KB,

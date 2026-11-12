@@ -19,7 +19,7 @@ The interactive login/consent surface is the opt-in leaf capability package
 ([`DefaultRegistration`](../../src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs)) registers
 the `Identity.Application` cookie scheme (`LoginPath = /account/login`, `LogoutPath = /account/logout`) the authorize
 challenge redirects into, and maps the `/account/*` endpoints, which also serve the bundle's files, beneath the tenant
-route ([ADR-1193](../decisions/1193-the-interactive-surface-is-served-under-the-tenant-route.md)) through an
+route ([ADR-1193](../decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)) through an
 `IEndpointProvider`
 ([`InteractiveAuthenticationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs)).
 The `Identity.Application` name lines up with the `authorization_authenticate_scheme` /

@@ -308,7 +308,7 @@ The records are grouped by area; within an area they are in number order.
 | [1057](./1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md) | Local-account management is an opt-in capability that provisions the principal eagerly and authorizes per tenant | Accepted |
 | [1062](./1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) | The OP serves an opt-in interactive sign-in and consent surface with a pluggable credential verifier | Accepted |
 | [1182](./1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md) | The frontend bootstrap's issuer is the serving tenant's and its API base is root-relative | Accepted |
-| [1193](./1193-the-interactive-surface-is-served-under-the-tenant-route.md) | The interactive surface is served under the tenant route, and its session is scoped to the tenant's path | Accepted |
+| [1193](./1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md) | The interactive surface uses the tenant route, host-only cookies and one shared single-page bundle helper | Accepted |
 | [1194](./1194-a-tenant-brands-its-interactive-surface-through-settings.md) | A tenant brands its interactive surface through settings | Accepted |
 | [1224](./1224-deleting-or-disabling-an-account-ends-its-sessions.md) | Deleting or disabling an account ends its sessions, and every token request checks the account | Accepted |
 | [1226](./1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md) | An administrator can block any end user, and a password reset ends the account's sessions | Accepted |
@@ -321,12 +321,9 @@ The records are grouped by area; within an area they are in number order.
 | [1243](./1243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md) | Every ASP.NET Core Identity path hashes and verifies the NFC form of a password | Accepted |
 | [1244](./1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md) | A password refused at the attempt limit costs what a wrong one costs | Accepted |
 | [1253](./1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md) | The interactive bundle mounts at once over the page the host rendered | Accepted |
-| [1254](./1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md) | The interactive bundle's hashed files are served immutable without resolving the tenant | Accepted |
 | [1283](./1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) | Audit records are CloudTrail-shaped JSON with an indexable envelope | Accepted |
 | [1303](./1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md) | Audit records are kept in an indexed store that each replica writes in batches | Accepted |
-| [1310](./1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md) | The interactive surface's cookies are host-only, and a tenant's session is named for its path | Accepted |
 | [1402](./1402-the-interactive-surface-renders-in-the-locale-the-request-prefers-among-the-registered-ui-locales.md) | The interactive surface renders in the locale the request prefers among the registered UI locales | Accepted |
-| [1457](./1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md) | A single-page bundle is read and served through one general helper | Accepted |
 | [1494](./1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md) | A tenant sets its sign-in tab's icon as a branding setting the hosts link in place of the family's | Accepted |
 
 ### Frontend, BFF and browser security

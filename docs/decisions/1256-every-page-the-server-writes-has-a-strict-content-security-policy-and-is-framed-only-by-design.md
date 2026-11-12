@@ -177,7 +177,7 @@ model, writer, headers, nonce and framing rules. It differs in one default, and 
 - [ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md): opt-in front-channel logout and session
   management.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
-- [ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md): the interactive surface is served under
+- [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md): the interactive surface is served under
   the tenant route.
 - [ADR-1201](1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md): authorization
   responses are delivered by registered response-mode handlers.

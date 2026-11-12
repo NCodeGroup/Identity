@@ -15,7 +15,7 @@ consent, and the account pages served by `apps/auth` — did not read it at all.
 unbranded pages.
 
 Branding is per tenant, like the rest of a tenant's behavior, and the surface is now served beneath the tenant route
-([ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md)). Auth0 offers per-tenant Universal Login
+([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)). Auth0 offers per-tenant Universal Login
 branding; this is the equivalent.
 
 ## Decision
@@ -64,6 +64,6 @@ route, and themes itself with before it renders.**
 ## References
 
 - [ADR-1064](1064-frontend-presentation-platform.md) — the frontend presentation platform and its branding seam.
-- [ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md) — the interactive surface is served
+- [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md) — the interactive surface is served
   under the tenant route.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed.

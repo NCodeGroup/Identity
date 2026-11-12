@@ -91,7 +91,7 @@ the tenant's branding in the page, and the bundle reads the branding and the pag
   `apps/auth` surface.
 - [ADR-1114](1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md): non-redirectable authorization
   errors are content-negotiated.
-- [ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md): the interactive surface is served under
+- [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md): the interactive surface is served under
   the tenant route.
 - [ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md): a tenant brands its interactive surface
   through settings.

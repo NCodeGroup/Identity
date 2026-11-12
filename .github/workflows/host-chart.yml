@@ -503,6 +503,9 @@ jobs:
           refuse --set managementConsole.keyRings.client.pemSecret=
           refuse --set managementConsole.keyRings.dpop.pemSecret=
           refuse --set managementConsole.replicaCount=2
+          # The console's Valkey takes the same two forms, one per connection (ADR-1510).
+          refuse --set managementConsole.valkey.existingSecret=a --set managementConsole.valkey.parts.existingSecret=b
+          refuse --set managementConsole.valkey.parts.existingSecret=cvk --set managementConsole.valkey.parts.hostKey= --set valkey.parts.hostKey=
           # Every path of the console's host reaches the console; the server answers only at its own hosts (ADR-1437).
           ingress=$(helm template release "$CHART" --values "$base" --show-only templates/management-console-ingress.yaml)
           if grep -q 'path: /api' <<< "$ingress" || grep -Eq 'name: release-ncode-identity-host$' <<< "$ingress"; then

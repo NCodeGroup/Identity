@@ -126,7 +126,7 @@ defaults, which are the values of the Valkey the host itself uses (ADR-1510).
   valueFrom:
     secretKeyRef:
       name: {{ $scope.existingSecret }}
-      key: {{ $scope.connectionStringKey | default $defaults.connectionStringKey }}
+      key: {{ $scope.connectionStringKey | default $defaults.connectionStringKey | quote }}
 {{- end }}
 {{- end }}
 

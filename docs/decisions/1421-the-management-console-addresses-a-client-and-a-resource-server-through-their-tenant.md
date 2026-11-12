@@ -14,7 +14,7 @@
 The Management API serves clients, resource servers and their scopes only under `/api/tenants/{tenantId}`. No platform
 or team route lists, creates or changes them. A client the platform itself uses is registered in a tenant too, the
 control-plane tenant
-([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)). A console address that carries
+([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)). A console address that carries
 a platform or team scope for a client therefore names a route the API answers with 404, and a type that accepts it
 hides the mistake until run time.
 
@@ -49,6 +49,6 @@ hides the mistake until run time.
 ## References
 
 - [ADR-1257](1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
-  [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)
+  [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)
 - `frontend/packages/api/src/owner.ts`, `frontend/packages/store/src/managementApi.ts`
 - Issue [#568](https://github.com/NCodeGroup/identity/issues/568)

@@ -32,7 +32,7 @@ The forces:
   ([ADR-1064](1064-frontend-presentation-platform.md)), and a path prefix is no security boundary
   ([ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md)).
 - The management API authenticates sender-constrained bearer tokens of the control-plane tenant
-  ([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)); a console that reaches it must
+  ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)); a console that reaches it must
   keep that one authentication model.
 - A BFF is a client of the OP. The OP's own service collection carries `AddIdentityServer`, and a BFF host's carries
   `AddIdentityBff`; the two are never composed together.

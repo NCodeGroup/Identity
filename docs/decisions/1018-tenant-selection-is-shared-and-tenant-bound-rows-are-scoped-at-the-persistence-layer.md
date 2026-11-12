@@ -71,8 +71,7 @@ resolution and tenant management read them with no scope open. The platform has 
 
 The management API's tenant-plane group (`/api/tenants/{tenantId}`) opens the scope from the route's `tenantId` value
 through the internal `TenantScopeEndpointFilter`, independent of the request's resolved tenant (route-driven scope,
-[ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md) and
-[ADR-1042](1042-management-api-route-driven-tenant-scope.md)). The filter answers `404` when the segment is missing.
+[ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)). The filter answers `404` when the segment is missing.
 It reads only the route value and makes no claim that the tenant exists. Control-plane routes carry no `{tenantId}` and
 run unscoped.
 
@@ -125,8 +124,7 @@ unscoped. Direct construction in tests and tooling passes an explicit unscoped a
 - `NCode.Identity.OpenId.Core`: `DefaultAmbientTenantAccessor`
 - `NCode.Identity.OpenId.Persistence.EntityFramework`: `OpenIdDbContext`
 - `NCode.Identity.OpenId.Management`: `TenantScopeEndpointFilter`
-- [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md), [ADR-1042](1042-management-api-route-driven-tenant-scope.md),
-  [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
+- [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md), [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md),
   [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
 - [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md), decision 5:
   the owning tenant comes from the context, never the request

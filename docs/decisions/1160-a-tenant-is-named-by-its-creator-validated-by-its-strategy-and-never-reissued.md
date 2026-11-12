@@ -17,7 +17,7 @@ audit records, and a caller never chooses one. A tenant's identifier is differen
   token the tenant mints and configured by every relying party that trusts it, so it is effectively immutable once
   clients integrate ([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 - **It is a name people use.** The management API addresses a tenant by it
-  ([ADR-1042](1042-management-api-route-driven-tenant-scope.md)), and the hosted platform names a tenant by the leftmost
+  ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)), and the hosted platform names a tenant by the leftmost
   label of its host ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)).
 - **A server-minted identifier cannot be validated against its issuer.** It exists only inside the create call, so a
   caller cannot know the issuer a path tenant must have until the tenant exists.
@@ -80,7 +80,7 @@ through the strategy that serves it on every write path, and a retired identifie
 7. **Every write path uses the seam.**
    - The management validator calls it when a tenant is created and when an update changes the address, answering `400`
      for invalid values before `409` for conflicts. It asks the selection seam a pure question and never resolves a
-     protocol tenant ([ADR-1042](1042-management-api-route-driven-tenant-scope.md)).
+     protocol tenant ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
    - Startup options validators share the internal `TenantAddressRules`, because they cannot call the strategies, which
      read the options being validated.
    - A shared validator checks `StrategyCode` and `TenantResolution:Root:TenantId`. Each built-in strategy registers its
@@ -156,7 +156,7 @@ through the strategy that serves it on every write path, and a retired identifie
 - [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) - opaque identifiers for every other resource.
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) - the issuer as the tenant's identity.
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) - the tenant route and the base address.
-- [ADR-1042](1042-management-api-route-driven-tenant-scope.md) - the management API's tenant scope.
+- [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md) - the management API's tenant scope.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) -
   configuration validated at startup.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) - open vocabularies.

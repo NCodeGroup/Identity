@@ -40,7 +40,7 @@ to take effect within a bounded period across replicas without a KMS call per re
    decided by the registered `IOwnerRootKeyPolicy` implementations, and an owner that any of them refuses cannot set one.
    The `platform` owner cannot bring
    a key, because its master keys protect the deployment's Data Protection key ring and the host's own data. The control-plane tenant cannot bring a key
-   either, because the management API authenticates against it ([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)),
+   either, because the management API authenticates against it ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)),
    so a revoked key would lock out the administrators who restore it; `PUT` on it answers `400`. Each rule is a registered
    policy (`PlatformOwnerRootKeyPolicy`, `ControlPlaneTenantRootKeyPolicy`), and a consumer refuses further owners by registering
    its own `IOwnerRootKeyPolicy`. The code says "owner root key"; the

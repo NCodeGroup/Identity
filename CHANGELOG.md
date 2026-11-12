@@ -78,7 +78,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`/clients/{clientId}`), so tenant-bound families (clients, grants, resource servers, client grants) nest under the
   tenant and map only their relative sub-routes, and the protocol surface is a single `openid` group
   ([ADR-1086](docs/decisions/1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md),
-  [ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md)).
+  [ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 
 - **Every package names one capability under the `NCode.Identity` prefix.** Each capability publishes its contracts in
   an `.Abstractions` package and its default implementation beside it, so a consumer implements, decorates or replaces
@@ -2250,7 +2250,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   entities). The wire contracts include `PlatformEffectiveSettingsResource`, `TeamEffectiveSettingsResource`,
   `TenantEffectiveSettingsResource` and `ClientEffectiveSettingsResource`. See
   [ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) and
-  [ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md).
+  [ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md).
 
 - **A management request answers `409` for a stored settings document it cannot honor.** The effective-settings reads, a
   client's create and settings update, the incoherent-client report, a local account's create and password reset, and a
@@ -3454,7 +3454,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The control-plane tenant is named from configuration and served from the tenant cache.** `ITenantStrategy` and
   `ITenantResolver` expose `GetControlPlaneTenantId()`, and `CreateControlPlaneTenantAsync` probes the tenant cache with
   that identifier first, reading the store only on a miss
-  ([ADR-1191](docs/decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
+  ([ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 
 - **A tenant's issuer is a first-class tenant property, and a tenant created without one is given the issuer its tenant
   strategy derives.** Each tenant holds its own issuer, `PersistedTenant.Issuer`, alongside `DisplayName` and
@@ -5458,12 +5458,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   validated with the control-plane tenant (the root tenant, or a static strategy's own tenant). `ITenantStrategy` and
   `ITenantResolver` expose `ResolveControlPlaneTenantAsync`, `IOpenIdTenantFactory` exposes
   `CreateControlPlaneTenantAsync`, and `IOpenIdContextFactory` exposes `CreateForControlPlaneAsync`
-  ([ADR-1191](docs/decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)). The route's
+  ([ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)). The route's
   `{tenantId}` only scopes the data: it sets the ambient tenant scope, so a central-admin caller administers a tenant by
   id while the persistence-layer query filter confines the read fail-closed
   ([ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)); a control-plane route without
   `{tenantId}` uses the resolved tenant, which has no effect on the unscoped platform, team and tenant rows those routes act on
-  ([ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md)).
+  ([ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 
 - **The bootstrap administrator's `ClientSecret` is supplied Base64Url-encoded and kept off the GC heap.** The seed
   handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`) and stores it as a PBKDF2

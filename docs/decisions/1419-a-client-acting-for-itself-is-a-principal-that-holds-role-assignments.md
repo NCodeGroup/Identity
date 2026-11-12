@@ -66,7 +66,7 @@ fails least privilege.
 - An administrator of the control-plane tenant's clients cannot impersonate a machine client that administers a team it
   does not: minting a secret for that client, or changing its settings or owners, is refused.
 - Machine clients that call the management API live in the control-plane tenant
-  ([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)), where the resolver reads
+  ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)), where the resolver reads
   them.
 - Authorization is unchanged: handlers evaluate the resolved principal's assignments as they do for a person.
 
@@ -75,7 +75,7 @@ fails least privilege.
 - [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
   [ADR-1035](1035-federated-principals-and-identity-resolution.md),
-  [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)
+  [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)
 - `src/NCode.Identity.OpenId.Management/Authorization/DefaultCallerPrincipalResolver.cs`,
   `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Stores/ClientStore.cs`,

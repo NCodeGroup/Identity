@@ -325,7 +325,7 @@ rewrapped under it unreadable, in the database and in every backup
   The `platform` owner is refused, because its master keys protect the deployment's Data Protection key ring and the
   host's own data. The
   control-plane tenant is refused too: the management API authenticates every administrator against it
-  ([ADR-1191](../decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)), so a revoked
+  ([ADR-1191](../decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)), so a revoked
   key would fail every management request, including the ones that restore it, and lock the administrators out. Their
   keys stay under the deployment's root key. A consumer registers its own `IOwnerRootKeyPolicy` to refuse further
   owners.

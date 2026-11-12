@@ -18,7 +18,7 @@ down the authority chain from the platform through a team and a tenant to a clie
 claim in the caller's token, matched against the tenant a node carries.
 
 The management API authenticates every caller against the control-plane tenant
-([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)), so the `tid` of every token is
+([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)), so the `tid` of every token is
 that tenant's identifier. The platform node and every team node carry the same identifier as their address. A
 `TenantAdmin` role claim matched by `tid` therefore reaches the platform node and every team node as well as the
 control-plane tenant's own tenant plane: a tenant role administers the deployment. The claim appears in no listing of
@@ -80,7 +80,7 @@ management authority except the bootstrap `GlobalAdmin`.**
 - [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — persisted role assignments and ownership
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) — management API authentication and the
   `GlobalAdmin` bootstrap
-- [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md) — the management API
+- [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md) — the management API
   authenticates against the control-plane tenant
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform is the
   deployment root and a team groups a customer's tenants

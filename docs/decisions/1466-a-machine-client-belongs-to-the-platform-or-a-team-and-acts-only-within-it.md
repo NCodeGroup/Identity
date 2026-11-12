@@ -9,7 +9,7 @@
 ## Context
 
 The management API accepts tokens only from the control-plane tenant
-([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)). Creating a client there needs
+([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)). Creating a client there needs
 creation authority at that tenant, which a `TeamAdmin` lacks. A team needs automation that acts only within it, yet a
 client principal that is granted a role anywhere has no boundary. A control-plane client with an interactive grant could
 collect the tokens of platform administrators.
@@ -50,7 +50,7 @@ itself, and that holds roles only at its owning node or beneath it.**
 ## Options considered
 
 - **Accept tokens from a team's tenants at the management API.** Rejected:
-  [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md) accepts only the control-plane
+  [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md) accepts only the control-plane
   tenant's tokens.
 - **Let a team administrator create any control-plane client.** Rejected: it has no boundary, and an interactive
   control-plane client could phish platform administrators.
@@ -67,7 +67,7 @@ itself, and that holds roles only at its owning node or beneath it.**
 
 ## References
 
-- [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
+- [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),

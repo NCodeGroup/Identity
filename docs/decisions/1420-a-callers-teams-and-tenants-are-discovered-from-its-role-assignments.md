@@ -9,7 +9,7 @@
 ## Context
 
 The management console signs every person in with one control-plane token
-([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)) and opens on the platform's
+([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)) and opens on the platform's
 team list. Only platform authority reads that list, so a `TeamAdmin` lands on a refusal and cannot find its own teams.
 The token names no team and no tenant, and the caller has no endpoint that says where it holds authority. Automation
 that calls the management API with a client's own token has the same need: it must learn the teams it administers
@@ -60,7 +60,7 @@ before it can manage them.
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
   [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md),
-  [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
+  [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)
 - Issue [#566](https://github.com/NCodeGroup/identity/issues/566)

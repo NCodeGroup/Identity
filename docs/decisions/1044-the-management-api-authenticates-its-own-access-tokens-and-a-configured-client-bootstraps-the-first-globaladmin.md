@@ -41,7 +41,7 @@ seeds.**
 1. **`ManagementAuthenticationEndpointFilter` runs on `/api` right after the environment filter.** It validates the
    `Authorization` header's `Bearer` or `DPoP` token through `AuthenticateAccessTokenCommand`, as a self-issued JWT
    access token of the control-plane tenant
-   ([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)) whose audience contains
+   ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)) whose audience contains
    `urn:ncode:management`, under `IIssuedTokenValidator`
    ([ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md)) and the tenant's own signing keys.
 2. **It runs inside the request environment, because only there are the keys and the issuer known.** The API has no
@@ -131,7 +131,7 @@ seeds.**
 
 - [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md): the
   request environment.
-- [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md): the control-plane tenant.
+- [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md): the control-plane tenant.
 - [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md): the issued-token validator.
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md): the seed
   command.

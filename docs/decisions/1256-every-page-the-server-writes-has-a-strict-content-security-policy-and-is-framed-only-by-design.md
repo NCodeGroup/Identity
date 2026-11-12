@@ -104,7 +104,7 @@ and the `form_post` response only by its client's origin.**
    severs `window.opener` for a pop-up sign-in (`display=popup`). `Permissions-Policy`: the pages use no powerful
    feature, and a frame gets none without an `allow` attribute. `Cross-Origin-Resource-Policy`: it applies to
    subresources, not pages. `Strict-Transport-Security`: it is a transport header that belongs to the host's pipeline
-   ([ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
+   ([ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)).
 8. **The interactive pages are wired through one type.** `InteractivePageSecurity.Create(branding)` returns the nonce
    and the policy of one response. Login, consent, the bundle pages and the error formatter each create one per response
    and pass its nonce to the renderer, and `InteractiveHtmlResult` writes the page through `SetHtmlPageSecurity`. The

@@ -60,7 +60,7 @@ any package may reference.**
    helpers that name no identity concept, such as the no-store helpers (`NoStoreEndpointFilter`, `WithNoStore()`,
    `SetNoStore()`) that the authentication and management packages share. `AddIdentityServer()` and `AddIdentityBff()`
    register no host hardening: a host composes its own from `NCode.Identity.AspNetCore`
-   ([ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
+   ([ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)).
 9. **Framework-free low tier.** Low-tier contract packages (settings, claims, cryptography, JOSE, secrets, persistence)
    carry no ASP.NET Core. The `Microsoft.AspNetCore.App` `FrameworkReference` sits only on abstractions whose contracts
    are HTTP types.
@@ -116,7 +116,7 @@ any package may reference.**
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
+  [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
   [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)
 - [project-template ADR-0104](project-template/0104-no-cross-assembly-internalsvisibleto.md),
   [project-template ADR-0105](project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)

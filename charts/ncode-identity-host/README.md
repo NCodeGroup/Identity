@@ -687,7 +687,7 @@ service and the request rate fits the service's quota
 
 Outside Development, the host sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
 to a request that reached it over HTTPS
-([ADR-1258](../../docs/decisions/1258-the-server-sends-strict-transport-security-outside-development.md)). Behind the
+([ADR-1447](../../docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)). Behind the
 ingress the pod serves plain HTTP, so the host sees HTTPS only through the `X-Forwarded-Proto` header of a proxy that
 `forwardedHeaders` trusts: set `forwardedHeaders.knownNetworks` or `forwardedHeaders.knownProxies` to cover the ingress
 controller, or the header is not sent.

@@ -10,7 +10,7 @@ namespace NCode.Identity.AspNetCore.Options;
 /// reject, or an excluded host that the middleware could never match, stops the host when it starts instead of being
 /// ignored.
 /// </summary>
-// See ADR-1137 and ADR-1258.
+// See ADR-1137 and ADR-1447.
 internal sealed class StrictTransportSecurityOptionsValidator
     : IValidateOptions<StrictTransportSecurityOptions>
 {

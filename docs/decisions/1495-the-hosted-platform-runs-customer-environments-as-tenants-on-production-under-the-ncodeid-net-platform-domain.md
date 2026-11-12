@@ -83,7 +83,7 @@ carries nothing else; a brand domain carries the site, docs, status page and ope
    (`0 .`); `ncodeid.com` publishes the Email Routing records. System mail sends only from `mail.ncodeid.net`.
 10. **HSTS follows who serves the subdomains.** `ncodeid.net` is submitted to the HSTS preload list with
     `includeSubDomains`, and the apex redirect serves the header
-    ([ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md)). `ncodeid.com` sends
+    ([ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)). `ncodeid.com` sends
     `includeSubDomains` without preload, because third parties serve its subdomains.
 11. **`ncodeid.net` is not on the Public Suffix List.** Host-only `__Host-` cookies (no `Domain` attribute) are the
     cookie control. Listing stays available; it needs at least two years of registration remaining and a `_psl` TXT

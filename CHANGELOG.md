@@ -2827,7 +2827,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#611](https://github.com/NCodeGroup/identity/issues/611),
   [#745](https://github.com/NCodeGroup/identity/issues/745),
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
-  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
+  [ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
   [ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
 - **A BFF loads its key rings from PEM files and key management services when the host starts.**
@@ -4291,7 +4291,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the host. `NCode.Identity.AspNetCore` holds it, and the reference host and the management console host compose it
   ([#611](https://github.com/NCodeGroup/identity/issues/611),
   [ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
-  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
+  [ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)).
 
 - **Host configuration sections are bound strictly and validated.** `InteractiveAuthentication`, `DeveloperKeys` and
   `Cors` are bound strictly into `InteractiveAuthenticationOptions`, `DeveloperKeysOptions` (read through
@@ -4309,8 +4309,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `max-age=31536000; includeSubDomains`; `Preload` requires `IncludeSubDomains` and a `MaxAge` of at least 365 days;
   `localhost`, `127.0.0.1` and `[::1]` never receive it; a deployment whose TLS-terminating proxy sends the header sets
   `StrictTransportSecurity:Enabled` to `false`
-  ([ADR-1258](docs/decisions/1258-the-server-sends-strict-transport-security-outside-development.md),
-  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
+  ([ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
   issues [#304](https://github.com/NCodeGroup/identity/issues/304),
   [#611](https://github.com/NCodeGroup/identity/issues/611)).
 

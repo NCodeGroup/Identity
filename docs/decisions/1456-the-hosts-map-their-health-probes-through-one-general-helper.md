@@ -16,7 +16,7 @@ and the readiness tag live:
 - `NCode.Identity.AspNetCore` names no identity concept
   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 - `NCode.Identity.AspNetCore` references `NCode.Identity.Registration`
-  ([ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
+  ([ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)).
 - The chart's probes and the AppHost's `WithHttpHealthCheck` call the same two paths.
 
 ## Decision
@@ -61,7 +61,7 @@ and `HealthCheckTags.Readiness` implement its two endpoints and its `ready` tag.
 ## References
 
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
-  [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
+  [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
   [project-template ADR-0128](project-template/0128-liveness-never-checks-dependencies-readiness-does.md)
 - `src/NCode.Identity.AspNetCore/HealthProbeEndpointRouteBuilderExtensions.cs`,
   `src/NCode.Identity.AspNetCore/HealthProbeDefaults.cs`, `src/NCode.Identity.Registration/HealthCheckTags.cs`

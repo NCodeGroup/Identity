@@ -69,7 +69,7 @@ serviceCollection.AddTrustedForwardedHeaders(configuration);
 
 // Send Strict-Transport-Security on every HTTPS response outside Development, as configured by the
 // 'StrictTransportSecurity' section (one year with includeSubDomains by default). A deployment whose TLS-terminating
-// proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-1258.
+// proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-1447.
 serviceCollection.AddStrictTransportSecurity(configuration);
 
 // Receive mutual-TLS client certificates when this host terminates TLS itself: an endpoint configured to request one
@@ -196,7 +196,7 @@ if (secretProtectionCommand is not null)
 app.UseTrustedForwardedHeaders();
 
 // Right after the forwarded headers, so a request a trusted proxy received over HTTPS counts as HTTPS. A no-op in
-// Development. See ADR-1258.
+// Development. See ADR-1447.
 app.UseStrictTransportSecurity();
 
 if (app.Environment.IsDevelopment())

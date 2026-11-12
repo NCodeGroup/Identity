@@ -341,10 +341,10 @@ internal sealed class ConformanceSeedHandler(
         using var secretOwner = BufferFactory.Rent(
             secretMaxLength,
             isSensitive: true,
-            out Memory<byte> secretBuffer
+            out Span<byte> secretBuffer
         );
-        var secretWritten = Base64Url.DecodeFromChars(encodedSecret, secretBuffer.Span);
-        var clientSecret = secretBuffer.Span[..secretWritten];
+        var secretWritten = Base64Url.DecodeFromChars(encodedSecret, secretBuffer);
+        var clientSecret = secretBuffer[..secretWritten];
 
         var now = TimeProvider.GetUtcNow();
 

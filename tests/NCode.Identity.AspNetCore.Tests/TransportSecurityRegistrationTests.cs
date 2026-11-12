@@ -23,9 +23,7 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
     private IHostEnvironment CreateEnvironment(string environmentName)
     {
         var mock = CreateStrictMock<IHostEnvironment>();
-        mock.SetupGet(environment => environment.EnvironmentName)
-            .Returns(environmentName)
-            .Verifiable();
+        mock.SetupGet(x => x.EnvironmentName).Returns(environmentName).Verifiable();
         return mock.Object;
     }
 

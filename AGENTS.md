@@ -109,10 +109,10 @@ compiles it and no gate tests it
   `NCode.Identity.Bff.Blazor` (`AddBffBlazorLibrary()`, `AsBffComponents()`) and `NCode.Identity.Bff.Blazor.Client`
   (`AddBffBlazorClient()`) serve Blazor's interactive server and WebAssembly render modes over the same session, and
   server-rendered pages and SignalR hubs use the core
-  ([ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md));
+  ([ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md));
   the dependency-free `NCode.Identity.Bff.Protocol.Abstractions` holds the names the server and the WebAssembly client
   share
-  ([ADR-1440](docs/decisions/1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md));
+  ([ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md));
   `NCode.Identity.ManagementConsole` composes the management console's BFF host, and
   `NCode.Identity.ManagementConsole.Host` is its reference host
   ([ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md))

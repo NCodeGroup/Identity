@@ -46,7 +46,7 @@ misordered pipeline fails every such request instead of serving it unguarded.**
 1. **The guarded endpoints** are the APIs, which carry `BffApiAttribute` metadata that `[BffApi]` or `.AsBffApi()` adds;
    the BFF's own `/bff/user`; the pages, which carry `BffPageAttribute` metadata that `[BffPage]` or `.AsBffPage()`
    adds; and the hubs, which carry the metadata that `[BffHub]` or `.AsBffHub()` adds
-   ([ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)
+   ([ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md)
    holds the hub-specific rules). The attributes derive from `AuthorizeAttribute` with the `Bff` scheme, so a guarded
    endpoint is also an authorized one. An endpoint marked with more than one kind takes the first in the order API, hub,
    page. The cookie authenticates no other endpoint, because the authentication handler returns no result there, and
@@ -174,7 +174,7 @@ misordered pipeline fails every such request instead of serving it unguarded.**
 - [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md) — the logout
   form, a page form post
 - [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) — the frontends
-- [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)
+- [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md)
   — pages and hubs
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md) —
   page security headers

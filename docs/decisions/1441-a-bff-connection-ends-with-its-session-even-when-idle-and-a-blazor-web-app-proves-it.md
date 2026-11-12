@@ -1,7 +1,7 @@
 # 1441. A BFF connection ends with its session even when idle, and a Blazor Web App proves it
 
 - **Status:** Accepted (amends
-  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)
+  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md)
   decision 4 and
   [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)
   decision 1; decisions 2 and 3 amended by
@@ -14,7 +14,7 @@
 ## Context
 
 A hub connection holds its session for as long as it stays open
-([ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)).
+([ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md)).
 Three facts shape how that connection ends with the session:
 
 - A hub that only pushes never receives an invocation. A check that runs on invocations leaves its connection open
@@ -82,6 +82,6 @@ end-to-end suite proves the behavior in real browsers.**
 ## References
 
 - [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md),
-  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)
+  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md)
 - Issues [#603](https://github.com/NCodeGroup/identity/issues/603) and
   [#604](https://github.com/NCodeGroup/identity/issues/604)

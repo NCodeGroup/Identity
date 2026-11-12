@@ -66,7 +66,7 @@ finds the end closes the connection only for a hub that does not sign its user o
 
 ## References
 
-- [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
+- [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md),
   [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)
 - `src/NCode.Identity.Bff/Hubs/BffHubFilter.cs`, `src/NCode.Identity.Bff/Sessions/DefaultBffConnectionSession.cs`
 - Issue [#613](https://github.com/NCodeGroup/identity/issues/613)

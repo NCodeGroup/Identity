@@ -341,11 +341,10 @@ The records are grouped by area; within an area they are in number order.
 | [1432](./1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) | One BFF serves several frontends, each selected per request by an open rule | Accepted |
 | [1433](./1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md) | A BFF host checks every endpoint's BFF metadata at start and again whenever the endpoints change | Accepted |
 | [1434](./1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md) | Open tabs learn that a BFF session ended from its next answer, not a pushed event | Accepted |
-| [1435](./1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md) | Server-rendered and Blazor hosts use the BFF session through pages, hubs and two opt-in Blazor packages | Accepted |
+| [1435](./1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md) | Server-rendered and Blazor hosts use the BFF session through pages, hubs and opt-in packages | Accepted |
 | [1437](./1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md) | The management console is a confidential client served by a BFF host of its own | Accepted |
 | [1438](./1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md) | The management console holds no token and reads its session from its BFF | Accepted |
 | [1439](./1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md) | A BFF loads the key rings its configuration names from PEM files | Accepted |
-| [1440](./1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md) | The names a BFF and its browser clients share live in a dependency-free package | Accepted |
 | [1441](./1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md) | A BFF connection ends with its session even when idle, and a Blazor Web App proves it | Accepted |
 | [1442](./1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md) | The BFF's frontends follow their configuration, and a change takes effect only when the whole set is valid | Accepted |
 | [1443](./1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md) | A BFF session ends when its frontend is removed or registered as another client | Accepted |

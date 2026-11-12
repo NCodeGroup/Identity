@@ -24,7 +24,7 @@ More facts make a start-time check worth having:
   with the same `AsBffRemoteApis()` convention.
 - An opt-in package can require another registration of its host. `AsBffComponents()` without `AddBffBlazorLibrary()`
   leaves an endpoint that cannot work
-  ([ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)).
+  ([ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md)).
 - The frontends follow their configuration, so the set of frontends can change while the host runs
   ([ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
 
@@ -89,7 +89,7 @@ the request-time refusals stay the backstop.**
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.6
 - [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md),
-  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
+  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md),
   [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
 - `src/NCode.Identity.Bff/Hosting/BffEndpointStartupCheck.cs`
 - Issue [#522](https://github.com/NCodeGroup/identity/issues/522)

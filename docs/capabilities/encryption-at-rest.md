@@ -158,7 +158,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 
 - **Keep the certificate-wrapped Data Protection ring.** It gives one key to every tenant, that key is long-lived and
   rotated by hand, renewing it in place breaks it silently, and it offers no tenant isolation or deletion. It was
-  superseded ([ADR-1177](../decisions/1177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
+  superseded ([ADR-1247](../decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 - **A secrets manager (Infisical, Doppler, cloud secret managers) as the store.** It duplicates the store the server
   already has, bills per secret or per identity, and from outside the vendor's cloud it usually needs a stored
   credential. Their KMS offerings can still be root key providers.
@@ -435,7 +435,7 @@ The platform's next version protects the Data Protection keys and the host data 
 Protection key is never re-encrypted, so a retired platform version stays while a live ring key names it; a value that
 a registered protected-value source reports for the platform (a host's own data) is rewrapped like a tenant's, and the
 version is destroyed once its grace has passed and no live ring key and no such value names it
-([ADR-1413](../decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)).
+([ADR-1247](../decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 
 ```mermaid
 sequenceDiagram
@@ -498,7 +498,7 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
 - **Data Protection key ring gate.** If the platform's master key can't decrypt a live key in the Data Protection key
   ring (for example after a partial restore), the host **stops** instead of silently signing everyone out. The error
   names each affected key, and one setting revokes them
-  ([ADR-1247](../decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
+  ([ADR-1247](../decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 - **The `secret-protection` command.** `secret-protection rewrap` rewraps every master key under the configured root key
   provider and recovery public key, and `rewrap-recovery` replaces only the recovery copies. Run it once as a Job from
   the host image. When the root key is lost, `--recovery-private-key <file>` unwraps each key from its recovery copy. The
@@ -572,7 +572,7 @@ We'd rather say what this doesn't do yet:
 - [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): stored secrets are protected by a key hierarchy under an external root key
 - [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md): Azure Key Vault and Google Cloud KMS are root key providers
 - [ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md): grant payloads are protected under the tenant master key
-- [ADR-1247](../decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a Data Protection key the server can't decrypt stops the host
+- [ADR-1247](../decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md): a Data Protection key the server can't decrypt stops the host
 - [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): a master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it
 - [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): an offline host command rewraps every master key under the configured root and recovery keys
 - [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): a tenant can wrap its master keys under a root key it controls

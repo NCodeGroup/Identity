@@ -540,7 +540,7 @@ enabled provider already holds. See [Remote keys](../../docs/capabilities/remote
 
 The host refuses to start while the Data Protection key ring holds a live key, one that is not revoked and has not
 expired, that the platform's master key cannot decrypt, and it names each such key in the error
-([ADR-1247](../../docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)). It happens when the
+([ADR-1247](../../docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)). It happens when the
 master key rows are lost or recreated while the key ring survives, such as after restoring part of a backup.
 
 Restore the master keys if you can. Otherwise list each ID in `extraEnv` as `DataProtectionKeyRing__RevokedKeyIds__0`,

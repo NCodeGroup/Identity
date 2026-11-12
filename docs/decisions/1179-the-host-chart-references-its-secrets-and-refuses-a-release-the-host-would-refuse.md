@@ -28,7 +28,7 @@ The platform's values live in a public repository
    image's build context never pick up its files.
 2. **Secrets are referenced, never passed.** The database and Valkey connection strings come from Secrets the operator
    names. So do the key-protection certificates
-   ([ADR-1177](1177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)), which are
+   ([ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)), which are
    `kubernetes.io/tls` Secrets such as cert-manager issues. No value in the chart is a secret, so a values file can be
    committed.
 3. **The chart refuses at render time any release the host would refuse, or one that cannot share state.** Rendering

@@ -82,7 +82,7 @@ the platform and its tenants in the settings cascade and in authority.**
    ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)) and the authority
    node `(platform, platform)`. It has no identifier, no list and no secrets: there is exactly one, so nothing names it.
    Its management surface is `/api/platform/settings`, its effective settings and its master keys at
-   `/api/platform/encryption-keys` ([ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)),
+   `/api/platform/encryption-keys` ([ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)),
    with no list, create, delete or secret endpoints.
 2. **A team is a persisted grouping of tenants.** Its creator names it, in the tenant-identifier form
    ([ADR-1159](1159-a-tenant-is-named-by-its-creator.md)); it has a display name, an `isDisabled` flag and a settings

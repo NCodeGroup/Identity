@@ -572,10 +572,10 @@ than inlining the rationale.
   every startup validator run before any hosted service starts, so before `PlatformSecretProtectorWarmup` loads the
   protector; `AddSecretProtection` inserts the warmup first and `DataProtectionKeyRingGate` second, both ahead of Data
   Protection's hosted service
-  ([ADR-1247](../../docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
+  ([ADR-1247](../../docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 - 👁 **A start step that must precede the warmup runs in `IHostedLifecycleService.StartingAsync`**
   (`DeveloperPlatformMasterKeyPruning`), because every `StartingAsync` runs before any `StartAsync`
-  ([ADR-1423](../../docs/decisions/1423-developer-key-pruning-starts-the-platform-over-when-its-master-keys-cannot-be-unwrapped.md)).
+  ([ADR-1247](../../docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 - 👁 **A `SecretProtectionOptions` validator resolves no key wrapper.** Each KMS adapter's options validator reads
   `IOptions<SecretProtectionOptions>`, so a `SecretProtectionOptions` validator that takes `IEnumerable<IKeyWrapper>`
   closes a dependency cycle that stops every host that registers an adapter. The validators check the options' own

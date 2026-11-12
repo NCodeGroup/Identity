@@ -1068,7 +1068,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DeveloperKeys` section
   ([#569](https://github.com/NCodeGroup/identity/issues/569),
   [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md),
-  [ADR-1423](docs/decisions/1423-developer-key-pruning-starts-the-platform-over-when-its-master-keys-cannot-be-unwrapped.md)).
+  [ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 
 - **Asymmetric secret keys model their public half as `SubjectPublicKeyInfo` DER through a buffer writer.** The
   `AsymmetricSecretKey` base exposes `ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination)`, writing into a
@@ -3934,7 +3934,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   /api/platform/settings` and previewed through `GET /api/platform/effective-settings`, are the root of every team's and
   tenant's settings; its authority node is `(platform, platform)`, and its master key protects the Data Protection key
   ring ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1413](docs/decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)).
+  [ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 
 - **A team groups a customer's related tenants.** `POST /api/teams` creates a team named by its creator (the tenant-id
   form) with a display name, an `isDisabled` flag and a settings document; `GET`/`PATCH`/`DELETE /api/teams/{teamId}`,
@@ -4556,7 +4556,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`, `SecretOwner` and
   `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant deletes
   its master keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
-  [ADR-1413](docs/decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md),
+  [ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
   [#167](https://github.com/NCodeGroup/identity/issues/167)).
 
 - **A database dump or backup reveals no secret material without the root key, and every host names its root key
@@ -4613,7 +4613,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   its key ring, and the host names each undecryptable key rather than letting Data Protection write a default key over
   them; a Development host revokes the key and logs a warning. `DataProtectionKeyRing:RevokedKeyIds`
   (`DataProtectionKeyRingOptions`) revokes keys by ID, and `AddConfiguration` registers Data Protection
-  ([ADR-1247](docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md),
+  ([ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
   [#239](https://github.com/NCodeGroup/identity/issues/239)).
 
 - **Every host signs with the keys tenant provisioning persists.** Tests included, no host signs with ephemeral

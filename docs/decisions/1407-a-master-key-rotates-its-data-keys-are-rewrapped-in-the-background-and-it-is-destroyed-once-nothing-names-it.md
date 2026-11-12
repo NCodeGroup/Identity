@@ -1,6 +1,6 @@
 # 1407. A master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it
 
-- **Status:** Accepted (amended by [ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md):
+- **Status:** Accepted (amended by [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md):
   the owners are the platform and each tenant, the platform's master key rotates and protects only the Data Protection
   key ring and the host's own data, its retired versions are destroyed once their grace has passed and no live ring key
   and no value that a registered protected-value source reports for the platform names them, the lease is
@@ -14,7 +14,7 @@
 - **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's
   versioning of an owner's master keys (an owner's versions rotate and a retired key is destroyed) and decision 13's
   key cache (cached keys reload after a refresh interval and a destroyed key leaves memory);
-  [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md), decision 1's warmup (it loads
+  [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md), decision 1's warmup (it loads
   the retired server keys that a live ring key names);
   [ADR-1011](1011-secret-management-api.md): key material is immutable, and a rotation rewrites the stored envelope
   of the same material; [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md):
@@ -90,7 +90,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
    New ring keys use the active server key through the holder. `ServerSecretProtectorLoader` reads the key elements of
    the ring, keeps every retired server key that a live ring key names (its expiration plus the retirement grace is in the
    future), logs and skips a key that is missing or does not unwrap, so the startup gate of
-   [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md) still reports or revokes that ring
+   [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md) still reports or revokes that ring
    key, and publishes the protector to the holder. The warmup, a refresh service every `RefreshInterval` and a handler
    for the server's broadcast run it. The ring source reports a reference while a live ring key names the key, and
    always when the ring cannot be read, so the server key is then never destroyed automatically.

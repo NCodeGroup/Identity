@@ -1,7 +1,7 @@
 # 1235. Stored secrets are protected by a key hierarchy under an external root key
 
 - **Status:** Accepted (amended by
-  [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a live key ring key the server's
+  [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md): a live key ring key the server's
   master key cannot decrypt stops the host; extended by
   [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md): the Azure Key Vault and Google Cloud
   KMS root key providers; amended by
@@ -15,7 +15,7 @@
   reload after a refresh interval, which decides decision 11's master key rotation and the rotation the Consequences
   list; amended by
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): the recovery private key unwraps master keys only inside the offline command, which is the rewrap and recovery tool the Consequences list; amended by
-  [ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md): the platform's master key
+  [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md): the platform's master key
   protects the Data Protection key ring and the host's own data, and no stored secret; amended by
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): an owner may wrap its master keys under a root key it controls, with no recovery copy, re-validated periodically; amended by
   [ADR-1473](1473-a-key-management-service-adapter-package-is-named-for-its-service.md): the adapters are `NCode.Identity.Secrets.<Vendor>`)
@@ -28,7 +28,7 @@
 The server stores private and symmetric key material — tenant and server signing and encryption keys, client secrets,
 resource-server keys — in its own database, and ASP.NET Core Data Protection keeps its key ring in the same database.
 Protecting both with a key ring that sits beside them only moves the problem: whoever holds a backup holds the keys. A
-certificate-wrapped key ring ([ADR-1177](1177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)) puts
+certificate-wrapped key ring ([ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)) puts
 one long-lived, hand-rotated secret outside the database, gives every tenant the same keys, and relies on an API that
 Microsoft documents as not primarily intended for indefinite persistence.
 
@@ -126,7 +126,7 @@ service.
 - A compromised replica still exposes the keys it has loaded; remote signing ([#165](https://github.com/NCodeGroup/identity/issues/165)) and key rollover ([#166](https://github.com/NCodeGroup/identity/issues/166)) address that.
 - Master key rotation, the rewrap and recovery tool, more providers, per-tenant root keys and client-secret hashing
   are follow-ups ([#163](https://github.com/NCodeGroup/identity/issues/163), [#171](https://github.com/NCodeGroup/identity/issues/171)–[#178](https://github.com/NCodeGroup/identity/issues/178)).
-- Supersedes [ADR-1177](1177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md).
+- Supersedes [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md).
 
 ## References
 

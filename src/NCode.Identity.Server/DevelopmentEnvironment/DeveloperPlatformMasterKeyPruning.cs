@@ -23,7 +23,7 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// Production never registers it: there, a master key that cannot be unwrapped signals a lost or changed root key, and
 /// the host stops until the root key is restored.
 /// </remarks>
-// See ADR-1423.
+// See ADR-1247.
 internal sealed class DeveloperPlatformMasterKeyPruning(
     ISecretProtectorProvider secretProtectorProvider,
     DeveloperMasterKeyReset masterKeyReset,

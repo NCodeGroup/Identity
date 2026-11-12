@@ -55,7 +55,7 @@ consent. The lab cluster runs on Ampere A1 nodes, so the image must also run on 
 
 - The image refuses to start under its default `Production` environment until the deployment supplies production
   settings: `AllowedHosts`, `DeveloperKeys:Mode=None`, a protected key ring
-  ([ADR-1177](1177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)), a database, and a tenant
+  ([ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)), a database, and a tenant
   issuer.
 - No shell means no `docker exec` debugging and no Dockerfile `HEALTHCHECK` that runs `curl`. Kubernetes probes
   `/health/live` and `/health/ready` over HTTP instead.

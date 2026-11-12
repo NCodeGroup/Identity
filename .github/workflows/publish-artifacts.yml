@@ -104,6 +104,7 @@ jobs:
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
 
       # The caches are read-only here: they are the ones host-image.yml and console-image.yml write.
+      # The tag `latest` follows stable versions only; a prerelease never moves it.
       - name: Publish the host image
         id: host
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -111,8 +112,11 @@ jobs:
           context: .
           file: hosts/NCode.Identity.OpenId.Host/Dockerfile
           platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ env.VERSION }}
           push: true
-          tags: ghcr.io/ncodegroup/ncode-identity-host:${{ env.VERSION }}
+          tags: |
+            ghcr.io/ncodegroup/ncode-identity-host:${{ env.VERSION }}
+            ${{ needs.version.outputs.stable == 'true' && 'ghcr.io/ncodegroup/ncode-identity-host:latest' || '' }}
           sbom: true
           provenance: false
           cache-from: type=gha,scope=host-image
@@ -123,6 +127,7 @@ jobs:
             org.opencontainers.image.licenses=Apache-2.0
             org.opencontainers.image.title=ncode-identity-host
 
+      # The tag `latest` follows stable versions only; a prerelease never moves it.
       - name: Publish the management console image
         id: console
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -130,8 +135,11 @@ jobs:
           context: .
           file: hosts/NCode.Identity.ManagementConsole.Host/Dockerfile
           platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ env.VERSION }}
           push: true
-          tags: ghcr.io/ncodegroup/ncode-identity-management-console:${{ env.VERSION }}
+          tags: |
+            ghcr.io/ncodegroup/ncode-identity-management-console:${{ env.VERSION }}
+            ${{ needs.version.outputs.stable == 'true' && 'ghcr.io/ncodegroup/ncode-identity-management-console:latest' || '' }}
           sbom: true
           provenance: false
           cache-from: type=gha,scope=console-image
@@ -212,6 +220,7 @@ jobs:
       HOST: ${{ needs.publish.outputs.host-digest }}
       CONSOLE: ${{ needs.publish.outputs.console-digest }}
       CHART: ${{ needs.publish.outputs.chart-digest }}
+      IDENTITY: https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@${{ github.ref }}
 
     steps:
       - name: Set up Helm
@@ -250,7 +259,7 @@ jobs:
             "charts/ncode-identity-host@$env:CHART"
           )
           foreach ($ref in $refs) {
-            cosign verify "ghcr.io/ncodegroup/$ref" --certificate-identity "https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main" --certificate-oidc-issuer https://token.actions.githubusercontent.com > $null
+            cosign verify "ghcr.io/ncodegroup/$ref" --certificate-identity "$env:IDENTITY" --certificate-oidc-issuer https://token.actions.githubusercontent.com > $null
             if ($LASTEXITCODE -ne 0) { throw "$ref has no valid signature." }
           }
 

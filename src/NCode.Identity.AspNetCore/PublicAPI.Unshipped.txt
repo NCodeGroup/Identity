@@ -109,3 +109,6 @@ NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.ServeAsset(Microsoft.AspNetCo
 NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.SinglePageBundle(string? rootPath, System.Func<string!, TIndex?>! parseIndex) -> void
 NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.TryGetAsset(string! assetPath) -> Microsoft.Extensions.FileProviders.IFileInfo?
 NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.TryReadIndexAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TIndex?>
+NCode.Identity.AspNetCore.TransportSecurityRegistration
+NCode.Identity.AspNetCore.TransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.AspNetCore.TransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddTransportSecurity(Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

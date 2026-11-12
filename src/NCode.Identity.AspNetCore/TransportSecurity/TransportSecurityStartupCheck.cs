@@ -59,7 +59,8 @@ internal sealed class TransportSecurityStartupCheck(
     /// <inheritdoc />
     public async Task StartedAsync(CancellationToken cancellationToken)
     {
-        if (server is not KestrelServer)
+        // Kestrel's server type is internal to the assembly that holds KestrelServer, so Kestrel is recognized by assembly.
+        if (server.GetType().Assembly != typeof(KestrelServer).Assembly)
         {
             throw new InvalidOperationException(NotKestrelMessage);
         }

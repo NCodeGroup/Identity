@@ -61,7 +61,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
    over P-256, P-384 and P-521 first, and a package registers its agreement beside its key type through the JOSE
    library's builder, so the host's order of packages is the order of preference. The Concat KDF stays in the
    algorithm and stays SHA-256 for every key type
-   ([ADR-1126](1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md)). In key agreement
+   ([ADR-1126](1126-the-ecdh-es-concat-kdf-digest-is-sha-256-and-a-test-oracle-must-conform-to-the-rfc.md)). In key agreement
    with key wrapping mode, the content encryption key is random and wrapped under the key agreed with the `epk`
    (RFC 7518 §4.6).
 4. **The `epk` is a JSON Web Key of the recipient key's type, written and read through that type's descriptors.** The
@@ -163,7 +163,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
   [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
-  [ADR-1126](1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md),
+  [ADR-1126](1126-the-ecdh-es-concat-kdf-digest-is-sha-256-and-a-test-oracle-must-conform-to-the-rfc.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)

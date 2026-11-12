@@ -712,7 +712,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   jose-jwt's RFC-conforming managed implementation (`EcdhKeyManagementUnix`, backed by the BCL `ECDiffieHellman`) as
   their oracle. They do not use the Windows CNG implementation (`EcdhKeyManagementWin` + `CngKey`), because its
   `SP800_56A_CONCAT` KDF derives a curve-dependent digest on P-384 and P-521.
-  [ADR-1126](docs/decisions/1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md) records the
+  [ADR-1126](docs/decisions/1126-the-ecdh-es-concat-kdf-digest-is-sha-256-and-a-test-oracle-must-conform-to-the-rfc.md) records the
   reasoning and the testing rule.
 
 - **Hash names are open.** `HashAlgorithmName.GetHashSizeBits` and `GetHashFunction` serve every hash the platform

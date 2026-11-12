@@ -1623,7 +1623,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   rules, so `ValidateCoherence` is its only relation check — and an error description names the client setting, such as
   `grant_types_supported` rather than `grant_types`, with the error code `invalid_redirect_uri` for `redirect_uris`,
   else `invalid_client_metadata`
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md), issue
   [#253](https://github.com/NCodeGroup/identity/issues/253)).
 
 - **The management API mints initial access tokens for protected Dynamic Client Registration, optionally scoped to a
@@ -1737,7 +1737,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `dpop_signing_alg_values_supported` is set and empty, so no proof could be accepted, and
   `CertificateBoundAccessTokenCoherenceRule` a client that requires certificate binding while its effective support is
   `false` ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md),
-  [ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issues
+  [ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md), issues
   [#233](https://github.com/NCodeGroup/identity/issues/233), [#256](https://github.com/NCodeGroup/identity/issues/256)).
   The settings `dpop_nonce_required` and `dpop_proof_lifetime` tune DPoP, and a tenant's mTLS endpoint alias
   (`OpenIdTenant.MtlsEndpointAliasAuthority`) advertises the RFC 8705 §5 mTLS endpoint aliases. The errors `invalid_dpop_proof` and `use_dpop_nonce` (with a `DPoP-Nonce`
@@ -3375,7 +3375,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   setting that requires a companion is not a ceiling, and carries a `Description` that every caller reports;
   `ClientCoherenceViolation.Missing` reports a required value that is absent. A package adds a rule by registering it
   with `TryAddEnumerable`
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issues
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md), issues
   [#231](https://github.com/NCodeGroup/identity/issues/231) and
   [#253](https://github.com/NCodeGroup/identity/issues/253)).
 
@@ -3389,7 +3389,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `id_token_encrypted_response_alg`. `BackchannelTokenDeliveryCoherenceRule` reports a client that has no
   `client_notification_endpoint` while its delivery mode is not `poll`, and a client that may use the CIBA grant while
   `backchannel_token_delivery_modes_supported` excludes its delivery mode
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
   [#253](https://github.com/NCodeGroup/identity/issues/253)).
 
 - **Every entry point checks a client through the coherence validator.** Dynamic registration, the management API and
@@ -3401,7 +3401,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   client and lists its violations; the bootstrap seeder checks before it imports the secret, and a client that exists is
   left as it is. A management validation problem lists the first ten errors of each setting, in order, and adds `Errors
   not listed for '<name>': <n>.` for the rest, so a change that makes many clients incoherent answers a bounded response
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issues
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md), issues
   [#231](https://github.com/NCodeGroup/identity/issues/231), [#246](https://github.com/NCodeGroup/identity/issues/246),
   [#253](https://github.com/NCodeGroup/identity/issues/253) and
   [#254](https://github.com/NCodeGroup/identity/issues/254)).
@@ -5756,7 +5756,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   '01:00:00' exceeds the effective 'access_token_lifetime' value '00:05:00'.` A value that a ceiling already lowers
   blocks no write that moves that ceiling, because a write matches a violation that predates it without its description.
   A floor (`Max`, `Or`, `Union`) is never reported
-  ([ADR-1240](docs/decisions/1240-a-client-value-that-a-ceiling-lowers-is-incoherent.md),
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
   [#262](https://github.com/NCodeGroup/identity/issues/262)).
 
 - **A tenant or client opts into the FAPI 2.0 Security Profile by selecting `fapi2`**
@@ -5791,7 +5791,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   by the FAPI 2.0 security profile, and the coherence rule `RefreshTokenRotationRetryCoherenceRule` refuses a client
   that requires it while its refresh tokens rotate (`refresh_token_rotation_policy` `always`, or `unbound` for a public
   client) and its `refresh_token_reuse_interval` is zero (FAPI 2.0 §5.3.2.1)
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
   [ADR-1217](docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md),
   [#272](https://github.com/NCodeGroup/identity/issues/272)).
 

@@ -11,7 +11,7 @@
 ## Context
 
 A tenant or server settings write refuses only the violations that its change introduces
-([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)). To find them, the server write
+([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)). To find them, the server write
 resolves every stored tenant document, and both writes check the stored clients with
 `IClientCoherenceValidator.Validate`. It throws a `JsonException` for a document that the current settings vocabulary
 cannot honor: an unregistered setting, a value outside its domain, or a setting outside its scope
@@ -79,7 +79,7 @@ change introduces.**
 ## References
 
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — configuration the server cannot honor fails loudly.
-- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) — a settings write refuses the
+- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md) — a settings write refuses the
   violations that it introduces.
 - [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — the reconciliation that
   reports the clients a change makes incoherent.

@@ -116,7 +116,7 @@ Concretely:
     that requires binding and presents no certificate is refused with `invalid_request` (RFC 8705 §3.4 leaves that
     answer to the server).
   - **Coherence checks the pair.** `CertificateBoundAccessTokenCoherenceRule`
-    ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) reports a client whose
+    ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)) reports a client whose
     requirement is `true` while its effective support is `false`. It covers dynamic registration, the management client
     API, the conformance seed, and a tenant or server settings change. The runtime does not consult the support.
   - **Dynamic registration maps the RFC 8705 §3.4 metadata to the requirement.** The client metadata member
@@ -141,7 +141,7 @@ Concretely:
     `dpop_bound_access_tokens` sets `require_dpop_bound_access_tokens`, and the registration response reports the
     requirement under that member, as it does for `tls_client_certificate_bound_access_tokens`.
   - **Coherence checks the requirement.** `DPoPBoundAccessTokenCoherenceRule`
-    ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) reports a client whose
+    ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)) reports a client whose
     requirement is `true` while its effective `dpop_signing_alg_values_supported` is set and empty. Support is a
     non-empty list of proof signing algorithms, so an empty list means that no DPoP proof can be accepted.
   - **Breaking:** the migration `RenameDPoPRequirement` renames a stored `require_dpop` to

@@ -31,7 +31,7 @@
   [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
   [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md),
-  [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
+  [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
   [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md),
   [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md),

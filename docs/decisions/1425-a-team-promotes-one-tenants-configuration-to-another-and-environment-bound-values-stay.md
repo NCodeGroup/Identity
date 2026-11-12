@@ -90,7 +90,7 @@ keys, principals and environment-bound values stay with their environment.**
 9. **Contributors.** The public strategy collection `ITenantPromotionContributor` (`Order`, `PlanAsync`, `ApplyAsync`)
    over `TenantPromotionContext` is open by registration
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)). The built-in contributors are the
+   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)). The built-in contributors are the
    tenant settings at 100, resource servers at 200, clients at 300 and client grants at 400. The internal
    `DefaultTenantPromoter` plans every contributor, checks the `environmentSettings` entries, then applies one
    contributor at a time, saving and recording its audit events after each.
@@ -136,7 +136,7 @@ keys, principals and environment-bound values stay with their environment.**
   and hostname scheme
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) — settings declare the scopes they apply to
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed
-- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) — a client's settings are checked by
+- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md) — a client's settings are checked by
   registered coherence rules
 - [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md) — a management write that loses a
   concurrency race is answered 412

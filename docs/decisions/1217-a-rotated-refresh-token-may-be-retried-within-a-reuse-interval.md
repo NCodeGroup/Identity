@@ -71,7 +71,7 @@ a reuse.**
     security profile sets it through its ceiling. The coherence rule `RefreshTokenRotationRetryCoherenceRule` refuses a
     client whose effective setting is `true`, whose refresh tokens can rotate, and whose effective
     `refresh_token_reuse_interval` is not positive
-    ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)).
+    ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)).
 
 ## Options considered
 
@@ -93,7 +93,7 @@ a reuse.**
   records no event.
 - A client that requires a retry, as the FAPI 2.0 security profile does, and whose refresh tokens rotate has a reuse
   interval, because the coherence rule of decision 11 refuses a client without one
-  ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#272](https://github.com/NCodeGroup/identity/issues/272)).
+  ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md), issue [#272](https://github.com/NCodeGroup/identity/issues/272)).
 - **Breaking:** `IPersistedGrantService` declares `AddToRefreshTokenLineageOrDefault`, `ITokenService` declares
   `ReissueRefreshTokenAsync`, `IGrantStore` declares `GetActiveByRefreshTokenLineageAsync`, and `IAuditEventRecorder`
   declares `RecordRefreshTokenRetryAsync`, so every implementation of one of them implements the member.

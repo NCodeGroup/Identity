@@ -88,7 +88,7 @@ both. FAPI 2.0 Security Profile §5.3.2.2-8 refuses `http` except for the loopba
 9. **The kind is checked where a client is registered and where the delivery is derived.** Dynamic client registration,
    the management API, and the conformance seed check the kinds of a client's `redirect_uris` and
    `post_logout_redirect_uris` through the client coherence rules
-   ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)), dynamic client registration
+   ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)), dynamic client registration
    refusing with `invalid_redirect_uri`. A tenant or server settings change that would leave a registered URI
    unpermitted is refused. The delivery resolver checks the kind after the registration match, at the authorization
    endpoint and at the PAR endpoint, and refuses a URI with `invalid_request` and a `400` without redirecting.

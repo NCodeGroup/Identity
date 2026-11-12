@@ -307,14 +307,14 @@ than inlining the rationale.
   `ClientCoherenceViolation.Missing`. Every entry point that stores a client, a configuration seeder through
   `SeededClientValidator` included, and every platform, team or tenant settings change checks it with
   `IClientCoherenceValidator.Validate(tenantSettings, clientSettings)`; never add the check to one caller
-  ([ADR-1206](../../docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)). List a tenant's
+  ([ADR-1206](../../docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)). List a tenant's
   incoherent clients, in a report or a background pass, only through `IClientCoherenceReporter`, which checks one page
   under the tenant's scope and reports a document the rules cannot read as `IncoherentClient.DocumentError`
   ([ADR-1233](../../docs/decisions/1233-the-management-api-lists-a-tenants-incoherent-clients.md)).
   A value the client registers in a setting whose merge is a meet (`SettingDescriptor.HasMeetMerge`: `Min`, `And`,
   `Intersect`) must survive into its effective settings, so a ceiling that lowers it is a violation, never a silent
   clamp, while a join only raises a value to a parent's floor and is never reported
-  ([ADR-1240](../../docs/decisions/1240-a-client-value-that-a-ceiling-lowers-is-incoherent.md)). A settings write that walks
+  ([ADR-1206](../../docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)). A settings write that walks
   the stored clients logs and skips a document the settings vocabulary cannot honor and never counts it as a violation
   the change introduces
   ([ADR-1241](../../docs/decisions/1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md)).

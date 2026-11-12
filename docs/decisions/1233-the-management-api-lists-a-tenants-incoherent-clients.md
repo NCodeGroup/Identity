@@ -11,7 +11,7 @@
 ## Context
 
 A client's settings are coherent with the effective settings of its tenant when every registered coherence rule is
-satisfied ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)). A management write is
+satisfied ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)). A management write is
 refused while it would make a stored client incoherent. A change of the server's settings that is not a write, a
 configuration reload or a deployment, cannot be refused, so the reconciliation logs each stored client that the change
 makes incoherent ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)). An
@@ -84,7 +84,7 @@ API lists it on demand.**
 
 - [ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) — a computed predicate cannot be pushed to the
   database.
-- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) — the coherence rules and the
+- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md) — the coherence rules and the
   validator.
 - [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — the reconciliation that
   reports the clients a change makes incoherent.

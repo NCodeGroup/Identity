@@ -38,7 +38,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
    otherwise `true` when the client is not confidential and the grant stores no confirmation. The refresh-token grant
    handler asks it for every refresh. It follows `CodeChallengeRequirement`, which always binds the authorization code
    of a public client to PKCE. No coherence rule
-   ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) accompanies it: no registration
+   ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)) accompanies it: no registration
    can make the behavior insecure, and whether a token is bound is known per token, not per registration.
 3. **The default is `unbound`, not `always`.** FAPI 2.0 forbids the rotation that `always` would apply to a confidential
    client with sender-constrained tokens, and RFC 9700 requires rotation only for a public client's unbound token.

@@ -36,7 +36,7 @@ below them. Three kinds of change move them: a management write to the document,
   before and after the write, so a configuration change never started it; a restart lost the tenants it had not
   reached; and the pass held the dispatcher's only worker, ahead of every back-channel logout and CIBA delivery.
 - A management write is refused while it would make a stored client incoherent
-  ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)). A configuration change is not
+  ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)). A configuration change is not
   a write, so a deployment or a reload that narrowed a ceiling left clients that failed at their next request, the
   bootstrap administrator among them, and nothing reported them.
 
@@ -163,7 +163,7 @@ below them. Three kinds of change move them: a management write to the document,
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) — tenant keys and the tenant change command.
 - [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) — the effective settings resolver.
 - [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md) — the replica broadcast port.
-- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) — client coherence rules.
+- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md) — client coherence rules.
 - Code: `NCode.Identity.OpenId.Servers.ServerSettingsReconciliationService`, `DefaultServerSettingsReconciler`,
   `ServerSettingsChangedHandler`, `ServerSettingsChangeBroadcastHandler`, `DefaultMaterializedServerRegistry`,
   `NCode.Identity.OpenId.Settings.RefreshableSettingsCollectionDataSource`,

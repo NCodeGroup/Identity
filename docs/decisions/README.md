@@ -137,11 +137,10 @@ The records are grouped by area; within an area they are in number order.
 | [1149](./1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) | Settings declare the scopes they apply to, and the scopes are a registered cascade | Accepted |
 | [1202](./1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md) | FAPI 1.0 Advanced is a registered profile, and only a request object's parameters count | Accepted |
 | [1204](./1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) | A scope's effective settings are resolved by one service and previewed through the management API | Accepted |
-| [1206](./1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) | A client's settings are checked by registered coherence rules | Accepted |
+| [1206](./1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md) | A client's settings are checked by registered coherence rules wherever they are written or bounded | Accepted |
 | [1219](./1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) | Server settings converge on every replica through one reconciliation | Accepted |
 | [1233](./1233-the-management-api-lists-a-tenants-incoherent-clients.md) | The management API lists a tenant's incoherent clients | Accepted |
 | [1234](./1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md) | A server settings reconciliation reaches only the tenants its change affects | Accepted |
-| [1240](./1240-a-client-value-that-a-ceiling-lowers-is-incoherent.md) | A client value that a ceiling lowers is incoherent | Accepted |
 | [1241](./1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md) | A settings write is not refused for a stored document it cannot read | Accepted |
 | [1245](./1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md) | A management request answers 409 for a stored settings document it cannot honor | Accepted |
 | [1289](./1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) | A tenant declares its environment type, which selects its guardrails | Accepted |

@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 /// lowers (a lifetime above its tenant's) is reported rather than silently lost. A join only raises a value to a
 /// parent's floor and is never reported.
 /// </summary>
-// See ADR-1206 and ADR-1240.
+// See ADR-1206.
 internal sealed class RegisteredValueCoherenceRule(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     ISettingScopeCollectionProvider settingScopeCollectionProvider

@@ -61,7 +61,7 @@ Its behavior:
   resolver, and options are read on use, never in constructors.
 - `DefaultEffectiveSettingsResolver` is registered with `TryAddSingleton`, so a host can replace it.
 - Which settings writes walk the clients is decided by `IClientCoherenceValidator.ReadsChangedSetting` over untracked
-  settings pages ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)).
+  settings pages ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)).
 
 ### The preview
 
@@ -118,7 +118,7 @@ a resource server, each addressed by route.
   (setting merge semantics).
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
-  [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
+  [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
   [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) and
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md).

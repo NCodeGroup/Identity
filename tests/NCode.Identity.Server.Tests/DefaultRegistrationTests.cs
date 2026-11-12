@@ -518,7 +518,7 @@ public sealed class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddIdentityServer_RegisteredValueRuleReadsEveryMeetAClientCanRegister()
     {
-        // A value a client registers survives only where no ceiling lowers it (ADR-1240).
+        // A value a client registers survives only where no ceiling lowers it (ADR-1206).
         using var host = BuildHost([]);
 
         var settingNames = host

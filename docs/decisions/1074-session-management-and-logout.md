@@ -86,7 +86,7 @@ Concretely:
   deployment-specific. The notifier follows the tenant's discovery: it sends nothing when `backchannel_logout_supported`
   is false and omits `sid` when `backchannel_logout_session_supported` is false, and a client cannot register a logout
   channel, or a session requirement, that its tenant does not support (`LogoutChannelCoherenceRule`,
-  [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)).
+  [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)).
 - **The iframe mechanisms are declined, not stubbed.** Front-Channel Logout and Session Management are **not**
   implemented because they depend on third-party cookies the browser platform is removing. The session model and the
   logout pipeline leave the seam open (a session knows its participating clients; the logout command is a mediator

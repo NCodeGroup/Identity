@@ -98,7 +98,7 @@ handler reaches only the tenants and clients that the difference affects.**
   seeds them.
 - [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) — the effective settings a tenant
   resolves.
-- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) — the coherence rules a change can
+- [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md) — the coherence rules a change can
   affect.
 - [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — the reconciliation that
   this decision narrows.

@@ -95,7 +95,53 @@ The Host header the probes send: probes.host, or else the first allowed host.
 Whether the release shares single-use state through Valkey.
 */}}
 {{- define "identity-host.valkeyEnabled" -}}
-{{- if .Values.valkey.existingSecret }}true{{ end }}
+{{- if or .Values.valkey.existingSecret .Values.valkey.parts.existingSecret }}true{{ end }}
+{{- end }}
+
+{{/*
+The Valkey environment entries of a host container: the parts of a Valkey operator's Secret, each from its own key, or
+the finished connection string. The scope holds the settings of one connection, and its empty keys fall back to the
+defaults, which are the values of the Valkey the host itself uses (ADR-1510).
+*/}}
+{{- define "identity-host.valkeyEnv" -}}
+{{- $scope := .scope }}
+{{- $defaults := .defaults }}
+{{- if $scope.parts.existingSecret }}
+{{- range $part := list (list "Host" "hostKey") (list "Port" "portKey") (list "Username" "usernameKey") (list "Password" "passwordKey") }}
+{{- $key := (index $scope.parts (last $part)) | default (index $defaults.parts (last $part)) }}
+{{- if $key }}
+- name: ValkeyConnection__{{ first $part }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $scope.parts.existingSecret }}
+      key: {{ $key | quote }}
+{{- end }}
+{{- end }}
+{{- if $scope.parts.ssl }}
+- name: ValkeyConnection__Ssl
+  value: "true"
+{{- end }}
+{{- else }}
+- name: ConnectionStrings__valkey
+  valueFrom:
+    secretKeyRef:
+      name: {{ $scope.existingSecret }}
+      key: {{ $scope.connectionStringKey | default $defaults.connectionStringKey }}
+{{- end }}
+{{- end }}
+
+{{/*
+Refuses a Valkey connection that names both of its forms, or a parts Secret without a host key. Rendered for its side
+effect only.
+*/}}
+{{- define "identity-host.valkeyValidate" -}}
+{{- $scope := .scope }}
+{{- if and $scope.existingSecret $scope.parts.existingSecret }}
+{{- fail (printf "%s.existingSecret and %s.parts.existingSecret are both set: name the Secret that holds the finished connection string or the Secret that holds the server's address and password, not both." .path .path) }}
+{{- end }}
+{{- if and $scope.parts.existingSecret (not ($scope.parts.hostKey | default .defaults.parts.hostKey)) }}
+{{- fail (printf "%s.parts.hostKey must name the key that holds the host in the Secret." .path) }}
+{{- end }}
 {{- end }}
 
 {{/*
@@ -114,7 +160,7 @@ the defaults, which are the values of the database the host itself uses (ADR-150
   valueFrom:
     secretKeyRef:
       name: {{ $scope.parts.existingSecret }}
-      key: {{ $key }}
+      key: {{ $key | quote }}
 {{- end }}
 {{- end }}
 {{- else }}
@@ -122,7 +168,7 @@ the defaults, which are the values of the database the host itself uses (ADR-150
   valueFrom:
     secretKeyRef:
       name: {{ $scope.existingSecret }}
-      key: {{ $scope.connectionStringKey | default $defaults.connectionStringKey }}
+      key: {{ $scope.connectionStringKey | default $defaults.connectionStringKey | quote }}
 {{- end }}
 {{- end }}
 
@@ -164,6 +210,7 @@ applied. Rendered for its side effect only.
 {{- end }}
 {{- include "identity-host.databaseValidate" (dict "path" "database" "scope" .Values.database "defaults" .Values.database "required" true) }}
 {{- include "identity-host.databaseValidate" (dict "path" "migrations.database" "scope" .Values.migrations.database "defaults" .Values.database "required" false) }}
+{{- include "identity-host.valkeyValidate" (dict "path" "valkey" "scope" .Values.valkey "defaults" .Values.valkey) }}
 {{- if and (eq .Values.tenantResolution.strategyCode "StaticSingle") (not .Values.tenantResolution.staticSingle.issuer) }}
 {{- fail "tenantResolution.staticSingle.issuer must be the public issuer URL." }}
 {{- end }}
@@ -221,7 +268,7 @@ applied. Rendered for its side effect only.
 {{- end }}
 {{- end }}
 {{- if and (gt (int .Values.replicaCount) 1) (not (include "identity-host.valkeyEnabled" .)) }}
-{{- fail "replicaCount above 1 requires valkey.existingSecret: replicas share single-use state through Valkey." }}
+{{- fail "replicaCount above 1 requires valkey.existingSecret or valkey.parts.existingSecret: replicas share single-use state through Valkey." }}
 {{- end }}
 {{- end }}
 
@@ -499,11 +546,7 @@ same configuration the pods it rewraps keys for read.
   value: {{ .Values.apiReference.pageEnabled | quote }}
 {{ include "identity-host.databaseEnv" (dict "scope" .Values.database "defaults" .Values.database) | trim }}
 {{- if $valkey }}
-- name: ConnectionStrings__valkey
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.valkey.existingSecret }}
-      key: {{ .Values.valkey.connectionStringKey }}
+{{ include "identity-host.valkeyEnv" (dict "scope" .Values.valkey "defaults" .Values.valkey) | trim }}
 {{- end }}
 {{- with .Values.secretProtection.rootKeyProvider }}
 - name: SecretProtection__RootKeyProvider
@@ -722,7 +765,7 @@ the server compares the console's DPoP proofs with.
 Whether the management console shares its single-use state through its own Valkey.
 */}}
 {{- define "identity-host.managementConsole.valkeyEnabled" -}}
-{{- if .Values.managementConsole.valkey.existingSecret }}true{{ end }}
+{{- if or .Values.managementConsole.valkey.existingSecret .Values.managementConsole.valkey.parts.existingSecret }}true{{ end }}
 {{- end }}
 
 {{/*
@@ -816,8 +859,9 @@ is applied. Rendered for its side effect only.
 {{- end }}
 {{- end }}
 {{- if and (gt (int $console.replicaCount) 1) (not (include "identity-host.managementConsole.valkeyEnabled" .)) }}
-{{- fail "managementConsole.replicaCount above 1 requires managementConsole.valkey.existingSecret: replicas share their sessions through Valkey." }}
+{{- fail "managementConsole.replicaCount above 1 requires managementConsole.valkey.existingSecret or managementConsole.valkey.parts.existingSecret: replicas share their sessions through Valkey." }}
 {{- end }}
+{{- include "identity-host.valkeyValidate" (dict "path" "managementConsole.valkey" "scope" $console.valkey "defaults" .Values.valkey) }}
 {{- include "identity-host.kmsCredentials.validate" (dict "credentials" (include "identity-host.kmsCredentials.managementConsole" . | fromYaml) "path" "managementConsole.secretProtection") }}
 {{- end }}
 
@@ -879,11 +923,7 @@ The environment of the management console container.
 - name: ManagementConsole__ManagementApiUrl
   value: {{ include "identity-host.managementConsole.managementApiUrl" . | quote }}
 {{- if include "identity-host.managementConsole.valkeyEnabled" . }}
-- name: ConnectionStrings__valkey
-  valueFrom:
-    secretKeyRef:
-      name: {{ $console.valkey.existingSecret }}
-      key: {{ $console.valkey.connectionStringKey }}
+{{ include "identity-host.valkeyEnv" (dict "scope" $console.valkey "defaults" .Values.valkey) | trim }}
 {{- end }}
 {{- with $console.extraEnv }}
 {{- toYaml . | nindent 0 }}

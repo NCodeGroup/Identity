@@ -88,7 +88,6 @@ The records are grouped by area; within an area they are in number order.
 | [1116](./1116-memory-allocations-and-buffer-operations.md) | Memory allocations and buffer operations use spans, pooled writers, and secure lifetimes | Accepted |
 | [1125](./1125-trunk-based-development-on-main.md) | Trunk-based development on a single `main` trunk | Superseded |
 | [1127](./1127-warnings-are-errors-in-every-project.md) | Warnings are errors in every project, including tests | Accepted |
-| [1128](./1128-commits-are-attributed-to-people-not-agents.md) | Commits are attributed to people, not agents | Superseded |
 | [1130](./1130-distinct-names-for-host-local-dev-orchestrator-and-library.md) | The deployable host, the local-dev orchestrator, and the shipped library have distinct names | Accepted |
 | [1137](./1137-configuration-binds-strictly-and-is-validated-at-startup.md) | Configuration binds strictly and is validated when the host starts | Accepted |
 | [1143](./1143-ci-presents-test-results-and-coverage-in-github.md) | CI presents test results and coverage in GitHub, through job summaries, annotations, and Codecov | Accepted |
@@ -116,7 +115,6 @@ The records are grouped by area; within an area they are in number order.
 | [1355](./1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) | General ASP.NET Core helpers live in a dependency-free package | Superseded |
 | [1385](./1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) | No shipping package switches off its consumers' logging generator | Accepted |
 | [1386](./1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md) | Primitives are benchmarked in a project the build compiles and nothing runs | Accepted |
-| [1393](./1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md) | The pre-release product is described as it is, and its changes are not tracked | Superseded |
 | [1397](./1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md) | Before the first stable release, no identifier or version is held for an unreleased state | Accepted |
 | [1428](./1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md) | A package translates the exceptions it owns into protocol errors | Accepted |
 | [1486](./1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md) | An analyzer in every project reports a field that could be an auto-property | Accepted |

@@ -69,7 +69,7 @@ state only the repository held protects no consumer:
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md)
 - [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md)
 - [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)
-- [ADR-1393](1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md)
+- [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)
 - [`AuditRecordWriter`](../../src/NCode.Identity.Events.Abstractions/Audit/AuditRecordWriter.cs)
 - [`NCode.Identity.Events` event IDs](../../src/NCode.Identity.Events/Logging/EventIds.cs)
 - [`NCode.Identity.OpenId.Authentication` event IDs](../../src/NCode.Identity.OpenId.Authentication/Logging/EventIds.cs)

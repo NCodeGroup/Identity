@@ -58,7 +58,7 @@ machine holds this schema, no release serves beside a new one, and no rollback r
 before the first release replays schema states and data shapes that only development databases ever held: each step is
 code to review, every data rewrite is hand-written SQL that the model-drift gate cannot check, and the chain names
 types, columns and settings that are absent from the model. The text that describes the product describes it as it is
-([ADR-1393](1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md)), and a migration
+([project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)), and a migration
 chain is that history kept in code.
 
 ## Decision
@@ -145,7 +145,7 @@ item 8 for the reference host's two contexts: a re-scaffolded migration ships wi
 ## References
 
 - [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release posture.
-- [ADR-1393](1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md) — the pre-release
+- [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md) — the pre-release
   product is described as it is.
 - [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
   [ADR-1184](1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and

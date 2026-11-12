@@ -114,7 +114,7 @@ gives it:
 - [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md)
 - [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)
 - [ADR-1265](1265-grant-payloads-are-protected-under-the-tenant-master-key.md)
-- [ADR-1393](1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md)
+- [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)
 - [`DefaultPersistedPayloadSerializer`](../../src/NCode.Identity.OpenId.Authentication/Persistence/DefaultPersistedPayloadSerializer.cs)
 - [`SessionGrant`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Sessions/SessionGrant.cs)
 - [`DefaultSessionService`](../../src/NCode.Identity.OpenId.Authentication/Sessions/DefaultSessionService.cs)

@@ -1,0 +1,72 @@
+{{- if .Values.backendTls.caPublisher.enabled }}
+{{- /*
+The hook Job in ca-publisher-job.yaml uses these. They are ordinary resources, not hooks, so they exist before a
+post-install hook runs, and Argo CD and `helm template` render them the same.
+*/ -}}
+{{- $target := include "identity-host.backendTls.caConfigMap" (dict "root" . "service" (include "identity-host.fullname" .)) }}
+{{- $name := printf "%s-ca-publisher" (include "identity-host.fullname" .) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "identity-host.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ca-publisher
+data:
+  kustomization.yaml: |
+    apiVersion: kustomize.config.k8s.io/v1beta1
+    kind: Kustomization
+    namespace: {{ .Release.Namespace }}
+    generatorOptions:
+      disableNameSuffixHash: true
+      labels:
+        app.kubernetes.io/name: {{ include "identity-host.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: ca-publisher
+    configMapGenerator:
+      - name: {{ $target }}
+        files:
+          - ca.crt
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "identity-host.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ca-publisher
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "identity-host.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ca-publisher
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames:
+      - {{ $target }}
+    verbs: ["get", "patch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "identity-host.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ca-publisher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

@@ -4,8 +4,7 @@
 - **Date:** 2026-11-07
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1465](1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md),
-  [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
-  [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
+  [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [ADR-1449](1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md),
   [ADR-1467](1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md)
 
@@ -20,7 +19,7 @@ A grant and a revoke follow the same flow for every role: authorize the caller a
 audit. Only the role name and the operation that authorizes the change differ: `Update` for owners and `Create` for
 administrators ([ADR-1465](1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md)). Revoking
 an owner adds the one-owner rule, which refuses to remove a resource's last owner
-([ADR-1034](1034-persisted-role-assignments-and-ownership.md)). Every grant can be refused: a client's principal holds a
+([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)). Every grant can be refused: a client's principal holds a
 role only as a machine client, at its owning node or beneath it, and the ownership service refuses any other grant to
 it ([ADR-1467](1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md)).
 
@@ -74,9 +73,9 @@ assignment's node ([ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-fr
 
 - [ADR-1465](1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md) — a role list tells its
   reader whether it may grant and revoke the role
-- [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — persisted resource-scoped role assignments and
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — persisted resource-scoped role assignments and
   ownership
-- [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — a tenant administrator is a
   role assignment at the tenant's node
 - [ADR-1449](1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md) — every role assignment
   the management API grants or revokes is audited

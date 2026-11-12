@@ -997,7 +997,7 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // Previewing a new tenant is part of creating it, which is authority at the team node (ADR-1034).
+        // Previewing a new tenant is part of creating it, which is authority at the team node (ADR-1417).
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             GetTeamNode(httpContext, teamId),

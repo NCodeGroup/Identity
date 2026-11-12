@@ -40,7 +40,7 @@ are independent: the first is the security domain that issued the caller's token
    filter, the endpoints and `OwnershipHandler` read that context, so a caller is authenticated, and its principal
    resolved, by the tenant that issued its token. A workload tenant's token never authenticates the API; control-plane
    principals administer a workload tenant through role assignments at that tenant's node
-   ([ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md)).
+   ([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)).
 2. **The strategy names the control-plane tenant.** `ITenantStrategy.GetControlPlaneTenantId` names it from
    configuration alone, without reading the store, and `ITenantStrategy.ResolveControlPlaneTenantAsync` resolves it.
    `ITenantResolver` delegates both to the selected strategy. A dynamic strategy (`DynamicByPath`, `DynamicByHost`)
@@ -112,4 +112,4 @@ are independent: the first is the security domain that issued the caller's token
 - [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) — issued-token validation.
 - [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — authorization at
   the named node.
-- [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — role assignments at a node.
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — role assignments at a node.

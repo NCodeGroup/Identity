@@ -55,7 +55,7 @@ Make resource servers first-class **settings and secret owners**, structurally i
   existing resource-server view.
 - Scope-families: a `resource_server_secrets` family is seeded; resource-server **settings** fold into
   the `resource_servers` family, following the client leaf model (see
-  [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md)). Authorization of the new endpoints
+  [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)). Authorization of the new endpoints
   flows through the existing ownership/admin handlers against the `resource_server` resource node and the
   settings/secret objects — no new authorization code.
 

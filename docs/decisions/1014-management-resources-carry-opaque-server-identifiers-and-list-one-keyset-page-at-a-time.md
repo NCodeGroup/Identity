@@ -54,7 +54,7 @@ ordered query.
 
 A list is authorized once per request, at its node or tenant scope, with `Operations.List`, never per item. Tenant-bound
 lists are confined by the persistence query filter under the route's tenant. The authority itself is the caller's role
-assignment ([ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md)).
+assignment ([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)).
 
 Small collections bounded by design are returned whole: an owner's secrets, a resource server's scopes, the role lists
 and the `/api/me` lists.
@@ -94,4 +94,4 @@ no general query protocol.
 - [project-template ADR-0124](project-template/0124-collection-endpoints-use-keyset-pagination.md)
 - [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)
-- [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md)
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)

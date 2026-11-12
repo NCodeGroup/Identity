@@ -159,7 +159,7 @@ on the bootstrap client in the bootstrap tenant.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md):
   the interceptor-managed concurrency tokens.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the control plane and the root tenant.
-- [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md): plane-aware resource-server
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md): plane-aware resource-server
   seeding.
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md): the bootstrap administrator.
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md): the issuer

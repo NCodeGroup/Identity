@@ -13,7 +13,7 @@ scope, client-grant, local-account and platform routes read first. A caller with
 identifier that does not exist and `403` for one that does, so these routes disclose which clients, resource servers,
 grants, accounts and settings exist, and the store loads a row for a caller who may not see any of them.
 
-[ADR-1034](1034-persisted-role-assignments-and-ownership.md) gives an `Owner` the management of its instance's leaves: its
+[ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) gives an `Owner` the management of its instance's leaves: its
 settings, secrets and scopes. A leaf write that authorizes at the tenant node from the row refuses an owner and needs
 the read to find the row's tenant.
 
@@ -29,7 +29,7 @@ names, before it reads.**
 1. **A client's and a resource server's own routes and leaves authorize at that resource's node from the route.** Its
    settings, secrets and scopes authorize at `ResourceNode.For(tenantId, type, id)`: Update or Delete for a write,
    Create for creating, importing or rotating a secret (rotating also needs Update), and Create for a settings write
-   that issues a secret. An `Owner` of the instance holds these, as ADR-1034 grants.
+   that issues a secret. An `Owner` of the instance holds these, as ADR-1417 grants.
 2. **Creating a client or a resource server is Create at the tenant node.** A client create that names a resource
    server also authorizes Update at that resource server's node, built from the request body, before it reads the
    resource server. An initial access token scoped to a resource server does the same.
@@ -73,7 +73,7 @@ names, before it reads.**
 
 - [ADR-1015](1015-management-core-validation-via-validators.md) — management core validation via replaceable
   validators
-- [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — persisted resource-scoped role assignments and
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — persisted resource-scoped role assignments and
   ownership
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a limit is set by
   the authority above the scope whose document carries it

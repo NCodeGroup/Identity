@@ -22,8 +22,8 @@ layer enforces this with a denormalized tenant discriminator and the fail-closed
 
 ## Context
 
-The authorization model ([ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md)) grants authority to a
-_principal_, and the persisted assignments ([ADR-1034](1034-persisted-role-assignments-and-ownership.md)) reference that
+The authorization model ([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)) grants authority to a
+_principal_, and the persisted assignments ([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)) reference that
 principal. The initial realization identifies the principal by the `sub` claim and persists that external value
 directly as the lookup/relationship key. Two problems follow:
 
@@ -165,16 +165,16 @@ no code today:
   re-based on a principal-id length rather than the subject-id length it was initially sized with. A grant persists the
   resolved `PrincipalId` in its subject field because the subject-authentication seam resolves the principal before the
   grant is created — the value is corrected at its source rather than by renaming the grant surface.
-- `ADR-1033`/`ADR-1034`'s abstract-principal note is realized here; the abstract `Principal` supertype keeps the
+- `ADR-1417`/`ADR-1417`'s abstract-principal note is realized here; the abstract `Principal` supertype keeps the
   service-principal path open.
 
 ## References
 
 - [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — server-generated opaque identifiers, which the principal
   and identity ids follow.
-- [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) — the authorization model whose abstract principal
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — the authorization model whose abstract principal
   this ADR gives a durable identity.
-- [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — the persisted assignments that reference `PrincipalId`.
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — the persisted assignments that reference `PrincipalId`.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture under which
   the principal-identity surface is refined before release.
 - [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) — adds the local kind of connection: a

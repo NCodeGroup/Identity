@@ -8,9 +8,9 @@
   [ADR-1467](1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) (a client acting for itself is the
+- **Amends:** [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) (a client acting for itself is the
   client case of the abstract principal);
-  [ADR-1034](1034-persisted-role-assignments-and-ownership.md) (an assignment's principal may be a client's, and
+  [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) (an assignment's principal may be a client's, and
   removing a client removes the assignments it holds);
   [ADR-1035](1035-federated-principals-and-identity-resolution.md) (the service principal is the client itself,
   identified by a `PrincipalId` its row carries)
@@ -72,8 +72,7 @@ fails least privilege.
 
 ## References
 
-- [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
-  [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [ADR-1035](1035-federated-principals-and-identity-resolution.md),
   [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)
 - `src/NCode.Identity.OpenId.Management/Authorization/DefaultCallerPrincipalResolver.cs`,

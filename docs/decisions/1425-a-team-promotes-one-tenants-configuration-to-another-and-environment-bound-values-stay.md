@@ -20,7 +20,7 @@ mutual-TLS subject names the application of one environment, and a profile of an
 A limit in a document is set by the authority above the scope whose document carries it
 ([ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)), and a promoted
 document is a settings write to the target. A client a host registers is changed by no management caller
-([ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md)), and `IHostManagedClientPolicy`
+([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)), and `IHostManagedClientPolicy`
 names it.
 
 ## Decision
@@ -144,7 +144,7 @@ keys, principals and environment-bound values stay with their environment.**
   environment type, which selects its guardrails
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform is the
   deployment root and a team groups a customer's tenants
-- [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — a tenant administrator is a
   role assignment at the tenant's node
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a limit is set by
   the authority above the scope whose document carries it

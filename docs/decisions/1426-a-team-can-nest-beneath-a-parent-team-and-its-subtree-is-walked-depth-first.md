@@ -64,7 +64,7 @@ teams per level, and `ITeamStore` has no read of a whole subtree.**
 6. **Authority flows down the chain.** A role at a team reaches every team and tenant beneath it. Creating a child team
    is `Operations.Create` at the parent team, and listing its child teams is `Operations.List` at the team. A team's
    lifecycle (create, disable, restore, delete) is authority at the node above it. `TenantAdmin`
-   ([ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md)) never reaches a team, because
+   ([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)) never reaches a team, because
    the chain of a team node holds team nodes and the platform, never a tenant node. Every team route authorizes at the
    node it names before it reads
    ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)), and then
@@ -150,7 +150,7 @@ teams per level, and `ITeamStore` has no read of a whole subtree.**
   settings are reconciled per team
 - [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md) — a
   replica that may have missed a team announcement evicts only the teams whose row changed
-- [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — a tenant administrator is a
   role assignment at the tenant's node
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a
   limit is set by the authority above the scope whose document carries it

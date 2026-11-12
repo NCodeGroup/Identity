@@ -44,7 +44,7 @@ before it can manage them.
   sign-in per team, it grows with the number of teams, and it is a second source of truth beside the role assignments.
   The per-request check stays anyway.
 - **An audience or resource indicator per team.** Rejected: it has the same staleness, and the management API is one
-  resource server ([ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md)).
+  resource server ([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)).
 - **Probing endpoints in the console.** Rejected: it guesses, and it cannot list the teams a caller holds.
 
 ## Consequences
@@ -56,8 +56,7 @@ before it can manage them.
 
 ## References
 
-- [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
-  [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md),
   [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md),

@@ -173,9 +173,6 @@ The records are grouped by area; within an area they are in number order.
 | [1014](./1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) | Management resources carry opaque server identifiers and list one keyset page at a time | Accepted |
 | [1015](./1015-management-core-validation-via-validators.md) | Management core validation via replaceable validators | Accepted |
 | [1020](./1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) | A tenant's grants are listed, inspected and revoked by opaque identifier, never by their key | Accepted |
-| [1031](./1031-control-plane-management-resource-server-and-root-tenant-seeding.md) | The control-plane management resource server is a planed system resource server seeded only into the root tenant | Accepted |
-| [1033](./1033-authorization-model-scopes-roles-and-ownership.md) | Authorization model: granular scopes, roles as bundles, and resource-scoped assignments (ownership) | Accepted |
-| [1034](./1034-persisted-role-assignments-and-ownership.md) | Persisted resource-scoped role assignments and ownership | Accepted |
 | [1044](./1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) | The management API authenticates its own access tokens and a configured client bootstraps the first GlobalAdmin | Accepted |
 | [1046](./1046-api-reference-openapi-document-and-scalar.md) | The API reference (OpenAPI document + Scalar) is owned by the composition layer and turnkey for every environment | Accepted |
 | [1067](./1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) | Secret key types form one catalog, and authenticated management callers discover the deployment's capabilities | Accepted |
@@ -183,7 +180,7 @@ The records are grouped by area; within an area they are in number order.
 | [1191](./1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md) | A management request is authenticated by the control-plane tenant and scoped by its route's tenant | Accepted |
 | [1214](./1214-a-management-write-that-loses-a-race-is-answered-412.md) | A management write that loses a concurrency race is answered 412 | Accepted |
 | [1257](./1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md) | The management console addresses every owner's secrets, settings and roles through one owner value | Accepted |
-| [1417](./1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) | A tenant administrator is a role assignment at the tenant's node | Accepted |
+| [1417](./1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) | Management authority is a role assignment at a node of the platform, team and tenant hierarchy | Accepted |
 | [1419](./1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) | A client acting for itself is a principal that holds role assignments | Accepted |
 | [1420](./1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md) | A caller's teams and tenants are discovered from its role assignments | Accepted |
 | [1422](./1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md) | A management problem that asks the caller to wait carries the wait in retryAfterSeconds | Accepted |

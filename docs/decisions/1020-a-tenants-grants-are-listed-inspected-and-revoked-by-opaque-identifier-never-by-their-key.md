@@ -87,7 +87,7 @@ The routes run under `TenantScopeEndpointFilter`, so the persistence query filte
 read and revoke to the route's tenant. A grant with no tenant is invisible here. Authorization is at the tenant scope
 (`TenantScopeResource`): `Operations.List` lists, `Operations.Read` reads one and `Operations.Delete` revokes. The
 authority itself is a role assignment, as
-[ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) holds, and the route authorizes
+[ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) holds, and the route authorizes
 before it reads, as [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
 holds.
 
@@ -144,7 +144,7 @@ dynamic client registration and is described in
 - [ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md): the initial access
   token.
 - [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): a lost race on a grant.
-- [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md): authority as a role assignment.
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md): authority as a role assignment.
 - [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md): authorize before
   reading.
 - [RFC 7591](https://www.rfc-editor.org/rfc/rfc7591): OAuth 2.0 Dynamic Client Registration.

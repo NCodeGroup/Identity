@@ -60,7 +60,7 @@ internal class OwnershipHandler(
             return;
         }
 
-        // Creating a resource is authority at the parent node, which is the node passed here (ADR-1034, ADR-1411).
+        // Creating a resource is authority at the parent node, which is the node passed here (ADR-1417, ADR-1411).
         var isCreate =
             requirement is OperationAuthorizationRequirement operation
             && string.Equals(operation.Name, Operations.Create.Name, StringComparison.Ordinal);

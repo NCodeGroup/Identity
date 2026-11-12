@@ -27,7 +27,7 @@ security profiles that accumulate down the cascade
 tenants named by their creator
 ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)), and a role model
 whose assignments are owned by a scope
-([ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md)). The open questions are how far tenant isolation
+([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)). The open questions are how far tenant isolation
 goes, what the deployment root is, what groups tenants, and how authority, settings, lifecycle and the console address
 them.
 
@@ -141,7 +141,7 @@ settings cascade and in authority.**
 - `OpenIdDbContext`, `TenantPlane.Root`, the `TenantResolution:Root:TeamId` and `OpenId:Platform:Settings` options
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the
   ambient-tenant query filter
-- [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) — roles and ownership
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — roles and ownership
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)
   — security profiles down the cascade
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) — the registered

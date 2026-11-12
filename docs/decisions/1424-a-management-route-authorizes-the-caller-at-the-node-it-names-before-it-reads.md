@@ -19,7 +19,7 @@ the store does the work of finding them for a caller who may not see any of them
 
 Authority is decided at nodes
 ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
-[ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md)), and a node is built from the
+[ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)), and a node is built from the
 route's values alone: the platform, a team or a tenant needs no row. A tenant node of an unknown tenant has no team
 ancestor, so a role at a team never reaches it. The decision about a caller is therefore the same whether or not the
 identifier exists.
@@ -77,7 +77,7 @@ or the resource is gone. A tool that reads `404` for a resource it may not see r
   validators
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform is the
   deployment root and a team groups a customer's tenants
-- [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — a tenant administrator is a
   role assignment at the tenant's node
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a limit is set by
   the authority above the scope whose document carries it

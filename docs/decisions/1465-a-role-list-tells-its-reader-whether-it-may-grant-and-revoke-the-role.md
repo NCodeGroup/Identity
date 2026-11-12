@@ -4,8 +4,7 @@
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
-  [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
-  [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
+  [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)
 
 ## Context
@@ -62,9 +61,9 @@ A console that offers grant and revoke to every caller learns that the caller ma
 
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a settings reader learns which limits the
   settings carry and whether it may change them
-- [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — persisted resource-scoped role assignments and
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — persisted resource-scoped role assignments and
   ownership
-- [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
+- [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — a tenant administrator is a
   role assignment at the tenant's node
 - [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) — a client acting for itself
   is a principal that holds role assignments

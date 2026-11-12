@@ -149,7 +149,7 @@ internal class DefaultResourceOwnershipService(
             };
         }
 
-        // Refuse to orphan the resource; a tenant or global admin can always reassign ownership (ADR-1034).
+        // Refuse to orphan the resource; a tenant or global admin can always reassign ownership (ADR-1417).
         if (owners.Count - toRemoveCount < 1)
         {
             return new OwnerRemoval

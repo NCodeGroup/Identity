@@ -2149,8 +2149,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   one audience into one resource server per tenant, seeding `Control`-plane families only into the root tenant. The
   static single-tenant strategy provisions the root tenant lazily alongside its workload tenant, so a single-tenant
   deployment has its control plane with no extra configuration. See
-  [ADR-1033](docs/decisions/1033-authorization-model-scopes-roles-and-ownership.md),
-  [ADR-1031](docs/decisions/1031-control-plane-management-resource-server-and-root-tenant-seeding.md) and
+  [ADR-1417](docs/decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) and
   [ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md).
 
 - **Resource ownership is data-driven.** Persisted `(principal, role, resource-node)` role assignments
@@ -2163,7 +2162,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OwnerRemoval`). The ownership service and resource-node abstraction (`IResourceOwnershipService`, `IResourceNode`,
   `ResourceNode`, `ResourceNodeTypes`) are public, so applications own and enforce their own resource types; the
   built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
-  [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
+  [ADR-1417](docs/decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md).
 
 - **A client acting for itself is a principal.** Every client has a principal (`PersistedClient.PrincipalId`,
   `ClientResource.principalId`, `OpenIdClient.PrincipalId`) that its store generates when the client is added — 128
@@ -3988,7 +3987,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A tenant has administrators.** `GET`/`POST`/`DELETE /api/tenants/{tenantId}/admins` list, grant and revoke the
   `TenantAdmin` role at the tenant's node, which manages the tenant and everything beneath it and creates its clients,
   resource servers and other resources; granting or revoking it is creation authority at the tenant
-  ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
+  ([ADR-1417](docs/decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [#556](https://github.com/NCodeGroup/identity/issues/556)).
 
 - **A setting can be a limit set from above.** `SettingDescriptor.IsLimit` marks a limit, which merges with a meet; a
@@ -4190,7 +4189,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   confers authority; a tenant administrator reaches nothing above its tenant, so the control-plane tenant's
   administrators never reach the platform or a team. The host-managed bootstrap administrator client is changed by no
   management caller, so authority over the root tenant's clients never yields a `GlobalAdmin` token
-  ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
+  ([ADR-1417](docs/decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [#556](https://github.com/NCodeGroup/identity/issues/556)).
 
 - **A management route's caller is only the principal its management access token authenticates.** On every management

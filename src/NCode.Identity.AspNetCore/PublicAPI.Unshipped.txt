@@ -92,6 +92,15 @@ NCode.Identity.AspNetCore.Options.StrictTransportSecurityOptions.MaxAge.set -> v
 NCode.Identity.AspNetCore.Options.StrictTransportSecurityOptions.Preload.get -> bool
 NCode.Identity.AspNetCore.Options.StrictTransportSecurityOptions.Preload.set -> void
 NCode.Identity.AspNetCore.Options.StrictTransportSecurityOptions.StrictTransportSecurityOptions() -> void
+const NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.DefaultSectionName = "ProxyClientCertificate" -> string!
+NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions
+NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.AllowedSubjects.get -> string![]!
+NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.AllowedSubjects.set -> void
+NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.CertificateAuthorityPath.get -> string?
+NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.CertificateAuthorityPath.set -> void
+NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.ProxyClientCertificateOptions() -> void
+NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.Required.get -> bool
+NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.Required.set -> void
 NCode.Identity.AspNetCore.HealthProbeEndpointRouteBuilderExtensions
 NCode.Identity.AspNetCore.HealthProbeEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 NCode.Identity.AspNetCore.HealthProbeEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapHealthProbes() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!

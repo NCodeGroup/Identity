@@ -16,7 +16,7 @@ its keys from a secret that the platform mounts as files. A host that only needs
 carry code that does so, and the files are the same shape for every host: a PEM-encoded private key.
 
 The client-authentication key ring is the one that `GET /bff/jwks` publishes, and the DPoP key ring is never published
-([ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+([ADR-1382](1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)).
 Both rings hold private keys, so how a host loads them decides where the private key's bytes live in the process.
 
 ## Decision
@@ -75,6 +75,6 @@ in code.**
 ## References
 
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)
-- [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
+- [ADR-1382](1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)
 - `src/NCode.Identity.Bff/Secrets/BffPemKeyReader.cs`
 - `src/NCode.Identity.Bff/Secrets/BffKeyRingLoader.cs`

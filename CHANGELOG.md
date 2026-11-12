@@ -2771,7 +2771,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `GET {PathPrefix}/jwks` for that frontend that publishes the public keys of its `ClientAuthentication:KeyRing`, for an
   OP that reads a `private_key_jwt` client's keys from its `jwks_uri`; it is off by default and validated when the host
   starts ([#396](https://github.com/NCodeGroup/identity/issues/396),
-  [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+  [ADR-1382](docs/decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)).
 
 - **One BFF serves several browser frontends.** Each `Bff:Frontends:<name>` entry (`BffFrontendOptions`) is a frontend
   with its own client registration, `PublicOrigin`, `PathPrefix`, return URLs, claims, session, DPoP, security headers,
@@ -5584,7 +5584,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CrossOriginOpenerPolicy`; the strict defaults for a request no frontend selects), unless the application set the
   header itself; the options are validated when the host starts
   ([#396](https://github.com/NCodeGroup/identity/issues/396),
-  [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+  [ADR-1382](docs/decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)).
 
 - **BFF frontends never share a session.** Each frontend's cookies are `__Host-Http-bff.<name>` and
   `__Host-Http-bff-login.<name>`, another frontend ignores a frontend's session and deletes its cookie, and refuses its

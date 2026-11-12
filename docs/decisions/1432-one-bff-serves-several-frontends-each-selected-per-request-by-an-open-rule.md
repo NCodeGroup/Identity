@@ -8,7 +8,7 @@
   [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md) decision 2,
   [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
   decisions 7 and 8,
-  [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
+  [ADR-1382](1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)
   decisions 1 and 5, and the per-frontend configuration keys that
   [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
   [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
@@ -100,7 +100,7 @@ endpoint or a token takes it from that frontend.**
 9. **Distinct callbacks.** Each frontend's callback, `PublicOrigin + PathPrefix + "/callback"`, is unique across the
    deployment, so the OP can tell the clients apart.
 10. **Security headers.** `UseBffSecurityHeaders()` writes the selected frontend's headers
-    ([ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)),
+    ([ADR-1382](1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)),
     and the strict defaults of `BffSecurityHeadersOptions` for a request that selects no frontend. `/bff/jwks` publishes
     the keys of the request's frontend.
 11. **Validation and lifetime.** The whole set is validated at startup: each frontend, each rule's values, the overlaps,
@@ -144,7 +144,7 @@ endpoint or a token takes it from that frontend.**
   [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md),
   [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md),
   [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
-  [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
+  [ADR-1382](1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)
 - `src/NCode.Identity.Bff/Frontends/`, `src/NCode.Identity.Bff/Options/BffFrontendOptions.cs`,
   `src/NCode.Identity.Bff.Abstractions/IBffFrontendSelector.cs`
 - Issues [#89](https://github.com/NCodeGroup/identity/issues/89) and

@@ -156,7 +156,7 @@ and the `form_post` response only by its client's origin.**
 - A page that submits a form to a client keeps `form-action` open, so its protection against an injected form rests on
   HTML encoding, the nonce and `base-uri`.
 - The BFF builds its browser security headers from one configured string, not from `HtmlPageSecurityPolicy`
-  ([ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+  ([ADR-1382](1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)).
 - A page that lists no `form-action` gets `'none'`, not `'self'`, which differs from project-template ADR-0121: every
   default of the policy allows nothing, and no page the server writes has a same-origin form. `Cache-Control: no-store`
   on every page meets the template's per-user rule, because every page carries per-response or per-user content.

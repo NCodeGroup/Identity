@@ -166,7 +166,7 @@ descriptor names each method.**
   security profile's ceiling.
 - [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md): dynamic
   client registration.
-- [ADR-1481](1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md): the API reference.
+- [ADR-1481](1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md): the API reference.
 - `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientAuthenticationService.cs`,
   `src/NCode.Identity.OpenId.Authentication/Clients/OpenIdClientRegistrationExtensions.cs`,
   `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/`,

@@ -163,7 +163,7 @@ answers `404` and `409` from the rows it read, and each route declares every pro
 - [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): the route group's `503`.
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md):
   the management validators that answer a stale `If-Match` with `412`.
-- [ADR-1481](1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md):
+- [ADR-1481](1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md):
   the problems a route declares say when each occurs.
 - [project-template ADR-0125](project-template/0125-a-write-that-loses-a-race-is-answered-412.md): a write that loses a
   race is answered `412`.

@@ -1,0 +1,74 @@
+# An Envoy Gateway for the kind cluster the chart workflow installs the host chart in. The Gateway listens on HTTP port
+# 80 for both hosts and presents the release's ingress certificate Secret as its backend client certificate, which the
+# pods require; a ReferenceGrant in the identity namespace lets it name that Secret. The EnvoyProxy gives the Envoy
+# Service the type ClusterIP, so the Gateway is Programmed without a load balancer and the workflow reaches it with a
+# port-forward. The EnvoyProxy also offers only http/1.1 in the TLS handshake with the pods, because the route's
+# upstream speaks HTTP/1.1 and the pods would otherwise choose h2.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: identity-proxy
+  namespace: envoy-gateway-system
+spec:
+  backendTLS:
+    alpnProtocols:
+      - http/1.1
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: identity
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: identity-proxy
+    namespace: envoy-gateway-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-system
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: identity-gateway
+  namespace: gateway-system
+spec:
+  gatewayClassName: identity
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+  tls:
+    backend:
+      clientCertificateRef:
+        group: ""
+        kind: Secret
+        name: release-ncode-identity-host-ingress
+        namespace: identity
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: identity-gateway-client-certificate
+  namespace: identity
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: gateway-system
+  to:
+    - group: ""
+      kind: Secret
+      name: release-ncode-identity-host-ingress

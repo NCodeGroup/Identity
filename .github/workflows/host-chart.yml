@@ -11,8 +11,9 @@
 # enabled, with or without its location (ADR-1485).
 # The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
 # the certificate, and the chosen route verifies it (ADR-1504, ADR-1507). The pods can require the ingress controller's
-# client certificate, and the chart's ingress certificate and its Secret are checked. The cluster job installs the chart
-# in kind behind Traefik (ADR-1506).
+# client certificate, and the chart's ingress certificate and its Secret are checked. The cluster job installs the
+# server and the management console in kind behind Traefik and behind an Envoy Gateway, which implements the Gateway's
+# backend client certificate (ADR-1506, ADR-1507).
 # The chart serves no API reference unless its values enable it (ADR-1481).
 # The Publish artifacts workflow publishes the chart (ADR-1505).
 name: Host chart
@@ -630,12 +631,15 @@ jobs:
           reject "$pem" 'AWS_ROLE_ARN' 'RemoteKeyProviders'
 
   # Rendering cannot prove what only a cluster does: cert-manager issuing the certificates, Traefik reading the
-  # ServersTransport the chart renders, and Traefik verifying the pods' certificate and presenting its own. This job
-  # installs the chart in a kind cluster behind Traefik to prove them (ADR-1506, ADR-1507).
+  # ServersTransport the chart renders, Traefik and Envoy Gateway verifying the pods' certificate and presenting
+  # their own, and the pods requiring it. This job installs the chart with the server and the management console in a
+  # kind cluster, first behind Traefik and then behind an Envoy Gateway, to prove them (ADR-1506, ADR-1507). Envoy
+  # Gateway is the Gateway API implementation because it implements the Gateway's backend client certificate
+  # (spec.tls.backend.clientCertificateRef), which the pods' client certificate requirement needs.
   cluster:
-    name: Install the host chart in kind behind Traefik
+    name: Install the host chart in kind behind Traefik and a Gateway
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     env:
       CHART: charts/ncode-identity-host
@@ -667,6 +671,16 @@ jobs:
           tags: ncode-identity-host:kind
           cache-from: type=gha,scope=host-image
 
+      - name: Build the console image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: hosts/NCode.Identity.ManagementConsole.Host/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ncode-identity-management-console:kind
+          cache-from: type=gha,scope=console-image
+
       - name: Create the cluster
         uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
         with:
@@ -674,8 +688,8 @@ jobs:
           node_image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
           cluster_name: identity
 
-      - name: Load the host image into the cluster
-        run: kind load docker-image ncode-identity-host:kind --name identity
+      - name: Load the images into the cluster
+        run: kind load docker-image ncode-identity-host:kind ncode-identity-management-console:kind --name identity
 
       - name: Install cert-manager
         run: |
@@ -687,9 +701,10 @@ jobs:
           helm install traefik traefik --repo https://traefik.github.io/charts --version 42.3.1 \
             --namespace traefik --create-namespace --set service.spec.type=ClusterIP --wait --timeout 5m
 
-      # The release reads the database from a Secret shaped like a Postgres operator's `<cluster>-app` Secret and the root
-      # key from another; both are generated here and never stored.
-      - name: Create the database and its Secrets
+      # The release reads the database from `postgres-app`, a Secret shaped like a Postgres operator's `<cluster>-app`
+      # Secret, and the root key and the management console's two key rings (client and DPoP) from Secrets of their own;
+      # all are generated here and never stored.
+      - name: Create the database and the release's Secrets
         run: |
           set -euo pipefail
           kubectl create namespace "$NAMESPACE"
@@ -699,6 +714,12 @@ jobs:
             --from-literal=user=postgres --from-literal=password="$password"
           kubectl -n "$NAMESPACE" create secret generic identity-root-key \
             --from-literal=key="$(head -c 32 /dev/urandom | basenc --base64url -w0 | tr -d '=')"
+          openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$RUNNER_TEMP/mgmt-client.pem"
+          openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$RUNNER_TEMP/mgmt-dpop.pem"
+          kubectl -n "$NAMESPACE" create secret generic identity-mgmt-client-key \
+            --from-file=mgmt-client.pem="$RUNNER_TEMP/mgmt-client.pem"
+          kubectl -n "$NAMESPACE" create secret generic identity-mgmt-dpop-key \
+            --from-file=mgmt-dpop.pem="$RUNNER_TEMP/mgmt-dpop.pem"
           kubectl -n "$NAMESPACE" apply -f "$CHART/ci/kind-postgres.yaml"
           kubectl -n "$NAMESPACE" rollout status deployment/postgres --timeout=3m
 
@@ -709,18 +730,23 @@ jobs:
           helm install release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
             --wait --timeout 10m
 
-      # through_ingress sends one request to the pods' Host through Traefik's Service and prints the HTTP status code, or
-      # 000 when the request fails. Later steps source the file.
+      # route <namespace/service> <host> <path> sends one request with the Host header through a port-forward to the
+      # Service's port 80 and prints the HTTP status code, or 000 when the request fails. expect_route <expected>
+      # <namespace/service> <host> <path> <description> requires the expected status code within 12 attempts five
+      # seconds apart. Later steps source the file.
       - name: Verify the pods' certificate through Traefik
         run: |
           set -euo pipefail
           helpers="$RUNNER_TEMP/kind-helpers.sh"
           cat > "$helpers" <<'EOF'
-          through_ingress() {
-            local path="${1:-/health/ready}"
+          route() {
+            local namespace="${1%%/*}"
+            local service="${1#*/}"
+            local host="$2"
+            local path="$3"
             local code=000
             local forward
-            kubectl -n traefik port-forward svc/traefik 8080:80 > /dev/null 2>&1 &
+            kubectl -n "$namespace" port-forward "svc/$service" 8080:80 > /dev/null 2>&1 &
             forward=$!
             local attempt
             for attempt in $(seq 1 30); do
@@ -730,25 +756,35 @@ jobs:
               sleep 1
             done
             code=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
-              -H 'Host: id.example.com' "http://127.0.0.1:8080$path" || true)
+              -H "Host: $host" "http://127.0.0.1:8080$path" || true)
             kill "$forward" 2> /dev/null || true
             wait "$forward" 2> /dev/null || true
             printf '%s' "$code"
           }
+          expect_route() {
+            local expected="$1"
+            local service="$2"
+            local host="$3"
+            local path="$4"
+            local description="$5"
+            local code=000
+            local attempt
+            for attempt in $(seq 1 12); do
+              code=$(route "$service" "$host" "$path")
+              if [ "$code" = "$expected" ]; then
+                return 0
+              fi
+              sleep 5
+            done
+            echo "::error::$description answered $code; expected $expected."
+            exit 1
+          }
           EOF
           source "$helpers"
-          code=000
-          for attempt in $(seq 1 12); do
-            code=$(through_ingress /health/ready)
-            if [ "$code" = 200 ]; then
-              break
-            fi
-            sleep 5
-          done
-          if [ "$code" != 200 ]; then
-            echo "::error::A request to /health/ready through Traefik answered $code; expected 200, so Traefik did not verify and reach the pods."
-            exit 1
-          fi
+          expect_route 200 traefik/traefik id.example.com /health/ready \
+            'A request to /health/ready through Traefik, which must verify and reach the pods,'
+          expect_route 200 traefik/traefik manage.example.com /health/ready \
+            'A request to /health/ready on the console host through Traefik, which must verify and reach the console pods,'
 
       # The controller presents the client certificate of the chart's ingress Secret, and the pods' probes need none.
       # A probe and a non-probe path are both requested through the controller.
@@ -758,64 +794,59 @@ jobs:
           source "$RUNNER_TEMP/kind-helpers.sh"
           helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
             --set backendTls.clientCertificate.required=true --wait --timeout 10m
-          code=000
-          for attempt in $(seq 1 12); do
-            code=$(through_ingress /health/ready)
-            if [ "$code" = 200 ]; then
-              break
-            fi
-            sleep 5
-          done
-          if [ "$code" != 200 ]; then
-            echo "::error::A request to /health/ready through Traefik answered $code with the client certificate required; expected 200, so Traefik did not present its certificate."
-            exit 1
-          fi
-          code=000
-          for attempt in $(seq 1 12); do
-            code=$(through_ingress /.well-known/openid-configuration)
-            if [ "$code" = 200 ]; then
-              break
-            fi
-            sleep 5
-          done
-          if [ "$code" != 200 ]; then
-            echo "::error::A request to /.well-known/openid-configuration through Traefik answered $code with the client certificate required; expected 200, so Traefik did not present its certificate on a path the pods do not exempt (a 403 means the pods refused Traefik)."
-            exit 1
-          fi
+          expect_route 200 traefik/traefik id.example.com /health/ready \
+            'A request to /health/ready through Traefik with the client certificate required, which proves that Traefik presented its certificate,'
+          expect_route 200 traefik/traefik id.example.com /.well-known/openid-configuration \
+            'A request to /.well-known/openid-configuration through Traefik with the client certificate required, which proves that Traefik presented its certificate on a path the pods do not exempt (a 403 means the pods refused Traefik),'
+          expect_route 200 traefik/traefik manage.example.com /health/ready \
+            'A request to /health/ready on the console host through Traefik with the client certificate required,'
+          expect_route 200 traefik/traefik manage.example.com / \
+            'A request to / on the console host through Traefik with the client certificate required, which proves that Traefik presented its certificate to the console (a 403 means the console refused Traefik),'
 
-      # A request that reaches the pods' Service without the ingress controller's certificate is refused, except the probes.
+      # A request that reaches the server's or the console's Service without the ingress controller's certificate is
+      # refused, except the probes. The server answers on local port 8443 and the console on 8444.
       - name: Refuse a request that carries no proxy certificate
         run: |
           set -euo pipefail
           kubectl -n "$NAMESPACE" port-forward svc/release-ncode-identity-host 8443:443 > /dev/null 2>&1 &
-          forward=$!
-          trap 'kill "$forward" 2> /dev/null || true' EXIT
-          for attempt in $(seq 1 30); do
-            if (exec 3<> /dev/tcp/127.0.0.1/8443) 2> /dev/null; then
-              break
-            fi
-            sleep 1
+          server_forward=$!
+          kubectl -n "$NAMESPACE" port-forward svc/release-ncode-identity-host-management-console 8444:443 > /dev/null 2>&1 &
+          console_forward=$!
+          trap 'kill "$server_forward" "$console_forward" 2> /dev/null || true' EXIT
+          for port in 8443 8444; do
+            for attempt in $(seq 1 30); do
+              if (exec 3<> "/dev/tcp/127.0.0.1/$port") 2> /dev/null; then
+                break
+              fi
+              sleep 1
+            done
           done
 
-          # direct prints the HTTP status code of a request straight to the pods, or 000 when the request fails. The
-          # arguments after the path go to curl.
+          # direct <port> <host> <path> [curl args] prints the HTTP status code of a request with the Host header
+          # straight to the pods behind the local port, or 000 when the request fails. The arguments after the path go
+          # to curl.
           direct() {
-            local path="$1"
-            shift
+            local port="$1"
+            local host="$2"
+            local path="$3"
+            shift 3
             curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 --insecure \
-              -H 'Host: id.example.com' "$@" "https://127.0.0.1:8443$path" || true
+              -H "Host: $host" "$@" "https://127.0.0.1:$port$path" || true
           }
 
-          # expect_direct requires the expected status code within 12 attempts five seconds apart.
+          # expect_direct <expected> <port> <host> <path> <description> [curl args] requires the expected status code
+          # within 12 attempts five seconds apart.
           expect_direct() {
             local expected="$1"
-            local path="$2"
-            local description="$3"
-            shift 3
+            local port="$2"
+            local host="$3"
+            local path="$4"
+            local description="$5"
+            shift 5
             local code=000
             local attempt
             for attempt in $(seq 1 12); do
-              code=$(direct "$path" "$@")
+              code=$(direct "$port" "$host" "$path" "$@")
               if [ "$code" = "$expected" ]; then
                 return 0
               fi
@@ -825,17 +856,23 @@ jobs:
             exit 1
           }
 
-          expect_direct 200 /health/live 'A request to /health/live without a certificate'
-          expect_direct 403 / 'A request to / without a certificate'
-          expect_direct 403 /.well-known/openid-configuration 'A request to the discovery document without a certificate'
+          expect_direct 200 8443 id.example.com /health/live 'A request to /health/live without a certificate'
+          expect_direct 403 8443 id.example.com / 'A request to / without a certificate'
+          expect_direct 403 8443 id.example.com /.well-known/openid-configuration 'A request to the discovery document without a certificate'
+          expect_direct 200 8444 manage.example.com /health/live 'A request to /health/live on the console without a certificate'
+          expect_direct 403 8444 manage.example.com / 'A request to / on the console without a certificate'
 
           kubectl -n "$NAMESPACE" get secret release-ncode-identity-host-ingress -o jsonpath='{.data.tls\.crt}' | base64 -d > "$RUNNER_TEMP/proxy.crt"
           kubectl -n "$NAMESPACE" get secret release-ncode-identity-host-ingress -o jsonpath='{.data.tls\.key}' | base64 -d > "$RUNNER_TEMP/proxy.key"
-          expect_direct 200 /.well-known/openid-configuration 'A request to the discovery document with the certificate of the ingress Secret' \
+          expect_direct 200 8443 id.example.com /.well-known/openid-configuration 'A request to the discovery document with the certificate of the ingress Secret' \
+            --cert "$RUNNER_TEMP/proxy.crt" --key "$RUNNER_TEMP/proxy.key"
+          expect_direct 200 8444 manage.example.com / 'A request to / on the console with the certificate of the ingress Secret' \
             --cert "$RUNNER_TEMP/proxy.crt" --key "$RUNNER_TEMP/proxy.key"
 
       # A controller that verifies against a CA that did not sign the pods' certificate must not reach them.
       # The Secret holds a certificate and key as well as the CA, so Traefik loads the ServersTransport and the answer comes from the failed verification.
+      # The console falls back to the server's Secret, so Traefik verifies the console's pods
+      # against the same foreign CA.
       # Traefik's own answer to a failed verification is 500, and the pods would answer 200.
       - name: Refuse a controller that verifies against the wrong CA
         run: |
@@ -847,19 +884,81 @@ jobs:
             --from-file=tls.crt="$RUNNER_TEMP/wrong-ca.pem" --from-file=tls.key="$RUNNER_TEMP/wrong-ca.key"
           helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
             --set backendTls.clientCertificate.required=true --set backendTls.ingressSecret=wrong-ca --wait --timeout 10m
-          refused=500
-          code=000
-          for attempt in $(seq 1 12); do
-            code=$(through_ingress /health/ready)
-            if [ "$code" = "$refused" ]; then
-              break
-            fi
-            sleep 5
-          done
-          if [ "$code" != "$refused" ]; then
-            echo "::error::A request to /health/ready through Traefik answered $code with a foreign CA in its verification Secret; expected $refused, so Traefik did not verify the pods' certificate."
-            exit 1
-          fi
+          expect_route 500 traefik/traefik id.example.com /health/ready \
+            'A request to /health/ready through Traefik with a foreign CA in its verification Secret, which proves that Traefik verifies the certificate of the pods,'
+          expect_route 500 traefik/traefik manage.example.com /health/ready \
+            'A request to /health/ready on the console host through Traefik with a foreign CA in its verification Secret, which proves that Traefik verifies the certificate of the console pods,'
+
+      # Envoy Gateway implements the Gateway's backend client certificate (spec.tls.backend.clientCertificateRef) and
+      # the BackendTLSPolicy, and bundles the Gateway API CRDs that the chart's HTTPRoutes and BackendTLSPolicies need.
+      - name: Install Envoy Gateway
+        run: |
+          set -euo pipefail
+          helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.10.0 \
+            --namespace envoy-gateway-system --create-namespace --wait --timeout 5m
+
+      # The release is upgraded to the Gateway API mode with only the Gateway values, so the Traefik leg's settings do
+      # not carry over. The chart's HTTPRoutes attach to the Gateway, its BackendTLSPolicies verify the pods against the
+      # CA that the publisher writes, and the Gateway presents the certificate of the chart's ingress Secret. Envoy
+      # Gateway names the Envoy Service by the Gateway that owns it, so the name is read from the Service's labels.
+      - name: Route the release through the Gateway
+        run: |
+          set -euo pipefail
+          kubectl apply -f "$CHART/ci/kind-gateway.yaml"
+          helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-gateway-api-values.yaml" \
+            --wait --timeout 10m
+          kubectl -n "$NAMESPACE" wait certificate --all --for=condition=Ready --timeout=3m
+          kubectl -n gateway-system wait gateway/identity-gateway --for=condition=Programmed --timeout=3m
+          service=$(kubectl -n envoy-gateway-system get svc \
+            -l gateway.envoyproxy.io/owning-gateway-name=identity-gateway,gateway.envoyproxy.io/owning-gateway-namespace=gateway-system \
+            -o jsonpath='{.items[0].metadata.name}')
+          echo "GATEWAY_SERVICE=envoy-gateway-system/$service" >> "$GITHUB_ENV"
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          expect_route 200 "envoy-gateway-system/$service" id.example.com /health/ready \
+            'A request to /health/ready through the Gateway, which proves that the BackendTLSPolicy verified the pods,'
+          expect_route 200 "envoy-gateway-system/$service" id.example.com /.well-known/openid-configuration \
+            'A request to /.well-known/openid-configuration through the Gateway with the client certificate required, which proves that the Gateway presented its certificate on a path the pods do not exempt (a 403 means the pods refused the Gateway),'
+          expect_route 200 "envoy-gateway-system/$service" manage.example.com /health/ready \
+            'A request to /health/ready on the console host through the Gateway, which proves that the BackendTLSPolicy verified the console pods,'
+          expect_route 200 "envoy-gateway-system/$service" manage.example.com / \
+            'A request to / on the console host through the Gateway with the client certificate required, which proves that the Gateway presented its certificate to the console (a 403 means the console refused the Gateway),'
+
+      # The pods require the client certificate that the Gateway presents, so a Gateway without one must be refused.
+      # Removing spec.tls from the Gateway takes its clientCertificateRef away. The pods answer 403 to a missing proxy
+      # certificate on every path except /health/*, which they exempt, so the discovery document and the console's page
+      # are refused and /health/ready is still served. Applying the manifest again restores the Gateway's certificate.
+      - name: Refuse a Gateway that presents no client certificate
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          kubectl -n gateway-system patch gateway identity-gateway --type=json \
+            -p '[{"op":"remove","path":"/spec/tls"}]'
+          expect_route 403 "$GATEWAY_SERVICE" id.example.com /.well-known/openid-configuration \
+            'A request to /.well-known/openid-configuration through a Gateway without a client certificate, which proves that the pods require the certificate of the Gateway,'
+          expect_route 403 "$GATEWAY_SERVICE" manage.example.com / \
+            'A request to / on the console host through a Gateway without a client certificate, which proves that the console pods require the certificate of the Gateway,'
+          expect_route 200 "$GATEWAY_SERVICE" id.example.com /health/ready \
+            'A request to /health/ready through a Gateway without a client certificate, which the pods exempt from the requirement and which proves that the Gateway still reaches them,'
+          kubectl apply -f "$CHART/ci/kind-gateway.yaml"
+          expect_route 200 "$GATEWAY_SERVICE" id.example.com /.well-known/openid-configuration \
+            'A request to /.well-known/openid-configuration through the Gateway after its client certificate is restored, which proves that the certificate is what the pods accepted,'
+
+      # A BackendTLSPolicy that verifies against a CA that did not sign the pods' certificate must not reach them.
+      # The wrong-ca ConfigMap holds a foreign CA, and the release names it instead of the ConfigMap that the publisher
+      # writes, so the publisher is turned off and cannot overwrite it. The console falls back to the server's
+      # ConfigMap, so its BackendTLSPolicy verifies against the same foreign CA.
+      # Envoy's answer to a failed upstream TLS verification is 503, and the pods would answer 200.
+      - name: Refuse a BackendTLSPolicy that verifies against the wrong CA
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          kubectl -n "$NAMESPACE" create configmap wrong-ca --from-file=ca.crt="$RUNNER_TEMP/wrong-ca.pem"
+          helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-gateway-api-values.yaml" \
+            --set backendTls.caPublisher.enabled=false --set backendTls.caConfigMap=wrong-ca --wait --timeout 10m
+          expect_route 503 "$GATEWAY_SERVICE" id.example.com /health/ready \
+            'A request to /health/ready through the Gateway with a foreign CA in the BackendTLSPolicy, which proves that the BackendTLSPolicy verifies the certificate of the pods,'
+          expect_route 503 "$GATEWAY_SERVICE" manage.example.com /health/ready \
+            'A request to /health/ready on the console host through the Gateway with a foreign CA in the BackendTLSPolicy, which proves that the BackendTLSPolicy verifies the certificate of the console pods,'
 
       - name: Show the cluster when a step fails
         if: failure()
@@ -869,7 +968,13 @@ jobs:
           kubectl get issuers -A || true
           kubectl get ingress -A || true
           kubectl get serverstransports.traefik.io -A || true
+          kubectl get gateways,httproutes,backendtlspolicies,referencegrants -A || true
+          kubectl get gateways,httproutes,backendtlspolicies -A -o yaml || true
+          kubectl -n envoy-gateway-system get pods || true
+          kubectl -n envoy-gateway-system logs deploy/envoy-gateway --tail=300 || true
           kubectl -n "$NAMESPACE" describe pods || true
           kubectl -n "$NAMESPACE" logs -l app.kubernetes.io/component=server --tail=200 || true
+          kubectl -n "$NAMESPACE" logs -l app.kubernetes.io/component=management-console --tail=200 || true
           kubectl -n "$NAMESPACE" logs --all-containers --tail=200 -l app.kubernetes.io/component=migrations || true
           kubectl -n traefik logs --all-containers --tail=200 -l app.kubernetes.io/name=traefik || true
+          kubectl -n envoy-gateway-system logs --all-containers --tail=200 -l app.kubernetes.io/name=envoy || true

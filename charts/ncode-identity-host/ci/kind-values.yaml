@@ -1,6 +1,7 @@
-# A production release for a kind cluster. The image is built from the repository and loaded into the cluster's nodes,
-# so it is never pulled. Traefik routes to the pods through the release's ServersTransport; the workflow creates the
-# database and root key Secrets this release names.
+# A production release for a kind cluster. The host and management console images are built from the repository and
+# loaded into the cluster's nodes, so they are never pulled. Traefik routes to the pods through the release's
+# ServersTransport, and the console serves manage.example.com. The workflow creates the database, root key and console
+# key Secrets this release names.
 image:
   repository: ncode-identity-host
   tag: kind
@@ -31,3 +32,18 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+managementConsole:
+  enabled: true
+  host: manage.example.com
+  image:
+    repository: ncode-identity-management-console
+    tag: kind
+    pullPolicy: Never
+  keyRings:
+    client:
+      pemSecret: identity-mgmt-client-key
+    dpop:
+      pemSecret: identity-mgmt-dpop-key
+  ingress:
+    enabled: true
+    className: traefik

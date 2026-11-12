@@ -1,0 +1,56 @@
+# The kind release routed by the Gateway in kind-gateway.yaml, with an HTTPRoute and a BackendTLSPolicy for the server
+# and for the console and no Ingress. The BackendTLSPolicies verify the pods against the CA that a post-install hook Job
+# publishes, and the pods require the client certificate that the Gateway presents. The images, database and key
+# Secrets are those of kind-values.yaml.
+image:
+  repository: ncode-identity-host
+  tag: kind
+  pullPolicy: Never
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  parts:
+    existingSecret: postgres-app
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  recovery:
+    disabled: true
+  # Names this release's keys; with no remote key provider enabled, nothing uses it.
+  remoteKeys:
+    deployment: ci-kind
+backendTls:
+  caPublisher:
+    enabled: true
+  clientCertificate:
+    required: true
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: identity-gateway
+      namespace: gateway-system
+      sectionName: http
+  hostnames:
+    - id.example.com
+managementConsole:
+  enabled: true
+  host: manage.example.com
+  image:
+    repository: ncode-identity-management-console
+    tag: kind
+    pullPolicy: Never
+  keyRings:
+    client:
+      pemSecret: identity-mgmt-client-key
+    dpop:
+      pemSecret: identity-mgmt-dpop-key
+  httpRoute:
+    enabled: true
+    parentRefs:
+      - name: identity-gateway
+        namespace: gateway-system
+        sectionName: http

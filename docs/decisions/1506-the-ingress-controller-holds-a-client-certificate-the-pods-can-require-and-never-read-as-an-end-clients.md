@@ -85,13 +85,19 @@ client's.**
    the subject `CN=<commonName>` and be issued by the CA in the serving Secret's `ca.crt`.
 5. **The chart workflow gates the Secret and installs the chart in kind.** The `check` job renders the chart and fails
    unless Traefik verifies against the ingress Secret by default, against an operator's `ingressSecret` when set, and
-   never against a serving Secret. The `cluster` job installs the chart's server in a kind cluster behind Traefik, with
-   cert-manager and a Postgres stub, from the host image built from the `host-image` build cache. It proves that:
+   never against a serving Secret. The `cluster` job installs the chart's server and management console in a kind
+   cluster behind Traefik and then behind an Envoy Gateway, with cert-manager and a Postgres stub, from the host image
+   and the console image built from the `host-image` and `console-image` build caches. It proves that:
    - the pods become Ready over HTTPS, and a request through the controller succeeds;
-   - a controller whose verification Secret holds a foreign CA refuses the request, with `500` from Traefik;
-   - with `clientCertificate.required`, a request through the controller still succeeds, a direct request without a
-     certificate answers `403` on `/` and on the discovery document and `200` on `/health/live`, and a direct request
-     with the ingress Secret's certificate answers `200` on the discovery document.
+   - Traefik verifies the pods' certificate through the `ServersTransport` and presents the ingress client certificate,
+     and a controller whose verification Secret holds a foreign CA refuses the request, with `500` from Traefik;
+   - with `clientCertificate.required`, a request through the controller still succeeds, a direct request without the
+     proxy client certificate answers `403` outside the health paths and `200` on `/health/live`, and a direct request
+     with the ingress Secret's certificate answers `200`;
+   - behind the Envoy Gateway, the `BackendTLSPolicy` verifies the pods' certificate and the Gateway's
+     `spec.tls.backend.clientCertificateRef` presents the ingress client certificate the pods require, a Gateway
+     without it answers `403` outside the health paths and `200` on them, and a `BackendTLSPolicy` that holds a
+     foreign CA answers `503`.
 
 ## Options considered
 
@@ -119,8 +125,8 @@ client's.**
   useless except to authenticate the proxy to the pods.
 - The chart refuses a release whose operator-supplied serving certificate has no known CA and no `ingressSecret`, when a
   route uses the Secret.
-- The kind job covers the server behind Traefik. The management console, the end-to-end suites and the image
-  workflows are outside it.
+- The kind job covers the server and the management console behind Traefik and behind an Envoy Gateway. The
+  end-to-end suites and the image workflows are outside it.
 - Revocation of the proxy's certificate is not checked; renewal through cert-manager's short validity is the control.
 
 ## References

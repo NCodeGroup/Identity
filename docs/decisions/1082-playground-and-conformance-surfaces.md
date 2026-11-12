@@ -3,14 +3,14 @@
 - **Status:** Accepted (developer SPA client seeding amended by
   [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md): the seed has no
   built-in clients, and the host declares them beside the client ids it publishes; surface declaration amended by
-  [ADR-1156](1156-shared-app-shell-containers-live-in-ncode-shell.md): each app declares its surface in `main.tsx`, and
+  [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md): each app declares its surface in `main.tsx`, and
   `SurfaceKind` is an open vocabulary)
 - **Date:** 2026-10-12
 - **Deciders:** NCode Group
 
 ## Context
 
-The frontend presentation platform ([ADR-1064](1064-frontend-presentation-platform.md)) landed with the Management
+The frontend presentation platform ([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)) landed with the Management
 console (`apps/mgmt`) and the interactive login/consent surface (`apps/auth`), plus two **scaffold** apps —
 `apps/playground` and `apps/conformance` — that only rendered a placeholder card. Issue [#135](https://github.com/NCodeGroup/identity/issues/135) is to flesh those
 two scaffolds into real surfaces and give them a serving model.
@@ -72,7 +72,7 @@ document surface-aware so one endpoint can hand each surface its own coordinates
 - **Backend-served bundles (like `apps/auth`) instead of standalone Vite.** Rejected: both surfaces are operator/dev
   tools with no reason to be OP-hosted; standalone HMR dev servers match `apps/mgmt` and keep the OP host focused.
 - **Per-app build-time client id (env/`.env`).** Rejected: violates the platform's "one bundle, every tier" invariant
-  ([ADR-1064](1064-frontend-presentation-platform.md)); the client id is a deployment coordinate discovered at runtime.
+  ([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)); the client id is a deployment coordinate discovered at runtime.
 - **A separate bootstrap endpoint (or path) per surface.** Rejected in favor of one endpoint keyed by a `?surface=`
   query parameter: fewer routes, and the `SurfaceKind` union already modeled the four surfaces, so the query parameter
   is the smallest cohesive extension. (Origin-keying cannot work because the standalone dev servers proxy the bootstrap
@@ -97,7 +97,7 @@ document surface-aware so one endpoint can hand each surface its own coordinates
 ## References
 
 - Issues: [#135](https://github.com/NCodeGroup/identity/issues/135) (frontend), [#124](https://github.com/NCodeGroup/identity/issues/124)/[#125](https://github.com/NCodeGroup/identity/issues/125) (conformance).
-- Platform: [ADR-1064](1064-frontend-presentation-platform.md) (presentation platform and its invariants),
+- Platform: [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) (presentation platform and its invariants),
   [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) (Aspire local-dev orchestrator),
   [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) / [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)
   (the `apps/auth` login/consent surface this does not duplicate).

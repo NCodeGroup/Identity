@@ -2,7 +2,7 @@
 
 A single, cohesive TypeScript presentation platform shared by every NCode.Identity UI surface —
 Management, Auth/Consent/Login, Playground, and OIDC conformance. Decision record:
-[ADR-1064](../docs/decisions/1064-frontend-presentation-platform.md).
+[ADR-1064](../docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md).
 
 > **One workspace of scoped packages.** It lives under `frontend/` in the product's repository
 > ([ADR-1502](../docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)),
@@ -37,7 +37,7 @@ resolves it (`minimumReleaseAge`), the same window Dependabot waits for its npm 
 
 We deliberately use pnpm's strict, symlinked `node_modules` rather than Yarn Plug'n'Play or
 zero-installs: PnP needs patches for the Vite + Storybook + emotion/MUI stack and zero-installs would
-bloat the repo (see [ADR-1064](../docs/decisions/1064-frontend-presentation-platform.md)).
+bloat the repo (see [ADR-1064](../docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)).
 
 The Node major version is pinned once, in [`.node-version`](.node-version) (Node 26). CI reads it
 (`node-version-file`), the Aspire AppHost and `build/frontend-install.ps1` read it to select the NVS install, and NVS
@@ -94,7 +94,7 @@ frontend/
    (`apps/*/src/containers/`) and the shell, which wire Redux + RTK Query and pass plain props down. A container that
    more than one surface needs (the runtime-config `BootstrapGate`) lives in `@ncode/shell`, the one package that may
    depend on both `@ncode/store` and `@ncode/ui`: `@ncode/ui` stays store-free and `@ncode/store` stays UI-free
-   ([ADR-1156](../docs/decisions/1156-shared-app-shell-containers-live-in-ncode-shell.md)).
+   ([ADR-1064](../docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)).
 3. **UI-free services/logic are unit-tested directly.** Validation, discovery parsing, PKCE, and the
    platform, team and tenant boundary rules live in plain modules (`@ncode/config`, `@ncode/api/scope`) with
    their own Vitest suites.

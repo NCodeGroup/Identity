@@ -9,7 +9,7 @@
 Running the family locally is a multi-process exercise: the reference OpenID Provider host, a second provider for the
 conformance suite, the management console's BFF host, and the frontend surfaces, which are a pnpm and Turborepo
 workspace with a toolchain of its own, deliberately outside the hermetic [`dod.ps1`](../../build/dod.ps1) inner loop
-([ADR-1064](1064-frontend-presentation-platform.md)).
+([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)).
 
 A VS Code compound launch starts its members concurrently with no dependency ordering, so the browser surfaces boot
 before the API listens: the first runtime-discovery and management calls race the API and fail in the browser, and the
@@ -85,7 +85,7 @@ The OP serves `auth`'s `dist` under `/account/*`, and the console host serves `m
 `conformance` are `AddViteApp` servers. Because no OP host serves their bundles, each proxies the well-known
 `/config/bootstrap.json` to its OP through the service-discovery variable that `WithReference` injects, so local
 development consumes the real runtime bootstrap endpoint and cannot drift from production
-([ADR-1064](1064-frontend-presentation-platform.md)).
+([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)).
 
 ### One serial installer
 
@@ -167,7 +167,7 @@ changes.
   [`Frontend/`](../../hosts/NCode.Identity.OpenId.LocalDev/Frontend/)
 - [`build/frontend-install.ps1`](../../build/frontend-install.ps1) and
   [`frontend/.node-version`](../../frontend/.node-version)
-- [ADR-1064](1064-frontend-presentation-platform.md): the frontend presentation platform and runtime discovery.
+- [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md): the frontend presentation platform and runtime discovery.
 - [ADR-1152](1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): the pinned Node and pnpm.
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md): the Postgres database and the migration worker.
 - [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the console BFF

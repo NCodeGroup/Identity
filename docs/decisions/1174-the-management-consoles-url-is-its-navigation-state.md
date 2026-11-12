@@ -15,7 +15,7 @@ view could not be bookmarked, linked, or restored on reload, and the browser's b
 dashboard addresses a tenant in its route (`manage.auth0.com/dashboard/{region}/{tenant}/…`), and tenant identifiers are
 readable names ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)), so they fit in a path.
 
-[ADR-1064](1064-frontend-presentation-platform.md) makes the global-versus-tenant boundary a first-class browsing
+[ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) makes the global-versus-tenant boundary a first-class browsing
 context, and the route has to keep it visible.
 
 ## Decision

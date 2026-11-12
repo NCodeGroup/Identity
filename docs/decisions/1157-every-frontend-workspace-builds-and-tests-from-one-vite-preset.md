@@ -61,7 +61,7 @@ configuration file is a single call to it with that workspace's coverage floors.
 ## Options considered
 
 - **A shared configuration file at the workspace root, imported by relative path.** Rejected: it is a deep import
-  across package boundaries ([ADR-1064](1064-frontend-presentation-platform.md)), and the file would sit outside lint,
+  across package boundaries ([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)), and the file would sit outside lint,
   type-checking, and tests.
 - **A multi-file preset with `.ts` import specifiers.** Rejected: any workspace whose type-check reaches the preset
   would need `allowImportingTsExtensions`, putting two specifier styles in one codebase.
@@ -91,9 +91,9 @@ configuration file is a single call to it with that workspace's coverage floors.
 - [`frontend/packages/vite-config`](../../frontend/packages/vite-config),
   [`frontend/turbo.json`](../../frontend/turbo.json), each workspace's `vite.config.ts` / `vitest.config.ts`
 - [ADR-1151](1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md) (the test gates),
-  [ADR-1064](1064-frontend-presentation-platform.md) (package boundaries),
+  [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) (package boundaries),
   [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) (the AppHost and service discovery),
-  [ADR-1156](1156-shared-app-shell-containers-live-in-ncode-shell.md) (the shared shell)
+  [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) (the shared shell)
 - Turborepo: "Dependent tasks that can be run in parallel" (transit nodes), `globalDependencies`
 - Node.js: [type stripping](https://nodejs.org/api/typescript.html#type-stripping)
 - Issue [#150](https://github.com/NCodeGroup/identity/issues/150)

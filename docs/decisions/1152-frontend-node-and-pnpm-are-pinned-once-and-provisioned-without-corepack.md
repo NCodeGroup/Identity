@@ -1,6 +1,6 @@
 # 1152. The frontend's Node and pnpm are each pinned once and provisioned without Corepack
 
-- **Status:** Accepted (amends [ADR-1064](1064-frontend-presentation-platform.md): pnpm is no longer activated with
+- **Status:** Accepted (amends [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md): pnpm is no longer activated with
   Corepack; [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md): the AppHost selects the Node major pinned in
   `.node-version`; [ADR-1147](1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md): the
   runtime is Node 26 and `engines.node` is its floor; amended by

@@ -36,7 +36,7 @@ forms submit as native HTML form POSTs, so the browser, and Selenium with it, fo
   there is one credential verifier.
 - **The render surface** is the React + MUI `apps/auth` bundle ([`frontend/apps/auth`](../../frontend/apps/auth)),
   an app on the family's shared frontend platform
-  ([ADR-1064](../decisions/1064-frontend-presentation-platform.md)) and the real end-user login surface, not a
+  ([ADR-1064](../decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)) and the real end-user login surface, not a
   conformance-only one. It is served same-origin under `/account/*` and exposes the Appendix B locators (`username`,
   `password`, `login`, `consent-allow`, `consent-deny`) as explicit ids, since MUI's generated ids are not stable
   selectors.

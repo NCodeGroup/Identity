@@ -14,7 +14,7 @@ The host renders working no-JavaScript login, consent and authorization error pa
 
 - **Branding is per tenant.** `@ncode/ui` themes from a runtime `BrandingConfig` (display name, logo, primary and
   secondary colors, color mode) and the frontend bootstrap document can carry one
-  ([ADR-1064](1064-frontend-presentation-platform.md)). That document is configured per deployment, and the surface a
+  ([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)). That document is configured per deployment, and the surface a
   tenant's end-users see is served beneath the tenant route
   ([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)).
   Auth0 offers per-tenant Universal Login branding; this is the equivalent.
@@ -152,7 +152,7 @@ branding and the state the page carries.**
   [#745](https://github.com/NCodeGroup/identity/issues/745).
 - [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md):
   the interactive login and consent surface.
-- [ADR-1064](1064-frontend-presentation-platform.md): the frontend presentation platform and its branding seam.
+- [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md): the frontend presentation platform and its branding seam.
 - [ADR-1114](1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md):
   non-redirectable authorization errors are content-negotiated.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.

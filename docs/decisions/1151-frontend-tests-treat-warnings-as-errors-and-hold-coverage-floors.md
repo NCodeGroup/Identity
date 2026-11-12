@@ -8,7 +8,7 @@
 
 ## Context
 
-The frontend workspace ([ADR-1064](1064-frontend-presentation-platform.md)) runs Vitest in eleven workspaces, and CI
+The frontend workspace ([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)) runs Vitest in eleven workspaces, and CI
 collects their coverage ([ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md)). An audit of a green run
 found that "green" claimed less than it appeared to:
 
@@ -89,7 +89,7 @@ found that "green" claimed less than it appeared to:
 - [`frontend/packages/test-support`](../../frontend/packages/test-support),
   [`frontend/eslint.config.js`](../../frontend/eslint.config.js), each workspace's `vitest.setup.ts` and
   `vite.config.ts` / `vitest.config.ts`
-- [ADR-1064](1064-frontend-presentation-platform.md) (frontend platform),
+- [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) (frontend platform),
   [ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) (CI test and coverage reports),
   [ADR-1147](1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md) (frontend toolchain)
 - Vitest: [coverage thresholds](https://vitest.dev/config/#coverage-thresholds)

@@ -1,7 +1,7 @@
 # 1437. The management console is a confidential client served by a BFF host of its own
 
 - **Status:** Accepted (amends
-  [ADR-1064](1064-frontend-presentation-platform.md),
+  [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md),
   [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
   [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md),
   [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
@@ -29,7 +29,7 @@ origin, or in a host of its own.
 The forces:
 
 - Every frontend of the family is served from an origin of its own
-  ([ADR-1064](1064-frontend-presentation-platform.md)), and a path prefix is no security boundary
+  ([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)), and a path prefix is no security boundary
   ([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)).
 - The management API authenticates sender-constrained bearer tokens of the control-plane tenant
   ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)); a console that reaches it must

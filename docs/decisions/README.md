@@ -324,14 +324,13 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1064](./1064-frontend-presentation-platform.md) | A single cohesive frontend presentation platform | Accepted |
+| [1064](./1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) | One frontend platform of shared packages and thin app shells serves every web surface | Accepted |
 | [1082](./1082-playground-and-conformance-surfaces.md) | Playground flow explorer, conformance posture dashboard, and surface-aware bootstrap | Accepted |
 | [1084](./1084-spec-coverage-conformance-harness.md) | Spec-coverage conformance harness (full protocol catalog + browser/probe-runner boundary) | Accepted |
 | [1147](./1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md) | The frontend toolchain follows the pinned runtime and supported upstreams | Accepted |
 | [1151](./1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md) | Frontend tests treat warnings as errors and hold coverage floors | Accepted |
 | [1152](./1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md) | The frontend's Node and pnpm are each pinned once and provisioned without Corepack | Accepted |
 | [1153](./1153-one-release-age-window-gates-frontend-dependencies.md) | One release-age window gates frontend dependencies for people and Dependabot | Accepted |
-| [1156](./1156-shared-app-shell-containers-live-in-ncode-shell.md) | Shared app-shell containers live in `@ncode/shell` | Accepted |
 | [1157](./1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md) | Every frontend workspace builds and tests from one Vite preset | Accepted |
 | [1174](./1174-the-management-consoles-url-is-its-navigation-state.md) | The management console's URL is its navigation state | Accepted |
 | [1175](./1175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md) | Bundles split into vendor and surface chunks, and an oversized chunk fails the build | Accepted |

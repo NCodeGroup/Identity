@@ -8,7 +8,7 @@
 ## Context
 
 Every frontend surface reads its runtime coordinates from one host endpoint, `/config/bootstrap.json`
-([ADR-1064](1064-frontend-presentation-platform.md)). The document names the `issuer` the bundle discovers its
+([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)). The document names the `issuer` the bundle discovers its
 authorization server from (`${issuer}/.well-known/openid-configuration`) and the `apiBaseUrl` its management calls go
 to, carrying the user's access token.
 
@@ -102,6 +102,6 @@ with per-surface overrides from `Frontend:Surfaces`.
   its settings.
 - [`preset.ts`](../../frontend/packages/vite-config/src/preset.ts): the standalone proxy.
 - [NCodeGroup/identity#442](https://github.com/NCodeGroup/identity/issues/442).
-- [ADR-1064](1064-frontend-presentation-platform.md),
+- [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md),
   [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md).

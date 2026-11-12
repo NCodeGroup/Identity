@@ -140,7 +140,7 @@ compiles it and no gate tests it
   ([ADR-1486](docs/decisions/1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md))
 - **Frontend (`frontend/`)** — the pnpm workspace of the web apps (`apps/auth`, `apps/mgmt`, `apps/playground`,
   `apps/conformance`, `apps/conformance-runner`) and their shared `@ncode/*` packages, with a gate of its own
-  ([ADR-1064](docs/decisions/1064-frontend-presentation-platform.md))
+  ([ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md))
 - **Logo** — `brand/`, the family's logo kit: the `{id}` mark as SVG masters and as the PNG and ICO files each platform
   takes, which every package, the host chart and the README show. `brand/build.py` draws every file there, so change
   the script and run it, never a file it writes

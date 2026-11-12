@@ -10,7 +10,7 @@ The Management API serves the same secrets, settings, encryption-key and role op
 the platform, a team, a tenant, a client and a resource server. A console that addresses each owner through its own
 endpoints repeats the same code once per owner: one endpoint, one hook and one cache-tag scheme per owner and
 operation, and one copy of each tab. A fix to one copy, such as the cache tags that keep one scope's data apart from
-another's ([ADR-1064](1064-frontend-presentation-platform.md)), reaches one owner and misses the others.
+another's ([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)), reaches one owner and misses the others.
 
 The operations are the same for every owner except one: the Management API maps the rotation of a secret
 (`/secrets/{secretId}/rotate`) for clients alone, and a rotation keeps the rotated secret beside its replacement
@@ -87,7 +87,7 @@ a resource server are tenant resources, addressed by their tenant alone.**
 
 ## References
 
-- [ADR-1064](1064-frontend-presentation-platform.md): a single cohesive frontend presentation platform; the scopes are
+- [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md): a single cohesive frontend presentation platform; the scopes are
   distinct browsing contexts.
 - [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md): the console's URL is its navigation state;
   the scope derives from the route.

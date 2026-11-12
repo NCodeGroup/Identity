@@ -216,7 +216,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **`IIdentityServerBuilder.AddFrontendBootstrap(configuration)` publishes a surface-aware runtime frontend bootstrap
   document at `/config/bootstrap.json`** (issue [#136](https://github.com/NCodeGroup/identity/issues/136),
-  [ADR-1064](docs/decisions/1064-frontend-presentation-platform.md),
+  [ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md),
   [ADR-1082](docs/decisions/1082-playground-and-conformance-surfaces.md)). It binds the `Frontend` configuration section
   into `FrontendBootstrapOptions` and registers the endpoint as an `IEndpointProvider`, so the host's single
   `MapEndpointGroups()` call maps it. The document carries the API base, issuer, client id, scopes, feature flags and
@@ -2108,7 +2108,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   global-vs-tenant boundary browsing. Bundles are tier-agnostic: all configuration is discovered at runtime from the
   serving host and nothing is baked in at build time, and a branding seam supports per-tenant theming. The toolchain is
   isolated under `frontend` and is separate from the .NET Definition of Done. See
-  [ADR-1064](docs/decisions/1064-frontend-presentation-platform.md).
+  [ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md).
 
 - **The frontend runs on React 19 and Material UI 9.** This covers every surface, including the login and consent pages
   the OpenID Provider host serves. Components style through `sx` and pass input attributes through `slotProps`, and
@@ -2451,7 +2451,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Management console cache tags are scoped.** Every tag id names the scope that owns the resource (`scopeTagId` in
   `@ncode/api`), so a mutation in the platform scope or one tenant refetches only that scope's caches, as
-  [ADR-1064](docs/decisions/1064-frontend-presentation-platform.md) intends.
+  [ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) intends.
 
 - **The management console creates, edits and deletes tenants.** RTK Query mutations
   (`createTenant`/`updateTenant`/`deleteTenant`), a stateless MUI `TenantFormDialog`, a reusable `ConfirmDialog`
@@ -3805,7 +3805,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   test suite covers the gate: a loader that ignores its abort signal and settles late never overwrites newer
   configuration, configuration that reaches the store another way clears an earlier error, and an error without a
   message shows the generic one. `SurfaceKind` is an open vocabulary, so a surface needs only its host override, not a
-  change to `@ncode/config`. See [ADR-1156](docs/decisions/1156-shared-app-shell-containers-live-in-ncode-shell.md).
+  change to `@ncode/config`. See [ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md).
 
 - **Every frontend workspace builds and tests from one Vite preset.** The `@ncode/vite-config` workspace owns the test
   gates and the three serving models (standalone, backend-served and BFF-served), and each workspace's Vite or Vitest

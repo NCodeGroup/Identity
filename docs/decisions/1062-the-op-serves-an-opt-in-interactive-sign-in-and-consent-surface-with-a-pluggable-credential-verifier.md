@@ -43,7 +43,7 @@ existing challenge and authenticate seam; it is never wired by default and it ad
 
 - It covers login, consent, logout and its confirmation, and the account, sessions, applications and password pages.
 - The host renders no-JavaScript pages, and the `apps/auth` bundle (React and MUI on `@ncode/ui`, from the frontend
-  platform of [ADR-1064](1064-frontend-presentation-platform.md)) mounts over them.
+  platform of [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)) mounts over them.
 - Everything is same-origin with the OP, so the cookie, antiforgery token and `ReturnUrl` round-trip work. Forms post
   as native HTML POSTs, not `fetch` calls.
 - The challenge seam is unchanged. `DefaultChallengeHandler` challenges into login. The login POST verifies the
@@ -142,7 +142,7 @@ a full browser round trip needs the bundle built.
   [`DefaultChallengeHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultChallengeHandler.cs):
   the seam the surface satisfies.
 - [`docs/conformance-testing.md`](../conformance-testing.md): the `browser` config and its Appendices B and D.
-- [ADR-1064](1064-frontend-presentation-platform.md): the frontend platform that `apps/auth` belongs to.
+- [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md): the frontend platform that `apps/auth` belongs to.
 - [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md),
   [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) and
   [ADR-1081](1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md):

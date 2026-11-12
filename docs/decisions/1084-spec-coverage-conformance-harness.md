@@ -121,7 +121,7 @@ classification to active probing without re-architecture.** Concretely:
   gaps it measures — [#41](https://github.com/NCodeGroup/identity/issues/41) (CIBA), [#45](https://github.com/NCodeGroup/identity/issues/45) (DPoP/mTLS), [#46](https://github.com/NCodeGroup/identity/issues/46) (PAR), [#47](https://github.com/NCodeGroup/identity/issues/47) (pairwise subjects), [#49](https://github.com/NCodeGroup/identity/issues/49) (`acr`), [#54](https://github.com/NCodeGroup/identity/issues/54) (FAPI) —
   and group `U` ([#135](https://github.com/NCodeGroup/identity/issues/135), the surface this extends).
 - Surfaces: [ADR-1082](1082-playground-and-conformance-surfaces.md) (the Playground and conformance surfaces this
-  builds on), [ADR-1064](1064-frontend-presentation-platform.md) (the presentation platform and its invariants).
+  builds on), [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) (the presentation platform and its invariants).
 - Discovery: [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) (why the OP advertises a secure-by-default subset,
   which makes Phase 1 semantics "advertised").
 - Conformance oracle: [`docs/conformance-testing.md`](../conformance-testing.md) (the external OpenID Foundation

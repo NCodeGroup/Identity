@@ -78,7 +78,7 @@ has a folder of its own, and the build fails a project whose folder and packing 
 
 - Issue [#759](https://github.com/NCodeGroup/identity/issues/759).
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
-  [ADR-1064](1064-frontend-presentation-platform.md),
+  [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md),
   [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
   [ADR-1082](1082-playground-and-conformance-surfaces.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),

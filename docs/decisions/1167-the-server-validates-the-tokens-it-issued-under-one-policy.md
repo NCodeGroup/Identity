@@ -1,6 +1,6 @@
 # 1167. The server validates the tokens it issued under one policy
 
-- **Status:** Accepted (amends [ADR-1066](1066-resource-server-settings-and-secret-owner.md),
+- **Status:** Accepted (amends [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md),
   [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md), and
   [ADR-1101](1101-oauth-token-exchange-rfc8693.md); closes the follow-ups of
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) and
@@ -75,7 +75,7 @@ tenant's policy for that kind of token. A system resource server never holds key
 5. **Callers.** Resource-request authentication (UserInfo, the management API, every first-party resource endpoint),
    introspection, token exchange, and the end-session `id_token_hint` all validate through the seam. No production code
    builds `JwtValidationParameters` for a token the tenant issued.
-6. **A system resource server holds no keys** (amends [ADR-1066](1066-resource-server-settings-and-secret-owner.md) and
+6. **A system resource server holds no keys** (amends [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) and
    [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md)). The management API refuses to create or import a
    secret for one (`409 Conflict`), and issuance never treats a system resource server as decrypting its own tokens, so a
    key already stored on one is ignored and existing data needs no migration. `ResolvedResourceServer` carries

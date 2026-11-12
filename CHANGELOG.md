@@ -1859,13 +1859,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   authorization and token validators reject out-of-scope requests, discovery's `scopes_supported` is derived from the
   tenant's resource-server catalog, `offline_access` comes from the system identity resource server, and refresh-token
   issuance is governed by the request and the `refresh_token` grant type
-  ([ADR-1026](docs/decisions/1026-scope-enforcement-via-resource-servers-and-client-grants.md)).
+  ([ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)).
 
 - **An access token's `aud` names the resource servers that own its effective scopes.**
   `IClientScopeService.ResolveAudiencesAsync` resolves them, so a resource server can validate that a token was minted
   for it; a token spanning several resource servers carries a multi-valued `aud`, a scopeless token carries the client
   id, and the ID token's `aud` is the client
-  ([ADR-1027](docs/decisions/1027-access-token-audience-from-resource-servers.md)).
+  ([ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)).
 
 - **The OP establishes a server-side end-user session at interactive sign-in and emits its `sid`** (issue
   [#39](https://github.com/NCodeGroup/identity/issues/39), the `sid` portion of
@@ -2338,11 +2338,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   `PUT`, delete). Granted scopes are validated at write time against the target resource server's scopes, both surfaces
   assert their preconditions up front through replaceable validators (`IResourceServerValidator` /
   `IClientGrantValidator`), and system resource servers and their scopes cannot be deleted. See
-  [ADR-1023](docs/decisions/1023-scopes-and-resources-management-model.md).
+  [ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md).
 
 - **Resource servers are settings and secret owners like clients and tenants** (issue
   [#134](https://github.com/NCodeGroup/identity/issues/134),
-  [ADR-1066](docs/decisions/1066-resource-server-settings-and-secret-owner.md)). A resource server (an API, in Auth0
+  [ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)). A resource server (an API, in Auth0
   terms) owns a wrapped settings object and a secret collection, each with its own concurrency token:
   `GET`/`PATCH api/tenants/{tenantId}/resource-servers/{resourceServerId}/settings`, its effective settings, and full
   `…/secrets` CRUD with the one-time reveal ([ADR-1050](docs/decisions/1050-secret-material-revealed-once-on-create.md))
@@ -2926,7 +2926,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `resource_server` resource type; `IResourceServerStore.UpdateSettingsAsync` and secret CRUD; and in EF Core the
   `SettingsConcurrencyToken` and `SecretsConcurrencyToken` columns and a tenant-scoped `ResourceServerSecrets` join
   table. Deleting a resource server cascades to its scopes and secrets
-  ([ADR-1066](docs/decisions/1066-resource-server-settings-and-secret-owner.md)).
+  ([ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)).
 
 - **Resource-server runtime reads push their filtering into the database through intent-named `IResourceServerStore`
   queries.** `GetEnabledScopesAsync`, `GetEnabledIdentifiersAsync`, `GetEnabledScopeProjectionsByScopesAsync`,
@@ -5057,7 +5057,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Resource indicators (RFC 8707) are a multi-valued `resource` parameter that narrows and validates the access token's
   audience** (issue [#50](https://github.com/NCodeGroup/identity/issues/50),
-  [ADR-1078](docs/decisions/1078-resource-indicators-rfc-8707.md)). The authorization endpoint rejects an unknown or
+  [ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)). The authorization endpoint rejects an unknown or
   disabled resource with `invalid_target` (`IOpenIdErrorFactory.InvalidTarget(...)`), the authorization-code token
   request rejects a resource not authorized at the authorization endpoint, and
   `IResourceServerCredentialResolver.ResolveAsync(…, requestedResources, …)`, the single choke point every grant funnels

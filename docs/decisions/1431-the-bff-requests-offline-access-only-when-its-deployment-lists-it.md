@@ -23,7 +23,7 @@ session is created for a request that includes `offline_access`, Keycloak moves 
 removes the login session, so ending the user's sessions at Keycloak sends the BFF no back-channel logout token, and the
 BFF session outlives the OP session. Providers differ in what a refresh token takes: Keycloak issues one to a
 confidential client's code exchange without `offline_access`, while the NCode OP
-([ADR-1026](1026-scope-enforcement-via-resource-servers-and-client-grants.md)) and several hosted providers issue one
+([ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)) and several hosted providers issue one
 only for `offline_access`.
 
 ## Decision

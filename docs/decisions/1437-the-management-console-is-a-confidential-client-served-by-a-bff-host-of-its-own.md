@@ -68,7 +68,7 @@ forwarded management API share that host's origin.**
      `<origin>/bff/backchannel-logout` with `backchannel_logout_session_required`;
    - scopes `profile email offline_access read:clients` (the BFF adds `openid`) and no `resource`, so the login access
      token carries the OpenID audience that UserInfo requires
-     ([ADR-1027](1027-access-token-audience-from-resource-servers.md)); the BFF loads UserInfo and allow-lists
+     ([ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)); the BFF loads UserInfo and allow-lists
      `preferred_username` and `email` for `/bff/user`;
    - a deployment registers `jwks_uri` = `<origin>/bff/jwks`
      ([ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)); the developer

@@ -12,14 +12,14 @@
 
 ## Context
 
-[ADR-1066](1066-resource-server-settings-and-secret-owner.md) made resource servers (APIs, in Auth0
+[ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) made resource servers (APIs, in Auth0
 terms) first-class **settings and secret owners** — but delivered **management (CRUD) only**. It
 explicitly deferred two follow-ups, both tracked as issue [#139](https://github.com/NCodeGroup/identity/issues/139):
 
 1. **Runtime consumption** — the stored per-audience secrets (notably a JWE key so tokens minted for an
    audience are readable only by it) were never used to actually encrypt access tokens. Resource servers
    had no runtime domain object and were resolved at token-issuance time only to compute the `aud` claim
-   ([ADR-1027](1027-access-token-audience-from-resource-servers.md) /
+   ([ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) /
    `DefaultClientScopeService.ResolveAudiencesAsync`).
 2. **Auditing** — the resource-server management handler emitted no audit events. This ADR is about (1);
    (2) is a uniform retrofit of the existing `IManagementAuditRecorder` pattern and needs no ADR.
@@ -29,7 +29,7 @@ Today `DefaultTokenService.CreateAccessTokenAsync` selects signing and encryptio
 effective access-token algorithm settings. An access token's audience, however, is resolved from its
 effective scopes and can bind to **multiple** resource servers at once.
 
-ADR-1066 made a resource server a secret owner that _can_ hold an HS256 shared signing secret as well as
+ADR-1026 made a resource server a secret owner that _can_ hold an HS256 shared signing secret as well as
 a JWE key, raising the question of whether the OP should ever **sign** an access token with a resource
 server's own key. The settled answer here is **no**: access tokens are always signed with the tenant's
 asymmetric key. This is the modern industry standard — **RFC 9068 (JWT Profile for OAuth 2.0 Access

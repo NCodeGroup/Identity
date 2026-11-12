@@ -69,5 +69,5 @@ Two further rules:
   follows.
 - [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) / [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) — the
   management-side grant soft-revoke this client-facing endpoint reuses (`RevokedWhen`).
-- [ADR-1027](1027-access-token-audience-from-resource-servers.md) — the audience-bound access tokens whose statelessness
+- [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) — the audience-bound access tokens whose statelessness
   motivates "refresh tokens only."

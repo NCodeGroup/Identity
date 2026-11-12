@@ -20,7 +20,7 @@ audience rule. The specifications do not leave that rule optional:
 [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) makes the server read every access token it
 encrypted. Under ADR-1029's rule a token's own client could then introspect it and read exactly what encryption hides
 from it ([RFC 9068](https://www.rfc-editor.org/rfc/rfc9068) §6). Nothing identified a resource server as a caller: a
-resource server was a settings and secret owner ([ADR-1066](1066-resource-server-settings-and-secret-owner.md)), never an
+resource server was a settings and secret owner ([ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)), never an
 authenticating principal.
 
 ## Decision

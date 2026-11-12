@@ -187,21 +187,17 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1023](./1023-scopes-and-resources-management-model.md) | Scopes and resources: an Auth0-style Resource Server owns its scopes; a Client Grant authorizes a client | Accepted |
-| [1026](./1026-scope-enforcement-via-resource-servers-and-client-grants.md) | Scope enforcement is driven by resource servers and client grants, not a `scopes_supported` setting | Accepted |
-| [1027](./1027-access-token-audience-from-resource-servers.md) | An access token's audience is the resource servers that own its scopes | Accepted |
+| [1026](./1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) | Resource servers own scopes, settings and keys, and decide a client's scopes and token audiences | Accepted |
 | [1028](./1028-token-revocation-refresh-tokens-only.md) | Token revocation revokes refresh tokens only; stateless access tokens expire | Accepted |
 | [1029](./1029-token-introspection-endpoint.md) | Token introspection resolves JWT access tokens and refresh-token grants | Accepted |
 | [1030](./1030-userinfo-endpoint-and-subject-authentication-seam.md) | UserInfo is backed by a reusable subject-authentication seam; claims come from enrichers | Accepted |
 | [1039](./1039-claims-request-parameter.md) | The OpenID Connect `claims` request parameter is honored end-to-end | Accepted |
 | [1059](./1059-device-authorization-grant.md) | Device Authorization Grant (RFC 8628) over the persisted-grant store | Accepted |
 | [1063](./1063-dynamic-client-registration.md) | Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store | Accepted |
-| [1066](./1066-resource-server-settings-and-secret-owner.md) | Resource servers are first-class settings and secret owners | Accepted |
 | [1074](./1074-session-management-and-logout.md) | End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout | Accepted |
 | [1075](./1075-runtime-consumption-of-resource-server-secrets.md) | Runtime consumption of resource-server secrets and settings at access-token issuance | Accepted |
 | [1076](./1076-consent-persistence-and-enforcement.md) | Durable consent — a first-class persisted aggregate, enforced at authorize | Accepted |
 | [1077](./1077-session-scoped-grant-revocation-on-logout.md) | Logout revokes the terminating session's grants, not the subject's | Accepted |
-| [1078](./1078-resource-indicators-rfc-8707.md) | Resource indicators (RFC 8707) bind and narrow the access-token audience | Accepted |
 | [1079](./1079-extensible-pkce-code-challenge-methods.md) | Extensible PKCE `code_challenge_method` transformations | Accepted |
 | [1081](./1081-granular-consent-and-authorized-applications.md) | Granular per-scope consent and the self-service authorized-applications surface | Accepted |
 | [1085](./1085-ciba-grant.md) | CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) over the persisted-grant store | Accepted |

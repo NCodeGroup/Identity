@@ -9,7 +9,7 @@
 ## Context
 
 An access token is requested by a client and read by the resource servers it targets — its audiences
-([ADR-1027](1027-access-token-audience-from-resource-servers.md)). Both carry a settings document: a client's
+([ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)). Both carry a settings document: a client's
 effective settings cascade `server → tenant → client`, and a resource server's `server → tenant → resource server`
 ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). The two are siblings in the cascade, so neither
 document is merged into the other.

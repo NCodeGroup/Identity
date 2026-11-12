@@ -80,7 +80,7 @@ Three rules shape the design:
 
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator command/handler shape the endpoint
   follows.
-- [ADR-1027](1027-access-token-audience-from-resource-servers.md) — the audience-bound access tokens introspection
+- [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) — the audience-bound access tokens introspection
   validates.
 - [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — the sibling client-facing endpoint whose token-shape
   analysis (stateless JWT vs persisted grant) this ADR reuses.

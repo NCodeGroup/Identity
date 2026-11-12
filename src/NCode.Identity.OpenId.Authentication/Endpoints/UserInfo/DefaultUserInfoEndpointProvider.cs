@@ -50,7 +50,7 @@ internal class DefaultUserInfoEndpointProvider(
     private const string JwtContentType = "application/jwt";
 
     // A UserInfo access token binds the OpenID identity resource server, which owns the openid/profile/email scopes
-    // (ADR-1027); require that audience so a token minted for a different resource server is rejected.
+    // (ADR-1026); require that audience so a token minted for a different resource server is rejected.
     private static string[] UserInfoAudiences { get; } =
     [OpenIdConstants.SystemResourceServerIdentifiers.OpenId];
 

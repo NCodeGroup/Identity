@@ -29,7 +29,7 @@ that no feature re-litigates them:
    reservation that counts a state only the repository held protects no consumer.
 4. **How closely to follow Auth0.** Auth0's vocabulary and shapes (resource servers, scopes and permissions, client
    grants, tenants) are well understood and lower the onboarding cost
-   ([ADR-1023](1023-scopes-and-resources-management-model.md) adopts them deliberately). The open question is whether
+   ([ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) adopts them deliberately). The open question is whether
    to clone Auth0 exactly or to improve on it.
 
 ## Decision
@@ -114,7 +114,7 @@ version numbers and identifiers, and models Auth0 with finer control where that 
 ## References
 
 - [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)
-- [ADR-1023](1023-scopes-and-resources-management-model.md)
+- [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)
 - [#535](https://github.com/NCodeGroup/identity/issues/535)
 - [`repository.instructions.md`](../../.github/instructions/repository.instructions.md)
 - [`docs/api-compatibility.md`](../api-compatibility.md)

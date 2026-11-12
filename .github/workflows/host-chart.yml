@@ -613,18 +613,23 @@ jobs:
           helm install release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
             --wait --timeout 10m
 
-      # through_ingress sends one request to the pods' Host through Traefik's Service and prints the HTTP status code, or
-      # 000 when the request fails. Later steps source the file.
+      # route <namespace/service> <host> <path> sends one request with the Host header through a port-forward to the
+      # Service's port 80 and prints the HTTP status code, or 000 when the request fails. expect_route <expected>
+      # <namespace/service> <host> <path> <description> requires the expected status code within 12 attempts five
+      # seconds apart. Later steps source the file.
       - name: Verify the pods' certificate through Traefik
         run: |
           set -euo pipefail
           helpers="$RUNNER_TEMP/kind-helpers.sh"
           cat > "$helpers" <<'EOF'
-          through_ingress() {
-            local path="${1:-/health/ready}"
+          route() {
+            local namespace="${1%%/*}"
+            local service="${1#*/}"
+            local host="$2"
+            local path="$3"
             local code=000
             local forward
-            kubectl -n traefik port-forward svc/traefik 8080:80 > /dev/null 2>&1 &
+            kubectl -n "$namespace" port-forward "svc/$service" 8080:80 > /dev/null 2>&1 &
             forward=$!
             local attempt
             for attempt in $(seq 1 30); do
@@ -634,25 +639,35 @@ jobs:
               sleep 1
             done
             code=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
-              -H 'Host: id.example.com' "http://127.0.0.1:8080$path" || true)
+              -H "Host: $host" "http://127.0.0.1:8080$path" || true)
             kill "$forward" 2> /dev/null || true
             wait "$forward" 2> /dev/null || true
             printf '%s' "$code"
           }
+          expect_route() {
+            local expected="$1"
+            local service="$2"
+            local host="$3"
+            local path="$4"
+            local description="$5"
+            local code=000
+            local attempt
+            for attempt in $(seq 1 12); do
+              code=$(route "$service" "$host" "$path")
+              if [ "$code" = "$expected" ]; then
+                return 0
+              fi
+              sleep 5
+            done
+            echo "::error::$description answered $code; expected $expected."
+            exit 1
+          }
           EOF
           source "$helpers"
-          code=000
-          for attempt in $(seq 1 12); do
-            code=$(through_ingress /health/ready)
-            if [ "$code" = 200 ]; then
-              break
-            fi
-            sleep 5
-          done
-          if [ "$code" != 200 ]; then
-            echo "::error::A request to /health/ready through Traefik answered $code; expected 200, so Traefik did not verify and reach the pods."
-            exit 1
-          fi
+          expect_route 200 traefik/traefik id.example.com /health/ready \
+            'A request to /health/ready through Traefik, which must verify and reach the pods,'
+          expect_route 200 traefik/traefik manage.example.com /health/ready \
+            'A request to /health/ready on the console host through Traefik, which must verify and reach the console pods,'
 
       # The controller presents the client certificate of the chart's ingress Secret, and the pods' probes need none.
       # A probe and a non-probe path are both requested through the controller.
@@ -662,30 +677,14 @@ jobs:
           source "$RUNNER_TEMP/kind-helpers.sh"
           helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
             --set backendTls.clientCertificate.required=true --wait --timeout 10m
-          code=000
-          for attempt in $(seq 1 12); do
-            code=$(through_ingress /health/ready)
-            if [ "$code" = 200 ]; then
-              break
-            fi
-            sleep 5
-          done
-          if [ "$code" != 200 ]; then
-            echo "::error::A request to /health/ready through Traefik answered $code with the client certificate required; expected 200, so Traefik did not present its certificate."
-            exit 1
-          fi
-          code=000
-          for attempt in $(seq 1 12); do
-            code=$(through_ingress /.well-known/openid-configuration)
-            if [ "$code" = 200 ]; then
-              break
-            fi
-            sleep 5
-          done
-          if [ "$code" != 200 ]; then
-            echo "::error::A request to /.well-known/openid-configuration through Traefik answered $code with the client certificate required; expected 200, so Traefik did not present its certificate on a path the pods do not exempt (a 403 means the pods refused Traefik)."
-            exit 1
-          fi
+          expect_route 200 traefik/traefik id.example.com /health/ready \
+            'A request to /health/ready through Traefik with the client certificate required, which proves that Traefik presented its certificate,'
+          expect_route 200 traefik/traefik id.example.com /.well-known/openid-configuration \
+            'A request to /.well-known/openid-configuration through Traefik with the client certificate required, which proves that Traefik presented its certificate on a path the pods do not exempt (a 403 means the pods refused Traefik),'
+          expect_route 200 traefik/traefik manage.example.com /health/ready \
+            'A request to /health/ready on the console host through Traefik with the client certificate required,'
+          expect_route 200 traefik/traefik manage.example.com / \
+            'A request to / on the console host through Traefik with the client certificate required, which proves that Traefik presented its certificate to the console (a 403 means the console refused Traefik),'
 
       # A request that reaches the pods' Service without the ingress controller's certificate is refused, except the probes.
       - name: Refuse a request that carries no proxy certificate
@@ -751,19 +750,8 @@ jobs:
             --from-file=tls.crt="$RUNNER_TEMP/wrong-ca.pem" --from-file=tls.key="$RUNNER_TEMP/wrong-ca.key"
           helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
             --set backendTls.clientCertificate.required=true --set backendTls.ingressSecret=wrong-ca --wait --timeout 10m
-          refused=500
-          code=000
-          for attempt in $(seq 1 12); do
-            code=$(through_ingress /health/ready)
-            if [ "$code" = "$refused" ]; then
-              break
-            fi
-            sleep 5
-          done
-          if [ "$code" != "$refused" ]; then
-            echo "::error::A request to /health/ready through Traefik answered $code with a foreign CA in its verification Secret; expected $refused, so Traefik did not verify the pods' certificate."
-            exit 1
-          fi
+          expect_route 500 traefik/traefik id.example.com /health/ready \
+            'A request to /health/ready through Traefik with a foreign CA in its verification Secret, which proves that Traefik verifies the certificate of the pods,'
 
       - name: Show the cluster when a step fails
         if: failure()

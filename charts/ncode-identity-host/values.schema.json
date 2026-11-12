@@ -472,6 +472,88 @@
         }
       }
     },
+    "backendTls": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ingressController": {
+          "type": "string",
+          "enum": [
+            "ingress-nginx",
+            "traefik",
+            "none"
+          ]
+        },
+        "existingSecret": {
+          "type": "string"
+        },
+        "certManager": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "issuerRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "Issuer",
+                    "ClusterIssuer"
+                  ]
+                },
+                "group": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "duration": {
+              "type": "string",
+              "pattern": "^[0-9]+h$"
+            },
+            "renewBefore": {
+              "type": "string",
+              "pattern": "^[0-9]+h$"
+            },
+            "privateKey": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "algorithm": {
+                  "type": "string",
+                  "enum": [
+                    "ECDSA",
+                    "RSA"
+                  ]
+                },
+                "size": {
+                  "type": "integer",
+                  "enum": [
+                    256,
+                    384,
+                    521,
+                    2048,
+                    3072,
+                    4096
+                  ]
+                }
+              }
+            },
+            "dnsNames": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
     "service": {
       "type": "object",
       "additionalProperties": false,
@@ -822,6 +904,15 @@
             "connectionStringKey": {
               "type": "string",
               "minLength": 1
+            }
+          }
+        },
+        "backendTls": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "existingSecret": {
+              "type": "string"
             }
           }
         },

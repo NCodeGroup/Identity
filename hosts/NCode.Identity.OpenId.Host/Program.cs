@@ -78,6 +78,9 @@ serviceCollection.AddProxyClientCertificate(configuration);
 // proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-1447.
 serviceCollection.AddStrictTransportSecurity(configuration);
 
+// Send no Server response header, in every environment. See ADR-1509.
+serviceCollection.AddServerHeaderSuppression();
+
 // Receive mutual-TLS client certificates when this host terminates TLS itself: an endpoint configured to request one
 // (Kestrel:EndpointDefaults:ClientCertificateMode) accepts any certificate at the handshake, and the client-
 // authentication handlers and certificate-bound tokens validate it (RFC 8705, ADR-1202). Kestrel's own validation

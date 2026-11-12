@@ -91,9 +91,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   contracts, `HttpResultException`, `UriDescriptor` and the front-channel endpoint metadata).
   `NCode.Identity.Persistence.Abstractions` holds every persistence contract, and `NCode.Identity.OpenId.Abstractions`
   references `NCode.Identity.Registration.AspNetCore` directly because it exposes `ReadOnlyEndpointDisposition` on its
-  public surface. An implementation references no other implementation, apart from an Entity Framework slice's
-  reference to its framework, and collaborates through abstractions resolved from DI; a host registers the default
-  password hasher with `AddDefaultPasswordHasher()` beside `AddLocalAccountEntityFramework()`
+  public surface. Apart from the composition roots, the hosts and an Entity Framework slice's reference to its
+  framework, an implementation references no other implementation and collaborates through abstractions resolved from
+  DI; a host registers the default password hasher with `AddDefaultPasswordHasher()` beside
+  `AddLocalAccountEntityFramework()`
   ([#758](https://github.com/NCodeGroup/identity/issues/758),
   [#802](https://github.com/NCodeGroup/identity/issues/802),
   [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).

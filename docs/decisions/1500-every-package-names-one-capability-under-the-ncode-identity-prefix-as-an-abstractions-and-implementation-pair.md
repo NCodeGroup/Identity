@@ -33,9 +33,10 @@ any package may reference.**
    its namespace, so a pair is one namespace across two assemblies.
 3. **Implementations depend on abstractions.** An implementation references `*.Abstractions`, foundation packages and
    the composition builders `NCode.Identity.Registration` and `NCode.Identity.Registration.AspNetCore`, and
-   collaborates with other capabilities through abstractions resolved from DI. An implementation project references no
-   other implementation project (decision 4 names the one exception). It registers with `TryAdd*` from its
-   `DefaultRegistration`, and its default type is named per
+   collaborates with other capabilities through abstractions resolved from DI.
+   Apart from the composition roots and hosts below and the layered reference of decision 4, an implementation
+   project references no other implementation project. It registers with `TryAdd*` from its `DefaultRegistration`,
+   and its default type is named per
    [project-template ADR-0105](project-template/0105-the-canonical-implementation-is-named-defaultfoo.md). The
    composition roots (`AddIdentityServer()` in `NCode.Identity.Server`, `NCode.Identity.Bff.Server` and
    `NCode.Identity.ManagementConsole`) and the hosts under `hosts/` reference and wire the implementations. The DI

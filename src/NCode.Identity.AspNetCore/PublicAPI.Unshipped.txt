@@ -103,6 +103,18 @@ NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.Required.get -> 
 NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions.Required.set -> void
 NCode.Identity.AspNetCore.IProxyClientCertificateFeature
 NCode.Identity.AspNetCore.IProxyClientCertificateFeature.Certificate.get -> System.Security.Cryptography.X509Certificates.X509Certificate2!
+NCode.Identity.AspNetCore.ProxyClientCertificateRegistration
+NCode.Identity.AspNetCore.ProxyClientCertificateRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.AspNetCore.ProxyClientCertificateRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddProxyClientCertificate(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.AspNetCore.ProxyClientCertificateConfiguration
+NCode.Identity.AspNetCore.ProxyClientCertificateConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
+NCode.Identity.AspNetCore.ProxyClientCertificateConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).GetProxyClientCertificateOptions() -> NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions!
+NCode.Identity.AspNetCore.ProxyClientCertificateApplicationBuilderExtensions
+NCode.Identity.AspNetCore.ProxyClientCertificateApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.Identity.AspNetCore.ProxyClientCertificateApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseProxyClientCertificate() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.Identity.AspNetCore.ProxyClientCertificateKestrelExtensions
+NCode.Identity.AspNetCore.ProxyClientCertificateKestrelExtensions.extension(Microsoft.AspNetCore.Server.Kestrel.Https.HttpsConnectionAdapterOptions!)
+NCode.Identity.AspNetCore.ProxyClientCertificateKestrelExtensions.extension(Microsoft.AspNetCore.Server.Kestrel.Https.HttpsConnectionAdapterOptions!).RequestProxyClientCertificate(NCode.Identity.AspNetCore.Options.ProxyClientCertificateOptions! options) -> void
 NCode.Identity.AspNetCore.HealthProbeEndpointRouteBuilderExtensions
 NCode.Identity.AspNetCore.HealthProbeEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 NCode.Identity.AspNetCore.HealthProbeEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapHealthProbes() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!

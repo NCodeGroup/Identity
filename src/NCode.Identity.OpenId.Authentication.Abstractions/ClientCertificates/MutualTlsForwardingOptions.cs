@@ -21,7 +21,9 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// and the certificate negotiated on the connection — at most the proxy's own — is never read. A header whose value the
 /// configured <see cref="Format"/> cannot decode fails the request with <c>invalid_request</c> rather than reading as
 /// no certificate. When the header is unset, the resolver reads the certificate negotiated directly on the connection
-/// (direct-TLS deployments).
+/// (direct-TLS deployments). When the host requires the proxy's certificate (<c>ProxyClientCertificate</c>), the
+/// connection's certificate is the proxy's and is never read as an end client's, so a deployment behind such a proxy
+/// configures the header.
 /// </para>
 /// </remarks>
 [PublicAPI]

@@ -192,7 +192,7 @@ The records are grouped by area; within an area they are in number order.
 | [1029](./1029-token-introspection-endpoint.md) | Token introspection resolves JWT access tokens and refresh-token grants | Accepted |
 | [1030](./1030-userinfo-endpoint-and-subject-authentication-seam.md) | UserInfo is backed by a reusable subject-authentication seam; claims come from enrichers | Accepted |
 | [1039](./1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md) | Requested claims, acr and auth_time follow the request and the authentication event | Accepted |
-| [1059](./1059-device-authorization-grant.md) | Device Authorization Grant (RFC 8628) over the persisted-grant store | Accepted |
+| [1059](./1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) | The device authorization grant is a pending request in the grant store, approved out of band | Accepted |
 | [1063](./1063-dynamic-client-registration.md) | Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store | Accepted |
 | [1074](./1074-session-management-and-logout.md) | End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout | Accepted |
 | [1075](./1075-runtime-consumption-of-resource-server-secrets.md) | Runtime consumption of resource-server secrets and settings at access-token issuance | Accepted |

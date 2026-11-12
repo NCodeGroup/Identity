@@ -13,7 +13,7 @@
 [ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md) refuses a disabled or deleted account wherever
 `ValidateSubjectAuthenticationCommand` is sent: the authorization request and the authorization-code, refresh-token and
 password grants. Three grants that issue tokens for an end user did not send it: the device-code grant
-([ADR-1059](1059-device-authorization-grant.md)), the CIBA grant ([ADR-1085](1085-ciba-grant.md)) and token exchange
+([ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md)), the CIBA grant ([ADR-1085](1085-ciba-grant.md)) and token exchange
 ([ADR-1101](1101-oauth-token-exchange-rfc8693.md)). Four gaps followed:
 
 - An end user whose account was disabled or deleted kept redeeming an approved device code or `auth_req_id` and kept
@@ -98,7 +98,7 @@ that client.**
 
 ## References
 
-- [ADR-1059](1059-device-authorization-grant.md) — the device authorization grant and its verification endpoint.
+- [ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) — the device authorization grant and its verification endpoint.
 - [ADR-1085](1085-ciba-grant.md) — the CIBA grant and its delivery modes.
 - [ADR-1101](1101-oauth-token-exchange-rfc8693.md) — token exchange.
 - [ADR-1112](1112-authorization-code-replay-revokes-session.md) — the replay of an authorization code, which is why that

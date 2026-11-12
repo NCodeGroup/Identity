@@ -99,7 +99,7 @@ long-lived, in-place-mutated payloads.** Concretely:
 ## References
 
 - [ADR-1025: Pre-release posture and Auth0-parity-plus](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)
-- [ADR-1059: Device authorization grant](1059-device-authorization-grant.md) — the `UpdatePayloadAsync` in-place
+- [ADR-1059: Device authorization grant](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) — the `UpdatePayloadAsync` in-place
   mutation path
 - [ADR-1074: Session management and logout](1074-session-management-and-logout.md) — the long-lived `session` grant
 - [System.Text.Json: required members](https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/required-properties)

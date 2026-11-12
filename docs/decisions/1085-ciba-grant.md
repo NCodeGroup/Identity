@@ -14,7 +14,7 @@
 [OpenID Connect CIBA](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) lets a
 **consumption device** (a point-of-sale terminal, a call-center agent's console, a server) start authentication for a
 user who authenticates on a **separate authentication device** (the user's phone), with no browser redirect on the
-consumption device. It is the decoupled sibling of the Device Authorization Grant ([ADR-1059](1059-device-authorization-grant.md)):
+consumption device. It is the decoupled sibling of the Device Authorization Grant ([ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md)):
 
 - The client `POST`s to a **backchannel authentication endpoint** with the requested `scope`, one of
   `login_hint` / `login_hint_token` / `id_token_hint` identifying the user, and (for non-poll delivery) a
@@ -27,7 +27,7 @@ consumption device. It is the decoupled sibling of the Device Authorization Gran
   `client_notification_endpoint` when the request completes, and the client then polls once.
 
 This is structurally the device flow's "pending request with a mutable approval state, polled for completion": a shape
-[ADR-1059](1059-device-authorization-grant.md) already solved with a `PersistedGrant` payload plus
+[ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) already solved with a `PersistedGrant` payload plus
 `IPersistedGrantService.UpdatePayloadAsync`, and explicitly called out as shared with a future CIBA grant. CIBA differs
 in exactly two ways: there is **no `user_code` pointer row** (the user is identified up front by a hint, not by typing a
 code), and approval happens on a **decoupled authentication device** the OP must notify — a transport that is
@@ -95,7 +95,7 @@ Concretely:
 ## Options considered
 
 - **A dedicated CIBA store / EF entity / migration.** Rejected for the same reasons as the device flow
-  ([ADR-1059](1059-device-authorization-grant.md)): the request _is_ a grant payload, and `IPersistedGrantService`
+  ([ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md)): the request _is_ a grant payload, and `IPersistedGrantService`
   already persists "any grant and its payload" with tenant scoping, hashing, expiry, and concurrency. A parallel store
   would duplicate that plumbing and force an out-of-band migration for a record the schema already fits.
 - **A built-in hint resolver (e.g. `login_hint` = local username/email lookup) and a built-in push transport.**
@@ -149,7 +149,7 @@ The two deferrals above are now implemented, completing issue [#55](https://gith
 
 ## References
 
-- [ADR-1059](1059-device-authorization-grant.md) — the device authorization grant whose pending-request/`UpdatePayloadAsync`
+- [ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) — the device authorization grant whose pending-request/`UpdatePayloadAsync`
   pattern CIBA reuses.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the `ITokenGrantHandler` grant-handler shape.
 - [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) — endpoint families own their route and discovery advertisement.

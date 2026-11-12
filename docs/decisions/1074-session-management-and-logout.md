@@ -49,7 +49,7 @@ and Back-Channel Logout (the signed `logout_token` POST). Deliberately _decline_
 mechanisms (Front-Channel Logout and Session Management `check_session_iframe`), behind a clean extensibility seam, and
 record that omission as an evaluated deferral rather than a silent gap.** No new persistence table, store, or EF
 migration is introduced — the session rides the existing grant store, consistent with
-[ADR-1059](1059-device-authorization-grant.md).
+[ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md).
 
 Concretely:
 
@@ -138,7 +138,7 @@ Concretely:
 - Back-Channel Logout 1.0 — <https://openid.net/specs/openid-connect-backchannel-1_0.html>
 - Front-Channel Logout 1.0 — <https://openid.net/specs/openid-connect-frontchannel-1_0.html>
 - Session Management 1.0 — <https://openid.net/specs/openid-connect-session-1_0.html>
-- [ADR-1059](1059-device-authorization-grant.md) — the persisted-grant-as-stateful-artifact precedent.
+- [ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) — the persisted-grant-as-stateful-artifact precedent.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — service vs strategy vs mediator extensibility.
 - [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) — endpoints self-register and self-advertise.
 - [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md), [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) —

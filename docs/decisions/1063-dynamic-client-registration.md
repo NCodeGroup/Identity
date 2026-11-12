@@ -178,7 +178,7 @@ Concretely:
   the settings descriptor and merge-lattice conventions the `registration_endpoint_allow_anonymous` setting follows.
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md) — the one-time secret reveal reused for the
   `client_secret`.
-- [ADR-1059](1059-device-authorization-grant.md) — the persisted-grant-payload pattern reused for the DCR token types.
+- [ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) — the persisted-grant-payload pattern reused for the DCR token types.
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) — why avoiding a new migration matters.
 - <see href="https://datatracker.ietf.org/doc/html/rfc7591">RFC 7591</see> — OAuth 2.0 Dynamic Client Registration.
 - <see href="https://datatracker.ietf.org/doc/html/rfc7592">RFC 7592</see> — OAuth 2.0 Dynamic Client Registration

@@ -1430,7 +1430,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   through the general-purpose `IPersistedGrantService.UpdatePayloadAsync`. The settings `device_code_lifetime`,
   `device_code_polling_interval` and `user_code_length` tune the flow, `user_code` generation is the replaceable
   `IUserCodeGenerator` seam, and discovery advertises the endpoint and grant type
-  ([ADR-1059](docs/decisions/1059-device-authorization-grant.md)). The endpoint follows the canonical endpoint shape:
+  ([ADR-1059](docs/decisions/1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md)). The endpoint follows the canonical endpoint shape:
   `DefaultDeviceAuthorizationEndpointHandler` is a thin orchestrator over the strongly typed
   `IDeviceAuthorizationRequest` / `DeviceAuthorizationRequest : OpenIdMessage<…>` and the mediator commands
   `ValidateDeviceAuthorizationRequestCommand` and `CreateDeviceAuthorizationRequestCommand` (returning

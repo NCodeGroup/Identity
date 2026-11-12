@@ -217,7 +217,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **`IIdentityServerBuilder.AddFrontendBootstrap(configuration)` publishes a surface-aware runtime frontend bootstrap
   document at `/config/bootstrap.json`** (issue [#136](https://github.com/NCodeGroup/identity/issues/136),
   [ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md),
-  [ADR-1082](docs/decisions/1082-playground-and-conformance-surfaces.md)). It binds the `Frontend` configuration section
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). It binds the `Frontend` configuration section
   into `FrontendBootstrapOptions` and registers the endpoint as an `IEndpointProvider`, so the host's single
   `MapEndpointGroups()` call maps it. The document carries the API base, issuer, client id, scopes, feature flags and
   branding, and falls back to the serving request's origin for the API base and issuer, so a single-origin host serves
@@ -261,7 +261,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The local-dev Aspire graph runs a dedicated conformance OP instance, `conformanceapi`, that opts into the
   capabilities the stock server keeps off** ([ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md),
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md),
   [ADR-1088](docs/decisions/1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md),
   [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)). It is the same host project
   under the Conformance environment (the `ConformanceAspire` launch profile) on its own port (`https://localhost:5003`,
@@ -3816,7 +3816,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **`apps/playground` is an authorization-code + PKCE (`S256`) flow explorer that exercises the OP's consent surface out
   of the box** (issue [#135](https://github.com/NCodeGroup/identity/issues/135),
-  [ADR-1082](docs/decisions/1082-playground-and-conformance-surfaces.md)). The Playground discovers the provider and
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). The Playground discovers the provider and
   walks the flow end to end, surfacing the PKCE verifier and challenge, `state`, `nonce`, the authorize URL, the token
   response and the decoded JWT header and claims, then exercises UserInfo, refresh and RP-Initiated Logout; it offers no
   implicit, hybrid or resource-owner-password flow. It has a **Force consent (`prompt=consent`)** toggle, the
@@ -3827,8 +3827,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The conformance dashboard (`apps/conformance`) audits the OP's security posture and measures it against the full
   published OAuth, OIDC, CIBA and FAPI catalog** (issues [#135](https://github.com/NCodeGroup/identity/issues/135),
   [#129](https://github.com/NCodeGroup/identity/issues/129),
-  [ADR-1082](docs/decisions/1082-playground-and-conformance-surfaces.md),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md)). It audits the published discovery metadata
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). It audits the published discovery metadata
   against OAuth 2.1, RFC 9700, OpenID Connect Core and Discovery, and RFC 7636/8414/7009/7662/9126, flags insecure or
   deprecated configuration, and reports OpenID Foundation Basic and Config OP readiness and the external-suite
   configuration (issuer, alias, RP callback URL). A spec-coverage matrix classifies every capability from the live
@@ -3845,7 +3844,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The headless conformance probe runner exercises the legs a browser cannot drive** (issue
   [#129](https://github.com/NCodeGroup/identity/issues/129),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md)). The `@ncode/app-conformance-runner` CLI
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). The `@ncode/app-conformance-runner` CLI
   exercises the confidential and server-initiated legs: `client_credentials`, token introspection and revocation with
   client authentication, device-code issuance and polling, CIBA, `private_key_jwt`, DPoP/mTLS, and back-channel logout.
   Each probe reports `verified`, `failed` or `skipped` (with an actionable reason, such as an unadvertised capability or
@@ -3860,7 +3859,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The probe runner signs its asymmetric legs with Node `crypto`** (issues
   [#130](https://github.com/NCodeGroup/identity/issues/130), [#334](https://github.com/NCodeGroup/identity/issues/334),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md)). The `private_key_jwt` and DPoP probes take
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). The `private_key_jwt` and DPoP probes take
   `--private-key` / `--dpop-key` options that load a PEM- or JWK-encoded private key; the JWA signature algorithm is
   inferred from the key (the curve for EC `ES256`/`ES384`/`ES512`, `EdDSA` for Ed25519/Ed448, `PS256` for RSA) and is
   overridable through `--private-key-alg` / `--dpop-key-alg` (for example `RS256`, or `Ed25519` and `Ed448` for a key on
@@ -3874,7 +3873,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The OpenID Foundation Conformance Suite is the certified oracle behind the in-house pre-flight** (issues
   [#129](https://github.com/NCodeGroup/identity/issues/129), [#131](https://github.com/NCodeGroup/identity/issues/131),
   [#124](https://github.com/NCodeGroup/identity/issues/124),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md)). A runnable harness under
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). A runnable harness under
   [`build/conformance/`](build/conformance) drives the suite against the OpenID host end to end:
   [`run-conformance.ps1`](build/conformance/run-conformance.ps1) launches the OP on the reachable HTTPS origin (the
   `Conformance` launch profile), runs the headless `@ncode/app-conformance-runner` probe runner as a fast pre-flight,

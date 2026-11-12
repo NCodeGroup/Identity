@@ -145,7 +145,7 @@ access token to the browser**. It is not offered, because the token still reache
 - Native and mobile apps, which are public clients with platform key storage.
 - Service-to-service calls.
 - The NCode **Playground**, whose purpose is to show the tokens a flow produces
-  ([ADR-1082](decisions/1082-playground-and-conformance-surfaces.md)).
+  ([ADR-1084](decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)).
 
 ---
 

@@ -97,7 +97,7 @@ carries nothing else; a brand domain carries the site, docs, status page and ope
 - **Calling the lab `dev`, `staging`, `sandbox` or `playground`.** `dev` collides with customers' `-dev` tenants;
   `staging` promises production parity the lab lacks; `sandbox` is what other vendors call their customer-facing test
   environments and would invite the integrations this decision forbids; `playground` names the flow explorer
-  ([ADR-1082](1082-playground-and-conformance-surfaces.md)). Rejected for `lab`.
+  ([ADR-1084](1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). Rejected for `lab`.
 - **Tenants directly under the apex.** A tenant name can collide with a service host (`www`, `manage`, `mtls`,
   `status`, `docs`), which needs a reserved-name list forever. Rejected.
 - **mTLS aliases nested under the tenant** (`mtls.{tenant}.auth`). A wildcard covers one label, so every tenant would

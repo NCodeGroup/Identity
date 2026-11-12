@@ -50,7 +50,7 @@ has a folder of its own, and the build fails a project whose folder and packing 
     internet-facing.
 11. **The frontend flow explorer `apps/playground` (`@ncode/app-playground`) keeps its name,** with its `playground-spa`
     client and `playground` bootstrap surface, because it is a genuine playground
-    ([ADR-1082](1082-playground-and-conformance-surfaces.md)).
+    ([ADR-1084](1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)).
 
 ## Options considered
 
@@ -80,7 +80,7 @@ has a folder of its own, and the build fails a project whose folder and packing 
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
   [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md),
   [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
-  [ADR-1082](1082-playground-and-conformance-surfaces.md),
+  [ADR-1084](1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),
   [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md),
   [ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md)

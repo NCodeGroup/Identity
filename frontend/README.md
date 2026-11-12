@@ -255,7 +255,7 @@ unfinished load and starts over.
 > `?surface=` (for example `/config/bootstrap.json?surface=playground`). The host maps that to a per-surface override
 > (`FrontendBootstrapOptions.Surfaces`) so every surface gets its **own** public client id and scopes from the one
 > endpoint — the Playground discovers `playground-spa`, while the read-only conformance dashboard gets no client at all
-> ([ADR-1082](../docs/decisions/1082-playground-and-conformance-surfaces.md)). A surface with no override, or no
+> ([ADR-1084](../docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). A surface with no override, or no
 > `?surface=`, receives the host default, which is the OP's: it names no client and no feature flag, and serves the
 > public-client and read-only surfaces only. `SurfaceKind` is an open vocabulary: it lists the
 > shipped surfaces but accepts any name, so a new surface needs only its host override, not a change to

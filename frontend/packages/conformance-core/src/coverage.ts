@@ -10,7 +10,7 @@
  * `/.well-known/openid-configuration`, so the matrix is read-only and needs no OAuth client. The column semantics are
  * therefore *advertised* — a secure-by-default provider (ADR-1010) may implement but not advertise a capability. The
  * active probes ([probes.ts](./probes.ts) and the headless probe runner) refine *advertised* into *verified*. See
- * [ADR-1084](../../../../docs/decisions/1084-spec-coverage-conformance-harness.md).
+ * [ADR-1084](../../../../docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md).
  */
 
 import type { RawDiscovery } from './audit.js';

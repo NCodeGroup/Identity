@@ -3,7 +3,7 @@
 The **OpenID Foundation Conformance Suite** — the certified, spec-author-maintained oracle — is the authoritative gate
 behind the fast in-house probe-runner pre-flight, driven by one committed, runnable command. This document describes
 that harness and how the OP fares against it. Parent design: [`docs/conformance-testing.md`](../conformance-testing.md).
-Decision record: [ADR-1084](../decisions/1084-spec-coverage-conformance-harness.md) (the `browser` / `probe-runner` /
+Decision record: [ADR-1084](../decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md) (the `browser` / `probe-runner` /
 `external-suite` exercise boundary). Tracking issues: [#129](https://github.com/NCodeGroup/identity/issues/129) and
 [#124](https://github.com/NCodeGroup/identity/issues/124).
 
@@ -34,7 +34,7 @@ local feedback before the heavier suite spins up.
 
 ## Exercise boundary (why both)
 
-Per [ADR-1084](../decisions/1084-spec-coverage-conformance-harness.md), coverage is split across three actors and the
+Per [ADR-1084](../decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md), coverage is split across three actors and the
 harness runs the first two locally, pre-flighting the third:
 
 | Actor            | Drives                                                                    | In this harness                                  |

@@ -325,8 +325,7 @@ The records are grouped by area; within an area they are in number order.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [1064](./1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) | One frontend platform of shared packages and thin app shells serves every web surface | Accepted |
-| [1082](./1082-playground-and-conformance-surfaces.md) | Playground flow explorer, conformance posture dashboard, and surface-aware bootstrap | Accepted |
-| [1084](./1084-spec-coverage-conformance-harness.md) | Spec-coverage conformance harness (full protocol catalog + browser/probe-runner boundary) | Accepted |
+| [1084](./1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md) | The Playground explores the recommended flow and the conformance harness measures the published spec surface | Accepted |
 | [1147](./1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md) | The frontend toolchain follows the pinned runtime and supported upstreams | Accepted |
 | [1151](./1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md) | Frontend tests treat warnings as errors and hold coverage floors | Accepted |
 | [1152](./1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md) | The frontend's Node and pnpm are each pinned once and provisioned without Corepack | Accepted |

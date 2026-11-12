@@ -1,0 +1,30 @@
+# A production release for a kind cluster. The image is built from the repository and loaded into the cluster's nodes,
+# so it is never pulled. The workflow sets ingress.className and backendTls.ingressController for the controller under
+# test, and creates the database and root key Secrets this release names.
+image:
+  repository: ncode-identity-host
+  tag: kind
+  pullPolicy: Never
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  recovery:
+    disabled: true
+  # Names this release's keys; with no remote key provider enabled, nothing uses it.
+  remoteKeys:
+    deployment: ci-kind
+ingress:
+  enabled: true
+  hosts:
+    - host: id.example.com
+      paths:
+        - path: /
+          pathType: Prefix

@@ -5,7 +5,7 @@
   claims it the same way;
   [ADR-1228](1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md):
   a claim returns the session as it was revoked;
-  [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a replica materializes its
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md): a replica materializes its
   server when it starts, so a pass runs from then, or from the first request when the store cannot be read at start;
   [ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md): the pass
   selects only grants whose expiration has passed, so a grant without one is not selected, and it logs and skips a
@@ -92,7 +92,7 @@ interval, and the grant prune keeps a session until it is terminated.**
 7. **Background work outside the core waits for the server through a public accessor.** `IMaterializedServerAccessor`
    in `NCode.Identity.OpenId.Servers` has `GetServerAsync(cancellationToken)`. The internal
    `IMaterializedServerRegistry` extends it, and `NCode.Identity.OpenId.Core` registers the accessor as the registry
-   ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+   ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 8. **The grant prune keeps a session until it is terminated.**
    `IGrantStore.RemoveEndedBeforeAsync(endedBefore, grantTypesEndedByRevocation, limit, cancellationToken)` removes a
    grant whose type is listed only when `RevokedWhen < endedBefore`, because such a grant ends only when it is
@@ -108,7 +108,7 @@ interval, and the grant prune keeps a session until it is terminated.**
 - **Terminate inside the grant prune.** Rejected: the prune runs every hour by default, so a session would be
   terminated up to an hour late.
 - **A dispatched job for each session.** Rejected: the in-process dispatcher loses its jobs when the process restarts
-  ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)), and a session that no
+  ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)), and a session that no
   job reaches would never be terminated.
 - **A pass on every replica without a lease.** Rejected: every replica would read the same pages and claim the same
   sessions, and all but one claim of each would find the session already revoked.
@@ -153,7 +153,7 @@ interval, and the grant prune keeps a session until it is terminated.**
 - [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — `SetRevokedOnceAsync` and its retry.
 - [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md) — the grant prune that keeps a session until it
   is terminated.
-- [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — the materialized server
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the materialized server
   that background work waits for.
 - [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) — the session bounds and the
   termination by a request.

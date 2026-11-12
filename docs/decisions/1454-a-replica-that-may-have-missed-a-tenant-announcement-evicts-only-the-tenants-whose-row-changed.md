@@ -1,21 +1,21 @@
 # 1454. A replica that may have missed a tenant announcement evicts only the tenants whose row changed
 
 - **Status:** Accepted (amends [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
-  [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) decision 2,
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) decision 2,
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md); amended by
   [ADR-1463](1463-a-seeded-tenant-is-materialized-from-the-row-its-seed-committed.md): a seeded tenant carries the
   row token its seed committed)
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)
+- **Refines:** [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)
 
 ## Context
 
 A replica serves tenants from `IOpenIdTenantCache`. The `tenant-changed` channel announces a tenant change to every
 replica ([ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md)), and a replica whose subscription was
 interrupted may have missed a message, which
-[ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) has its handler learn of.
+[ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) has its handler learn of.
 
 Clearing every cached tenant and every master key whenever the channel may have missed a message re-materializes
 everything the replica serves, with its store reads, settings providers and key collections, for changes that mostly did
@@ -77,7 +77,7 @@ the store's and evicts only the tenants whose token differs or whose row is gone
 
 - [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md) — replicas announce changes through a broadcast
   port
-- [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — settings converge through
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings converge through
   one reconciliation
 - [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)
   — a master key rotates, and its data keys are rewrapped in the background

@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A team records the effective settings it reconciled against in the form the setting serializer reads back, so the
 // next reconciliation can compare a change with them. A change to the platform's settings reconciles every team. See
-// ADR-1234 and ADR-1411.
+// ADR-1412 and ADR-1411.
 public class ReconciledTeamSettingsTests
 {
     private const string TeamId = "platform";

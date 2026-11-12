@@ -129,7 +129,7 @@ public class DefaultOpenIdTenantFactory(
         // store. A committed change announces the tenant (TenantChangedCommand), and every replica evicts it when the
         // announcement arrives (ADR-1205). A replica that may have missed an announcement evicts each cached tenant
         // whose stored row changed when its subscription is restored (ADR-1454), and a cached tenant lives at most
-        // OpenIdTenantOptions.TenantCacheLifetime (ADR-1219).
+        // OpenIdTenantOptions.TenantCacheLifetime (ADR-1412).
         PersistedTenant? persistedTenant = null;
         if (!TenantResolver.TryGetTenantId(httpContext, out var tenantId))
         {

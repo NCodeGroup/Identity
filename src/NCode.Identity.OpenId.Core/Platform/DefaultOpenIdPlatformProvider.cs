@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Platform;
 /// cref="IOpenIdTeamCache"/>, because a tenant's and a team's settings derive from the platform's when they are
 /// materialized.
 /// </summary>
-// See ADR-1219 and ADR-1289.
+// See ADR-1412 and ADR-1289.
 internal class DefaultOpenIdPlatformProvider(
     IOpenIdPlatformFactory factory,
     IMaterializedPlatformRegistry materializedPlatformRegistry,
@@ -78,7 +78,7 @@ internal class DefaultOpenIdPlatformProvider(
                     var platform = await Factory.CreateAsync(openIdEnvironment, cancellationToken);
                     InstanceOrNull = platform;
 
-                    // Background work waits for the platform this replica materializes, and a committed change refreshes it (ADR-1219).
+                    // Background work waits for the platform this replica materializes, and a committed change refreshes it (ADR-1412).
                     MaterializedPlatformRegistry.Register(platform);
 
                     // A tenant computes the profiles its environment type implies from the platform's settings when it

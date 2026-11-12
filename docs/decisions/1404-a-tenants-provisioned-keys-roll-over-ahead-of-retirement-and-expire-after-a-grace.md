@@ -1,6 +1,6 @@
 # 1404. A tenant's provisioned keys roll over ahead of retirement and expire after a grace
 
-- **Status:** Accepted (amended by [ADR-1412](1412-settings-are-reconciled-per-team.md): the rollover and the settings
+- **Status:** Accepted (amended by [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md): the rollover and the settings
   reconciliation that seed a tenant's keys run per team; amended by [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md):
   a provisioned key has a custody, and a change of custody hands the tenant's keys over after the activation delay)
 - **Date:** 2026-11-04
@@ -26,7 +26,7 @@ Rollover has to be correct across replicas that share one store, with no replica
 accepts must be published before the first token it signs, a tenant must never be left without a key that signs, two
 replicas must not both generate a successor, and a tenant that no request reaches must roll over too. The server
 already converges a tenant's keys on two paths, the seed that runs when the tenant is materialized and the pass the
-server's settings reconciliation runs in the background ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)),
+server's settings reconciliation runs in the background ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)),
 and a change an administrator makes to a key is an audit event, so a change the server makes to a key on its own
 needs a record of the same standing.
 
@@ -183,6 +183,6 @@ change the server makes to a tenant's key on its own is an audit event.**
 - [OpenID Connect Core 1.0 §10.1.1](https://openid.net/specs/openid-connect-core-1_0.html#RotateSigKeys),
   [NIST SP 800-57 Part 1 §5.3](https://csrc.nist.gov/pubs/sp/800/57/pt1/r5/final)
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)
 - Issue [#166](https://github.com/NCodeGroup/identity/issues/166)

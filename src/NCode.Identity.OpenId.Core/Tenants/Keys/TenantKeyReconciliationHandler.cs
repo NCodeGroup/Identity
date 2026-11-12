@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// and skipped, and the pass continues: the tenant is seeded again the next time it is materialized. The handler is
 /// idempotent, because announcing a tenant that is already seeded provisions nothing.
 /// </remarks>
-// See ADR-1169 (decision 10), ADR-1234 and ADR-1412.
+// See ADR-1169 (decision 10), ADR-1412.
 internal sealed class TenantKeyReconciliationHandler(
     IOptions<OpenIdOptions> optionsAccessor,
     ITenantKeyPolicy tenantKeyPolicy,
@@ -148,7 +148,7 @@ internal sealed class TenantKeyReconciliationHandler(
         var tenantSpecifications = TenantKeyPolicy.ForTenant(used, settings);
 
         // A tenant that used every one of these algorithms before the change, in the custody it has now, was
-        // reconciled with them already. See ADR-1234.
+        // reconciled with them already. See ADR-1412.
         if (command.PreviousSettings is { } previousTeamSettings)
         {
             var previousSettings = EffectiveSettingsResolver.Resolve(

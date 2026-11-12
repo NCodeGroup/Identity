@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amended by [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md): deleting a tenant also
   removes the data of its end users; by
-  [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md): the re-seed after a change
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md): the re-seed after a change
   of the server's settings is part of one reconciliation; by
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): a key is unreadable
   when its tenant's master key, or the root key that wraps it, is lost or changed, no longer when the Data Protection
@@ -19,7 +19,7 @@
   [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md): a provisioned
   key has a lifetime, its successor is generated ahead of its retirement, a key the tenant's settings no longer use is
   retired, and an expired key the server generated is removed; amended by
-  [ADR-1412](1412-settings-are-reconciled-per-team.md): a team's reconciliation seeds the keys of that team's tenants
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md): a team's reconciliation seeds the keys of that team's tenants
   only)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
@@ -139,7 +139,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
       every 15.
     - A change of the server's effective settings also reaches every tenant's effective lists, whether it is a
       management write, a configuration reload, or a deployment. The reconciliation of the server's settings
-      ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)) runs
+      ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)) runs
       `TenantKeyReconciliationHandler`, which reads the keys of every tenant whose effective lists name a configured
       algorithm and sends a `TenantChangedCommand` with `SettingsChanged` for each seeded one that lacks a key, which
       evicts, seeds, and announces it. A tenant that holds no key is left to its first materialization. A failure for
@@ -176,7 +176,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
   so each would race to seed the same tenant, and the new key would still wait for the secrets poll. The replica that
   makes the change seeds once, at the moment it commits. The reconciliation reacts to a replica's poll too, but one
   lease per change lets only one replica run it
-  ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+  ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 - **Skip seeding a tenant being deleted.** Rejected: it needs a tombstone state that every seed path checks, and the
   system resource server and ownership rows would still block the delete.
 

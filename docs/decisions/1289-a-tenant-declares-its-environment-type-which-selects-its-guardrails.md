@@ -80,7 +80,7 @@ a tenant that declares nothing is `production`.**
     tenant.
 12. **A changed platform reaches cached tenants at once.** A platform settings change clears every cached team and
     tenant on the replica, so the implied profiles follow immediately
-    ([ADR-1412](1412-settings-are-reconciled-per-team.md)); a replica that missed it converges within
+    ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)); a replica that missed it converges within
     `TenantCacheLifetime`.
 13. **The management API and console show each tenant's environment.** `TenantResource.Environment`
     (`TenantEnvironmentResource`: `type`, `name`, `isProduction`) is resolved after authorization and is best-effort: it
@@ -135,6 +135,6 @@ a tenant that declares nothing is `production`.**
   bounded metric dimensions
 - [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) — audit records
 - [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — platform and teams
-- [ADR-1412](1412-settings-are-reconciled-per-team.md) — settings reconciliation
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings reconciliation
 - [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)
   — unreadable stored settings

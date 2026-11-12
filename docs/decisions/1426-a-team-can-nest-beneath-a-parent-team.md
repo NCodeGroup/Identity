@@ -3,7 +3,7 @@
 - **Status:** Accepted (amends
   [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1412](1412-settings-are-reconciled-per-team.md),
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
   [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) and
@@ -83,7 +83,7 @@ and missed-announcement revalidation reach every descendant.**
     usage still rolls up to every team above it. `ITenantUsageStore.ListByTeamAsync` is a prefix match on the path, and
     `TeamUsageEntry` carries the team identifier, the path's last segment.
 11. **Reconciliation reaches every descendant.** A triggered team is reconciled with every team beneath it, each under
-    its own lease and fingerprint ([ADR-1412](1412-settings-are-reconciled-per-team.md)), and each team once per
+    its own lease and fingerprint ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)), and each team once per
     drained request even when an ancestor and a descendant are both pending. A descendant that does not settle is
     retried with its own subtree, and a failed descendant read leaves the triggered team unsettled. The platform pass
     reconciles every team once. A team settings write checks client coherence for every tenant of the team and of
@@ -138,7 +138,7 @@ and missed-announcement revalidation reach every descendant.**
   replicas add to
 - [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform is the
   deployment root and a team groups a customer's tenants
-- [ADR-1412](1412-settings-are-reconciled-per-team.md) — settings are reconciled per team
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings are reconciled per team
 - [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md) — a
   replica that may have missed a team announcement evicts only the teams whose row changed
 - [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a

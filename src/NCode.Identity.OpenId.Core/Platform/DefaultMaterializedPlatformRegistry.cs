@@ -7,7 +7,7 @@ namespace NCode.Identity.OpenId.Platform;
 /// Provides a default implementation of the <see cref="IMaterializedPlatformRegistry"/> abstraction. The first
 /// registration wins and completes every wait for the platform.
 /// </summary>
-// See ADR-1219.
+// See ADR-1412.
 internal sealed class DefaultMaterializedPlatformRegistry : IMaterializedPlatformRegistry
 {
     private TaskCompletionSource<OpenIdPlatform> Registered { get; } =

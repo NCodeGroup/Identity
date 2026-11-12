@@ -1,23 +1,23 @@
 # 1416. A replica that may have missed a team announcement evicts only the teams whose row changed
 
 - **Status:** Accepted (amends [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
-  [ADR-1412](1412-settings-are-reconciled-per-team.md); amended by
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md); amended by
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): a cached team or tenant reports the revision of every
   team above it, and evicting a team evicts every team beneath it; amended by
   [ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md):
   the `tenant-changed` channel revalidates the cached tenants the same way)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)
+- **Refines:** [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)
 
 ## Context
 
 A replica serves teams and tenants from `IOpenIdTeamCache` and `IOpenIdTenantCache`. The `team-changed` channel
 announces a team change to every replica
 ([ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
-[ADR-1412](1412-settings-are-reconciled-per-team.md)), and a replica whose subscription was interrupted may have
+[ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)), and a replica whose subscription was interrupted may have
 missed a message, which
-[ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) has its handler learn of.
+[ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) has its handler learn of.
 
 Clearing every cached team and tenant whenever the channel may have missed a message re-materializes everything the
 replica serves, with its store reads, settings providers and key collections, for changes that mostly did not happen.
@@ -71,8 +71,8 @@ store's and evicts only the teams whose token differs or whose row is gone, with
 
 - [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md) — replicas announce changes through a broadcast
   port
-- [ADR-1412](1412-settings-are-reconciled-per-team.md) — settings are reconciled per team
-- [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — settings converge through
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings are reconciled per team
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings converge through
   one reconciliation
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor manages concurrency tokens
 - [ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) — store query methods push filtering to the DBMS

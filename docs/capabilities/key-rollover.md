@@ -141,7 +141,7 @@ as they are.
 
 > [!TIP]
 > [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
-> [ADR-1412](../decisions/1412-settings-are-reconciled-per-team.md),
+> [ADR-1412](../decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
 > `DefaultTenantKeyRolloverPlanner`, `DefaultTenantKeyRollover`, `TenantKeyRolloverService`, `TenantKeySeedHandler`.
 
 ## The audit trail
@@ -166,7 +166,7 @@ change is committed. See [audit records](../audit-records.md).
 
 - Decisions: [ADR-1403](../decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
-  [ADR-1412](../decisions/1412-settings-are-reconciled-per-team.md),
+  [ADR-1412](../decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
   [ADR-1320](../decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)

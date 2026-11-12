@@ -10,7 +10,7 @@ A client's settings are coherent with the effective settings of its tenant when 
 satisfied ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)).
 A management write is refused while it would make a stored client incoherent. A change of the platform's settings that
 is not a write, a configuration reload or a deployment, cannot be refused, so the reconciliation logs each stored client
-that the change makes incoherent ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+that the change makes incoherent ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 An operator without the logs cannot find those clients, and each of them fails at its next request (issue
 [#278](https://github.com/NCodeGroup/identity/issues/278)).
 
@@ -198,7 +198,7 @@ The chosen option is the typed exception, one filter, log-and-continue walks and
   the resolver.
 - [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)
   — the coherence rules and the validator.
-- [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — the reconciliation that
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the reconciliation that
   reports the clients a change makes incoherent.
 - [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — authorization
   before a read.

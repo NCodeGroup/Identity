@@ -348,7 +348,7 @@ than inlining the rationale.
   it. A pass that brings tenants or clients in line with their team's settings is a handler of
   `ReconcileTeamSettingsCommand`, which `TeamSettingsReconciliationService` sends per team and one replica runs in the
   background whenever the team's effective settings change
-  ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md));
+  ([ADR-1412](../../docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md));
   walk the teams beneath a team only through `ITeamDescendantWalker`, which holds one page of child teams per level, and
   never read a whole subtree into memory
   ([ADR-1455](../../docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md));
@@ -362,8 +362,7 @@ than inlining the rationale.
   its input, discard the compared input when a second change arrives before the first was reconciled, write the
   record alone so it never overwrites a concurrent write, and take an `IExpiringKeySet` lease keyed by the input's
   version so one replica runs each pass
-  ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md),
-  [ADR-1234](../../docs/decisions/1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md)).
+  ([ADR-1412](../../docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 - 👁 **Build a protocol endpoint to the canonical shape** per [ADR-1086](../../docs/decisions/1086-canonical-openid-endpoint-shape.md):
   a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →
   `IClientAuthenticationService.AuthenticateClientAsync` → load a **strongly-typed** `OpenIdMessage<T>` request
@@ -566,7 +565,7 @@ than inlining the rationale.
   replica starts and, when that fails because the database may still be migrating, the replica's first request does.
   An integration test that needs a persisted platform document sets `HostApplicationFactory.PersistedPlatformSettings`,
   which `PersistedPlatformSeedService` writes in `StartingAsync`, before any hosted service starts
-  ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md)).
+  ([ADR-1412](../../docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 - 👁 **A start check that needs the platform's protector is a hosted service after the warmup.** `ValidateOnStart` and
   every startup validator run before any hosted service starts, so before `PlatformSecretProtectorWarmup` loads the
   protector; `AddSecretProtection` inserts the warmup first and `DataProtectionKeyRingGate` second, both ahead of Data

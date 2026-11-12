@@ -1,7 +1,7 @@
 # 1037. The tenant cache is probed before the store is read on the resolution hot path
 
 - **Status:** Accepted (amended by
-  [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a cached tenant has an
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md): a cached tenant has an
   absolute lifetime)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group

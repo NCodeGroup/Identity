@@ -1,10 +1,10 @@
 # 1205. Replicas announce changes through a broadcast port
 
 - **Status:** Accepted (amended by
-  [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a handler learns of
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md): a handler learns of
   messages it may have missed, and a server settings change is announced too; and by
   [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md): the eviction, the refresh
-  and the announcement run on their own bounded token; amended by [ADR-1412](1412-settings-are-reconciled-per-team.md):
+  and the announcement run on their own bounded token; amended by [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md):
   the `team-changed` channel announces a team change, and `platform-settings-changed` a platform settings change, to
   every replica; amended by
   [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md): a
@@ -90,10 +90,10 @@ for state that every replica must see
    expires `OpenIdTenantOptions.TenantCacheLifetime` (15 minutes) after it was materialized, so a replica that missed
    an announcement for any other reason, such as a publisher that could not reach Valkey, serves the tenant at most
    that long, and its polls bound its settings and secrets
-   ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+   ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 7. **A server settings change is announced on the `server-settings-changed` channel.** The message is the server
    identifier, and every replica reads the server's committed settings document again
-   ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+   ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 
 ## Options considered
 
@@ -121,4 +121,4 @@ for state that every replica must see
 - The access-control user of the Valkey connection needs `PUBLISH` and `SUBSCRIBE`.
 - A feature that needs another replica to drop what it cached names a channel and registers an
   `IReplicaBroadcastHandler`, and changes neither the port nor an adapter.
-- This implements issue [#240](https://github.com/NCodeGroup/identity/issues/240); with ADR-1219 it closes [#249](https://github.com/NCodeGroup/identity/issues/249).
+- This implements issue [#240](https://github.com/NCodeGroup/identity/issues/240); with ADR-1412 it closes [#249](https://github.com/NCodeGroup/identity/issues/249).

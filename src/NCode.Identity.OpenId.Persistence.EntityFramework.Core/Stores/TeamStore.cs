@@ -385,7 +385,7 @@ internal class TeamStore(
         teamEntity.SettingsJson = persistedTeamSettings.Value;
 
         // A second change before the first is reconciled leaves settings that no pass reconciled, so the next pass has
-        // nothing to compare with and reaches every tenant. See ADR-1234.
+        // nothing to compare with and reaches every tenant. See ADR-1412.
         if (teamEntity.ReconciledSettingsFingerprint is null)
             teamEntity.ReconciledSettingsJson = null;
 

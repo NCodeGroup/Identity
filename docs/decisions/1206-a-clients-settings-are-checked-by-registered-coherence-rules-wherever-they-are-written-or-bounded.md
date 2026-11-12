@@ -100,7 +100,7 @@ lowers is a violation.**
      write by setting, value and governing setting, not by description, and pages untracked, secret-free
      `GetSettingsPageAsync` projections under an explicit tenant scope.
    - A change that is not a write is reported by the reconciliation's `ClientCoherenceReportHandler`
-     ([ADR-1412](1412-settings-are-reconciled-per-team.md)); an unreadable stored document is skipped and logged
+     ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)); an unreadable stored document is skipped and logged
      ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
 6. **Order and bound.** Domain validation
    ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)) runs before the rules;

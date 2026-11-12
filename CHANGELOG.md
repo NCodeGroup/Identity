@@ -945,7 +945,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   pass publishes after its save, and a seed queues its events on `TenantSeedContext.RunAfterCommit`, whose steps the
   provisioner runs once the seed has committed
   ([ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
-  [ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
+  [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [docs/capabilities/key-rollover.md](docs/capabilities/key-rollover.md), [docs/audit-records.md](docs/audit-records.md),
   [#166](https://github.com/NCodeGroup/identity/issues/166)).
@@ -3158,7 +3158,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IOpenIdTenantCache.GetTeamRevisionsAsync`) with the store's (`ITeamStore.GetConcurrencyTokensAsync`) and clearing
   both caches when it cannot read them, and the platform handler reads the platform's settings again
   ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
-  [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md),
@@ -3432,7 +3432,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   counted from materialization, however often the tenant is used, so a replica that missed a tenant's change
   announcement serves the tenant at most that long
   ([ADR-1037](docs/decisions/1037-tenant-cache-probe-before-store-load.md),
-  [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [#249](https://github.com/NCodeGroup/identity/issues/249)).
 
 - **Every replica sees a tenant change at once.** Every management write to a tenant (its record, its settings, a
@@ -3542,7 +3542,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`OpenId:Platform:SettingsPeriodicRefreshInterval`, 5 minutes) is the fallback for a replica that missed the
   announcement. `OpenIdPlatform.RefreshSettingsAsync`, `IOpenIdTenantCache.ClearAsync` and
   `IReplicaBroadcastHandler.HandleMissedMessagesAsync` are members a custom implementation implements
-  ([ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issues
+  ([ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md), issues
   [#241](https://github.com/NCodeGroup/identity/issues/241), [#248](https://github.com/NCodeGroup/identity/issues/248),
   [#249](https://github.com/NCodeGroup/identity/issues/249) and
   [#252](https://github.com/NCodeGroup/identity/issues/252)).
@@ -3552,9 +3552,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   logs every stored client the settings make incoherent, each handling `ReconcileTeamSettingsCommand` for the team's
   tenants only; `PersistedTeam.ReconciledSettings` and `ReconciledSettingsFingerprint` record what was reconciled, so a
   pass a restart interrupted runs again and a start that changes nothing runs none
-  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
+  ([ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-1234](docs/decisions/1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md)).
+  [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 
 - **Rate limits and quotas are registered descriptors judged in one round trip per stage.** Each limit is a
   `RateLimitDescriptor` (name, stage, order, window, sliding or fixed, limit and overage settings, metered only, usage
@@ -4038,7 +4038,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   and a request for every team covers them all, so none is dropped however many arrive
   ([#559](https://github.com/NCodeGroup/identity/issues/559)). A team change evicts the team, every team beneath it and
   their tenants on every replica over the `team-changed` channel
-  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
+  ([ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md),
   [#601](https://github.com/NCodeGroup/identity/issues/601)).

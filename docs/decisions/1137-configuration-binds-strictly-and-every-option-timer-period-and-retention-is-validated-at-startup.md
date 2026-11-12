@@ -28,7 +28,7 @@ resolves a tenant, after health checks have already reported the instance ready.
 The values of timers fail in a third way. The refresh intervals, cache lifetimes and lease durations that timers and
 caches run on accept zero and negative values unless something refuses them. A refresh interval that is not positive
 stops a poll, a lease duration that is not positive keeps the reconciliation from holding its lease
-([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)), a cache lifetime that is not
+([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)), a cache lifetime that is not
 positive fails the first write to the tenant cache, and a zero flush interval faults a hosted service after the host has
 started and accepted traffic. The retention and prune options of the data that grows with use need the same protection,
 and an operator needs a configuration key for each.
@@ -129,7 +129,7 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
   configure it.
 - [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md) — ended grants are removed after a retention
   period.
-- [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — the reconciliation that holds
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the reconciliation that holds
   a lease for `Team.ReconciliationLeaseDuration`.
 - Code: `NCode.Identity.Server.IdentityServerBuilderExtensions.AddConfiguration`,
   `NCode.Identity.Registration.StrictConfigurationBindingExtensions`, `NCode.Identity.Time.TimerPeriod`,

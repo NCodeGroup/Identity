@@ -1,6 +1,6 @@
 # 1351. A committed change is applied and announced on its own bounded token
 
-- **Status:** Accepted (amended by [ADR-1412](1412-settings-are-reconciled-per-team.md): a team change is applied and
+- **Status:** Accepted (amended by [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md): a team change is applied and
   announced on its own bounded token through `TeamChangedCommand`;
   amended by [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md))
 - **Date:** 2026-11-01
@@ -66,7 +66,7 @@ such inline effects on `CancellationToken.None` with their own timeout
 
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
-  [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)
 - Issue [#485](https://github.com/NCodeGroup/identity/issues/485)
 - `PostCommitWork.cs` in `NCode.Identity.Persistence.Abstractions`, `TenantChangedHandler.cs` and

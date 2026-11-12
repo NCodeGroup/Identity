@@ -6,7 +6,7 @@
 
 ## Context
 
-The reconciliation of a team ([ADR-1412](1412-settings-are-reconciled-per-team.md)) and the coherence check of a team
+The reconciliation of a team ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)) and the coherence check of a team
 settings write reach every team beneath the team they start from
 ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md)). A subtree read in one list is unbounded in memory and in
 result size, because a team can hold any number of child teams.
@@ -49,5 +49,5 @@ subtree.**
 
 ## References
 
-- [ADR-1412](1412-settings-are-reconciled-per-team.md) — settings are reconciled per team
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings are reconciled per team
 - [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md) — a team can nest beneath a parent team

@@ -747,7 +747,7 @@ than inlining the rationale.
 - 👁 **A retrieval that concurrent requests share runs once, on its own terms** — template
   [Outbound Calls](csharp.instructions.md#outbound-calls); it also takes its own copy of any disposable input a caller
   owns, such as a chain's certificates (`DefaultClientCertificateRevocationChecker`,
-  [ADR-1252](../../docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
+  [ADR-1400](../../docs/decisions/1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md)).
 - 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A counter is
   incremented with the port's atomic `IncrementAsync`, which starts a counter for one fixed window, or, for the limits
   of a rate-limit stage, with `IncrementUntilExceededAsync`; a read followed by a write loses concurrent requests. Read

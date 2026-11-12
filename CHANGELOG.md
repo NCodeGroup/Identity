@@ -4967,9 +4967,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   not DER, not current, not properly signed, or not understood is `Unknown`. Log events 2050 and 2061 name the
   revocation source and record the `Location`
   ([ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md),
-  [ADR-1252](docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
+  [ADR-1400](docs/decisions/1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md),
   [ADR-1259](docs/decisions/1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md),
-  [ADR-1400](docs/decisions/1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md),
+  [ADR-1400](docs/decisions/1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md),
   issues [#207](https://github.com/NCodeGroup/identity/issues/207), [#255](https://github.com/NCodeGroup/identity/issues/255),
   [#38](https://github.com/NCodeGroup/identity/issues/38)).
 
@@ -4984,8 +4984,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   that misses a CRL or OCSP result recorded a moment earlier finds it and does not download it once more; a parsed list
   is cached per location until its `nextUpdate` or `MaxCacheDuration` and verified by each check; and a retrieval or
   responder location that yields no usable answer is not repeated for `FailureCacheDuration`
-  ([ADR-1252](docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  [ADR-1366](docs/decisions/1366-the-revocation-retrieval-checks-its-caches-again-inside-the-shared-retrieval.md),
+  ([ADR-1400](docs/decisions/1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md),
   issues [#207](https://github.com/NCodeGroup/identity/issues/207),
   [#255](https://github.com/NCodeGroup/identity/issues/255), [#500](https://github.com/NCodeGroup/identity/issues/500)).
 

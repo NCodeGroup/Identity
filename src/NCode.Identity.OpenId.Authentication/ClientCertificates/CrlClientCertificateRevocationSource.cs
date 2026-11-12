@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// trusted, until its next update, for at most the configured maximum cache duration; each check verifies the list
 /// against its own signers, so a list retrieved for one authority is never trusted for another.
 /// </summary>
-// See ADR-1252.
+// See ADR-1400.
 internal sealed class CrlClientCertificateRevocationSource(
     TimeProvider timeProvider,
     RevocationDataFetcher fetcher,

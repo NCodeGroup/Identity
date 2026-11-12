@@ -154,16 +154,14 @@ and again inside the retrieval. Any further remote fetch that several callers sh
   decisions 4 and 5 ask
   ([ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)).
 - The retry of a revocation-list `GET` runs within `FetchTimeout`, and the remembered failure stays the back-off between
-  retrievals ([ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  [ADR-1366](1366-the-revocation-retrieval-checks-its-caches-again-inside-the-shared-retrieval.md)).
+  retrievals ([ADR-1400](1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md)).
 - A fix to the single-flight mechanism reaches every owner, and the document fetches share one settings shape.
 
 ## References
 
 - [ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md),
   [ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md),
-  [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  [ADR-1366](1366-the-revocation-retrieval-checks-its-caches-again-inside-the-shared-retrieval.md),
+  [ADR-1400](1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md),
   [ADR-1385](1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)
 - Issues [#67](https://github.com/NCodeGroup/identity/issues/67) and

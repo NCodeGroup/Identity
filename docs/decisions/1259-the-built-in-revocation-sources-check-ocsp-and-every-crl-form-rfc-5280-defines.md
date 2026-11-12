@@ -9,7 +9,7 @@
 The server checks the revocation status of every certificate below the trust anchor of a `tls_client_auth` chain
 ([ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)), and it shares, bounds and
 remembers each retrieval
-([ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)). A
+([ADR-1400](1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md)). A
 checker that reads only complete, direct CRLs signed by the issuing certificate answers `Unknown` for five common PKI
 shapes:
 
@@ -37,7 +37,7 @@ certificate. Four further forces apply:
 **The built-in `ocsp` source queries the certificate's OCSP responders, and the built-in `crl` source processes CRLs
 as RFC 5280 §6.3.3 describes. Together they cover OCSP and every CRL form: complete, partitioned, delta, indirect and
 signed by another key.** Which sources run and in what order is
-[ADR-1400](1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md)'s; every request
+[ADR-1400](1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md)'s; every request
 goes through the guarded client of
 [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md).
 
@@ -152,7 +152,7 @@ validate.
   for example because its certificate names no CRL distribution point, makes its list or response unusable.
 - An unreachable responder delays a check by `FetchTimeout` once per `FailureCacheDuration` in each replica before the
   CRLs answer. A deployment that must skip OCSP configures the sources
-  ([ADR-1400](1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md)).
+  ([ADR-1400](1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md)).
 - A PKI that publishes delta lists costs a second retrieval, which is cached like the first.
 - A list or response that an attacker on the path to an `http` location replaces fails verification and answers
   `Unknown`, which `online_soft_fail` accepts.
@@ -165,11 +165,11 @@ validate.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
 - [ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md): `tls_client_auth` certificates
   chain to configured trust anchors.
-- [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md): a
+- [ADR-1400](1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md): a
   revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in.
 - [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md): the guarded client
   every retrieval goes through.
-- [ADR-1400](1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md): configuration
+- [ADR-1400](1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md): configuration
   selects and orders the sources.
 - Code: `src/NCode.Identity.OpenId.Authentication.Abstractions/ClientCertificates/` for
   `ClientCertificateRevocationContext`, `IClientCertificateRevocationSource` and

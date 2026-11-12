@@ -2780,7 +2780,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   selects, and the set is validated at startup and whenever its configuration changes. `MapBffEndpoints()` maps each
   frontend's endpoints under its `PathPrefix`, and `RequireBffFrontend()`/`[BffFrontend]` and the YARP `BffFrontend`
   metadata limit an endpoint to frontends ([#396](https://github.com/NCodeGroup/identity/issues/396),
-  [ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
+  [ADR-1442](docs/decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 - **BFF frontends follow their configuration without a restart.** When the `Bff` section reloads,
   `BffFrontendCatalog` validates the whole candidate set (the options validators, the selection rules, each frontend's
@@ -2790,7 +2790,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   conventions added to their route group, the endpoint check runs again, and each frontend's security headers and
   client-credential tokens belong to the frontend as built for the set
   ([#602](https://github.com/NCodeGroup/identity/issues/602),
-  [ADR-1442](docs/decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
+  [ADR-1442](docs/decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 - **Blazor hosts use the BFF session.** The opt-in `NCode.Identity.Bff.Blazor` package (`AddBffBlazorLibrary`,
   `AsBffComponents`, a revalidating `AuthenticationStateProvider`, circuit token access, the user document persisted
@@ -5587,7 +5587,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `__Host-Http-bff-login.<name>`, another frontend ignores a frontend's session and deletes its cookie, and refuses its
   login transaction (`frontend_mismatch`), and a logout token ends only the receiving frontend's sessions
   ([#396](https://github.com/NCodeGroup/identity/issues/396),
-  [ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
+  [ADR-1442](docs/decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 - **A BFF session ends when its frontend is removed or registered as another client.** A session records its
   frontend's `Authority` and `ClientId`; a request or connection ends one whose frontend is configured with another

@@ -39,7 +39,7 @@ Four forces shape both:
 **Both are opt-in. `app.UseBffSecurityHeaders()` writes four headers from configuration, and a frontend's
 `Jwks:Enabled` maps `GET /jwks` under its `PathPrefix`, which publishes the public keys of the frontend's
 client-authentication key ring and nothing else.** Both are configured per frontend
-([ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
+([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 1. **The security headers are a middleware the host adds.** `UseBffSecurityHeaders()` writes the selected frontend's
    `SecurityHeaders` on every response, or the strict `BffSecurityHeadersOptions` defaults for a request that selects
@@ -111,7 +111,7 @@ client-authentication key ring and nothing else.** Both are configured per front
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
   [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md),
   [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md),
-  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md),
+  [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
 - RFC 7517, RFC 7523, RFC 10017 §6.1.4.1, W3C Content Security Policy Level 3
 - `src/NCode.Identity.Bff/Hardening/`, `src/NCode.Identity.Bff/Endpoints/BffJwksHandler.cs`

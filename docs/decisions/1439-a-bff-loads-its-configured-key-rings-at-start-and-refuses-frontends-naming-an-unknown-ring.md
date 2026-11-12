@@ -22,7 +22,7 @@ rings hold private keys, so how a host loads them decides where the private key'
 Four further facts shape how a misspelled ring name is found:
 
 - Frontends follow their configuration at run time, and a change takes effect only when the whole set passes every check
-  ([ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
+  ([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 - A name that no key ring answers to fails only at the frontend's first token request or at `/bff/jwks`, long after the
   host started or the configuration changed.
 - `IClientKeyRingProvider` is the seam that the protocol client resolves key rings through, and a host can replace it
@@ -101,7 +101,7 @@ find. A host that needs another source registers the keyed provider in code.**
 - [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md),
   [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
   [ADR-1382](1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md),
-  [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md),
+  [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md),
   [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)
 - `src/NCode.Identity.Bff/Secrets/BffPemKeyReader.cs`
 - `src/NCode.Identity.Bff/Secrets/BffKeyRingLoader.cs`

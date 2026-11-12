@@ -12,7 +12,7 @@ A browser public client holds its tokens where script that runs in the page can 
 the tokens of the most privileged user the platform has.
 
 The BFF library serves several frontends from one host
-([ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)), so the console can be a
+([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)), so the console can be a
 BFF frontend: a confidential client whose tokens never reach the browser. The design leaves open where its BFF runs
 ([`docs/backend-for-frontend.md`](../backend-for-frontend.md) §11 question 6): in the OP host, under a path of the OP's
 origin, or in a host of its own.
@@ -133,7 +133,7 @@ management API at `/api` on the origin of its authority.**
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.15 and §11
 - [RFC 10017](https://datatracker.ietf.org/doc/html/rfc10017)
-- [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)
+- [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)
 - [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)
 - [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)
 - `src/NCode.Identity.ManagementConsole/` and `hosts/NCode.Identity.ManagementConsole.Host/`

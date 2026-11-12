@@ -18,7 +18,7 @@ More facts make a start-time check worth having:
 - The BFF's cookie boundary holds only with `AddReverseProxy().AddBffTransforms()`. A YARP route mapped without it
   forwards the BFF's cookies to the upstream.
 - A frontend name on an endpoint is a string
-  ([ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)), so a misspelled name
+  ([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)), so a misspelled name
   selects no frontend and the endpoint is never reached.
 - A host that maps YARP routes names its conventions in code, and a route that names a frontend has to be limited to it
   with the same `AsBffRemoteApis()` convention.
@@ -26,7 +26,7 @@ More facts make a start-time check worth having:
   leaves an endpoint that cannot work
   ([ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md)).
 - The frontends follow their configuration, so the set of frontends can change while the host runs
-  ([ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
+  ([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 An `IProxyConfigFilter` sees the route configuration and not the conventions that a host applies to the endpoints, so it
 cannot tell that `AsBffRemoteApis()` is missing.
@@ -88,8 +88,8 @@ the request-time refusals stay the backstop.**
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.6
 - [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
-  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md),
+  [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md),
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md),
-  [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
+  [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)
 - `src/NCode.Identity.Bff/Hosting/BffEndpointStartupCheck.cs`
 - Issue [#522](https://github.com/NCodeGroup/identity/issues/522)

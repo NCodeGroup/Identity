@@ -85,6 +85,6 @@ No URL the server publishes or compares takes its origin from the request's `Hos
   [`DefaultProofOfPossessionService.cs`](../../src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultProofOfPossessionService.cs).
 - [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md),
   [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) and
-  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md).
+  [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md).
 - [NCodeGroup/identity#493](https://github.com/NCodeGroup/identity/issues/493) and
   [NCodeGroup/identity#518](https://github.com/NCodeGroup/identity/issues/518).

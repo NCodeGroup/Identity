@@ -61,7 +61,7 @@ names through the store's indexes, ends them, and only then records the token.**
    issuer, audience, `events` claim, the absence of `nonce`, and replay. It then looks the sessions up through the
    store's indexes: by `sid` when the token has one, and by `sub` otherwise. Each candidate must match the token's
    issuer, and its `sid` when the token has one, and must belong to the receiving frontend
-   ([ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)). It is then ended
+   ([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)). It is then ended
    (`backchannel_logout`) on every replica at once, because the record itself is removed.
 10. **`sid` is required by default.** `BackchannelLogoutSessionRequired` defaults to `true`, matching the
     `backchannel_logout_session_required` metadata the client registers, so a logout token without `sid` is rejected and

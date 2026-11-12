@@ -47,7 +47,7 @@ HTTP client that a host configures.
      belongs to the BFF, not to a request or a session, so no request's state leaks into another.
    - The cache is bounded by configuration, because the resource and scope come from the endpoint's or remote API's
      registration, never from the request. It is dropped when the frontend set changes
-     ([ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
+     ([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
    - Correctness does not depend on the cache: a replica with no entry, or one that restarts, requests a new token.
    - Nothing is persisted and no lease spans the replicas. Each replica requests its own token, which costs up to one
      grant per replica per token lifetime.
@@ -172,7 +172,7 @@ HTTP client that a host configures.
 - [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)
 - [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)
 - [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)
-- [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
+- [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)
 - RFC 6749 §4.4, RFC 8693, RFC 9449, RFC 9700
 - `src/NCode.Identity.Bff/Tokens/`, `src/NCode.Identity.Bff/RemoteApis/`
 - Issues [#395](https://github.com/NCodeGroup/identity/issues/395) and

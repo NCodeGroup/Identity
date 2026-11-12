@@ -20,7 +20,7 @@ acceptance rules and logout have their own records
 [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
 [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)), and a
 deployment serves several frontends, each with its own cookies and sessions
-([ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
+([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 ## Decision
 
@@ -136,6 +136,6 @@ without the cookie.**
 - [ADR-1122](1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md) — claim mapping
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — versioned values and indexes
 - [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
-- [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) — frontends
+- [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md) — frontends
 - RFC 5869 (HKDF), RFC 6265bis (`__Host-` prefix, `SameSite`), RFC 9207 (`iss`), RFC 7636 (PKCE)
 - Issue #123

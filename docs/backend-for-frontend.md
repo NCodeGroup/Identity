@@ -705,7 +705,7 @@ to one frontend. The keys have no `:`, because YARP's configuration loader reads
   `BffScope` without `BffTokenRequirement` is refused, and `BffFrontend` must be a valid frontend name. Whether
   `Bff:Frontends` configures it is the endpoint check's to say, because YARP and the BFF apply one configuration change
   separately
-  ([ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
+  ([ADR-1442](decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 - A remote API route strips the browser's `Cookie`, `Authorization`, `DPoP` and anti-forgery headers, resolves its
   token before anything is forwarded, attaches it as `MapBffRemoteApi` does, and drops every upstream `Set-Cookie`.
 - Every other route never forwards the BFF's session or login cookie, and an upstream cannot set either.
@@ -816,7 +816,7 @@ It looks the `jti` up but does not record it: the BFF calls `TryRecordHandledAsy
 A token with a `sid` ends every session holding that OP `sid`. A token with only `sub` ends every session of that
 subject from that issuer. A logout token ends only the sessions of the frontend that received it, because each
 frontend is its own client at the OP and its own session namespace
-([ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)). The BFF
+([ADR-1442](decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)). The BFF
 finds them through the membership indexes ([§5.4](#54-state-every-replica-sees)),
 without needing any handle. It answers `200` once the sessions are ended and the `jti` is recorded, and `400` on an
 invalid token or when ending the sessions fails, so the OP retries a failed delivery and the retry validates again.
@@ -888,7 +888,7 @@ allow-list for `/bff/user`, security headers, session and DPoP options, and its 
 stay at the root of `Bff` because they apply to the whole deployment. Frontends do not inherit from each other:
 configuration-list binding merges by index, and inheritance would hide which client a setting belongs to. One BFF
 serves a shop and its admin console, for example, and each is its own OAuth client
-([ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
+([ADR-1442](decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 ```jsonc
 {
@@ -946,7 +946,7 @@ every registered rule, and `IsMatch` reads only the request. Two rules are built
   options configured in code, fixes the frontends for the host's life. `Bff:KeyRings` entries are registered when
   `AddIdentityBff` is called and load when the host starts, and a change does not re-read them, so a frontend added by a
   change must name a key ring that the host already has, or the change is refused
-  ([ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md),
+  ([ADR-1442](decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md),
   [ADR-1439](decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md),
   [ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1439](decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)).
@@ -978,7 +978,7 @@ A local API or page serves whichever frontend the request selects, unless it is 
 Names from several of these add up. A name that is not configured stops the host from starting, and after a change of
 the endpoints or the frontends it is logged and the endpoint serves no request
 ([ADR-1433](decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md),
-[ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
+[ADR-1442](decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 **Tokens.** A frontend uses its own client registration for every token request: the code exchange, refresh, token
 exchange and client credentials, with its own DPoP key ring and its own `/bff/jwks`. Client-credential tokens are cached
@@ -1562,7 +1562,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 | `NCode.Identity.Bff` core      | The scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md), [ADR-1291](decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md), [ADR-1292](decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md), [ADR-1293](decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)).                                                                                                                                                                                                                                                                  |
 | Remote APIs                    | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and token attachment for routes in YARP configuration, with the YARP support in `NCode.Identity.Bff` itself ([ADR-1381](decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Browser hardening              | `UseBffSecurityHeaders()` and the `/bff/jwks` endpoint ([ADR-1382](decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Multiple frontends             | One `Bff:Frontends:{name}` entry per frontend, selected per request by the open `IBffFrontendSelector` rules `host` and `path`, with its own cookies, client registration, endpoints, tokens and security headers, validated as a whole at startup ([§5.10](#510-frontends), [ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)). |
+| Multiple frontends             | One `Bff:Frontends:{name}` entry per frontend, selected per request by the open `IBffFrontendSelector` rules `host` and `path`, with its own cookies, client registration, endpoints, tokens and security headers, validated as a whole at startup ([§5.10](#510-frontends), [ADR-1442](decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)). |
 | Endpoint startup check         | The host refuses to start when an endpoint's BFF metadata is incomplete, such as a YARP route that names a token requirement without `AsBffRemoteApis()`; the per-request `502` stays the backstop ([ADR-1433](decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)). |
 | Server-rendered and Blazor hosts | Pages that accept a form post with the antiforgery token, hubs as a guarded endpoint kind with connection sessions, and the opt-in `NCode.Identity.Bff.Blazor` and `NCode.Identity.Bff.Blazor.Client` packages ([§5.14](#514-server-rendered-and-blazor-hosts), [ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md), [ADR-1292](decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)). |
 | Key rings                      | `Bff:KeyRings:{name}` registers a keyed `ISecretKeyCollectionProvider` that holds the private keys of its `PemFiles` and the remote keys that a KMS holds (`RemoteKeys:{kid}`), loaded when the host starts ([§5.12](#512-composition-and-configuration), [ADR-1439](decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md), [ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)). |

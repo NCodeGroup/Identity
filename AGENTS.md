@@ -93,7 +93,7 @@ compiles it and no gate tests it
   ([ADR-1285](docs/decisions/1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md))
 - **Backend for frontend** — `NCode.Identity.Bff(.Abstractions)`: makes an ASP.NET Core app the confidential client of
   its browser frontend, or several, each a `Bff:Frontends:<name>` entry that a registered rule selects per request
-  ([ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)),
+  ([ADR-1442](docs/decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)),
   with an opaque `__Host-` cookie over an encrypted server-side session every replica sees
   ([ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)),
   forwards remote APIs with the right token through YARP, its own `MapBffRemoteApi` or configured routes

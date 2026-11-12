@@ -62,7 +62,7 @@ misordered pipeline fails every such request instead of serving it unguarded.**
 3. **The Fetch Metadata rule.** `Sec-Fetch-Site` absent (an older browser or a non-browser client), `same-origin` or
    `none` passes. `same-site` passes only when `Origin` equals an entry of the selected frontend's `TrustedOrigins`,
    compared ordinally, because a sibling subdomain is same-site and the BFF cannot read the application's CORS decision
-   ([ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) holds the per-frontend
+   ([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md) holds the per-frontend
    settings). Every other value, or a repeated header, is refused. Startup validation requires each trusted origin to be
    a bare origin, `https` outside Development.
 4. **Pages accept every method.** `GET`, `HEAD`, `OPTIONS` and `TRACE` pass, because a cross-site page cannot make them
@@ -173,7 +173,7 @@ misordered pipeline fails every such request instead of serving it unguarded.**
   record and its cookie
 - [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md) — the logout
   form, a page form post
-- [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) — the frontends
+- [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md) — the frontends
 - [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md)
   — pages and hubs
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md) —

@@ -325,6 +325,20 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
     }
 
     [Fact]
+    public void Verify_WhenTheAnchorIsAnExpiredRoot_ReturnsUnanchoredChain()
+    {
+        // the root's validity ended two years before the fake clock's time
+        using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=root",
+            Now.AddYears(-3)
+        );
+        WriteAnchor(root, Now.UtcDateTime);
+        using var leaf = CreateClientLeaf(root);
+
+        Assert.Equal(ProxyClientCertificateRefusal.UnanchoredChain, CreateVerifier().Verify(leaf));
+    }
+
+    [Fact]
     public void Verify_WhenTheAnchorFileIsRewrittenBeforeTheRefreshInterval_KeepsTheLoadedAnchors()
     {
         using var firstAuthority =

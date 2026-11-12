@@ -160,9 +160,16 @@ internal sealed class ProxyClientCertificateVerifier(
         // the certificate is the peer's, so its authority information access extension is never followed
         chain.ChainPolicy.DisableCertificateDownloads = true;
 
-        return chain.Build(certificate) || IsPartialChainEndingAtAnAnchor(chain, anchors)
-            ? ProxyClientCertificateRefusal.None
-            : ProxyClientCertificateRefusal.UnanchoredChain;
+        if (!chain.Build(certificate) && !IsPartialChainEndingAtAnAnchor(chain, anchors))
+        {
+            return ProxyClientCertificateRefusal.UnanchoredChain;
+        }
+
+        // platforms differ on whether they check the validity of a trust anchor, so the verifier checks it itself
+        var anchor = chain.ChainElements[^1].Certificate;
+        return now < anchor.NotBefore.ToUniversalTime() || now > anchor.NotAfter.ToUniversalTime()
+            ? ProxyClientCertificateRefusal.UnanchoredChain
+            : ProxyClientCertificateRefusal.None;
     }
 
     private static bool IsPartialChainEndingAtAnAnchor(

@@ -1,7 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-namespace NCode.Identity.AspNetCore;
+namespace NCode.Identity.AspNetCore.Logging;
 
 /// <summary>
 /// Defines the reserved logging event IDs for the <c>NCode.Identity.AspNetCore</c> package.

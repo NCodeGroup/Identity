@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.AspNetCore.Logging;
 
 namespace NCode.Identity.AspNetCore.ProxyClientCertificate;
 

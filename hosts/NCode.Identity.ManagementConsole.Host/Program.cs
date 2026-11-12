@@ -46,7 +46,7 @@ builder.Services.AddTrustedForwardedHeaders(builder.Configuration);
 // Send Strict-Transport-Security as configured by the 'StrictTransportSecurity' configuration section.
 builder.Services.AddStrictTransportSecurity(builder.Configuration);
 
-// Send no Server response header, in every environment. See ADR-1509.
+// Send no Server response header, in every environment. See ADR-1511.
 builder.Services.AddServerHeaderSuppression();
 
 // In Production, refuse to start unless Kestrel serves HTTPS only with a certificate that loads and passes the

@@ -1,4 +1,4 @@
-# 1509. The hosts send no Server header
+# 1511. The hosts send no Server header
 
 - **Status:** Accepted
 - **Date:** 2026-11-12

@@ -85,12 +85,17 @@ composition root chooses: in-process for one replica, Valkey for several.**
    composition registers them.
 6. **The Valkey adapters** come from `AddValkey(IConfiguration)`:
    - The server address and credentials come from the `ConnectionStrings:valkey` connection string, which accepts every
-     StackExchange.Redis setting (TLS, an access-control user). The `Valkey` section binds `ValkeyOptions` strictly
+     StackExchange.Redis setting (TLS, an access-control user). The `ValkeyConnection` parts (`Host`, `Port`,
+     `Username`, `Password`, `Ssl`) are the other form of the same connection
+     ([ADR-1510](1510-the-host-chart-passes-a-valkey-servers-address-and-password-as-parts-and-the-adapter-assembles-the-connection.md)).
+     The `Valkey` section binds `ValkeyOptions` strictly
      ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)):
      `KeyPrefix`, default `ncode-identity:`, so several deployments can share one server; braces are not allowed in it.
-   - Without the connection string the call registers nothing and the in-process adapters stay. A `Valkey` section
-     without it, a malformed connection string, or one that names no server stops the host at startup; the error never
-     echoes the connection string, which may hold a password.
+   - Without a connection, neither the connection string nor the `ValkeyConnection` parts, the call registers nothing
+     and the in-process adapters stay. A `Valkey` section without a connection, both forms at once, a malformed
+     connection string, one that names no server, parts without `Host`, a `Port` outside 1-65535 and an `Ssl` that is
+     not a boolean stop the host at startup; no error echoes the connection string or a part, which may hold a
+     password.
    - The registration takes the place of every in-process adapter registered before it.
    - The key set adds with `SET key 1 NX PX ttl`, which the server applies atomically, and looks up with `EXISTS`.
    - The value set stores one string: an 8-byte big-endian version followed by the value bytes. Add is `SET NX PX`, get is
@@ -124,7 +129,7 @@ composition root chooses: in-process for one replica, Valkey for several.**
 9. **The artifact that sets the replica count enforces it.** The production-safety gate does not require Valkey, because a
    replica cannot know how many replicas run and a single-replica production deployment on the in-process adapters is
    correct. The host's Helm chart, which sets the replica count, fails a `replicaCount` above 1 without
-   `valkey.existingSecret`.
+   `valkey.existingSecret` or `valkey.parts.existingSecret`.
 10. **Metrics.** Operations are recorded under the shared-state meter, `value_set.*` and `index_set.*` among them
     ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
 

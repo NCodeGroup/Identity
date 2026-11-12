@@ -10,7 +10,7 @@ namespace NCode.Identity.AspNetCore;
 /// <summary>
 /// Registers the host hardening that turns off Kestrel's <c>Server</c> response header.
 /// </summary>
-// See ADR-1509.
+// See ADR-1511.
 [PublicAPI]
 public static class ServerHeaderRegistration
 {

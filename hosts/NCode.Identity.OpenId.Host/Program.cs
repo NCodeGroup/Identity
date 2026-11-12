@@ -78,7 +78,7 @@ serviceCollection.AddProxyClientCertificate(configuration);
 // proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-1447.
 serviceCollection.AddStrictTransportSecurity(configuration);
 
-// Send no Server response header, in every environment. See ADR-1509.
+// Send no Server response header, in every environment. See ADR-1511.
 serviceCollection.AddServerHeaderSuppression();
 
 // Receive mutual-TLS client certificates when this host terminates TLS itself: an endpoint configured to request one
@@ -162,14 +162,14 @@ identityServer.AddDevelopmentEnvironment(configuration);
 serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 
 // The dev database is Postgres, orchestrated by the Aspire AppHost (ADR-1073): the AppHost provisions the container
-// and injects the 'openiddb' connection string, and a dedicated migration worker applies the schema before this host
-// starts — so the api never bootstraps the database itself. The developer data-protection key ring is persisted in the
-// same database, so one purge resets the OpenID data, the seeded signing key, the tenants' master keys, and the ring
-// together. Stored secrets are encrypted under their owners' master keys and the ring under the platform master key,
-// whose root key lives outside the database (the 'SecretProtection' section); the production gate refuses to start
-// without a real root key (ADR-1235).
+// and injects the 'openiddb' connection string (or an operator's Secret supplies the 'OpenIdDatabase' parts, ADR-1509),
+// and a dedicated migration worker applies the schema before this host starts — so the api never bootstraps the
+// database itself. The developer data-protection key ring is persisted in the same database, so one purge resets the
+// OpenID data, the seeded signing key, the tenants' master keys, and the ring together. Stored secrets are encrypted
+// under their owners' master keys and the ring under the platform master key, whose root key lives outside the database
+// (the 'SecretProtection' section); the production gate refuses to start without a real root key (ADR-1235).
 
-var connectionString = configuration.GetConnectionString("openiddb");
+var connectionString = HostDatabaseConnection.Resolve(configuration);
 if (!string.IsNullOrEmpty(connectionString))
 {
     serviceCollection.AddDbContextFactory<OpenIdDbContext>(dbOptions =>

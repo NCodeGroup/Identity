@@ -48,8 +48,12 @@ The image starts in the `Production` environment, which refuses to start until t
 - `ManagementConsole__ManagementApiUrl`: the OP's management API, `/api` on the origin of
   `Bff__Frontends__mgmt__Authority`, such as `https://id.example.com/api`: the OP
   accepts the console's DPoP proofs only for that URL.
-- `ConnectionStrings__valkey`: the Valkey connection string that holds the sessions, required for more than one
-  replica.
+- `ConnectionStrings__valkey`, or the parts `ValkeyConnection__Host`, `ValkeyConnection__Port`,
+  `ValkeyConnection__Username`, `ValkeyConnection__Password` and `ValkeyConnection__Ssl`: the Valkey server that holds
+  the sessions, as a finished connection string or as its parts, which the adapter assembles into one. It is required
+  for more than one replica; setting both forms, or the parts without `ValkeyConnection__Host`, stops the host at
+  start
+  ([ADR-1510](../../docs/decisions/1510-the-host-chart-passes-a-valkey-servers-address-and-password-as-parts-and-the-adapter-assembles-the-connection.md)).
 
 A key ring can come from a key management service instead of a PEM file, or beside one. Each key is an entry
 `Bff__KeyRings__<ring>__RemoteKeys__<kid>__Provider` with `__KeyId`, `__Algorithm`, `__SecretType`, `__KeySizeBits` and

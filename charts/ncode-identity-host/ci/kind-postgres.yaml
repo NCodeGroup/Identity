@@ -1,6 +1,6 @@
 # A throwaway Postgres for the kind cluster the chart workflow installs the host chart in. The workflow applies it with
-# -n identity and creates the Secret 'postgres' (key 'password') it reads; no password is stored here. The data lives in
-# an emptyDir, so it is lost with the pod.
+# -n identity and creates the Secret 'postgres-app' (keys 'host', 'port', 'dbname', 'user', 'password') it reads; no
+# password is stored here. The data lives in an emptyDir, so it is lost with the pod.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,13 +25,19 @@ spec:
               containerPort: 5432
           env:
             - name: POSTGRES_DB
-              value: openiddb
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: dbname
             - name: POSTGRES_USER
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: user
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres
+                  name: postgres-app
                   key: password
           readinessProbe:
             exec:

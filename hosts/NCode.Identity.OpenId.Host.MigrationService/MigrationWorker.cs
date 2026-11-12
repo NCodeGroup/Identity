@@ -18,19 +18,16 @@ internal sealed class MigrationWorker(
     ILogger<MigrationWorker> logger
 ) : BackgroundService
 {
-    // Matches the Aspire database resource name in the AppHost graph and the host's connection string name.
-    private const string ConnectionStringName = "openiddb";
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
             var connectionString =
-                configuration.GetConnectionString(ConnectionStringName)
+                HostDatabaseConnection.Resolve(configuration)
                 ?? throw new InvalidOperationException(
-                    $"The '{ConnectionStringName}' connection string was not supplied. The Aspire AppHost and the "
-                        + "Helm chart's migration Job each supply it; set 'ConnectionStrings:openiddb' to run the "
-                        + "worker another way."
+                    "No database connection was supplied. The Aspire AppHost supplies the "
+                        + "'ConnectionStrings:openiddb' connection string and the Helm chart's migration Job supplies "
+                        + "it or the 'OpenIdDatabase' parts; set one of them to run the worker another way."
                 );
 
             logger.MigrationsApplying();

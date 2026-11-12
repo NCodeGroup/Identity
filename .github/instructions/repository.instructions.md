@@ -70,7 +70,7 @@ package, type, setting, endpoint or behavior is and does, never how it differs f
   (`feat:`, never `feat!:`), and no commit message or pull request description carries a `BREAKING CHANGE:` footer.
 - **Decision records are rewritten, not superseded.** A changed decision rewrites its record in place, and the
   record's only relation lines, `Refines`, `Supersedes` and `Conflicts with`, name project template records
-  ([ADR-1503](../../docs/decisions/1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md));
+  ([ADR-1508](../../docs/decisions/1508-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md));
   its Context states its forces in the present tense.
 
 ### Extensibility is the goal — nothing closed by default

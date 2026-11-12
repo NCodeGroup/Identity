@@ -11,7 +11,7 @@ An ADR captures a single decision as it holds in the code: the context that forc
 options weighed and the consequences. When a decision changes, its record is rewritten in place, and git history
 keeps what it said before; no record here supersedes, amends or overrides another, and each relates only to the
 project template's records
-([ADR-1503](./1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md)).
+([ADR-1508](./1508-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md)).
 
 An ADR records a decision **we** made; it is **not** a source of external authority. Where an
 authoritative standard governs — the OpenID Foundation specifications, the IETF OAuth/OIDC RFCs and
@@ -102,7 +102,7 @@ The records are grouped by area; within an area they are in number order.
 | [1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) | Every package names one capability under the NCode.Identity prefix, as an abstractions and implementation pair | Accepted |
 | [1501](./1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md) | A project's top-level folder and name say whether it ships and what it is | Accepted |
 | [1502](./1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md) | Code a self-hoster could use is public, and identity holds the product's and platform's decisions | Accepted |
-| [1503](./1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md) | A decision record is rewritten when its decision changes and relates only to template records | Accepted |
+| [1508](./1508-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md) | A decision record is rewritten when its decision changes and relates only to template records | Accepted |
 
 ### Deployment and local development
 

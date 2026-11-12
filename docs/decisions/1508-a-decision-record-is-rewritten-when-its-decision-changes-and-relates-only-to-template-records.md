@@ -1,4 +1,4 @@
-# 1503. A decision record is rewritten when its decision changes and relates only to template records
+# 1508. A decision record is rewritten when its decision changes and relates only to template records
 
 - **Status:** Accepted
 - **Date:** 2026-11-12

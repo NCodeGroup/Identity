@@ -108,7 +108,8 @@ jobs:
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
           refuse --set unknownSetting=true
-          refuse --set backendTls.ingressController=haproxy
+          refuse --set ingress.controller=ingress-nginx
+          refuse --set backendTls.ingressController=traefik
           refuse --set backendTls.certManager.issuerRef.kind=Deployment
           refuse --set backendTls.certManager.duration=90d
           refuse --set backendTls.certManager.renewBefore=2160h
@@ -242,16 +243,42 @@ jobs:
           # An issuer of the operator's replaces the private CA.
           reject "$(helm template release "$CHART" --values "$base" --set backendTls.certManager.issuerRef.name=corp-ca)" \
             'selfSigned'
-          # The controller verifies the pods' certificate: Traefik through a ServersTransport, ingress-nginx through
-          # annotations, and any other controller through the operator's own configuration.
+          # The controller verifies the pods' certificate: Traefik through a ServersTransport, the Gateway API through a
+          # BackendTLSPolicy, and any other controller through the operator's own configuration.
+          refuse() {
+            if helm template release "$CHART" "$@" > /dev/null 2>&1; then
+              echo "::error::The chart rendered a routing release it must refuse: $*"
+              exit 1
+            fi
+          }
           ha="$CHART/ci/high-availability-values.yaml"
-          expect "$(helm template release "$CHART" --values "$ha")" 'kind: ServersTransport'
-          nginx=$(helm template release "$CHART" --values "$ha" --set backendTls.ingressController=ingress-nginx)
-          expect "$nginx" 'backend-protocol: HTTPS' 'proxy-ssl-verify: "on"' \
-            'proxy-ssl-secret: default/release-ncode-identity-host-tls'
-          reject "$nginx" 'ServersTransport'
-          reject "$(helm template release "$CHART" --values "$ha" --set backendTls.ingressController=none)" \
-            'ServersTransport' 'nginx.ingress.kubernetes.io'
+          # Traefik is the default controller: its ServersTransport trusts the release's Secret and speaks HTTPS to the
+          # pods.
+          traefik=$(helm template release "$CHART" --values "$ha")
+          expect "$traefik" 'kind: ServersTransport' 'rootCAs:' 'secret: release-ncode-identity-host-tls' \
+            'serversscheme: https'
+          reject "$traefik" 'rootCAsSecrets'
+          # A ConfigMap of the operator's holding the CA is trusted in place of the release's Secret.
+          expect "$(helm template release "$CHART" --values "$ha" --set backendTls.caConfigMap=identity-ca)" \
+            'configMap: identity-ca'
+          # Any other controller gets neither: the operator configures it, and the chart renders no Traefik object.
+          reject "$(helm template release "$CHART" --values "$ha" --set ingress.controller=other)" \
+            'ServersTransport' 'serversscheme'
+          # An empty controller names none, so the chart refuses it.
+          refuse --values "$ha" --set ingress.controller=
+          # The Gateway API routes through an HTTPRoute and verifies the pods through a BackendTLSPolicy that trusts the
+          # CA ConfigMap and names the Service's host, and it renders no Ingress or Traefik object.
+          gateway="$CHART/ci/gateway-api-values.yaml"
+          gateway_api=$(helm template release "$CHART" --values "$gateway")
+          expect "$gateway_api" 'kind: HTTPRoute' 'kind: BackendTLSPolicy' 'sectionName: https' 'name: identity-ca' \
+            'hostname: "release-ncode-identity-host.default.svc"' '- manage.example.com'
+          reject "$gateway_api" 'kind: Ingress' 'ServersTransport'
+          # A route without a parent Gateway or a host, a policy without a CA, and a console route without a parent
+          # Gateway would attach to nothing or verify nothing, so the chart refuses each.
+          refuse --values "$gateway" --set-json 'httpRoute.parentRefs=[]'
+          refuse --values "$gateway" --set-json 'httpRoute.hostnames=[]'
+          refuse --values "$gateway" --set backendTls.caConfigMap=
+          refuse --values "$gateway" --set-json 'managementConsole.httpRoute.parentRefs=[]'
           # The console's Certificate needs the private CA even when the server's Secret is the operator's.
           console_only=$(helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" \
             --set backendTls.existingSecret=my-tls)

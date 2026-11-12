@@ -1,8 +1,6 @@
 # 1402. The interactive surface renders in the locale the request prefers among the registered UI locales
 
-- **Status:** Accepted (amends
-  [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md): the page the host
-  renders carries its language, which the bundle reads before it renders)
+- **Status:** Accepted
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 

@@ -75,7 +75,7 @@ seeds.**
    seeds the client into exactly the tenant `BootstrapAdmin:TenantId` names, for `client_secret_basic`, checked against
    the tenant's settings first. For an existing client it stores the configured secret again under the tenant's current
    master key
-   ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)), so a stale secret
+   ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)), so a stale secret
    heals. It never logs the secret.
 9. **The operator's first `client_credentials` request seeds the client before client authentication runs.**
 10. **`BootstrapAdminAccessTokenClaimsHandler` stamps the `GlobalAdmin` role claim** on that client's tokens in that
@@ -135,7 +135,7 @@ seeds.**
 - [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md): the issued-token validator.
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md): the seed
   command.
-- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the tenant master key.
+- [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the tenant master key.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the
   platform settings.
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md): the 401/403/404

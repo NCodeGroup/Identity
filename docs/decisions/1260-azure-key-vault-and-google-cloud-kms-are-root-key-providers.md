@@ -11,7 +11,7 @@
 
 ## Context
 
-[ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) encrypts every stored
+[ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) encrypts every stored
 secret under a key hierarchy whose root key is held by a root key provider: an open vocabulary of `IRootKeyProvider`
 strategies, selected by `SecretProtection:RootKeyProvider`, that only wrap and unwrap master keys. It defines
 `ephemeral`, `local` and `aws-kms`, and leaves the other key management services as follow-up providers (issue
@@ -131,7 +131,7 @@ never from configuration.
 
 ## References
 
-- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
+- [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
   and the root key provider vocabulary that this extends.
 - [ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) — no long-lived credentials.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies (root key providers).

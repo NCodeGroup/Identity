@@ -11,14 +11,14 @@ namespace NCode.Identity.OpenId.Authentication.Persistence;
 /// </summary>
 /// <param name="Value">The payload.</param>
 /// <typeparam name="TPayload">The type of the payload.</typeparam>
-// See ADR-1265.
+// See ADR-1235.
 internal sealed record GrantPayload<TPayload>(TPayload Value);
 
 /// <summary>
 /// Protects the payload of a persisted grant under the master key of its tenant, on top of the schema-versioned
 /// serialization of <see cref="IPersistedPayloadSerializer"/>.
 /// </summary>
-// See ADR-1265.
+// See ADR-1235.
 internal interface IGrantPayloadProtector
 {
     /// <summary>

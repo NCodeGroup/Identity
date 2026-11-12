@@ -61,7 +61,7 @@ secret. Both authenticate until the rotated secret expires or is deleted. This s
 
 Storage is unchanged. A `client_secret_jwt` secret is a key the server itself uses, which template ADR-0146 rule 6
 allows to be stored protected by a key held outside the store
-([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). Verify-only secrets
+([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). Verify-only secrets
 remain reversible until issue [#163](https://github.com/NCodeGroup/identity/issues/163) hashes them; ADR-1110 records
 that conflict.
 
@@ -90,5 +90,5 @@ that conflict.
 - [`SharedSecretPolicy`](../../src/NCode.Identity.Secrets.Persistence.Abstractions/SharedSecretPolicy.cs)
 - [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md), [ADR-1110](1110-shared-secret-vs-cryptographic-key-storage.md),
   [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md),
-  [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
+  [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
 - Issues [#163](https://github.com/NCodeGroup/identity/issues/163) and [#166](https://github.com/NCodeGroup/identity/issues/166)

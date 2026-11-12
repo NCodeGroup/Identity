@@ -8,7 +8,7 @@
   a root key change marks the tenant's secrets changed before the tenant-changed command is sent)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 1
+- **Amends:** [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 1
   (an owner other than the platform may name its own root key, which wraps its master keys in place of the deployment
   root), decision 2 (such a master key has no recovery copy), decision 9 (revoking or destroying the owner's key shreds
   its data wherever a copy is) and decision 13 (an owner-rooted cache entry is unwrapped again every validation interval
@@ -135,7 +135,7 @@ to take effect within a bounded period across replicas without a KMS call per re
 
 ## References
 
-- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+- [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
   [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),

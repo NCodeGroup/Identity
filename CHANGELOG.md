@@ -839,7 +839,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with a namespaced purpose. `ISecretSerializer` and `ISecretGenerator` run under an `ISecretProtector`,
   `ISecretSerializer.DeserializePublicSecret` reads a public secret without one, and imported public keys (`spki`,
   `x509`) are stored as plain base64url
-  ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 - **Key wrapping is a shared secrets abstraction.** Every key wrapper implements `IKeyWrapper` (`Name`, `WrapAsync`, and
   `UnwrapAsync`, which writes the key into an `IBufferWriter<byte>`) and returns `WrappedKey` (`WrapperName`, `KeyId`,
@@ -4296,7 +4296,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the `SecretProtection` section names and which lives outside the database, so a database dump or backup is useless
   without it. In Production, `AddProductionSafety` refuses to start the host when the key ring has no repository or no
   `IXmlEncryptor`
-  ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 - **Forwarded headers are trusted only from configured proxies (`AddTrustedForwardedHeaders` /
   `UseTrustedForwardedHeaders`).** When TLS terminates at a proxy, the connection the application sees is plaintext
@@ -4368,7 +4368,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   unwrap through a rotation. The README warns never to overwrite a root key in place, such as by writing other contents
   into the same Secret, because that destroys the only key that can unwrap the existing master keys and leaves the
   stored secrets unreadable after the next restart, recoverable only with the recovery key
-  ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 - **The host image's base images are pinned by digest and tracked by Dependabot.** Every `FROM` of the host and console
   Dockerfiles names its tag and the digest of its multi-architecture index, and each Dockerfile takes its .NET and Node
@@ -4541,7 +4541,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   and the application data a host protects under the platform, and no stored secret. The public contracts are
   `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`, `SecretOwner` and
   `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant deletes
-  its master keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  its master keys ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
   [#167](https://github.com/NCodeGroup/identity/issues/167)).
 
@@ -5659,7 +5659,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   envelope in `PersistedGrant.ProtectedPayload`/`GrantEntity.ProtectedPayload` (`string`), under the master key of the
   grant's tenant, with purpose `grant-payload` and the grant's hashed key as the item id, so a payload copied to another
   grant row does not decrypt. A payload that cannot be unprotected makes the grant absent and logs a warning rather than
-  failing the request ([ADR-1265](docs/decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md),
+  failing the request ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   issue [#175](https://github.com/NCodeGroup/identity/issues/175)).
 
 - **A failed sign-in records the attempted user name as a detail, never as the subject.** `subject.authentication`

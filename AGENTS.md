@@ -62,7 +62,7 @@ compiles it and no gate tests it
 - **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)` and its
   opt-in KMS adapters `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`, which wrap
   root keys and hold the remote keys of tenants, protocol clients and BFFs
-  ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1260](docs/decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
   [ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),

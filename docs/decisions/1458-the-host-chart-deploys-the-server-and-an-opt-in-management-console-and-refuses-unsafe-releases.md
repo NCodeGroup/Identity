@@ -36,7 +36,7 @@ release the host or the console would refuse.**
    the drain uses the kubelet's `sleep` action.
 2. **Secrets are referenced, never passed.** The database and Valkey connection strings, the root key, previous root key
    and recovery Secrets or ConfigMap
-   ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)), and the console's
+   ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)), and the console's
    key Secrets come from objects the operator names. No value in the chart is a secret, so a values file can be
    committed.
 3. **Rendering fails, so `helm install` applies nothing,** instead of leaving a pod in a crash loop, when:
@@ -111,7 +111,7 @@ release the host or the console would refuse.**
 - [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
   [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
   [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
-  [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
   [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)

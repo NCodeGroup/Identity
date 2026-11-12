@@ -9,7 +9,7 @@
 
 ## Context
 
-[ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) wraps every master key
+[ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) wraps every master key
 under an external root key, and [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) added the
 Azure Key Vault and Google Cloud KMS adapters beside AWS KMS. Three things in that design were misplaced:
 
@@ -123,7 +123,7 @@ Public names, old to new:
 
 ## References
 
-- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
+- [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
   and the root key provider role that this amends.
 - [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) — the Azure Key Vault and Google Cloud
   KMS adapters that this renames.

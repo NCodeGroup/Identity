@@ -45,7 +45,7 @@ the serving code never gives it:
    (`NCode.Identity.OpenId.Authentication.Persistence`, default `DefaultPersistedPayloadSerializer`, registered with
    `TryAddSingleton` and replaceable) is the only code that writes and reads a `PersistedGrant<TPayload>.Payload`.
    `IGrantPayloadProtector` protects its output under the tenant master key
-   ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). A payload that does
+   ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). A payload that does
    not authenticate under the protector is logged and read as absent, unlike a malformed one.
 3. **A payload is a schema-versioned envelope, or it is rejected.** A payload is stored as
    `{ "$ver": N, "$payload": { ... } }` from its first stored document. `Deserialize` throws a `JsonException` for any
@@ -119,7 +119,7 @@ and opaque metadata bags.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)
 - [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md)
 - [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)
-- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
+- [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
 - [`DefaultPersistedPayloadSerializer`](../../src/NCode.Identity.OpenId.Authentication/Persistence/DefaultPersistedPayloadSerializer.cs)
 - [`SessionGrant`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Sessions/SessionGrant.cs)
 - [`DefaultSessionService`](../../src/NCode.Identity.OpenId.Authentication/Sessions/DefaultSessionService.cs)

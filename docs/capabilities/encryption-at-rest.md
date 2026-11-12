@@ -9,7 +9,7 @@
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Status**         | Available. Grant payloads, private keys, client secrets and the Data Protection key ring are all covered, master keys rotate, rekey and are destroyed once nothing names them, and a tenant can wrap its master keys under a root key it controls.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Packages**       | `NCode.Identity.Secrets.Persistence(.Abstractions)`, plus one opt-in package per cloud: `.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **Key decisions**  | [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) cloud root keys · [ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md) grant payloads · [ADR-1266](../decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) secure buffers · [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) master key lifecycle · [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) offline rewrap · [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md) tenant root keys · [ADR-1415](../decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md) wrapping under a named key |
+| **Key decisions**  | [ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) cloud root keys · [ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) grant payloads · [ADR-1266](../decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) secure buffers · [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) master key lifecycle · [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) offline rewrap · [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md) tenant root keys · [ADR-1415](../decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md) wrapping under a named key |
 | **Operator guide** | [Helm chart: Secret protection](../../charts/ncode-identity-host/README.md#secret-protection)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ## Contents
@@ -116,7 +116,7 @@ flowchart TB
 | Tenant **private signing and encryption keys**                                      | Tenant               | `nce1.` envelope                                                                                           |
 | **Client secrets** of a client that only compares its secret (`client_secret_basic`, `client_secret_post`) | Tenant | A one-way verifier in an `nce1.` envelope: the server cannot read the secret back. A supplied secret's PBKDF2 verifier can still be searched by whoever holds the root key and the database, so choose a long random one ([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)) |
 | **Client secrets** of a client that uses its secret as a key (`client_secret_jwt`), and resource-server keys | Tenant | `nce1.` envelope |
-| **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md))     |
+| **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md))     |
 | ASP.NET Core **Data Protection key ring** (sign-in cookies, anti-forgery tokens)        | Platform             | Each key in an `nce1.` envelope                                                                            |
 | Your own application's sensitive data                                                   | Platform / tenant    | `nce1.` envelope ([see below](#protect-your-own-data-with-it))                                             |
 | **Public keys** (`spki`, `x509`)                                                        | n/a                  | Clear text, by design: they are public                                                                     |
@@ -168,7 +168,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 - **A platform key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys
   anyway, and it would stop a tenant from bringing its own root key.
 
-Full reasoning: [ADR-1235 § Options considered](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md#options-considered).
+Full reasoning: [ADR-1235 § Options considered](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md#options-considered).
 
 </details>
 
@@ -202,7 +202,7 @@ right one for its owner and version. A partial unique index guarantees **exactly
 **Failing closed.** If a grant's payload doesn't decrypt (it was altered, it comes from a foreign row, or its master
 key was lost), the server treats the grant as **absent** and logs `GrantPayloadUnreadable`. An unreadable row never
 authorizes anything, and never turns into a 500
-([ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md)).
+([ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 > [!TIP]
 > Envelope layout and binding are specified in
@@ -292,7 +292,7 @@ keep unwrapping under their own version.
 > [!TIP]
 > Setting each provider up (key policies, workload identity, chart values) is covered in the
 > [Helm chart README](../../charts/ncode-identity-host/README.md#secret-protection). The design is in
-> [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) and
+> [ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) and
 > [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md).
 
 ## Tenant root keys (bring your own key)
@@ -569,9 +569,9 @@ We'd rather say what this doesn't do yet:
 
 **Decisions**
 
-- [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): stored secrets are protected by a key hierarchy under an external root key
+- [ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): stored secrets are protected by a key hierarchy under an external root key
 - [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md): Azure Key Vault and Google Cloud KMS are root key providers
-- [ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md): grant payloads are protected under the tenant master key
+- [ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): grant payloads are protected under the tenant master key
 - [ADR-1247](../decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md): a Data Protection key the server can't decrypt stops the host
 - [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): a master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it
 - [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): an offline host command rewraps every master key under the configured root and recovery keys

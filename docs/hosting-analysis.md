@@ -322,7 +322,7 @@ No production load data exists yet, so these are **planning estimates**; confirm
 - **Multi-replica readiness:** Data Protection keys already persist to Postgres
   ([ADR-1073](decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md); each key is encrypted under the platform
   master key, whose root key lives outside the database —
-  [ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
+  [ADR-1235](decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
   and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
   connection string ([ADR-1164](decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)); the
   in-process job dispatcher does not coordinate across nodes (issue [#25](https://github.com/NCodeGroup/identity/issues/25)).
@@ -636,7 +636,7 @@ speed-test endpoint from the Denver network the users are on.
   secrets and the Data Protection key ring in the same Postgres database, so a backup would otherwise hold everything
   needed to use them. Every private value is encrypted under a per-owner master key wrapped by a root key held in a key
   management service, and a Production host refuses to start without a real root key and a recovery decision
-  ([ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
+  ([ADR-1235](decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
   [#165](https://github.com/NCodeGroup/identity/issues/165)).
 - **Kubernetes deployment artifacts** — issue [#85](https://github.com/NCodeGroup/identity/issues/85), done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ForwardedHeaders:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /

@@ -51,7 +51,7 @@ settings cascade and in authority.**
    them). The names describe which management surface a tenant holds, not separate databases.
 4. **The platform is the one deployment root.** It is the host configuration (`OpenId:Platform:Settings`), one persisted
    settings document at `/api/platform/settings`, the master key of the Data Protection key ring
-   ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)) at
+   ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)) at
    `/api/platform/encryption-keys`
    ([ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md))
    and the authority node `(platform, platform)`. It has no identifier, list, create, delete or secrets, because there
@@ -151,7 +151,7 @@ settings cascade and in authority.**
   retired identifiers
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — tenant
   provisioning and seeding
-- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
+- [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
 - [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md) —
   the platform master key
 - [ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md) — console addresses

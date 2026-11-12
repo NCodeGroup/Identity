@@ -32,7 +32,7 @@ agreement request. The `AKP` parameter sets, ML-DSA-44, ML-DSA-65 and ML-DSA-87,
 
 A held key whose material is not at hand is checked by `ValidateKeySize` over its type and size. A symmetric key is a
 byte string: its type and size are all of its parameters, and its material is protected under the key hierarchy
-([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). An asymmetric key has
+([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). An asymmetric key has
 parameters that its type and size do not show, such as its curve, its parameter set or the parameters of a key type a
 package contributes, which an algorithm's `IsKeyCompatible` may check, and every stored asymmetric secret holds its
 public half ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md)).
@@ -126,7 +126,7 @@ public half ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-besid
 ## References
 
 - Issue [#534](https://github.com/NCodeGroup/identity/issues/534)
-- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+- [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md),
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md),
   [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)

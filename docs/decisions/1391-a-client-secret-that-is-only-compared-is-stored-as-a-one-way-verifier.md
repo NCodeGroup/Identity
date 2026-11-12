@@ -12,7 +12,7 @@
 
 A client's shared secret, its `client_secret`, is stored as the UTF-8 bytes of its opaque string inside an `nce1.`
 envelope under the tenant master key ([ADR-1110](1110-shared-secret-vs-cryptographic-key-storage.md),
-[ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). The envelope keeps a
+[ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). The envelope keeps a
 database backup from revealing it, but the server can still read every secret back, and whoever holds the root key
 reads them all. Template ADR-0146 rule 6 stores a credential the application only verifies as a hash, and ADR-1110
 recorded that conflict ([#163](https://github.com/NCodeGroup/identity/issues/163)).
@@ -186,7 +186,7 @@ that uses the secret as a key keeps it reversible, and every other method holds 
 - **SHA-256 for every secret.** Rejected: a supplied secret may be guessable, and an unsalted fast digest lets a
   stolen verifier be searched.
 - **Store the verifier without the envelope.** Rejected: every non-public encoding is an envelope
-  ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)), and the envelope
+  ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)), and the envelope
   keeps a supplied secret's verifier from being searched offline without the root key.
 - **Keep a client's reversible secret when its method stops using the secret as a key.** Rejected: the secret would
   stay readable by whoever holds the root key for as long as the client keeps it, which is what this decision
@@ -270,7 +270,7 @@ that uses the secret as a key keeps it reversible, and every other method holds 
   [`DefaultClientRegistrationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs)
 - [ADR-1110](1110-shared-secret-vs-cryptographic-key-storage.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)
 - [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
 - Issue [#163](https://github.com/NCodeGroup/identity/issues/163)

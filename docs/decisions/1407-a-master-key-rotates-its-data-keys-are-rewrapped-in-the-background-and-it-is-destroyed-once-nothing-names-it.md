@@ -11,7 +11,7 @@
   rekey too soon also carries the wait in the problem's retryAfterSeconds)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's
+- **Amends:** [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's
   versioning of an owner's master keys (an owner's versions rotate and a retired key is destroyed) and decision 13's
   key cache (cached keys reload after a refresh interval and a destroyed key leaves memory);
   [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md), decision 1's warmup (it loads
@@ -23,7 +23,7 @@
 
 ## Context
 
-[ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) protects every stored
+[ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) protects every stored
 secret with a per-value data key, wraps the data key under a master key of the secret's owner (a tenant, or the
 server), and wraps the master key under an external root key. A master key has a version, and the envelope of a value
 names the master key that wraps its data key, but the payload is bound to no master key. NIST SP 800-57 bounds the
@@ -158,7 +158,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
 
 ## References
 
-- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+- [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)
 - `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyManager.cs`,
   `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRing.cs`,

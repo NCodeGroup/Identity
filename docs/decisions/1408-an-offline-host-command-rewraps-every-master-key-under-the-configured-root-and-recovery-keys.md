@@ -4,7 +4,7 @@
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): a row under an owner root key is wrapped only under that key and never gains a recovery copy)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's
+- **Amends:** [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's
   offline recovery copy (the recovery private key unwraps master keys only inside the offline command);
   [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md), decision 6's
   recovery wrapper (it still only wraps; an unwrapper exists only inside the command, is built from a key file the Job
@@ -13,7 +13,7 @@
 ## Context
 
 A master key is wrapped under the root key provider configured when it is created, and again under the recovery
-public key ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). Moving to
+public key ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). Moving to
 another root key provider or root key, or replacing the recovery key pair, leaves every stored master key wrapped under
 the old one. The wraps have to be replaced without changing a master key's material, so no stored secret has to change,
 and when the root key is lost the keys have to be recovered from their recovery copies with the recovery private key,
@@ -66,7 +66,7 @@ rewraps every master key and exits without starting the server.
 
 ## References
 
-- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+- [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)
 - `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRewrapper.cs`,
   `src/NCode.Identity.Server/SecretProtection/SecretProtectionCommandLine.cs`,

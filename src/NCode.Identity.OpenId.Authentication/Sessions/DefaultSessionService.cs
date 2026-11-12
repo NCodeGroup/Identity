@@ -477,7 +477,7 @@ internal class DefaultSessionService(
                     continue;
 
                 // A payload that does not authenticate reads as absent and is skipped; a malformed session throws, so
-                // the listing fails closed rather than hiding a session the subject holds. See ADR-1265 and ADR-1395.
+                // the listing fails closed rather than hiding a session the subject holds. See ADR-1235 and ADR-1395.
                 var unprotected = await PayloadProtector.UnprotectOrDefaultAsync<SessionGrant>(
                     envelope.TenantId,
                     envelope.GrantType,

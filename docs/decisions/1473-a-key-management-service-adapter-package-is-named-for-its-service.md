@@ -1,6 +1,6 @@
 # 1473. A key management service's adapter package is named for its service
 
-- **Status:** Accepted (amends [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) and [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md); amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md): the remote key providers register on the secrets library's builder)
+- **Status:** Accepted (amends [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) and [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md); amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md): the remote key providers register on the secrets library's builder)
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 

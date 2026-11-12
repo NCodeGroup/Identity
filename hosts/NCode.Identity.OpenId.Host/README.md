@@ -37,7 +37,7 @@ one purge resets all of them consistently.
 ### Secret protection
 
 Every stored secret, including the key ring, is encrypted under a key hierarchy whose root key lives **outside** the
-database ([ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+database ([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 A **Production** host refuses to start without a real root key, and a root key must never be committed. The
 `SecretProtection` section selects it (environment variables use `__`, for example
 `SecretProtection__RootKeyProvider=local`):
@@ -304,7 +304,7 @@ The image starts in the `Production` environment, which refuses to start until t
   `SecretProtection__RootKeyProviders__Local__KeyPath` for `local`, and either
   `SecretProtection__Recovery__PublicKeyPath` or `SecretProtection__Recovery__Disabled=true`, which acknowledges running
   without a recovery key
-  ([ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  ([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 - `ConnectionStrings__openiddb`: the Postgres database. It also stores the key ring, so the host refuses to start
   without it.
 - `OpenId__TenantResolution__StaticSingle__Issuer`: the public issuer URL, or another tenant resolution mode. A served

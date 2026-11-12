@@ -111,7 +111,7 @@ after the old one has terminated, so each update has a short outage.
 
 The host encrypts every stored secret, and the Data Protection key ring, under a root key held outside the database, so
 a database dump or backup is useless without it
-([ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 `secretProtection.rootKeyProvider` chooses where the root key lives, is required, and Production refuses `ephemeral`:
 
 - `local`: an AES key in a Secret the chart mounts into the pod. It suits a homelab: the key is outside the database,

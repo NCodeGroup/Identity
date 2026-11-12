@@ -738,7 +738,7 @@ than inlining the rationale.
   (`$ver`, `$payload`), so reading it as the payload yields no members and throws for a `required` one; a session
   listing that did so failed for every stored session. See
   [ADR-1220](../../docs/decisions/1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) and
-  [ADR-1265](../../docs/decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md).
+  [ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md).
 - 👁 **A fetch of a URL a tenant or certificate supplies uses a named client whose primary handler has the
   `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
@@ -1204,7 +1204,7 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   state (`string.Create`'s `TState` allows ref structs) and `ReadOnlyMemory<T>` inputs through a value tuple; when an
   interface implementation writes the characters, check `writer.WrittenCount == chars.Length`, so no `'\0'` remainder
   is ever persisted. See [ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) and
-  [ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md).
+  [ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md).
 - 👁 **Size a collection from a count you already know, and keep per-call paths free of avoidable allocations** —
   template [Memory and Performance](csharp.instructions.md#memory-and-performance); test `Count == 0` before a
   `foreach` over an interface, so its boxed enumerator is not created for nothing

@@ -1509,7 +1509,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   succeed, because the sliding-expiration update keeps the other request's change (issue
   [#260](https://github.com/NCodeGroup/identity/issues/260))
   ([ADR-1216](docs/decisions/1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md),
-  [ADR-1217](docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
+  [ADR-1217](docs/decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)).
 
 - **Client-authentication methods are named by registered descriptors.** `ClientAuthenticationMethodDescriptor` names a
   method, says whether it authenticates with a client secret (`RequiresClientSecret`) and whether it keys from that
@@ -5211,7 +5211,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **A replayed refresh token revokes its whole rotation family** (issue
   [#42](https://github.com/NCodeGroup/identity/issues/42),
-  [ADR-1087](docs/decisions/1087-refresh-token-reuse-detection-and-family-revocation.md)). A revoked refresh token
+  [ADR-1217](docs/decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)). A revoked refresh token
   presented again, outside the client's `refresh_token_reuse_interval`, is audited (`token.refresh.replay`) and handled
   per the client setting `refresh_token_reuse_policy` (`OpenIdConstants.RefreshTokenReusePolicy`): `revoke_all`, the
   default, revokes every refresh token descended from the same authorization grant, so a stolen token cannot be
@@ -5221,7 +5221,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `GrantEntity`); a fresh issuance starts a family and each rotation inherits its parent's lineage.
   `IGrantStore.RevokeByRefreshTokenLineageAsync` and `IPersistedGrantService.RevokeByRefreshTokenLineageAsync` revoke a
   family, and the revocation endpoint revokes every refresh token of the presented token's rotation family
-  ([ADR-1217](docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), issue
+  ([ADR-1217](docs/decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md), issue
   [#270](https://github.com/NCodeGroup/identity/issues/270)).
 
 - **A public client's refresh token is rotated unless it is sender-constrained.** `refresh_token_rotation_policy` is
@@ -5779,7 +5779,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   that requires it while its refresh tokens rotate (`refresh_token_rotation_policy` `always`, or `unbound` for a public
   client) and its `refresh_token_reuse_interval` is zero (FAPI 2.0 §5.3.2.1)
   ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
-  [ADR-1217](docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md),
+  [ADR-1217](docs/decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md),
   [#272](https://github.com/NCodeGroup/identity/issues/272)).
 
 - **A tenant's issuer is its single authoritative origin, and the host-based tenant strategy routes on the hosts it

@@ -195,7 +195,6 @@ The records are grouped by area; within an area they are in number order.
 | [1074](./1074-session-management-and-logout.md) | End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout | Accepted |
 | [1081](./1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) | Consent is a durable record of decided and granted scopes, enforced at the authorization endpoint | Accepted |
 | [1085](./1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) | CIBA is a pending request in the grant store, delivered by poll, ping or push | Accepted |
-| [1087](./1087-refresh-token-reuse-detection-and-family-revocation.md) | Refresh-token reuse detection revokes the whole rotation family | Accepted |
 | [1088](./1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md) | Front-channel logout and session management are available but disabled by default | Accepted |
 | [1089](./1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md) | A pushed authorization request is a single-use, client-bound grant expanded before anything is trusted | Accepted |
 | [1093](./1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md) | A pairwise subject is a one-way projection of the principal over a verified sector | Accepted |
@@ -217,7 +216,7 @@ The records are grouped by area; within an area they are in number order.
 | [1212](./1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md) | Deleting a client, resource server, principal or tenant removes what it owns | Accepted |
 | [1215](./1215-a-revocation-wins-a-concurrency-race.md) | A revocation wins a concurrency race | Accepted |
 | [1216](./1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) | A refresh token rotates unless it is bound, and rotation spends it with its successor atomically | Accepted |
-| [1217](./1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md) | A rotated refresh token may be retried within a reuse interval | Accepted |
+| [1217](./1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md) | A reused refresh token revokes its family unless it is a retry within an opt-in interval | Accepted |
 | [1218](./1218-ended-grants-are-removed-after-a-retention-period.md) | Ended grants are removed after a retention period | Accepted |
 | [1220](./1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) | An end-user session always ends, and its grant expires when it does | Accepted |
 | [1222](./1222-a-grants-payload-is-changed-by-a-read-modify-write.md) | A grant's payload is changed by a read-modify-write that loses no concurrent write | Accepted |

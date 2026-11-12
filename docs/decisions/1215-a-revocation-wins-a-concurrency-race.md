@@ -65,7 +65,7 @@ a race.**
    ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md),
    [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md)). A refresh-token spend reads again only
    after a write that left the grant active
-   ([ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
+   ([ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)).
 
 ## Options considered
 

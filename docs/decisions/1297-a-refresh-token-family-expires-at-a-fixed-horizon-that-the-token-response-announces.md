@@ -7,7 +7,7 @@
 ## Context
 
 A refresh token belongs to a rotation family (its lineage,
-[ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md)): every token that rotation or a retry issues
+[ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)): every token that rotation or a retry issues
 from one grant shares the family's `RefreshTokenLineageId`. The client setting `refresh_token_expiration_policy` is
 `absolute` or `sliding`, and `refresh_token_lifetime` was "the validity window for issued refresh tokens".
 
@@ -67,7 +67,7 @@ sound only when the value is a fixed horizon that never moves later within a fam
 - **Store the family's horizon rather than its start.** Rejected: a stored horizon would ignore a later change to
   `refresh_token_lifetime`, so shortening the lifetime would not end existing families until their horizon.
 - **A grant-envelope column for the family's start.** Rejected: the lineage id is on the envelope because the store
-  queries it ([ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md)); the start is never queried.
+  queries it ([ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)); the start is never queried.
 - **Send `refresh_token_expires_in` only under `absolute`.** Rejected: once the family has a fixed horizon under both
   policies, the value is equally fixed under both.
 
@@ -88,8 +88,8 @@ sound only when the value is a fixed horizon that never moves later within a fam
 ## References
 
 - [RFC 9700 §4.14.2](https://www.rfc-editor.org/rfc/rfc9700#section-4.14.2) — refresh token protection
-- [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — refresh token lineage
+- [ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md) — refresh token lineage
 - [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) — when a refresh token is rotated
-- [ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md) — retries within a reuse interval
+- [ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md) — retries within a reuse interval
 - [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) — the BFF caps a
   session at `refresh_token_expires_in`

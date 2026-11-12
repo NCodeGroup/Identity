@@ -15,7 +15,7 @@ confidential client whose tokens are sender-constrained: it adds no security the
 of a rotation loses its session (issue [#268](https://github.com/NCodeGroup/identity/issues/268)).
 
 Rotation also has to be atomic. A refresh presents a token and receives a successor, and a rotated token that is
-presented again is a reuse ([ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)). If the
+presented again is a reuse ([ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)). If the
 presented grant is revoked by an operation that does nothing when the grant is already revoked, and the successor is
 stored in a later unit of work, two concurrent refreshes of one token can both receive tokens, so the reuse goes
 undetected (RFC 9700 §4.14.2), or the save of the loser fails and it receives `500`. A lineage revocation that answers a
@@ -70,7 +70,7 @@ client, and a rotation spends the presented token and stores its successor in on
    ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 9. **A lost spend is answered as a reuse.** Whether the spend ran through `ReplaceOnceOrDefault` or
    `TryRevokeOnceAsync`, the answer is the one for a revoked token that is presented again
-   ([ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)). The server cannot tell the
+   ([ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)). The server cannot tell the
    attacker from the client, so it revokes the token that is still active (RFC 9700 §4.14.2). The lineage revocation
    includes the successor of the winner, because that successor was committed together with the winning spend, and the
    failure of the loser follows that commit.
@@ -95,7 +95,7 @@ client, and a rotation spends the presented token and stores its successor in on
   lower it, so a FAPI 2.0 tenant could not default its clients to `unbound` (decisions 4 and 5).
 - **A grace interval for a concurrent loser as the default.** Rejected: RFC 9700 makes no exception for a concurrent
   request, and Auth0 (reuse interval) and Okta (grace period) offer the interval as an opt-in. It is an opt-in
-  ([ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
+  ([ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)).
 - **Mint, then spend.** Rejected: a lost spend would have minted and audited tokens that are never delivered.
 - **Spend and store the successor in separate units of work.** Rejected: the lineage revocation of a loser can run
   between the two and miss the successor.
@@ -123,7 +123,7 @@ client, and a rotation spends the presented token and stores its successor in on
 ## References
 
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge polarity of the lattice settings.
-- [ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md) — the reuse of a rotated token and
+- [ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md) — the reuse of a rotated token and
   the retry interval.
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — a profile supplies defaults for the
   settings that do not merge with a lattice operation.

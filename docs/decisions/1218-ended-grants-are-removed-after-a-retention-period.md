@@ -25,7 +25,7 @@ the grants table grew without bound. Deleting a client or a tenant loads all of 
 (issue [#267](https://github.com/NCodeGroup/identity/issues/267)).
 
 A grant that is revoked or expired is still read: a rotated refresh token that is presented again is a reuse
-([ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md)), and a replayed authorization code revokes its
+([ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)), and a replayed authorization code revokes its
 session ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)). A removal therefore has to wait for a period
 after the grant ended.
 
@@ -61,7 +61,7 @@ supports.**
    ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 5. **The retention is 14 days.** A rotated refresh token that is presented again within 14 days after it ended is
    recognized as a reuse
-   ([ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md)), and a replayed authorization code still
+   ([ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)), and a replayed authorization code still
    revokes its session ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)). OpenIddict keeps the tokens
    that it prunes for 14 days by default.
 6. **The revocation time is indexed.** `GrantEntity` has an index on `RevokedWhen`, as it has one on `ExpiresWhen`, so
@@ -93,7 +93,7 @@ supports.**
 
 ## References
 
-- [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — a rotated token that is presented again is
+- [ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md) — a rotated token that is presented again is
   a reuse.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — a replayed authorization code revokes the session.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger and its retention, and the

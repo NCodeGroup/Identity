@@ -66,7 +66,7 @@ lowers is a violation.**
    - `RefreshTokenRotationRetryCoherenceRule`: a client whose refresh tokens can rotate and whose effective
      `refresh_token_rotation_retry_required` is `true` has a positive `refresh_token_reuse_interval`
      ([ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md),
-     [ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)); the FAPI 2.0 profile
+     [ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)); the FAPI 2.0 profile
      contributes the requirement as data.
    - `LogoutChannelCoherenceRule`
      ([ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md)) and `ClientSecretKeyCoherenceRule`

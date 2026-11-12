@@ -37,7 +37,7 @@ any compliant OpenID Provider (OP). The NCode OP is its reference partner and te
    and binds tokens with DPoP when the OP supports it ([§5.1](#51-the-bff-as-a-confidential-client)).
 4. **Refresh is single-flight across the whole cluster.** A rotated refresh token presented twice trips reuse
    detection, and the NCode OP then revokes the whole token family by default
-   ([ADR-1087](decisions/1087-refresh-token-reuse-detection-and-family-revocation.md)). Only one replica may refresh a given
+   ([ADR-1217](decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)). Only one replica may refresh a given
    session at a time ([D6](#d6-refresh-concurrency), [§5.5](#55-token-management)).
 5. **The BFF accepts the cookie through a layered CSRF defense.** It requires a static custom header, denies
    cross-origin calls by default, checks Fetch Metadata, and sets `SameSite=Strict`, as RFC 10017 §6.1.3.3 describes
@@ -99,7 +99,7 @@ The **OpenID Provider side** already provides everything a BFF needs:
 | Authorization requests kept off the URL      | Pushed authorization requests (PAR) ([ADR-1089](decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md))                                                                 |
 | Sender-constrained tokens                    | DPoP, including `dpop_jkt` and refresh-token binding continuity ([ADR-1097](decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md))                    |
 | Audience-restricted tokens per API           | RFC 8707 resource indicators, including down-scoping on refresh ([ADR-1158](decisions/1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)) |
-| Safe refresh tokens                          | Rotation with reuse detection that revokes the family ([ADR-1087](decisions/1087-refresh-token-reuse-detection-and-family-revocation.md))                         |
+| Safe refresh tokens                          | Rotation with reuse detection that revokes the family ([ADR-1217](decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md))                         |
 | Sessions the server can end                  | `sid`, RP-initiated logout, and back-channel logout ([ADR-1074](decisions/1074-session-management-and-logout.md), [ADR-1112](decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)) |
 | Revocation and exchange                      | Refresh-token revocation ([ADR-1028](decisions/1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)) and token exchange ([ADR-1101](decisions/1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md))   |
 
@@ -496,7 +496,7 @@ refresh with the RFC 8707 `resource` parameter, as RFC 8707 §2.2 allows.
 
 **Single-flight across the cluster.** With rotation, presenting the same refresh token twice is the signature of
 theft. The NCode OP's default `refresh_token_reuse_policy=revoke_all` then **revokes the whole family**
-([ADR-1087](decisions/1087-refresh-token-reuse-detection-and-family-revocation.md)). Two browser tabs, or two parallel
+([ADR-1217](decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)). Two browser tabs, or two parallel
 `fetch` calls landing on different replicas, would log the user out. The BFF prevents that:
 
 1. Within one replica, a lock per session collapses concurrent refreshes into one, and a wait on another replica's lease
@@ -1675,7 +1675,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 - [Fetch Metadata Request Headers](https://www.w3.org/TR/fetch-metadata/).
 - Family ADRs: [1001](decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [1074](decisions/1074-session-management-and-logout.md), [1112](decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
-  [1087](decisions/1087-refresh-token-reuse-detection-and-family-revocation.md),
+  [1217](decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md),
   [1089](decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md),
   [1097](decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md),
   [1150](decisions/1150-vocabularies-are-open-unless-provably-closed.md),

@@ -135,6 +135,9 @@ problem occurs.
 - **A management-token gate on the document.** The document is the same for every deployment of a version and derives
   from the open-source code, so a gate hides nothing the product does not publish, and the Scalar page's browser fetch
   of the document carries no token and would break. Rejected.
+- **A tenant setting that enables the document and the page.** The document and the page describe the server, not a
+  tenant, and are served at host-level routes (`/openapi/v1.json`, `/scalar/v1`) outside any tenant's route, so their
+  exposure is a host setting. Rejected.
 - **A host-name restriction switch.** An operator who wants the reference on an internal host only routes `/openapi/`
   and `/scalar/` there at the ingress, which already routes by host and path; a second, host-level copy of that rule
   would drift from it. Rejected.
@@ -164,6 +167,9 @@ problem occurs.
 - A change to a shared meaning is made once, in the operation transformer.
 - A project that maps management routes calls `AddOpenApi`; without it, its handlers' descriptions never reach the
   document and its theory fails.
+- The Publish artifacts workflow publishes the same document as an OCI artifact whatever these switches say, so client
+  generators read it without a deployment serving it
+  ([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-the-chart-and-the-openapi-document-at-one-prerelease-version.md)).
 
 ## References
 

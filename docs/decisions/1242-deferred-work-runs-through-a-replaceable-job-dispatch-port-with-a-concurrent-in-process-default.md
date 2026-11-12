@@ -126,7 +126,7 @@ The durable adapter is unbuilt and tracked in issue [#25](https://github.com/NCo
 transactional outbox that writes the serialized job with the change and drains it after commit, at least once, for
 compliance-grade audit and guaranteed push. The management audit records publish inline on their own bounded token
 ([ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)), and the event seam stays
-best effort ([ADR-1047](1047-auditing-and-events-observation-seam.md)).
+best effort ([ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)).
 
 ## Options considered
 
@@ -184,7 +184,7 @@ best effort ([ADR-1047](1047-auditing-and-events-observation-seam.md)).
   [project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md).
 - [ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) — the CIBA grant whose delivery the dispatcher carries.
 - [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) — the back-channel logout notification the dispatcher delivers.
-- [ADR-1047](1047-auditing-and-events-observation-seam.md) — the events background-delivery pattern the in-process
+- [ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md) — the events background-delivery pattern the in-process
   dispatcher generalizes.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) —
   configuration binds strictly and is validated when the host starts.

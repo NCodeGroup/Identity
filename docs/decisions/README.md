@@ -302,8 +302,7 @@ The records are grouped by area; within an area they are in number order.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [1035](./1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) | An end user is one tenant-scoped principal that every authentication entry point resolves to | Accepted |
-| [1047](./1047-auditing-and-events-observation-seam.md) | Auditing and events: a dedicated observation seam, distinct from the mediator | Accepted |
-| [1049](./1049-openid-errors-audited-from-single-funnel.md) | OpenID protocol errors are audited once from a single endpoint-filter funnel | Accepted |
+| [1047](./1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md) | Observation is a fault-isolated event seam that audit specializes and protocol errors reach once | Accepted |
 | [1051](./1051-local-accounts-behind-a-pluggable-account-source-seam.md) | Local accounts behind a pluggable account-source seam | Accepted |
 | [1054](./1054-local-account-metadata-projection.md) | Local-account metadata projects into tokens through the subject-claims pipeline | Accepted |
 | [1055](./1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) | Subject metadata is a principal-level concept, resolved at issuance | Accepted |

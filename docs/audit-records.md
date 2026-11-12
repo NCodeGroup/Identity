@@ -7,7 +7,7 @@ renaming a field or an event changes this document in the same change.
 ## Overview
 
 An operation that is audited (a token issued, a client that failed to authenticate, a configuration change) publishes an
-audit event through the event seam ([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)). Which
+audit event through the event seam ([ADR-1047](decisions/1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)). Which
 operations are audited, and their outcomes, are the same whatever sink receives the event.
 
 One record shape serves every sink:
@@ -457,7 +457,7 @@ events library builder, and call `AuditRecordWriter.Write` (into a `Utf8JsonWrit
 `IBufferWriter<byte>`, ref structs included, through a pooled staging buffer) for the record. The request context is
 captured when the event is published, so a sink that runs in the background after the request has completed still sees
 it. A handler that throws neither fails the audited operation nor stops the other handlers
-([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)).
+([ADR-1047](decisions/1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)).
 
 ## Indexing
 

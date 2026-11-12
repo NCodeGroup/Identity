@@ -146,7 +146,7 @@ no secret and is not marked. A secret-revealing endpoint of an extending package
   [`BackchannelAuthenticationEndpointTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/BackchannelAuthenticationEndpointTests.cs)
 - `NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource` and `CreatedSecretResource`
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md),
-  [ADR-1049](1049-openid-errors-audited-from-single-funnel.md),
+  [ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md),
   [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
   [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md),

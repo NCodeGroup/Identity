@@ -668,7 +668,7 @@ speed-test endpoint from the Denver network the users are on.
 - **Alerting:** Grafana Cloud alerts on token-endpoint error rate and p95 latency, certificate expiry, database
   connections and replication lag, and node/disk pressure; on-call via Grafana IRM's free tier; a public status page
   (`status.ncodeid.com`, UptimeRobot free).
-- **Audit events** ([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)): decide retention and customer export —
+- **Audit events** ([ADR-1047](decisions/1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)): decide retention and customer export —
   they contain PII.
 - **Cost guardrails:** billing alerts on every vendor, an Azure budget alert, and bandwidth-overage alerts.
 

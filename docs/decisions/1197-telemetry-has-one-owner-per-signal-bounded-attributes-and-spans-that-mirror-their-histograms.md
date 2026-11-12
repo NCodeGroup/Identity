@@ -16,7 +16,7 @@ carry no secret or personal data. This record applies both to the family's packa
 The platform is observable through OpenTelemetry ([ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) §8). ASP.NET
 Core already measures and traces each inbound request, and `System.Net.Http` each outbound call, so the protocol
 endpoints measure only what neither of them nor the event seam
-([ADR-1047](1047-auditing-and-events-observation-seam.md)) already measures. The rate limiter's refusals
+([ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)) already measures. The rate limiter's refusals
 ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)) and the health of the shared state
 those refusals depend on are such mechanisms.
 
@@ -199,7 +199,7 @@ is a deliberate change that updates the catalog.
 - [.NET metrics instrumentation](https://learn.microsoft.com/dotnet/core/diagnostics/metrics-instrumentation):
   `IMeterFactory` and `MetricCollector<T>`
 - Issue [#119](https://github.com/NCodeGroup/identity/issues/119)
-- [ADR-1047](1047-auditing-and-events-observation-seam.md): the event seam and its catalog
+- [ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md): the event seam and its catalog
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md): the rate limiter
 - [`docs/backend-for-frontend.md` §5.13](../backend-for-frontend.md#513-observability): the BFF's observability design
 - `src/NCode.Identity.Events/DefaultEventMetricsHandler.cs`

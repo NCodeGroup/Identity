@@ -71,7 +71,7 @@ them ([ADR-1198](decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-ad
 ### `ncode.identity.events.published`
 
 Counter, unit `{event}`, meter `NCode.Identity.Events`. Recorded once for each event published through the event seam
-([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)).
+([ADR-1047](decisions/1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)).
 
 | Attribute                                     | Present on                                        | Values                                                                                                                                                                                    |
 | --------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

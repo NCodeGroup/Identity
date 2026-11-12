@@ -17,7 +17,7 @@ access token was issued to. Three questions follow from that.
   packages add their own, so the set cannot be fixed in the endpoint.
 - **Who read what?** A deployment under a data-protection regime, such as one that must answer which parties read a data
   subject's personal data and when (GDPR Art. 15 and 30, HIPAA §164.312(b)), needs a record of each disclosure. The audit
-  trail ([ADR-1047](1047-auditing-and-events-observation-seam.md),
+  trail ([ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md),
   [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md)) records the issuance of the
   token, with its subject and client, but not each read of the claims it grants.
 
@@ -125,7 +125,7 @@ client.**
 - [OpenID Connect Core 1.0 §5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo), the UserInfo
   endpoint.
 - [ADR-1039](1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md),
-  [ADR-1047](1047-auditing-and-events-observation-seam.md),
+  [ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md),
   [ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md),
   [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),

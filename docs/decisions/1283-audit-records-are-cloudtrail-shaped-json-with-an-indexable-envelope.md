@@ -11,7 +11,7 @@
 
 ## Context
 
-[ADR-1047](1047-auditing-and-events-observation-seam.md) gives every audit event a common envelope: a unique event id,
+[ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md) gives every audit event a common envelope: a unique event id,
 a UTC timestamp, the tenant, the actor, the client, an action, an outcome and a schema version. An envelope of flat,
 ad-hoc members gives a sink that wants the event as data no single shape to write: each sink picks members and
 invents names.
@@ -43,8 +43,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
 
 1. **Ingestion is unchanged.** `IEventPublisher`, hierarchical dispatch, fault isolation, background delivery, the
    recorder facades and every publishing site's choice of event and outcome are as
-   [ADR-1047](1047-auditing-and-events-observation-seam.md) and
-   [ADR-1049](1049-openid-errors-audited-from-single-funnel.md) describe. Only the record's shape and its log, trace and
+   [ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md) describe. Only the record's shape and its log, trace and
    metric projections are decided here.
 2. **The record is CloudTrail-modelled and snake_case.** Field names follow the OAuth and OpenID Connect wire
    vocabulary and Auth0 logs; the structure follows CloudTrail: the identity of the caller, a request context, the
@@ -94,7 +93,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
     protocol and the management planes reference sessions.
 12. **An event writes its own details.** An event that has event-specific fields implements
     `ISupportAuditDetails.WriteAuditDetails(Utf8JsonWriter)`, which mirrors `ISupportMetricAttributes`. There is no
-    object bag ([ADR-1047](1047-auditing-and-events-observation-seam.md)), the writer is trimming- and AOT-safe, and a
+    object bag ([ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)), the writer is trimming- and AOT-safe, and a
     package that adds an event writes its own details. A resource-change event writes `details.change_type` and
     `details.resource_values`.
 13. **The log entry carries the record as flattened attributes.** `DefaultAuditLoggingHandler` writes under the stable
@@ -132,7 +131,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
   indexable.
 - **A dynamic details bag** (`IDictionary<string, object>` or a `[JsonExtensionData]` member). It lets any value reach
   a persisted record, including a secret, and it invites magic-string keys instead of reviewed typed fields
-  ([ADR-1047](1047-auditing-and-events-observation-seam.md)). Rejected in favor of
+  ([ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)). Rejected in favor of
   `ISupportAuditDetails`, where each event writes only the fields it declares.
 - **A closed polymorphic `JsonDerivedType` model of the record.** Every event type would be listed on the base type, so
   a package that adds an event would edit the library, against the rule that vocabularies are open
@@ -171,8 +170,8 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service, strategy-collection and mediator
   shapes; an audit sink stays an event handler
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — breaking changes are acceptable before release
-- [ADR-1047](1047-auditing-and-events-observation-seam.md) — the event seam and the envelope this amends
-- [ADR-1049](1049-openid-errors-audited-from-single-funnel.md) — the single funnel that records `openid.error`
+- [ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md) — the event seam and the envelope this amends
+- [ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md) — the single funnel that records `openid.error`
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) — the writer uses buffer writers and allocates no
   `byte[]`
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies

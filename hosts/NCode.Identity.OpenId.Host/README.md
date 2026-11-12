@@ -277,6 +277,22 @@ The script auto-detects Docker or Podman and removes the `ncode-identity-openidd
 `docker volume rm ncode-identity-openiddb-data`). This is the only reset needed — the provisioned signing keys and the
 DataProtection key ring are in the same database and are purged with it.
 
+## API reference
+
+The host serves its OpenAPI document at `/openapi/v1.json` and its Scalar API reference page at `/scalar/v1`, each
+only where the `ApiReference` section enables it. `ApiReference:DocumentEnabled` and `ApiReference:PageEnabled` are
+`false` in every environment, and the host's `appsettings.Development.json` sets both to `true`, so a Development run
+and the AppHost serve them. Set `ApiReference__DocumentEnabled=true` (and `ApiReference__PageEnabled=true` for the
+page) to serve them elsewhere. The page renders the document, so it requires the document: the host refuses to start
+with the page alone.
+
+When enabled, both are anonymous. The document lists every management route, schema and scope, while the management
+API itself still requires a management access token. The page runs only scripts and styles that carry the response's
+nonce, connects only to its own origin, cannot be framed, and turns off Scalar's telemetry, AI agent, MCP integration
+and CDN fonts. Its Authorize dialog runs the client-credentials login, pre-filled with the bootstrap administrator only
+in Development
+([ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md)).
+
 ## Container image
 
 The `Dockerfile` builds the production image from the repository root. Its base images are pinned by tag and digest, and

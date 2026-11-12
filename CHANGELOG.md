@@ -4183,7 +4183,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   as a collection, turn an exception into the error a protocol endpoint answers with; the endpoint filters and the
   authorization endpoint consult them, and an exception none answers is `server_error`
   ([#573](https://github.com/NCodeGroup/identity/issues/573),
-  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md)).
 
 ### Security
 
@@ -5914,7 +5914,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#579](https://github.com/NCodeGroup/identity/issues/579),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
-  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md),
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md),
   [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md)).
 - **An imported elliptic-curve public key is checked against its curve.** A JWK's `x` and `y` must each be the curve's
   field length, below its prime and satisfy its curve equation before the platform imports the point, so an off-curve or

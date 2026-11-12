@@ -32,10 +32,12 @@ The standing posture is one cohesive story, not provider sprawl patched over tim
 PostgreSQL through Npgsql is the host's only relational provider, and one database, `openiddb`, holds the schema and the
 key ring. A worker applies the migrations, the host never does, and the build fails on drift.
 
-- **One provider.** `NCode.Identity.OpenId.Host` reads the `openiddb` connection string, registers `OpenIdDbContext`
-  with `UseOpenIdNpgsql`, and tags an `openiddb` `AddDbContextCheck<OpenIdDbContext>` with
-  `HealthCheckTags.Readiness`. Without a connection string, as in hermetic test hosts that replace the context, the host
-  uses an in-memory `OpenIdDbContext` and configures no Data Protection repository, which Production refuses.
+- **One provider.** `NCode.Identity.OpenId.Host` resolves its database connection, the `openiddb` connection string or
+  the `OpenIdDatabase` parts (`HostDatabaseConnection`,
+  [ADR-1509](1509-the-host-chart-passes-a-postgres-operators-secret-as-the-connections-parts-and-the-host-assembles-the-npgsql-connection.md)),
+  registers `OpenIdDbContext` with `UseOpenIdNpgsql`, and tags an `openiddb` `AddDbContextCheck<OpenIdDbContext>` with
+  `HealthCheckTags.Readiness`. Without a database connection, as in hermetic test hosts that replace the context, the
+  host uses an in-memory `OpenIdDbContext` and configures no Data Protection repository, which Production refuses.
 - **A host-owned database project.** The published `NCode.Identity.OpenId.Persistence.EntityFramework` ships the model
   only. The unpacked `NCode.Identity.OpenId.Host.Database` holds the Npgsql wiring (`HostDatabase`, which points
   `MigrationsAssembly` at itself), the design-time factories `OpenIdDbContextDesignTimeFactory` and

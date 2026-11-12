@@ -24,8 +24,9 @@ The AppHost:
 
 A container runtime (Docker Desktop or Podman) must be running when you launch the AppHost.
 
-> Running this project **standalone** (without the AppHost) has no `openiddb` connection string, so it falls back to an
-> ephemeral **EF in-memory** database — convenient for a quick boot or for tests, but state does not survive restarts.
+> Running this project **standalone** (without the AppHost) has no database connection
+> (neither the `openiddb` connection string nor the `OpenIdDatabase` parts), so it falls back to an ephemeral
+> **EF in-memory** database — convenient for a quick boot or for tests, but state does not survive restarts.
 
 ### One database holds everything
 

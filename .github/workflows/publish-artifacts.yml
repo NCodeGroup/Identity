@@ -179,3 +179,73 @@ jobs:
           subject-name: ghcr.io/ncodegroup/charts/ncode-identity-host
           subject-digest: ${{ steps.chart.outputs.digest }}
           push-to-registry: true
+
+  verify:
+    name: Verify the published artifacts
+    needs: [version, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # There is no registry login on purpose: every pull is anonymous, so a private package fails here.
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      HOST: ${{ needs.publish.outputs.host-digest }}
+      CONSOLE: ${{ needs.publish.outputs.console-digest }}
+      CHART: ${{ needs.publish.outputs.chart-digest }}
+
+    steps:
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      - name: Both architectures are published
+        shell: pwsh
+        run: |
+          $hint = "If the package is private, make it public and give this repository write access under the package's 'Manage Actions access' (chart README, 'Published artifacts')."
+          foreach ($image in 'ncode-identity-host', 'ncode-identity-management-console') {
+            try {
+              $raw = docker buildx imagetools inspect --raw "ghcr.io/ncodegroup/${image}:$env:VERSION"
+              if ($LASTEXITCODE -ne 0) { throw "docker buildx imagetools inspect failed for $image." }
+              $index = $raw | ConvertFrom-Json
+            }
+            catch {
+              throw "$($_.Exception.Message) $hint"
+            }
+            $platforms = @($index.manifests.platform | ForEach-Object { "$($_.os)/$($_.architecture)" })
+            foreach ($platform in 'linux/amd64', 'linux/arm64') {
+              if ($platforms -notcontains $platform) { throw "$image is missing the platform $platform." }
+            }
+          }
+
+      - name: Signatures verify
+        shell: pwsh
+        run: |
+          $refs = @(
+            "ncode-identity-host@$env:HOST",
+            "ncode-identity-management-console@$env:CONSOLE",
+            "charts/ncode-identity-host@$env:CHART"
+          )
+          foreach ($ref in $refs) {
+            cosign verify "ghcr.io/ncodegroup/$ref" --certificate-identity "https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main" --certificate-oidc-issuer https://token.actions.githubusercontent.com > $null
+            if ($LASTEXITCODE -ne 0) { throw "$ref has no valid signature." }
+          }
+
+      - name: The chart pulls anonymously
+        shell: pwsh
+        run: |
+          $hint = "If the package is private, make it public and give this repository write access under the package's 'Manage Actions access' (chart README, 'Published artifacts')."
+          try {
+            helm pull oci://ghcr.io/ncodegroup/charts/ncode-identity-host --version $env:VERSION --destination pulled
+            if ($LASTEXITCODE -ne 0) { throw "helm pull failed." }
+          }
+          catch {
+            throw "$($_.Exception.Message) $hint"
+          }
+          $chart = helm show chart "pulled/ncode-identity-host-$($env:VERSION).tgz"
+          if ($chart -notcontains "version: $env:VERSION") { throw "The pulled chart is not version $env:VERSION." }
+          if ($chart -notcontains "appVersion: $env:VERSION") { throw "The pulled chart has the wrong appVersion." }

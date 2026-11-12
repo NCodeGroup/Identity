@@ -11,6 +11,7 @@
 # the certificate, and the chosen route verifies it (ADR-1504, ADR-1507). The pods can require the ingress controller's
 # client certificate, and the chart's ingress certificate and its Secret are checked. The cluster job installs the chart
 # in kind behind Traefik (ADR-1506).
+# The chart serves no API reference unless its values enable it (ADR-1481).
 # The Publish artifacts workflow publishes the chart (ADR-1505).
 name: Host chart
 
@@ -110,6 +111,8 @@ jobs:
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
           refuse --set unknownSetting=true
+          refuse --set apiReference.pageEnabled=true
+          refuse --set apiReference.documentEnabled=yes
           # ingress.controller takes traefik or other alone: the chart has no ingress-nginx mode (ADR-1507).
           refuse --set ingress.controller=ingress-nginx
           refuse --set ingress.controller=haproxy

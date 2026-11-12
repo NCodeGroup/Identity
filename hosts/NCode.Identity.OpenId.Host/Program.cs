@@ -223,7 +223,8 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-// Turnkey OpenAPI document + Scalar API reference, owned by the composition layer (prod and dev).
+// The OpenAPI document and the Scalar API reference page, mapped only where the ApiReference section enables them.
+// Both are off by default and appsettings.Development.json turns both on (ADR-1481).
 app.MapIdentityServerApiReference();
 
 // Production binds HTTPS endpoints only (AddProductionSafety refuses to start otherwise), so it adds no redirect;

@@ -126,6 +126,20 @@ public sealed class DefaultRegistrationTests : BaseTests
     }
 
     [Fact]
+    public async Task AddIdentityServer_WhenApiReferencePageIsEnabledWithoutTheDocument_FailsToStart()
+    {
+        using var host = BuildHost(
+            new Dictionary<string, string?> { ["ApiReference:PageEnabled"] = "true" }
+        );
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains("ApiReference:PageEnabled", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddIdentityServer_EveryDefaultIsInItsOwnDomain()
     {
         // A default is set in code and never passes an entry point, so the composed catalog pins it to its own rule.

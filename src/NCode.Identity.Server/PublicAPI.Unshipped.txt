@@ -4,6 +4,7 @@ const NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.Defaul
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.DefaultSectionName = "Cors" -> string!
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.DefaultSectionName = "DeveloperInteractiveSeed" -> string!
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.DefaultSectionName = "DeveloperKeys" -> string!
+const NCode.Identity.Server.IdentityServerApiReferenceOptions.DefaultSectionName = "ApiReference" -> string!
 NCode.Identity.Server.BootstrapAdminOptions
 NCode.Identity.Server.BootstrapAdminOptions.BootstrapAdminOptions() -> void
 NCode.Identity.Server.BootstrapAdminOptions.ClientId.get -> string?
@@ -116,13 +117,13 @@ NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RequireConse
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ShouldSeed.get -> bool
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
-NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapIdentityServerApiReference(System.Action<NCode.Identity.Server.IdentityServerApiReferenceOptions!>? configureOptions = null) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapIdentityServerApiReference() -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
 NCode.Identity.Server.IdentityServerApiReferenceOptions
+NCode.Identity.Server.IdentityServerApiReferenceOptions.DocumentEnabled.get -> bool
+NCode.Identity.Server.IdentityServerApiReferenceOptions.DocumentEnabled.set -> void
 NCode.Identity.Server.IdentityServerApiReferenceOptions.IdentityServerApiReferenceOptions() -> void
-NCode.Identity.Server.IdentityServerApiReferenceOptions.MapApiReferenceUi.get -> bool
-NCode.Identity.Server.IdentityServerApiReferenceOptions.MapApiReferenceUi.set -> void
-NCode.Identity.Server.IdentityServerApiReferenceOptions.MapOpenApiDocument.get -> bool
-NCode.Identity.Server.IdentityServerApiReferenceOptions.MapOpenApiDocument.set -> void
+NCode.Identity.Server.IdentityServerApiReferenceOptions.PageEnabled.get -> bool
+NCode.Identity.Server.IdentityServerApiReferenceOptions.PageEnabled.set -> void
 NCode.Identity.Server.IdentityServer
 NCode.Identity.Server.IdentityServer.IdentityServer() -> void
 NCode.Identity.Server.IdentityServerBuilderExtensions

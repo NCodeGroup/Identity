@@ -1,0 +1,122 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using System.Net;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Identity.OpenId.Host;
+using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
+using Xunit;
+
+namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
+
+public sealed class ApiReferenceEndpointTests
+{
+    private const string BaseAddress = "https://op.integration.test/";
+
+    // Qualified because the NCode.Identity.OpenId.Environments namespace shadows the framework's Environments class.
+    private static string StagingEnvironment { get; } =
+        Microsoft.Extensions.Hosting.Environments.Staging;
+
+    #region Map Tests
+
+    [Fact]
+    public async Task GetOpenApiDocument_OutsideDevelopmentByDefault_ReturnsNotFound()
+    {
+        using var factory = new HostApplicationFactory();
+        using var staging = factory.WithWebHostBuilder(builder =>
+            builder.UseEnvironment(StagingEnvironment)
+        );
+        using var client = CreateClient(staging);
+
+        using var response = await client.GetAsync("/openapi/v1.json");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetApiReferencePage_OutsideDevelopmentByDefault_ReturnsNotFound()
+    {
+        using var factory = new HostApplicationFactory();
+        using var staging = factory.WithWebHostBuilder(builder =>
+            builder.UseEnvironment(StagingEnvironment)
+        );
+        using var client = CreateClient(staging);
+
+        using var response = await client.GetAsync("/scalar/v1");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetOpenApiDocument_WhenEnabledOutsideDevelopment_ReturnsTheDocument()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?> { ["ApiReference:DocumentEnabled"] = "true" }
+        );
+        using var staging = factory.WithWebHostBuilder(builder =>
+            builder.UseEnvironment(StagingEnvironment)
+        );
+        using var client = CreateClient(staging);
+
+        using var response = await client.GetAsync("/openapi/v1.json");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task GetApiReferencePage_WhenOnlyTheDocumentIsEnabled_ReturnsNotFound()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?> { ["ApiReference:DocumentEnabled"] = "true" }
+        );
+        using var staging = factory.WithWebHostBuilder(builder =>
+            builder.UseEnvironment(StagingEnvironment)
+        );
+        using var client = CreateClient(staging);
+
+        using var response = await client.GetAsync("/scalar/v1");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetApiReferencePage_InDevelopment_SendsAStrictContentSecurityPolicyWithItsNonce()
+    {
+        using var factory = new HostApplicationFactory();
+        using var client = CreateClient(factory);
+
+        using var response = await client.GetAsync("/scalar/v1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("DENY", Assert.Single(response.Headers.GetValues("X-Frame-Options")));
+
+        var csp = Assert.Single(response.Headers.GetValues("Content-Security-Policy"));
+        var match = Regex.Match(csp, "'nonce-([A-Za-z0-9_-]+)'");
+        Assert.True(match.Success);
+        var nonce = match.Groups[1].Value;
+
+        Assert.Equal(
+            $"default-src 'none'; script-src 'nonce-{nonce}' 'strict-dynamic'; style-src 'nonce-{nonce}'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+            csp
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains($"nonce=\"{nonce}\"", body);
+        Assert.Contains($"<meta property=\"csp-nonce\" content=\"{nonce}\"", body);
+    }
+
+    #endregion
+
+    private static HttpClient CreateClient(WebApplicationFactory<HostApiMarker> factory) =>
+        factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                BaseAddress = new Uri(BaseAddress),
+                AllowAutoRedirect = false,
+            }
+        );
+}

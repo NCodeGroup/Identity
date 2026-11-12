@@ -154,6 +154,12 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
                 BootstrapAdminOptionsValidator
             >()
         );
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IValidateOptions<IdentityServerApiReferenceOptions>,
+                IdentityServerApiReferenceOptionsValidator
+            >()
+        );
 
         // The OpenAPI document describes this server's own endpoints, so the composition root owns its
         // registration and grouping rather than leaving each host to re-wire it.

@@ -146,11 +146,15 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The reference host is a minimal-hosting ASP.NET Core application with the first-party .NET 10 OpenAPI stack.**
   `NCode.Identity.OpenId.Host` boots from a single top-level `Program.cs` using `WebApplication.CreateBuilder(...)`, and
   the integration tests boot it through `WebApplicationFactory<HostApiMarker>`. `MapIdentityServerApiReference()` in
-  `NCode.Identity.Server` maps the OpenAPI document that `Microsoft.AspNetCore.OpenApi` generates and a
-  `Scalar.AspNetCore` API reference (`/scalar/v1`), each independently toggleable, with the OAuth 2.0 client-credentials
-  scheme preferred and, in development, the bootstrap administrator's credentials pre-filled. `Microsoft.OpenApi` is on
-  the 2.x line that stack targets, and the OpenID endpoint operation builders (`DefaultAuthorizationEndpointHandler`,
-  `DefaultTokenEndpointProvider`) use the 2.x `OpenApiMediaType` model.
+  `NCode.Identity.Server` maps the OpenAPI document that `Microsoft.AspNetCore.OpenApi` generates (`/openapi/v1.json`)
+  and a `Scalar.AspNetCore` API reference page (`/scalar/v1`) only where the `ApiReference` configuration section
+  enables them: `ApiReference:DocumentEnabled` and `ApiReference:PageEnabled` are `false` by default, the reference
+  host's `appsettings.Development.json` sets both, and the page requires the document. The page prefers the OAuth 2.0
+  client-credentials scheme and, in development, pre-fills the bootstrap administrator's credentials. `Microsoft.OpenApi`
+  is on the 2.x line that stack targets, and the OpenID endpoint operation builders (`DefaultAuthorizationEndpointHandler`,
+  `DefaultTokenEndpointProvider`) use the 2.x `OpenApiMediaType` model
+  ([#779](https://github.com/NCodeGroup/identity/issues/779),
+  [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md)).
 
 - **The reference hosts separate liveness from readiness through one helper.** `MapHealthProbes()`
   (`NCode.Identity.AspNetCore`) maps `/health/live`, which runs no checks and reports only that the process answers, so a
@@ -1057,7 +1061,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#701](https://github.com/NCodeGroup/identity/issues/701), [#706](https://github.com/NCodeGroup/identity/issues/706),
   [#708](https://github.com/NCodeGroup/identity/issues/708),
   [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
-  [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md)).
+  [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -5393,6 +5397,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
   issue [#303](https://github.com/NCodeGroup/identity/issues/303)).
 
+- **A host serves its OpenAPI document and API reference page only where the operator enables them, and the page runs
+  under a strict Content-Security-Policy.** With the defaults a host answers `404` for `/openapi/v1.json` and
+  `/scalar/v1` in every environment, so an anonymous caller gets no map of the management API; the host chart's
+  `apiReference.documentEnabled` and `apiReference.pageEnabled` values enable them, and the host and the chart refuse
+  the page without the document. Enabled, both are anonymous and the management API still requires a management access
+  token. The page runs only the scripts and styles that carry the response's nonce, connects only to its own origin,
+  cannot be framed, and loads nothing from a third party: Scalar's telemetry, AI agent, MCP integration and CDN fonts
+  are off ([#779](https://github.com/NCodeGroup/identity/issues/779),
+  [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md),
+  [ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
+
 - **Interactive return URLs refuse tabs, newlines and backslashes.** `LocalUrl.IsLocal`
   (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use
   it, so a return URL such as `/\t/evil.example` cannot redirect off-site after sign-in.
@@ -5511,7 +5526,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`) and stores it as a PBKDF2
   verifier, because the administrator registers `client_secret_basic`, and the OpenAPI example and
   Scalar prefill that surface the presentable secret appear only in the development environment. See
-  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md), [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md) and [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md).
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md), [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md) and [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md).
 
 - **Every owner's keys are imported and updated under the client-key policy.** The client, tenant and
   resource-server import endpoints use `IClientKeyImporter.TryImportKey`, so a JSON Web Key keeps its `kid`, a key whose

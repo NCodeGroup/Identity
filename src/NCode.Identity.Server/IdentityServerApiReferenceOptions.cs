@@ -6,23 +6,29 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Controls what <c>MapIdentityServerApiReference</c> maps. The OpenAPI document (the spec JSON) and the API reference
-/// UI are independent toggles: a host may expose the machine-readable spec without the UI, serve the UI from a document
-/// hosted elsewhere, or disable both in environments where neither should be reachable.
+/// Binds the <c>ApiReference</c> configuration section that controls what <c>MapIdentityServerApiReference</c> maps.
+/// The OpenAPI document is served at <c>/openapi/v1.json</c> and the Scalar API reference page at <c>/scalar/v1</c>.
+/// Both are off unless configured. The page renders the document this host serves, so it requires
+/// <see cref="DocumentEnabled"/>.
 /// </summary>
 [PublicAPI]
 public sealed class IdentityServerApiReferenceOptions
 {
     /// <summary>
-    /// Gets or sets a value indicating whether the OpenAPI document (the spec JSON) endpoint is mapped.
-    /// The default value is <see langword="true"/>.
+    /// The default configuration section name, <c>ApiReference</c>.
     /// </summary>
-    public bool MapOpenApiDocument { get; set; } = true;
+    public const string DefaultSectionName = "ApiReference";
 
     /// <summary>
-    /// Gets or sets a value indicating whether the Scalar API reference UI is mapped. The UI fetches the OpenAPI
-    /// document at runtime, so it must be reachable (either mapped here or served elsewhere) for the UI to load.
-    /// The default value is <see langword="true"/>.
+    /// Gets or sets a value indicating whether the OpenAPI document is served at <c>/openapi/v1.json</c>.
+    /// Defaults to <see langword="false"/>.
     /// </summary>
-    public bool MapApiReferenceUi { get; set; } = true;
+    public bool DocumentEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Scalar API reference page is served at <c>/scalar/v1</c>.
+    /// The page renders the document this host serves, so it requires <see cref="DocumentEnabled"/>.
+    /// Defaults to <see langword="false"/>.
+    /// </summary>
+    public bool PageEnabled { get; set; }
 }

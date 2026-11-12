@@ -96,6 +96,52 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
     }
 
     [Fact]
+    public void AddConfiguration_WhenApiReferenceConfigured_BindsIt()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["ApiReference:DocumentEnabled"] = "true",
+                ["ApiReference:PageEnabled"] = "true",
+            }
+        );
+
+        var options = serviceProvider
+            .GetRequiredService<IOptions<IdentityServerApiReferenceOptions>>()
+            .Value;
+
+        Assert.True(options.DocumentEnabled);
+        Assert.True(options.PageEnabled);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenApiReferenceNotConfigured_LeavesItOff()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider([]);
+
+        var options = serviceProvider
+            .GetRequiredService<IOptions<IdentityServerApiReferenceOptions>>()
+            .Value;
+
+        Assert.False(options.DocumentEnabled);
+        Assert.False(options.PageEnabled);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenApiReferenceHasUnknownKey_Throws()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?> { ["ApiReference:Enabled"] = "true" }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<IdentityServerApiReferenceOptions>>().Value
+        );
+
+        Assert.Contains("'Enabled'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddConfiguration_WhenStrategyOptionsHaveUnknownKey_Throws()
     {
         using var serviceProvider = BuildConfiguredServiceProvider(

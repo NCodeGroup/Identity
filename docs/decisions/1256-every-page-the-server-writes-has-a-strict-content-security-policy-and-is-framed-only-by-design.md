@@ -8,9 +8,10 @@
 ## Context
 
 A page that any origin can frame is a clickjacking target: an attacker's page overlays the login or consent page and
-steers the end-user's clicks and keystrokes (RFC 9700 §4.16). The server writes seven kinds of HTML page: the login and
+steers the end-user's clicks and keystrokes (RFC 9700 §4.16). The server writes eight kinds of HTML page: the login and
 consent pages, the account pages (applications, sessions and password), the authorization error page, the `form_post`
-response, the front-channel logout page and the `check_session_iframe`. Five forces bear on how they are secured:
+response, the front-channel logout page, the `check_session_iframe` and the API reference page. Five forces bear on how
+they are secured:
 
 - Antiforgery is the only component that sets a framing policy on the interactive pages, and ASP.NET Core antiforgery
   adds `X-Frame-Options: SAMEORIGIN` to a response only when it stores an antiforgery cookie. A browser that sends its
@@ -68,6 +69,7 @@ and the `form_post` response only by its client's origin.**
    | Page                   | Directives after `default-src 'none'`                                | Forms | Framed |
    | ---------------------- | -------------------------------------------------------------------- | ----- | ------ |
    | Interactive pages      | nonce `script-src`/`style-src`, `img-src`, `connect-src`, `base-uri` | any   | no     |
+   | API reference page     | nonce `script-src`/`style-src`, `img-src`, `connect-src`             | none  | no     |
    | `form_post` response   | `script-src` by the hash of its auto-submit script                   | any   | client |
    | Front-channel logout   | `frame-src`, and `script-src` by hash when it redirects              | none  | no     |
    | `check_session_iframe` | `script-src` by the hash of its script                               | none  | yes    |
@@ -75,7 +77,10 @@ and the `form_post` response only by its client's origin.**
    The interactive pages are the login, consent, account and error pages. Their policy is `script-src 'nonce-N'
    'strict-dynamic'`, `style-src 'nonce-N'`, `img-src 'self'` plus the origins of the tenant's logo and favicon,
    `connect-src 'self'` and `base-uri 'self'`, where N is 16 random bytes, Base64Url-encoded, created for each response.
-   The `check_session_iframe` sets `AllowsFraming`, so it carries no `X-Frame-Options` and no `frame-ancestors`; relying
+   The API reference page (`/scalar/v1`, [ADR-1481](1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md))
+   lists `script-src 'nonce-N' 'strict-dynamic'`, `style-src 'nonce-N'`, `img-src 'self' data:` and
+   `connect-src 'self'`; Scalar writes the nonce on its scripts, and its injected stylesheet reads it from a
+   `<meta property="csp-nonce">` element in the page's head. The `check_session_iframe` sets `AllowsFraming`, so it carries no `X-Frame-Options` and no `frame-ancestors`; relying
    parties frame only it ([ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md)).
    The `form_post` response lists as `FrameAncestors` the origin of an `http` or `https` redirect URI whose host is a DNS
    name or an IPv4 address, and carries no `X-Frame-Options`, so a relying party's `prompt=none` re-authentication in an
@@ -123,9 +128,9 @@ and the `form_post` response only by its client's origin.**
 
 - **Rely on antiforgery's header.** Rejected: it is written only when a cookie is stored, so it protects a first visit
   and not a return, and it names no policy for scripts, styles or forms.
-- **One middleware that stamps every `text/html` response.** Rejected: the pages need different policies, and a
-  middleware also clamps the pages that the host serves and the server does not own, such as an API reference page. A
-  page that states its own policy is read next to the markup that the policy describes.
+- **One middleware that stamps every `text/html` response.** Rejected: the pages need different policies, and one
+  middleware would write the same policy on every HTML response. A page that states its own policy is read next to the
+  markup that the policy describes.
 - **`script-src 'self'` with `style-src 'unsafe-inline'`.** Rejected: `'unsafe-inline'` admits every injected style,
   and a policy that allows scripts by origin admits any script that the origin serves. A nonce on the bundle's scripts
   and on emotion's styles admits exactly what the response carries.
@@ -177,5 +182,6 @@ and the `form_post` response only by its client's origin.**
   `ContentSecurityPolicy*.cs`), `src/NCode.Identity.OpenId.Authentication.Interactive/` (`InteractivePageSecurity.cs`,
   `InteractiveHtmlResult.cs`, `InteractiveBundleShell.cs`), `frontend/packages/vite-config/src/preset.ts`,
   `frontend/apps/auth/src/cspNonce.ts`, `tests/NCode.Identity.AspNetCore.Tests/`,
-  `src/NCode.Identity.AspNetCore/FrontChannelEndpointConventionBuilderExtensions.cs` and
-  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperCorsApplicationBuilderExtensions.cs`.
+  `src/NCode.Identity.AspNetCore/FrontChannelEndpointConventionBuilderExtensions.cs`,
+  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperCorsApplicationBuilderExtensions.cs` and
+  `src/NCode.Identity.Server/IdentityServerApiReferenceEndpointRouteBuilderExtensions.cs`.

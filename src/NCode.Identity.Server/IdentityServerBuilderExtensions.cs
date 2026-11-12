@@ -89,7 +89,9 @@ public static class IdentityServerBuilderExtensions
         /// </list>
         /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>, and the top-level
         /// <c>SecretProtection</c> section binds <see cref="SecretProtectionOptions"/>: it names the root key provider
-        /// that protects the stored secrets and the Data Protection key ring at rest.
+        /// that protects the stored secrets and the Data Protection key ring at rest. The top-level
+        /// <c>ApiReference</c> section binds <see cref="IdentityServerApiReferenceOptions"/>, which decide whether the
+        /// OpenAPI document and the API reference page are served.
         /// </summary>
         /// <remarks>
         /// Binding is strict and checked when the host starts: a key that maps to no option — a misspelling, or a
@@ -145,6 +147,9 @@ public static class IdentityServerBuilderExtensions
             // out of band (for example, environment variables); absent it, the feature stays inert (ADR-1044).
             var bootstrapAdminSection = configuration.GetSection(
                 BootstrapAdminOptions.DefaultSectionName
+            );
+            var apiReferenceSection = configuration.GetSection(
+                IdentityServerApiReferenceOptions.DefaultSectionName
             );
 
             var serviceCollection = builder.ServiceCollection;
@@ -215,6 +220,11 @@ public static class IdentityServerBuilderExtensions
             serviceCollection
                 .AddOptions<BootstrapAdminOptions>()
                 .Configure(options => bootstrapAdminSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<IdentityServerApiReferenceOptions>()
+                .Configure(options => apiReferenceSection.BindStrictly(options))
                 .ValidateOnStart();
 
             // Stored secrets and the Data Protection key ring are protected under a root key held outside the database (ADR-1235).

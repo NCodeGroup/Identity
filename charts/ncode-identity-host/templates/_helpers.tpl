@@ -118,6 +118,9 @@ applied. Rendered for its side effect only.
 {{- if and (eq .Values.tenantResolution.strategyCode "StaticSingle") (not .Values.tenantResolution.staticSingle.issuer) }}
 {{- fail "tenantResolution.staticSingle.issuer must be the public issuer URL." }}
 {{- end }}
+{{- if and .Values.apiReference.pageEnabled (not .Values.apiReference.documentEnabled) }}
+{{- fail "apiReference.pageEnabled requires apiReference.documentEnabled: the page renders the OpenAPI document the host serves." }}
+{{- end }}
 {{- if and (eq .Values.secretProtection.rootKeyProvider "aws-kms") (not .Values.secretProtection.awsKms.keyArn) }}
 {{- fail "secretProtection.awsKms.keyArn must name the KMS key or alias that holds the root key." }}
 {{- end }}
@@ -441,6 +444,10 @@ same configuration the pods it rewraps keys for read.
 {{- end }}
 - name: ForwardedHeaders__ForwardLimit
   value: {{ .Values.forwardedHeaders.forwardLimit | quote }}
+- name: ApiReference__DocumentEnabled
+  value: {{ .Values.apiReference.documentEnabled | quote }}
+- name: ApiReference__PageEnabled
+  value: {{ .Values.apiReference.pageEnabled | quote }}
 - name: ConnectionStrings__openiddb
   valueFrom:
     secretKeyRef:

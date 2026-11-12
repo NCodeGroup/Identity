@@ -132,7 +132,7 @@ recorded each time the guarded outbound client sends a call to a caller-supplied
 [ADR-1385](decisions/1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md)), and
 `ncode.identity.openid_client.retries` (meter `NCode.Identity.OpenId.Client`) each time the OpenID protocol client sends
 a call to an OpenID Provider again
-([ADR-1336](decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)). Only a GET or HEAD
+([ADR-1336](decisions/1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md)). Only a GET or HEAD
 without a body (or, for the protocol client, a DPoP proof) is ever retried. Each attempt is also `System.Net.Http`'s
 `http.client.request.duration`.
 

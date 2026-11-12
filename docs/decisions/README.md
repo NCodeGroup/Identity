@@ -290,7 +290,7 @@ The records are grouped by area; within an area they are in number order.
 | [1286](./1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) | The protocol client binds tokens with DPoP whenever the provider supports it | Accepted |
 | [1300](./1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md) | The protocol client authenticates with a key ring's TLS client certificate and its issuers' certificates | Accepted |
 | [1301](./1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md) | The protocol client reads UserInfo as JSON or a registered JWT under the family's claim mapping | Accepted |
-| [1336](./1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md) | The protocol client bounds its calls with a Polly.Core pipeline | Accepted |
+| [1336](./1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md) | The protocol client bounds every call with a Polly.Core pipeline and retries only safe requests | Accepted |
 | [1389](./1389-one-algorithm-name-serves-every-key-type-it-declares.md) | One algorithm name serves every key type it declares | Accepted |
 | [1390](./1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md) | X25519 and X448 agree keys beside the OKP signing keys, and a curve's use separates them | Accepted |
 | [1392](./1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md) | ES256K is an opt-in package that registers a curve and an ECDSA algorithm as data | Accepted |

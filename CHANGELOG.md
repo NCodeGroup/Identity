@@ -2567,7 +2567,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `TotalTimeout` below 10 seconds needs an `AttemptTimeout` no higher. The BFF checks its refresh lease against
   `TotalTimeout`. The package bounds its calls through `Polly.Core` alone, without
   `Microsoft.Extensions.Http.Resilience` ([#469](https://github.com/NCodeGroup/identity/issues/469),
-  [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
+  [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md)).
 
 - **The OpenID protocol client authenticates with mutual TLS.** The methods `tls_client_auth` and
   `self_signed_tls_client_auth` present the TLS client certificate from `ClientRegistration.KeyRing`: the first RSA or

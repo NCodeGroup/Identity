@@ -65,7 +65,7 @@ consumers' logging generator.
 ## References
 
 - [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md),
-  [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)
+  [ADR-1336](1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md)
 - [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md)
 - Issue [#471](https://github.com/NCodeGroup/identity/issues/471)
 - `GuardedResilienceHandler.cs` and `GuardedResiliencePipelines.cs` in `NCode.Identity.OpenId.Authentication`,

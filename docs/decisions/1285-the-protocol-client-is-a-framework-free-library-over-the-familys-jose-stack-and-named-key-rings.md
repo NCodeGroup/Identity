@@ -93,7 +93,7 @@ configuration. No package of the client references an ASP.NET Core shared framew
 12. **HTTP.** One named client, `OpenIdClientDefaults.HttpClientName` (`NCode.Identity.OpenId.Client`), whose primary
     handler is `SocketsHttpHandler { AllowAutoRedirect = false, UseCookies = false }`, so a redirect is never followed.
     Responses are capped by `MaxResponseSizeBytes` (524288); the time bounds are
-    [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)'s. JSON is parsed only from a
+    [ADR-1336](1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md)'s. JSON is parsed only from a
     non-empty body whose media type is `application/json` or `application/jwk-set+json`: an empty body yields no JSON
     whatever its media type, because a successful revocation response (RFC 7009 §2.2) is empty.
 13. **Token requests are an open type hierarchy.** `TokenRequest` is abstract and public, and carries `Scope` and
@@ -102,7 +102,7 @@ configuration. No package of the client references an ASP.NET Core shared framew
     requires a PKCE `code_verifier`.
 14. **Observability.** Two warning logs, `ProviderMetadataFetchFailed` and `ProviderKeySetFetchFailed`, in the event-ID
     band 18000–18999. Outbound calls are measured by `System.Net.Http`, and the retry and timeout counters of
-    [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md) are on the client's meter; a
+    [ADR-1336](1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md) are on the client's meter; a
     signal has one owner ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
 
 ## Options considered
@@ -156,7 +156,7 @@ configuration. No package of the client references an ASP.NET Core shared framew
   authentication
 - [ADR-1300](1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md): client
   certificates
-- [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md): time bounds
+- [ADR-1336](1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md): time bounds
 - [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md): key management service
   keys
 - [Backend for frontend](../backend-for-frontend.md)

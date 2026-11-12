@@ -640,7 +640,7 @@ than inlining the rationale.
   [ADR-1186](../../docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md),
   [ADR-1480](../../docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
   [ADR-1481](../../docs/decisions/1481-a-management-routes-problem-responses-say-when-each-occurs.md),
-  [ADR-1482](../../docs/decisions/1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md) and
+  [ADR-1067](../../docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) and
   [ADR-1483](../../docs/decisions/1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md).
 - 👁 **A management route reads its caller only from what `ManagementAuthenticationEndpointFilter` published.** The
   filter sets `HttpContext.User` to the principal a valid management access token authenticates, or to an anonymous

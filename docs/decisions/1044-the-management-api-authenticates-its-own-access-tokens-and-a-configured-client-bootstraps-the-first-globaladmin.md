@@ -20,7 +20,7 @@ The management API under `/api` is a resource server for its own issuer. The for
 - **The who-am-I routes describe a caller.** `GET /api/me`, `/api/me/teams`, `/api/me/tenants` and
   `/api/capabilities` report a caller's principal, platform authority, role assignments and deployment capabilities
   ([ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md),
-  [ADR-1482](1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md)). A principal from
+  [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md)). A principal from
   another scheme is not a management caller.
 - **A protected resource answers a missing or invalid token `401`.** RFC 6750 section 3 defines the response of a
   resource that receives a request without a valid access token.
@@ -141,7 +141,7 @@ seeds.**
 - [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md): the 401/403/404
   rule.
 - [ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md),
-  [ADR-1482](1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md),
+  [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
   [ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md): the
   authenticated-caller routes.
 - RFC 6750 section 3.

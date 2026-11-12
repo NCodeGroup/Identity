@@ -81,7 +81,7 @@ axis so public keys round-trip cohesively.**
     - **DCR** consumes an **inline `jwks`** JWK Set at registration, importing each public key as a persisted `spki` /
       `x509` secret so the registered client's `SecretKeys` actually carry its verification keys. **Runtime `jwks_uri`
       fetch + cache + SSRF guard remains deferred** to [#54](https://github.com/NCodeGroup/identity/issues/54) Phase 0 — this ADR covers static import only.
-    - **Capabilities** (`GET /api/capabilities`, [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md))
+    - **Capabilities** (`GET /api/capabilities`, [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md))
       advertises the supported import formats per secret type.
 
 6. **An import format is an open name, and each key type declares the formats it parses.** `jwk`, `pem`, and

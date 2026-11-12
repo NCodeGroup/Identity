@@ -1117,7 +1117,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   custom key type by deriving from them. Shared key state (metadata, key size, certificate handling) lives on
   `AsymmetricSecretKey`, and the `Default*` / `Public*` concretes hold only their key material
   ([ADR-1105](docs/decisions/1105-secret-key-type-descriptor-first-class-seam.md),
-  [ADR-1067](docs/decisions/1067-secret-type-capability-catalog-and-capabilities-discovery.md)).
+  [ADR-1067](docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md)).
 
 - **The secret-key types live in purpose-based namespaces.** `NCode.Identity.Secrets.KeyTypes` holds the secret-key type
   descriptors, the type catalog and the ECC-curve / ML-DSA reference data; `NCode.Identity.Secrets.Collections` holds
@@ -2227,7 +2227,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **`GET /api/capabilities` publishes a management discovery document composed from registered providers
   to an authenticated management caller**
-  ([ADR-1067](docs/decisions/1067-secret-type-capability-catalog-and-capabilities-discovery.md)). Like the OpenID
+  ([ADR-1067](docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md)). Like the OpenID
   discovery document, the `[JsonExtensionData]` document is assembled from
   `ICommandHandler<DiscoverManagementCapabilitiesCommand>` providers, so a capability is exposed by registering a
   provider rather than by editing the endpoint or resource type. It reports the secret-type catalog, including which
@@ -4203,7 +4203,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#707](https://github.com/NCodeGroup/identity/issues/707),
   [#715](https://github.com/NCodeGroup/identity/issues/715),
   [#716](https://github.com/NCodeGroup/identity/issues/716),
-  [ADR-1482](docs/decisions/1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md),
+  [ADR-1067](docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
   [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
 
 - **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the

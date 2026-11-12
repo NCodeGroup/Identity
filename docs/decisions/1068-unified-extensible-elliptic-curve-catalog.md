@@ -40,7 +40,7 @@ Unify elliptic curves into one extensible core catalog and select curves by **id
   (`ISecretKeyTypeDescriptor.ExportPublicKey`, [ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md))
   consumes the core catalog, resolving `crv` by the key's actual curve (falling back to size). There is now one curve
   registry, shared by generation and publication.
-- The capabilities document ([ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md))
+- The capabilities document ([ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md))
   gains an `eccCurves` section (its own provider), and the management console offers a server-driven
   curve picker on the create-secret form when `ecc` is selected.
 

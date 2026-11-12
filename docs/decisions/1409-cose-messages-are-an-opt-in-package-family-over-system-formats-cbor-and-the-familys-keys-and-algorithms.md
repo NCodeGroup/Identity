@@ -12,7 +12,7 @@ encryption layer of CBOR Web Tokens ([RFC 8392](https://datatracker.ietf.org/doc
 (18013-5) and of EUDI wallet credentials, and its messages are small enough for constrained devices.
 
 The family already has a JOSE algorithm set and a `SecretKey` model with registered key types
-([ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md),
+([ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
 [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md)). An
 implementation package references only abstractions
 ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), an opt-in capability extends the marker of
@@ -178,7 +178,7 @@ of the JOSE stack and the keys of the family.
   [RFC 9964](https://datatracker.ietf.org/doc/html/rfc9964), [RFC 9338](https://datatracker.ietf.org/doc/html/rfc9338),
   [RFC 9360](https://datatracker.ietf.org/doc/html/rfc9360), [RFC 9596](https://datatracker.ietf.org/doc/html/rfc9596)
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
-  [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md),
+  [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
   [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md),

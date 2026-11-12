@@ -6,7 +6,7 @@
 
 ## Context
 
-The secret-key-type descriptor ([ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md)) began
+The secret-key-type descriptor ([ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md)) began
 life as a **taxonomy + capability catalog** — the single source of truth for _which_ key types exist and _what_ they
 can do (`KeyType`, `IsAsymmetric`, `SupportsPublicKeyExport`, plus `ValidateGeneration` / `GenerateKeyMaterial`). As
 public-key import ([ADR-1104](1104-import-public-asymmetric-secret-material.md)) landed, more per-key-type behavior was

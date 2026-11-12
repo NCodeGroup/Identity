@@ -181,7 +181,7 @@ The records are grouped by area; within an area they are in number order.
 | [1043](./1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md) | The hierarchical endpoint-group mechanism is a cross-cutting package layered on the registration builder | Accepted |
 | [1044](./1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) | The management API authenticates its own access tokens and a configured client bootstraps the first GlobalAdmin | Accepted |
 | [1046](./1046-api-reference-openapi-document-and-scalar.md) | The API reference (OpenAPI document + Scalar) is owned by the composition layer and turnkey for every environment | Accepted |
-| [1067](./1067-secret-type-capability-catalog-and-capabilities-discovery.md) | Secret-type capability catalog and composable management capabilities discovery | Accepted |
+| [1067](./1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) | Secret key types form one catalog, and authenticated management callers discover the deployment's capabilities | Accepted |
 | [1086](./1086-canonical-openid-endpoint-shape.md) | Canonical OpenID endpoint shape: a thin endpoint over a strongly-typed message and a mediator pipeline | Accepted |
 | [1191](./1191-the-management-api-authenticates-against-the-control-plane-tenant.md) | The management API authenticates against the control-plane tenant | Accepted |
 | [1214](./1214-a-management-write-that-loses-a-race-is-answered-412.md) | A management write that loses a concurrency race is answered 412 | Accepted |
@@ -202,7 +202,6 @@ The records are grouped by area; within an area they are in number order.
 | [1470](./1470-a-callers-acting-client-is-resolved-once-per-request.md) | A caller's acting client is resolved once per request | Accepted |
 | [1480](./1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md) | A management route answers from what it read and declares every problem it answers | Accepted |
 | [1481](./1481-a-management-routes-problem-responses-say-when-each-occurs.md) | A management route's problem responses say when each occurs | Accepted |
-| [1482](./1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md) | Only an authenticated management caller reads the management capabilities | Accepted |
 | [1483](./1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md) | A management request whose binding fails is answered as a problem its route declares | Accepted |
 
 ### Protocol endpoints, grants and tokens

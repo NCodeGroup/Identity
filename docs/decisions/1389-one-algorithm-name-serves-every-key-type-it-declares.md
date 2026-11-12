@@ -6,7 +6,7 @@
   type is the first that accepts its configuration, and only a symmetric key is checked by its type and size)
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md), the shape of the
+- **Amends:** [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md), the shape of the
   `algorithms` capability section, and [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
   decision 2's rule that a key's type follows from its algorithm
 
@@ -161,7 +161,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
   [RFC 7748 §6](https://datatracker.ietf.org/doc/html/rfc7748#section-6),
   [RFC 7638 §3.2](https://datatracker.ietf.org/doc/html/rfc7638#section-3.2)
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
-  [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md),
+  [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
   [ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md),
   [ADR-1126](1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),

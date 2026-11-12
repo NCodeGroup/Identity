@@ -18,6 +18,8 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
 
     private DirectoryInfo Root { get; } = Directory.CreateTempSubdirectory("proxy-verifier-");
 
+    private FakeTimeProvider Time { get; } = new(Now);
+
     public void Dispose() => Root.Delete(recursive: true);
 
     #region Helpers
@@ -57,7 +59,7 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
                     AllowedSubjects = [AllowedSubject],
                 }
             ),
-            new FakeTimeProvider(Now)
+            Time
         );
 
     private static X509Certificate2 CreateClientLeaf(
@@ -323,7 +325,30 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
     }
 
     [Fact]
-    public void Verify_WhenTheAnchorFileIsRewritten_UsesTheNewAnchors()
+    public void Verify_WhenTheAnchorFileIsRewrittenBeforeTheRefreshInterval_KeepsTheLoadedAnchors()
+    {
+        using var firstAuthority =
+            ProxyClientCertificateTestCertificates.CreateCertificateAuthority("CN=first", Now);
+        using var secondAuthority =
+            ProxyClientCertificateTestCertificates.CreateCertificateAuthority("CN=second", Now);
+        using var firstLeaf = CreateClientLeaf(firstAuthority);
+        using var secondLeaf = CreateClientLeaf(secondAuthority);
+        WriteAnchor(firstAuthority, Now.UtcDateTime);
+        var verifier = CreateVerifier();
+
+        Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(firstLeaf));
+
+        WriteAnchor(secondAuthority, Now.UtcDateTime.AddMinutes(1));
+        Time.Advance(
+            ProxyClientCertificateVerifier.AnchorRefreshInterval - TimeSpan.FromSeconds(1)
+        );
+
+        Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(firstLeaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, verifier.Verify(secondLeaf));
+    }
+
+    [Fact]
+    public void Verify_WhenTheAnchorFileIsRewrittenAndTheRefreshIntervalPassed_UsesTheNewAnchors()
     {
         using var firstAuthority =
             ProxyClientCertificateTestCertificates.CreateCertificateAuthority("CN=first", Now);
@@ -338,9 +363,75 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, verifier.Verify(secondLeaf));
 
         WriteAnchor(secondAuthority, Now.UtcDateTime.AddMinutes(1));
+        Time.Advance(ProxyClientCertificateVerifier.AnchorRefreshInterval);
 
         Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, verifier.Verify(firstLeaf));
         Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(secondLeaf));
+    }
+
+    [Fact]
+    public void Verify_WhenTheAnchorFileIsRemovedBeforeTheRefreshInterval_DoesNotReadTheFile()
+    {
+        using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=ca",
+            Now
+        );
+        using var firstLeaf = CreateClientLeaf(authority);
+        using var secondLeaf = CreateClientLeaf(authority);
+        WriteAnchor(authority, Now.UtcDateTime);
+        var verifier = CreateVerifier();
+
+        Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(firstLeaf));
+
+        File.Delete(AnchorPath);
+        Time.Advance(TimeSpan.FromSeconds(1));
+
+        Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(secondLeaf));
+    }
+
+    [Fact]
+    public void Verify_WhenTheCertificateExpiresWithinTheVerdictLifetime_RefusesAfterNotAfter()
+    {
+        using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=ca",
+            Now
+        );
+        WriteAnchor(authority, Now.UtcDateTime);
+        using var leaf = ProxyClientCertificateTestCertificates.CreateLeaf(
+            authority,
+            AllowedSubject,
+            [ProxyClientCertificateTestCertificates.ClientAuthenticationOid],
+            Now.AddDays(-1),
+            Now.AddMinutes(2)
+        );
+        var verifier = CreateVerifier();
+
+        Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(leaf));
+
+        Time.Advance(TimeSpan.FromSeconds(90));
+
+        Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(leaf));
+
+        Time.Advance(TimeSpan.FromSeconds(60));
+
+        Assert.Equal(ProxyClientCertificateRefusal.NotYetValidOrExpired, verifier.Verify(leaf));
+    }
+
+    [Fact]
+    public void Verify_WhenMoreCertificatesThanTheCacheHoldsAreVerified_KeepsJudgingEachOne()
+    {
+        using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=ca",
+            Now
+        );
+        WriteAnchor(authority, Now.UtcDateTime);
+        var verifier = CreateVerifier();
+
+        for (var index = 0; index < ProxyClientCertificateVerifier.MaxCachedVerdicts + 8; index++)
+        {
+            using var leaf = CreateClientLeaf(authority);
+            Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(leaf));
+        }
     }
 
     #endregion

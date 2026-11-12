@@ -6,7 +6,7 @@
   [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md),
   [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
   [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md); amended by
-  [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md): the
+  [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md): the
   console's image and the host chart's management console component; amended by
   [ADR-1488](1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md):
   the console's host serves only the console, and the console reaches the management API at its authority's origin)

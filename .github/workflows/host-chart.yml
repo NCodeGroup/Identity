@@ -1,4 +1,4 @@
-# Host chart — lints and renders the Helm chart of NCode.Identity.OpenId.Host (ADR-1179).
+# Host chart — lints and renders the Helm chart of NCode.Identity.OpenId.Host (ADR-1458).
 #
 # The chart encodes the host's configuration surface, so it changes with the host and is checked on every change: each
 # values file under ci/ must lint strictly and render, and each release the chart must refuse — the host would refuse

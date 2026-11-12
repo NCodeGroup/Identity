@@ -13,7 +13,7 @@ rule 5). Its location, `Region`, `VaultUri` or `KeyRing`, is optional: with it t
 keys, and without it the provider binds keys a KMS already holds and creates none.
 
 The host chart refuses a release the host would refuse
-([ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)) and mounts a
+([ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)) and mounts a
 vendor's workload credentials only into pods that use the vendor
 ([ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
 [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)). Every chart value has a default,
@@ -79,7 +79,7 @@ location is optional and rendered only when set.**
 
 ## References
 
-- [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)
+- [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)
 - [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)
 - [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)
 - [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)

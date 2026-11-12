@@ -3,9 +3,9 @@
 The Helm chart for `NCode.Identity.OpenId.Host`, the OpenID Connect and OAuth 2.0 server. It runs the host image as a
 non-root deployment that meets the restricted Pod Security Standard, probes `/health/live` and `/health/ready`, and
 drains each pod before stopping it
-([ADR-1179](../../docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 Setting `managementConsole.enabled` also deploys the management console host on a host name of its own
-([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
+([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 It requires Kubernetes 1.30 or later.
 
 ## Before the first install
@@ -561,7 +561,7 @@ entries may be removed afterwards.
 With `managementConsole.enabled=true` the chart also deploys the management console host: a Deployment, a Service, a
 ServiceAccount that mounts no token, a PodDisruptionBudget, and an Ingress on `managementConsole.host` that routes
 every path to the console. The console runs its own image, which shares the chart's `appVersion`
-([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
+([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 
 Create the two private keys the console's BFF signs with, and a Secret for each, in the release's namespace:
 

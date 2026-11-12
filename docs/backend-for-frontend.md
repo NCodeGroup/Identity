@@ -1342,7 +1342,7 @@ holds, or both
 the `managementConsole` component of `charts/ncode-identity-host`, which mounts each key ring's PEM key from a Secret or
 names its keys in a KMS that the console reaches through its own workload identity, routes every path of the console's
 host to the console host, and sets `ManagementConsole:ManagementApiUrl` to `/api` on the authority's origin
-([ADR-1458](decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
+([ADR-1458](decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
 [ADR-1485](decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),
 [ADR-1488](decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md)).
 

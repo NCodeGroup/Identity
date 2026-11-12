@@ -1,6 +1,6 @@
 # 1488. The management console reaches the management API at its authority's origin, and its host serves only the console
 
-- **Status:** Accepted (amends [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md), [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md), [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md))
+- **Status:** Accepted (amends [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md), [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md), [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md))
 - **Refines:** [ADR-1387](1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md)
 - **Date:** 2026-11-09
 - **Deciders:** NCode Group
@@ -61,6 +61,6 @@ path to the console.**
 - [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)
 - [ADR-1387](1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md)
 - [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
-- [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)
+- [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)
 - `charts/ncode-identity-host`, `.github/workflows/host-chart.yml`
 - Issue [#720](https://github.com/NCodeGroup/identity/issues/720)

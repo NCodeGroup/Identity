@@ -513,7 +513,7 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
 | Environment     | Behavior                                                                                                                                                                                       |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Production**  | Refuses to start with the `ephemeral` provider, with a root key written inline in configuration (even if unused), or with no recovery decision. It reports every finding together.              |
-| **Helm chart**  | Refuses to render a malformed KMS key ARN, key name or key id, and mounts cloud credentials only for the selected provider ([ADR-1179](../decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). |
+| **Helm chart**  | Refuses to render a malformed KMS key ARN, key name or key id, and mounts cloud credentials only for the selected provider ([ADR-1458](../decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)). |
 | **Development** | No root key or development credential is ever committed, and `ephemeral` is selected only by the host's Development and Conformance overlays. The LocalDev AppHost generates one per machine, outside the repository. If the root key changes, development key pruning (`DeveloperKeys:PruneUnreadableKeys`) heals the platform and the affected tenants: the platform starts over with a new master key, and its Data Protection keys are revoked.       |
 
 ## Protect your own data with it

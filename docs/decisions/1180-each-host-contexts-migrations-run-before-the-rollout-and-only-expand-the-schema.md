@@ -12,7 +12,7 @@ The host never migrates on boot outside Development
 A schema change is a deliberate step, and replicas that start at once must not race to apply it. Locally, the Aspire
 AppHost runs the migration worker `NCode.Identity.OpenId.Host.MigrationService` before the host; a Kubernetes deployment
 through the host's chart
-([ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)) needs the same
+([ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)) needs the same
 step. During a rolling update the previous and the next release run side by side, and a Helm rollback returns to the
 previous release without running a migration, because no hook runs on rollback and EF Core cannot safely reverse every
 migration. So a migration must leave the previous release working.
@@ -150,6 +150,6 @@ rule for every migration author.
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
   [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
-  [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md),
+  [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)
 - [#535](https://github.com/NCodeGroup/identity/issues/535)

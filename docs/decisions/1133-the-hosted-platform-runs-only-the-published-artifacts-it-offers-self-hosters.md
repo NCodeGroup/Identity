@@ -34,7 +34,7 @@ small components composed into opinionated stacks, and the supported set is limi
    `charts/ncode-identity-host`. It lives in `identity` with the host and its Dockerfile
    ([ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)),
    because it encodes the host's configuration surface (settings, ports, probes) and must change atomically with it
-   ([ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). It is
+   ([ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)). It is
    versioned with the host image and released as a signed OCI chart on GHCR with provenance.
 2. **Layered building blocks** in `NCodeGroup/identity-platform`, so users can take a single component, a whole stack,
    or a stack as a template to fork:

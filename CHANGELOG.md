@@ -357,7 +357,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile` builds the console host on the host image's pinned chiseled
   base images: no shell, the non-root `app` user, port 8080, the `apps/mgmt` bundle served from `/app/mgmt`, and
   one-line JSON logs; the `Console image` CI workflow builds it for `linux/amd64` and `linux/arm64`
-  ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
+  ([ADR-1458](docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
   issue [#610](https://github.com/NCodeGroup/identity/issues/610)).
 
 - **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` on Kubernetes 1.30 or
@@ -374,7 +374,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Valkey, and for unknown values. Without Valkey the chart uses the `Recreate` deployment strategy, which waits for the
   old pod to terminate before starting the next, so it never runs two replicas at once. The `Host chart` CI workflow
   lints the chart, renders each example release, and checks that each unsafe release is refused
-  ([ADR-1179](docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+  ([ADR-1458](docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 
 - **The host chart deploys the management console on a host of its own.** With `managementConsole.enabled`,
   `charts/ncode-identity-host` runs the console host under the restricted Pod Security Standard with its own
@@ -389,7 +389,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   that is not `https`, a key ring with no key, two keys of a key ring with one id, a remote key whose id is not its
   service's key form, a half-set console identity, or more than one console replica without the console's own
   Valkey
-  ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
+  ([ADR-1458](docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
   [ADR-1485](docs/decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),
   [ADR-1488](docs/decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md),
   issues [#610](https://github.com/NCodeGroup/identity/issues/610),

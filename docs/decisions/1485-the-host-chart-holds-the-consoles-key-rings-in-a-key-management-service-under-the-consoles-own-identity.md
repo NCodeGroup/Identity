@@ -1,6 +1,6 @@
 # 1485. The host chart holds the console's key rings in a key management service under the console's own identity
 
-- **Status:** Accepted (amends [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md); amended by
+- **Status:** Accepted (amends [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md); amended by
   [ADR-1489](1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md):
   the console registers every vendor without a location, and the chart renders no provider section for it)
 - **Date:** 2026-11-09
@@ -16,9 +16,9 @@ starts
 ([ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
 
 The host chart deploys the console
-([ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)) and
+([ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)) and
 refuses a release the host would refuse
-([ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). A console
+([ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)). A console
 whose keys exist only as PEM files keeps its private keys in the memory of every replica.
 
 A remote key provider registers when its `SecretProtection:RemoteKeyProviders:<Vendor>` section exists, and its options
@@ -91,9 +91,9 @@ location read from that key, and gives the console a workload identity of its ow
 ## References
 
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
-- [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)
+- [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)
 - [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
-- [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)
+- [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)
 - [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)
 - `charts/ncode-identity-host`, `.github/workflows/host-chart.yml`
 - Issue [#712](https://github.com/NCodeGroup/identity/issues/712)

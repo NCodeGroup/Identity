@@ -94,7 +94,7 @@ never from configuration.
    leave the credentials to the cluster. Google's `external_account` configuration is a ConfigMap rendered from the
    values and projected with the token into one volume, and its checksum is a pod annotation, so a change restarts the
    pods. A malformed key identifier, key name or workload identity pool provider is refused before the release renders
-   ([ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)), and
+   ([ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)), and
    Production accepts either provider as a root key held outside the pod.
 
 ## Options considered
@@ -135,7 +135,7 @@ never from configuration.
   and the root key provider vocabulary that this extends.
 - [ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) — no long-lived credentials.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies (root key providers).
-- [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) — the chart
+- [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md) — the chart
   refuses a release that the host would refuse.
 - [`GoogleCloudKmsKeyWrapper`](../../src/NCode.Identity.Secrets.GoogleCloudKms/GoogleCloudKmsKeyWrapper.cs)
   and

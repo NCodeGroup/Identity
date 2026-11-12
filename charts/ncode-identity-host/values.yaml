@@ -1,4 +1,4 @@
-# Default values for the ncode-identity-host chart (ADR-1179). Secrets are never values: the chart references Secrets
+# Default values for the ncode-identity-host chart (ADR-1458). Secrets are never values: the chart references Secrets
 # the operator creates, by name.
 
 # The number of replicas. More than one requires Valkey (ADR-1164), because replicas share single-use state through it.

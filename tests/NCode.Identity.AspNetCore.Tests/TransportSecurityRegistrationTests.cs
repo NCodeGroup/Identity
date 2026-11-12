@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.AspNetCore.Tests.TransportSecurity;
 using NCode.Identity.AspNetCore.TransportSecurity;
 using Xunit;
@@ -19,6 +20,10 @@ namespace NCode.Identity.AspNetCore.Tests;
 public sealed class TransportSecurityRegistrationTests : BaseTests
 {
     #region Helpers
+
+    // The check reads the clock from the registered TimeProvider, so every certificate's validity window is built
+    // around this fixed instant.
+    private static DateTimeOffset Now { get; } = new(2030, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
     private IHostEnvironment CreateEnvironment(string environmentName)
     {
@@ -38,6 +43,7 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
         );
         builder.Logging.ClearProviders();
         builder.WebHost.ConfigureKestrel(listen);
+        builder.Services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
         builder.Services.AddTransportSecurity(builder.Environment);
 
         await using var app = builder.Build();
@@ -71,6 +77,7 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
                 }
             );
             builder.WebHost.UseUrls(urls);
+            builder.Services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
             builder.Services.AddTransportSecurity(builder.Environment);
 
             await using var app = builder.Build();
@@ -123,9 +130,7 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task AddTransportSecurity_InProductionWithAValidHttpsEndpoint_Starts()
     {
-        using var certificate = TransportSecurityTestCertificates.CreateValid(
-            DateTimeOffset.UtcNow
-        );
+        using var certificate = TransportSecurityTestCertificates.CreateValid(Now);
 
         var exception = await Record.ExceptionAsync(async () =>
             await StartAsync(
@@ -161,9 +166,7 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task AddTransportSecurity_InProductionWithHttpsAndHttpEndpoints_Refuses()
     {
-        using var certificate = TransportSecurityTestCertificates.CreateValid(
-            DateTimeOffset.UtcNow
-        );
+        using var certificate = TransportSecurityTestCertificates.CreateValid(Now);
 
         var exception = await Record.ExceptionAsync(async () =>
             await StartAsync(
@@ -188,10 +191,9 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task AddTransportSecurity_InProductionWithAnExpiredCertificate_Refuses()
     {
-        var now = DateTimeOffset.UtcNow;
         using var certificate = TransportSecurityTestCertificates.CreateWithValidity(
-            now.AddDays(-10),
-            now.AddDays(-1)
+            Now.AddDays(-10),
+            Now.AddDays(-1)
         );
 
         var exception = await Record.ExceptionAsync(async () =>
@@ -214,9 +216,7 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task AddTransportSecurity_InProductionWithTheDevelopmentCertificate_Refuses()
     {
-        using var certificate = TransportSecurityTestCertificates.CreateDevelopmentMarked(
-            DateTimeOffset.UtcNow
-        );
+        using var certificate = TransportSecurityTestCertificates.CreateDevelopmentMarked(Now);
 
         var exception = await Record.ExceptionAsync(async () =>
             await StartAsync(
@@ -256,9 +256,7 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task AddTransportSecurity_InProductionWithAConfiguredCertificateAndHttpsUrl_Starts()
     {
-        using var certificate = TransportSecurityTestCertificates.CreateValid(
-            DateTimeOffset.UtcNow
-        );
+        using var certificate = TransportSecurityTestCertificates.CreateValid(Now);
 
         var exception = await Record.ExceptionAsync(async () =>
             await StartConfiguredAsync(
@@ -275,9 +273,7 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task AddTransportSecurity_InProductionWithAConfiguredCertificateAndAWildcardHttpsUrl_Starts()
     {
-        using var certificate = TransportSecurityTestCertificates.CreateValid(
-            DateTimeOffset.UtcNow
-        );
+        using var certificate = TransportSecurityTestCertificates.CreateValid(Now);
 
         var exception = await Record.ExceptionAsync(async () =>
             await StartConfiguredAsync(
@@ -294,10 +290,9 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task AddTransportSecurity_InProductionWithAConfiguredExpiredCertificate_Refuses()
     {
-        var now = DateTimeOffset.UtcNow;
         using var certificate = TransportSecurityTestCertificates.CreateWithValidity(
-            now.AddDays(-10),
-            now.AddDays(-1)
+            Now.AddDays(-10),
+            Now.AddDays(-1)
         );
 
         var exception = await Record.ExceptionAsync(async () =>
@@ -316,9 +311,7 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
     [Fact]
     public async Task AddTransportSecurity_InProductionWithAConfiguredCertificateAndAnHttpUrl_Refuses()
     {
-        using var certificate = TransportSecurityTestCertificates.CreateValid(
-            DateTimeOffset.UtcNow
-        );
+        using var certificate = TransportSecurityTestCertificates.CreateValid(Now);
 
         var exception = await Record.ExceptionAsync(async () =>
             await StartConfiguredAsync(

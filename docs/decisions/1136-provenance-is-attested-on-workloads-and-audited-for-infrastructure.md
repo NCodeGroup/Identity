@@ -13,7 +13,7 @@ resource, plans would never report "no changes", scheduled drift detection would
 apply didn't otherwise touch would carry a SHA that says nothing about the code that defines it. The platform deploys
 two kinds of things through different paths: **workloads** (container images and Helm charts, rolled out by Flux) and
 **infrastructure** (cloud resources, applied by OpenTofu from GitHub Actions)
-([ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md),
+([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
 [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)).
 
 ## Decision

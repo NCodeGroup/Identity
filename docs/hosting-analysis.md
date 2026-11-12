@@ -98,7 +98,7 @@ control plane (+$60).
 
 | Concern                                        | Service                                       | Free allowance (verified 2026-10-18 unless noted)                                                                        |
 | ---------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Source, infrastructure code, CI, images        | GitHub Actions + GitHub Container Registry    | Free for public repositories and public packages, including environments with required reviewers ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)) |
+| Source, infrastructure code, CI, images        | GitHub Actions + GitHub Container Registry    | Free for public repositories and public packages, including environments with required reviewers ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)) |
 | DNS                                            | Cloudflare DNS                                | Free plan, incl. DNSSEC; registrar stays at Porkbun. Keep identity hosts **DNS-only** — proxying would terminate TLS at Cloudflare and drop the client certificate |
 | Server certificates                            | Let's Encrypt via cert-manager                | Free                                                                                                                     |
 | OpenTofu state, Postgres backups, vendor tokens | AWS S3 + SSM Parameter Store (dedicated account) | **Not free — cents/month at this size:** S3 Standard $0.023/GB-month, $5/M writes, $0.40/M reads; SSM standard parameters free |
@@ -178,7 +178,7 @@ public infrastructure repository, the Cloudflare account and a short-lived boots
 IAM Identity Center (home region `us-west-2`), the OCI tenancy for the lab (home region Phoenix), running the bootstrap
 stack, the registrar delegation, and the email-routing verification.
 
-**Bootstrap stack** ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)) — OpenTofu run once
+**Bootstrap stack** ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)) — OpenTofu run once
 from the owner's machine with those short-lived credentials (local state, then migrated into the bucket it creates):
 the S3 **state bucket** (versioning, encryption, public-access block, TLS-only policy) and **backup bucket** (Object
 Lock in compliance mode, archive lifecycle); the GitHub OIDC provider with a read-only **plan** role and an **apply**
@@ -289,7 +289,7 @@ available and requires at least two years of registration remaining and a `_psl`
 
 **Code and package namespaces:** repositories and container images stay under `NCodeGroup` (`ghcr.io/ncodegroup/…`),
 which doesn't need to match the product domain; GitHub remains the single home for source, infrastructure code, CI and
-packages ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)). On npm the `@ncode` scope
+packages ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)). On npm the `@ncode` scope
 belongs to an unrelated party, so JavaScript packages publish under the org-owned `@ncodegroup` scope (matching the
 GitHub organization and GitHub Packages' scope rule). The frontend's `@ncode/*` workspace packages are private and
 resolve only through `workspace:*`, so they are renamed only if and when one is published. The family publishes on NuGet
@@ -592,7 +592,7 @@ janitor that destroys anything older than a few hours — that also keeps every 
   the buckets, OIDC roles, zone, and vendor tokens (§3). Prefer **OpenTofu** for client-side **state and plan
   encryption** (state and plans contain connection strings and keys).
 - **Repository:** the public `NCodeGroup/identity-platform`, with the guardrails in
-  [ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md) — no secrets in Git (push protection,
+  [ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md) — no secrets in Git (push protection,
   `gitleaks`), no credentials for untrusted pull requests, no plans in public logs or artifacts, operator-specific values
   in SSM.
 - **Same artifacts as self-hosters** ([ADR-1133](decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)): the host's
@@ -661,7 +661,7 @@ speed-test endpoint from the Denver network the users are on.
   is the primary restore path, but it lives in the same vendor account. A nightly `pg_dump`, encrypted client-side with
   `age` (it contains signing keys and the Data Protection key ring), goes off-vendor to the AWS backup bucket — Object
   Lock in compliance mode, write-only credentials, 14 daily + 12 monthly copies with monthly ones moved to an archive
-  tier ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)). A restore drill before launch and
+  tier ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)). A restore drill before launch and
   quarterly; written RPO / RTO targets.
 - **Cluster secrets** never sit in Git as plaintext: SOPS + age (free) or External Secrets Operator syncing from the
   key vault.

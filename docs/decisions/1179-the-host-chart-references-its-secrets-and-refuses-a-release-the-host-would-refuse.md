@@ -19,7 +19,7 @@ the hardened image ([ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-ar
 a rolling deployment behind an ingress. It also has to enforce the one rule the host cannot enforce itself: more than
 one replica needs Valkey ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
 The platform's values live in a public repository
-([ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md)), so they must never hold a secret.
+([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)), so they must never hold a secret.
 
 ## Decision
 

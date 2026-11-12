@@ -9,7 +9,7 @@
 ## Context
 
 The platform spans several vendors — AWS, Cloudflare, OCI, Akamai, GitHub, and Kubernetes
-([ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md)) — each with its own tagging model: AWS and
+([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)) — each with its own tagging model: AWS and
 OCI use key/value maps, Akamai and Cloudflare DNS records use plain `key:value` strings, Kubernetes uses labels (no `@`
 allowed in values) and annotations, and GitHub only has repository topics. Without one strategy, every component invents
 its own keys and nobody can answer, from a resource alone, who owns it, which environment it serves, which code manages

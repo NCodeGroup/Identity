@@ -9,7 +9,7 @@
 ## Context
 
 The hosted platform ([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)) is provisioned as public
-code ([ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md)) from the same artifacts offered to
+code ([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)) from the same artifacts offered to
 self-hosters ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)). Many later choices — how a node is
 patched, where a cache lives, how a schema changes, whether a feature may keep in-memory state — need one shared answer
 rather than being argued case by case. An identity provider is also an availability dependency for every relying party:

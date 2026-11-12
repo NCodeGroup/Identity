@@ -5,7 +5,7 @@
   published stacks ([ADR-1133](decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)).
 - **Scope:** the **manual** operations only — the steps no API can do (creating accounts, proving identity, payment,
   registrar delegation, clicking verification links). Everything after them is the OpenTofu bootstrap stack and then
-  GitOps ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md),
+  GitOps ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
   [ADR-1134](decisions/1134-cloud-native-operating-principles.md)).
 
 Each step says **what** to do, **why** it is manual, and how to **verify** it. Placeholders are in angle brackets; the
@@ -168,7 +168,7 @@ Manual because AWS accounts and the identity used to administer them must exist 
      dashboard.
 
    Create **no IAM users or access keys** — CI uses GitHub OIDC
-   ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)). Then sign out of root, sign in
+   ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)). Then sign out of root, sign in
    through the access portal to the management account, and in IAM → *Root access management* confirm that
    `nidentity-platform` shows root user credentials **Not present** — an account created through Organizations never
    had any, so *Delete root user credentials* is greyed out — and that password recovery is **not** allowed for it.

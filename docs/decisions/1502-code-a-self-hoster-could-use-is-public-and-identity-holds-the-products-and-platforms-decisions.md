@@ -13,7 +13,7 @@ package ID or an image name is permanent once it is published.
 
 [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform) holds the hosted platform's
 infrastructure as code in a public repository of its own
-([ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md)). It is made from the same project template as
+([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)). It is made from the same project template as
 this repository. The template makes each repository the home of its own decisions
 ([project-template ADR-0010](project-template/0010-a-change-consumers-can-observe-is-decided-before-it-is-built.md))
 and pending work ([project-template ADR-0007](project-template/0007-pending-work-is-tracked-as-issues.md)), and its
@@ -29,7 +29,7 @@ platform.** Anything in the private repository that a self-hoster would want bel
 | Repository                     | Visibility | Holds |
 | ------------------------------ | ---------- | ----- |
 | `NCodeGroup/identity`          | Public     | The NuGet packages (`src/`), the deployables (`hosts/`), the host and console images, the host chart (`charts/ncode-identity-host`), the web apps' pnpm workspace (`frontend/`), and the decisions and issues of the product and its platform |
-| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the live configuration for `lab` and `production` ([ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md), [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)) |
+| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the live configuration for `lab` and `production` ([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md), [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)) |
 | `NCodeGroup/identity-cloud`    | Private    | Only the managed offering's proprietary parts: billing and metering, sign-up, the customer portal, support tooling and private runbooks |
 
 1. **The repositories.** The three repositories are the table above. `identity-cloud` is created with the managed
@@ -77,7 +77,7 @@ platform.** Anything in the private repository that a self-hoster would want bel
 - **A library-only repository, with the chart and images in `identity-platform`.** Rejected: every host configuration
   change would span two repositories ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)).
 - **One private repository for the managed offering.** Rejected: self-hosters need the components, and
-  [ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md) makes the infrastructure public.
+  [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md) makes the infrastructure public.
 - **Separate repositories for the packages and the frontend at the first stable release.** Rejected: the packages
   version in lockstep from one `version.json`, and the console image builds `frontend/`.
 - **Repository names that repeat the organization, such as `NCodeGroup/ncode-identity`.** Rejected: the organization
@@ -110,7 +110,7 @@ platform.** Anything in the private repository that a self-hoster would want bel
   the overrides.
 - [ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md),
   [ADR-1064](1064-frontend-presentation-platform.md),
-  [ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md),
+  [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
   [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md),
   [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md),
   [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md),

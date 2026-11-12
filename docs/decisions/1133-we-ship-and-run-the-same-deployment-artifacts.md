@@ -11,7 +11,7 @@
 NCode.Identity is both an open-source library family with a deployable host
 ([ADR-1501](1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)) and a hosted platform
 ([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)) whose infrastructure code is public
-([ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md)). That raises a recurring question: does the
+([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)). That raises a recurring question: does the
 platform run on private, platform-only deployment code, or on the same artifacts a self-hoster would use?
 
 Forces:
@@ -82,7 +82,7 @@ small components composed into opinionated stacks, and the supported set is limi
 - **Per-component version tags.** Precise, but many release trains for a small team and a compatibility matrix between
   components. Rejected in favor of one lockstep tag.
 - **In-cluster components as OpenTofu `helm_release` resources.** One tool end to end, but it puts in-cluster state in
-  OpenTofu instead of GitOps ([ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md)); Kustomize bases
+  OpenTofu instead of GitOps ([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)); Kustomize bases
   stay usable with any GitOps tool. Rejected.
 - **A separate repository for reusable components.** Cleaner history for their consumers, but double the repository
   overhead for a small team; tag-pinned consumption from `live/` already enforces the member rule. Deferred; revisit if
@@ -103,6 +103,6 @@ small components composed into opinionated stacks, and the supported set is limi
 
 ## References
 
-- [ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md) — the public `NCodeGroup/identity-platform`
+- [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md) — the public `NCodeGroup/identity-platform`
   repository and its guardrails.
 - [Hosting analysis §11](../hosting-analysis.md#11-iac-and-delivery) — delivery layout.

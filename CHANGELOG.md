@@ -1377,7 +1377,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The OP serves Pushed Authorization Requests (RFC 9126) at `pushed_authorization_request_endpoint` (`/oauth2/par`)**
   (issue [#46](https://github.com/NCodeGroup/identity/issues/46),
-  [ADR-1089](docs/decisions/1089-pushed-authorization-requests.md)). A client authenticates as at the token endpoint and
+  [ADR-1089](docs/decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md)). A client authenticates as at the token endpoint and
   POSTs its authorization parameters form-encoded; the request is loaded and validated exactly as the authorization
   endpoint would, persisted as a single-use grant and answered with `201 Created`, an opaque `request_uri`
   (`urn:ietf:params:oauth:request_uri:<reference>`) and `expires_in`. The client then calls the authorization endpoint
@@ -4832,7 +4832,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#333](https://github.com/NCodeGroup/identity/issues/333)).
 
 - **A pushed `request_uri` is consumed once and bound to the client that pushed it, and client secrets are never
-  persisted with it** ([ADR-1089](docs/decisions/1089-pushed-authorization-requests.md)). A replay is rejected, a
+  persisted with it** ([ADR-1089](docs/decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md)). A replay is rejected, a
   `request_uri` issued to another client is rejected with `invalid_request_uri`, and `client_secret`, `client_assertion`
   and `client_assertion_type` are stripped before persistence and never replayed. The PAR endpoint derives the response
   delivery when a request is pushed (RFC 9126 §2.1), so it refuses a `redirect_uri` the client has not registered at

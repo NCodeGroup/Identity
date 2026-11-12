@@ -96,7 +96,7 @@ The **OpenID Provider side** already provides everything a BFF needs:
 | BFF needs                                    | The NCode OP provides                                                                                                                                       |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Confidential-client authentication           | `private_key_jwt` ([ADR-1102](decisions/1102-jwt-bearer-client-authentication.md)) and mutual TLS ([ADR-1107](decisions/1107-mutual-tls-client-authentication.md))      |
-| Authorization requests kept off the URL      | Pushed authorization requests (PAR) ([ADR-1089](decisions/1089-pushed-authorization-requests.md))                                                                 |
+| Authorization requests kept off the URL      | Pushed authorization requests (PAR) ([ADR-1089](decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md))                                                                 |
 | Sender-constrained tokens                    | DPoP, including `dpop_jkt` and refresh-token binding continuity ([ADR-1097](decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md))                    |
 | Audience-restricted tokens per API           | RFC 8707 resource indicators, including down-scoping on refresh ([ADR-1158](decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)) |
 | Safe refresh tokens                          | Rotation with reuse detection that revokes the family ([ADR-1087](decisions/1087-refresh-token-reuse-detection-and-family-revocation.md))                         |
@@ -1676,7 +1676,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 - Family ADRs: [1001](decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [1074](decisions/1074-session-management-and-logout.md), [1077](decisions/1077-session-scoped-grant-revocation-on-logout.md),
   [1087](decisions/1087-refresh-token-reuse-detection-and-family-revocation.md),
-  [1089](decisions/1089-pushed-authorization-requests.md),
+  [1089](decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md),
   [1097](decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md),
   [1150](decisions/1150-vocabularies-are-open-unless-provably-closed.md),
   [1154](decisions/1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),

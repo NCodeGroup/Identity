@@ -202,7 +202,7 @@ The records are grouped by area; within an area they are in number order.
 | [1085](./1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) | CIBA is a pending request in the grant store, delivered by poll, ping or push | Accepted |
 | [1087](./1087-refresh-token-reuse-detection-and-family-revocation.md) | Refresh-token reuse detection revokes the whole rotation family | Accepted |
 | [1088](./1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md) | Front-channel logout and session management are available but disabled by default | Accepted |
-| [1089](./1089-pushed-authorization-requests.md) | Pushed Authorization Requests (PAR, RFC 9126) | Accepted |
+| [1089](./1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md) | A pushed authorization request is a single-use, client-bound grant expanded before anything is trusted | Accepted |
 | [1093](./1093-pairwise-subject-identifiers.md) | Pairwise subject identifiers via a stateless, deterministic projection | Accepted |
 | [1095](./1095-sector-identifier-uri-fetch-and-ssrf-guard.md) | Registration-time `sector_identifier_uri` fetch and validation with an SSRF-guarded client | Accepted |
 | [1096](./1096-end-session-subject-from-server-state.md) | End-session resolves the stable subject from server-owned state, never by reversing a pairwise `sub` | Accepted |

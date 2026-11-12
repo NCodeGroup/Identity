@@ -11,7 +11,7 @@ The backend-for-frontend ([design](../backend-for-frontend.md) §5.1, issue #123
 through Pushed Authorization Requests (PAR) when the provider advertises `pushed_authorization_request_endpoint`, and
 never falls back to the front channel when PAR is required.
 [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) left PAR to phase 1b. The
-NCode OP implements PAR ([ADR-1089](1089-pushed-authorization-requests.md)). This ADR
+NCode OP implements PAR ([ADR-1089](1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md)). This ADR
 records `IAuthorizationRequestClient` in `NCode.Identity.OpenId.Client`, which turns an authorization-code + PKCE `S256`
 request into the URL the browser is redirected to, under RFC 9126.
 
@@ -84,7 +84,7 @@ client registration demands it, and returns a PAR endpoint's OAuth error as data
 
 ## References
 
-- [ADR-1089](1089-pushed-authorization-requests.md) — the OP's PAR endpoint
+- [ADR-1089](1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md) — the OP's PAR endpoint
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) — logout-token validation

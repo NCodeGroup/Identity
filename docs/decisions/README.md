@@ -135,7 +135,7 @@ The records are grouped by area; within an area they are in number order.
 | [1139](./1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) | Setting names are a closed vocabulary changed outright, and settings the server cannot honor fail loudly | Accepted |
 | [1140](./1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) | Setting values are validated against their domain, not only their type | Accepted |
 | [1148](./1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) | A scope selects security profiles that accumulate down the cascade as ceilings, defaults and requirements | Accepted |
-| [1149](./1149-settings-declare-the-scopes-they-apply-to.md) | Settings declare the scopes they apply to | Accepted |
+| [1149](./1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) | Settings declare the scopes they apply to, and the scopes are a registered cascade | Accepted |
 | [1202](./1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md) | FAPI 1.0 Advanced is a second registered security profile | Accepted |
 | [1204](./1204-a-scopes-effective-settings-are-resolved-by-one-service.md) | A scope's effective settings are resolved by one service | Accepted |
 | [1206](./1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) | A client's settings are checked by registered coherence rules | Accepted |

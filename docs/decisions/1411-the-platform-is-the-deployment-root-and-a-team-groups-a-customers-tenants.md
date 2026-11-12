@@ -22,7 +22,7 @@
   [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md),
   [ADR-1142](1142-listed-response-types-are-the-only-front-channel-token-control.md),
   [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
-  [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md),
+  [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
   [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
   [ADR-1159](1159-a-tenant-is-named-by-its-creator.md),
   [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
@@ -66,7 +66,7 @@ administrators of one tenant cannot create another, a plan's tenant quota has no
 summed per customer.
 
 The family already has the pieces a grouping needs: a cascade of settings scopes, each setting declaring the scopes it
-applies to ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)), security profiles that accumulate down the
+applies to ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)), security profiles that accumulate down the
 cascade ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)), tenants named by their creator
 ([ADR-1159](1159-a-tenant-is-named-by-its-creator.md)), and a role model whose assignments are owned by a scope
 ([ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md)). The open questions are what the deployment root
@@ -91,7 +91,7 @@ the platform and its tenants in the settings cascade and in authority.**
    strategy creates.
 3. **The cascade has four tiers.** Settings resolve through host configuration and the platform, the team, the
    tenant, and the client or resource server, with the registered setting scopes `platform`, `team`, `tenant`, `client`
-   and `resource_server` ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)). A team document carries every
+   and `resource_server` ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). A team document carries every
    setting that applies beneath it, so the security profiles and ceilings a team selects bind its tenants
    ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). `max_tenants` applies to the team
    scope, merges with `Min`, and a creation past it answers `409`; the ceiling is checked before the insert and never

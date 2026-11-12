@@ -1,6 +1,6 @@
 # 1066. Resource servers are first-class settings and secret owners
 
-- **Status:** Accepted (amended by [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): a resource-server
+- **Status:** Accepted (amended by [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md): a resource-server
   document carries only the settings that apply within a resource server; amended by
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md): a system resource server holds no
   keys)

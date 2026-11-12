@@ -30,7 +30,7 @@ The server honored almost none of it:
   could use, and — when `id_token_encryption_required` was set — encrypted to the **tenant's** key, which the client
   cannot decrypt. A logout token followed the same path.
 - The request-object and UserInfo algorithm lists were read only by discovery, so they applied to tenants only
-  ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)). A request object's `alg` was checked only against
+  ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). A request object's `alg` was checked only against
   `none`, so the FAPI 2.0 profile's ceiling on request-object signing did not bind, and the UserInfo endpoint returned
   only JSON while discovery advertised signed and encrypted responses (issue [#102](https://github.com/NCodeGroup/identity/issues/102)).
 - The UserInfo endpoint accepted the end-user's session cookie in place of an access token. OpenID Connect Core §5.3
@@ -161,7 +161,7 @@ never compresses.**
   [RFC 9101](https://www.rfc-editor.org/rfc/rfc9101); [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725) §3.2, §3.6.
 - [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) — the validator the
   inbound policies configure.
-- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) (amended: the request-object, UserInfo, and ID token
+- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) (amended: the request-object, UserInfo, and ID token
   lists apply to clients), [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) (amended: an unset list at a
   trust boundary permits nothing), [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md),
   [ADR-1085](1085-ciba-grant.md) and [ADR-1090](1090-durable-outbound-delivery-dispatch-adapter.md) (amended: no

@@ -3256,7 +3256,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   effective-settings previews list only the settings that apply within the previewed scope.
   `ISettingSerializer.DeserializeSettings`, `ISettingSerializer.ValidateSettings` and the JSON overload of
   `ISecurityProfileCatalog.Expand` take the name of the scope whose document they read
-  ([ADR-1149](docs/decisions/1149-settings-declare-the-scopes-they-apply-to.md)).
+  ([ADR-1149](docs/decisions/1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)).
 
 - **Setting scopes are an open vocabulary.** Each scope is a registered `SettingScopeDescriptor` (a name and the scope
   it inherits from), collected by `ISettingScopeCollection` through `ISettingScopeCollectionProvider`, and the cascade
@@ -4828,7 +4828,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   authenticating client's effective `token_endpoint_auth_signing_alg_values_supported`, so a client's narrower list, and
   the ceiling of a security profile the client (not only its tenant) selects, such as FAPI 2.0, bind the algorithm of
   its `private_key_jwt` and `client_secret_jwt` assertions
-  ([ADR-1149](docs/decisions/1149-settings-declare-the-scopes-they-apply-to.md)). At these trust boundaries an unset
+  ([ADR-1149](docs/decisions/1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). At these trust boundaries an unset
   list, or a list narrowed to nothing, permits no algorithm
   ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
 

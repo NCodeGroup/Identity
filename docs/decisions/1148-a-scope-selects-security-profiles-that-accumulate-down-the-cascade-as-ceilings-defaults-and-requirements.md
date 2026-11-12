@@ -44,7 +44,7 @@ in `OpenIdConstants.SecurityProfiles`.
 
 A scope selects profiles through the `security_profiles` setting, a `Union` list that defaults to empty. Selections
 accumulate platform, team, tenant, then client, and a child never removes a parent's. A resource server selects none
-([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)).
+([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)).
 
 ### Profiles compose by conjunction
 
@@ -155,7 +155,7 @@ What FAPI requires but is correct for any client is not gated on a profile:
   registered ones.
 - [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): the registered client-authentication
   methods that the `fapi2` ceiling narrows.
-- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): the scopes a setting applies within.
+- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md): the scopes a setting applies within.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): open vocabularies.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md):
   the merge lattice.

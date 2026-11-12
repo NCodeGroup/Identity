@@ -473,7 +473,7 @@ than inlining the rationale.
   `openIdContext.Tenant.SettingsProvider` — the tenant's collection ignores the client's narrowing and the ceilings of
   the profiles the client selects. Adding a reader at a new scope widens `AppliesTo`; narrowing it ships with a data
   migration that removes the setting from the documents of the scopes it leaves. See
-  [ADR-1149](../../docs/decisions/1149-settings-declare-the-scopes-they-apply-to.md).
+  [ADR-1149](../../docs/decisions/1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md).
 - 👁 **A capability the server advertises and a requirement a client registers are two settings.** Advertised support
   never forces a client. The requirement is a client setting with an `Or` floor, and a coherence rule refuses it where
   support is off (`tls_client_certificate_bound_access_tokens` and

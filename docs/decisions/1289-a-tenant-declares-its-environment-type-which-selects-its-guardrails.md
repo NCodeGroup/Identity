@@ -19,7 +19,7 @@ than the former: a production tenant could be deleted as easily as a scratch one
 tenant. Telemetry could not separate the traffic of a load-test tenant from production traffic either.
 
 The family already has the pieces a declaration needs: tenant settings that cascade from the server
-([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)), security profiles that accumulate down the cascade as
+([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)), security profiles that accumulate down the cascade as
 ceilings, defaults and requirements ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)), and a
 tenant branding document that the interactive pages embed
 ([ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md)). The open questions were what the
@@ -32,7 +32,7 @@ carry.
 tenant that declares nothing is `production`.**
 
 1. **Three tenant settings.** `environment_type`, `environment_name` and `deletion_protection`, each applying to the
-   tenant scope only ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)), not discoverable, and merged with
+   tenant scope only ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)), not discoverable, and merged with
    `Replace`. `environment_type` is the name of a registered environment type; `environment_name` is a free-form display
    name of at most 64 characters with no control characters, empty by default ("sandbox", "qa"), used for display only,
    never for behavior and never in telemetry; `deletion_protection` is a bool, false by default, which the `production`
@@ -145,7 +145,7 @@ tenant that declares nothing is `production`.**
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — hosted platform environment model
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — security profiles accumulate down the
   cascade
-- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) — settings declare their scopes
+- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) — settings declare their scopes
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed
 - [ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md) — tenant branding
 - [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — bounded metric

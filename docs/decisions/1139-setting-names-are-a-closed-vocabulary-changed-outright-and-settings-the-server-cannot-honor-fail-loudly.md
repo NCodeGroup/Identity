@@ -71,7 +71,7 @@ stored or skipped.**
    ([ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
 9. **One outcome at every entry point.** A value's domain
    ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)) and the scopes a setting applies to
-   ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)) are checked at the same entry points with the same
+   ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)) are checked at the same entry points with the same
    outcome. A composed-server test pins every setting name the library defines to a registered descriptor.
 
 ## Options considered
@@ -109,7 +109,7 @@ stored or skipped.**
 - [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md),
-  [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md),
+  [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
   [ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md),
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md),
   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)

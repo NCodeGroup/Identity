@@ -7,7 +7,7 @@
   authority over its parent team, and `max_teams` is a limit)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)
+- **Refines:** [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)
 
 ## Context
 
@@ -20,7 +20,7 @@ tenant's owners do the same to the rate limits a team wrote on the tenant, and a
 rate limit a tenant wrote on the client. A value set above is advice, not a limit.
 
 The settings merge already declares which scopes a setting applies to
-([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)). It does not declare who may write the setting in a
+([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). It does not declare who may write the setting in a
 given scope's document, and the plan tier's quotas
 ([ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) and the tenant rate limits
 ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)) are the settings that most need a
@@ -75,7 +75,7 @@ that document's node.**
 
 ## References
 
-- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) — settings declare the scopes they apply to
+- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) — settings declare the scopes they apply to
 - [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — tenants are rate limited through
   a shared expiring counter set
 - [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — plan-tier quotas are daily UTC

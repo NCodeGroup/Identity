@@ -11,7 +11,7 @@
 An access token is requested by a client and read by the resource servers it targets — its audiences
 ([ADR-1027](1027-access-token-audience-from-resource-servers.md)). Both carry a settings document: a client's
 effective settings cascade `server → tenant → client`, and a resource server's `server → tenant → resource server`
-([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)). The two are siblings in the cascade, so neither
+([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). The two are siblings in the cascade, so neither
 document is merged into the other.
 
 Access-token issuance read every setting from the client's effective settings, with one exception: when the token
@@ -165,7 +165,7 @@ the request is refused. Nothing is silently weakened or redirected.**
   JWT Confirmation Methods registry; [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) §2; FAPI 2.0 Security Profile.
 - [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md) (amended: settings combine, and the recipient
   rule); [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) (amended: the sender constraint is
-  a ceiling); [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) (extended: the settings that apply to
+  a ceiling); [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) (extended: the settings that apply to
   resource servers); [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge lattice;
   [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — profile ceilings;
   [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) — `server_error` for an

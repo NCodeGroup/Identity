@@ -23,7 +23,7 @@ Three forces pull against auditing every read:
 
 Which tenants, and which of a tenant's clients, handle data that needs the trail is the operator's knowledge, so the
 choice belongs in the settings vocabulary, which scopes and merges a value per server, tenant and client
-([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)).
+([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)).
 
 ## Decision
 
@@ -85,7 +85,7 @@ that names the subject, the client and the names of the claims disclosed, never 
   endpoint.
 - [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md),
   [ADR-1047](1047-auditing-and-events-observation-seam.md),
-  [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md),
+  [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
   [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md).
 - [Audit records](../audit-records.md).
 - Code: `NCode.Identity.OpenId.Authentication.Auditing.UserInfoAccessedAuditEvent`,

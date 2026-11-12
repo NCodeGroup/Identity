@@ -61,7 +61,7 @@ These are open, and each stays open:
 - The framework's `HashAlgorithmName` and the `BinaryEncodings` names of registered encoders
   ([ADR-1190](1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md)).
 - Setting scopes: registered `SettingScopeDescriptor` data whose cascade a catalog derives
-  ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)), so the settings framework serves any entity an
+  ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)), so the settings framework serves any entity an
   extension adds.
 
 ### Public enums that pass
@@ -118,7 +118,7 @@ The outcome sets of one library-owned operation each also pass: `PasswordVerific
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   pre-release, Auth0-parity-plus posture.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md): registered setting names reject unregistered input.
-- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): the setting scopes, the case that motivated this rule.
+- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md): the setting scopes, the case that motivated this rule.
 - [ADR-1098](1098-session-lifecycle-termination-seam.md), [ADR-1104](1104-import-public-asymmetric-secret-material.md)
   and [ADR-1190](1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md): the open vocabularies they
   hold.

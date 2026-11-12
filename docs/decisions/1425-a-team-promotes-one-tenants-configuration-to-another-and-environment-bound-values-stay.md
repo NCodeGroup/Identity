@@ -134,7 +134,7 @@ keys, principals and environment-bound values stay with their environment.**
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md) — secret material is revealed once on create
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — the hosted platform's environment model
   and hostname scheme
-- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) — settings declare the scopes they apply to
+- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) — settings declare the scopes they apply to
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed
 - [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) — a client's settings are checked by
   registered coherence rules

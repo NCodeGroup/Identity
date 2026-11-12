@@ -14,7 +14,7 @@ A scope's effective settings are the server's settings with the tenant's setting
 client's or the resource server's merged onto those. Before a document merges, the ceilings and defaults of every
 security profile it selects are expanded into it, so a client that selects `fapi2` carries that profile's limits
 whatever its own document says ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). A resource
-server selects no security profile ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)).
+server selects no security profile ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)).
 
 The live providers materialize this merge for a request. Code that runs outside a materialized tenant or client needs
 the same result: a key seed, a management preview, and a check of a proposed change. A review (issue [#230](https://github.com/NCodeGroup/identity/issues/230)) found that
@@ -43,7 +43,7 @@ that check reads.
    (`NCode.Identity.OpenId.Abstractions`, namespace `NCode.Identity.OpenId.Settings`) has five members:
    - `ReadScopeSettings(scopeName, document)` deserializes a scope's persisted document with the environment's JSON
      options and expands the security profiles it selects. The scope name lets a setting that does not apply within the
-     scope fail the read ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)).
+     scope fail the read ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)).
    - `Resolve(parent, scopeName, document)` merges that onto the parent's effective settings.
    - `ResolveStored(parent, scopeName, ownerId, document)` merges a document that a store holds, and throws
      `UnreadableSettingsException`, a `JsonException` that names the scope and the owner, when it cannot be honored

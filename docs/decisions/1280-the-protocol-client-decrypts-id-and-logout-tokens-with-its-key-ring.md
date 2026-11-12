@@ -6,7 +6,7 @@
 
 ## Context
 
-[ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) (point 8) and
+[ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) (point 8) and
 [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) (point 8) refuse an encrypted ID
 token and an encrypted logout token: the validators pass no decryption keys, so the JWT validator rejects a JWE
 ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)).
@@ -91,7 +91,7 @@ registered encryption.**
   and keeps its private decryption key, with `use` `enc`, in its key ring.
 - Tokens from an OP that does not encrypt are refused for such a client.
 - A client that registers no encryption keeps refusing an encrypted token, now with `algorithm_not_permitted`.
-- This amends [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) point 8,
+- This amends [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) point 8,
   [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) point 8 and
   [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code.md) points 7 and 8, through their status lines
   only.
@@ -109,7 +109,7 @@ registered encryption.**
   only through `IJwtValidator` under explicit algorithm and key policy
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the client's named
   key rings
-- [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) — the ID-token
+- [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) — the ID-token
   validator this amends
 - [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) — the logout-token validator this
   amends

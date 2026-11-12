@@ -42,7 +42,7 @@ of the JOSE stack and the keys of the family.
    included, reads a header or a claim without the implementation. `CoseKeyIdentifiers` is the one rule that names a
    `kid` as a `KeyId`; the implementation, a key resolver and a reader of a confirmation `kid` apply it alike, so it is
    a public helper of the abstractions, as `TokenHash` is of the JOSE abstractions
-   ([ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md)).
+   ([ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md)).
 
 2. **Reading is strict and bounded.** Every reader uses `CborConformanceMode.Strict` and refuses input larger than
    `CoseOptions.MaxMessageSizeBytes` before parsing it, bytes after the root item, any indefinite-length array, map,
@@ -183,7 +183,7 @@ of the JOSE stack and the keys of the family.
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
-  [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md),
+  [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md),
   [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)
 - Issue [#76](https://github.com/NCodeGroup/identity/issues/76)
 - `NCode.Identity.Cose.Abstractions`: `ICoseSerializer`, `CoseAlgorithms`, `CoseKeyTypeDescriptors`,

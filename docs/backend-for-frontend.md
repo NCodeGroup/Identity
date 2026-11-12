@@ -311,7 +311,7 @@ policy:
 - `iss` must equal the discovered issuer, and `aud` must contain the `client_id`, with `azp` checked when present.
 - `exp`, `iat`, and `nonce` are checked, and `auth_time` when `max_age` was requested.
 - `at_hash`, `c_hash` and `s_hash`, when present, are checked through the signing algorithm's token hash, in constant
-  time ([ADR-1273](decisions/1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md)).
+  time ([ADR-1273](decisions/1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md)).
 - When the client registers ID-token encryption, the ID token must be a Nested JWT that decrypts with the asymmetric
   keys of the client's key ring under its registered `alg` and `enc` (RSA-OAEP or ECDH-ES only)
   ([ADR-1280](decisions/1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)).

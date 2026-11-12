@@ -2628,7 +2628,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   through `SignatureAlgorithm.GetTokenHashFunction` by the shared `TokenHash` helper in
   `NCode.Identity.Jose.Algorithms`, which the server's ID-token payload handler also uses. The ID-token, logout-token
   and UserInfo validations share one validation core
-  ([ADR-1273](docs/decisions/1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md),
+  ([ADR-1273](docs/decisions/1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md),
   issue [#335](https://github.com/NCodeGroup/identity/issues/335)).
 
 - **The OpenID protocol client decrypts encrypted ID tokens and logout tokens.**

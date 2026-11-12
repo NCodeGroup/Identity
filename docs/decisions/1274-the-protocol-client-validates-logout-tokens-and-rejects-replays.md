@@ -15,7 +15,7 @@ The backend-for-frontend ([design](../backend-for-frontend.md) §5.8, issue #123
 sends a back-channel logout request, and it must not act on a `logout_token` before the token is validated.
 [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) left logout-token
 validation, and the `jti` check against the shared state, to phase 1b.
-[ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) then set the
+[ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) then set the
 asymmetric-only signature policy for ID tokens. This ADR records `ILogoutTokenValidator` in
 `NCode.Identity.OpenId.Client`, which validates a logout token under OpenID Connect Back-Channel Logout 1.0 §2.6.
 
@@ -101,7 +101,7 @@ data.**
   abstractions
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the atomic expiring key set
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
-- [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) — ID-token validation
+- [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) — ID-token validation
   and the signature policy
 - OpenID Connect Back-Channel Logout 1.0 §2.4 (logout token), §2.6 (logout token validation) and §4 (security
   considerations)

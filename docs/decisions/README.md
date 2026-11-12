@@ -280,7 +280,7 @@ The records are grouped by area; within an area they are in number order.
 | [1154](./1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) | JWTs are validated only as signed tokens, by requirements and handlers under the caller's stated policy | Accepted |
 | [1270](./1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted |
 | [1272](./1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
-| [1273](./1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) | The protocol client validates ID tokens under an asymmetric algorithm policy | Accepted |
+| [1273](./1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) | The protocol client validates ID tokens and their token hashes under OpenID Connect Core | Accepted |
 | [1274](./1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) | The protocol client validates logout tokens and rejects replays | Accepted |
 | [1275](./1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) | The protocol client pushes authorization requests whenever the provider offers PAR | Accepted |
 | [1276](./1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md) | The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package | Accepted |

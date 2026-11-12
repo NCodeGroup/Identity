@@ -13,7 +13,7 @@
 callers act on a stable, snake_case machine-readable code, set where the failure is detected and passed through by the
 layers above. This record applies it to token validation.
 
-[ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) and
+[ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) and
 [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) report an invalid ID token or
 logout token only as `FailureReason` text. The backend-for-frontend design ([§5.2](../backend-for-frontend.md)) names a
 failed login from an open vocabulary (`id_token_invalid`, `nonce_mismatch`, …), so a caller that has only the text can
@@ -134,7 +134,7 @@ one of its own from `TokenValidationFailureCodes`.**
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) — JWTs are validated
   only through `IJwtValidator`
-- [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) — the ID-token
+- [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) — the ID-token
   validator this amends
 - [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) — the logout-token validator this
   amends

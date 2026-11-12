@@ -31,7 +31,9 @@ internal sealed class ProxyClientCertificateVerifier(
     private DateTime AnchorsLastWriteTimeUtc { get; set; }
 
     /// <summary>
-    /// Returns whether the certificate is the proxy's.
+    /// Returns whether the certificate is the proxy's. The anchors are the certificate authorities the operator
+    /// trusts, so an anchor that is itself an issuing certificate authority is trusted without its parents: a chain
+    /// that stops at such an anchor is accepted, while any other chain failure is refused.
     /// </summary>
     internal bool IsTrusted(X509Certificate2 certificate)
     {
@@ -53,8 +55,63 @@ internal sealed class ProxyClientCertificateVerifier(
         chain.ChainPolicy.CustomTrustStore.AddRange(anchors);
         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
         chain.ChainPolicy.VerificationTime = TimeProvider.GetUtcNow().UtcDateTime;
-        return chain.Build(certificate);
+
+        // the certificate is the peer's, so its authority information access extension is never followed
+        chain.ChainPolicy.DisableCertificateDownloads = true;
+
+        return chain.Build(certificate) || IsPartialChainEndingAtAnAnchor(chain, anchors);
     }
+
+    private static bool IsPartialChainEndingAtAnAnchor(
+        X509Chain chain,
+        X509Certificate2Collection anchors
+    )
+    {
+        foreach (var status in chain.ChainStatus)
+        {
+            if (!IsNoErrorOrPartialChain(status.Status))
+            {
+                return false;
+            }
+        }
+
+        var elements = chain.ChainElements;
+        var lastIndex = elements.Count - 1;
+        if (lastIndex < 0)
+        {
+            return false;
+        }
+
+        for (var index = 0; index <= lastIndex; index++)
+        {
+            foreach (var status in elements[index].ChainElementStatus)
+            {
+                if (status.Status == X509ChainStatusFlags.NoError)
+                {
+                    continue;
+                }
+
+                if (status.Status != X509ChainStatusFlags.PartialChain || index != lastIndex)
+                {
+                    return false;
+                }
+            }
+        }
+
+        var thumbprint = elements[lastIndex].Certificate.Thumbprint;
+        foreach (var anchor in anchors)
+        {
+            if (string.Equals(anchor.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsNoErrorOrPartialChain(X509ChainStatusFlags status) =>
+        status is X509ChainStatusFlags.NoError or X509ChainStatusFlags.PartialChain;
 
     private static bool HasClientAuthentication(X509Certificate2 certificate)
     {

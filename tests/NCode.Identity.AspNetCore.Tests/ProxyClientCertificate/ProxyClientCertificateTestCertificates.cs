@@ -41,15 +41,56 @@ internal static class ProxyClientCertificateTestCertificates
     }
 
     /// <summary>
+    /// An intermediate certificate authority signed by <paramref name="issuer"/> with the given subject and validity
+    /// period.
+    /// </summary>
+    internal static X509Certificate2 CreateIntermediateAuthority(
+        X509Certificate2 issuer,
+        string subject,
+        DateTimeOffset notBefore,
+        DateTimeOffset notAfter
+    )
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var request = new CertificateRequest(subject, ecdsa, HashAlgorithmName.SHA256);
+        request.CertificateExtensions.Add(
+            new X509BasicConstraintsExtension(
+                certificateAuthority: true,
+                hasPathLengthConstraint: false,
+                pathLengthConstraint: 0,
+                critical: true
+            )
+        );
+        request.CertificateExtensions.Add(
+            new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, critical: true)
+        );
+        request.CertificateExtensions.Add(
+            new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false)
+        );
+        request.CertificateExtensions.Add(
+            X509AuthorityKeyIdentifierExtension.CreateFromCertificate(
+                issuer,
+                includeKeyIdentifier: true,
+                includeIssuerAndSerial: false
+            )
+        );
+
+        using var created = request.Create(issuer, notBefore, notAfter, CreateSerialNumber());
+        return created.CopyWithPrivateKey(ecdsa);
+    }
+
+    /// <summary>
     /// A leaf certificate signed by <paramref name="issuer"/> with the given subject, extended key usages and validity
-    /// period. A <c>null</c> <paramref name="usages"/> adds no extended key usage extension.
+    /// period, which need not lie inside the issuer's. A <c>null</c> <paramref name="usages"/> adds no extended key usage extension, and a non-<c>null</c>
+    /// <paramref name="caIssuersUrl"/> adds an authority information access extension that names it.
     /// </summary>
     internal static X509Certificate2 CreateLeaf(
         X509Certificate2 issuer,
         string subject,
         string[]? usages,
         DateTimeOffset notBefore,
-        DateTimeOffset notAfter
+        DateTimeOffset notAfter,
+        string? caIssuersUrl = null
     )
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -63,12 +104,39 @@ internal static class ProxyClientCertificateTestCertificates
             )
         );
 
+        if (caIssuersUrl is not null)
+        {
+            request.CertificateExtensions.Add(
+                new X509AuthorityInformationAccessExtension(
+                    ocspUris: null,
+                    caIssuersUris: [caIssuersUrl],
+                    critical: false
+                )
+            );
+        }
+
+        using var issuerKey =
+            issuer.GetECDsaPrivateKey()
+            ?? throw new InvalidOperationException("The issuer has no ECDSA private key.");
+        var generator = X509SignatureGenerator.CreateForECDsa(issuerKey);
+
+        // the generator form does not require the validity period to be inside the issuer's
+        return request.Create(
+            issuer.SubjectName,
+            generator,
+            notBefore,
+            notAfter,
+            CreateSerialNumber()
+        );
+    }
+
+    private static byte[] CreateSerialNumber()
+    {
         var serialNumber = new byte[8];
         RandomNumberGenerator.Fill(serialNumber);
         serialNumber[0] &= 0x7F;
         serialNumber[0] |= 0x01;
-
-        return request.Create(issuer, notBefore, notAfter, serialNumber);
+        return serialNumber;
     }
 
     /// <summary>

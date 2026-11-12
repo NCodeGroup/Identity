@@ -34,6 +34,19 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         File.SetLastWriteTimeUtc(AnchorPath, lastWriteTimeUtc);
     }
 
+    private void WriteAnchors(
+        DateTime lastWriteTimeUtc,
+        params X509Certificate2[] certificateAuthorities
+    )
+    {
+        File.WriteAllText(
+            AnchorPath,
+            string.Concat(certificateAuthorities.Select(x => x.ExportCertificatePem() + "\n")),
+            SecureEncoding.UTF8
+        );
+        File.SetLastWriteTimeUtc(AnchorPath, lastWriteTimeUtc);
+    }
+
     private ProxyClientCertificateVerifier CreateVerifier() =>
         new(
             Microsoft.Extensions.Options.Options.Create(
@@ -192,6 +205,104 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
             Now.AddDays(1),
             Now.AddDays(30)
         );
+
+        Assert.False(CreateVerifier().IsTrusted(leaf));
+    }
+
+    [Fact]
+    public void IsTrusted_WhenTheIssuerIsMissingFromTheAnchors_IsRefused()
+    {
+        using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=ca",
+            Now
+        );
+        using var foreignAuthority =
+            ProxyClientCertificateTestCertificates.CreateCertificateAuthority("CN=foreign", Now);
+        WriteAnchor(authority, Now.UtcDateTime);
+        using var leaf = ProxyClientCertificateTestCertificates.CreateLeaf(
+            foreignAuthority,
+            AllowedSubject,
+            [ProxyClientCertificateTestCertificates.ClientAuthenticationOid],
+            Now.AddDays(-1),
+            Now.AddDays(30),
+            caIssuersUrl: "http://127.0.0.1:1/ca.crt"
+        );
+
+        Assert.False(CreateVerifier().IsTrusted(leaf));
+    }
+
+    [Fact]
+    public void IsTrusted_WhenTheAnchorsHoldTheRootAndTheIntermediate_AcceptsALeafIssuedByTheIntermediate()
+    {
+        using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=root",
+            Now
+        );
+        using var intermediate = ProxyClientCertificateTestCertificates.CreateIntermediateAuthority(
+            root,
+            "CN=intermediate",
+            Now.AddDays(-30),
+            Now.AddDays(300)
+        );
+        WriteAnchors(Now.UtcDateTime, root, intermediate);
+        using var leaf = CreateClientLeaf(intermediate);
+
+        Assert.True(CreateVerifier().IsTrusted(leaf));
+    }
+
+    [Fact]
+    public void IsTrusted_WhenTheAnchorIsOnlyTheIntermediate_AcceptsALeafItIssued()
+    {
+        using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=root",
+            Now
+        );
+        using var intermediate = ProxyClientCertificateTestCertificates.CreateIntermediateAuthority(
+            root,
+            "CN=intermediate",
+            Now.AddDays(-30),
+            Now.AddDays(300)
+        );
+        WriteAnchor(intermediate, Now.UtcDateTime);
+        using var leaf = CreateClientLeaf(intermediate);
+
+        Assert.True(CreateVerifier().IsTrusted(leaf));
+    }
+
+    [Fact]
+    public void IsTrusted_WhenTheAnchorIsOnlyTheRootAndTheIntermediateIsNotSent_IsRefused()
+    {
+        using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=root",
+            Now
+        );
+        using var intermediate = ProxyClientCertificateTestCertificates.CreateIntermediateAuthority(
+            root,
+            "CN=intermediate",
+            Now.AddDays(-30),
+            Now.AddDays(300)
+        );
+        WriteAnchor(root, Now.UtcDateTime);
+        using var leaf = CreateClientLeaf(intermediate);
+
+        Assert.False(CreateVerifier().IsTrusted(leaf));
+    }
+
+    [Fact]
+    public void IsTrusted_WhenTheAnchorIsAnExpiredIntermediate_IsRefused()
+    {
+        using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=root",
+            Now
+        );
+        using var intermediate = ProxyClientCertificateTestCertificates.CreateIntermediateAuthority(
+            root,
+            "CN=intermediate",
+            Now.AddDays(-60),
+            Now.AddDays(-1)
+        );
+        WriteAnchor(intermediate, Now.UtcDateTime);
+        using var leaf = CreateClientLeaf(intermediate);
 
         Assert.False(CreateVerifier().IsTrusted(leaf));
     }

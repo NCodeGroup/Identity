@@ -27,6 +27,39 @@ namespace NCode.Identity.AspNetCore;
 [PublicAPI]
 public static class TrustedForwardedHeadersRegistration
 {
+    private static void ConfigureForwardedHeaders(
+        ForwardedHeadersOptions forwardedHeadersOptions,
+        TrustedForwardedHeadersOptions trustedForwardedHeadersOptions
+    )
+    {
+        forwardedHeadersOptions.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor
+            | ForwardedHeaders.XForwardedProto
+            | ForwardedHeaders.XForwardedHost;
+
+        forwardedHeadersOptions.ForwardLimit = trustedForwardedHeadersOptions.ForwardLimit;
+
+        // The framework defaults trust loopback, which is wrong in both directions here: a proxy in another container
+        // is not loopback (so forwarding would silently do nothing), and anything else that reaches the application
+        // directly must not be trusted. Replace the defaults with exactly what was configured; the validator has
+        // already rejected every entry that does not parse.
+        forwardedHeadersOptions.KnownProxies.Clear();
+        forwardedHeadersOptions.KnownIPNetworks.Clear();
+
+        foreach (var proxy in trustedForwardedHeadersOptions.KnownProxies)
+        {
+            var address = IPAddress.Parse(proxy);
+            forwardedHeadersOptions.KnownProxies.Add(address);
+        }
+
+        foreach (var network in trustedForwardedHeadersOptions.KnownNetworks)
+        {
+            // System.Net.IPNetwork, not the obsolete Microsoft.AspNetCore.HttpOverrides type of the same name.
+            var ipNetwork = System.Net.IPNetwork.Parse(network);
+            forwardedHeadersOptions.KnownIPNetworks.Add(ipNetwork);
+        }
+    }
+
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
@@ -75,39 +108,6 @@ public static class TrustedForwardedHeadersRegistration
                 );
 
             return serviceCollection;
-        }
-    }
-
-    private static void ConfigureForwardedHeaders(
-        ForwardedHeadersOptions forwardedHeadersOptions,
-        TrustedForwardedHeadersOptions trustedForwardedHeadersOptions
-    )
-    {
-        forwardedHeadersOptions.ForwardedHeaders =
-            ForwardedHeaders.XForwardedFor
-            | ForwardedHeaders.XForwardedProto
-            | ForwardedHeaders.XForwardedHost;
-
-        forwardedHeadersOptions.ForwardLimit = trustedForwardedHeadersOptions.ForwardLimit;
-
-        // The framework defaults trust loopback, which is wrong in both directions here: a proxy in another container
-        // is not loopback (so forwarding would silently do nothing), and anything else that reaches the application
-        // directly must not be trusted. Replace the defaults with exactly what was configured; the validator has
-        // already rejected every entry that does not parse.
-        forwardedHeadersOptions.KnownProxies.Clear();
-        forwardedHeadersOptions.KnownIPNetworks.Clear();
-
-        foreach (var proxy in trustedForwardedHeadersOptions.KnownProxies)
-        {
-            var address = IPAddress.Parse(proxy);
-            forwardedHeadersOptions.KnownProxies.Add(address);
-        }
-
-        foreach (var network in trustedForwardedHeadersOptions.KnownNetworks)
-        {
-            // System.Net.IPNetwork, not the obsolete Microsoft.AspNetCore.HttpOverrides type of the same name.
-            var ipNetwork = System.Net.IPNetwork.Parse(network);
-            forwardedHeadersOptions.KnownIPNetworks.Add(ipNetwork);
         }
     }
 }

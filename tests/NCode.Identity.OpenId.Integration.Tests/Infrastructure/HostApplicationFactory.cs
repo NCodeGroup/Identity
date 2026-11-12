@@ -95,9 +95,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     internal ConcurrentQueue<RecordedHttpExchange>? BackChannelLogoutExchanges { get; set; }
 
     /// <summary>
-    /// When set, every request carries an <see cref="IProxyClientCertificateFeature"/> holding this certificate before
-    /// the host's pipeline runs, as a request does when a reverse proxy that authenticates to the host with it
-    /// forwards the request. The certificate is the proxy's, never an end client's.
+    /// When set, every request carries an <see cref="IProxyClientCertificateFeature"/> holding this certificate, and
+    /// the same certificate on its connection, before the host's pipeline runs, as a request does when a reverse proxy
+    /// that authenticates to the host with it forwards the request. The certificate is the proxy's, never an end
+    /// client's.
     /// </summary>
     public X509Certificate2? VerifiedProxyCertificate { get; set; }
 
@@ -1546,6 +1547,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                         context.Features.Set<IProxyClientCertificateFeature>(
                             new VerifiedProxyCertificateFeature(certificate)
                         );
+                        context.Connection.ClientCertificate = certificate;
                         return nextMiddleware(context);
                     }
                 );

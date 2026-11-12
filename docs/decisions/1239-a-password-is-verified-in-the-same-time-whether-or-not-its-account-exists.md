@@ -48,7 +48,7 @@ the result.**
    a password, whose stored hash is absent or empty, are verified against it through the routine that verifies a stored
    hash, and refused.
 5. **The dummy takes the steps of a stored hash.** A password that is not in NFC is verified in its NFC form and then as
-   submitted ([ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), against the dummy as
+   submitted ([ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md)), against the dummy as
    against a stored hash, so a wrong password costs the same number of hash verifications on every path.
 6. **Some differences stay.** A password refused at the limit of failed attempts takes the work of a wrong one
    ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)), and these remain:
@@ -88,7 +88,7 @@ the result.**
 - [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — a locked-out user's
   password is not verified.
 - [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md) — the limit on failed attempts.
-- [ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md) — the form of a password that is hashed
+- [ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md) — the form of a password that is hashed
   and verified.
 - Code: `NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher`,
   `NCode.Identity.OpenId.Accounts.Credentials.DefaultPasswordHasher`,

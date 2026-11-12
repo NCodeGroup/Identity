@@ -451,7 +451,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
     )
     {
         // The hash is made with the user manager's normalizing hasher and stored through the user store, so no password
-        // validator of ASP.NET Core Identity judges a password the password policy accepted. See ADR-1238 and ADR-1243.
+        // validator of ASP.NET Core Identity judges a password the password policy accepted. See ADR-1238.
         var passwordHash = passwordHasher.HashPassword(user, password);
         await passwordStore.SetPasswordHashAsync(user, passwordHash, cancellationToken);
     }

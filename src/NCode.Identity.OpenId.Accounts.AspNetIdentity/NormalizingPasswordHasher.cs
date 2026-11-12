@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 /// </summary>
 /// <param name="innerHasher">The host's <see cref="IPasswordHasher{TUser}"/> that makes and verifies the hashes.</param>
 /// <typeparam name="TUser">The ASP.NET Core Identity user type.</typeparam>
-// See ADR-1238 and ADR-1243.
+// See ADR-1238.
 [PublicAPI]
 public sealed class NormalizingPasswordHasher<TUser>(IPasswordHasher<TUser> innerHasher)
     : IPasswordHasher<TUser>

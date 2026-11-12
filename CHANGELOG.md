@@ -5407,7 +5407,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Unicode Normalization Form C (NFC) and its blocklists see that form, and an `IPasswordHasher` hashes and verifies the
   NFC form of the bytes it is given, so a password typed with another composition of the same characters, such as `e`
   and a combining accent for `é`, verifies; a stored hash of a password in another form verifies and is rehashed in its
-  NFC form ([ADR-1238](docs/decisions/1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), issue
+  NFC form ([ADR-1238](docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md), issue
   [#297](https://github.com/NCodeGroup/identity/issues/297)).
 
 - **A host's own ASP.NET Core Identity pages verify the password the adapter stores.**
@@ -5417,14 +5417,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   composition of a password. A host that registers its `IPasswordHasher<TUser>` after the call, or sets
   `UserManager<TUser>.PasswordHasher`, wraps it in `NormalizingPasswordHasher<TUser>`: the adapter throws
   `InvalidOperationException` rather than hash or verify through a hasher that does not normalize
-  ([ADR-1243](docs/decisions/1243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md),
+  ([ADR-1238](docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md),
   issue [#299](https://github.com/NCodeGroup/identity/issues/299)).
 
 - **The ASP.NET Core Identity adapter stores a password the password policy accepts.** It hashes a password with the
   user manager's password hasher and stores the hash through `IUserPasswordStore<TUser>`, creating the user with
   `CreateAsync(user)` and rotating the security stamp on a reset, so ASP.NET Core Identity's password validators, whose
   default composition rules NIST SP 800-63B forbids, never refuse a password the policy accepted; a transparent rehash
-  keeps the security stamp ([ADR-1238](docs/decisions/1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md),
+  keeps the security stamp ([ADR-1238](docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md),
   issue [#296](https://github.com/NCodeGroup/identity/issues/296)).
 
 - **The management API authenticates every caller against the control-plane tenant and takes its data scope from the

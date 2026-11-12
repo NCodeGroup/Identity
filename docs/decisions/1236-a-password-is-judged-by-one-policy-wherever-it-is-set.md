@@ -53,7 +53,7 @@ lists.**
 3. **The length is counted in Unicode code points over the whole password.** `DefaultPasswordPolicy` counts the runes of
    the password (`ReadOnlySpan<char>.EnumerateRunes()`), so a surrogate pair is one character. It counts the code points
    of the password's Unicode Normalization Form C
-   ([ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), does not truncate the password and
+   ([ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md)), does not truncate the password and
    requires no character classes. A password with fewer characters than the minimum is `password_too_short`, and one
    with more than the maximum is `password_too_long`.
 4. **The blocklists are a strategy collection.** `IPasswordBlocklist.ContainsAsync(PasswordPolicyContext,
@@ -117,7 +117,7 @@ lists.**
 - The bundled list adds about 450 KB to the Authentication package.
 - The ASP.NET Core Identity adapter stores a password through the user store without Identity's password validators, so
   the policy is the only judge of a password the server sets there too
-  ([ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)).
+  ([ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md)).
 
 ## References
 

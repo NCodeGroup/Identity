@@ -73,7 +73,7 @@ name.**
 4. **A refused password is verified against the dummy hash, never the stored hash.** The result of a refusal carries no
    account and `IsRefused`. A refusal does the work of a wrong password: one verification against a hash of the current
    parameters, and two for a password that is not in NFC
-   ([ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)). Verifying the stored hash at the limit
+   ([ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md)). Verifying the stored hash at the limit
    would let a right password cost a different number of verifications or a rehash, and the refusal would tell it.
 5. **The callers pass the gate.** The interactive sign-in (`LocalAccountInteractiveCredentialVerifier`), the password
    grant (`DefaultAuthenticatePasswordGrantHandler`) and the self-service change of a password
@@ -187,7 +187,7 @@ name.**
 - [ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md) — the
   self-service change.
 - [ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) — the password policy.
-- [ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md) — the NFC form a password is hashed and
+- [ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md) — the NFC form a password is hashed and
   verified in.
 - [ADR-1239](1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md) — a verification takes as
   long whether or not the account exists.

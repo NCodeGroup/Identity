@@ -790,9 +790,9 @@ than inlining the rationale.
   against a dummy hash of the current parameters (`IPasswordHasher.DummyPasswordHash`) through the same code path and
   refuses it whatever the result. A store never sets a password through an API that runs the host's password validators
   (`UserManager<TUser>.CreateAsync(user, password)`, `ResetPasswordAsync`); it hashes and stores the hash itself
-  ([ADR-1238](../../docs/decisions/1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md),
+  ([ADR-1238](../../docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md),
   [ADR-1239](../../docs/decisions/1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md),
-  [ADR-1243](../../docs/decisions/1243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md)).
+  [ADR-1238](../../docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md)).
 - 👁 **A write that a background loop retries is idempotent** — template
   [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state): the usage ledger's per-replica
   batch checkpoint ([ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).

@@ -25,6 +25,8 @@ The chart takes no secret values. It references Secrets you create in the releas
 - cert-manager, unless `backendTls.existingSecret` names a Secret: the chart creates the `Certificate` (and, without
   `backendTls.certManager.issuerRef.name`, a private CA) that issues the pods' serving certificate; see
   [Transport security](#transport-security).
+- A router that reaches the pods over HTTPS: a Gateway API implementation with `BackendTLSPolicy` (Gateway API v1.4 or
+  later), Traefik, or another Ingress controller you configure; see [Routing to the pods](#routing-to-the-pods).
 
 ## Install
 
@@ -47,8 +49,11 @@ Rendering fails, before anything is applied, when:
 - the probes would send a wildcard `Host` header: when the first allowed host is a wildcard such as `*.example.com`,
   set `probes.host` to a concrete host it accepts;
 - `backendTls.certManager.renewBefore` is not shorter than `duration`, or the key size does not fit its algorithm
-  (ECDSA 256, 384 or 521; RSA 2048 or more), or `backendTls.ingressController` is not `ingress-nginx`, `traefik` or
-  `none`;
+  (ECDSA 256, 384 or 521; RSA 2048 or more), or `ingress.controller` is set and is not `traefik` or `other`;
+- an Ingress is enabled and `ingress.controller` is empty;
+- `httpRoute.enabled` is `true` and `httpRoute.parentRefs` or `httpRoute.hostnames` is empty, or there is no CA
+  ConfigMap: `backendTls.caConfigMap` for the server, or `managementConsole.backendTls.caConfigMap` for the console
+  (which falls back to the server's);
 - `database.existingSecret` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
@@ -566,7 +571,8 @@ entries may be removed afterwards.
 
 With `managementConsole.enabled=true` the chart also deploys the management console host: a Deployment, a Service, a
 ServiceAccount that mounts no token, a PodDisruptionBudget, and an Ingress on `managementConsole.host` that routes
-every path to the console. The console runs its own image, which shares the chart's `appVersion`
+every path to the console. The console takes `managementConsole.httpRoute` the same way, with `managementConsole.host`
+as its hostname. The console runs its own image, which shares the chart's `appVersion`
 ([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
 
 Create the two private keys the console's BFF signs with, and a Secret for each, in the release's namespace:
@@ -715,29 +721,52 @@ self-signed Issuer, the CA `Certificate` `<release>-ca`, and an Issuer backed by
   created while another component needs a `Certificate` from it. Each Secret must also hold `ca.crt`, which the
   ingress controller verifies the pods against.
 
-### The ingress controller
+### Routing to the pods
 
-`backendTls.ingressController` chooses what the chart renders so the controller speaks HTTPS to the Service and
-verifies the pods' certificate:
+The router must speak HTTPS to the Service and verify the pods' certificate. The chart renders what each of three
+modes needs:
 
-| Value                     | What the chart renders                                                                       |
-|---------------------------|----------------------------------------------------------------------------------------------|
-| `ingress-nginx` (default) | Ingress annotations: `backend-protocol: HTTPS`, `proxy-ssl-verify: "on"`, `proxy-ssl-secret`, `proxy-ssl-name`, `proxy-ssl-server-name`. |
-| `traefik`                 | A `ServersTransport` with `rootCAsSecrets` and `serverName`, and the Service annotations `service.serversscheme` and `service.serverstransport`. |
-| `none`                    | Neither. You configure the controller to speak HTTPS to the Service and to verify the pods' certificate. |
+| Mode            | Values                                      | What the chart renders                                                                       |
+|-----------------|---------------------------------------------|----------------------------------------------------------------------------------------------|
+| Gateway API     | `httpRoute.enabled`                         | An `HTTPRoute` and a `BackendTLSPolicy` that targets the Service's `https` port, verifies the pods against the CA ConfigMap and checks the host name `<service>.<namespace>.svc`. |
+| Traefik Ingress | `ingress.controller: traefik`               | A `ServersTransport` with `serverName` and `rootCAs`, and the Service annotations `service.serversscheme` and `service.serverstransport`. |
+| Other Ingress   | `ingress.controller: other`                 | Neither. You configure the controller to speak HTTPS to the Service and to verify the pods' certificate. |
 
-`ingress.annotations` override the chart's annotations, and `managementConsole.ingress.annotations` override the
-console's the same way.
+The Ingress and the HTTPRoute may both be on. `ingress.annotations`, `managementConsole.ingress.annotations`,
+`httpRoute.annotations` and `managementConsole.httpRoute.annotations` add to the annotations the chart renders. The
+console's `managementConsole.httpRoute` takes `enabled`, `parentRefs` and `annotations`, and its hostname is
+`managementConsole.host`. The Gateway API mode needs the Gateway API v1.4 or later CRDs and a CA ConfigMap;
+`ci/gateway-api-values.yaml` shows a release:
 
-The `proxy-ssl-secret` annotation of ingress-nginx also loads the Secret's `tls.crt` and `tls.key` as a client
-certificate that the pods do not ask for. By default the controller's verification Secret is the serving Secret, which
-holds the pods' private key, because cert-manager issues no CA-only Secret, so the controller, which reads Secrets
-cluster-wide, receives that key. `backendTls.ingressCaSecret` names a Secret in the release namespace that holds only
-`ca.crt`, and the chart then names it in place of the serving Secret (`proxy-ssl-secret` for ingress-nginx, the
-`rootCAsSecrets` entry of the `ServersTransport` for Traefik), so the controller never receives the pods' key. Create it
-with `kubectl create secret generic <name> --from-file=ca.crt=<ca.pem>`, or have a trust distribution tool such as
-trust-manager write it. `managementConsole.backendTls.ingressCaSecret` does the same for the console and, when empty,
-falls back to `backendTls.ingressCaSecret` and then to the console's serving Secret.
+```yaml
+backendTls:
+  caConfigMap: identity-ca
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: shared-gateway
+      namespace: gateway-system
+      sectionName: https
+  hostnames:
+    - id.example.com
+```
+
+### The CA ConfigMap
+
+`backendTls.caConfigMap` names a ConfigMap in the release namespace that holds the CA under the `ca.crt` key and
+nothing else. It exists so that no router reads the pods' private key: `BackendTLSPolicy` reads only ConfigMaps, and
+cert-manager issues only Secrets, whose serving Secret holds the key. The Gateway API mode requires it. Traefik uses it
+as the `ServersTransport`'s `rootCAs` ConfigMap when it is set and otherwise names the serving Secret, which holds the
+key, so name a ConfigMap to keep the key from Traefik too.
+
+Create it in one of two ways:
+
+- A trust-manager `Bundle` whose target is a ConfigMap with the key `ca.crt`. This is recommended, with a cluster CA
+  named in `backendTls.certManager.issuerRef`.
+- `kubectl -n <namespace> create configmap <name> --from-file=ca.crt=<ca.pem>`.
+
+With the chart's private CA, the PEM is the `ca.crt` of the `<release>-ca` Secret once cert-manager has issued it.
+`managementConsole.backendTls.caConfigMap` names the console's ConfigMap and, when empty, falls back to the server's.
 
 ### Trust
 

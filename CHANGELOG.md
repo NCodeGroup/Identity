@@ -562,8 +562,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ceiling is PS256, ES256, EdDSA and Ed25519
   ([ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md),
   [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
-  [#336](https://github.com/NCodeGroup/identity/issues/336),
-  [ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
+  [#336](https://github.com/NCodeGroup/identity/issues/336)).
 
 - **Selective Disclosure for JWTs (SD-JWT, RFC 9901) is available as the opt-in `NCode.Identity.Jose.SdJwt` package.**
   `AddSdJwt()`, an extension of `IServiceBuilder<JwtLibrary>`, registers `ISdJwtIssuer`, `ISdJwtHolder` and
@@ -1002,8 +1001,6 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md),
   [ADR-1476](docs/decisions/1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
-  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md),
   [ADR-1485](docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)).
 
 - **A background job destroys the KMS keys that no stored secret names.** Every key the server creates in a KMS carries
@@ -1039,8 +1036,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#701](https://github.com/NCodeGroup/identity/issues/701), [#706](https://github.com/NCodeGroup/identity/issues/706),
   [#708](https://github.com/NCodeGroup/identity/issues/708),
   [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
-  [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
-  [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md)).
+  [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -3526,8 +3522,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenants only; `PersistedTeam.ReconciledSettings` and `ReconciledSettingsFingerprint` record what was reconciled, so a
   pass a restart interrupted runs again and a start that changes nothing runs none
   ([ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
-  [ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
-  [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
+  [ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
 
 - **Rate limits and quotas are registered descriptors judged in one round trip per stage.** Each limit is a
   `RateLimitDescriptor` (name, stage, order, window, sliding or fixed, limit and overage settings, metered only, usage
@@ -5897,6 +5892,5 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#651](https://github.com/NCodeGroup/identity/issues/651),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
   [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).

@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
 using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -208,13 +207,15 @@ public sealed class JsonWebKeySet
     /// <returns>The JWK Set JSON text.</returns>
     public string ToJsonString()
     {
-        var buffer = new ArrayBufferWriter<byte>();
+        var isSensitive = Keys.Any(static key => key.ContainsPrivateKeyMaterial);
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: isSensitive);
         using (var writer = new Utf8JsonWriter(buffer))
         {
             WriteTo(writer);
         }
 
-        return SecureEncoding.UTF8.GetString(buffer.WrittenSpan);
+        using var lease = buffer.GetSpanLease(isSensitive: isSensitive);
+        return SecureEncoding.UTF8.GetString(lease.Span);
     }
 
     internal void WriteTo(Utf8JsonWriter writer)

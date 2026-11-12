@@ -21,7 +21,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Test Style](csharp-tests.instructions.md#test-style).
 - ⏳ **Warnings are errors in test projects too** — template
   [Warnings and Analyzers](csharp-tests.instructions.md#warnings-and-analyzers) and
-  [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md); relax a rule that is noise in tests in
+  [ADR-1127](../../docs/decisions/1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md); relax a rule that is noise in tests in
   the `[tests/**/*.cs]` block of [`.editorconfig`](../../.editorconfig) with a one-line justification, never with a
   project-level `NoWarn`.
 - ✅ **Prefer a real fix over a suppression for nullable warnings** — template

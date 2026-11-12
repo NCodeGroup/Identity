@@ -1,6 +1,6 @@
 # 1266. Text is encoded and decoded only through strict encodings
 
-- **Status:** Accepted (amends [ADR-1127](1127-warnings-are-errors-in-every-project.md))
+- **Status:** Accepted (amends [ADR-1127](1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md))
 - **Date:** 2026-10-26
 - **Deciders:** NCode Group
 
@@ -33,7 +33,7 @@ Text becomes bytes, and bytes become text, only through a strict encoding.
    `NCode.Identity.OpenId.Authentication.Endpoints`, so `application/jwt` carries no charset.
 4. **Enforcement.** `BannedSymbols.Encoding.txt` enforces rules 1 and 2 with `RS0030`. `Directory.Build.targets` loads
    it in every project, tests included, while `BannedSymbols.txt` stays shipping-only
-   ([ADR-1127](1127-warnings-are-errors-in-every-project.md)). Two things are deliberately not banned:
+   ([ADR-1127](1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md)). Two things are deliberately not banned:
    `HttpResponse.WriteAsync(string)`, because the ASP.NET request-delegate source generator emits it, and
    `TypedResults.Text`/`Content`, because a single method symbol covers calls with and without an encoding, so rule 3 is
    checked in review instead.
@@ -60,6 +60,6 @@ Text becomes bytes, and bytes become text, only through a strict encoding.
 
 ## References
 
-- [ADR-1127](1127-warnings-are-errors-in-every-project.md) — the analyzer set and why `BannedSymbols.txt` is
+- [ADR-1127](1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md) — the analyzer set and why `BannedSymbols.txt` is
   shipping-only.
 - [ADR-1116](1116-memory-allocations-and-buffer-operations.md) — buffers.

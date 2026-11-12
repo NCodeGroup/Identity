@@ -875,7 +875,7 @@ than inlining the rationale.
   ([ADR-1266](../../docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
 - ⏳ **Warnings-as-errors in every project, tests and hosts included, and NuGet vulnerability advisories (`NU190x`) as
   errors in CI** — template [Build](csharp.instructions.md#build) and
-  [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md).
+  [ADR-1127](../../docs/decisions/1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md).
 - ✅ **An EF Core model change re-scaffolds its context's `InitialCreate`.** Until the first stable release
   ([#535](https://github.com/NCodeGroup/identity/issues/535)), each host context has one migration, `InitialCreate`,
   which creates its whole model and changes no data: `OpenIdDbContext` in `Migrations/OpenId` and

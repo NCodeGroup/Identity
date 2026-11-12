@@ -1091,7 +1091,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ISecretKeyFactory.Create(KeyMetadata, X509Certificate2Collection)`, which every `ISecretKeyFactory` implements,
   builds a key from a collection such as a loaded PKCS#12 file: the one certificate with a private key is the key's, and
   the others are its issuers
-  ([ADR-1300](docs/decisions/1300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md),
+  ([ADR-1300](docs/decisions/1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md),
   [#407](https://github.com/NCodeGroup/identity/issues/407)).
 
 - **A generated private key stores its public key.** `PersistedSecret.PublicKey` holds the base64url SPKI of every
@@ -2577,8 +2577,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   when it has one, and sends `client_id`. `IClientAuthenticator.UsesMutualTls` declares the transport,
   `OpenIdProviderMetadata.MtlsEndpointAliases` carries the aliases, and
   `OpenIdClientDefaults.MutualTlsHttpClientNamePrefix` names the per-certificate HTTP clients
-  ([ADR-1288](docs/decisions/1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md),
-  [ADR-1300](docs/decisions/1300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md),
+  ([ADR-1300](docs/decisions/1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md),
   issues [#392](https://github.com/NCodeGroup/identity/issues/392),
   [#407](https://github.com/NCodeGroup/identity/issues/407)).
 

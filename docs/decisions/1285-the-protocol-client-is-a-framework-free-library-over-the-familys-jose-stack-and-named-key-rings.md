@@ -78,7 +78,7 @@ configuration. No package of the client references an ASP.NET Core shared framew
      (`urn:ietf:params:oauth:client-assertion-type:jwt-bearer`), `client_assertion` and `client_id`. The assertion has
      `iss` and `sub` equal to the client id, **`aud` equal to the OP's issuer as a single string**, a `jti` of 16 random
      bytes in base64url, `iat` and `nbf` at now, and `exp` 60 seconds later. The lifetime is fixed and has no option.
-   - Mutual TLS client authentication is [ADR-1300](1300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md)'s.
+   - Mutual TLS client authentication is [ADR-1300](1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md)'s.
 10. **`private_key_jwt` algorithm choice.** The default order is PS256, ES256, PS384, ES384, PS512, ES512, RS256, RS384,
     RS512; a non-empty `OpenIdClientOptions.ClientAssertionSigningAlgorithms` replaces it. The order is filtered to what the
     OP advertises in `token_endpoint_auth_signing_alg_values_supported`, then followed by the OP's other advertised values
@@ -152,9 +152,9 @@ configuration. No package of the client references an ASP.NET Core shared framew
 - [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md): metrics
 - [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md): ID-token
   validation
-- [ADR-1288](1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md): mutual TLS client
+- [ADR-1300](1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md): mutual TLS client
   authentication
-- [ADR-1300](1300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md): client
+- [ADR-1300](1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md): client
   certificates
 - [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md): time bounds
 - [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md): key management service

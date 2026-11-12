@@ -29,7 +29,7 @@ A BFF client registers:
 
 - `token_endpoint_auth_method` `private_key_jwt`, with `jwks_uri` pointing at the BFF's public client keys (the BFF's
   `Bff:ClientAuthentication`); `tls_client_auth` or `self_signed_tls_client_auth` are equally acceptable
-  ([ADR-1288](1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md)).
+  ([ADR-1300](1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md)).
 - `redirect_uris` with exactly the BFF's callback, `https://<app>/bff/callback` (exact match).
 - `post_logout_redirect_uris` with the absolute forms of the allow-listed `Bff:ReturnUrls` it logs out to.
 - `backchannel_logout_uri` `https://<app>/bff/backchannel-logout` and `backchannel_logout_session_required=true`
@@ -79,6 +79,6 @@ The reasons:
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — profiles down the cascade
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) — PAR
-- [ADR-1288](1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) — mTLS client authentication
+- [ADR-1300](1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md) — mTLS client authentication
 - RFC 7591 (dynamic client registration metadata), RFC 9126 (PAR), RFC 9449 §5.2 (`dpop_bound_access_tokens`)
 - Issues #123 and #394

@@ -102,6 +102,10 @@ an existing principal. The tenant settings are:
 Otherwise a new identity attaches to the principal of an existing identity with the same join key. Two established
 principals are never merged automatically, because that is where account-takeover risk concentrates.
 
+By default the join claim is `email`, the verified claim is `email_verified`, verification is required and
+explicit-only is off, so a new identity attaches only on a verified email. The issuer claim, `principal_issuer_claim`,
+defaults to `iss`.
+
 ## Options considered
 
 - **The upstream `sub` as the principal key.** Rejected: it couples authority to external-identity churn, breaks
@@ -124,8 +128,9 @@ principals are never merged automatically, because that is where account-takeove
 - Revocation, consent and sessions span every connection through which the human authenticated.
 - A `LocalAccountId` is never the `sub`: the token `sub` is always the opaque principal identifier or its pairwise
   projection.
-- A first login writes the principal and its identity, on every entry point alike, and is subject to the same linking
-  policy.
+- A first login writes the principal and its identity at the interactive login, the password grant, bearer
+  re-authentication and `DefaultResourceOwnershipService`, under the same linking policy. `OwnershipHandler` only looks
+  up (`ResolvePrincipalIdOrDefaultAsync`), so a caller that was never provisioned holds no management authority.
 - The same human in two tenants has two principals, so cross-tenant correlation does not exist.
 - Tests assert that the `sub` is stable and opaque rather than a raw account identifier, and that every entry point
   builds its ticket through `SubjectAuthentication.Create`.

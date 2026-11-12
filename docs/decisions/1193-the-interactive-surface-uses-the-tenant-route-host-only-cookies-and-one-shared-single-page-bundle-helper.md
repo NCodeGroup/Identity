@@ -44,7 +44,7 @@ named for its tenant, and one general helper reads a single-page bundle and serv
    the surface is at `/account/*`; under `DynamicByPath` it is at `/{tenantId}/account/*`.
 2. **Paths come from the request.** `InteractiveSurfacePaths` computes the tenant path as the request's `PathBase`
    followed by the tenant route, bound from the request's route values by the binding of
-   [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) decision 3,
+   [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) decision 4,
    not from the ambient tenant, because the cookie handler writes the refreshed session cookie when the response starts,
    after the tenant scope may have ended. Every redirect the surface issues, the consent challenge and the cookie
    scheme's `OnRedirectToLogin` use it, so a browser never leaves its tenant.
@@ -88,8 +88,9 @@ named for its tenant, and one general helper reads a single-page bundle and serv
 10. **Only the `assets` directory is servable.** The bundle's file provider is rooted at `assets`, so a path that leaves
     it, a hidden file and a file of an unknown content type answer `404`, and `index.html` is never served.
 11. **`ServeAsset` sends `Cache-Control: public, max-age=31536000, immutable`** with `ETag`, `Last-Modified` and range
-    support. A `404` carries no cache lifetime. `@ncode/vite-config` pins `build.assetsDir` to `assets`
-    ([ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
+    support. A `404` carries no cache lifetime. `@ncode/vite-config`, the shared preset
+    ([ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)),
+    pins `build.assetsDir` to `assets`.
 12. **`[BuiltAuthBundleFact]` tests the real build.** `InteractiveBundleShellTests` runs the host's split against the
     real built `index.html` named by `NCODE_AUTH_BUNDLE_INDEX`. The Frontend CI workflow builds the bundle, sets the
     variable to the absolute path of `apps/auth/dist/index.html` and runs the fact; the Definition of Done reports it
@@ -104,8 +105,8 @@ named for its tenant, and one general helper reads a single-page bundle and serv
   origin.
 - **A `__Secure-` prefix with a path.** Rejected: it allows a `Domain` attribute and keeps the cookie readable by a
   sibling subdomain, which the `__Host-` prefix refuses.
-- **A readable tenant suffix in the cookie name.** Rejected: the hash separates tenants without putting the tenant's
-  path in every request's headers.
+- **A readable tenant suffix in the cookie name.** Rejected: a path may hold characters that a cookie name cannot, so
+  the name carries a hash of it.
 - **Paths computed from the ambient tenant.** Rejected: the cookie handler writes at response start, after the tenant
   scope may have ended.
 - **Root-level asset URLs.** Rejected: a path at the root needs absolute URLs and cannot mount under a tenant.
@@ -116,8 +117,8 @@ named for its tenant, and one general helper reads a single-page bundle and serv
   against a file the product never serves.
 - **A bundle reader copied into each surface.** Rejected: the copies drift. One general helper, tested once, serves both.
 - **Parsing the index on every request.** Rejected: it repeats work for a file that changes once per build.
-- **A file watcher.** Rejected: revalidating two metadata values per request is cheaper than a watcher's lifecycle and
-  needs no teardown.
+- **A file watcher.** Rejected: it holds an operating-system handle for the lifetime of the host and behaves differently
+  across container file systems.
 - **The chosen design** serves the surface under the tenant route with relative paths, names host-only cookies for their
   tenant and serves every bundle through one helper.
 

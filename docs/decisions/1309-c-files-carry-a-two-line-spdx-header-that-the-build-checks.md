@@ -13,9 +13,7 @@ layouts diverge, a missing header goes unnoticed and a year goes stale.
 The IDE0073 analyzer compares a file's header with the `file_header_template` that `.editorconfig` sets, and it is the
 build's way to enforce one. The template cannot hold the Apache boilerplate: Roslyn's `.editorconfig` parser ends a value
 at either `;` or `#` (its property pattern in `AnalyzerConfig.cs`), and the notice reads `(the "License");`, so the
-analyzer would compare a three-line header and never match. A template cannot vary a year either. The project template's
-own `file_header_template` is cut the same way
-([NCodeGroup/project-template#215](https://github.com/NCodeGroup/project-template/issues/215)).
+analyzer would compare a three-line header and never match. A template cannot vary a year either.
 
 The warnings-are-errors rule of
 [project-template ADR-0100](project-template/0100-warnings-are-errors-in-every-project.md) turns any analyzer at
@@ -72,8 +70,6 @@ tools such as SPDX and REUSE read.
 ## References
 
 - [#448](https://github.com/NCodeGroup/identity/issues/448): the issue that asks for an enforced header.
-- [NCodeGroup/project-template#215](https://github.com/NCodeGroup/project-template/issues/215): the template's
-  truncated `file_header_template`.
 - [SPDX license: Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) and the
   [REUSE specification](https://reuse.software/spec/).
 - [IDE0073: file header](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0073).

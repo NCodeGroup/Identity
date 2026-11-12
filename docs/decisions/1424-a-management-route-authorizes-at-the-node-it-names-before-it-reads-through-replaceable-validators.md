@@ -63,7 +63,9 @@ names, before it opens a store, through one replaceable validator per entity.**
    the body, before the resource server is read.
 6. **Other routes authorize at the node that fits them.** Client-grant and local-account routes authorize at
    `TenantScopeResource`: a grant is the tenant's policy between two of its resources, and there is no per-account
-   owner model. Platform settings and encryption-key routes authorize at the platform node before checking that the
+   owner model. Every local-account write other than create and delete, including enable, disable, password, claims
+   and metadata, is `Update` at the tenant scope, through `ILocalAccountValidator.AuthorizeUpdateAsync`. Platform
+   settings and encryption-key routes authorize at the platform node before checking that the
    thing exists. Team routes authorize at the team node first; disabling, restoring or deleting a team then authorizes
    at the node above it against the stored row
    ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).

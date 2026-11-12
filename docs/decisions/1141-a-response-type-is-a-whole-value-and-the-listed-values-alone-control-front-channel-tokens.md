@@ -38,7 +38,7 @@ A model that stores single names and accepts any combination of them cannot expr
 
 The response type also decides whether the authorization endpoint returns an access token: a response type that
 includes the `token` name returns one. The list `response_types_supported` merges as a ceiling (intersection) down the
-server, tenant and client cascade ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)),
+platform, team, tenant and client cascade ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)),
 so a second switch for the same capability would disagree with it:
 
 - An operator who lists `code token` but leaves a separate boolean at `false` (or the reverse) has a flow that is
@@ -58,7 +58,7 @@ over the tokens the authorization endpoint returns.**
 
 1. **Canonical form.** A response type is written with its names in ordinal order, separated by a single space
    (`code id_token`, never `id_token code`). That is the form the server stores and compares, and it is the order the
-   specifications use. `OpenIdConstants.ResponseTypes` names all seven values.
+   specifications use. `OpenIdProtocol.ResponseTypes` names all seven values.
 2. **`response_types_supported` lists whole values.** Its domain is the seven response types in canonical form
    ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)); a value written in
    another order is outside the domain, because a value compared verbatim is configured in the form it is compared in
@@ -132,9 +132,6 @@ over the tokens the authorization endpoint returns.**
 - A configured or stored `response_types_supported` value written in a non-canonical order, or a
   `grant_types_supported` value of `hybrid`, is outside its domain and fails as
   [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) describes.
-- A setting that names a retired token switch fails the document that carries it, as
-  [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)
-  describes for an unknown setting name.
 
 ## References
 
@@ -143,8 +140,6 @@ over the tokens the authorization endpoint returns.**
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md): the response-type domain.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md):
   values compared verbatim are configured in the form they are compared in.
-- [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md):
-  stored documents fail closed.
 - RFC 6749 §3.1.1 and §4.1.2.1, RFC 7591 §2, §2.1 and §3.2.2, RFC 8414 §2, RFC 9700 §2.1.2, OpenID Connect Discovery
   1.0 §3, OpenID Connect Dynamic Client Registration 1.0 §2, OAuth 2.0 Multiple Response Type Encoding Practices.
 - Code: `NCode.Identity.OpenId.OpenIdConstants.ResponseTypes`, `NCode.Identity.OpenId.Settings.OpenIdSettingRules`,

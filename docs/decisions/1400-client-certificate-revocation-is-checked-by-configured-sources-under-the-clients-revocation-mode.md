@@ -49,7 +49,8 @@ for a configured time, and the soft-fail mode is the one opt-in that accepts an 
    [ADR-1259](1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md)'s.
 5. **The catalog is built from descriptors alone.** `IClientCertificateRevocationSourceCatalog` exposes `SourceNames`,
    ordered by `Order` and then by ordinal name, and `TryGet`. It refuses an empty, whitespace or duplicate name and
-   constructs no source.
+   constructs no source. The sources read `ClientCertificateRevocationOptions`, the options being validated, so
+   validation reads their names from the catalog; resolving the sources inside validation would recurse.
 6. **Options carry the deployment's choices.** `ClientCertificateRevocationOptions` binds strictly from
    `OpenId:ClientCertificateRevocation` and is validated when the host starts
    ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)):
@@ -63,11 +64,14 @@ for a configured time, and the soft-fail mode is the one opt-in that accepts an 
    the deployment's.
 7. **The options are validated against the described sources.** `ClientCertificateRevocationOptionsValidator` fails
    the host when `Sources` names a source no descriptor describes (the message lists the registered ones) or repeats a
-   name. An empty `Sources` means every described source in default order, never "check nothing". The timeouts and
-   durations must be periods a timer accepts and `MaxResponseSizeBytes` at least one.
+   name. An empty `Sources` means every described source in default order, never "check nothing". `FetchTimeout`
+   must be a period a timer accepts, `MaxCacheDuration` and `FailureCacheDuration` must be positive, and
+   `MaxResponseSizeBytes` must be at least one.
 8. **A mismatch stops the host at start.** The checker's constructor refuses a source without a descriptor, two sources
    of one name and a descriptor without a source. The hosted `ClientCertificateRevocationCheckerWarmup` resolves the
-   checker when the host starts, so such a mismatch is found then and not on the first request.
+   checker when the host starts, after the options are validated, so such a mismatch is found then and not on the first
+   request. It constructs every revocation source then, so a source's own dependencies must resolve when the host
+   starts.
 9. **Concurrent checks share one retrieval.** `RevocationRetrievalCache` shares retrievals through
    `SingleFlight<TResult>` ([ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)).
    The retrieval runs without the caller's cancellation token, on its own copy of the issuing certificate and bounded by

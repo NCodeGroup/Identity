@@ -48,8 +48,9 @@ chosen by server-driven content negotiation over an open `IOpenIdResponseFormatt
 - **The HTML error page reuses the interactive surface.** The `NCode.Identity.OpenId.Authentication.Interactive`
   package registers `InteractiveOpenIdErrorResponseFormatter`, which renders a non-redirectable authorization error as
   an HTML page through `InteractiveAuthenticationPageRenderer`, the markup and bundle seam of the sign-in and consent
-  pages, and writes it with `HttpResponse.WriteAsync(html, SecureEncoding.UTF8, …)` like
-  `DefaultAuthorizationResultExecutor`. The page carries an `authorization-error` element with `data-error-code` that
+  pages, into a pooled `Sequence<char>`, and writes it through `InteractiveHtmlResult.WriteAsync`, which encodes it with
+  `SecureEncoding.UTF8` into the response body under the page's security headers, as the sign-in and consent pages are
+  written. The page carries an `authorization-error` element with `data-error-code` that
   the bundle redraws
   ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)). Without the
   interactive package no such formatter is registered and every error is JSON.

@@ -90,7 +90,9 @@ adapter uses the user manager's hasher.
 Both extend `IServiceBuilder<StoreManagerLibrary>` and are opt-in packages the core does not depend on:
 
 - `AddLocalAccountEntityFramework()` in `NCode.Identity.OpenId.Persistence.EntityFramework.Accounts` stores the account
-  on the shared `OpenIdDbContext`, writing it and its self-issued identity in one unit of work.
+  on the shared `OpenIdDbContext`, so a caller that also writes the account's self-issued identity, as local-account
+  management does ([ADR-1057](1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md)),
+  commits both in one unit of work.
 - `AddAspNetIdentityLocalAccountStore<TUser>()` in `NCode.Identity.OpenId.Accounts.AspNetIdentity`
   (`TUser : IdentityUser, new()`) implements the seam over `UserManager<TUser>`. It treats Identity's lockout as
   disabled and uses an empty `TenantId`. Because such a store does not take part in the `OpenIdDbContext` unit of work,
@@ -122,7 +124,7 @@ subject whose account is disabled or gone.
 ### Borrowed from ASP.NET Core Identity
 
 ASP.NET Core Identity is the reference for shape and lessons. The family borrows store segregation, the `SecurityStamp`
-(a credential change can invalidate outstanding sessions and tokens) and the hasher shape. Its `IdentityUser`
+(a store-managed value that each credential change rotates and nothing reads) and the hasher shape. Its `IdentityUser`
 aggregate is not adopted: it fuses actor, credential and profile and nests external logins beneath the user, which
 double-counts a human holding a local and a social login. The adapter maps inward, so an `IdentityUser` is an account
 plus its self-issued identity.
@@ -164,8 +166,6 @@ plus its self-issued identity.
   change.
 - The abstraction stays on the BCL `ReadOnlyMemory<byte>`; only the implementation packages take the `NCode.Buffers`
   dependency.
-- Tests cover the Entity Framework store and the ASP.NET Core Identity adapter against the same seam contract, the
-  password grant's supported and unsupported answers, and the marker builders' compile-time requirement.
 
 ## References
 
@@ -176,7 +176,7 @@ plus its self-issued identity.
 - [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md): opaque
   server-generated ids the account follows.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md):
-  why the reference stores are opt-in packages depending only on abstractions.
+  why the reference stores are opt-in packages that the core does not depend on.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): the service
   model under which the default handlers delegate to `ILocalAccountStore`.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the

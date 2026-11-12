@@ -9,7 +9,7 @@
 
 A tenant is materialized once and then served from `IOpenIdTenantCache`. Every management write to a tenant (its
 record, its settings, a secret or its deletion) sends a `TenantChangedCommand` after it commits, and the default handler
-evicts the tenant from the cache of the replica that handled the write
+evicts the tenant from the cache of the replica that handled the write, and seeds it when its settings changed
 ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
 
 Any replica may serve the next request

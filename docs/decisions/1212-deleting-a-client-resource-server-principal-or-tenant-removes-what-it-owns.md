@@ -25,8 +25,8 @@ leaves a dependent behind (issue [#250](https://github.com/NCodeGroup/identity/i
    included, and every grant issued to it: its authorization codes, tokens, pushed authorization requests, device and
    CIBA grants, and its registration access token. Only authorization blocks the delete.
 2. **A tenant is refused while it holds an operator's records, and is otherwise removed with everything it owns.** A
-   tenant that holds a client or a non-system resource server is refused with `409 Conflict`
-   ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)). Everything else the tenant owns is removed in
+   tenant that holds a client or a non-system resource server is refused with `409 Conflict`: those are records an
+   operator created, and the delete would otherwise destroy them. Everything else the tenant owns is removed in
    the same unit of work, the data of its end users included: local accounts and their claims, federated principals and
    identities, sessions, and grants. The usage ledger is kept
    ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)), and the
@@ -85,8 +85,8 @@ leaves a dependent behind (issue [#250](https://github.com/NCodeGroup/identity/i
 - A contributed tenant-owned entity is erased with its tenant without a change to the store.
 - The store loads the grants that it removes into one unit of work; ended grants are pruned after their retention
   ([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md)), which bounds it.
-- The InMemory provider enforces no foreign key, so the store tests assert each dependent's absence instead of relying
-  on a constraint.
+- The InMemory provider enforces no foreign key, so store tests on SQLite, which enforces them, prove the delete order
+  and the exact set of rows each removal deletes.
 
 ## References
 

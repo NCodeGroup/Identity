@@ -51,7 +51,9 @@ when their save loses a race.**
    - `ISessionService.AddClientAsync` adds a client only when the stored session does not list it, and returns whether
      this call added it.
    - The session touch ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md))
-     is applied to the session as stored, so a client that a concurrent request added stays.
+     is applied to the session as stored: it writes nothing when the stored session was touched within the one-minute
+     granularity or has ended, and otherwise sets `LastActivityWhen` to the time of the request and the expiry of the
+     grant to the end of the session, so a client that a concurrent request added stays.
    - The device verification endpoint and the CIBA approval and denial change only a `Pending` request, and report
      whether this call decided it, so only the approval that won delivers a ping or pushes tokens.
    - The polls of a device-code grant and of a CIBA grant record `LastPolledWhen` only on a `Pending` request, so an

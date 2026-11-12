@@ -100,7 +100,8 @@ one and finds nothing.
 
 A host registers an `ICommandHandler` on the same commands to emit, transform or drop claims, the equivalent of Auth0
 Actions. Per-key flattening is a deliberate, namespaced act that belongs in such a handler, and it never surfaces
-owner-writable keys as top-level claims.
+owner-writable keys as top-level claims. A custom handler reads the structured bags from `IPrincipalMetadataProvider`
+by the subject's `PrincipalId`, as the default projection handlers do.
 
 ### Always fresh
 
@@ -146,8 +147,6 @@ metadata endpoints
 - Every token and UserInfo response that enables a bag costs one store read; with all six settings off, it costs
   nothing.
 - A host shapes claims by registering a command handler, and caches by replacing the provider.
-- The handlers, the provider and the claim-type constants are covered by unit tests of the projection, and the store
-  mapping by the persistence tests.
 
 ## References
 

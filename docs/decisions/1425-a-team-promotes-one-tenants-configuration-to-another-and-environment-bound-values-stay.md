@@ -20,8 +20,8 @@ mutual-TLS subject names the application of one environment, and a profile of an
 A limit in a document is set by the authority above the scope whose document carries it
 ([ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)), and a promoted
 document is a settings write to the target. A client a host registers is changed by no management caller
-([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)), and `IHostManagedClientPolicy`
-names it.
+([ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)),
+and `IHostManagedClientPolicy` names it.
 
 ## Decision
 
@@ -29,8 +29,9 @@ names it.
 keys, principals and environment-bound values stay with their environment.**
 
 1. **Routes and answers.** `POST /api/teams/{teamId}/promotions/preview` and `POST /api/teams/{teamId}/promotions`
-   take `PromoteTenantRequest { sourceTenantId, targetTenantId, environmentSettings[] }`, between two distinct tenants
-   of the team, in either direction: environment types have no order, because the vocabulary is open. Preview answers
+   take `PromoteTenantRequest { sourceTenantId, targetTenantId, environmentSettings[] }`, between two distinct direct
+   tenants of the team (a tenant of a child team is not one), in either direction: environment types have no order,
+   because the vocabulary is open. Preview answers
    `200` with the report and writes nothing. Promote answers `200` with the applied report, or `409` with the report's
    errors and writes nothing.
 2. **What is copied, and what is never copied.** The tenant's settings document, every non-system resource server (its
@@ -46,7 +47,7 @@ keys, principals and environment-bound values stay with their environment.**
    written: a source client with its id is an error, as every management change to it answers `409`.
 4. **Environment-bound settings never travel.** `SettingDescriptor.IsEnvironmentBound`, `false` by default, marks a
    setting whose value belongs to the environment its owner serves: `environment_type`, `environment_name`,
-   `deletion_protection`, `redirect_uris`, `post_logout_redirect_uris`, `backchannel_logout_uri`,
+   `deletion_protection`, `tenant_key_provider`, `redirect_uris`, `post_logout_redirect_uris`, `backchannel_logout_uri`,
    `frontchannel_logout_uri`, `jwks_uri`, `sector_identifier_uri`, `client_notification_endpoint`, the
    `tls_client_auth_*` subject, SAN and trust-anchor settings, and `pairwise_salt`. A promoted document holds the
    source's other settings, then the target's own environment-bound values, then any the request supplies in
@@ -124,7 +125,8 @@ keys, principals and environment-bound values stay with their environment.**
 
 - An application keeps its `client_id` across environments.
 - A customer whose audiences differ per environment manages those resource servers per tenant.
-- A tenant administrator of both tenants promotes everything but a limit change, which needs a team administrator.
+- A tenant administrator of both tenants promotes everything but a change to a limit in the tenant's settings document,
+  which needs authority at the team.
 - The work grows with the source tenant, and the promotion reads it in pages of 100.
 - A package promotes its own configuration by registering a contributor.
 

@@ -146,8 +146,7 @@ The exemplars are the token, end-session, CIBA backchannel
 - There is one registration vocabulary: a group registers its endpoints, child groups and services, message factories
   included, through the one `IServiceBuilder` surface.
 - Any consumer of `NCode.Identity.Registration` can adopt the routing package, and an implementation package that maps
-  endpoints references it, an abstractions-only, framework-level dependency
-  ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
+  endpoints references it.
 - New protocol endpoints have one shape, reviewers have a concrete rule to hold them to, and every protocol step is an
   independently testable and replaceable mediator handler.
 - Capability seams are uniform: a default that reports unsupported, and a capability package that replaces it, so the

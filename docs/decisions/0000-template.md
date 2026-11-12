@@ -28,4 +28,4 @@ _What becomes easier and what becomes harder as a result. Include follow-ups and
 
 ## References
 
-_Links to code, issues, prior art, or superseded ADRs._
+_Links to code, issues, prior art, and the records whose rules this one relies on._

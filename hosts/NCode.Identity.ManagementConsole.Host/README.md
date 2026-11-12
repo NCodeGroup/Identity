@@ -17,7 +17,7 @@ The image runs on a chiseled ASP.NET Core base with no shell. It runs as the non
 port **8080** over plain HTTP, and serves the `apps/mgmt` bundle from `/app/mgmt`. TLS terminates at the ingress. Probe
 `/health/live` for liveness and `/health/ready` for readiness. The image writes one JSON object per line to standard
 output, with a UTC timestamp. The `Console image` workflow builds it for `linux/amd64` and `linux/arm64`
-([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
+([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
 
 The image starts in the `Production` environment, which refuses to start until the deployment provides:
 

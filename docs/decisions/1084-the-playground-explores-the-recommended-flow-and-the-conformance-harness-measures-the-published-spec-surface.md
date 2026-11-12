@@ -17,7 +17,8 @@ surface: `apps/playground` and `apps/conformance`. Each answers a different ques
   OAuth and OpenID Connect guidance.
 - **Of the whole published spec surface, what does the provider support, what is missing and what is
   non-conformant?** The audit sees only the subset the provider already implements and advertises, so a reviewer
-  cannot see in one place that CIBA, DPoP, PAR, token exchange or the FAPI profiles are absent and track them as gaps.
+  cannot see in one place which published capabilities, such as CIBA, DPoP, PAR, token exchange or the FAPI profiles,
+  the provider lacks, and track them as gaps.
 
 Two constraints shape the harness:
 
@@ -100,11 +101,7 @@ prebuilt-image suite and drives its OP plans against committed baselines
 ([`docs/conformance/external-suite.md`](../conformance/external-suite.md)). No CI pipeline runs it
 ([#124](https://github.com/NCodeGroup/identity/issues/124)).
 
-The harness is a measurement surface: it tracks backend gaps (CIBA
-[#41](https://github.com/NCodeGroup/identity/issues/41), DPoP and mTLS
-[#45](https://github.com/NCodeGroup/identity/issues/45), PAR
-[#46](https://github.com/NCodeGroup/identity/issues/46), FAPI
-[#54](https://github.com/NCodeGroup/identity/issues/54), token exchange) but does not implement them.
+The harness is a measurement surface: it measures the provider's protocol capabilities and implements none of them.
 
 ## Options considered
 
@@ -135,8 +132,9 @@ catalog, and splits exercise between browser, headless runner and the certified 
 
 - The family has a developer flow explorer and a conformance dashboard on the shared platform, inheriting its theme,
   discovery, store and testing conventions.
-- CIBA, DPoP, PAR, token exchange, pairwise subjects, JAR and JARM, and the FAPI profile appear as explicit `missing`
-  rows linked to their RFC and tracking issue, so missing functionality is visible and attributable.
+- Every published capability, CIBA, DPoP, PAR, token exchange, pairwise subjects, JAR, JARM and the FAPI profile among
+  them, has a row linked to its reference and, where one exists, its tracking issue, and the row shows `missing`
+  whenever the provider does not advertise it, so a gap is visible and attributable.
 - The classifier is pure over discovery and unit-tested, so a status change is a signal rather than noise.
 - Advertised is not verified, a documented limitation: a provider that implements a capability without advertising it
   shows `missing` until a probe verifies it. The UI labels the semantics so the distinction is not mistaken for a

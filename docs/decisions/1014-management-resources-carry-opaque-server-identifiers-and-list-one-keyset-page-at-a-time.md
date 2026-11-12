@@ -66,8 +66,9 @@ no general query protocol.
 
 - **An opaque identifier plus a required name slug on every entity.** It doubles the identifiers a caller must keep
   straight and adds a uniqueness rule per entity. It loses.
-- **Caller-chosen identifiers.** They let a caller probe for and collide with existing resources, and they leak naming
-  schemes. They are kept only where the name is the resource, as for a team and a tenant.
+- **Caller-chosen identifiers.** They tie what a caller typed once to every foreign key and reference, so a resource
+  can never be renamed, and they push format, validation and collision handling onto every caller. They are kept only
+  where the name is the resource, as for a team and a tenant.
 - **OData or JSON:API.** They leak `IQueryable` into the surface, open a denial-of-service surface through arbitrary
   filters and sorts, and paginate by offset. They lose.
 - **Offset paging.** It skips or repeats rows when the collection changes between requests and costs more as the offset

@@ -8,10 +8,11 @@
 
 The backend-for-frontend ([design](../backend-for-frontend.md) §5.8, issue #123) ends a user's sessions when the OP
 sends a back-channel logout request, and it must not act on a `logout_token` before the token is validated.
-[ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) puts logout-token
-validation, and the `jti` check against the shared state, in the protocol client, and
-[ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) sets the
-signature policy for ID tokens. `NCode.Identity.OpenId.Client` validates a logout token under OpenID Connect
+The design puts logout-token validation, and the `jti` check against the shared state, in the protocol client, and
+[ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md)
+sets the signature policy for every provider-issued JWT, and
+[ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) the
+per-client `IdTokenSigningAlgorithms` that limits an ID token's algorithms. `NCode.Identity.OpenId.Client` validates a logout token under OpenID Connect
 Back-Channel Logout 1.0 §2.6.
 
 A logout token has different required claims from an ID token (`events`, `jti`, `sid` or `sub`, and no `nonce`) and a

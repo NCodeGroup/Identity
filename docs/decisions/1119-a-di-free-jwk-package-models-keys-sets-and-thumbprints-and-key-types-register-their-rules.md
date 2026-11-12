@@ -133,8 +133,6 @@ as built-in data and takes any other member from its caller as an argument.**
 - A key built without a descriptor and with an unknown `kty` cannot be thumbprinted.
 - A caller that passes a wrong but well-formed name for an unknown hash is not caught, because the package cannot check
   registry membership.
-- Changing `ISecretKeyTypeDescriptor.JwkKeyType` to a descriptor type is accepted by the pre-release posture
-  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 ## References
 

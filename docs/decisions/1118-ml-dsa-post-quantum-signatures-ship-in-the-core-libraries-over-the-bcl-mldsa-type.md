@@ -88,5 +88,5 @@ ML-DSA ships in the core libraries, over the BCL `MLDsa` type.
 - Issues [#66](https://github.com/NCodeGroup/identity/issues/66) and [#338](https://github.com/NCodeGroup/identity/issues/338).
 - [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md), the
   key-type seam.
-- Code: `NCode.Identity.Secrets` (`AkpSecretKey`, `AkpSecretKeyTypeDescriptor`) and `NCode.Identity.Jose`
-  (`DefaultAlgorithmDataSource`, `MlDsaParameterSets`).
+- Code: `NCode.Identity.Secrets.Abstractions` (`AkpSecretKey`), `NCode.Identity.Secrets` (`AkpSecretKeyTypeDescriptor`,
+  `MlDsaParameterSets`) and `NCode.Identity.Jose` (`DefaultAlgorithmDataSource`, `MlDsaSignatureAlgorithm`).

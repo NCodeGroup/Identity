@@ -72,9 +72,12 @@ verifies.**
   error at issuance.
 - **Both types are advertised.** `subject_types_supported` defaults to `["public", "pairwise"]`, and `subject_type`
   defaults to `public`, so an unconfigured client receives the public subject.
-- **Server-side state recovers the stable subject** wherever the OP acts on a presented pseudonym: end session
-  ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)) and token exchange
-  ([ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)). A pseudonym is never reversed.
+- **Server-side state recovers the stable subject** at end session
+  ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
+  Token exchange resolves its subject forward through `IPrincipalResolver`
+  ([ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)), so a
+  subject token that carries a pairwise `sub` does not resolve and the exchange is refused. A pseudonym is never
+  reversed.
 
 ### Registration and the sector document
 
@@ -127,7 +130,8 @@ verifies.**
 - A pairwise client can share a sector only when the `sector_identifier_uri` document vouches for its redirect URIs, and
   the fetch is SSRF-hardened by default with an optional host allow-list.
 - Because the derivation is one-way and unstored, the OP cannot recover the stable principal from a pairwise `sub`
-  presented back to it; server-side state supplies it where the OP acts on one.
+  presented back to it; server-side state supplies it at end session, and a token exchange whose subject token
+  carries a pairwise `sub` is refused.
 - A change of `sector_identifier_uri` or of the redirect host moves a client to a new sector and so changes its users'
   `sub` values, the standard §8.1 trade-off; a stable `sector_identifier_uri` is the mitigation.
 - A deployment with a stored mapping, a rotatable one, or another sector trust model such as an internal sector registry

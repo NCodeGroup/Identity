@@ -108,8 +108,7 @@ and the `form_post` response only by its client's origin.**
 8. **The interactive pages are wired through one type.** `InteractivePageSecurity.Create(branding)` returns the nonce
    and the policy of one response. Login, consent, the bundle pages and the error formatter each create one per response
    and pass its nonce to the renderer, and `InteractiveHtmlResult` writes the page through `SetHtmlPageSecurity`. The
-   bundle runs only the scripts and styles that carry the page's nonce
-   ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
+   bundle runs only the scripts and styles that carry the page's nonce (decision 6).
 9. **No CORS policy applies to a front-channel endpoint.** An endpoint the user agent navigates to and a script never
    calls carries `IFrontChannelEndpointMetadata`, which `WithFrontChannel()` adds and `Endpoint.IsFrontChannel` reads:
    the authorization, continue and end-session endpoints and the interactive surface with its bundle assets (FAPI 2.0
@@ -156,8 +155,6 @@ and the `form_post` response only by its client's origin.**
 - One writer sets the headers of every page, and each page's policy is a value that a test reads. A page added later
   must call `SetHtmlPageSecurity`.
 - A browser that returns with its antiforgery cookie is served the same headers as a first visit.
-- `NCode.Identity.AspNetCore` references the ASP.NET Core shared framework and `NCode.Buffers` for the strict encodings,
-  and no identity package, which lets every package of the family reference it.
 - A bundle built without `html.cspNonce` runs none of its scripts, because none of them carries the nonce, while the
   host's server-rendered forms keep working. `CSP_NONCE_PLACEHOLDER` and the two `NoncePlaceholder` constants are a
   contract; a test of the frontend CI fails when the placeholders differ.

@@ -74,7 +74,9 @@ Each passes for one reason:
 - `RequestObjectSource` lists the two parameters that RFC 9101 defines for a request object, `request` and
   `request_uri`.
 - `CoseMessageType` and `CoseAlgorithmKind` mirror RFC 9052.
-- `SerializationFormat` and `CoseKeyParameterEncoding` choose between the library's own converter representations.
+- `SerializationFormat` chooses between the representations of the library's own message converter.
+- `CoseKeyParameterEncoding` lists the forms a JSON Web Key member can give a COSE_Key parameter, a byte string or a
+  curve, because a COSE_Key is imported through the registered secret key types, which read a JSON Web Key.
 - `TenantPlane` follows from the topology: the root tenant is the control plane, and every other tenant is a workload
   tenant.
 - `ObjectJsonDateStringHandling`, `ObjectJsonIntegerHandling` and `ObjectJsonRealHandling` are options of the library's

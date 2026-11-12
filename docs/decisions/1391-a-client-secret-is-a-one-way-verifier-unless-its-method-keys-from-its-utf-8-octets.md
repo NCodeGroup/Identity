@@ -60,8 +60,9 @@ case it is stored as reversible octets.**
 
 ### Creating secrets
 
-- `GenerateSharedSecretVerifier`, `ImportSharedSecretVerifier`, `GenerateReversibleSharedSecret`,
-  `ImportReversibleSharedSecret` and `ConvertToSharedSecretVerifier` each take one `SharedSecretRequest` (`EntropyBits`).
+- `GenerateSharedSecretVerifier`, `ImportSharedSecretVerifier`, `GenerateReversibleSharedSecret` and
+  `ImportReversibleSharedSecret` each take one `SharedSecretRequest` (`EntropyBits`). `ConvertToSharedSecretVerifier`
+  turns a stored reversible secret into the verifier its `Origin` selects.
 - Generate and import share one construction, so a seeded secret is stored in the same shape as a generated one.
 
 ### Methods declare their use of the secret
@@ -80,8 +81,10 @@ bootstrap administrator, whose secret is stored again on each start.
 
 Every stored client names its method in its own settings, and a server or tenant change never moves it.
 `IClientSecretIssuer.ReconcileClientSecrets` runs on every DCR update and on a management update that changes the
-method. It converts reversible secrets to verifiers by their `Origin`, or issues a new secret that the DCR response or a
-management `200` `CreatedSecretResource` reveals (`204` otherwise). It rewrites nothing when the method cannot be
+method. For a method that does not key from the secret, it converts reversible secrets to verifiers by their `Origin`.
+When the method requires a shared secret and none of the client's unexpired shared secrets can serve it, it issues one
+in the method's form that replaces every other shared secret, since a client authenticates only with its registered
+method; the DCR response or a management `200` `CreatedSecretResource` reveals it (`204` otherwise). It rewrites nothing when the method cannot be
 resolved. The management API's answer to a lost race is
 [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md)'s.
 
@@ -122,9 +125,9 @@ A rotated secret overlaps its replacement as
 - **Refusing a method switch.** Rejected: reconciliation converts or issues secrets, so a switch is safe.
 - **A gate per scheme.** Rejected: the work-factor cost competes for the same processors, so one shared gate bounds it.
 - **Caching verification results.** Rejected: a cache of accepted secrets is a store of them.
-- **Closed schemes.** Rejected: the catalog is open so a package adds a scheme by registering it, as
-  [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md) does
-  for key types.
+- **Closed schemes.** Rejected: another scheme, such as Argon2id or a FIPS-only one, is a member a package other than
+  this one could need, so the catalog is open
+  ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).
 - **Chosen:** a verifier unless the method keys from the octets, in open schemes, behind one shared gate.
 
 ## Consequences

@@ -65,6 +65,13 @@ the scope's own settings, and only where `ISettingScopeCollection.AppliesWithin(
 expanding scope. When several selected profiles default the same setting, the first name in ordinal order wins. At the
 platform root a configured value beats a profile default, which beats the baseline.
 
+A profile supplies defaults because a ceiling can exclude a protocol default: the `fapi2` signing ceilings exclude
+`RS256`, the registration default of `id_token_signed_response_alg` and `introspection_signed_response_alg`, so without
+a profile default every client under the profile would need an explicit choice and would fail at issuance. The platform
+root passes its baseline, the descriptor defaults, the computed `*_supported` lists and the default-settings providers,
+to `Expand` separately, because every setting with a descriptor default already carries a value there and a profile
+default would otherwise never take effect.
+
 ### One expansion for every scope
 
 The layered root, the persisted platform, team, tenant and client documents and the previews all pass through
@@ -131,6 +138,12 @@ What FAPI requires but is correct for any client is not gated on a profile:
   filtering would let a ceiling disappear without a signal.
 - **Defaulting only outside the ceiling.** Rejected: a profile default beneath the scope's own settings is simpler and
   cannot conflict with a ceiling that the same merge enforces.
+- **Removing the descriptor default of every setting a profile defaults.** Rejected: the descriptor default is the
+  protocol default and the value a platform that selects no profile reports, and each profile default would silently
+  depend on it being absent.
+- **Expanding the configuration alone and laying it over the descriptor defaults.** Rejected: a ceiling would replace a
+  computed `*_supported` list instead of narrowing it, and merging instead would stop a configured lifetime from
+  exceeding its descriptor default.
 - **Closed requirement flags or `if (profile == "fapi2")`.** Rejected: a consumer or sibling package adds a profile
   by registering it, so the requirement set stays open
   ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).

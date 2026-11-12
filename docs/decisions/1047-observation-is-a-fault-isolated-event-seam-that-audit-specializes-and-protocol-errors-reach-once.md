@@ -19,8 +19,9 @@ external bus. The forces, in priority order:
    reserves the mediator for pipeline seams that shape the result: validation that rejects, claims that are mutated,
    a grant selection that returns a value. Pure observation is a different thing, and the type system should say so,
    so that a reader can tell at a glance whether a seam can change the outcome.
-3. **Observation should reach lower layers.** Auditing spans JOSE and Secrets too, which are standalone libraries with
-   no request scope, so the abstraction lives below the OpenID layer.
+3. **Observation must reach lower layers.** Secrets, a standalone library with no request scope, audits its key
+   hierarchy (`RootKeyAuditEvent`, `MasterKeyAuditEvent`, `RemoteKeyAuditEvent`), so the abstraction lives below the
+   OpenID layer, where any package can publish.
 
 The mediator carries the transport mechanics well (multi-handler dispatch, priority ordering, polymorphic resolution),
 but its fan-out awaits handlers in one loop, so the first throw aborts the remaining handlers, it rethrows unless a
@@ -56,6 +57,8 @@ publish/subscribe seam whose handlers are fault-isolated.
   events) that `BackgroundEventDispatcher` drains in a fresh scope on the host's stopping token. A handler opts in with
   `ISupportBackgroundDelivery` and runs inline when the queue is off. A full queue drops the event and logs
   `BackgroundEventDropped`.
+- An event is an immutable record that captures its envelope when it is published, so a background handler works
+  from that snapshot and never from ambient request state such as the `HttpContext` or the request scope.
 
 ### Events carry no secrets
 
@@ -79,16 +82,21 @@ A protocol error is audited as `openid.error` (`OpenIdErrorEvent`), once per err
 `OpenIdExceptionEndpointFilter`:
 
 - the thrown path publishes eagerly from the `OpenIdException`'s error;
-- the returned path is detected through `IOpenIdResult.Response` being an `IOpenIdError`;
+- the returned path is detected from the result's value: an `IOpenIdResult` whose `Response` is an `IOpenIdError`, or an
+  `ISupportOpenIdError` whose `Error` is set, such as the redirect-delivered `AuthorizationResult`, so a result that
+  carries an error exposes it in one of those two ways;
 - an `HttpContext.Items` sentinel enforces once per request;
 - a recorder failure is logged and swallowed, so it never changes the response;
-- `ISupportOpenIdError` stays a static type marker.
+- `ISupportOpenIdError` is a static marker for a type that can carry an error, so a successful `OpenIdResult<T>`
+  never advertises one.
 
 ### Logging, metrics and tracing are subscribers
 
 `DefaultEventLoggingHandler`, `DefaultAuditLoggingHandler`, `DefaultEventMetricsHandler` and
 `DefaultEventTracingHandler` subscribe like any other handler. A call site never also logs a milestone it publishes.
-Diagnostics stay ordinary `ILogger` calls.
+Diagnostics stay ordinary `ILogger` calls. The exception behind an errored protocol response is such a diagnostic:
+`OpenIdExceptionEndpointFilter` logs it for operators, an unexpected `server_error` at Error and any other at Debug,
+beside the `openid.error` audit event; the two are complementary, not a duplicate.
 
 ### A governed catalog
 

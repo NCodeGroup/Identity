@@ -13,8 +13,8 @@ An OpenID Provider publishes absolute URLs: the discovery endpoints, `jwks_uri`,
 header lets a caller steer those URLs, and two tenants that share an issuer issue tokens that cannot be told apart.
 
 A tenant is reached by a path (`/{tenantId}/oauth2/token`), by a host, or as the only tenant of a deployment, and its
-strategy decides which. Mutual-TLS clients ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705) §5) reach the token,
-revocation and userinfo endpoints on a second host, because a deployment often terminates client certificates on a
+strategy decides which. Mutual-TLS clients ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705) §5) reach copies of
+the tenant's discoverable endpoints on a second host, because a deployment often terminates client certificates on a
 separate listener. That host is routed like the first, so it needs the same care: a stored value, validated, held by one
 tenant.
 
@@ -74,8 +74,9 @@ stored on the tenant.
 12. `ITenantStrategy.GetDefaultMtlsEndpointAliasAuthorityAsync` gives the default alias:
     `Root:MtlsEndpointAliasAuthority`, then `StaticSingle:MtlsEndpointAliasAuthority`, else
     `DynamicByHost:MtlsEndpointAliasTemplate`. A startup check requires `{tenantId}` in the template's host, that the
-    host maps to itself, and that it differs from the issuer template's host. Writes apply `alias ??= default` and store
-    it, and clearing restores it.
+    host maps to itself, that it differs from the issuer template's host, and that every expansion is an `https` origin.
+    Under the host strategy a configured `Root:MtlsEndpointAliasAuthority` must map its host to itself too. Writes apply
+    `alias ??= default` and store it, and clearing restores it.
 
 ### The hosted platform
 
@@ -95,27 +96,28 @@ A custom domain is an explicit issuer. The frontend bootstrap `issuer` is the se
   issuer a token carries would depend on the request. Rejected.
 - **Appending the route to an issuer.** The issuer would not be the base address, and a static issuer could not be
   checked against the tenant path. Rejected.
-- **A per-strategy base address.** Each strategy would parse its own, and the factory could not take one origin from the
-  tenant alone. Rejected.
+- **A configured base address per strategy instead of a template.** A base address cannot place the tenant identifier in
+  the host, as the host strategy needs; one template shape serves both built-in strategies and a custom one. Rejected.
 - **An mTLS alias setting.** Routing by host would scan the merged settings of every tenant. Rejected in favor of a
   stored tenant property with a normalized host column.
 - **A shared alias host.** Two tenants on one host cannot be told apart by it. Rejected.
-- **Throwing on an ambiguous host.** One misconfigured pair would fail requests for tenants that did nothing wrong.
-  Rejected in favor of routing nowhere and reporting the conflict on the next write to either tenant.
+- **Throwing on an ambiguous host.** One bad row would turn every request to that host into a server error, where
+  routing nowhere answers it as an unknown tenant. Rejected in favor of routing nowhere and reporting the conflict on
+  the next write to either tenant.
 - **A stored issuer and a stored alias, each defaulted by the strategy on write.** Chosen. The origin is data, the
   strategy supplies the default, and nothing is derived from the request.
 
 ## Consequences
 
-- The tenant factory is the one place that builds a base address, and it cannot be given a request. A stored tenant
-  without an issuer fails closed instead of serving URLs from a guess.
+- The tenant factory is the one place that builds a base address, and by default it parses it from the stored issuer
+  alone; the request contributes nothing. A stored tenant without an issuer fails closed instead of serving URLs from a
+  guess.
 - A strategy's default is applied once, on write. Changing a template affects tenants created afterwards, and an
   existing tenant keeps the issuer it was stored with.
 - The unique issuer index rejects two tenants with one issuer, and the host columns let the host strategy route with an
   index lookup. Two tenants that come to hold the same host serve no request on it until an operator fixes one of them,
   and the next write to either tenant reports the conflict.
-- Moving a tenant to another host is a deliberate change of its issuer, which changes the `iss` of the tokens it issues
-  ([ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)).
+- Moving a tenant to another host is a deliberate change of its issuer, which changes the `iss` of the tokens it issues.
 - A strategy implements two defaults, the issuer and the alias, and the startup checks fail a template that a strategy
   cannot serve before the first request.
 

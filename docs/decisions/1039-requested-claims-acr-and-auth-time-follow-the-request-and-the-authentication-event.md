@@ -18,8 +18,8 @@ defers its meaning and its set of values to the deployment; the conventions are 
 such as `http://schemas.openid.net/pape/policies/2007/06/multi-factor`. `amr` (RFC 8176) lists the methods performed,
 and only the authenticating component knows them. `auth_time` is mandatory in the ID token only when a `max_age`
 request is made or `auth_time` is requested as an essential claim; otherwise it is optional. RFC 9068 includes it in the
-access token only when available. The session ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)) already carries
-`auth_time`, `amr` and `idp` on the `SessionGrant`, so the authentication context extends it.
+access token only when available. The session ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md)) carries
+`auth_time`, `amr` and `idp` on the `SessionGrant`, and the authentication context is recorded beside them.
 
 ## Decision
 
@@ -29,6 +29,8 @@ authentication happens, and emit `auth_time` when it is known or required.**
 - **The parameter.** The `claims` parameter is parsed into `IRequestClaims`, exposed as `IAuthorizationRequest.Claims`
   and persisted with the authorization code. `claims_parameter_supported` applies to tenants and clients, defaults to
   `true`, merges with `And` (a tenant or client may opt out but cannot enable beyond the server) and is advertised.
+  When it is `false`, `DefaultValidateAuthorizationRequestHandler` refuses a request that carries `claims` as not
+  supported, so the parameter is never accepted and ignored.
 - **ID Token (`claims.id_token`).** `CreateSecurityTokenRequest` carries the request's `IRequestClaims`, and
   `DefaultGetIdTokenSubjectClaimsHandler` adds the requested claims on top of the scope-driven claims.
 - **UserInfo (`claims.userinfo`).** The requested claims are persisted as a `userinfo_claims` grant

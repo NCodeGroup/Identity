@@ -53,7 +53,7 @@ use of a key applies the windows.**
    selected, whatever algorithm they fit, so the selection of a successor is the clock passing the hand-over instant
    on every replica, with no coordination. The tenant's `ISecretKeyCollection` (`DefaultSecretKeyCollection`) orders
    its keys by expiry, latest first, and the selector takes the first active key that fits, so of two active keys the
-   one that expires last is preferred.
+   one that expires last is preferred; a caller that hands the selector keys of its own orders them itself.
 5. **The validity window is judged where a key verifies, decrypts and is published.** `KeyMetadata.IsExpired(now)`
    holds when the expiry, if any, has passed. The JSON Web Token validator never tries a key expired beyond the clock
    skew of the validation parameters, the same tolerance the token's own lifetime gets: a token signed by, or

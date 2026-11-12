@@ -84,7 +84,9 @@ rest.
 
 1. **Consumers share one bounded channel.** `JobDispatchWorker` starts `MaxConcurrentJobs` consumer loops over the one
    bounded channel of `InProcessJobQueue`, which has several readers (`SingleReader = false`). Each consumer runs one
-   job at a time, so a job that waits holds one consumer while the others drain the queue.
+   job at a time, so a job that waits holds one consumer while the others drain the queue. A dispatch writes to the
+   channel without waiting, so a full queue never blocks the dispatching path: under `Wait`, a job dispatched to a
+   full queue, first, after its initial delay or as a retry, is dropped and logged.
 2. **A failed attempt is any error while the host is not stopping.** An attempt fails when resolving or running the
    job's handlers throws and the stopping token is not cancelled, a handler's own `OperationCanceledException` from its
    timeout included. Only a cancelled stopping token ends a consumer, quietly, so a timeout never stops the host.
@@ -139,7 +141,7 @@ best effort ([ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-aud
   adapter-agnostic.
 - **Minting the tokens at delivery time.** Rejected: it needs a full request context (tenant, client, grant) on a
   worker, far from the request. The cost of composing at approval is that a push job carries tokens, which a durable
-  adapter protects at rest.
+  adapter protects at rest, and that a long retry window can deliver a token near its expiry.
 - **`Parallel.ForEachAsync` over the channel.** Rejected: an exception from one body cancels every running job.
 - **A task per job under a semaphore.** Rejected: it gives the same bound with more bookkeeping.
 - **A shorter HTTP timeout only.** Rejected: it shortens the wait but not its cause. A delivery still holds the only
@@ -161,7 +163,8 @@ best effort ([ADR-1047](1047-observation-is-a-fault-isolated-event-seam-that-aud
   [#25](https://github.com/NCodeGroup/identity/issues/25) closes with the durable adapter, whose stored job carries no
   token it could read again.
 - A slow endpoint delays only its own deliveries while fewer than `MaxConcurrentJobs` jobs wait on slow endpoints at
-  once. When every consumer waits, the queue waits with them, and with `Wait` a producer waits for room.
+  once. When every consumer waits, the queue fills, and a job dispatched to a full queue is dropped and logged rather
+  than blocking its producer; guaranteed delivery is the job of a durable adapter.
 - Jobs finish out of dispatch order, while one job's handlers run in sequence. A job that needs another to finish first
   arranges it itself.
 - A handler registered as a singleton is thread-safe, because several consumers can run it at once. The built-in

@@ -94,7 +94,9 @@ The rate limiter's `429` is therefore visible as `http.response.status_code=429`
 
 `DefaultEventMetricsHandler` is the single counter of domain outcomes (`ncode.identity.events.published`). Its
 attributes are `ncode.identity.event.type`, `ncode.identity.audit.event_name`, `ncode.identity.audit.event_category` and
-`ncode.identity.audit.outcome`. An event type may declare additional **bounded** metric attributes by implementing
+`ncode.identity.audit.outcome`, plus the tenant's registered environment type `ncode.identity.tenant.environment_type`
+([ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)) when the event carries one.
+An event type may declare additional **bounded** metric attributes by implementing
 `ISupportMetricAttributes`, which the handler reads, so the curated event catalog also governs the metric's dimensions:
 a `token.issued` event adds its server-set token type (`ncode.identity.token.type`) and a client-authentication failure
 adds the registered method the client attempted (`ncode.identity.client_authentication.method`). The grant type is not
@@ -107,12 +109,15 @@ tenant, client or subject.
   (`{request}`) with `ncode.identity.rate_limiting.partition` (`tenant`, `address`, `client`, and the daily quotas'
   `daily_requests` and `daily_token_requests` of
   [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)) and
-  `ncode.identity.rate_limiting.result` (`admitted`, `rejected`, `store_unavailable`), recorded once per judged
-  partition, mirroring ASP.NET Core's `aspnetcore.rate_limiting.requests`. `store_unavailable` makes the fail-open path
+  `ncode.identity.rate_limiting.result` (`admitted`, `overage` past a daily quota within its tier's allowance,
+  `rejected`, `store_unavailable`), recorded once per judged
+  partition and tagged with the tenant's environment type (§4), mirroring ASP.NET Core's
+  `aspnetcore.rate_limiting.requests`. `store_unavailable` makes the fail-open path
   of [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) alertable.
 - **Shared state** (each networked adapter, in its own package's meter, such as `NCode.Identity.SharedState.Valkey`):
   histogram `ncode.identity.shared_state.operation.duration` (`s`) with `ncode.identity.shared_state.operation`
-  (`key_set.try_add`, `key_set.contains`, `counter.increment`, `counter.get`), `ncode.identity.shared_state.adapter`
+  (one value per shared-state primitive operation, such as `key_set.try_add`, `counter.increment` or `value_set.get`,
+  listed in [`docs/metrics.md`](../metrics.md)), `ncode.identity.shared_state.adapter`
   (`valkey`, or the name another adapter declares) and `error.type` on failure, timing the server round trip only.
   Replay checks, DPoP nonces and rate limits all depend on it, so its latency and failures are one view. The in-process
   adapter records nothing: a dictionary operation in memory has no latency or failure worth a series.

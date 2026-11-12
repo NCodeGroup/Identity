@@ -83,16 +83,18 @@ sequenceDiagram
 <summary>Options we rejected</summary>
 
 - A remote key that is not an RSA or ECC key class, fetching public keys per request, trusting the service's
-  signature unverified, a retry layer of the family's over the SDK's, separate provider packages, a host-only switch or
-  a setting per algorithm, switching custody at once, deleting an Azure key per rollover and
-  protecting the reference under the master key:
+  signature unverified, a host-only switch or a custody setting per algorithm or per use, switching custody at once,
+  protecting the reference under the master key, exporting a key to agree locally and Azure `Decrypt` in place of
+  `UnwrapKey`:
   [ADR-1471, Options considered](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md#options-considered).
-- Asynchronous twins beside the synchronous members, blocking on a task, signing before encoding and a callback on the
-  credentials: [ADR-1472, Options considered](../decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md#options-considered).
-- A custody setting per use, synchronous twins beside the asynchronous decode members, verifying a remote decryption
-  another way, Azure `Decrypt` in place of `UnwrapKey`, exporting a key to agree locally, wrapping and unwrapping a
-  content key directly, and a console that offers signing keys only:
-  [ADR-1471, Options considered](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md#options-considered).
+- Asynchronous twins beside the synchronous members, synchronous twins beside the asynchronous decode members,
+  blocking on a task, signing before encoding, a callback on the credentials and verifying a remote decryption another
+  way: [ADR-1472, Options considered](../decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md#options-considered).
+- Separate provider packages:
+  [ADR-1260, Options considered](../decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md#options-considered).
+  A retry layer of the family's over the SDK's:
+  [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)
+  decision 8.
 - Sweeping inside the rollover pass, relying on a dedicated account, vault or key ring alone, destroying without a
   grace period, and running the sweep inline rather than through the dispatcher:
   [ADR-1478, Options considered](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md#options-considered).

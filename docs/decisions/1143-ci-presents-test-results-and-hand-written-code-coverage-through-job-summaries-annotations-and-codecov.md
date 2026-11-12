@@ -84,7 +84,7 @@ summary and in Codecov alike.**
 10. **Hand-written code stays in scope wherever it lives.** The reference host and the host database project ship in the
     image, so a low host figure reports a real gap. Assemblies that no test loads, such as the Aspire orchestrator,
     never enter the report. Hand-written code in a project that also holds scaffolded migrations stays outside
-    `Migrations/` ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
+    `Migrations/` ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)).
 11. **Codecov counts a partially covered line as a hit.** `codecov.yml` sets `parsers.cobertura.partials_as_hits`,
     matching ReportGenerator's line coverage, for both the .NET and the frontend uploads. Branch coverage stays in the
     report for the partial lines.

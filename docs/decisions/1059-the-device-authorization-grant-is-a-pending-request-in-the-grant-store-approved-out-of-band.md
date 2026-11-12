@@ -48,7 +48,7 @@ RFC 8628 is served by default in the OpenID endpoint group:
 **Persistence: two rows, one store.**
 
 - The request is a `PersistedGrant` of type `device_code`, keyed by the high-entropy `device_code`. Its `DeviceCodeGrant`
-  payload holds the client id, the scopes and resources, the `Status` (`DeviceAuthorizationStatus`: `Pending`,
+  payload holds the client id, the scopes, the `Status` (`DeviceAuthorizationStatus`: `Pending`,
   `Approved` or `Denied`), the approving `SubjectAuthentication`, `LastPolledWhen` and a `[JsonExtensionData]` bag.
 - A pointer grant of type `device_user_code`, keyed by the `user_code`, holds `DeviceUserCodeGrant(DeviceCode)`. It is how
   the verification endpoint, which has only the `user_code`, finds the request.
@@ -117,9 +117,6 @@ The device-code grant type is in the default `grant_types_supported`, so discove
   ([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md)), so the extra row is bounded.
 - CIBA reuses the pattern of a pending request persisted as a grant payload, approved out of band and polled for
   completion ([ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)).
-- Smell: if retention of short-lived pending rows becomes a hot-path cost, or a third grant needs the same shape with
-  materially different columns, promote pending authorizations into a store of their own. The payload-first model keeps
-  that change local.
 
 ## References
 

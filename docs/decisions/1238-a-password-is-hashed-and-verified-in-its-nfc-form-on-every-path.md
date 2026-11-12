@@ -9,7 +9,7 @@
 Unicode writes the same text as different sequences of code points: `é` is U+00E9, or `e` followed by the combining
 acute accent U+0301. A device, an input method, a password manager or a paste produces either one, so a verifier that
 hashes the bytes as submitted holds two passwords for what an end user sees as one, and an end user who types the
-password on another device cannot sign in (issue [#297](https://github.com/NCodeGroup/identity/issues/297)).
+password on another device cannot sign in.
 
 NIST SP 800-63B-4 §3.1.1.2 says that the verifier SHOULD apply the normalization process for stabilized strings with
 NFC (UAX #15 §12.1) before it hashes a password, and that each Unicode code point counts as one character.
@@ -25,14 +25,13 @@ ASP.NET Core Identity database, whose own pages hash the password as typed.
 The ASP.NET Core Identity adapter differs in what it refuses as well. The password methods of `UserManager<TUser>`
 (`CreateAsync(user, password)`, `ResetPasswordAsync`, `AddPasswordAsync` and `ChangePasswordAsync`) run every
 `IPasswordValidator<TUser>` first, and the default one requires a digit, an upper-case letter, a lower-case letter and a
-non-alphanumeric character. NIST forbids such composition rules, so those methods refuse passwords that the policy
-accepts, and the management API answers `500` (issue [#296](https://github.com/NCodeGroup/identity/issues/296)).
+non-alphanumeric character. NIST forbids such composition rules, so a path that called those methods would refuse
+passwords that the policy accepts.
 
 A host's own pages do not go through the adapter: `SignInManager<TUser>` calls `UserManager<TUser>.CheckPasswordAsync`,
 and the pages call `CreateAsync(user, password)`, `ChangePasswordAsync` and `ResetPasswordAsync`, which hash and verify
-the password as typed with the same `IPasswordHasher<TUser>`. A password that is not in NFC therefore fails at one of
-the two once the other has stored or replaced its hash (issue
-[#299](https://github.com/NCodeGroup/identity/issues/299)).
+the password as typed with the same `IPasswordHasher<TUser>`. Unless that hasher normalizes, a password that is not
+in NFC fails at one of the two once the other has stored or replaced its hash.
 
 A host registers its `IPasswordHasher<TUser>` through `AddIdentityCore`, `AddIdentity` or `AddDefaultIdentity`, which
 register the default hasher with `TryAdd`, so an earlier registration stays and a later one wins. A decorator that the
@@ -134,9 +133,6 @@ verifies and is replaced.**
   wraps it in `NormalizingPasswordHasher<TUser>`; otherwise the adapter throws an `InvalidOperationException` that
   names that fix whenever it hashes or verifies a password.
 - `NormalizingPasswordHasher<TUser>` is public API of the adapter package.
-- This implements issues [#296](https://github.com/NCodeGroup/identity/issues/296),
-  [#297](https://github.com/NCodeGroup/identity/issues/297) and
-  [#299](https://github.com/NCodeGroup/identity/issues/299).
 
 ## References
 

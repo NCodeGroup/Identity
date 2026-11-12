@@ -85,8 +85,8 @@ decrypt; and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
   Rejected.
 - **Revoke undecryptable keys in every environment.** It hides a lost master key and silently ends the sessions the
   keys protected. Rejected; only Development revokes.
-- **A revocation endpoint.** Recovery is an operator's configuration change at start, not a runtime API that could
-  revoke the ring of a running host. Rejected.
+- **A management API endpoint that revokes keys.** The host must start to serve it, and the failure is that it does not
+  start. Rejected.
 - **A team master key.** The ring belongs to the host as a whole, which the platform owns. Rejected.
 - **Secrets at the root.** The root key only wraps master keys; it never protects a ring or data directly. Rejected.
 - **An `IsDevelopment()` heal.** The environment name is not an opt-in, and a development convenience runs through the
@@ -104,7 +104,7 @@ decrypt; and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
 - A production host never creates a default key of its own, and a ring without a repository or an encryptor never
   reaches a port.
 - A developer who changes the root key restarts with a new platform master key, without resetting the database, only
-  when the opt-in is set.
+  when the opt-in is set. The heal leaves the data that a host protected under `SecretOwner.Platform` unreadable.
 - The gate, the options, the warmup order, the heal and the test hosts' own stores are covered by tests of the secret
   protection and host start-up.
 

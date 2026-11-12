@@ -83,8 +83,8 @@ seeds.**
 11. **`BootstrapAdminHostManagedClientPolicy` (an `IHostManagedClientPolicy`) marks the client host-managed.** The API
     answers `409` to any change to it after authorizing the caller, `GlobalAdmin` included, so no root-tenant
     administrator obtains a `GlobalAdmin` token through it
-    ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md) holds the
-    management API's answers to a lost race).
+    ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md): a route answers `409`
+    from what it read and declares it).
 12. **A host enables `client_credentials` at the platform**, under `OpenId:Platform:Settings:grant_types_supported`
     ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)),
     because the baseline omits it and the setting is an intersect-merged ceiling. Until then the token request is
@@ -105,7 +105,8 @@ seeds.**
 - **Log a generated token at startup.** Rejected: a JWT expires, cannot be revoked and a secret in logs is a worse
   posture than an operator-supplied, out-of-band credential.
 - **A persisted `GlobalAdmin` assignment or a human as the first administrator.** Rejected: operators automate cold
-  start with a machine credential, and `GlobalAdmin` is a claim-based realm.
+  start with a machine credential, and on a fresh deployment no administrator exists to write the assignment. A
+  durable `GlobalAdmin` is a role assignment at the platform node, which the bootstrap client grants.
 - **An empty `200` for an anonymous who-am-I request.** Rejected: the answer describes nobody and hides a missing or
   expired token from a client that would sign in again.
 - **Chosen: the filter authenticates the issuer's own tokens in the environment, is the only source of the caller, and a

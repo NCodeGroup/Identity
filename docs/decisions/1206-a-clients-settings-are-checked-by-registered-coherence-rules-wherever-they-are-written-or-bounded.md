@@ -20,14 +20,12 @@ so the client's own document does not carry them.
 
 A check in each place that stores a client drifts: each place checks a different subset, and a settings change that
 re-checks only some relations leaves clients that fail when they next request authorization, such as a write that
-narrows `redirect_uri_kinds_supported` or selects `fapi2` while a client's redirect URI is excluded (issues
-[#231](https://github.com/NCodeGroup/identity/issues/231) and [#246](https://github.com/NCodeGroup/identity/issues/246)).
+narrows `redirect_uri_kinds_supported` or selects `fapi2` while a client's redirect URI is excluded.
 
 A client's own value can also be bounded without a relation between two settings. A meet merge (`Min`, `And`,
-`Intersect`) never yields a value above either operand, so a ceiling of the tenant, the server or a selected profile can
-lower what a client registers: a client that registers a one-hour `access_token_lifetime` receives tokens that live five
-minutes, without a word (issue [#262](https://github.com/NCodeGroup/identity/issues/262)). A join (`Max`, `Or`, `Union`)
-never yields a value below either operand, so a floor can only raise a value.
+`Intersect`) never yields a value above either operand, so a ceiling of the platform, a team, the tenant or a selected
+profile can silently lower what a client registers, such as a one-hour `access_token_lifetime` to five minutes. A join
+(`Max`, `Or`, `Union`) never yields a value below either operand, so a floor can only raise a value.
 
 ## Decision
 

@@ -43,8 +43,9 @@ Connect claims and the token hashes, and returns an invalid token as data.**
    - When `azp` is present it must equal the client id.
    - When the request supplies a nonce, `nonce` must equal it ordinally, otherwise the failure code is
      `nonce_mismatch`.
-   - When the request supplies `max_age`, the current time must not exceed `auth_time + max_age` plus the 5-minute
-     skew, otherwise the failure code is `max_age_exceeded`.
+   - When the request supplies `max_age`, `auth_time` must be a NumericDate, otherwise the failure code is
+     `invalid_claim`, and the current time must not exceed `auth_time + max_age` plus the 5-minute skew, otherwise the
+     failure code is `max_age_exceeded`.
    - Last come the hash claims of point 6.
 6. **Hash claims: present means it must match, absent is accepted.** For each pair (`at_hash`, access token),
    (`c_hash`, authorization code) and (`s_hash`, state): when the request supplies the value and the claim is present,

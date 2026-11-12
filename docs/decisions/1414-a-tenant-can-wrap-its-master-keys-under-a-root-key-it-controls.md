@@ -85,14 +85,15 @@ management API, the console and the docs say "tenant root key".
    directory. The cache, in `NCode.Identity.Secrets.Abstractions`, holds one client per key and access: a failed
    creation is not cached, the first successful call confirms an entry and keeps it, a call that fails before any
    succeeded removes it, and an entry unused for one day expires. Identities that never work leave nothing behind, and a
-   working identity is not churned by a transient failure. The three factories and any third-party referenced wrapper
-   run access-bound calls through `ExecuteAsync`.
+   working identity is not churned by a transient failure. Each adapter's client factory runs its access-bound calls
+   through the cache's `UseAsync` from its `ExecuteAsync`, and a third-party referenced wrapper uses the same cache.
 9. **The record holds a state and the access, never material.** `State` is one of the `OwnerRootKeyStates` `active`,
    `unavailable` or `removing`; an unknown state reads as `unavailable`. The record also holds the wrapper name, the key
    reference, `AccessIdentity` (nullable, at most 1024 characters), the times it was set, changed state and last
-   validated, and the last failure. Each master key row names its `RootKeyReference` and `RootKeyAccessIdentity`, null
-   for the deployment root, because unwrapping is driven by the row. A row conforms to its owner's root only when its
-   wrapper, reference and access identity match.
+   validated, and the last failure.
+10. **Each master key row names its root.** A row records its `RootKeyReference` and `RootKeyAccessIdentity`, null for
+    the deployment root, because unwrapping is driven by the row. A row conforms to its owner's root only when its
+    wrapper, reference and access identity match.
 11. **A master key under an owner root key has no recovery copy.** `MasterKeyFactory` wraps through
     `IReferencedKeyWrapper.WrapAsync(ReferencedKey, ...)` and stores no recovery wrap whatever the recovery options say.
     The root context is the same key-id-and-owner binding, so a tenant key never unwraps another owner's rows.
@@ -114,10 +115,9 @@ management API, the console and the docs say "tenant root key".
     moved. Rows that cannot be unwrapped keep it in `removing` and the validation service retries.
 15. **A probe validates the key.** The server wraps and unwraps a random 32-byte value under the owner context through the
     key and access identity, compares in constant time and zeroes both. Any failure fails closed.
-16. **The rewrap engine wraps each row under its owner's root.** `MasterKeyRewrapRequest.NonconformingOnly` limits a run
-    to rows that do not conform; a conforming row is examined only, and a dry run still unwraps and verifies it. With a
-    recovery private key, a row with a `RootKeyReference` unwraps through its own wrapper, and a recovery-only run
-    removes the recovery copy of a row under an owner root key.
+16. **The rewrap engine wraps each row under its owner's root.** The manager moves rows with the engine of
+    [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md),
+    limited to the rows that do not conform to their owner's root.
 17. **Re-validation runs on one replica and the ring checks the rest.** `OwnerRootKeyValidationService` takes a lease
     every `RetryInterval` and validates an `active` key every `ValidationInterval`, an `unavailable` or `removing` key
     every `RetryInterval`. Every state change calls `IOwnerRootKeyChangeObserver`, whose OpenId.Core implementation sends
@@ -125,12 +125,11 @@ management API, the console and the docs say "tenant root key".
     again every `ValidationInterval` without cached material, refuses an `unavailable` owner, and refuses an owner whose
     load failed for `RetryInterval`, so a revocation takes effect within `ValidationInterval` on every replica.
 18. **The server fails closed.** `OwnerRootKeyUnavailableException` does not derive from `CryptographicException`, so
-    development pruning never deletes a tenant-keyed owner's master keys. The management API answers `503` with
-    `Retry-After` and `retryAfterSeconds`
-    ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md)) through
-    `OwnerRootKeyUnavailableExceptionTranslator`
-    ([ADR-1428](1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md));
-    a protocol endpoint answers as for any unhandled failure.
+    development pruning never deletes a tenant-keyed owner's master keys. `OwnerRootKeyUnavailableEndpointFilter` on the
+    management route group answers `503` with `Retry-After` and `retryAfterSeconds`
+    ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md)); a protocol endpoint
+    answers `temporarily_unavailable` with `503` and `Retry-After` through `OwnerRootKeyUnavailableExceptionTranslator`
+    ([ADR-1428](1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md)).
 19. **Audit.** `root_key.set`, `.removed`, `.unavailable` and `.restored` carry the provider, reference, `access_identity`,
     state and failure, never material; a rotation records `master_key.rotated` with the reason `root_key_changed`, and
     `master_key.*` events carry `root_key_access_identity`. The validation service records its events with the system
@@ -172,11 +171,13 @@ tenant grants, with a rotation on every change of key.
 - Data under a tenant-keyed master key is unreadable once the tenant revokes or destroys its key, in the live database
   and in every later backup. Older backups stay under the deployment root, and no operator recovery exists.
 - The tenant's availability depends on its KMS and on the grants it gives.
-- A third-party wrapper becomes a candidate by implementing the four members; unwrapping needs no new member.
+- A third-party wrapper becomes a candidate by implementing the four members.
 - The cost is one probe (two KMS calls) per owner root key per `ValidationInterval` by one replica, and one unwrap per
   cached master key per replica per `ValidationInterval`.
-- A tenant administrator may name any key the deployment's identity can use; the owner-bound context keeps it from
-  unwrapping another owner's rows.
+- A tenant administrator may name any key the deployment's identity can use, and with Google Cloud or Azure any
+  identity another tenant granted to the deployment, because only AWS checks the binding; the owner-bound context keeps
+  either from unwrapping another owner's rows, so an operator grants its identity a tenant's key only through that
+  tenant's own key policy.
 - Changing only the access identity creates no master key material.
 
 ## References

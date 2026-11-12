@@ -42,8 +42,11 @@ stored by an encoding that is independent of the key type.**
 
 2. **The persistence services only persist.** `DefaultSecretGenerator`, `DefaultSecretImporter` and
    `DefaultSecretSerializer` resolve the descriptor by `SecretType` and delegate to it. They keep the persistence
-   concerns: data protection and the assembly of the `PersistedSecret`. `SecretType` is exactly the descriptor's key
-   type. A certificate is an `rsa` or `ecc` key stored with the `x509` encoding.
+   concerns: protecting generated private and symmetric material under the owner's master key, storing imported public
+   material unprotected
+   ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)),
+   and assembling the `PersistedSecret`. `SecretType` is exactly the descriptor's key type. A certificate is an `rsa`
+   or `ecc` key stored with the `x509` encoding.
 
 3. **The extension bases are public.** `SecretKeyTypeDescriptor` is a public abstract base with no constructor
    dependencies, so a custom type that builds its own `SecretKey` derives from it. `AsymmetricSecretKeyTypeDescriptor`

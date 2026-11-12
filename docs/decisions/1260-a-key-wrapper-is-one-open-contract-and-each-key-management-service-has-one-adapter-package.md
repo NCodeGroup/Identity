@@ -24,7 +24,8 @@ the issuer must be publicly discoverable, while a Google workload identity pool 
 uploaded JWKS, so its issuer need not be public.
 
 One package per service holds both of the service's roles: its key wrapper and its remote key provider
-([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)). A package
+([ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)).
+A package
 named for one role would be named for half of what it does.
 
 ## Decision
@@ -35,7 +36,8 @@ one adapter package named for the service, `NCode.Identity.Secrets.<Vendor>`.**
 1. **Contract and home.** `IKeyWrapper` (`Name`, `WrapAsync`, `UnwrapAsync`), the DTO `WrappedKey` (`WrapperName`,
    `KeyId`, `Ciphertext`), the name constants `KeyWrapperNames` and the decoder `WrappedKeyCiphertext` live in
    `NCode.Identity.Secrets.Abstractions`, folder `KeyWrapping/`, namespace `NCode.Identity.Secrets.KeyWrapping`. The
-   types need only the BCL. `UnwrapAsync` writes the key into a caller-supplied `IBufferWriter<byte>`, because a caller
+   contract types need only the BCL, and `WrappedKeyCiphertext` uses `NCode.Base64Url`. `UnwrapAsync` writes the key
+   into a caller-supplied `IBufferWriter<byte>`, because a caller
    cannot know an unwrapped key's length in advance; it advances the writer only on success and zeroes what it wrote on
    failure ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 2. **One vocabulary.** Implementations are `<Kind>KeyWrapper`, their options `<Kind>KeyWrapperOptions`, their

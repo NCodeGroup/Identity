@@ -63,7 +63,7 @@ between tabs.**
   saw, and never learns of a back-channel logout, an expired idle window or a failed refresh. It is part of the pattern
   and does not replace the poll.
 - **The OpenID session-management iframe.** Rejected: it depends on third-party cookies, which browsers block
-  ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
+  ([ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md)).
 - **The `401` as the signal, with frontend polling and a `BroadcastChannel`.** Chosen: the BFF adds nothing, and each
   frontend picks its freshness.
 
@@ -78,7 +78,7 @@ between tabs.**
 ## References
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.7 and §5.8
-- [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md),
+- [ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md),
   [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
   [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
   [ADR-1438](1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)

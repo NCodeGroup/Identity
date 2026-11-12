@@ -140,8 +140,9 @@ Several weaknesses follow from anything looser than an ordinal comparison of the
 
 - RFC 6749 §3.1.2, §4.1.3; RFC 9700 §4.1.3; OAuth 2.1 §2.3.1; RFC 8252 §7.1, §7.3, §8.3; RFC 3987 §3.1.
 - FAPI 1.0 Part 1 §5.2.2-20, §7.5; FAPI 2.0 Security Profile §5.3.2.2.
-- `RedirectUriMatcher`, `DefaultAuthorizationResponseDeliveryResolver`, `IRedirectUriKind`, `IRedirectUriKindCatalog`
-  under `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/`.
+- `RedirectUriMatcher` and `DefaultAuthorizationResponseDeliveryResolver` under
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/`; `IRedirectUriKind` and `IRedirectUriKindCatalog`
+  under `src/NCode.Identity.OpenId.Abstractions/Settings/`.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1201](1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),

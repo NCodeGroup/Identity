@@ -31,7 +31,7 @@ Four forces shape both:
   The OP needs their public halves to encrypt to the BFF.
 - The DPoP key ring is different: a DPoP proof carries its own public key, so no party needs it in advance
   ([ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)).
-- `NCode.Identity.Bff` references only abstraction packages
+- `NCode.Identity.Bff` references only abstraction and foundation packages, never another capability's implementation
   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 ## Decision
@@ -58,8 +58,11 @@ client-authentication key ring and nothing else.** Both are configured per front
    `form-action 'self' <OP origin>` to the policy.
 4. **The configured values are validated at start.** The options validator refuses a missing section, a blank value,
    and any character outside printable ASCII, so no configured value can break the header or start another one.
-5. **The policy is one configured string, not an `HtmlPageSecurityPolicy`.** The BFF writes no HTML of its own, and
-   the application owns its pages and their nonces.
+5. **The policy is one configured string, not an `HtmlPageSecurityPolicy`.** The BFF writes none of the frontend's
+   pages, and the application owns them and their nonces. The BFF's only page, the same-origin reload page, sets its
+   own strict `HtmlPageSecurityPolicy`
+   ([ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)),
+   which `TryAdd` leaves in place.
 6. **`GET /jwks` under the frontend's `PathPrefix` is mapped only when the frontend's `Jwks:Enabled` is `true`.** The
    default is `false`, so a BFF that authenticates with a client secret or a TLS certificate, or that registers its
    keys by value, exposes no key endpoint. When it is enabled, the validator requires `ClientAuthentication:KeyRing`.

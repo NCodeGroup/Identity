@@ -25,8 +25,9 @@ policy for how fast new dependency releases enter the lockfile. These forces sha
 - **pnpm 10 blocks dependency install scripts by default** and only warns about the ones it skipped (here, esbuild's
   `postinstall`).
 - **Two gates meet on one resolution.** On pnpm 10.16 and later Dependabot applies its `cooldown` to the whole
-  resolution, locked versions included. A Dependabot cooldown shorter than pnpm's own `minimumReleaseAge` makes pnpm
-  reject a version Dependabot just proposed (`ERR_PNPM_NO_MATURE_MATCHING_VERSION`).
+  resolution, locked versions included. A person's `pnpm install` or `pnpm add` resolves without a gate unless the
+  workspace sets one, so a version locked while it is younger than Dependabot's cooldown fails every Dependabot npm
+  version update with `ERR_PNPM_NO_MATURE_MATCHING_VERSION` until it ages.
 - **Coupled majors.** Vite, Vitest and the ESLint plugins move their majors together, and `@types/node` 26 types
   `JsonWebKey` in its `webcrypto` namespace rather than in `node:crypto`.
 - **The newest major of a tool is not always a supported one.** typescript-eslint supports TypeScript only up to the 6.x
@@ -74,7 +75,9 @@ newest major its upstream supports.
    [project-template ADR-0009](project-template/0009-new-dependency-versions-wait-a-cooldown.md)'s cooldown with pnpm's
    own gate and with how Dependabot applies its cooldown to a pnpm resolution:
    - `pnpm-workspace.yaml` sets `minimumReleaseAge: 4320` (minutes).
-   - The npm entry of `.github/dependabot.yml` states `cooldown: default-days: 3`, never longer than pnpm's window.
+   - The npm entry of `.github/dependabot.yml` states `cooldown: default-days: 3`, never longer than pnpm's window: a
+     longer cooldown would let pnpm lock versions that Dependabot then rejects, and with equal windows Dependabot defers
+     to the workspace setting.
    - A version needed before it is three days old goes in `minimumReleaseAgeExclude` with a comment, and is removed once
      it ages.
    - Security updates bypass both gates, and `pnpm install --frozen-lockfile` does not re-check ages.

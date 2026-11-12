@@ -35,8 +35,8 @@ the template's rule says about state changes on a `GET`.
 ## Options considered
 
 - `POST` only. Rejected: it breaks every conforming relying party.
-- `GET` at the authorization, continue and end-session endpoints, with `POST` and antiforgery at every other
-  browser-facing change. Chosen: it follows the specifications where they require `GET` and keeps the template's rule
+- `GET` at the authorization, continue and end-session endpoints, with `POST` and antiforgery at interactive login,
+  consent and logout, the account pages' revocations and the BFF's logout. Chosen: it follows the specifications where they require `GET` and keeps the template's rule
   everywhere else.
 
 ## Consequences

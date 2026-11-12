@@ -41,8 +41,10 @@ that changes its slice, and a lost race surfaces as a store-neutral `StoreConcur
    asynchronous, regenerates every string concurrency token. It always assigns a new value on `Modified` or `Deleted`,
    so the row version changes. On `Added` it assigns one only when the token is empty, because a new row cannot conflict
    and a caller may pre-seed it.
-2. **Stores never bump the row token by hand.** A newly constructed entity leaves its token empty for the interceptor,
-   and a store copies no freshly generated value onto the returned DTO.
+2. **The interceptor's token is the one saved.** It overwrites any token a store assigns to a `Modified` row, so an
+   update relies on no value of its own, and a store copies no freshly generated value onto the returned DTO. A store
+   whose update changes only a child collection, such as `LocalAccountStore` with an account's claims, assigns the row
+   token so that EF marks the row modified and the interceptor regenerates it.
 3. **A create returns its token; an update does not.** A create assigns its token up front and returns it on the DTO, so
    a `POST` builds its `201` and `ETag` without a re-read. An update's token is assigned at save, after the store method
    returns, so the DTO cannot carry it: an updating caller re-reads or answers `204`.

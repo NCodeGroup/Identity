@@ -41,7 +41,7 @@ stored or skipped.**
    `ISettingCollection.Set(key, value)` throws for a name with no descriptor or a descriptor of another value type.
 2. **What cannot be honored.** The settings are rejected for an unregistered name, a value the binder cannot convert, a
    list written as a single value or the reverse, a document that is not an object, and `null` for a setting with no
-   default.
+   default. An empty array configures an empty list.
 3. **Configuration is validated when the host starts.** The settings under `OpenId:Platform:Settings` are read through
    `DefaultSettingConfigurationReader`, which backs `PlatformSettingsOptionsValidator`, an
    `IValidateOptions<OpenIdOptions>` registered with `ValidateOnStart`. A configuration reload that cannot be honored is

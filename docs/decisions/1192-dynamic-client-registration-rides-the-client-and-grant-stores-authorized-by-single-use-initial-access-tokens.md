@@ -17,7 +17,7 @@ secret collection) is stored through `IClientStore`. Client secrets are generate
 once ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)). Protocol endpoints register themselves and
 advertise themselves in discovery
 ([ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)).
-Settings cascade server, tenant, client through a merge lattice
+Settings cascade platform, team, tenant and client through a merge lattice
 ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 `IPersistedGrantService` persists a tenant-scoped, hash-keyed, optionally expiring, status-bearing grant envelope.
 
@@ -69,8 +69,8 @@ creates.** No table, store or migration is added.
   [ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md).
 - Logout metadata is stored as the client settings of the same names, which the back-channel notifier, the end-session
   endpoint and the front-channel logout service read, and is reported back:
-  - `backchannel_logout_uri` must be an absolute `https` URI without a fragment, because a `logout_token` must not
-    travel in clear.
+  - A self-registered `backchannel_logout_uri` must be an absolute `https` URI without a fragment, because the server
+    never sends that `logout_token` in clear; an operator-configured client follows the setting's own rule.
   - `post_logout_redirect_uris` must be absolute URIs without a fragment.
   - `frontchannel_logout_uri` must be an absolute URI without a fragment whose scheme, host and port are those of a
     registered redirect URI.
@@ -82,7 +82,7 @@ creates.** No table, store or migration is added.
 - A confidential client receives a server-generated secret from `ISecretGenerator`, revealed once as `client_secret`
   with `client_secret_expires_at: 0`. It is the secret the client presents for `client_secret_basic` and
   `client_secret_post`. A public client (`none`) receives none.
-- The `registration_access_token` is a non-expiring `PersistedGrant` keyed by a salted hash of the token, so the
+- The `registration_access_token` is a non-expiring `PersistedGrant` keyed by a SHA-256 hash of the token, so the
   plaintext is never stored. Its payload binds the `client_id`. An RFC 7592 call looks the bearer up as that grant and
   matches the payload to the route's `{client_id}`. `GET` and `PUT` neither return nor rotate it, because the server
   holds only its hash; RFC 7592 makes rotation a MAY.

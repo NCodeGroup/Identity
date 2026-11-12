@@ -62,6 +62,8 @@ poll, ping or push.**
    settings permit within `backchannel_authentication_request_signing_alg_values_supported`, and an encrypted one is
    rejected ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)). Its claim and lifetime
    rules are those of [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md).
+   When a signed `request` is present, its claims are the request the endpoint processes in place of the form
+   parameters, and a `request` inside the request object is refused with `invalid_request_object`.
 5. **Polling mirrors the device grant.** The token handler answers `slow_down` for a poll that comes too soon,
    stamping `LastPolledWhen` through `UpdatePayloadAsync`, `authorization_pending` while the request is `Pending`,
    `access_denied` when it is `Denied` and `expired_token` past its expiry. An `auth_req_id` is redeemed only by the

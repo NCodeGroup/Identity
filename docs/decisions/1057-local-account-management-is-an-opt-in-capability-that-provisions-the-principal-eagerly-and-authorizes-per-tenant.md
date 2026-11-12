@@ -120,8 +120,11 @@ enforced at compile time. A local-account store registration (`AddLocalAccountEn
   principal.
 - **Ownable local accounts with an owners sub-resource.** Authority over an end-user subject is tenant administration,
   so an owner model adds a resource-node type and a sub-resource for no authority a tenant administrator lacks.
-- **A provisioner seam between the handler and the store.** The handler composes the account, principal and identity
-  writes in one unit of work against the store seam, so a second seam adds indirection without a second implementation.
+- **Folding metadata into the account update.** Metadata belongs to the principal, which the self-issued identity
+  resolves, not to the account, and it carries the owner-versus-server trust boundary, so it has its own endpoint.
+- **A provisioner seam between the handler and the store.** The create handler composes the account, principal and
+  identity writes in one unit of work against the one store seam; a separate write seam is the split
+  [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) rejects.
 - **Duplicating the endpoint base in the capability package.** It leaves the other handlers untouched but copies
   endpoint plumbing that drifts.
 - **Account-owned opt-in packages that build on a public management abstraction, with eager provisioning and

@@ -9,7 +9,8 @@
 
 A management write commits first and then does follow-up work: it evicts caches, announces the change to the other
 replicas, terminates sessions, clears failed-attempt counters and records an audit event. The write has already
-succeeded when that work starts, so the work must neither depend on the request nor turn the success into a failure.
+succeeded when that work starts, so the work must not depend on the request, and a failed announcement, security
+effect or audit record must not turn the success into a failure.
 
 - A client that disconnects after the commit cancels the request's token. Work that runs on that token skips an eviction,
   an announcement, a security effect or an audit record, and the other replicas keep serving stale state, a blocked
@@ -41,7 +42,8 @@ Work that wholly follows a committed change runs on its own bounded token, never
 3. **A failed eviction still announces.** The tenant and team handlers evict (and the tenant handler seeds when the
    change carries `SettingsChanged`) inside a `try` whose `finally` announces, so the other replicas learn of the change
    even when the local eviction or seed fails. The seed keeps the request's token: its failure fails the write, and a
-   tenant that lacks a key is seeded on its next materialization.
+   tenant that lacks a key is seeded on its next materialization. A failed eviction also reaches the caller once the
+   announcement has run; only a failed refresh or announcement is logged and swallowed.
 4. **Audit records.** A management audit record runs in one `PostCommitWork` step that covers the tenant's
    environment-type lookup and the publish. No `IManagementAuditRecorder` method, and no helper whose only work is
    recording, takes a `CancellationToken`. A failure is logged as `AuditPublishFailed` and never thrown, so a caller

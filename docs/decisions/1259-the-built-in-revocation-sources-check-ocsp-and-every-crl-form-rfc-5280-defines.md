@@ -61,7 +61,9 @@ goes through the guarded client of
      answers for the requested `CertID`.
    - The issuer signed it and its `ResponderID`, by name or by SHA-1 key hash, identifies the issuer; or a delegated
      responder signed it: a certificate in the response that the `ResponderID` identifies, issued and signed by the
-     issuer, with the `id-kp-OCSPSigning` extended key usage, and valid at the current time.
+     issuer, with the `id-kp-OCSPSigning` extended key usage, and valid at the current time. The response's signature,
+     and the issuer's signature on a delegated responder's certificate, use the algorithms a list accepts (decisions 6
+     and 7).
    - A delegated responder with `id-pkix-ocsp-nocheck` is not checked. One without it is checked through the CRL
      source at `Depth + 1`, and its response is used only when the responder is `Good`.
    - `thisUpdate` is no later than five minutes after the current time, and `nextUpdate`, when present, is later than

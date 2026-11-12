@@ -56,11 +56,13 @@ and the build fails on any oversized chunk.**
 2. **Node loads the preset as TypeScript by stripping types.** Vite bundles a configuration file but leaves its bare
    imports external, so `src/preset.ts` is one module with erasable syntax only (`erasableSyntaxOnly`), no relative
    imports (they would need `.ts` specifiers) and no runtime imports of other workspace packages (their `.js`
-   specifiers Node cannot map). The preset validates its own options (coverage floors, port, base, bootstrap host),
+   specifiers Node cannot map). The preset validates its own options (coverage floors, port and bootstrap host),
    because the files that call it are not type-checked.
 3. **`@ncode/test-support` keeps its own configuration**, because turbo refuses a cyclic workspace graph and the preset
    needs the console guard for its own tests. Every workspace keeps its own `vitest.setup.ts`, so the console guard
-   registers its hooks on the Vitest copy that runs the suite.
+   registers its hooks on the Vitest copy that runs the suite. The setup passes Vitest's `beforeEach` and `afterEach`
+   to `failOnConsole`, so `@ncode/test-support` has no runtime dependency on `vitest`, and its message formatter has
+   no dependency, so a browser-typed workspace without Node's `util` type-checks the setup.
 
 ### Test and lint gates
 

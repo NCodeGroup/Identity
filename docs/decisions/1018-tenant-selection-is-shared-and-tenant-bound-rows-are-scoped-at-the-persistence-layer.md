@@ -60,12 +60,18 @@ automatically and the framework stays decoupled from the concrete tenant entity
 ([ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md)).
 
 With a scope open, no query returns a row of another tenant, so the row is never materialized. With no scope open, the
-filter is a no-op, which is how the runtime and central tenant administration read.
+filter is a no-op, which is how tenant resolution, tenant management, the control-plane routes and tooling read.
 
 `TenantEntity`, `TeamEntity` and `PlatformEntity` are not `ISupportTenantEntity`, so they stay unscoped and resolvable
 by identifier. A tenant's child rows, its secrets included, are scoped like every other tenant child; tenant
 resolution and tenant management read them with no scope open. The platform has one settings row and no secrets
 ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)).
+
+### Opening the scope on the protocol surface
+
+`OpenIdEnvironmentEndpointFilter`, on the protocol and interactive endpoint groups, resolves and materializes the
+request's tenant with no scope open, then opens the ambient scope for that tenant for the rest of the request. Every
+read on the protocol surface is therefore confined to the request's resolved tenant.
 
 ### Opening the scope in the management API
 
@@ -98,8 +104,8 @@ unscoped. Direct construction in tests and tooling passes an explicit unscoped a
   Rejected as the mechanism: it is correct only while every call site remembers the scope, and a single omission leaks.
 - **A pre-fetch endpoint check on the resource's tenant.** Rejected: an opaque identifier does not reveal its tenant, so
   there is nothing to check before the row is read.
-- **A blanket authorization handler over tenant-owned resources.** Rejected: it runs after the row is loaded, and the
-  `403` it would produce for a resource of another tenant would reveal that the resource exists.
+- **A blanket authorization handler over tenant-owned resources.** Rejected: it runs after the row is loaded, so the
+  row, sensitive material included, is materialized before the scope decision.
 - **The management API reusing the runtime's tenant provider.** Rejected: it drags the protocol runtime into the
   management API, against the one-capability package boundary of
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md).
@@ -120,9 +126,9 @@ unscoped. Direct construction in tests and tooling passes an explicit unscoped a
 ## References
 
 - `NCode.Identity.OpenId.Abstractions`: `ITenantResolver`, `ITenantStrategy`, `TenantResolutionOptions`
-- `NCode.Identity.OpenId.Persistence.Abstractions`: `IAmbientTenantAccessor`, `ISupportTenantEntity`
+- `NCode.Identity.OpenId.Persistence.Abstractions`: `IAmbientTenantAccessor`
 - `NCode.Identity.OpenId.Core`: `DefaultAmbientTenantAccessor`
-- `NCode.Identity.OpenId.Persistence.EntityFramework`: `OpenIdDbContext`
+- `NCode.Identity.OpenId.Persistence.EntityFramework`: `OpenIdDbContext`, `ISupportTenantEntity`
 - `NCode.Identity.OpenId.Management`: `TenantScopeEndpointFilter`
 - [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md), [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md),
   [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)

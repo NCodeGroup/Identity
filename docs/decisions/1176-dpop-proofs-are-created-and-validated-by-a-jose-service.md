@@ -49,7 +49,7 @@ fresh `DPoP-Nonce`) and records `(jkt, jti)` in `IDPoPProofReplayCache`. Binding
 [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)'s.
 
 One vocabulary: the JOSE names are `JoseTokenTypes.DPoPJwt` and `JoseClaimNames.Payload.Htm`, `.Htu` and `.Ath`. The
-HTTP header names `DPoP` and `DPoP-Nonce` are an OpenID transport concern, `OpenIdProtocol.ProofOfPossession.HeaderName`
+HTTP header names `DPoP` and `DPoP-Nonce` are an OpenID transport concern, `OpenIdProtocol.DPoP.HeaderName`
 and `.NonceHeaderName` in `NCode.Identity.OpenId.Protocol.Abstractions`.
 
 ## Options considered

@@ -49,7 +49,8 @@ secret in one unit of work. Both authenticate until the rotated secret expires o
 - **Authorized and audited as the calls it performs.** The caller must be allowed to create a secret for the client
   and to update the rotated secret; rotation performs a create and an update and never a delete. The audit trail
   records the replacement's `Created` and, only when the expiry changed, the rotated secret's `Updated`, without
-  material. An `If-Match` header must carry the rotated secret's concurrency token, or the answer is `412`.
+  material. An `If-Match` header, when sent, must carry the rotated secret's concurrency token; a mismatch, or another
+  request that changed the client's secrets after this one read them, answers `412`.
 - **The response is `201 Created`** with the replacement's `CreatedSecretResource`, the only place its material
   appears, and it is uncacheable
   ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)).

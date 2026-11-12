@@ -105,6 +105,8 @@ row the operator names and proving that the key signs or decrypts under the depl
 - **A supplied public half, proved or not.** The operator exports the half from the KMS and pastes it, a mismatched
   half is found only by the proof, and without the proof it would publish in the tenant's JWKS a key that does not
   verify what the KMS signs. The KMS serves the half itself.
+- **Reading the public half without the proof.** The read shows that a key of the row's specification exists; the
+  proof also shows that the KMS signs or decrypts with it under the deployment's identity before a token depends on it.
 - **Naming only the algorithm.** `RS256` maps to rows whose key specifications differ, and the provider checks the
   specification against one row, so the server would guess the key's size.
 - **Tenant authority alone for binding.** A tenant administrator could name any key the deployment's identity can

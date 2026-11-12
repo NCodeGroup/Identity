@@ -676,7 +676,7 @@ binds a local path prefix to **one** destination base URL. The forwarder:
 
 **YARP routes.** A host that already describes its routes in YARP configuration names their token in route metadata
 instead ([ADR-1381](decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
-decision 8). `AddReverseProxy()…AddBffTransforms()` makes every route whose metadata has `BffTokenRequirement` a
+decision 9). `AddReverseProxy()…AddBffTransforms()` makes every route whose metadata has `BffTokenRequirement` a
 remote API, with the optional `BffResource` and `BffScope`, and `MapReverseProxy().AsBffRemoteApis()` marks those
 routes as BFF APIs, so they need the session and the anti-forgery header. The optional `BffFrontend` key limits a route
 to one frontend. The keys have no `:`, because YARP's configuration loader reads a colon as a section separator.
@@ -1526,7 +1526,7 @@ The Playground stays a public client on purpose: it keeps the `@ncode/auth` prot
   - Deployments that already describe their routes in YARP name each route's token in its metadata, and
     `NCode.Identity.Bff` itself carries that support
     ([ADR-1381](decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
-    decision 8).
+    decision 9).
 
 ### D9. Endpoint prefix
 

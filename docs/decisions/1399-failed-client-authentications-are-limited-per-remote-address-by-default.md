@@ -26,8 +26,9 @@ either:
   gateway, and a value that admits that traffic, thousands a minute, admits millions of guesses a day.
 
 A limit keyed by the `client_id` alone is a lever: anyone who knows a public `client_id`, such as the bootstrap
-administrator's, could keep that client locked out from anywhere, which ADR-1391 rejects. RFC 9700 §4.10 and OWASP's guidance on credential stuffing count failures per source and per source and
-account rather than per account alone, and NIST SP 800-63B-4 §3.2.2 limits consecutive failures.
+administrator's, could keep that client locked out from anywhere. RFC 9700 §4.10 and OWASP's guidance on credential
+stuffing count failures per source and per source and account rather than per account alone, and NIST SP 800-63B-4
+§3.2.2 limits consecutive failures.
 
 Brute-force protection is a correctness guard: it must hold while its store is unreachable, so it fails closed
 ([project-template ADR-0144](project-template/0144-correctness-guards-fail-closed-capacity-guards-fail-open.md)).

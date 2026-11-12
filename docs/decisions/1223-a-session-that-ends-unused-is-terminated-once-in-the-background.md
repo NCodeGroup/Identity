@@ -26,8 +26,9 @@ request uses it would only be pruned, which leaves these gaps:
 interval, and the grant prune keeps a session until it is terminated.**
 
 1. **An ended session is terminated by claiming it.** `RevokeSessionOnceAsync` revokes the session grant and every
-   other grant issued under its `sid` in one unit of work, and returns `true` only when this call revoked the session
-   grant. Only the claiming call dispatches `OnSessionTerminatedCommand`, with the reason `absolute_expiry` or
+   other grant issued under its `sid` in one unit of work, and returns the session grant as this call revoked it, or
+   `null` when the grant is unknown, belongs to another tenant or is already revoked. Only the claiming call dispatches
+   `OnSessionTerminatedCommand`, with the reason `absolute_expiry` or
    `idle_timeout`, and logs the termination. A dispatch that fails or is cancelled after the claim leaves no grant of
    the session active. `ISessionService.ValidateAndTouchAsync` and `ISessionService.TerminateIfEndedAsync`, which
    returns whether this call terminated the session, share one helper, so a request and the pass that find one ended

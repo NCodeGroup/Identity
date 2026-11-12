@@ -31,9 +31,10 @@ a retired key is destroyed once a scan finds no value that still names it. The p
    ([ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)), retires the active row with its
    concurrency token checked, and stores the successor on a bounded token of its own. A failed insert with no other
    active row re-activates the retired row, and a successor that another replica stored first is adopted. An owner
-   without any key receives its first and reports no retired key. A concurrent second rotation fails with
-   `StoreConcurrencyException`, and a rotation within twice `RefreshInterval` of the owner's last one fails with
-   `MasterKeyRotationTooSoonException`, since every replica has not yet loaded the active key.
+   without any key receives its first and reports no retired key. An owner with retired keys and no active key, whose
+   successor another rotation is storing, and a concurrent second rotation fail with `StoreConcurrencyException`. A
+   rotation within twice `RefreshInterval` of the owner's last one fails with `MasterKeyRotationTooSoonException`,
+   since every replica has not yet loaded the active key.
 3. **A cached key set is bounded in age.** A cache entry records when it was loaded. A call that finds an entry older
    than `SecretProtection:MasterKeys:RefreshInterval` (five minutes) reads the active row and the rows of every cached
    key again, reuses the key material it already holds, makes no unwrap call, and drops the keys whose rows do not
@@ -49,7 +50,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
    `RewrapAsync(owner, masterKeyIds)` rewraps every value of the source that names one of the keys, and
    `FindReferencedAsync(owner, masterKeyIds)` answers the subset that a value still names. Every source is asked once
    per owner, and a source ignores an owner it holds nothing for. The family registers three: the stored secrets of a
-   tenant (its tenant record, clients and resource servers) or of the platform, the grant payloads of a tenant, and the
+   tenant (its tenant record, clients and resource servers), the grant payloads of a tenant, and the
    platform's Data Protection key ring. A package that protects its own values registers a source for them
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)); a value that no source reports is not rewrapped
    and becomes unreadable once its key is destroyed.
@@ -84,7 +85,8 @@ a retired key is destroyed once a scan finds no value that still names it. The p
     owner on the `master-key-changed` channel, which every replica's handler answers by evicting the owner, and after a
     rotation dispatches a `MasterKeyRewrapJob` delayed by twice the refresh interval, by which time every replica has
     reloaded. The dispatcher is not durable, so the job only brings the work forward.
-11. **A background pass is the durable path.** `MasterKeyMaintenanceService` runs every `MaintenanceInterval` (one day).
+11. **A background pass is the durable path.** `MasterKeyMaintenanceService` waits for the platform to materialize and
+    then runs every `MaintenanceInterval` (one day).
     One replica takes the lease `master-key-maintenance:platform` for half the interval and rotates every active key
     older than `RotationPeriod` (365 days), then rewraps and destroys for every owner that has retired keys, which it
     reads in keyset pages that carry only the owner of each retired row. Each owner runs in its own try block, and the

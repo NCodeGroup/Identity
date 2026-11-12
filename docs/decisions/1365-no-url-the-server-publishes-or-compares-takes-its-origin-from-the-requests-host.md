@@ -28,7 +28,9 @@ No URL the server publishes or compares takes its origin from the request's `Hos
    ([project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md) allows a
    same-origin relative link).
 2. **Each BFF frontend has a required `Bff:Frontends:<name>:PublicOrigin`** (`BffFrontendOptions.PublicOrigin`), the
-   absolute URL the frontend is published at. Startup validates it: absolute, `https` outside Development, no user
+   absolute URL the frontend is published at: scheme, host, optional port and an optional path base, such as
+   `https://example.com/app`. Startup validates it: absolute, `https` outside Development (`http` is accepted in
+   Development), no user
    info, query, fragment or trailing `/`, and written in canonical form. A BFF without a valid `PublicOrigin` does not
    start.
 3. **`BffNavigation` builds the BFF's URLs from it.** The `redirect_uri` is `PublicOrigin + PathPrefix + "/callback"`

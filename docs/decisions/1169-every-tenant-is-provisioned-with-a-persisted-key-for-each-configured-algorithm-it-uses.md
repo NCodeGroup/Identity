@@ -72,7 +72,9 @@ management API read that one source.**
    - its custody matches the specification's
      ([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md));
    - its `SecretType` is the configured one;
-   - its stored public half reads and is on the specification's curve.
+   - its stored public half reads and is on the specification's curve;
+   - its `use` and its key are ones the algorithm accepts, as the runtime credential selector judges. The configured
+     size is not compared, so a held RS256 key of any size RS256 accepts satisfies RS256.
 
    Otherwise a key is provisioned.
 6. **A tenant gets only the keys its settings use.** A configured algorithm is provisioned for a tenant only when one of
@@ -128,7 +130,7 @@ management API read that one source.**
   would race to seed the same tenant, and the new key would still wait for the secrets poll. The replica that makes the
   change seeds once, when it commits. The reconciliation also reacts to a poll, but one lease per change lets only one
   replica run it.
-- **Generate keys per tenant at the operator's request only when settings need them (chosen).** The seed fills the gaps
+- **Generate a tenant's keys by default, only for the algorithms its settings use (chosen).** The seed fills the gaps
   the effective settings leave, never overrides a held key, and leaves import and opt-out to operators.
 
 ## Consequences

@@ -45,7 +45,8 @@ roles only at its owning node or beneath it.**
    random bytes, unique per tenant. The client store generates it when it adds the client, overwrites any value the
    caller supplies and never changes it. No caller can pick another actor's principal, and a client recreated with the
    same `client_id` holds a fresh principal and none of the earlier client's authority. Removing a client removes every
-   role assignment its principal holds.
+   role assignment its principal holds. `ClientResource.principalId` reports it, and a role list's grant names it to
+   grant the client's principal a role.
 2. **The token's subject is the client's principal.** A `client_credentials` access token carries the client's
    `PrincipalId` as `sub`, beside its `client_id`. The subject is never the `client_id` and never pairwise-projected.
 3. **A subject names a client acting for itself when it equals the client's principal.** `IClientPrincipalResolver`
@@ -76,8 +77,8 @@ roles only at its owning node or beneath it.**
    Otherwise the control-plane tenant's client routes manage a machine client
    ([ADR-1257](1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md)).
 9. **It obtains tokens only for itself.** Its stored `grant_types_supported` is exactly `["client_credentials"]`,
-   written when it is created. A settings write that leaves anything else, or that names a resource server for it,
-   answers `400`.
+   written when it is created. A settings write that leaves anything else answers `400`, and so does a creation request
+   that names a resource server for it.
 10. **Its authority chain includes its owning node.** The chain of a machine client's node holds its owning node and
     every node above it, read from the client row as a tenant's team is read from the tenant row, so the owner's
     administrators manage it. An unknown client has no owning node, and a caller without authority gets `403` whether
@@ -150,8 +151,7 @@ roles only at its owning node or beneath it.**
   [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md),
   [ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md)
-- `src/NCode.Identity.OpenId.Management/Authorization/DefaultCallerPrincipalResolver.cs`,
-  `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`,
+- `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Stores/ClientStore.cs`,
   `IClientPrincipalResolver.cs`, `DefaultClientPrincipalResolver.cs`, `ActingClientMemo.cs`,
   `ManagementAuthenticationEndpointFilter.cs`, `DefaultManagementAuditRecorder.cs`,

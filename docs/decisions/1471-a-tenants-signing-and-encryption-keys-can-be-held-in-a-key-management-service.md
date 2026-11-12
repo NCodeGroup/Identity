@@ -62,11 +62,12 @@ and one tenant setting chooses the custody of every provisioned key.**
 10. **Custody change.** A custody change supersedes the managed serving keys that do not satisfy the specification. The
     successor activates at `H`: Max(now, earliest serving activation) when a serving key exists; else
     Min(now + activation delay, latest retirement of the active superseded keys); else now. Superseded keys retire with
-    `custody_changed` (`TenantKeyChangeReasons.CustodyChanged`): active ones at `H`, upcoming ones at once, each expiring
-    one grace later.
+    `custody_changed` (`TenantKeyChangeReasons.CustodyChanged`): active ones at `H` unless they retire sooner on their
+    own, upcoming ones at once, each expiring one grace later. An upcoming key that satisfies the specification
+    activates at once only when no satisfying key and no superseded key is active.
 11. **Rollover.** `DefaultTenantKeyRollover` generates remote keys through `GenerateRemoteSecretAsync`, loads a protector
-    only for local keys, sends `TenantKeyRolloverResult.RemovedSecrets` to the destroyer, and audits
-    `remote_key_provider`.
+    only for local keys, destroys nothing, reports the keys it removes in `TenantKeyRolloverResult.RemovedSecrets`,
+    which its caller hands to the destroyer after the commit, and audits `remote_key_provider`.
 12. **Successors.** A successor is a new version of the group's key (Google; Azure `{GroupName}-h` or `-s`) or, on AWS, a
     new key tagged with the group. Azure and Google keys are hardware-protected by default, and creation uses the row
     kind's key usage (AWS `SIGN_VERIFY`, `ENCRYPT_DECRYPT`, `KEY_AGREEMENT`).

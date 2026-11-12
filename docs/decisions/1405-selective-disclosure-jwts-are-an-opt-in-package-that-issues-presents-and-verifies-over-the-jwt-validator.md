@@ -97,6 +97,8 @@ adds it:
    requirement built from a missing value would let any captured KB-JWT replay. The KB-JWT is validated as `kb+jwt`
    with the holder key, the requirement's algorithms and the verifier's audience. `nonce` and `sd_hash` are compared in
    fixed time, and `sd_hash` is computed over the presentation exactly as received, up to and including the last `~`.
+   A KB-JWT without `iat`, issued later than now plus the requirement's clock skew, or older than the requirement's
+   maximum age plus that skew is refused as not fresh.
 
 8. **A profile is data the issuer and the verifier apply.**
    - `SdJwtProfile` names the `typ` of the issuer-signed JWT, the claims that must be present as non-empty strings, and

@@ -12,8 +12,9 @@ that consent has to be remembered: a subject does not consent again on every log
 
 Consent does not have the lifecycle of the artifacts in the grant store. That store holds ephemeral, operation-scoped
 records (authorization codes, refresh tokens, device codes, continuations and the end-user session) that are
-hash-keyed, single-use or expiring, and revoked in bulk on logout: `DefaultRevokeGrantsOnEndSessionHandler` calls
-`IGrantStore.RevokeWhereAsync(subjectId, clientId: null, …)`, which revokes every grant a subject holds. Consent is
+hash-keyed, single-use or expiring, and revoked in bulk when a session ends:
+`DefaultRevokeGrantsOnSessionTerminatedHandler` revokes, through a `GrantFilter`, every grant of the ended session, or
+of the subject when the termination names no session. Consent is
 durable and cross-session, is upserted in place by a natural `(tenant, client, subject)` key, must survive logout, and
 is a record the end user manages. As a grant payload it would be swept away by that revocation, or the grant type would
 need special-casing out of the sweep and a re-activation semantics the consume-once model never needed.

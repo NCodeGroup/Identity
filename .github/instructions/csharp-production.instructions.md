@@ -375,7 +375,9 @@ than inlining the rationale.
   hard-code an absolute protocol path into a published URL. Generate every URL that leaves the process with
   `GetTenantUriByName`, which takes the authority from the tenant and carries the tenant route's values over. Never
   hand the request's live `RouteValues` to a template binder — it consumes them; bind a copy. See
-  [ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md).
+  [ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)
+  and
+  [ADR-1365](../../docs/decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md).
 - 👁 **Minimal-API endpoints are bound by the Request Delegate Generator; a project with form-bound endpoints opts
   out.** `Directory.Build.props` generates every project's request delegates at compile time, and a handler shape the
   generator cannot produce fails the build — fix the shape, never suppress the diagnostic. A project with an endpoint
@@ -735,7 +737,10 @@ than inlining the rationale.
   `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
   `IClientCertificateRevocationChecker`. See
-  [ADR-1173](../../docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md).
+  [ADR-1315](../../docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md),
+  [ADR-1173](../../docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)
+  and
+  [ADR-1400](../../docs/decisions/1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md).
 - 👁 **A retrieval that concurrent requests share runs once, on its own terms** — template
   [Outbound Calls](csharp.instructions.md#outbound-calls); it also takes its own copy of any disposable input a caller
   owns, such as a chain's certificates (`DefaultClientCertificateRevocationChecker`,

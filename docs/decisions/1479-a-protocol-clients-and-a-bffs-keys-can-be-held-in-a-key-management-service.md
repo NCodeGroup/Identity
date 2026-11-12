@@ -68,9 +68,9 @@ every key ring when the host starts.**
    catalogs are secrets-library services and a BFF composes no persistence library. The key wrappers stay on
    `IServiceBuilder<SecretPersistenceLibrary>`. The section is `SecretProtection:RemoteKeyProviders:<Vendor>` in every
    host, so one provider has one section; no `Bff:` child section is used, because `Bff` binds strictly and the child
-   would give one provider two names. The OP host registers providers on `identityServer.SecretsLibraryBuilder`, and
-   the management console's host on `managementConsole.IdentityBffBuilder.SecretsLibraryBuilder`, both without a
-   key-creation location.
+   would give one provider two names. The OP host registers a vendor on `identityServer.SecretsLibraryBuilder`
+   only when its section exists, and the management console's host registers every vendor on
+   `managementConsole.IdentityBffBuilder.SecretsLibraryBuilder` without a key-creation location, so it creates no key.
 5. **The protocol client needs no library change.** `PrivateKeyJwtClientAuthenticator` and `DefaultDPoPProofService`
    sign through `SignatureAlgorithm.SignAsync`, the provider-JWT validator decrypts through the asynchronous JWE path,
    and the credential selector matches a key's metadata `Use` and `Algorithm`, which the row sets. A host that
@@ -88,14 +88,11 @@ every key ring when the host starts.**
    The row decides each remote key's use, so one client-authentication ring holds a signing key and a decryption key
    side by side, and `/bff/jwks` publishes both halves with their `use`.
 7. **A remote key is resolved, read and proved as its ring loads, and a failure stops the host.** The ring loads as
-   [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md) describes:
-   `BffKeyRingLoader` (`IHostedLifecycleService.StartingAsync`) loads every `Bff:KeyRings` entry into `BffKeyRings`,
-   and the keyed `ISecretKeyCollectionProvider` registered per entry returns the loaded ring. A remote key is resolved,
-   read and proved before its ring loads, so a key that the deployment's identity cannot read or use stops the host
-   with `The BFF cannot load the remote key '{kid}' of the key ring '{ring}' from the remote key provider
-   '{provider}': {reason}`, with the cause as the inner exception. PEM keys load at start too, so a malformed file
-   stops the host rather than the first login. A ring loads once per process, so a rotation takes effect on restart. A
-   ring's keyed provider resolves once `StartingAsync` has run: a service that resolves it earlier, such as an eager
+   [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md) describes.
+   A remote key is resolved, read and proved before its ring loads, so a key that the deployment's identity cannot
+   read or use stops the host with `The BFF cannot load the remote key '{kid}' of the key ring '{ring}' from the remote
+   key provider '{provider}': {reason}`, with the cause as the inner exception. A ring's keyed provider resolves once
+   `StartingAsync` has run: a service that resolves it earlier, such as an eager
    singleton or an options validator, gets an `InvalidOperationException` that names the ring. The BFF resolves a ring
    only when a request uses it, and the set check of
    [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md) asks only whether the ring is
@@ -105,9 +102,7 @@ every key ring when the host starts.**
    not a reference that `IRemoteKeyReferenceStore` reads. The sweep lists only keys whose group name begins `ncid-`
    and that carry its deployment's tag
    ([ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)), so a
-   ring's key is never swept unless the operator gives it both. The operator gives it neither, and keeps it in a scope
-   of its own, as for a bound tenant key
-   ([ADR-1476](1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md)).
+   ring's key is never swept unless the operator gives it both. The operator gives it neither.
 9. **DPoP keys can be KMS-held by the same entries.** The vocabulary is not closed by use. Every DPoP proof, each
    token request and each forwarded call with a DPoP-bound token, is a KMS signature (a round trip, a fee and the
    service's quota), whereas a client-authentication key signs once per token request. An operator holds the

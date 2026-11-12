@@ -13,16 +13,15 @@ converts in both directions: encoding a subject's claims into a payload, and dec
 `ClaimsIdentity`. Decoded identities are routinely re-encoded (token exchange, re-issuance, refresh), so the two
 directions form a round trip whose fidelity matters.
 
-Two conversions that live apart drift apart, and each drift is a silent data defect:
+The round trip is exact only when each value keeps its type and its precision:
 
-- A decoder that types every number as `#double` makes re-encoding go through `double`, which loses integers above
-  2^53 (`9007199254740993` becomes `9007199254740992`): identifiers, counters and large timestamps.
-- An encoder that knows only some declared types emits the rest as strings, so an unsigned or unbounded integer claim
-  becomes a JSON string, and `JSON_NULL` becomes `""`.
-- Values JSON cannot represent, or that are malformed for their type, make an encoder throw instead of degrade: a
-  `#double` of `NaN` or `Infinity` fails serialization, and a malformed `JSON` value fails parsing.
-- Lenient numeric parsing (`NumberStyles.Any`) accepts thousands separators, currency symbols and parenthesized
-  negatives, none of which are in the XML Schema lexical space the value type declares.
+- An integer above 2^53 (`9007199254740993`) does not survive a pass through `double`, and identifiers, counters and
+  large timestamps reach that size.
+- Every declared type needs its own JSON form: an unsigned or unbounded integer is a JSON number, and `JSON_NULL` is
+  `null`.
+- Some values have no JSON form: a `#double` of `NaN` or `Infinity`, or a malformed `JSON` value.
+- The value type declares the XML Schema lexical space, which has no thousands separators, currency symbols or
+  parenthesized negatives, so lenient numeric parsing (`NumberStyles.Any`) accepts text the type does not allow.
 
 Dates add two hazards. `NCode.Identity.Json.DateCoercion` is the family's date and time coercion policy, and the
 loosely typed JSON mappers (`ObjectJsonConverter`, `JsonElements`, `ObjectGraphExtensions`) parse through it so they

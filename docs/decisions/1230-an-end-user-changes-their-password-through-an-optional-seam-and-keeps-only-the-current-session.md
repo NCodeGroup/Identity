@@ -6,8 +6,8 @@
 
 ## Context
 
-A self-service password change terminates every other session of the principal and keeps the current one, as
-[ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) decides.
+A self-service password change must end every other session of the principal, as OWASP ASVS V3.3.3 and NIST
+SP 800-63B ask.
 The interactive surface is backend-agnostic
 ([ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)),
 so a password change cannot assume a local account: a passwordless or external backend has no password to change.
@@ -73,8 +73,8 @@ user but the current one and revokes every grant that was issued under no sessio
   is signed out.
 - A host with a credential backend other than the local accounts offers the change by registering its own
   `IInteractivePasswordChanger`, and the page reports `not_supported` until it does.
-- A failed termination dispatch leaves the other sessions revoked and their relying parties unnotified until the
-  background pass reaches them; only the current session's grants stay active.
+- A failed termination dispatch leaves the other sessions and their grants revoked, but their relying parties receive
+  no back-channel logout; only the current session's grants stay active.
 - A "you chose wrong" smell: a second backend method that needs to answer "can this principal change a password" before
   the page renders would call for a capability probe on the seam.
 
@@ -82,8 +82,8 @@ user but the current one and revokes every grant that was issued under no sessio
 
 - [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)
   — the interactive surface and its credential verifier.
-- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — a
-  self-service change keeps the current session.
+- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — an
+  administrator's password reset ends every session, and the self-service pages require an active session.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — every
   termination of a named session claims it and notifies its clients.
 - [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md) — the bounded token that the

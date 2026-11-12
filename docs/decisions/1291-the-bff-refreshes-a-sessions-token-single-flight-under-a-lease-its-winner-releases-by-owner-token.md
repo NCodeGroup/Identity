@@ -106,8 +106,10 @@ which releases exactly its own lease by the owner token it holds when it finishe
   refresher with the same refresh token.
 - **An `IExpiringKeySet` lease.** Rejected: a key set entry cannot be released, so against a provider that does not
   rotate every later refresh would wait out the lease.
-- **A reuse grace window at the OP.** Rejected: it weakens reuse detection for every client and does not exist at other
-  providers.
+- **Relying on a reuse interval at the OP.** Rejected: the interval is an opt-in client setting that weakens reuse
+  detection while it lasts
+  ([ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)), and a
+  BFF cannot count on every provider offering one or on a deployment turning it on; single-flight refresh needs neither.
 - **Turning off rotation for BFF clients.** Rejected: it gives up a defense RFC 9700 recommends.
 - **A background refresher.** Rejected: it refreshes sessions nobody uses and still needs the same single-flight
   guarantee.

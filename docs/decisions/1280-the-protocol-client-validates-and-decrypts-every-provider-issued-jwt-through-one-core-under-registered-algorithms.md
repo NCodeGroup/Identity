@@ -78,13 +78,15 @@ the client registered encryption, every token must be encrypted.**
    `JwtSecretKeyNotFoundException` raised before `ResolveValidationKeysAsync` ran therefore came from decryption and
    maps to `decryption_failed`
    ([ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md));
-   raised after it, it maps to `invalid_signature`. Each carries fixed text ("The {token} signature could not be
-   verified with the provider's signing keys."). Any other failure reads "The {token} is invalid: " followed by its
+   raised after it, it maps to `invalid_signature`. Each carries fixed text: `decryption_failed` reads "The {token}
+   could not be decrypted with the client's keys." and `invalid_signature` reads "The {token} signature could not be
+   verified with the provider's signing keys.". Any other failure reads "The {token} is invalid: " followed by its
    message.
 10. **Provider failures and cancellation.** A provider failure throws `OpenIdProviderException`, rethrown from the JWT
     validation result. Cancellation propagates.
-11. **The order of checks is fixed.** The algorithm policy comes first, then decryption, the replicated `iss`, the
-    signature and the kind's claim checks. The logout replay lookup runs last, so a token that fails any other check
+11. **The order of checks is fixed.** The algorithm policy comes first. The JWT validator then decrypts, verifies the
+    signature and checks the issuer, audience and lifetime. The core then checks that a client that registered
+    encryption received a JWE, the replicated `iss` and the `typ`, and then the kind runs its claim checks. The logout replay lookup runs last, so a token that fails any other check
     never records its `jti`.
 
 ## Options considered

@@ -59,7 +59,9 @@ Whole numbers:
   `TryGetDecimal` reads, that `decimal.Truncate` leaves unchanged and that lies in `int` range. It never throws.
 - **`decimal`, not `double`.** `60.0000000000000001` is refused, whereas a `double` would round it to 60.
 - **What is refused.** A non-zero fraction, a value outside `int` range, a JSON string such as `"60"` and any
-  non-number. A value below `decimal` precision (`1e-400`) reads as 0.
+  non-number. A value below `decimal` precision (`1e-400`) reads as 0, which the pushed authorization response refuses
+  as not positive. `TokenResponse.ExpiresIn` is not checked for a positive value, so a zero or negative lifetime makes
+  the caller treat the token as expired.
 - **A public converter.** `WholeInt32JsonConverter : JsonConverter<int>` in `NCode.Identity.Json` applies the same rule
   to a serialized member, writes a JSON integer and fails with `JsonException`. It is public there because an
   `*.Abstractions` package holds no helper logic ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md))

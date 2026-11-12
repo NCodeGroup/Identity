@@ -34,8 +34,8 @@ EdDSA and the X25519 and X448 key agreements are implemented clean-room in the o
    X25519 and X448 functions are a Montgomery ladder with a masked conditional swap. Scalars are clamped, the X25519
    top bit is masked, a non-canonical `u` is processed as reduced, and secrets are zeroed with
    `CryptographicOperations.ZeroMemory`. Speed yields to constant time and to the test vectors.
-3. **The package is opt-in and depends only on abstractions.** `NCode.Identity.Jose.EdDsa` references only
-   `Jose.Abstractions` and `Secrets.Abstractions`
+3. **The package is opt-in and depends on no implementation package.** `NCode.Identity.Jose.EdDsa` references only
+   `Jose.Abstractions`, `Secrets.Abstractions` and the foundation package `NCode.Identity.Json`
    ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
    `AddEdDsa()` extends `IServiceBuilder<JoseLibrary>`, so a host cannot call it without the JOSE library
    ([ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)). It registers

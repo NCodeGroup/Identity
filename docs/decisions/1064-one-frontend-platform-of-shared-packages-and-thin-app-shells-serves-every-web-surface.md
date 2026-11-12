@@ -6,9 +6,10 @@
 
 ## Context
 
-The OpenID Provider and the Management API are UI-free, yet several surfaces need a browser front end: the management
-console, the interactive sign-in and consent bundle, the playground and the conformance harness with its headless
-runner. The management surface also has to show the security boundary between the platform, a team and a tenant.
+The OpenID Provider and the Management API are protocol and REST servers, and several surfaces need a browser front
+end: the management console, the interactive sign-in and consent bundle, the playground and the conformance harness
+with its headless runner. The management surface also has to show the security boundary between the platform, a team
+and a tenant.
 
 Built as one-off UIs, these surfaces would duplicate the design system, the management client, the boot sequence and the
 build tooling, and they would drift apart. A single SPA that route-gates every surface would couple the management
@@ -44,16 +45,20 @@ over shared, scoped `@ncode/*` packages, and a layering rule keeps each layer in
   - `@ncode/auth` holds the public-client protocol helpers.
   - `@ncode/conformance-core`, `@ncode/test-support` and `@ncode/vite-config` serve the conformance surfaces, the tests
     and the build.
-- **Layering is the testability invariant.** Presentational components are stateless and render in Storybook and under
-  React Testing Library without a store. Containers at the top of a screen wire Redux and RTK Query. Non-trivial logic
-  lives in UI-free, unit-tested modules. RTK Query is the default for server state. Breaking the layering is a review
-  failure.
+- **Layering is the testability invariant.** Presentational components are stateless: they hold no store or fetch
+  state, and local state is allowed only when it is intrinsic to a control and does not break isolated rendering. They
+  render in Storybook and under React Testing Library without a store. Containers at the top of a screen wire Redux and
+  RTK Query. Non-trivial logic lives in UI-free, unit-tested modules. RTK Query is the default for server state.
+  Breaking the layering is a review failure.
 - **Where a container lives.** `@ncode/ui` depends on no store, and `@ncode/store` and `@ncode/config` hold no UI. A
   container that more than one surface uses, such as `BootstrapGate`, lives in `@ncode/shell`, the one package that may
   depend on both. A container that one surface uses, such as the console's `SessionGate`, stays in its app.
-- **One bundle, every tier.** A bundle is built once and nothing tier-specific is baked in. On boot it fetches
-  `/config/bootstrap.json` from its serving host, which owns that document; an OpenID surface then reads the OP's
-  discovery. The bootstrap issuer is the serving tenant's
+- **One bundle, every tier.** A bundle is built once and nothing tier-specific is baked in. On boot the `playground`,
+  `conformance` and `mgmt` bundles fetch `/config/bootstrap.json` from their serving host, which owns that document, and
+  an OpenID surface then reads the OP's discovery. The `apps/auth` bundle fetches nothing on boot: it reads what it
+  needs from the page the host rendered
+  ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
+  The bootstrap issuer is the serving tenant's
   ([ADR-1182](1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md)).
 - **A surface-aware bootstrap.** A bundle sends `?surface=<name>`. `FrontendBootstrapOptions.Surfaces` maps the name to an
   override: its client id and scopes replace the default, its feature flags merge per key and its branding falls back. An
@@ -77,8 +82,9 @@ over shared, scoped `@ncode/*` packages, and a layering rule keeps each layer in
 - **Scopes are distinct contexts.** The management surface models platform, team and tenant scopes as distinct browsing
   contexts with their own navigation, cache tags and authorization gating, never one filtered list
   ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)).
-- **Branding through a provider.** Theme tokens sit behind a provider in `@ncode/ui`, and a tenant's branding arrives
-  through the bootstrap document
+- **Branding through a provider.** Theme tokens sit behind a provider in `@ncode/ui`. A bundle's deployment branding
+  arrives in its bootstrap document, and the host embeds a tenant's sign-in branding in the page the `apps/auth` bundle
+  mounts over
   ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
 ## Options considered

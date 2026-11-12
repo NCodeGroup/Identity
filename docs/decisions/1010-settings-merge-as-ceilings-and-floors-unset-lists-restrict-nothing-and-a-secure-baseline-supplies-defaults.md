@@ -49,12 +49,16 @@ A descriptor chooses the merge that realizes a ceiling, a floor or an override. 
 
 A ceiling is a limit that a narrower scope can lower and never raise.
 
-- Lifetimes, `clock_skew`, `subject_max_age`, timeouts and size caps merge as `Min`. A lifetime's default is also its
-  maximum, so raising one scope's lifetime means raising the platform's.
+- Token, code, request and key lifetimes, `clock_skew`, `subject_max_age`, fetch timeouts and size caps merge as
+  `Min`. Such a lifetime's default is also its maximum, so raising one scope's lifetime means raising the platform's.
+  The end-user session's bounds, `session_absolute_lifetime` and `session_idle_timeout`, are a tenant's own policy and
+  merge as `Replace` within their rules
+  ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md)).
 - Toggles such as `allow_loopback_redirect`, `request_parameter_supported` and `claims_parameter_supported` merge as
   `And`.
 - Capability lists (the `*_supported` settings, `redirect_uri_kinds_supported` and `allowed_identity_providers`)
-  merge as `Intersect`.
+  merge as `Intersect`. `claims_supported` is the exception: it is advisory, merges as `Replace`, and restricts the
+  claims returned only when `claims_supported_is_strict` is set.
 
 ### Floors
 
@@ -112,8 +116,10 @@ omits settings that are unset.
   union breaks the invariant that the server advertises the maximum.
 - **`Replace` everywhere, with the checks in the handlers.** Rejected: it moves the ceiling out of the cascade and
   lets a narrower scope loosen a broader one.
-- **Intent-named merges, `Ceiling` and `Floor`.** Rejected: the set operations name what the code does and cover
-  lists, toggles and numbers alike.
+- **Intent-named merges, `Ceiling` and `Floor`.** Rejected: the operation that realizes a ceiling or a floor depends on
+  the value's polarity (a lifetime ceiling is `Min`, a minimum-length floor is `Max`), so no single generic `Ceiling`
+  exists. The vocabulary names operations, ships both halves of every pair, and each descriptor picks the half its
+  polarity needs.
 - **A default and a maximum for each scalar.** Rejected: a lifetime's default is also its maximum, so one value
   states both.
 - **Policy literals as descriptor defaults.** Rejected: they freeze the ceiling, so an extension is dead on arrival.

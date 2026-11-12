@@ -66,7 +66,10 @@ point with the same outcome.
    always expires (RFC 9700 §4.14.2), and `refresh_token_rotation_policy` is `unbound` or `always`.
 4. **Shapes are checked as the runtime uses the value.**
    - A URI has a scheme and no whitespace.
-   - `jwks_uri`, `sector_identifier_uri` and `client_notification_endpoint` are https.
+   - `jwks_uri` and `sector_identifier_uri` are https. `client_notification_endpoint` is empty by default or an https
+     URI, so a ping or push client that registered none is reported as a missing endpoint
+     ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md))
+     rather than failing to read the setting.
    - A redirect URI is absolute without a fragment.
    - A logout URI and an informational link are http or https.
    - A host allow-list entry is written as a URI reports its host.

@@ -38,8 +38,10 @@ before the platform imports it.
    key's `crv` unambiguously. A size (`GetByCurveSizeBits`) selects a curve only when no other curve shares it
    ([ADR-1398](1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)).
 4. **Generation takes the curve.** `SecretKeyGenerationParameters { KeySizeBits, Curve? }` carries the request. The
-   ECC descriptor resolves the curve by name and refuses a size that differs from it; a non-ECC descriptor refuses a
-   curve. `Curve` flows from `CreateSecretRequest` to `GenerateSecretRequest` to the descriptor.
+   ECC descriptor resolves the curve by name and refuses a size that differs from it. The `okp` and `AKP` descriptors
+   take a curve too, an `AKP` key naming its parameter set there, and the symmetric and RSA descriptors refuse one
+   ([ADR-1398](1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)). `Curve`
+   flows from `CreateSecretRequest` to `GenerateSecretRequest` to the descriptor.
 5. **Publication reads the catalog.** The ECC descriptor's `ExportPublicKey`
    ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)) reads `crv` from the catalog by the key's actual
    curve. The capabilities document

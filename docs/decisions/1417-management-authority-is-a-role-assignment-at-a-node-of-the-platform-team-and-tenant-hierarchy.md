@@ -42,8 +42,10 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
 3. **The record.** `PersistedRoleAssignment` (`RoleAssignmentEntity` in the Entity Framework store) sits behind
    `IRoleAssignmentStore`. It has `TenantId`, a server-generated `AssignmentId`, `PrincipalId`, `RoleName` (a name, not a
    foreign key), `ResourceType`, `ResourceId` and an interceptor-managed `ConcurrencyToken`, with a lookup index on
-   tenant, resource type and resource id. Assignments at team and platform nodes live in the control-plane tenant; one at
-   a tenant node is stored under that tenant's identifier.
+   tenant, resource type and resource id, and a unique index on tenant, principal, role, resource type and resource id
+   holds each assignment once, so granting a principal a role it already holds at a node returns the existing
+   assignment. Assignments at team and platform nodes live in the control-plane tenant; one at a tenant node is stored
+   under that tenant's identifier.
 4. **The handler.** `OwnershipHandler` resolves the caller's `PrincipalId` (`IPrincipalResolver`,
    [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)) in the control-plane tenant's scope and succeeds
    when one of its assignments of an authorizing role sits at the node or at an ancestor that `IAuthorityChainResolver`
@@ -72,8 +74,8 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
   no listing. Rejected.
 - **Separate role and ownership subsystems or tables.** Two mechanisms answer the same question twice and drift. One
   assignment table serves both. Rejected.
-- **An ancestor chain stored on each assignment.** Every move or reparenting rewrites the assignments beneath it, where
-  deriving the chain from the resource needs no stored pointers. Rejected.
+- **An ancestor chain stored on each assignment.** The hierarchy is fixed and derivable from the resource, so a stored
+  chain duplicates it and invites drift without a faster decision. Rejected.
 - **A tenant role matched by the token's `tid`.** Every token carries the control-plane tenant's identifier, so the role
   reaches the platform and every team. Rejected.
 - **`Owner` as a tenant's administrator.** An owner never creates a tenant's clients or resource servers, so the
@@ -92,8 +94,9 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
 - The control-plane tenant's administrators never hold platform or team authority through the tenant they authenticate
   against.
 - A resource always has an owner, and a team or platform administrator can always reassign it.
-- Authorization costs one lookup of the caller's assignments over the derived chain, served by the index on tenant,
-  resource type and resource id.
+- Authorization reads the caller's assignments by principal across every tenant once per decision and matches them
+  against the derived chain; the lookup index on tenant, resource type and resource id serves the owner and
+  administrator listings.
 - A workload tenant holds the management scopes of its own families only, so a token for it cannot name a platform or
   team family.
 - A smell: a new role that needs a rule outside `OwnershipHandler` means the assignment model is missing a node type.

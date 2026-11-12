@@ -100,6 +100,9 @@ teams per level, and `ITeamStore` has no read of a whole subtree.**
     `GetLineageAsync` and `CountDescendantsAsync`; `GetChildPageAsync` is one untracked query.
 13. **Callers keep little state.** `TeamSettingsReconciliationService` remembers only the requested teams it reconciled
     and declines a requested team's subtree that another walk reaches, so each team is reconciled once per pass.
+    Each team beneath is reconciled under its own lease and fingerprint. A team that does not settle is retried with
+    its own subtree, and a walk that fails leaves the team it started from unsettled, so the retry walks its subtree
+    again.
     `DefaultTeamClientCoherenceChecker` holds only the settings on the path to the visited team and declines the
     subtree of a team whose document cannot be honored.
 
@@ -129,8 +132,8 @@ teams per level, and `ITeamStore` has no read of a whole subtree.**
 ## Consequences
 
 - A customer's policy, administrators, quota and usage live at one team, and each product's at a team beneath it.
-- A subtree is read with one prefix match on the stored path, and the path is built once, so no query follows parent
-  links.
+- A subtree's teams and tenants are counted, and its usage listed, with one prefix match on the stored path. The path
+  is built once, so no query follows parent links.
 - A change to a team's settings, a disable or an eviction fans out to every team and tenant beneath it, bounded by the
   depth limit.
 - A walk costs one child-page read per team walked, and its memory is bounded by the depth times the page size.

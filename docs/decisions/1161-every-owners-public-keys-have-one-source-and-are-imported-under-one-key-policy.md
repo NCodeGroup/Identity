@@ -80,7 +80,8 @@ key enters.**
    answers `409 Conflict` when an import's `kid` (else its secret identifier) matches an existing key of that owner,
    tenant remote secrets included. Every owner's update calls `ISecretValidator.ValidateUpdate`, which checks `use`
    and `alg` against the stored key's type and size with `ValidateKeyAlgorithm`, and keeps the `KeyId`.
-10. **Every key reports its `kid`.** `SecretResource` and `CreatedSecretResource` carry a required `KeyId`, mirrored in
+10. **Every key reports its `kid`.** `SecretResource` and `CreatedSecretResource` carry a required `KeyId`, the key's
+    `kid`, or its secret identifier when it has none, mirrored in
     the `@ncode/api` contract and shown in the console's **Key ID** column.
 
 ## Options considered
@@ -125,7 +126,8 @@ key enters.**
 
 ## References
 
-- `IClientKeyImporter`, `IClientKeyResolver` and `IClientKeySourceChecker` in `NCode.Identity.OpenId.Authentication.Abstractions`
+- `IClientKeyImporter` and `IClientKeyResolver` in `NCode.Identity.OpenId.Authentication.Abstractions`; the internal
+  `IClientKeySourceChecker` in `NCode.Identity.OpenId.Management`
 - `BaseApiEndpointHandler.KeyIdConflictOrDefault` and `ISecretValidator.ValidateUpdate`
 - [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md): opaque secret identifiers
 - [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517): JSON Web Key (§4.3 `key_ops`, §4.5 `kid`, §4.7 `x5c`, §5 JWK Set)

@@ -14,8 +14,9 @@ applications to disable them by default, enabling them only "for the specific ob
 not at a global level". NIST SP 800-131A Rev. 2 disallows PKCS#1 v1.5 key transport for federal use.
 
 A default algorithm registry that contains either algorithm exposes every direct consumer of `IJoseSerializer`: it
-verifies a JWS that names `none`, or decrypts a JWE that names `RSA1_5`. `IJwtValidator` accepts them as well whenever
-its list of valid algorithms is `null`, which means "any registered algorithm". No component of the family produces or
+verifies a JWS that names `none`, or decrypts a JWE that names `RSA1_5`. `IJwtValidator` refuses `none` by name, but it
+accepts an `RSA1_5` JWE whenever `JwtValidationParameters.ValidKeyManagementAlgorithms` is `null`, which means "any
+registered key management algorithm". No component of the family produces or
 consumes an unsecured JWS or an `RSA1_5` JWE, so a registered algorithm serves no caller of the family and stays one
 empty-key call, or one padding oracle, away from accepting a forged token or leaking a content key.
 
@@ -53,8 +54,10 @@ every failure of a JWE decryption that depends on the encrypted key, the ciphert
    `DefaultJwtValidator`, `ClientAssertionClientAuthenticationHandler`, `DefaultLoadAuthorizationRequestHandler`,
    `ProviderSignaturePolicy`, the protocol client's `ClientRegistration` and `OpenIdClientOptionsValidator` refuse `none`
    or `RSA1_5` by name even when a host registers its own. The provider never advertises or accepts them, and the
-   protocol client never decrypts with them or accepts an unsigned token. The guards' tests register a viable algorithm
-   beside a control (for `RSA1_5`, an `RSA-OAEP-256` control), so each passes only through the name rule.
+   protocol client never decrypts with them or accepts an unsigned token. The JWT validator's tests register a viable
+   `none`, and the tests of `SettingAlgorithms.IsSelectable` and `ClientDecryptionPolicy` register a viable `RSA1_5`
+   beside an `RSA-OAEP-256` control, so each of those refusals passes only through the name rule; the other guards'
+   tests compare the name alone.
 5. A consumer with a legacy need implements its own `SignatureAlgorithm` or `KeyManagementAlgorithm` and registers it
    through `ICollectionDataSource<Algorithm>`. The vocabulary stays open
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)); the registration is a global choice and that

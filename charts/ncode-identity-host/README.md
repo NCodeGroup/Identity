@@ -577,7 +577,7 @@ well, see [The console's keys in a key management service](#the-consoles-keys-in
 
 Register `mgmt-console` with the server as a confidential client of the control-plane tenant, with the metadata of
 [ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)
-decision 4: authentication method `private_key_jwt`, pushed authorization requests and DPoP-bound access tokens
+decision 6: authentication method `private_key_jwt`, pushed authorization requests and DPoP-bound access tokens
 required, the grant types `authorization_code` and `refresh_token`, the redirect URI
 `https://<host>/bff/callback`, the post-logout redirect URI `https://<host>/`, the back-channel logout URI
 `https://<host>/bff/backchannel-logout`, and `jwks_uri` `https://<host>/bff/jwks`.

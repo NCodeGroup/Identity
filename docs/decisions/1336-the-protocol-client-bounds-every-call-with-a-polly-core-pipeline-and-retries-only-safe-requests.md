@@ -52,7 +52,8 @@ twice.
    retry disposes each response it discards.
 
 4. **Any other request gets the total timeout only.** A token, PAR or revocation request keeps its full total timeout
-   and is never sent twice, because its body may be consumed and a DPoP proof's `jti` is single-use.
+   and the pipeline never resends it, because its body may be consumed and a DPoP proof's `jti` is single-use. Only a
+   `use_dpop_nonce` answer (RFC 9449 §8) sends it once more, with a new proof and the nonce the provider supplied.
 
 5. **A timeout looks like `HttpClient.Timeout`.** A pipeline timeout surfaces as a `TaskCanceledException` with a
    `TimeoutException` inner exception, which `ProviderHttpClient` turns into `OpenIdProviderException`; a cancellation

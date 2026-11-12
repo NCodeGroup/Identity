@@ -61,8 +61,11 @@ The counter store fails open at a bounded cost.**
 2. **Stages are open names, and the limiter is public.** `RateLimitStages` names the three that the server judges:
    `request`, judged by `RateLimitEndpointFilter` before the endpoint of every request to the OpenID endpoint group,
    after `OpenIdEnvironmentEndpointFilter` and before `OpenIdExceptionEndpointFilter`, so a refusal is not audited as a
-   protocol error and a flood does not flood the audit log; `client_authentication`, judged once a confidential client
-   has authenticated; and `token_request`, judged by the token endpoint for a confidential client.
+   protocol error and a flood does not flood the audit log; `client_authentication`, judged by the client
+   authentication service once a confidential client has authenticated, once per request however often the request
+   authenticates its client, with a refusal that replaces the authentication result, so every endpoint that
+   authenticates clients refuses alike and the client limit refuses before the token quota counts; and
+   `token_request`, judged by the token endpoint for a confidential client.
    `IRequestRateLimiter.AcquireAsync(stage, context, cancellationToken)` and `RateLimitDecision` are public, so a
    package judges a stage of its own. The limiter, not the endpoint, records what an admitted request is billed: the
    endpoint filter records the meters of the admitting stages through `ITenantUsageRecorder` once the endpoint has run,
@@ -163,6 +166,8 @@ The counter store fails open at a bounded cost.**
 
 - **ASP.NET Core's built-in limiters.** Rejected: their state is per process, so a deployment's limit grows with its
   replica count, and their partition key is computed before the endpoint knows its tenant.
+- **The client limit applied per address.** Rejected: many clients share an address (a NAT gateway or a backend), so
+  a per-client figure would throttle them as one; the address limit is a setting of its own.
 - **A token bucket or GCRA script.** Rejected: it needs a script per algorithm and an exact in-process twin; the
   two-window estimate suffices for capacity protection and needs only the counter primitive.
 - **Counting only admitted requests.** Rejected: a client that retries without backing off would be admitted again at
@@ -177,6 +182,8 @@ The counter store fails open at a bounded cost.**
 
 - A stage costs one round trip to the counter store however many limits it judges, and a package adds a limit by
   registering a descriptor: a limit of the `request` stage adds a counter to the script, not a round trip.
+- A stage that a package judges inside an endpoint of the OpenID endpoint group is billed by the same filter; a package
+  that judges a stage elsewhere records its own usage through `ITenantUsageRecorder`.
 - A deployment that runs several replicas must configure Valkey for its limits to hold; with the in-process adapter each
   replica enforces the limit alone.
 - A brief Valkey outage lets traffic through unlimited for at least the 10 seconds the breaker stays open, and costs at

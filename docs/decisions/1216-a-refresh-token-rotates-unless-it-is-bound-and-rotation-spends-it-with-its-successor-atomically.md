@@ -62,11 +62,12 @@ client, and a rotation spends the presented token and stores its successor in on
 
 7. **Rotation is one unit of work.** `ITokenService.RotateRefreshTokenAsync` mints the successor and stores it through
    `IPersistedGrantService.ReplaceOnceOrDefault`, which revokes the presented grant (setting `ConsumedWhen`) if it is
-   still active and adds the successor in the same unit of work. A lost race, or a presented grant that is missing or
-   not active, stores nothing and returns `null`, and the token service audits no issued token.
+   still active and adds the successor in the same unit of work. A presented grant that is missing or not active,
+   including one that a concurrent request spent first, stores nothing and returns `null`, and the token service
+   audits no issued token.
 8. **A spend without a successor revokes the token once.** When rotation applies but the refreshed scopes omit
    `offline_access`, no successor exists, and `IPersistedGrantService.TryRevokeOnceAsync` spends the presented token. It
-   returns `false` when the grant is missing, is not active, or the save lost a race
+   returns `false` when the grant is missing or is not active, including when a concurrent request spent it first
    ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 9. **A lost spend is answered as a reuse.** Whether the spend ran through `ReplaceOnceOrDefault` or
    `TryRevokeOnceAsync`, the answer is the one for a revoked token that is presented again
@@ -79,7 +80,8 @@ client, and a rotation spends the presented token and stores its successor in on
     a lost spend mints and audits no token.
 11. **A spend reads again after a write that left the grant active.** `ReplaceOnceOrDefault` and `TryRevokeOnceAsync`
     read the grant again, for up to three attempts in total, when their save loses a race that left it active
-    ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)).
+    ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)), and the
+    last lost save propagates `StoreConcurrencyException`.
 12. **A sliding-expiration update tolerates a race.** `IPersistedGrantService.UpdateExpirationAsync` keeps the change of
     the other request when its save loses a race, instead of throwing.
 

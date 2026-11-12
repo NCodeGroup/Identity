@@ -92,8 +92,7 @@ evicts it on every replica through the `tenant-changed` announcement
 
 `CreateTenantByIdAsync` loads the addressed tenant straight from `ITenantStore` (`404` when it is missing or disabled, or
 its team is disabled) and materializes it under its own stored issuer. It does not seed the tenant, and it neither reads
-nor writes the tenant cache, so an administrative operation acts on the tenant as stored at that moment and an
-issuer-derived materialization never aliases a request-derived one.
+nor writes the tenant cache, so an administrative operation acts on the tenant as stored at that moment.
 
 Management operations that drive protocol machinery for a route-addressed tenant use `CreateForTenantAsync`. The session
 revoke delegates to the context-bound `ISessionService`, so grant revocation, back-channel logout signed by that tenant
@@ -138,10 +137,11 @@ runs on the request's context under the route's tenant scope.
 ## References
 
 - Code: `NCode.Identity.OpenId.Abstractions` (`OpenIdContext`, `OpenIdPlatform`, `OpenIdTeam`, `OpenIdTenant`,
-  `IOpenIdContextFactory`, `IOpenIdTenantFactory`, `OpenIdSettingNames`, `OpenIdSettingKeys`);
-  `NCode.Identity.OpenId.Core` (`DefaultOpenIdTenantFactory`, `OpenIdEnvironmentEndpointFilter`,
-  `ManagementEnvironmentEndpointFilter`, `OpenIdTenantOptions`, `ITenantResolver`, `ITenantStrategy`,
-  `StaticSingleTenantStrategy`, `DynamicByPathTenantStrategy`, `DynamicByHostTenantStrategy`).
+  `IOpenIdContextFactory`, `IOpenIdTenantFactory`, `IOpenIdTenantCache`, `IOpenIdContextFeature`,
+  `OpenIdEnvironmentEndpointFilter`, `ITenantResolver`, `ITenantStrategy`, `OpenIdSettingNames`, `OpenIdSettingKeys`);
+  `NCode.Identity.OpenId.Core` (`DefaultOpenIdContextFactory`, `DefaultOpenIdTenantFactory`, `OpenIdTenantOptions`,
+  `StaticSingleTenantStrategy`, `DynamicByPathTenantStrategy`, `DynamicByHostTenantStrategy`);
+  `NCode.Identity.OpenId.Management` (`ManagementEnvironmentEndpointFilter`).
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md): the ambient tenant scope
   the persistence filter reads.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the control plane and the per-tenant planes.

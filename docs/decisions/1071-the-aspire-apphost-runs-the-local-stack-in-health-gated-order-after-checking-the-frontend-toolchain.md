@@ -64,10 +64,11 @@ returns `200`, which removes the surface-before-API race.
 
 ### Fixed, un-proxied ports
 
-Ports are fixed and un-proxied (`IsProxied = false`). The seeded redirect URIs, the developer CORS origins, the pinned
-issuers and the bootstrap document assume them, and a proxy that rewrites the request host would drift the issuer, the
-OAuth cookies and the antiforgery binding away from the pinned origin. Aspire's dynamic port allocation is rejected for
-that reason.
+Ports are fixed. `api`, `conformanceapi` and `console` take theirs from their launch profiles, and the `playground`
+and `conformance` Vite servers pin 5174 and 5175 un-proxied (`IsProxied = false`) so the OAuth redirect callback
+resolves. The seeded redirect URIs, the developer CORS origins, the pinned issuers and the bootstrap document assume
+these ports, and a proxy that rewrites the request host would drift the issuer, the OAuth cookies and the antiforgery
+binding away from the pinned origin. Aspire's dynamic port allocation is rejected for that reason.
 
 ### HTTPS everywhere
 

@@ -6,7 +6,7 @@
 
 ## Context
 
-A session ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)) ends for many causes: a logout, an idle timeout, an
+A session ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md)) ends for many causes: a logout, an idle timeout, an
 absolute expiry, the concurrent-session limit, an administrator, a subject-wide sign-out, the deletion or disabling of
 an account, a password change or reset, and the replay of an authorization code. Each cause has three obligations: the
 grants issued under the session must stop working, the relying parties that took part in it must hear that it ended,
@@ -78,12 +78,14 @@ only once it has claimed the session, and which revokes every grant issued under
    revoked it (`PersistedGrant<TPayload>?`, with `Status` `Revoked` and the payload as stored), or `null` when the grant
    is unknown, belongs to another tenant or is revoked already. The payload is read from the envelope that the
    committing attempt read, after the save, so a payload that cannot be read never keeps a session active.
-   `DefaultSessionService` dispatches the termination only when its call claimed the session, through one private
-   helper, `TerminateOnceAsync`, which claims, dispatches and reports whether it claimed. The paths are
-   `ISessionService.RevokeAsync`, `RevokeAllExceptAsync` ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)
-   states what it revokes), the eviction, the RP-initiated logout (through `RevokeAsync`) and the termination of an
-   ended session ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md),
-   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)).
+   `DefaultSessionService` dispatches a named session's termination only when its call claimed the session.
+   `ISessionService.RevokeAsync` (the RP-initiated logout included), the eviction and the termination of an ended
+   session ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md),
+   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)) go through one private helper,
+   `TerminateOnceAsync`, which claims, dispatches and reports whether it claimed. `RevokeAllExceptAsync`
+   ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)
+   states what it revokes) claims each other session itself, revokes the subject's grants that name no session, and
+   then dispatches one termination for each session it claimed.
 2. **The termination names what the claim returned.** The `SessionTermination` of a named session takes its subject and
    the `ClientIds` of the claimed grant's payload. The list is complete: a concurrent `AddClientAsync` changes the
    session grant, which makes the claim retry ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)), and the claim
@@ -105,7 +107,9 @@ only once it has claimed the session, and which revokes every grant issued under
    non-interactive `id_token_hint` carrying only `sub`, dispatches a subject-wide termination, which has no relying
    parties to notify. Signing a subject out everywhere is otherwise an explicit operation: `RevokeAllAsync`, the
    sessions management API ([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)),
-   or the management bulk revocation by `subjectId`.
+   or the management bulk revocation by `subjectId`. The bulk revocation revokes grants without the seam: it sends no
+   back-channel logout and records no session termination, so the sessions management API is the administrative
+   sign-out that runs the seam.
 
 ### A replayed authorization code ends its session
 
@@ -138,6 +142,10 @@ check rejects them.
 - **Skip the subject-wide dispatch when nothing was claimed.** Rejected: the handlers that extend the seam would miss
   the termination and its audit record.
 - **Treat every refused code as a replay.** Rejected: a code that expired unused is no compromise signal.
+- **Revoke only the tokens issued from the replayed code.** Rejected: it persists issued-token identifiers on the code
+  grant for little gain over the session scope, which already covers them. The session scope is broader than RFC
+  6749's tokens issued from the code because a replay reads as compromise, and with PKCE `S256` required by default
+  the replay path is a fail-safe, not the primary defense.
 - **The chosen model:** one seam that every path reaches by claiming the session, with the claim returning the grant.
 
 ## Consequences

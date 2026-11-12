@@ -64,7 +64,7 @@ and tenant it serves with the store's and evicts only those whose token differs 
    ([ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)).
 9. **Master keys of tenants the replica does not cache are left to the `master-key-changed` handler.** That handler
    evicts every owner's master keys when it may have missed a message
-   ([ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
+   ([ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md)).
 
 ## Options considered
 

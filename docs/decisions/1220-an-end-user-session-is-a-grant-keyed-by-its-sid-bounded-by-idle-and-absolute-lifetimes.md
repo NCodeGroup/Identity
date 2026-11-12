@@ -34,8 +34,9 @@ session ends unless it is used again, and a request that finds an ended session 
    `AbsoluteExpiresWhen`. A stored session without them is malformed and fails closed
    ([ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)).
 2. **The `sid` is a claim.** It is emitted in the ID token, in every subject-bound access token (RFC 9068 section
-   2.2.1) and in the `logout_token`. A token issued with no session omits it
+   2.2.1) and in the `logout_token` while the tenant supports back-channel logout sessions
    ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
+   A token issued with no session omits it.
 3. **Both bounds always apply.** `session_absolute_lifetime` is between one second and 365 days and defaults to 30
    days. `session_idle_timeout` is between one second and 100 days and defaults to 3 days. Both apply to tenants and use
    `SettingRules.Between`
@@ -67,8 +68,9 @@ session ends unless it is used again, and a request that finds an ended session 
 8. **A listed session reports when it ends.** `ISessionService.GetSessionsAsync` reads each stored payload through
    `IPersistedPayloadSerializer`, skips revoked sessions and sessions that have ended, and throws for a malformed one
    ([ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)).
-   `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen` and `expiresWhen` of `/account/sessions/list` are never
-   `null`.
+   It reports the time each session ends unless it is used again: the end of its idle window or, if earlier, its
+   absolute end, so `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen` and `expiresWhen` of
+   `/account/sessions/list` are never `null`.
 
 ## Options considered
 

@@ -59,10 +59,10 @@ way the claims are mapped through the family's one claim mapping.**
    `OpenIdProviderMetadata.UserInfoSigningAlgValuesSupported`, advertised. `iss` must be the provider's issuer, `aud`
    must name the client, and `typ`, when present, must be `JWT`. `exp`, `nbf` and `iat` are honored when present but
    not required, because §5.3.2 requires none of them. A failed check reports its `TokenValidationFailureCodes` value.
-6. **One claim mapping.** `IClaimsIdentityFactory` (`NCode.Identity.Jwt.Abstractions`) maps any JSON claim set to a
-   `ClaimsIdentity`. A JSON object, or a validated JWT payload, whose `sub` equals `UserInfoRequest.ExpectedSubject`
-   is a `UserInfoResult` with the claims and an `Identity` mapped through it, so a UserInfo claim and an ID-token claim
-   of the same JSON value are the same `Claim`.
+6. **One claim mapping.** A JSON object, or a validated JWT payload, whose `sub` equals
+   `UserInfoRequest.ExpectedSubject` is a `UserInfoResult` with the claims and an `Identity` mapped through
+   `IClaimsIdentityFactory` ([ADR-1122](1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md)),
+   so a UserInfo claim and an ID-token claim of the same JSON value are the same `Claim`.
 7. **Failures.** A `WWW-Authenticate` error (RFC 6750 §3), or an OAuth error body, is a `ProtocolError`. Any other
    failure is a `UserInfoFailureCodes` value (`subject_mismatch`, `invalid_issuer`, `invalid_response`,
    `unsupported_response`), or a `TokenValidationFailureCodes` value for a JWT. A response with neither claims nor an

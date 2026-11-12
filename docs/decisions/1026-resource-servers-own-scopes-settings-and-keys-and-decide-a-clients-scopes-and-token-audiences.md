@@ -26,10 +26,10 @@ token's effective scopes already say which resource servers it targets. A client
 still needs a way to ask for a token aimed at one of them, which is what RFC 8707 resource indicators are for, and FAPI
 deployments (issue [#54](https://github.com/NCodeGroup/identity/issues/54)) need tokens bound tightly to their audience.
 
-A resource server also owns per-audience token material, like a client or the tenant does. An API may share a symmetric
-signing secret with the provider, or own a JWE decryption key so that access tokens minted for its audience are readable
-only by it. That material belongs to the resource-server boundary, so a resource server is a settings owner and a secret
-owner as clients, tenants and the platform are.
+A resource server also owns per-audience token material, like a client or the tenant does. An API may own a JWE
+decryption key so that access tokens minted for its audience are readable only by it, while the tenant signs every
+access token. That material belongs to the resource-server boundary, so a resource server is a settings owner and a
+secret owner as clients, tenants and the platform are.
 
 ## Decision
 
@@ -101,13 +101,13 @@ audience-less. An ID token's `aud` is always the client id, as OpenID Connect re
 
 ### Resource indicators (RFC 8707)
 
-The `resource` parameter (`OpenIdCommonParameters.Resources`, `OpenIdConstants.Parameters.Resource`) repeats on
+The `resource` parameter (`OpenIdCommonParameters.Resources`, `OpenIdProtocol.Parameters.Resource`) repeats on
 authorization and token requests (`IAuthorizationRequest`, `ITokenRequest`). Its values match resource server
 identifiers ordinally, and no absolute-URI syntax constraint applies because identifiers are the authority. It only
 narrows the scope-derived audience: it never grants access to a resource the client holds no scope for. No discovery
 metadata advertises it, since RFC 8707 and RFC 8414 define none.
 
-Every refusal is `invalid_target` (`OpenIdConstants.ErrorCodes.InvalidTarget`, `IOpenIdErrorFactory.InvalidTarget`):
+Every refusal is `invalid_target` (`OpenIdProtocol.ErrorCodes.InvalidTarget`, `IOpenIdErrorFactory.InvalidTarget`):
 
 - at the authorization endpoint, a resource that is not an enabled resource server of the tenant
   (`GetEnabledResourceServerIdentifiersAsync`);

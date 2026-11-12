@@ -7,7 +7,7 @@
 
 ## Context
 
-The host never migrates on boot outside Development
+The host never migrates on boot, in any environment
 ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)).
 A schema change is a deliberate step, and replicas that start at once must not race to apply it. Locally, the Aspire
 AppHost runs the migration worker `NCode.Identity.OpenId.Host.MigrationService` before the host; a Kubernetes deployment
@@ -73,7 +73,9 @@ migration the assembly lacks, it applies nothing and throws, naming the context 
   loses.
 
 A marker needs a non-blank reason, no migration carries both, and a marker must be earned: a marker on a migration that
-needs none fails the test. The `InitialCreate` migrations pass unmarked, and synthetic migrations exercise the markers.
+needs none fails the test. `Check` returns one sentence per violation: an unmarked migration holds no contracting
+operation and no data change, an `[ExpandMigration]` migration holds a data change and no contracting operation, and a
+`[ContractMigration]` migration holds a contracting operation or a data change. The `InitialCreate` migrations pass unmarked, and synthetic migrations exercise the markers.
 
 ### What the rule cannot see
 
@@ -120,7 +122,8 @@ rule for every migration author.
   classifying text is guesswork.
 - **Exempting a unique index on new columns.** Rejected: an index on a column the previous release does not know can
   still reject its writes.
-- **A restricting foreign key from a new table.** Rejected: it constrains rows the previous release writes.
+- **A restricting foreign key from a new table.** Rejected: once this release writes a dependent row, the previous release's delete of the row it
+  references fails.
 - **A chain of migrations, or a squash before the first release.** Rejected: nothing is shipped, so one migration per
   context is the schema.
 - **Dropping the gate, or `EnsureCreated`, until the release.** Rejected: the gate runs from the first commit and the

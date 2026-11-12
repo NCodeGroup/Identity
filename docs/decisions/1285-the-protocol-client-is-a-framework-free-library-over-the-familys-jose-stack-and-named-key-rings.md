@@ -30,7 +30,8 @@ configuration. No package of the client references an ASP.NET Core shared framew
    references only `.Client.Abstractions`, `Jwt.Abstractions`, `SharedState.Abstractions` and `NCode.Identity.Json`
    ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)),
    plus six `Microsoft.Extensions.*` packages (`DependencyInjection.Abstractions`, `Http`, `Logging.Abstractions`,
-   `Options`, `Primitives` and `Diagnostics`) and `Polly.Core`. The namespace is `NCode.Identity.OpenId.Client`, and the
+   `Options`, `Primitives` and `Diagnostics`), `Polly.Core`, `NCode.Base64Url`, `NCode.Buffers` and
+   `Nerdbank.Streams`. The namespace is `NCode.Identity.OpenId.Client`, and the
    options are in `NCode.Identity.OpenId.Client.Options`.
 2. **No ASP.NET Core runtime.** A console app or worker needs only `Microsoft.NETCore.App`. Status codes are the internal
    named `int` constants of `ProviderStatusCodes` (`Status200OK`, `Status201Created`) in
@@ -80,7 +81,8 @@ configuration. No package of the client references an ASP.NET Core shared framew
      bytes in base64url, `iat` and `nbf` at now, and `exp` 60 seconds later. The lifetime is fixed and has no option.
    - Mutual TLS client authentication is [ADR-1300](1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md)'s.
 10. **`private_key_jwt` algorithm choice.** The default order is PS256, ES256, PS384, ES384, PS512, ES512, RS256, RS384,
-    RS512; a non-empty `OpenIdClientOptions.ClientAssertionSigningAlgorithms` replaces it. The order is filtered to what the
+    RS512; a non-empty `OpenIdClientOptions.ClientAssertionSigningAlgorithms` replaces it, and the host refuses to start
+    when one of its entries is blank, is `none` or repeats. The order is filtered to what the
     OP advertises in `token_endpoint_auth_signing_alg_values_supported`, then followed by the OP's other advertised values
     except `none`. When the OP advertises none, the client's list is used as is. Only `AsymmetricSecretKey`s from the ring
     are candidates, so a MAC is never used to sign an assertion.

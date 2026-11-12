@@ -67,7 +67,9 @@ JOSE stack and the keys of the family.
 5. **Header rules.** A label in both buckets is refused. `crit` must be protected, non-empty and understood. `Partial
    IV` is refused, because it needs a Base IV that the family's keys do not carry. `alg` must be protected and is checked
    against the caller's permitted list before the catalog is consulted and before any key is selected. A recipient's
-   protected bucket is empty and a recipient with recipients of its own is refused.
+   protected bucket is empty and a recipient with recipients of its own is refused. `crit` lists only protected labels, and
+   a `COSE_Sign` body carries no `alg`, because each signature names its own. On writing, the serializer sets `alg`, `IV`
+   and `Partial IV` and refuses a caller's header that sets one.
 
 6. **Messages.** `ICoseSerializer` handles `COSE_Sign1`, `COSE_Sign`, `COSE_Mac0`, `COSE_Mac`, `COSE_Encrypt0` and
    `COSE_Encrypt` with external additional data, detached content and an optional tag. `EncodeSign1Async` and
@@ -76,12 +78,14 @@ JOSE stack and the keys of the family.
    MAC and encryption are synchronous. Content is readable only from `Verify` or `Decrypt`, and `Inspect` returns headers
    only. A MAC is the JOSE HMAC truncated to the descriptor's tag size and compared in fixed time. Encryption is the JOSE
    AES-GCM with a random `IV`. Each encoder returns a new `byte[]`: non-secret wire data the caller keeps or sends whole.
+   A message without a tag is refused unless the caller names its type (`UntaggedMessageType`).
 
 7. **Keys are selected by what the caller supplies.** A reader tries the keys that are unexpired (with skew), meant for
    the operation and fit for the algorithm. A named `kid` tries matching keys first, then keys without one, never others.
    `CoseKeyIdentifiers` maps the bytes to a `KeyId` as UTF-8 text, or as diagnostic `h'...'` notation (RFC 8949 §8) when
    they are not UTF-8 text or begin with `h'`, and maps it back. The failures are `key_not_found`, `invalid_signature`
-   and `decryption_failed`.
+   and `decryption_failed`. A `COSE_Sign` verifies when one signature whose algorithm is permitted and available
+   verifies.
 
 8. **Recipients.** A direct recipient is the only recipient. A key wrap or key transport recipient unwraps a random
    content key held in a sensitive pooled buffer. No registered key distribution algorithm uses recipient context data.

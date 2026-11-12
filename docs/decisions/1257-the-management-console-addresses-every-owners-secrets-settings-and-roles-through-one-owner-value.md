@@ -16,9 +16,10 @@ The operations are the same for every owner except one: the Management API maps 
 (`/secrets/{secretId}/rotate`) for clients alone, and a rotation keeps the rotated secret beside its replacement
 ([ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
 
-The API also serves clients, resource servers and their scopes only under `/api/tenants/{tenantId}`. No platform or
-team route lists, creates or changes them, and a client the platform itself uses is registered in a tenant too, the
-control-plane tenant
+The API serves the operations of a client, a resource server and their scopes only under `/api/tenants/{tenantId}`.
+The platform and team routes only create and list the machine clients they own
+([ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)), and every
+client is registered in a tenant: a machine client in the control-plane tenant
 ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 A console address that carries a platform or team scope for a client therefore names a route the API answers with
 `404`, and a type that accepts it hides the mistake until run time.
@@ -42,9 +43,10 @@ a resource server are tenant resources, addressed by their tenant alone.**
    client and a resource server. No helper builds an API prefix from a scope: each path names its owner's route.
 3. **A client and a resource server are addressed through their tenant.** Every client, resource-server and scope
    endpoint of `managementApi` takes `tenantId`, builds its path under `/api/tenants/{tenantId}` and tags its data in
-   the tenant's scope. `ClientsPage`, `ClientDetailPage`, `ResourceServersPage`, `ResourceServerDetailPage` and
-   `ResourceServerScopesPage` take `tenantId`. A machine client is addressed through `client.tenantId`, the
-   control-plane tenant.
+   the tenant's scope, except `listMachineClients` and `createMachineClient`, which take a `MachineClientOwner` and
+   build their path with `ownerApiPath`. `ClientsPage`, `ResourceServersPage`, `ResourceServerDetailPage` and
+   `ResourceServerScopesPage` take `tenantId`; `ClientDetailPage` takes the client and addresses it through
+   `client.tenantId`, which for a machine client is the control-plane tenant.
 4. **`managementApi` in `@ncode/store` has one endpoint per operation across all owners,** with matching hooks:
    `listSecrets`, `createSecret`, `deleteSecret`, `rotateSecret`, `getSecretPublicKey`, `getSettings`,
    `getEffectiveSettings`, `getSettingLimits`, `updateSettings`, `listEncryptionKeys`, `rekeyEncryptionKeys` and

@@ -95,8 +95,9 @@ that client.**
   ([ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)).
 - A device code or `auth_req_id` that another client presents is `invalid_grant`, and `DefaultAuthenticateSubjectHandler`
   depends on `ISessionService`.
-- A grant added later that issues tokens for an end user calls `TokenGrantSubjectValidation.ValidateAsync`; a grant that
-  does not is the "you chose wrong" smell.
+- A grant that issues tokens for an end user, including one that another package registers, sends
+  `ValidateSubjectAuthenticationCommand`; the grants of this package send it through
+  `TokenGrantSubjectValidation.ValidateAsync`.
 
 ## References
 

@@ -124,7 +124,9 @@ codes are `invalid_dpop_proof` and `use_dpop_nonce`.
 
 - **Keep bearer tokens.** Rejected: a leaked token is replayable by anyone, and FAPI requires sender-constrained tokens.
 - **Offer only DPoP or only mutual TLS.** Rejected: DPoP suits browsers and public deployments, mutual TLS suits
-  service-to-service and regulated deployments, and the profiles the family targets allow either.
+  service-to-service and regulated deployments, and FAPI 1.0 Advanced requires mutual TLS
+  ([ADR-1202](1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)) while
+  FAPI 2.0 accepts either.
 - **Evaluate binding inside each grant handler.** Rejected: each grant would repeat the evaluation, and a new grant
   could forget it. One evaluation at the token endpoint, passed to every handler, makes the binding uniform.
 - **Carry the binding in an ambient property bag.** Rejected: the explicit parameter and request field are visible to

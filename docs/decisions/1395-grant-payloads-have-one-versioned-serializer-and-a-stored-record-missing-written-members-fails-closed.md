@@ -24,8 +24,8 @@ no released package, deployed database or consumer holds a stored record, and ev
 the serving code wrote. A reader that accepts a record lacking what the serving code writes gives that record a meaning
 the serving code never gives it:
 
-- ADR-0108 reads a document without `$ver` as version 1, for a project that adopts the envelope over documents it
-  already stored. The family's grant payloads carry the envelope from their first stored document:
+- ADR-0108 refuses a document without `$ver`, and reads one as version 1 only in a project that adopts the envelope
+  over documents it already stored. The family's grant payloads carry the envelope from their first stored document:
   `IPersistedPayloadSerializer.Serialize` writes it, and the protected payload of every grant is an `nce1.` envelope
   over that output. A document without `$ver` is corrupt or foreign, and reading it as version 1 would deserialize a
   document of unknown origin as a grant.

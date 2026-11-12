@@ -69,6 +69,9 @@ management API at `/api` on the origin of its authority.**
 4. **The API URL is the authority's origin plus `/api`.** `ManagementConsole:ManagementApiUrl` is the origin of the
    console's authority followed by `/api`, because that is the only URL the OP accepts from a DPoP-bound call. The host
    chart derives it and has no override value ([ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
+   The console derives nothing itself: it reads the setting as configuration, and `ManagementConsoleOptionsValidator`
+   refuses at start a value that is not an absolute `https` URL without user info, query or fragment (`http` is
+   accepted only in the Development environment).
 5. **The console's host routes every path to the console.** Its cookie never reaches another process. A machine caller
    uses `/api` on the origin of the control-plane tenant's issuer, which the server's Ingress serves. On the hosted
    platform ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md))

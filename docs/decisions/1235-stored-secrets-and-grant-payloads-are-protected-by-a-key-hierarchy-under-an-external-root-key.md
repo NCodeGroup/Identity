@@ -100,7 +100,7 @@ root lives outside the database.
   credential. Rejected as the store; any of their key management services can be a root key provider.
 - **Signing and decrypting every key inside the key management service by default.** It is the strongest posture against
   a compromised replica, but adds a network round trip and a fee to every token. It stays an opt-in for a tenant's
-  signing keys
+  signing and encryption keys
   ([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 - **A server key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys, and it
   would stop a tenant from bringing its own root. Rejected.

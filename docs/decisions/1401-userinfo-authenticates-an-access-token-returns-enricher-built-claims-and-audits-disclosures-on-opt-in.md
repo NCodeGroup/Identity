@@ -73,8 +73,10 @@ client.**
 8. **Recorded once the response is built.** The endpoint records the event after it builds the JSON or the signed or
    encrypted JWT, so a response that cannot be protected is not recorded as a disclosure. No claim value and no token
    is written: the names say what kind of data was disclosed, and the values are already in the account store.
-9. **A refusal after the token authenticated is `denied`.** An access token that authenticates but names no client, or
-   a client the tenant does not serve or has disabled, discloses nothing and is answered `invalid_token`. When the
+9. **A refusal after the token authenticated is `denied`.** An access token that authenticates but names no client,
+   names a client the tenant does not serve or has disabled, or is one in which the client acts for itself
+   ([ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)), discloses
+   nothing and is answered `invalid_token`. When the
    tenant's effective value is on, `RecordUserInfoAccessDeniedAsync` publishes the event with the outcome `denied`, the
    error code `invalid_token`, the `client_id` the token names, if any (the actor is `anonymous` without one), and no
    details. The tenant's value decides because no client's settings can be read. A request whose token does not

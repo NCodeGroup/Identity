@@ -100,7 +100,8 @@ and the server's own tokens follow [ADR-1167](1167-the-server-validates-the-toke
   implementation package, so an abstractions-only consumer could not extend validation by registering a handler.
 - **A combined encoder-validator facade.** Rejected: no consumer needs both sides, and the facade would couple them.
 - **Let a caller opt into unsecured tokens.** Rejected: no caller needs one. OpenID Connect Core §6.1 lets a server
-  decline unsigned request objects, and an opt-in is one mistaken flag away from accepting forged tokens.
+  decline unsigned request objects, and the authorization endpoint answers one with `request_not_supported` before
+  validation. An opt-in is one mistaken flag away from accepting forged tokens.
 - **Check algorithms in each caller after validation.** Rejected: a check after decoding runs after the cryptographic
   operation RFC 8725 §3.1 says it must precede, and each caller that forgets it reopens the gap.
 - **Fall back to the verification keys for decryption.** Rejected: the signer and the recipient are different parties,

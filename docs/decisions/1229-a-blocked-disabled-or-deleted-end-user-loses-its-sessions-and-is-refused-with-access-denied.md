@@ -49,8 +49,8 @@ includes, that the interactive sign-in sends before it creates a session, and wh
    `SubjectValidationFailed`; a missing principal is not refused.
 4. **A disabled or deleted account blocks its principal through every connection.**
    `DefaultValidateLocalAccountSubjectHandler`, in `NCode.Identity.OpenId.Accounts.Authentication`, reads the identities
-   of the principal. With none, it refuses only a subject whose `principal_issuer_claim` claim is
-   `AccountConstants.SelfIssuer`. For each self-issued identity it reads the account with
+   of the principal. With none, it refuses only a subject whose claim of the type named by the tenant setting
+   `principal_issuer_claim` is `AccountConstants.SelfIssuer`. For each self-issued identity it reads the account with
    `ILocalAccountStore.GetByIdOrDefaultAsync` and refuses a missing or disabled account. It leaves every other subject
    alone, including one that has only external identities, and logs nothing, because the accounts packages have no band
    of event identifiers.

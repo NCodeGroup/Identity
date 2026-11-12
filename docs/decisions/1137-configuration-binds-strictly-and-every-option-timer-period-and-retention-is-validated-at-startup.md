@@ -51,7 +51,7 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
    `Bff` and `ManagementConsole`.
 3. **The OpenID section has one owner.** `AddConfiguration` (`IdentityServerBuilderExtensions`) owns the whole OpenID
    section and rejects any other subsection with `ThrowOnUnknownSubsection`, whose error lists the recognized ones. The
-   section recognizes twelve subsections, and each options type has a `SectionName` constant:
+   section recognizes twelve subsections, listed in `IdentityServerBuilderExtensions.OpenIdSubsections`:
    - `Platform` binds `OpenIdPlatformOptions`, whose `Settings` member carries the platform settings subsection as-is
      and is watched for reloads.
    - `Tenant` binds `OpenIdTenantOptions`, which configures how a resolved tenant is materialized and cached.
@@ -63,10 +63,12 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
 4. **The subsections bind in `AddConfiguration`, not in the packages that read them.** A host's chosen section name
    therefore applies to all of them. An extension adds no keys under a section the family binds, and a custom tenant
    strategy binds its own options from its own section.
-5. **Tenant resolution is validated before the host starts.** `TenantResolutionOptionsValidator` checks the selected
-   strategy's options: a literal path for the static and host strategies, the tenant parameter in the path strategy's
-   route, a compilable host pattern, and a static issuer that is an absolute `http` or `https` URL ending in the
-   tenant path. An unknown strategy code fails when the endpoints are mapped, before the host starts.
+5. **Tenant resolution is validated before the host starts.** `TenantResolutionOptionsValidator` requires a strategy
+   code and a valid root tenant, and the selected strategy's validator (`StaticSingleTenantOptionsValidator`,
+   `DynamicByPathTenantOptionsValidator` or `DynamicByHostTenantOptionsValidator`) checks that strategy's options: a
+   literal path for the static and host strategies, the tenant parameter in the path strategy's route, a compilable host
+   pattern, and a static issuer that is an absolute `http` or `https` URL ending in the tenant path. An unknown strategy
+   code fails when the endpoints are mapped, before the host starts.
 
 ### Timer periods and retentions
 
@@ -85,8 +87,8 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
 9. **A retention is not negative.** `GrantRetentionOptions.Retention` and `TenantUsageOptions.Retention` accept zero,
    which removes a row as soon as it ends, and refuse a negative value.
 10. **Each validator is an `IValidateOptions<T>` that lists every failure.** It is registered beside the services that
-    read the options and takes no constructor dependencies, because a validator that reads options deadlocks the host as
-    it starts. A failure names each failing option with its key relative to the OpenID section, for example:
+    read the options and depends on no options type, because a validator that reads options deadlocks the host as it
+    starts. A failure names each failing option with its configuration key, for example:
 
     ```text
     GrantRetentionOptions.Retention ('GrantRetention:Retention') must not be negative; it is -1.00:00:00.

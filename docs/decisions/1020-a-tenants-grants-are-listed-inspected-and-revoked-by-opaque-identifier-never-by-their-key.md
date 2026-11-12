@@ -16,8 +16,8 @@ Grants differ from the other resource families in three ways that shape the surf
   creates or updates one. The administrator needs to list, inspect and revoke.
 - Their natural key is a secret. The runtime looks a grant up by `HashedKey`, the hash of the grant's token key, and
   exposing it on an administrative surface would leak a token identifier.
-- Their payload is sensitive. `PayloadJson` holds the serialized grant (claims, tokens, subject material), which has no
-  place in an administrative projection.
+- Their payload is sensitive. `ProtectedPayload` holds the grant's protected payload (claims, tokens, subject
+  material), which has no place in an administrative projection.
 
 Incident response adds two operations: seeing everything a subject or a client holds ("what does user X have?", "what
 did client Y issue?") and revoking in bulk ("sign user X out everywhere", "kill client Y's tokens"). The schema already
@@ -50,7 +50,8 @@ using.
 ### Projection
 
 `GrantResource` carries metadata only: `GrantId`, `GrantType`, `TenantId`, `ClientId`, `SubjectId`, `SessionId`,
-`CreatedWhen`, `ExpiresWhen`, `RevokedWhen` and `ConsumedWhen`. It never carries `HashedKey` or `PayloadJson`, in the
+`CreatedWhen`, `ExpiresWhen`, `RevokedWhen` and `ConsumedWhen`. It never carries `HashedKey` or `ProtectedPayload`, in
+the
 way [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) keeps secret material off its surface.
 
 ### Listing and filters
@@ -84,7 +85,8 @@ A revocation retries a lost race and never answers `412`, as
 
 The routes run under `TenantScopeEndpointFilter`, so the persistence query filter of
 [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) confines every
-read and revoke to the route's tenant. A grant with no tenant is invisible here. Authorization is at the tenant scope
+read and revoke to the route's tenant. Every grant belongs to one tenant, so the route's tenant scope covers all of
+them. Authorization is at the tenant scope
 (`TenantScopeResource`): `Operations.List` lists, `Operations.Read` reads one and `Operations.Delete` revokes. The
 authority itself is a role assignment, as
 [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) holds, and the route authorizes
@@ -128,7 +130,6 @@ dynamic client registration and is described in
 - The read surface is keyset-paged with no query language to secure or version.
 - `RevokeWhereAsync` materializes the matching unrevoked grants. For one subject, client or session this is bounded, but
   a very large match set loads into memory.
-- Grants without a tenant are outside this surface.
 - Tests cover the opaque identifier, the metadata projection, the idempotent revoke, the filter combinations, the
   required-filter `400`, the revoked count and the tenant confinement of every route.
 
@@ -151,6 +152,6 @@ dynamic client registration and is described in
 - Code: `NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.GrantId`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity` (`GrantId`, `NormalizedGrantId`),
   `NCode.Identity.OpenId.Persistence.Stores.IGrantStore` (`GetPageAsync`),
-  `NCode.Identity.OpenId.Persistence.IPersistedGrantService` (`RevokeWhereAsync`),
+  `NCode.Identity.OpenId.Authentication.Persistence.IPersistedGrantService` (`RevokeWhereAsync`),
   `NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource`, `GrantRevocationResult`,
   `NCode.Identity.OpenId.Management.Endpoints.Grants.GrantApiEndpointHandler`.

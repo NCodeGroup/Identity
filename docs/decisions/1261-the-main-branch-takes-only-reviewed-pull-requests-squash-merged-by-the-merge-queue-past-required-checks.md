@@ -15,7 +15,8 @@ branch and a Dependabot pull request.
 [project-template ADR-0013](project-template/0013-pull-requests-merge-with-a-merge-commit-or-by-rebasing.md) makes a
 merge commit or a rebase the way a pull request merges, and asks a project that squash-merges to supersede it in one
 record. A plan's title is a conventional commit subject, and its `Plan step N` commits are checkpoints that each pass
-one step's check ([ADR-1170](1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md)).
+one step's check
+([project-template ADR-0003](project-template/0003-agent-work-is-planned-on-a-frontier-model-and-executed-on-a-cheaper-one.md)).
 The merge queue runs the full gate on the merged result
 ([ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)).
 
@@ -33,7 +34,7 @@ agent opens it as a draft that its author reviews before it can merge.
    up to date with `main`.
 3. **The required checks** are the jobs that build, test, lint and package the family: `Definition of Done`,
    `Lint, typecheck, test, build`, `Lint and render the host chart`, `Build host image`, `Build console image` and
-   `End-to-end`. `GOVERNANCE.md` lists them. Codecov's statuses are not required, because a third party's outage would
+   `End-to-end`. Codecov's statuses are not required, because a third party's outage would
    block every merge, and `copilot-setup-steps` is not required, because it reports only when its own workflow file
    changes.
 4. **A required check reports on every pull request.** A path-filtered workflow would leave its check pending, so

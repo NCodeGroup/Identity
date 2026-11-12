@@ -138,9 +138,10 @@ Each module below exercises OP behavior that a specification requires; the OP be
 - **Access-token revocation on authorization-code reuse (`oidcc-codereuse-30seconds`)** — RFC 6749 §4.1.2 says the OP
   SHOULD revoke the tokens issued from a reused code _"when possible"_. The OP rejects the second code use with
   `invalid_grant` (one-time codes), enforces PKCE `S256`, and treats a second redemption of a consumed code as a
-  compromise signal: the token endpoint revokes the end-user **session's** grants (the access and refresh tokens issued
-  from that code) through the session-scoped grant revocation the logout seam uses — without the
-  back-channel-logout/audit side effects — and the OP's own resource endpoints (UserInfo, introspection, management API)
+  compromise signal: the token endpoint terminates the end-user **session** through the termination seam with reason
+  `authorization_code_replay`, which revokes the grants issued under it (the access and refresh tokens issued from that
+  code), notifies the relying parties by back-channel logout and audits the termination, and the OP's own resource
+  endpoints (UserInfo, introspection, management API)
   reject an access token whose `sid` resolves to a revoked session (`invalid_token`). Every subject-bound access token
   carries `sid`. There is no global access-token denylist and no per-token store: one indexed session lookup on
   first-party access-token authentication and one session-scoped revocation on the rare replay path. External resource

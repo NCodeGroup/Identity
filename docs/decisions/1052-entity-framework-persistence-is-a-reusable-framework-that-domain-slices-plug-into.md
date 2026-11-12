@@ -50,7 +50,7 @@ slice and never ties the framework to a schema.
 
 The framework's `OnModelCreating` keeps only the two schema-agnostic passes: it restricts the delete behavior of every
 foreign key, and it applies the tenant filter to every `ISupportTenantEntity`. Schema-specific configuration, such as
-the tenant's filtered-unique domain-name index, lives in the owning slice's contributor.
+the tenant's filtered-unique issuer index, lives in the owning slice's contributor.
 
 The tenant filter is navigation-free. `ISupportTenantEntity`, in `NCode.Identity.OpenId.Persistence.EntityFramework.Entities`,
 exposes a denormalized `NormalizedTenantId`, and the filter compares that one indexed column. The framework therefore
@@ -120,7 +120,7 @@ A non-Entity-Framework adapter is not a slice and keeps domain-first naming, as 
 
 ## Consequences
 
-- A slice's store inherits `BaseStore` and registers with `AddStore`, so it carries no hand-rolled `IStore` delegation,
+- A slice's store inherits `BaseStore` and registers with `AddStore`, so it needs no hand-rolled `IStore` delegation,
   normalization or factory boilerplate.
 - Every entity, core included, reaches the model through a contributor, and `OpenIdDbContext` stays schema-agnostic.
 - Adding a persistence slice is additive: a package of entities, stores, a contributor and registrations against the

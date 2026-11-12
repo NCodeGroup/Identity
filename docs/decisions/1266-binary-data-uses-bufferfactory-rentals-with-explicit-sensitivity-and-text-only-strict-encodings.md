@@ -34,8 +34,8 @@ become text, only through a strict encoding.
    and hot-path rules through `NCode.Buffers` (`BufferFactory`, `SecureMemoryPool<T>`, `SecureEncoding`,
    `GetSpanLease`) over `Nerdbank.Streams`. `NCode.Identity.Json` depends on `NCode.Buffers`.
 2. **Every pooled buffer comes from `BufferFactory`** (`Rent`, `CreatePooledBufferWriter`, `CreatePinnedArray`). Code
-   never uses a bare `ArrayPool<T>.Shared`, `MemoryPool<T>.Shared` or `new ArrayBufferWriter<T>`, so sensitivity is an
-   argument at every rental.
+   must not use a bare `ArrayPool<T>.Shared`, `MemoryPool<T>.Shared` or `new ArrayBufferWriter<T>`, so sensitivity is
+   an argument at every rental.
 3. **Sensitivity.** `isSensitive: true` rents from the pinned `SecureMemoryPool`, zeroed when returned. It is always
    used for keys, passwords, nonces, decrypted JWE plaintext and a payload serialized or compressed before
    encryption. `isSensitive: false` delegates to `MemoryPool<T>.Shared`. Sensitive text is encoded once with

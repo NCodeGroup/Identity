@@ -49,11 +49,13 @@ the cache lifetime and the per-team reconciliation pass that refine
    reaches it through `ITeamSettingsReconciliationTrigger`. Requests coalesce.
 5. **The team records what it was reconciled against.** `PersistedTeam.ReconciledSettingsFingerprint` and
    `PersistedTeam.ReconciledSettings` record what the team was last reconciled against; the platform row keeps none.
-   The fingerprint is the base64url SHA-256 over the setting names and JSON values in name order, and an equal
-   fingerprint means nothing to do.
+   The fingerprint is the base64url SHA-256 over the setting names and JSON values in name order, with a list of strings
+   hashed in ordinal order because every rule reads it as a set, and an equal fingerprint means nothing to do.
 6. **A lease serializes a pass.** A pass takes the lease `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
    in `IExpiringKeySet` for `OpenId:Team:ReconciliationLeaseDuration`, 10 minutes by default. An unsettled pass retries
-   after the lease or at the next signal, so an interrupted pass reruns within one lease.
+   after the lease or at the next signal, so an interrupted pass reruns within one lease. Replicas that observe one
+   change share one key, so one of them runs the pass, and every write to the team row changes its token, so a return
+   to an earlier state, such as a write that restores a list or a rollback, is a new key.
 7. **A command carries the previous settings.** `ReconcileTeamSettingsCommand(TeamId, Settings) { PreviousSettings }`
    carries the record read back through `ISettingSerializer.DeserializeSettings` at the team scope. `PreviousSettings`
    is `null` when the record is absent or unreadable (`ReconciledTeamSettingsUnreadable`), and every tenant and client
@@ -68,7 +70,7 @@ the cache lifetime and the per-team reconciliation pass that refine
    that holds no key is left to its first materialization. `ClientCoherenceReportHandler` checks a tenant's clients
    only when `ReadsChangedSetting` holds for its previous and current effective settings, logs each incoherent client
    and then the count. A handler logs a tenant it cannot handle and continues.
-10. **A pass records settings only.** Each pass reads every tenant's settings projection. An input that is not a
+10. **A pass records settings only.** Each pass reads the settings projection of every tenant of the team. An input that is not a
     setting (a profile definition, a key specification) is not recorded, so the next materialization and the
     incoherent-client report cover it.
 11. **The key rollover runs per team.** The key rollover
@@ -78,24 +80,27 @@ the cache lifetime and the per-team reconciliation pass that refine
 
 ## Options considered
 
-- **A durable job dispatcher.** A change would queue a job per replica, but the settings document is already durable,
-  and a lost announcement is covered by the poll and the missed-message path. Rejected.
+- **A durable job dispatcher.** A stored job would carry a comparison of two documents, which a configuration reload
+  never produces, and a pass would hold the in-process dispatcher's worker ahead of every delivery; the hosted service
+  checks the invariants from the current state, and no queued job carries state that a restart loses. Rejected.
 - **Waiting for the first request.** A tenant would be reconciled lazily, so a key or client that violates the
   settings goes unnoticed until traffic arrives. Rejected.
-- **Remembering every fingerprint.** Storing each past fingerprint grows without bound, and only the last reconciled
-  one decides whether there is work. Rejected.
+- **Remembering every fingerprint.** A return to an earlier state would be skipped, while tenants and clients created
+  in between were reconciled against the other state only. Rejected.
 - **Announcing the document.** A message that carries the settings can be lost or arrive stale; a hint that triggers a
   re-read is always current. Rejected.
-- **Re-materializing on a change.** Rebuilding the tenant discards what is still valid and does not tell which tenants
-  the change reaches. Rejected.
+- **Materializing the platform again after a change.** Every materialized team and tenant reads through a settings
+  provider chained to the platform's, so the platform refreshes its settings in place
+  (`OpenIdPlatform.RefreshSettingsAsync`). Rejected.
 - **A platform-wide tenant walk.** One lease and one fingerprint, but every tenant is read on any change, however
   small, and a team's change waits behind the whole deployment. Rejected.
 - **A reconciliation record per tenant.** Each tenant row would hold its own fingerprint, so a change of a parent
   settings document would touch every tenant row. Rejected.
 - **Clearing the record on every write.** A write that is never reconciled would lose the settings the last pass
   reconciled against, so the next pass could not tell what changed. Rejected.
-- **Refusing to start when materialization fails.** A transient failure would keep the replica down; it logs, waits and
-  reconciles when the platform materializes. Rejected.
+- **Refusing to start while the configuration makes a stored client incoherent.** One client would stop every replica
+  and every tenant, where otherwise it fails alone; a configuration change cannot be refused, so
+  `ClientCoherenceReportHandler` reports it. Rejected.
 
 The chosen design announces a hint, re-reads the committed document, and reconciles each team against the record of
 what it was last reconciled against, under a lease.
@@ -105,6 +110,13 @@ what it was last reconciled against, under a lease.
 - A change to one team's settings reads that team's tenants and no others, and replicas contend per team.
 - A platform settings change fires one pass per team, each under its own lease.
 - A write that loses a race to a record write is answered `412`.
+- A tenant that a handler logs and skips is reached by a later pass only when that pass's change affects it too, and a
+  configuration reload reverted before its pass records it is invisible to the record. Either way a missing key is
+  seeded when the tenant is next materialized, within `TenantCacheLifetime`, and the management API lists an
+  incoherent client
+  ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
+- While a rollout runs replicas with different configurations, each configuration is reconciled when a replica that
+  holds it starts or reloads, and the record names the last one.
 - The key rollover reads one team's tenants under that team's effective settings, so an enabled team's keys roll over
   whatever another team's settings document holds.
 - The team row carries the two reconciliation columns and the platform row carries none.

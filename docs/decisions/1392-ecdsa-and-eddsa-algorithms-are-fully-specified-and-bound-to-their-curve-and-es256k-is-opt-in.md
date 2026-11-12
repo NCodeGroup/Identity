@@ -137,7 +137,7 @@ algorithm.
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
   [ADR-1390](1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
-- `EccSignatureAlgorithmSpecification` and `AlgorithmKeyType` in `NCode.Identity.Jose.Abstractions`,
-  `DefaultAlgorithmDataSource` and `EccSignatureAlgorithm` in `NCode.Identity.Jose`, `Fapi2SecurityProfile`,
-  `DefaultGetIdTokenPayloadClaimsHandler` and `TokenHash` in `NCode.Identity.OpenId.Core`, and
+- `EccSignatureAlgorithmSpecification`, `AlgorithmKeyType` and `TokenHash` in `NCode.Identity.Jose.Abstractions`,
+  `DefaultAlgorithmDataSource` and `EccSignatureAlgorithm` in `NCode.Identity.Jose`, `Fapi2SecurityProfile` and
+  `DefaultGetIdTokenPayloadClaimsHandler` in `NCode.Identity.OpenId.Authentication`, and
   `NCode.Identity.Jose.Secp256k1`

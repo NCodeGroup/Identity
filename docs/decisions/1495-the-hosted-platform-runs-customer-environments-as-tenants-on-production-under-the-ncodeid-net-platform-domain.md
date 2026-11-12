@@ -71,7 +71,9 @@ carries nothing else; a brand domain carries the site, docs, status page and ope
    stacks and records never manage it.
 5. **Each domain is its own Cloudflare zone.** All four are registered at Porkbun, and the bootstrap stack creates each
    zone with DNSSEC and a scoped CI token. Identity hosts are DNS-only, never proxied, so TLS reaches the platform's
-   proxy untouched. cert-manager issues Let's Encrypt certificates, with DNS-01 for wildcards.
+   proxy untouched. cert-manager issues Let's Encrypt certificates, with DNS-01 for wildcards. The registrar holds only
+   each domain's nameserver and DNSSEC delegation, set by hand once, because a registrar credential can hand over the
+   whole domain.
 6. **CAA limits issuance to Let's Encrypt and Universal SSL is off**, except in the two redirect-only zones. Their
    Cloudflare Single Redirect rules run on proxied records, which need Cloudflare's edge certificates, so Universal SSL
    is on there and their CAA records list Cloudflare's certificate authorities. They carry no issuer.
@@ -132,9 +134,6 @@ carries nothing else; a brand domain carries the site, docs, status page and ope
 - A change to the site, the docs or the mail records touches only the brand zone, never an issuer.
 - `platform@ncodeid.com` must exist as an Email Routing route, because the owner tag of every resource names it
   ([ADR-1135](1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md)).
-- No component or stack carries a default for the platform's domains
-  ([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)); each environment
-  supplies them as configuration, and the Kubernetes label prefix is `ncodeid.net/`.
 
 ## References
 

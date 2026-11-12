@@ -102,7 +102,8 @@ exist. User-profile migration entries are outside this contract and take individ
 
 - **A local model, or a second vendor, as the default executor.** Cheaper per token for one person, but tied to one
   machine or one more account. Rejected as the repository default: Copilot is one billing and tooling surface that
-  serves every contributor in VS Code, Copilot CLI and Claude Code.
+  serves every contributor in VS Code and Copilot CLI; a contributor who also has Claude Code runs the same commands
+  there.
 - **Migrate everything to skills and remove the Local prompts.** Rejected: it discards Local's prompt-specific model,
   agent and tool selection without improving the Copilot workflows, whose skill adapters already exist.
 - **Wait for manual-only skills before declaring dual support complete.** Rejected: automatic skill availability is an

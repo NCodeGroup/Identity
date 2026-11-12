@@ -90,7 +90,7 @@ accepts it.
     CurveSizeBits }`. The management console offers the advertised secret types and curves and takes the key size from
     the chosen curve.
 13. **AEAD algorithms are not keyed.** `AuthenticatedEncryptionAlgorithm` derives from `Algorithm`, and its key is a
-    content encryption key of `ContentKeySizeBits`, never a `SecretKey`.
+    content encryption key of `ContentKeySizeBytes`, never a `SecretKey`.
 
 ## Options considered
 

@@ -12,7 +12,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A settings write does not fail on a stored client document the settings vocabulary cannot honor: the write skips the
-// document, because it is incoherent before and after the change. See ADR-1245. A request that needs a stored document
+// document, because it is incoherent before and after the change. A request that needs a stored document
 // it cannot honor answers 409 with a problem that names the document. See ADR-1245.
 public class UnreadableSettingsDocumentTests
 {

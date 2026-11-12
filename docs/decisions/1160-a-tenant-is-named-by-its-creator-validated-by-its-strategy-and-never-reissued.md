@@ -128,6 +128,8 @@ through the strategy that serves it on every write path, and a retired identifie
   its unique index.
 - **Judge the address on every update.** Rejected: a tenant written under an earlier configuration could not have its
   display name changed. The address is judged when it changes.
+- **Judge the address only when a request reaches the tenant.** Rejected: the failure would reach relying parties rather
+  than the operator who wrote the address.
 - **One tombstone table, or retiring in the management endpoint.** Rejected: an issuer row needs its former holder and
   an identifier row does not, and a seeder, importer or consumer code that deletes through `ITenantStore` would bypass
   an endpoint.

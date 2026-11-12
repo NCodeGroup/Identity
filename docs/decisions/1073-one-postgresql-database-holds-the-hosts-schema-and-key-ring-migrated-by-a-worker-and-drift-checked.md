@@ -7,13 +7,16 @@
 
 ## Context
 
-The reference host persists the OpenID model through Entity Framework Core, and the ASP.NET Core Data Protection key
-ring protects the signing keys stored in that database. Several forces shape where the schema lives and who applies it:
+The reference host persists the OpenID model through Entity Framework Core. The same database holds the signing keys,
+encrypted under the tenants' master keys, and the ASP.NET Core Data Protection key ring, which protects cookies and
+antiforgery tokens. Several forces shape where the schema lives and who applies it:
 
 - The published `NCode.Identity.OpenId.Persistence.EntityFramework` package is provider-neutral. Migrations written in
   it would couple every consumer to one provider and one schema history.
-- Developer state is more than one file. The relational data, the seeded master and signing keys, and the key ring that
-  decrypts them must reset together; delete one without the others and a stored key becomes undecryptable.
+- Developer state is more than one file. The relational data, the tenants' master keys and the seeded signing keys they
+  encrypt, and the Data Protection key ring, encrypted under the platform master key, must reset together; delete one
+  without the others and a stored key becomes undecryptable. The root key that wraps the master keys stays outside the
+  database ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 - A migration that fails inside the `api` process crashes the host. A dedicated resource makes the failure visible and
   isolated.
 - A model change without its migration breaks the first deployment that needs it, so the build has to catch drift.

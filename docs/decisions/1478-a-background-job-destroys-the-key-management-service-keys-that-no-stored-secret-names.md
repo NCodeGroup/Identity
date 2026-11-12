@@ -29,7 +29,8 @@ listed key that no stored secret names and that is older than a grace period.**
    or whose `Origin` is not `generated`, runs each provider's `DestroyKeyAsync` through `PostCommitWork.RunAsync`
    without a caller token
    ([ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)), never throws, and logs
-   only the secret id and the provider. Its callers are the seed, the rollover pass, the management secret delete and
+   a removed secret's failure with its secret id and provider and an orphaned key's failure with its provider and KMS
+   key id. Its callers are the seed, the rollover pass, the management secret delete and
    tenant delete (after the commit and after the tenant is announced), management create when its record fails to
    commit, the generator when anything after creation fails, and the sweep.
 2. **A deployment names itself.** `SecretProtection:RemoteKeys:Deployment` (lowercase letters and digits in
@@ -79,8 +80,9 @@ listed key that no stored secret names and that is older than a grace period.**
    the version and Google schedules the destruction.
 10. **Permissions.** AWS needs `kms:ListKeys`, `kms:ListResourceTags` and `kms:DescribeKey`, with
     `kms:ScheduleKeyDeletion` conditioned on the `ncode-identity:deployment` resource tag and `kms:CreateKey` and
-    `kms:TagResource` on the request tag. Azure takes a vault of its own and a custom role without delete or purge,
-    because a role assignment cannot be conditioned on a key's tags. Google takes a key ring of its own with
+    `kms:TagResource` on the request tag; `kms:ListKeys` names no resource, so it takes no condition, and a bound key
+    carries no deployment tag, so the deletion grant does not reach it. Azure takes a vault of its own and a custom
+    role without delete or purge, because a role assignment cannot be conditioned on a key's tags. Google takes a key ring of its own with
     `cloudkms.cryptoKeys.list` and `cloudkms.cryptoKeyVersions.list`, because a grant on a key ring covers every crypto
     key in it.
 

@@ -118,9 +118,10 @@ all require using only the request object's parameters.
 - A parameter sent only outside a request object is lost and belongs inside it, as RFC 9101 requires.
 - The conformance harness runs the suite's `fapi1-advanced-final-test-plan` with `run-conformance.ps1 -Fapi1Advanced`:
   `private_key_jwt` and mtls client authentication, the `pushed` request method, and the `jarm` and `plain_response`
-  response modes. The seed accepts `Jwks` and `SecurityProfiles`, keys and certificates go to a gitignored folder so no
-  private key is committed, and the coverage matrix has a `profile-fapi1-advanced` row. The first end-to-end run is
-  pending in [#124](https://github.com/NCodeGroup/identity/issues/124).
+  response modes. The seed accepts a client's `Jwks`, imported under the same client-key policy as a dynamically
+  registered `jwks` so a key set the policy refuses stops the seeding, and its `SecurityProfiles`. Keys and certificates
+  go to a gitignored folder so no private key is committed, and the coverage matrix has a `profile-fapi1-advanced` row.
+  The first end-to-end run is pending in [#124](https://github.com/NCodeGroup/identity/issues/124).
 - A host that omits `AllowAnyClientCertificate()` has Kestrel refuse every self-signed certificate and every
   certificate from a tenant's own PKI before the OP sees it.
 

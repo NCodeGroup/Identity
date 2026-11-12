@@ -56,8 +56,8 @@ signs.**
    `IOException`, cancellation) propagates and ends the decode of a JSON-serialized JWE.
 7. **The JWT validator decrypts asynchronously.** When the header's `kid` matches an eligible decryption key it tries
    only those keys, so a well-addressed token costs at most one service call per key.
-8. **COSE MAC and encryption stay synchronous.** Their keys are symmetric and always local, so no remote key reaches
-   them.
+8. **COSE MAC and encryption stay synchronous.** A COSE recipient unwraps its content key through the synchronous
+   `TryUnwrapKey`, which refuses a remote key, so COSE never sends a key to a service.
 
 ## Options considered
 
@@ -71,8 +71,8 @@ signs.**
 - **A signing callback on the credentials.** A delegate carried by the signing credentials moves the choice between
   local and remote signing into every credentials object and bypasses the algorithm's checks and its verification of the
   signature.
-- **Verifying a remote decryption another way than the JWE tag.** The authentication tag is what proves the unwrapped
-  key; another check would add a second oracle.
+- **Verifying a remote decryption another way than the JWE tag.** The JWE's authentication tag authenticates every
+  remote result, so a second check would add a service call and no assurance.
 - **Asynchronous signing and unwrapping from the algorithm to every caller.** Chosen: one path serves local and remote
   keys.
 

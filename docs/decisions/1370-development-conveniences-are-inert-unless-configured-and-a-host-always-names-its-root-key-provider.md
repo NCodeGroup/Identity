@@ -60,7 +60,8 @@ and no development credential is committed.
 ### CORS and seeded clients are declared by the host
 
 - `AddDeveloperCors(configuration)` registers nothing without a `Cors` section. The host's Development overlay lists
-  `https://localhost:5174` and `https://localhost:5175`, and its Conformance overlay lists `https://localhost:5175`.
+  `https://localhost:5174`, `https://localhost:5175`, `http://localhost:4173` and `https://localhost:4173`, and its
+  Conformance overlay lists `https://localhost:5175`.
 - The `Cors` section binds strictly into `DeveloperCorsOptions` and is validated when the host starts.
   `DeveloperCorsOptionsValidator` requires each `AllowedOrigins` entry to be an origin as a browser sends it in its
   `Origin` header: an `http` or `https` scheme and a host with an optional port, without user information, path,

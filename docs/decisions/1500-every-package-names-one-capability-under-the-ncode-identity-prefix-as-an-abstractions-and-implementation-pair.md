@@ -31,7 +31,8 @@ any package may reference.**
    own versioning.
 2. **Pairs.** A capability's `.Abstractions` package holds contracts and data, with no logic. The implementation shares
    its namespace, so a pair is one namespace across two assemblies.
-3. **Implementations depend on abstractions.** An implementation references `*.Abstractions` and foundation packages and
+3. **Implementations depend on abstractions.** An implementation references `*.Abstractions`, foundation packages and
+   the composition builders `NCode.Identity.Registration` and `NCode.Identity.Registration.AspNetCore`, and
    collaborates with other capabilities through abstractions resolved from DI. It registers with `TryAdd*` from its
    `DefaultRegistration`, and its default type is named per
    [project-template ADR-0105](project-template/0105-the-canonical-implementation-is-named-defaultfoo.md). The

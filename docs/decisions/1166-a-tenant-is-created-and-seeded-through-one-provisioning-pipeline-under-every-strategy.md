@@ -45,8 +45,9 @@ seeds exactly that tenant; and `SeedAsync` returns the row its seed committed.**
 `ITenantProvisioner`, default `DefaultTenantProvisioner`, is the one coordinator: a replaceable, scoped service. It has
 two operations:
 
-1. `EnsureCreatedAsync(tenantId, displayName)` creates a tenant that configuration defines, the root tenant or the
-   static strategy's own tenant, when it is missing. The tenant is created at the address its strategy derives and is
+1. `EnsureCreatedAsync(teamId, tenantId, displayName)` creates a tenant that configuration defines, the root tenant or
+   the static strategy's own tenant, when it is missing. It first ensures the tenant's team exists through
+   `ITeamProvisioner`, the root team with `Root:TeamDisplayName`, so the tenant's team reference holds. The tenant is created at the address its strategy derives and is
    judged like any other write
    ([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). It
    tolerates a concurrent creator by re-reading after a failed insert.
@@ -143,7 +144,8 @@ on the bootstrap client in the bootstrap tenant.
 
 ## Consequences
 
-- Every tenant created at runtime starts seeded, under every strategy, in one transaction.
+- Every tenant created at runtime starts seeded, under every strategy: its row commits first, and its seed commits in
+  one unit of work.
 - Each cache miss runs the contributors for the root tenant and for the tenant; contributors are idempotent.
 - A seed costs one extra indexed read, including a seed after a settings change, which discards the row.
 - A freshly materialized tenant is current on a revalidation unless its row changed after its seed. A row that another

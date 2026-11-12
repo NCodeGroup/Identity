@@ -96,7 +96,8 @@ audited; and a caller reads its own assignments, teams and tenants from `GET /ap
     scope.
 17. **A header Home control returns to `/home`.** A platform route becomes `/home` once the caller is known to lack
     platform authority. Back controls lead to the parent the caller can reach: the platform's team list for a platform
-    administrator, a tenant's team for a platform administrator or a role holder there, and otherwise Home.
+    administrator, a tenant's team for a platform administrator or a role holder there, and otherwise Home. While the
+    caller's access is unknown, a back control leads where the route's parent leads and a platform route stays.
 
 ## Options considered
 
@@ -127,7 +128,7 @@ audited; and a caller reads its own assignments, teams and tenants from `GET /ap
   request.
 - The `canChange` answer can disagree with a later request only when the caller's authority changes between them, and
   the request is then refused as usual.
-- Role-list responses are never cached, since they carry no ETag.
+- Any role change invalidates every role list the console holds, because the caller's authority over any list can change.
 
 ## References
 

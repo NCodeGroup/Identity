@@ -523,7 +523,7 @@ jobs:
   cluster:
     name: Install the host chart in kind behind Traefik
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     env:
       CHART: charts/ncode-identity-host
@@ -555,6 +555,16 @@ jobs:
           tags: ncode-identity-host:kind
           cache-from: type=gha,scope=host-image
 
+      - name: Build the console image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: hosts/NCode.Identity.ManagementConsole.Host/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ncode-identity-management-console:kind
+          cache-from: type=gha,scope=console-image
+
       - name: Create the cluster
         uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
         with:
@@ -562,8 +572,8 @@ jobs:
           node_image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
           cluster_name: identity
 
-      - name: Load the host image into the cluster
-        run: kind load docker-image ncode-identity-host:kind --name identity
+      - name: Load the images into the cluster
+        run: kind load docker-image ncode-identity-host:kind ncode-identity-management-console:kind --name identity
 
       - name: Install cert-manager
         run: |
@@ -575,8 +585,9 @@ jobs:
           helm install traefik traefik --repo https://traefik.github.io/charts --version 42.3.1 \
             --namespace traefik --create-namespace --set service.spec.type=ClusterIP --wait --timeout 5m
 
-      # The release reads the database and the root key from Secrets, which are generated here and never stored.
-      - name: Create the database and its Secrets
+      # The release reads the database, the root key and the management console's two key rings (client and DPoP) from
+      # Secrets, which are generated here and never stored.
+      - name: Create the database and the release's Secrets
         run: |
           set -euo pipefail
           kubectl create namespace "$NAMESPACE"
@@ -586,6 +597,12 @@ jobs:
             --from-literal=connection-string="Host=postgres;Port=5432;Database=openiddb;Username=postgres;Password=$password"
           kubectl -n "$NAMESPACE" create secret generic identity-root-key \
             --from-literal=key="$(head -c 32 /dev/urandom | basenc --base64url -w0 | tr -d '=')"
+          openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$RUNNER_TEMP/mgmt-client.pem"
+          openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$RUNNER_TEMP/mgmt-dpop.pem"
+          kubectl -n "$NAMESPACE" create secret generic identity-mgmt-client-key \
+            --from-file=mgmt-client.pem="$RUNNER_TEMP/mgmt-client.pem"
+          kubectl -n "$NAMESPACE" create secret generic identity-mgmt-dpop-key \
+            --from-file=mgmt-dpop.pem="$RUNNER_TEMP/mgmt-dpop.pem"
           kubectl -n "$NAMESPACE" apply -f "$CHART/ci/kind-postgres.yaml"
           kubectl -n "$NAMESPACE" rollout status deployment/postgres --timeout=3m
 

@@ -6,7 +6,8 @@
   proxies through the `ForwardedHeaders` section, which `UseTrustedForwardedHeaders()` applies right before
   `UseStrictTransportSecurity()`; and by
   [ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md):
-  HTTPS redirection applies outside Production only, because Production serves HTTPS only)
+  the header is sent over the HTTPS that every Production request arrives on, and the redirect that pairs with it is
+  added outside Production only)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0122](project-template/0122-strict-transport-security-outside-development.md)

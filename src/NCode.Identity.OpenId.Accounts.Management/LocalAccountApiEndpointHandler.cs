@@ -1093,8 +1093,8 @@ internal class LocalAccountApiEndpointHandler(
     )
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(password);
-        using var owner = SecureMemoryPool<byte>.Shared.Rent(byteCount);
-        var written = SecureEncoding.UTF8.GetBytes(password, owner.Memory.Span);
-        await useAsync(owner.Memory[..written], cancellationToken);
+        using var owner = BufferFactory.Rent(byteCount, isSensitive: true, out Memory<byte> buffer);
+        var written = SecureEncoding.UTF8.GetBytes(password, buffer.Span);
+        await useAsync(buffer[..written], cancellationToken);
     }
 }

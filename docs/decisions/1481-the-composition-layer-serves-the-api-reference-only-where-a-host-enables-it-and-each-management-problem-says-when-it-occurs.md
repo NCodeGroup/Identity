@@ -26,7 +26,8 @@ management API, authenticate against it and read, for every route, when each pro
 - **The management endpoints need a bearer token.** The natural way to get one is the `client_credentials` grant,
   including the cold-start bootstrap administrator of
   [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md).
-  An operator has to run that login from the UI in production as well as development.
+  Where the operator enables the page, the operator has to run that login from it in production as well as
+  development.
 - **A pre-filled secret is a served secret.** A renderer pre-fills credentials from configuration for a one-click
   login, which bakes them into the OpenAPI and Scalar configuration where anyone who reaches the reference page reads
   them. That violates the rule of [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) that no secret material is on the public
@@ -154,8 +155,8 @@ problem occurs.
   management API and no interactive client on the issuer's origin.
 - The security-scheme, example and form-shaping knowledge lives once, next to the endpoints it describes, and a new
   renderer is a change in the map extension alone.
-- Production operators bootstrap from the UI by entering the bootstrap credentials in the Authorize dialog; nothing
-  secret is served.
+- Where the operator enables the page in Production, the operator bootstraps from it by entering the bootstrap
+  credentials in the Authorize dialog; nothing secret is served.
 - A client reads from the OpenAPI document when each problem of a route occurs, in the route's own words for its own
   answers and in one shared sentence for the rest.
 - A route that declares a status its handler does not describe fails its handler's theory until the handler's XML says

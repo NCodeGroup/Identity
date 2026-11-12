@@ -105,7 +105,8 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
   watches, and the check runs at start only.
 - A TLS-terminating proxy has to speak HTTPS to the pod and, to meet the preferred trust tier, verify the pod's
   certificate.
-- The controller's verification Secret is the chart's ingress Secret, never a serving Secret
+- The controller's verification Secret is the chart's ingress Secret by default, never a serving Secret;
+  `backendTls.ingressSecret` names an operator's Secret instead
   ([1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 - The HTTPS redirect of the pipeline applies outside Production only.
 - The unit tests of the inspectors and the probe, the check against real Kestrel, the Production gate and the chart's CI

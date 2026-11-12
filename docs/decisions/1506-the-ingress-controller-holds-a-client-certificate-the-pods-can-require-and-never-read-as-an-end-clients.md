@@ -40,7 +40,9 @@ client's.**
    certificates. Its Secret holds `ca.crt`, `tls.crt` and `tls.key`. The `tls.key` is the controller's own identity,
    never a pod's, and the controller reads the one Secret for both jobs (ingress-nginx's `proxy-ssl-secret` and
    Traefik's `ServersTransport` read the CA and the client certificate from it). The pods' serving Secret is never the
-   controller's Secret and is never a fallback.
+   controller's Secret and is never a fallback. The Secret holds the controller's own key and certificate, which a
+   Secret that holds only `ca.crt` cannot provide, and the property #788 asks for holds: no pod's key ever reaches the
+   controller.
    - `backendTls.ingressSecret` and `managementConsole.backendTls.ingressSecret` name a Secret the operator created.
      That Secret is then the only Secret the controller verifies against. The console's value falls back to the
      server's, then to `<release>-ingress`.

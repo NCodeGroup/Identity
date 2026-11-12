@@ -443,7 +443,7 @@ internal class ResourceServerApiEndpointHandler(
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
-        // Authorization is asserted from the route, before any row is read (ADR-1424, ADR-1451).
+        // Authorization is asserted from the route, before any row is read (ADR-1424).
         var authorizationError = await ResourceServerValidator.AuthorizeCreateAsync(
             httpContext.User,
             tenantId,

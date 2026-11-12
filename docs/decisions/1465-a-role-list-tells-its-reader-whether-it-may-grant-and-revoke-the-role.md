@@ -31,7 +31,7 @@ A console that offers grant and revoke to every caller learns that the caller ma
    `Create` for administrators, and for a client's owners also a client the host does not manage and custody of the
    roles its principal holds.
 3. **The route authorizes `Read` at the node before it reads
-   ([ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md)).** It answers `404` for a
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)).** It answers `404` for a
    missing resource and carries no ETag and no continuation token, because the answer is specific to the caller and the
    list is unpaged.
 4. **The last-owner rule depends on the principal revoked, so it stays a `409`.**
@@ -67,6 +67,6 @@ A console that offers grant and revoke to every caller learns that the caller ma
   role assignment at the tenant's node
 - [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) — a client acting for itself
   is a principal that holds role assignments
-- [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md) — every management route authorizes
+- [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) — every management route authorizes
   at its node before it reads
 - Issue #623

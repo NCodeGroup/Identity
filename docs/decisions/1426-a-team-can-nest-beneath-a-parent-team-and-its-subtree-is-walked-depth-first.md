@@ -67,7 +67,7 @@ teams per level, and `ITeamStore` has no read of a whole subtree.**
    ([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)) never reaches a team, because
    the chain of a team node holds team nodes and the platform, never a tenant node. Every team route authorizes at the
    node it names before it reads
-   ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)), and then
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)), and then
    authorizes a disable, a restore or a delete at the node above against the stored parent.
 7. **A disabled team suspends everything beneath it.** `OpenIdTeam.IsDisabled` is true when the team or any ancestor is
    disabled, so every tenant beneath answers `404`, and the ended-session sweep and the key rollover skip them. A team
@@ -154,7 +154,7 @@ teams per level, and `ITeamStore` has no read of a whole subtree.**
   role assignment at the tenant's node
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a
   limit is set by the authority above the scope whose document carries it
-- [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — a management
+- [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) — a management
   route authorizes the caller at the node it names before it reads
 - [ADR-1425](1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md) — a team
   promotes one tenant's configuration to another and environment-bound values stay

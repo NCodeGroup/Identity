@@ -364,7 +364,7 @@ internal class GrantApiEndpointHandler(
     // it, so minting one is a change to the resource server, exactly like binding a client through the management API:
     // the caller must be authorized to update the resource server at the node the request names before it is read,
     // and the resource server must exist in the tenant and must not be a system resource server (ADR-1168, ADR-1192,
-    // ADR-1451).
+    // ADR-1424).
     private async ValueTask<IResult?> AuthorizeResourceServerScopeAsync(
         HttpContext httpContext,
         string tenantId,

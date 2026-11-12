@@ -49,7 +49,7 @@ spend or rotation handles it
   `StoreConcurrencyException`.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the concurrency tokens and the `If-Match` check at the
   edge.
-- [ADR-1015](1015-management-core-validation-via-validators.md) — the management validators that answer a stale
+- [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) — the management validators that answer a stale
   `If-Match` with `412`.
 - Code: `NCode.Identity.OpenId.Management.Endpoints.StoreConcurrencyEndpointFilter`,
   `NCode.Identity.OpenId.Management.Endpoints.ManagementRootGroup`.

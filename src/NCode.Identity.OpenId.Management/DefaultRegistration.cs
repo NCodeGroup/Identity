@@ -77,7 +77,7 @@ public static class DefaultRegistration
                 DefaultManagementAuditRecorder
             >();
 
-            // Shared by the tenant/client secret-create endpoints (ADR-1015).
+            // Shared by the tenant/client secret-create endpoints (ADR-1424).
             serviceCollection.TryAddSingleton<ISecretValidator, DefaultSecretValidator>();
 
             // Shared by the tenant/client public-key read endpoints (ADR-1058). Delegates to each key's

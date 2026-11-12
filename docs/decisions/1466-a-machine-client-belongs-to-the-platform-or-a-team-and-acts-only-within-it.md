@@ -26,7 +26,7 @@ itself, and that holds roles only at its owning node or beneath it.**
    create and list a team's machine clients with creation and read authority at the team node. `POST` and
    `GET /api/platform/clients` do the same for the platform's machine clients at the platform node. Each is authorized
    from the route before any read
-   ([ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md)). A machine client is otherwise
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)). A machine client is otherwise
    managed through the control-plane tenant's client routes
    ([ADR-1257](1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md)).
 3. **It obtains tokens only for itself.** Its stored `grant_types_supported` is exactly `["client_credentials"]`,
@@ -36,8 +36,7 @@ itself, and that holds roles only at its owning node or beneath it.**
    every node above it, so the owner's administrators manage it. The chain reads the client row as it reads a tenant
    row to find the tenant's team, so an unknown client has no owning node and a caller without authority gets `403`
    whether or not the client exists
-   ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
-   [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md)). The node above a machine client
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)). The node above a machine client
    is its owning node, so the limits of its settings are set there
    ([ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)). Its creator is assigned no `Owner` role.
 5. **Only a machine client's principal holds roles, and only within its owning node.** A role is granted to a client's
@@ -72,7 +71,7 @@ itself, and that holds roles only at its owning node or beneath it.**
   [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
   [ADR-1257](1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md),
-  [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
+  [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md),
   [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
-  [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md)
+  [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)
 - Issue [#588](https://github.com/NCodeGroup/identity/issues/588)

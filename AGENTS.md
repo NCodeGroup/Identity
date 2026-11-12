@@ -185,7 +185,7 @@ so a bare ADR number names one record. Ten family records override template reco
 - [ADR-1314](docs/decisions/1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md) supersedes
   project-template ADR-0129's decision 2 for the authorization, continue and end-session endpoints, whose GET the OAuth
   2.0 and OpenID Connect specifications require.
-- [ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
+- [ADR-1424](docs/decisions/1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)
   supersedes project-template ADR-0129's decision 6 for the management API, which answers a caller without authority
   `403` for any identifier, because it authorizes at a node before it reads, so the answer discloses nothing.
 - [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) supersedes

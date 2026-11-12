@@ -62,7 +62,7 @@ seeds.**
    resolves to no principal gets `200` with a null `principalId`, because the answer describes the caller.
 6. **Every other route authorizes imperatively from `HttpContext.User`.** It uses `IAuthorizationService.AuthorizeAsync`
    and the validators, answers `401` when anonymous and `403` without authority
-   ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)), and decides on
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)), and decides on
    role assignments and the bootstrap `GlobalAdmin` claim, never on token scopes, which only bind the audience.
 
 ### The bootstrap administrator
@@ -138,7 +138,7 @@ seeds.**
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the tenant master key.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the
   platform settings.
-- [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md): the 401/403/404
+- [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md): the 401/403/404
   rule.
 - [ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md),
   [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),

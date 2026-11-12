@@ -169,9 +169,7 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1013](./1013-management-precondition-mediator-pipeline.md) | Management preconditions are a mediator validation pipeline | Superseded |
 | [1014](./1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) | Management resources carry opaque server identifiers and list one keyset page at a time | Accepted |
-| [1015](./1015-management-core-validation-via-validators.md) | Management core validation via replaceable validators | Accepted |
 | [1020](./1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) | A tenant's grants are listed, inspected and revoked by opaque identifier, never by their key | Accepted |
 | [1044](./1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) | The management API authenticates its own access tokens and a configured client bootstraps the first GlobalAdmin | Accepted |
 | [1046](./1046-api-reference-openapi-document-and-scalar.md) | The API reference (OpenAPI document + Scalar) is owned by the composition layer and turnkey for every environment | Accepted |
@@ -184,10 +182,9 @@ The records are grouped by area; within an area they are in number order.
 | [1419](./1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) | A client acting for itself is a principal that holds role assignments | Accepted |
 | [1420](./1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md) | A caller's teams and tenants are discovered from its role assignments | Accepted |
 | [1422](./1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md) | A management problem that asks the caller to wait carries the wait in retryAfterSeconds | Accepted |
-| [1424](./1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) | A management route authorizes the caller at the node it names before it reads | Accepted |
+| [1424](./1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) | A management route authorizes at the node it names before it reads, through replaceable validators | Accepted |
 | [1449](./1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md) | Every role assignment the management API grants or revokes is audited | Accepted |
 | [1450](./1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md) | A client-credentials access token names the client's principal as its subject | Accepted |
-| [1451](./1451-every-management-route-authorizes-at-its-node-before-it-reads.md) | Every management route authorizes at its node before it reads | Accepted |
 | [1465](./1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md) | A role list tells its reader whether it may grant and revoke the role | Accepted |
 | [1466](./1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md) | A machine client belongs to the platform or a team and acts only within it | Accepted |
 | [1467](./1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md) | Custody of a machine client needs creation authority at the node that owns it | Accepted |

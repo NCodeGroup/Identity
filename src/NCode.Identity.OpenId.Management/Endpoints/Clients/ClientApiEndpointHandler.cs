@@ -955,7 +955,7 @@ internal class ClientApiEndpointHandler(
             ? null
             : request.ResourceServerId;
 
-        // Authorization is asserted from the route and the request, before any row is read (ADR-1424, ADR-1451).
+        // Authorization is asserted from the route and the request, before any row is read (ADR-1424).
         var authorizationError = await ClientValidator.AuthorizeCreateAsync(
             httpContext.User,
             tenantId,
@@ -1064,7 +1064,7 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // Authorization is asserted from the route values, before any row is read (ADR-1424, ADR-1451).
+        // Authorization is asserted from the route values, before any row is read (ADR-1424).
         var authorizationError = await ClientValidator.AuthorizeCreateMachineClientAsync(
             httpContext.User,
             owningNode.TenantId,
@@ -1327,7 +1327,7 @@ internal class ClientApiEndpointHandler(
         }
 
         // The core precondition (If-Match) is asserted by the validator against the hydrated
-        // model (ADR-1015).
+        // model (ADR-1424).
         var error = await ClientValidator.ValidateUpdateAsync(
             client,
             model,

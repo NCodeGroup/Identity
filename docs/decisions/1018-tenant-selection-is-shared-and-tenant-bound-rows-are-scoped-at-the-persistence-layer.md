@@ -25,7 +25,7 @@ Two forces shape the design.
   The fetch itself has to be scoped: "never fetch what you cannot see", not "fetch, then hide".
 
 The management API's answer to a caller without authority is a separate rule,
-[ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md). This record holds
+[ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md). This record holds
 persistence scoping only.
 
 ## Decision
@@ -81,7 +81,7 @@ run unscoped.
   request carries no tenant identifier at all.
 - Every read, update or delete of an existing tenant-bound resource loads it by identifier through the filter. The
   management API authorizes the caller at the route's node first
-  ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)); to an authorized
+  ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)); to an authorized
   caller, a resource of another tenant is `404`, because the filter never loads it. The answer is given before
   validation runs, so the existence of a resource in another tenant cannot be probed.
 
@@ -125,6 +125,6 @@ unscoped. Direct construction in tests and tooling passes an explicit unscoped a
 - `NCode.Identity.OpenId.Persistence.EntityFramework`: `OpenIdDbContext`
 - `NCode.Identity.OpenId.Management`: `TenantScopeEndpointFilter`
 - [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md), [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md),
-  [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
+  [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)
 - [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md), decision 5:
   the owning tenant comes from the context, never the request

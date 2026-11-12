@@ -70,7 +70,7 @@ decrypt; and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
    source for it. The maintenance lease is `master-key-maintenance:platform`. `GET /api/platform/encryption-keys` and
    `POST /api/platform/encryption-keys/rekey` use the `platform_encryption_keys` scope family, authorized at the
    platform node
-   ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)).
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)).
 9. **Developer key pruning starts the platform over.** Only with `DeveloperKeys:PruneUnreadableKeys=true`
    (`AddDeveloperKeyPruning()`, never an `IsDevelopment()` check, as
    [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)

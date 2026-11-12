@@ -49,7 +49,7 @@ public half the operator supplied.**
    lifecycle. The shared `CreateSecretRequest` and `ImportSecretRequest` stay as they are, because their routes also
    serve clients and resource servers, which hold no remote keys.
 3. **Create authorizes, validates, then calls the KMS.** The route authorizes `Operations.Create` at the tenant node
-   before it reads anything ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)).
+   before it reads anything ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)).
    It validates everything before the KMS is called: the provider is registered, the key type can be held in a KMS, the
    algorithm resolves to a key size and curve, and the provider's mapping has a row for the provider, algorithm, key
    type, size and curve. It then calls `ISecretGenerator.GenerateRemoteSecretAsync` with `Use` `sig` and no
@@ -120,7 +120,7 @@ public half the operator supplied.**
 
 - [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md): the remote
   keys this decision manages.
-- [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md): authorization
+- [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md): authorization
   before any read.
 - [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md),
   [ADR-1104](1104-import-public-asymmetric-secret-material.md): the import policy of a supplied public half.

@@ -5,7 +5,7 @@
 - **Deciders:** NCode Group
 - **Supersedes:** [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) decision 7
 - **Refines:** [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
-  [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md) decision 7
+  [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) decision 7
 
 ## Context
 
@@ -23,7 +23,7 @@ that node.**
 
 1. **Changing a machine client needs `Operations.Create` at its owning node.** Updating or deleting it, and changing its
    settings, owners or secrets, is a row check after the caller's authorization at the client's node and the read
-   ([ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md) decision 7). It answers `403`,
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) decision 7). It answers `403`,
    after the host-managed refusal (`409`).
 2. **A role is granted to a client's principal only within the machine client's owning node.** The client must be a
    machine client and the node must be its owning node or a node beneath it. The ownership service answers a refused
@@ -55,7 +55,7 @@ that node.**
 
 - [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
   [ADR-1449](1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md),
-  [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md),
+  [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md),
   [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)
 - PR review <https://github.com/NCodeGroup/identity/pull/585#discussion_r4485655771>
 - Issue [#589](https://github.com/NCodeGroup/identity/issues/589)

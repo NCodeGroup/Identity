@@ -4219,8 +4219,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant, client, resource server, scope, grant, account, setting, secret, key, owner or administrator exists, and no
   row is read for the caller. A client's or resource server's settings, scopes and secrets are authorized at its own
   node, so its owner edits them, and creating or rotating a secret takes the authority to create there
-  ([ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
-  [ADR-1451](docs/decisions/1451-every-management-route-authorizes-at-its-node-before-it-reads.md),
+  ([ADR-1424](docs/decisions/1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md),
   [#558](https://github.com/NCodeGroup/identity/issues/558), [#596](https://github.com/NCodeGroup/identity/issues/596)).
 
 - **A unit of work resolves a tracked row only in its ambient tenant.** A store's lookup that the change tracker answers

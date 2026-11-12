@@ -79,7 +79,7 @@ keys, principals and environment-bound values stay with their environment.**
    operator supplies the missing values in `environmentSettings` and previews again.
 8. **Authority.** The caller needs `Read` at the source tenant node and `Create` at the target tenant node, checked
    before either tenant is read
-   ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)). Creating
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)). Creating
    clients and resource servers is creation authority: `TeamAdmin` at the team, the target's `TenantAdmin`, or
    `GlobalAdmin`. Then both tenants must exist and belong to `{teamId}`, else `404`, and then the limit rule applies.
    Then a promotion that changes an existing target client whose principal holds role assignments needs `Create` at
@@ -150,7 +150,7 @@ keys, principals and environment-bound values stay with their environment.**
   the authority above the scope whose document carries it
 - [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) — a client acting for
   itself is a principal that holds role assignments
-- [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — a management
+- [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) — a management
   route authorizes the caller at the node it names before it reads
 - [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md) — a machine client
   belongs to the platform or a team and acts only within it

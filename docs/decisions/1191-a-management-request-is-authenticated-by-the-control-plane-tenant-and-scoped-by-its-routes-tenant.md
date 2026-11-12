@@ -60,7 +60,7 @@ are independent: the first is the security domain that issued the caller's token
    when the route has no `tenantId`.
 6. **The route's tenant is also the node the caller is authorized at.** The same `tenantId` is the scope of the
    persistence query filter and the tenant node that authorization evaluates
-   ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)), so data scope
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)), so data scope
    and authority cannot diverge, and a handler that forgets to filter still reads only that tenant.
 7. **Routes on the root group open no tenant scope.** They act on unscoped platform, team and tenant rows:
    `/api/platform/…`, `/api/teams/…` (tenant create and list under `/api/teams/{teamId}/tenants`), the machine-client
@@ -110,6 +110,6 @@ are independent: the first is the security domain that issued the caller's token
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — one
   provisioning pipeline.
 - [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) — issued-token validation.
-- [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — authorization at
+- [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) — authorization at
   the named node.
 - [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) — role assignments at a node.

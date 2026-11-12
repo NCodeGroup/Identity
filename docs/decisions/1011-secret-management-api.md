@@ -12,7 +12,7 @@
   [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the platform is a
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
   settings under `/api/platform`;
-  amended by [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md): every secret and
+  amended by [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md): every secret and
   owner operation authorizes the caller at the node its route names before it reads, so no loaded secret is wrapped
   for authorization)
 - **Date:** 2026-09-29
@@ -128,7 +128,7 @@ carries a `// Future:` note rather than an implementation.
 Managing an owner's secrets presumes the owner exists, so the same management layer also exposes CRUD over
 the **owner entities themselves** — the server, tenant, and client rows that own the secret collections.
 These endpoints share the secret endpoints' authorization, concurrency, and (from
-[ADR-1015](1015-management-core-validation-via-validators.md)) core-validation model:
+[ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)) core-validation model:
 
 - **Create** (`POST api/servers`, `POST api/tenants`, `POST api/clients`) persists the owner row plus an
   **empty** settings and secrets collection. It never accepts key material — a freshly created owner starts
@@ -158,7 +158,7 @@ client entities are tenant-scoped (`ISupportTenantId` / `TenantOwnedResource`), 
   settings endpoints read.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — how the secret (and every) store's concurrency
   token is generated.
-- [ADR-1015](1015-management-core-validation-via-validators.md) — the entity validators that
+- [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) — the entity validators that
   authorize and validate every management create/update/delete (including the owner lifecycle above).
 - `NCode.Identity.Secrets.Persistence.DefaultSecretSerializer` — the inverse unprotect path.
 - `NCode.Identity.OpenId.Persistence.Stores.IServerStore` — the extended store contract.

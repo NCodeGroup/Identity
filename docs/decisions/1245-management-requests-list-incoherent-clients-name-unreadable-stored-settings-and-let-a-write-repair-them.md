@@ -80,7 +80,7 @@ so a write repairs it.**
 5. **Resolution happens after authorization.** An effective-settings read resolves inside the `mapperAsync` of
    `ProcessGetAsync`, which runs after the caller is authorized, so a caller who may not read the settings learns
    nothing about a document that cannot be honored
-   ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)). The read passes
+   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)). The read passes
    the stored document's `JsonElement`, not the persisted settings, so the answer carries no `ETag` of the raw
    document, whose token is not the effective view's. The creation, the update, the report and the local-account
    requests authorize before they resolve.
@@ -200,7 +200,7 @@ The chosen option is the typed exception, one filter, log-and-continue walks and
   — the coherence rules and the validator.
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the reconciliation that
   reports the clients a change makes incoherent.
-- [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — authorization
+- [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) — authorization
   before a read.
 - [ADR-1483](1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md) — the
   endpoint filter on the management root group.

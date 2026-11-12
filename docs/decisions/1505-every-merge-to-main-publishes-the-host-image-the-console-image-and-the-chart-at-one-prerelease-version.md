@@ -62,10 +62,8 @@ consumer follows the chart's version alone.
 ## Consequences
 
 - A consumer follows one version range and receives the host, the console and the chart together.
-- A consumer that follows every version resets its database when the schema changes. Until the first stable release the
-  host's initial migration is edited in place
-  ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)), so the
-  pre-deploy migration Job fails and the release keeps the version it runs.
+- The pre-deploy migration Job refuses a database whose migration history is ahead of the image's migrations
+  ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 - A package created outside this workflow needs this repository's write access under the package's "Manage Actions
   access" and public visibility. Both are GitHub settings that no workflow can change.
 

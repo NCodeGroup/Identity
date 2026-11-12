@@ -68,8 +68,8 @@ JOSE stack and the keys of the family.
    IV` is refused, because it needs a Base IV that the family's keys do not carry. `alg` must be protected and is checked
    against the caller's permitted list before the catalog is consulted and before any key is selected. A recipient's
    protected bucket is empty and a recipient with recipients of its own is refused. `crit` lists only protected labels, and
-   a `COSE_Sign` body carries no `alg`, because each signature names its own. On writing, the serializer sets `alg`, `IV`
-   and `Partial IV` and refuses a caller's header that sets one.
+   a `COSE_Sign` body carries no `alg`, because each signature names its own. On writing, the serializer sets `alg` and
+   `IV` itself and refuses a caller's header that sets `alg`, `IV` or `Partial IV`.
 
 6. **Messages.** `ICoseSerializer` handles `COSE_Sign1`, `COSE_Sign`, `COSE_Mac0`, `COSE_Mac`, `COSE_Encrypt0` and
    `COSE_Encrypt` with external additional data, detached content and an optional tag. `EncodeSign1Async` and

@@ -18,10 +18,8 @@ host's origin. In Production the host serves HTTPS only
 ([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)), so every request arrives over HTTPS. Five facts shape the
 decision:
 
-- The host terminates TLS itself when it authenticates clients by mutual TLS
-  ([ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)),
-  so no proxy in front of it sends the header. Behind a TLS-terminating proxy it sees HTTPS only through
-  `X-Forwarded-Proto` from a proxy that `ForwardedHeaders` trusts.
+- A host that terminates TLS itself, with no proxy in front of it, has no proxy to send the header. Behind a
+  TLS-terminating proxy it sees HTTPS only through `X-Forwarded-Proto` from a proxy that `ForwardedHeaders` trusts.
 - The management console host serves behind the same ingress as the OP host and must not reference
   `NCode.Identity.Server`.
 - Neither helper names an identity concept, so both are general ASP.NET Core helpers.
@@ -82,7 +80,7 @@ the header is sent outside Development as `Strict-Transport-Security: max-age=31
 - **Compose them inside `AddManagementConsole`.** Rejected: whether a proxy terminates TLS is the deployment's to say.
 - **The framework's `AddHsts` and `UseHsts` defaults.** Rejected: the default `max-age` is 30 days, and its options are
   neither bound strictly nor validated.
-- **Leave the header to a proxy.** Rejected: a host that terminates mutual TLS itself has no proxy to send it.
+- **Leave the header to a proxy.** Rejected: a host that terminates TLS itself has no proxy to send it.
 - **Compose both from one general package, per host.** Chosen.
 
 ## Consequences

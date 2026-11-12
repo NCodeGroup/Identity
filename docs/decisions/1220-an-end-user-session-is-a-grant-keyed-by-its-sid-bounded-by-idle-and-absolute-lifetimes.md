@@ -33,8 +33,8 @@ session ends unless it is used again, and a request that finds an ended session 
    `AuthenticationContextClassReference`, `ClientIds`, `LastActivityWhen`, and the required `IdleTimeout` and
    `AbsoluteExpiresWhen`. A stored session without them is malformed and fails closed
    ([ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)).
-2. **The `sid` is a claim.** It is emitted in the ID token, in every subject-bound access token (RFC 9068 section
-   2.2.1) and in the `logout_token` while the tenant supports back-channel logout sessions
+2. **The `sid` is a claim.** It is emitted in the ID token and in every subject-bound access token (RFC 9068
+   section 2.2.1), and, while the tenant supports back-channel logout sessions, in the `logout_token`
    ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
    A token issued with no session omits it.
 3. **Both bounds always apply.** `session_absolute_lifetime` is between one second and 365 days and defaults to 30

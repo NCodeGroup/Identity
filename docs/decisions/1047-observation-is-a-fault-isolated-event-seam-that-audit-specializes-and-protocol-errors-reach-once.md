@@ -57,8 +57,9 @@ publish/subscribe seam whose handlers are fault-isolated.
   events) that `BackgroundEventDispatcher` drains in a fresh scope on the host's stopping token. A handler opts in with
   `ISupportBackgroundDelivery` and runs inline when the queue is off. A full queue drops the event and logs
   `BackgroundEventDropped`.
-- An event is an immutable record that captures its envelope when it is published, so a background handler works
-  from that snapshot and never from ambient request state such as the `HttpContext` or the request scope.
+- An event is an immutable record, and an audit event's envelope is derived by the recorder before it is published,
+  so a background handler works from the event alone and never from ambient request state such as the `HttpContext`
+  or the request scope.
 
 ### Events carry no secrets
 

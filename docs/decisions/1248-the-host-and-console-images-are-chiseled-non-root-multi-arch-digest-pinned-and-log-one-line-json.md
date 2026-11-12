@@ -77,7 +77,7 @@ from `version.json`, whose assembly version omits git height. The version an ima
   `Logging__Console__FormatterOptions__UseUtcTimestamp=true` and `Logging__Console__FormatterOptions__TimestampFormat=O`.
   Each entry is one JSON object on one line, holding the timestamp (UTC, `+00:00`), level, category, event id, message,
   state and an escaped exception.
-- The migration worker logs the same way from `/app/migrations`. The `base` stage and runs under the AppHost or
+- The migration worker logs the same way from `/app/migrations`. The `base` stage, the AppHost and
   `dotnet run` keep `simple`. An operator overrides the image with `Logging__Console__FormatterName=simple` through the
   chart's `extraEnv`, and the chart sets no logging value.
 

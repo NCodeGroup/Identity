@@ -23,8 +23,8 @@ Four forces shape both:
 
 - The OP's own pages each carry a strict policy that the server writes for them
   ([ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
-  The BFF writes no HTML: its endpoints answer JSON, redirects or no content. A policy for the frontend's pages has to
-  be one the application can change.
+  The BFF writes none of the frontend's pages: its endpoints answer JSON, redirects or no content, apart from the
+  same-origin reload page. A policy for the frontend's pages has to be one the application can change.
 - The client-authentication key ring also holds the private keys that decrypt encrypted ID tokens and UserInfo
   responses
   ([ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md)).

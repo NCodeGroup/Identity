@@ -38,8 +38,9 @@ the only source of the certificate, and a value that cannot be decoded fails the
    empty there.
 2. **Formats are an open vocabulary.** An `IClientCertificateHeaderDecoder` is a strategy named by its `Format`.
    `ClientCertificateHeaderFormats` names `Base64Der`, `Pem`, `UrlEncodedPem` and `EnvoyXfcc`.
-   `MutualTlsForwardingOptions.Format` (`OpenId:MutualTls`) is a string that defaults to `Base64Der`. The host refuses
-   to start when no decoder reads the configured format, and the resolver refuses two decoders of one format. A package
+   `MutualTlsForwardingOptions.Format` (`OpenId:MutualTls`) is a string that defaults to `Base64Der`.
+   When a certificate header is configured, the host refuses to start unless a registered decoder reads the configured
+   format, and the resolver refuses two decoders of one format. A package
    supports another proxy by registering a decoder.
 3. **Every format decodes a list.**
    - `Base64Der` is a comma-separated list. A comma never occurs in base64, so one format reads ASP.NET Core's single

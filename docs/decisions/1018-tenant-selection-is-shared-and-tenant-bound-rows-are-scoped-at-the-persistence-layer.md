@@ -110,7 +110,8 @@ unscoped. Direct construction in tests and tooling passes an explicit unscoped a
   management API, against the one-capability package boundary of
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md).
 - **An ambient scope plus a global query filter by interface (chosen).** No query can return a cross-tenant row and no
-  call site can forget the scope, while the runtime and central administration stay unscoped.
+  call site can forget the scope, while tenant resolution, tenant management and the control-plane routes stay
+  unscoped.
 
 ## Consequences
 

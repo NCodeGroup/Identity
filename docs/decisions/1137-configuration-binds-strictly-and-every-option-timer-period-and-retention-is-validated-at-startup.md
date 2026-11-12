@@ -87,8 +87,9 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
 9. **A retention is not negative.** `GrantRetentionOptions.Retention` and `TenantUsageOptions.Retention` accept zero,
    which removes a row as soon as it ends, and refuse a negative value.
 10. **Each validator is an `IValidateOptions<T>` that lists every failure.** It is registered beside the services that
-    read the options and depends on no options type, because a validator that reads options deadlocks the host as it
-    starts. A failure names each failing option with its configuration key, for example:
+    read the options. It does not read the options type it validates through `IOptions<T>`, because a validator that
+    reads the options it validates deadlocks the host as it starts. A failure names each failing option with its
+    configuration key, for example:
 
     ```text
     GrantRetentionOptions.Retention ('GrantRetention:Retention') must not be negative; it is -1.00:00:00.

@@ -142,7 +142,7 @@ over the tokens the authorization endpoint returns.**
   values compared verbatim are configured in the form they are compared in.
 - RFC 6749 §3.1.1 and §4.1.2.1, RFC 7591 §2, §2.1 and §3.2.2, RFC 8414 §2, RFC 9700 §2.1.2, OpenID Connect Discovery
   1.0 §3, OpenID Connect Dynamic Client Registration 1.0 §2, OAuth 2.0 Multiple Response Type Encoding Practices.
-- Code: `NCode.Identity.OpenId.OpenIdConstants.ResponseTypes`, `NCode.Identity.OpenId.Settings.OpenIdSettingRules`,
+- Code: `NCode.Identity.OpenId.OpenIdProtocol.ResponseTypes`, `NCode.Identity.OpenId.Settings.OpenIdSettingRules`,
   `NCode.Identity.OpenId.Settings.DefaultSettingDescriptorDataSource`,
   `NCode.Identity.OpenId.Authentication.Endpoints.Authorization.ResponseTypeValues`,
   `NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers.DefaultValidateAuthorizationRequestHandler`,

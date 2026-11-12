@@ -2955,8 +2955,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   lacks a member the serving code always writes, is rejected with a `JsonException`. The long-lived, in-place-mutated
   payloads (`SessionGrant`, `CibaGrant`, `DeviceCodeGrant`) carry a `[JsonExtensionData]` bag, so a mixed-version node
   never drops unknown members on a read-modify-write
-  ([ADR-1113](docs/decisions/1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md),
-  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
+  ([ADR-1395](docs/decisions/1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)).
 
 - **A change to a grant's payload loses no concurrent write.** The touch of a session, the addition of a client to it,
   and the polls and decisions of the device-code and CIBA grants apply their change to the grant as stored and read it
@@ -5259,7 +5258,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   request that finds an ended session terminates it with `absolute_expiry` or `idle_timeout`, which revokes the grants
   issued under it and notifies its relying parties
   ([ADR-1220](docs/decisions/1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md),
-  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
+  [ADR-1395](docs/decisions/1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md),
   issue [#271](https://github.com/NCodeGroup/identity/issues/271)).
 
 - **A session that ends while no request uses it is terminated within a minute.** One replica in each
@@ -5276,7 +5275,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IOpenIdContextFactory.CreateForBackgroundAsync` and `IMaterializedPlatformAccessor` serve the pass, which the grants
   table's index on grant type, revocation and expiry supports
   ([ADR-1223](docs/decisions/1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md),
-  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
+  [ADR-1395](docs/decisions/1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md),
   issue [#281](https://github.com/NCodeGroup/identity/issues/281)).
 
 - **Logout revokes only the terminating session's grants**, so signing out of one login leaves the subject's other

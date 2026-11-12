@@ -185,11 +185,11 @@ than inlining the rationale.
   [project-template ADR-0108](../../docs/decisions/project-template/0108-persisted-documents-are-versioned-and-additive.md).
   A domain payload serialized into a stored JSON blob (the `PersistedGrant<TPayload>.Payload` path) is written through
   `IPersistedPayloadSerializer`
-  ([ADR-1113](../../docs/decisions/1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)), not a bare
+  ([ADR-1395](../../docs/decisions/1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)), not a bare
   `JsonSerializer` call, and its members never begin with `$`. A stored document that lacks what the serving code
   writes — the envelope, or a member the serving code always sets — is malformed: the reader throws rather than
   supplying a default or a fallback
-  ([ADR-1395](../../docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
+  ([ADR-1395](../../docs/decisions/1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)).
   A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) carries the `[JsonExtensionData]` bag above so
   a read-modify-write never drops a member it does not model. Until the first stable release
   ([#535](https://github.com/NCodeGroup/identity/issues/535)), a member the serving code always writes is `required`;

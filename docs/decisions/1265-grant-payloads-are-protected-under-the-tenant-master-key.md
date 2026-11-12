@@ -1,7 +1,7 @@
 # 1265. Grant payloads are protected under the tenant master key
 
 - **Status:** Accepted (amends [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
-  and [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md); amended by
+  and [ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md); amended by
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data)
@@ -27,7 +27,7 @@ A grant's payload is stored only as an `nce1.` envelope under the master key of 
    purpose `grant-payload`, item id the grant's hashed key. The hashed key binds the envelope to its lookup row, so a
    payload copied to another grant row does not decrypt.
 2. **One internal seam.** `IGrantPayloadProtector` layers on top of `IPersistedPayloadSerializer`. The serializer keeps
-   schema versioning ([ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)); the protector
+   schema versioning ([ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)); the protector
    encrypts the versioned document. Both readers of grant payloads, `DefaultPersistedGrantService` and
    `DefaultSessionService.GetSessionsAsync`, use it.
 3. **Buffers.** Plaintext is written to and read from sensitive pooled buffers
@@ -68,6 +68,6 @@ A grant's payload is stored only as an `nce1.` envelope under the master key of 
 
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy and
   `nce1.` envelope.
-- [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) — the versioned payload document.
+- [ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md) — the versioned payload document.
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) — sensitive buffers.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — clean cutover.

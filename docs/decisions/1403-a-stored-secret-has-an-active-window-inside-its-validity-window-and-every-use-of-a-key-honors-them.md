@@ -91,7 +91,7 @@ secret keeps the instants its creator gave it.
   sign past its retirement. The instants are the state, and the state name is derived.
 - **Nullable inner instants on the record, read as the outer ones when absent.** Rejected: every reader would carry
   the fallback, and a record that lacks what the serving code writes is malformed
-  ([ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)). The
+  ([ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)). The
   requests stay optional, the record does not.
 - **Judge expiry at validation without tolerance.** Rejected: a token's `exp` is judged with the clock skew, so a key
   whose expiry is judged without it refuses a token the same validator accepts by its own lifetime.

@@ -200,7 +200,6 @@ The records are grouped by area; within an area they are in number order.
 | [1097](./1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) | Access tokens are sender-constrained by DPoP or mutual TLS through one proof-of-possession seam | Accepted |
 | [1101](./1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) | Token exchange issues delegation and impersonation tokens from tokens the tenant issued | Accepted |
 | [1112](./1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) | Every end of a session runs one termination seam, once, revoking the grants issued under it | Accepted |
-| [1113](./1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) | At-rest grant payloads are schema-versioned, upcastable, and preserve unknown members | Accepted |
 | [1114](./1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md) | An OpenID response is written by a content-negotiated response formatter, JSON by default | Accepted |
 | [1141](./1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md) | A response type is a whole value, and the listed values alone control front-channel tokens | Accepted |
 | [1144](./1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md) | Authorization codes are bound to an S256 PKCE challenge unless an attested client uses the nonce | Accepted |
@@ -222,7 +221,7 @@ The records are grouped by area; within an area they are in number order.
 | [1297](./1297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md) | A refresh token family expires at a fixed horizon that the token response announces | Accepted |
 | [1314](./1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md) | Protocol endpoints keep the HTTP methods their specifications require | Accepted |
 | [1380](./1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) | Logout ends the session found in server state, confirmed when unsure, and notifies relying parties | Accepted |
-| [1395](./1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md) | A stored record that lacks what the serving code writes is malformed and fails closed | Accepted |
+| [1395](./1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md) | Grant payloads have one versioned serializer, and a stored record missing written members fails closed | Accepted |
 | [1401](./1401-userinfo-access-is-audited-when-a-tenant-or-client-opts-in.md) | UserInfo access is audited when a tenant or client opts in | Accepted |
 | [1498](./1498-protocol-endpoints-answer-the-x-fapi-interaction-id-header.md) | Protocol endpoints answer the x-fapi-interaction-id header | Accepted |
 

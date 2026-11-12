@@ -32,7 +32,7 @@ session ends unless it is used again, and a request that finds an ended session 
    principal and its `AuthenticationProperties`. `SessionGrant` holds the subject id, `AuthTime`, `amr`, `idp`,
    `AuthenticationContextClassReference`, `ClientIds`, `LastActivityWhen`, and the required `IdleTimeout` and
    `AbsoluteExpiresWhen`. A stored session without them is malformed and fails closed
-   ([ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
+   ([ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)).
 2. **The `sid` is a claim.** It is emitted in the ID token, in every subject-bound access token (RFC 9068 section
    2.2.1) and in the `logout_token`. A token issued with no session omits it
    ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
@@ -66,7 +66,7 @@ session ends unless it is used again, and a request that finds an ended session 
    [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)'s.
 8. **A listed session reports when it ends.** `ISessionService.GetSessionsAsync` reads each stored payload through
    `IPersistedPayloadSerializer`, skips revoked sessions and sessions that have ended, and throws for a malformed one
-   ([ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
+   ([ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)).
    `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen` and `expiresWhen` of `/account/sessions/list` are never
    `null`.
 
@@ -108,7 +108,7 @@ session ends unless it is used again, and a request that finds an ended session 
 - [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md) — the read-modify-write of a grant's payload.
 - [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md) — the background termination of
   a session that ends unused.
-- [ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md) — a
+- [ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md) — a
   malformed stored record fails closed.
 - Auth0, Configure Session Lifetime Settings — the defaults and the maxima:
   <https://auth0.com/docs/manage-users/sessions/configure-session-lifetime-settings>

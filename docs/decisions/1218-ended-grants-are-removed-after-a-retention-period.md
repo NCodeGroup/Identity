@@ -26,7 +26,7 @@ the grants table grew without bound. Deleting a client or a tenant loads all of 
 
 A grant that is revoked or expired is still read: a rotated refresh token that is presented again is a reuse
 ([ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md)), and a replayed authorization code revokes its
-session ([ADR-1112](1112-authorization-code-replay-revokes-session.md)). A removal therefore has to wait for a period
+session ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)). A removal therefore has to wait for a period
 after the grant ended.
 
 ## Decision
@@ -62,7 +62,7 @@ supports.**
 5. **The retention is 14 days.** A rotated refresh token that is presented again within 14 days after it ended is
    recognized as a reuse
    ([ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md)), and a replayed authorization code still
-   revokes its session ([ADR-1112](1112-authorization-code-replay-revokes-session.md)). OpenIddict keeps the tokens
+   revokes its session ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)). OpenIddict keeps the tokens
    that it prunes for 14 days by default.
 6. **The revocation time is indexed.** `GrantEntity` has an index on `RevokedWhen`, as it has one on `ExpiresWhen`, so
    the removal reads the ended grants through an index. The `AddGrantRevokedWhenIndex` migration only adds the index.
@@ -95,7 +95,7 @@ supports.**
 
 - [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — a rotated token that is presented again is
   a reuse.
-- [ADR-1112](1112-authorization-code-replay-revokes-session.md) — a replayed authorization code revokes the session.
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — a replayed authorization code revokes the session.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger and its retention, and the
   options type that `GrantRetentionOptions` follows.
 - [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md) — deleting an owner removes its grants in one unit of work.

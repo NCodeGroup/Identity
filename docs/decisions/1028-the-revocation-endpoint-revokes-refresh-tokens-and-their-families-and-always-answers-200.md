@@ -39,7 +39,7 @@ revocable, so it reveals nothing about token state. A missing `token` parameter 
 - **Access tokens.** An access token already issued stays valid at external resource servers until it expires. The
   OP's own endpoints reject one whose session was revoked
   ([ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md),
-  [ADR-1112](1112-authorization-code-replay-revokes-session.md)), and short access-token lifetimes bound the rest.
+  [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)), and short access-token lifetimes bound the rest.
 - **Discovery.** Discovery mirrors the token endpoint's client-authentication methods and signing algorithms into the
   `revocation_endpoint_*` members
   ([ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
@@ -75,7 +75,7 @@ revocable, so it reveals nothing about token state. A missing `token` parameter 
   management-side grant soft-revoke that this client-facing endpoint shares (`RevokedWhen`).
 - [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md): the
   audience-bound access tokens whose statelessness motivates revoking refresh tokens only.
-- [ADR-1112](1112-authorization-code-replay-revokes-session.md) and
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) and
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md): session revocation and the OP's own
   token validation.
 - [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): the retry of a lost concurrency race.

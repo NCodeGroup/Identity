@@ -70,7 +70,7 @@ that changes its slice, and a lost race surfaces as a store-neutral `StoreConcur
    update and save and returns `null`, as it does for a grant that is unknown, expired or already consumed. Every caller
    answers `null` as a second spend, concurrent or sequential, never `500`:
    - an authorization code: `invalid_grant` (`400`), and the replay revokes the session's grants
-     ([ADR-1112](1112-authorization-code-replay-revokes-session.md));
+     ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md));
    - a device code: `invalid_grant` (`400`);
    - a CIBA `auth_req_id`: `invalid_grant` (`400`);
    - a pushed authorization request: `invalid_request_uri` (`400`), as for any `request_uri` that is unknown, expired or
@@ -114,7 +114,7 @@ that changes its slice, and a lost race surfaces as a store-neutral `StoreConcur
 ## References
 
 - [project-template ADR-0109](project-template/0109-a-lost-concurrency-race-is-a-store-neutral-exception.md)
-- [ADR-1112](1112-authorization-code-replay-revokes-session.md),
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
   [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md),
   [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md),

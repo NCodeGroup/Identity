@@ -77,7 +77,7 @@ internal class DefaultEndSessionHandler(
         }
 
         // A logout that names a session terminates it through the session service, whose claim terminates a session
-        // once however many paths end it at the same time. See ADR-1227.
+        // once however many paths end it at the same time. See ADR-1112.
         if (subject.SessionId is { Length: > 0 } sessionId)
         {
             await SessionService.RevokeAsync(

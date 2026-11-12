@@ -5,7 +5,7 @@
   [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md); closes the follow-ups of
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) and
   [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md); realizes the
-  introspection clause of [ADR-1112](1112-authorization-code-replay-revokes-session.md); amended by
+  introspection clause of [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md); amended by
   [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   event ID `2019` is free; and by
   [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md):
@@ -28,7 +28,7 @@ The readers had drifted further than that, because each built its own `JwtValida
   exchange, and the end-session `id_token_hint` accepted any algorithm the validator knew.
 - **No token type.** Introspection and token exchange did not check `typ`, so introspection reported an ID token as an
   active access token, and token exchange accepted a logout token as a `jwt` subject token.
-- **No session check at introspection.** [ADR-1112](1112-authorization-code-replay-revokes-session.md) says introspection
+- **No session check at introspection.** [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) says introspection
   rejects a token whose session was revoked; only resource-request authentication did.
 - **A system resource server could be given keys.** `urn:ncode:openid` and `urn:ncode:management` tokens are read by the
   server itself. A key added to one would make issuance encrypt to it, and UserInfo and the management API could no

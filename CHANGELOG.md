@@ -1880,7 +1880,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ISessionEvictionPolicy`.
 
 - **Every session termination flows through one mediator seam, `OnSessionTerminatedCommand`, with an open vocabulary of
-  reasons** ([ADR-1098](docs/decisions/1098-session-lifecycle-termination-seam.md),
+  reasons** ([ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
   [ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)). The default handlers revoke the
   session's (or subject's) grants, send back-channel logout notifications and audit, so an idle, evicted or
   administratively revoked session notifies its relying parties and is audited exactly like an RP-initiated logout; an
@@ -1900,12 +1900,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   of work. `RevokeAllAsync` revokes every grant of the subject before it dispatches, and the sessions management API
   reports the sessions the request terminated. `ISessionService.RevokeAsync` returns `bool`, and `RevokeAllAsync` and
   `RevokeAllExceptAsync` return the number of sessions the call terminated
-  ([ADR-1227](docs/decisions/1227-a-session-is-terminated-at-most-once-on-every-path.md), issue
+  ([ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md), issue
   [#286](https://github.com/NCodeGroup/identity/issues/286)). `IPersistedGrantService.RevokeSessionOnceAsync<TPayload>`
   returns the session grant as the call revoked it (`PersistedGrant<TPayload>?`), and every termination notifies the
   clients that grant lists, so a client added to the session by an ID token issued after an earlier read receives
   back-channel logout. A subject-wide termination also claims a session that ended and awaits the background termination
-  ([ADR-1228](docs/decisions/1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
+  ([ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
   issue [#288](https://github.com/NCodeGroup/identity/issues/288)).
 
 - **The grant prune survives a store timeout.** `GrantPruneService` logs a failed pass (`GrantPruneFailed`), a store
@@ -5174,14 +5174,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   `SessionTerminationReasons.AuthorizationCodeReplay` (`authorization_code_replay`), so the grants issued under it, the
   access and refresh tokens issued from that code included, are revoked, its relying parties receive back-channel logout
   and the termination is audited; a code that expired unused terminates nothing
-  ([ADR-1228](docs/decisions/1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
+  ([ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
   issue [#287](https://github.com/NCodeGroup/identity/issues/287)). The session identifier (`sid`, RFC 9068 §2.2.1) is
   always emitted into subject-bound access tokens, and every endpoint that authenticates a self-issued access token
   (UserInfo, introspection, the management API) rejects a token whose `sid` resolves to a revoked session
   (`invalid_token`). There is no global access-token denylist and no per-token store: one indexed session lookup on
   first-party access-token authentication; external resource servers treat the JWT as self-contained (issue
   [#131](https://github.com/NCodeGroup/identity/issues/131),
-  [ADR-1112](docs/decisions/1112-authorization-code-replay-revokes-session.md), which refines
+  [ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md), which refines
   [ADR-1028](docs/decisions/1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)).
 
 - **A concurrent second spend of a single-use grant is answered as a second spend.** Of two requests that spend one
@@ -5283,7 +5283,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Logout revokes only the terminating session's grants**, so signing out of one login leaves the subject's other
   sessions intact (issue [#55](https://github.com/NCodeGroup/identity/issues/55),
-  [ADR-1077](docs/decisions/1077-session-scoped-grant-revocation-on-logout.md)). A grant records the opaque `sid` it was
+  [ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)). A grant records the opaque `sid` it was
   issued under (`PersistedGrant.SessionId`, `PersistedGrant<TPayload>`, and a `GrantEntity.SessionId` column with a
   `(TenantId, SessionId)` index); the authorization-code, refresh-token and per-access-token UserInfo-claims grants and
   the session grant stamp the `sid` from the authenticated subject (`SubjectAuthentication.SessionId`).

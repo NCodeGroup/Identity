@@ -678,10 +678,10 @@ than inlining the rationale.
   terminates a named session goes through `ISessionService`, which claims the session this way before it dispatches
   `OnSessionTerminatedCommand`; never dispatch the command for a named session yourself, and revoke a subject's grants
   before a subject-wide dispatch. See
-  [ADR-1227](../../docs/decisions/1227-a-session-is-terminated-at-most-once-on-every-path.md). A termination notifies the
+  [ADR-1112](../../docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md). A termination notifies the
   clients that the claimed grant lists, never the clients an earlier read listed, and a subject-wide termination claims
   every unrevoked session, an ended one included
-  ([ADR-1228](../../docs/decisions/1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md)).
+  ([ADR-1112](../../docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)).
 - 👁 **A security effect that follows a committed change — ending the sessions after a password change or reset, an
   account disable or a principal block, or clearing the failed password attempts after an administrator sets a
   password — runs through `IPostCommitSecurityEffects`.** Each effect runs on its own token bounded by

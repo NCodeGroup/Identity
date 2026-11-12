@@ -25,7 +25,7 @@ Three forces shape how it is built:
   tenant whichever tenant its route names, an administrative operation drives protocol machinery for a route-addressed
   tenant, and a background job runs outside any request. The session revoke at `/api/tenants/{tenantId}/sessions`
   delegates to `ISessionService`, which is bound to an `OpenIdContext`: it keys the session grant on the context's tenant
-  and dispatches the termination seam ([ADR-1098](1098-session-lifecycle-termination-seam.md)) through its mediator, and
+  and dispatches the termination seam ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)) through its mediator, and
   the back-channel logout handler signs the logout token with that tenant's issuer and keys. The request's own context
   carries the management host's tenant, so using it would key grants and sign logout tokens in the wrong tenant.
 
@@ -149,7 +149,7 @@ runs on the request's context under the route's tenant scope.
   per-tenant control philosophy.
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md): the resolution and linking knobs that are tenant
   settings.
-- [ADR-1098](1098-session-lifecycle-termination-seam.md): the session-termination seam the administrative surface drives.
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md): the session-termination seam the administrative surface drives.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): the service,
   strategy and mediator model the factory follows.
 - [#63](https://github.com/NCodeGroup/identity/issues/63): the administrative sessions surface.

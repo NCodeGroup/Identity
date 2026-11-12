@@ -1,6 +1,6 @@
 # 1074. End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout
 
-- **Status:** Accepted (the logout revocation scope is refined by [ADR-1077](1077-session-scoped-grant-revocation-on-logout.md):
+- **Status:** Accepted (the logout revocation scope is refined by [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md):
   logout revokes the terminating session's grants, not the whole subject's). The outright decline of the two
   iframe-based mechanisms below is **superseded by [ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md)**,
   which implements Front-Channel Logout 1.0 and Session Management 1.0 as opt-in capabilities that are available but

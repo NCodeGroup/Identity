@@ -65,7 +65,7 @@ request for it, and an administrator's password reset ends the account's session
    After `ResetPasswordAsync` of `LocalAccountApiEndpointHandler` commits, the principal of the self-issued identity of
    the account has its sessions terminated through `ISessionService.RevokeAllAsync`, which claims each session, revokes
    every grant, sends back-channel logout and audits the termination
-   ([ADR-1227](1227-a-session-is-terminated-at-most-once-on-every-path.md)). Consents are kept, and the security stamp
+   ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)). Consents are kept, and the security stamp
    is not consulted.
 7. **A self-service password change keeps the current session.** When the server offers one, a change terminates every
    other session of the principal with `password_changed`, revokes every grant that was not issued under the current
@@ -108,7 +108,7 @@ request for it, and an administrator's password reset ends the account's session
 ## References
 
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the federated principal that carries the block.
-- [ADR-1098](1098-session-lifecycle-termination-seam.md) — the termination seam that the reasons name.
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the termination seam that the reasons name.
 - [ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md) — the disabled account and the termination of
   its sessions.
 - [ADR-1225](1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) — every grant validates its subject.

@@ -30,7 +30,7 @@ disabled or gone.**
 
 1. **Two reasons name the cause.** `SessionTerminationReasons.AccountDeleted` is `account_deleted`, and
    `SessionTerminationReasons.AccountDisabled` is `account_disabled`. The reasons are an open vocabulary
-   ([ADR-1098](1098-session-lifecycle-termination-seam.md)), and the handlers and the audit event carry them
+   ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)), and the handlers and the audit event carry them
    unchanged.
 2. **Disabling an account ends its sessions.** When `SetEnabledAsync(isEnabled: false)` of
    `LocalAccountApiEndpointHandler` has committed and the account has a self-issued identity, it creates the context of
@@ -71,7 +71,7 @@ disabled or gone.**
 - **Check that the principal exists in the core.** Rejected: a subject without a principal is valid for a host whose
   authentication scheme has no issuer claim, so the core cannot tell a deleted principal from one that never existed.
 - **Revoke the grants without the termination seam.** Rejected: no relying party would receive back-channel logout, and
-  no termination would be audited ([ADR-1098](1098-session-lifecycle-termination-seam.md)).
+  no termination would be audited ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)).
 - **Remove the consents when an account is disabled.** Rejected: disabling is reversible, and the end user would be
   asked for consent again.
 - **Terminate after the deletion commits.** Rejected: the erased grants could not be listed to notify the
@@ -101,7 +101,7 @@ disabled or gone.**
   connection.
 - [ADR-1094](1094-resolve-principal-at-every-authentication-entry-point.md) — the principal identifier is the subject
   that grants, consents and sessions are keyed by.
-- [ADR-1098](1098-session-lifecycle-termination-seam.md) — the termination seam that the reasons name.
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the termination seam that the reasons name.
 - [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md) — deleting an owner removes what it owns.
 - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/) V3.3 — session logout and
   timeout.

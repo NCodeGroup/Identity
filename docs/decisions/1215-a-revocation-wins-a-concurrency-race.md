@@ -41,7 +41,7 @@ a race.**
    an unscoped bulk revocation cannot happen by accident. It replaces `RevokeBySessionAsync`, which is removed. Its
    callers are:
    - the replay of an authorization code, by `SessionId`
-     ([ADR-1112](1112-authorization-code-replay-revokes-session.md));
+     ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md));
    - `DefaultRevokeGrantsOnSessionTerminatedHandler`, by `SessionId` or, for a subject-wide termination, by
      `SubjectId`;
    - the management bulk revocation, by its subject, client, and session filter;

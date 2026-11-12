@@ -23,7 +23,7 @@ in until the user signed out (issue [#271](https://github.com/NCodeGroup/identit
 
 The idle window lived only in the payload of the session grant, so even a configured idle timeout left the grant's row
 in the table until the absolute end. A request that found a session past its absolute end did not terminate it through
-the termination seam ([ADR-1098](1098-session-lifecycle-termination-seam.md)), as one past its idle window was
+the termination seam ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)), as one past its idle window was
 terminated: the grants issued under the session were not revoked, and its relying parties received no back-channel
 logout.
 
@@ -60,7 +60,7 @@ request that finds an ended session terminates it.**
    `AbsoluteExpiresWhen` or, for a session stored without one, the expiry of its grant, or when its grant has expired
    or its idle window has lapsed. A session with neither an absolute end nor an expiry has ended.
    `ISessionService.ValidateAndTouchAsync` dispatches `OnSessionTerminatedCommand`
-   ([ADR-1098](1098-session-lifecycle-termination-seam.md)) with the reason `absolute_expiry`, which it checks first,
+   ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)) with the reason `absolute_expiry`, which it checks first,
    or `idle_timeout`, and returns `false`. It dispatches the command only when it revokes the grant of the session, so
    a request and the background pass that find the same session terminate it once
    ([ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)). Both reasons therefore revoke
@@ -120,9 +120,9 @@ request that finds an ended session terminates it.**
 ## References
 
 - [ADR-1074](1074-session-management-and-logout.md) — end-user sessions, the `sid` claim, and logout.
-- [ADR-1077](1077-session-scoped-grant-revocation-on-logout.md) — a termination revokes the terminating session's
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — a termination revokes the terminating session's
   grants.
-- [ADR-1098](1098-session-lifecycle-termination-seam.md) — the termination seam that an ended session dispatches.
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the termination seam that an ended session dispatches.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — setting values are validated against their
   domain.
 - [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) — a migration keeps the

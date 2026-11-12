@@ -230,7 +230,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenAuthorizationCodeReplayed_TerminatesItsSessionAndReturnsInvalidGrant()
     {
-        // RFC 6749 §4.1.2 / ADR-1112 / ADR-1228: a second redemption of an already-consumed code terminates the
+        // RFC 6749 §4.1.2 / ADR-1112 / ADR-1112: a second redemption of an already-consumed code terminates the
         // end-user session the code was issued under through the session service.
         var (mockContext, mockClient, _, mockTokenRequest, mockError) = CreateScaffold();
 

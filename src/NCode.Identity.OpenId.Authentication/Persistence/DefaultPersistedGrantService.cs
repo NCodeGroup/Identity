@@ -356,7 +356,7 @@ internal class DefaultPersistedGrantService(
 
             // The session is returned as this call revoked it, so its termination notifies every client it lists;
             // the payload is read after the save, so a payload that cannot be read never keeps a session active.
-            // See ADR-1228.
+            // See ADR-1112.
             var payload = await PayloadProtector.UnprotectOrDefaultAsync<TPayload>(
                 envelope.TenantId,
                 envelope.GrantType,

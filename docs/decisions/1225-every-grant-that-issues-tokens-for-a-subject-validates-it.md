@@ -74,7 +74,7 @@ that client.**
   approved request would never issue tokens for a refused subject, and the denial would not be recorded.
 - **Spend the credential and then validate, as the authorization-code grant does.** Rejected: a refused request would
   spend the credential. The authorization-code grant spends first because the replay of a code revokes its session
-  ([ADR-1112](1112-authorization-code-replay-revokes-session.md)); a device code or an `auth_req_id` has no such
+  ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)); a device code or an `auth_req_id` has no such
   signal.
 - **Pass an empty token request at an approval.** Rejected: it fabricates a request, and a `null` request states that
   there is none.
@@ -101,7 +101,7 @@ that client.**
 - [ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) — the device authorization grant and its verification endpoint.
 - [ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) — the CIBA grant and its delivery modes.
 - [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) — token exchange.
-- [ADR-1112](1112-authorization-code-replay-revokes-session.md) — the replay of an authorization code, which is why that
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the replay of an authorization code, which is why that
   grant spends its code first.
 - [ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md) — a credential is spent
   after every check has passed.

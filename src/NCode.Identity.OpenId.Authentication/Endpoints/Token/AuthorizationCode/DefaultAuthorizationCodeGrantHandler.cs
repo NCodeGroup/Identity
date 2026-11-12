@@ -150,7 +150,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
             return;
 
         // The replay terminates the session through the termination seam so its relying parties receive back-channel
-        // logout and the termination is audited. See ADR-1112 and ADR-1228.
+        // logout and the termination is audited. See ADR-1112.
         await SessionService.RevokeAsync(
             openIdContext,
             sessionId,

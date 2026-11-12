@@ -55,7 +55,7 @@ relationships in a mask or a chain, closes the behavior and the topology even wh
 These are open, and each stays open:
 
 - `SessionTerminationReasons`: an extension ends a session for its own reason
-  ([ADR-1098](1098-session-lifecycle-termination-seam.md)).
+  ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)).
 - `SecretKeyImportFormats`: each key type declares the formats it parses, because a registered key type parses its own
   formats ([ADR-1104](1104-import-public-asymmetric-secret-material.md)).
 - The framework's `HashAlgorithmName` and the `BinaryEncodings` names of registered encoders
@@ -119,7 +119,7 @@ The outcome sets of one library-owned operation each also pass: `PasswordVerific
   pre-release, Auth0-parity-plus posture.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md): registered setting names reject unregistered input.
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md): the setting scopes, the case that motivated this rule.
-- [ADR-1098](1098-session-lifecycle-termination-seam.md), [ADR-1104](1104-import-public-asymmetric-secret-material.md)
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md), [ADR-1104](1104-import-public-asymmetric-secret-material.md)
   and [ADR-1190](1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md): the open vocabularies they
   hold.
 - RFC 7515, RFC 7516, RFC 7518, RFC 9052 and RFC 9101: the specifications behind the enums that pass.

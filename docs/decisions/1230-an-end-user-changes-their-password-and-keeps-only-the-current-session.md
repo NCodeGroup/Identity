@@ -48,7 +48,7 @@ user but the current one and revokes every grant that was issued under no sessio
 4. **A change ends the other sessions and the sessionless grants.** After `Changed`, the post calls
    `ISessionService.RevokeAllExceptAsync` with the principal, the `sid` of the cookie and the reason `password_changed`
    (`SessionTerminationReasons.PasswordChanged`). It claims every other unrevoked session of the principal as
-   [ADR-1228](1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md)
+   [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)
    describes, revokes every grant of the principal that was issued under no session with `GrantFilter.WithoutSession`,
    and then dispatches one termination for each session it claimed, so a dispatch that fails leaves only the grants of
    the current session active. Consents are kept. The "sign out everywhere else" action has the same effect, because
@@ -84,9 +84,9 @@ user but the current one and revokes every grant that was issued under no sessio
   its credential verifier.
 - [ADR-1226](1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md) — a
   self-service change keeps the current session.
-- [ADR-1227](1227-a-session-is-terminated-at-most-once-on-every-path.md) — every termination of a named session claims
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — every termination of a named session claims
   it.
-- [ADR-1228](1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md) —
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) —
   the claim returns the clients that the termination notifies.
 - [ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) — the password policy that judges the new
   password.

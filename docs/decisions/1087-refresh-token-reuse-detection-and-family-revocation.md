@@ -66,7 +66,7 @@ Concretely:
   replayed. It is coarser than the "authorization grant" scope RFC 9700 names.
 - **Revoke by session (`sid`).** Rejected as the primary mechanism: many refresh-token families exist outside any
   server-side session (`sid` is null), so it does not generalize; session logout already revokes by `sid`
-  ([ADR-1077](1077-session-scoped-grant-revocation-on-logout.md)) for its own, different purpose.
+  ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)) for its own, different purpose.
 - **Store the lineage id only in the payload JSON.** Rejected: the family revocation is a set-based `UPDATE … WHERE`,
   which needs an indexed, queryable column; payload JSON is neither portably queryable nor indexable.
 - **Default the policy to `none`.** Rejected: it preserves the insecure status quo (a detected compromise leaves the
@@ -92,6 +92,6 @@ Concretely:
   rotation and reuse detection)
 - [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) — token revocation revokes refresh tokens only
 - [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) — the load-and-mutate bulk-revocation pattern this reuses
-- [ADR-1077](1077-session-scoped-grant-revocation-on-logout.md) — session-scoped grant revocation on logout
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — session-scoped grant revocation on logout
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the concurrency-token interceptor that stamps changed rows
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — greenfield, secure-by-default, Auth0-parity-plus posture

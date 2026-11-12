@@ -1,9 +1,9 @@
 # 1223. A session that ends unused is terminated once, in the background
 
 - **Status:** Accepted (amended by
-  [ADR-1227](1227-a-session-is-terminated-at-most-once-on-every-path.md): every other path that terminates a session
+  [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md): every other path that terminates a session
   claims it the same way;
-  [ADR-1228](1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md):
+  [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md):
   a claim returns the session as it was revoked;
   [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md): a replica materializes its
   server when it starts, so a pass runs from then, or from the first request when the store cannot be read at start;
@@ -23,7 +23,7 @@
 
 [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) terminates an ended session
 only when a request finds it, through the termination seam
-([ADR-1098](1098-session-lifecycle-termination-seam.md)). A session that ends while no request uses it was therefore
+([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)). A session that ends while no request uses it was therefore
 only pruned:
 
 - the grants issued under it, its refresh tokens among them, stayed active, and its relying parties received no
@@ -133,7 +133,7 @@ interval, and the grant prune keeps a session until it is terminated.**
 - A context of a background pass has no request: no endpoint, connection, or user, and an empty audit `Source`.
 - An operator sets the interval with `OpenId:EndedSessionTermination:Interval`, and a misspelled key stops the host.
 - Every other path that terminates a named session claims it the same way
-  ([ADR-1227](1227-a-session-is-terminated-at-most-once-on-every-path.md)).
+  ([ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)).
 - A failure or a cancellation of the dispatch after the claim loses the back-channel logout and the audit of that
   session, which the failure reports (a request fails, and a pass logs the tenant); the grants of the session are
   revoked.
@@ -147,7 +147,7 @@ interval, and the grant prune keeps a session until it is terminated.**
 
 ## References
 
-- [ADR-1098](1098-session-lifecycle-termination-seam.md) — the termination seam that the pass dispatches.
+- [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the termination seam that the pass dispatches.
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the expiring key set that
   holds the lease of an interval.
 - [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — `SetRevokedOnceAsync` and its retry.

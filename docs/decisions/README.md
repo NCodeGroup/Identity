@@ -196,7 +196,6 @@ The records are grouped by area; within an area they are in number order.
 | [1063](./1063-dynamic-client-registration.md) | Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store | Accepted |
 | [1074](./1074-session-management-and-logout.md) | End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout | Accepted |
 | [1075](./1075-runtime-consumption-of-resource-server-secrets.md) | Runtime consumption of resource-server secrets and settings at access-token issuance | Accepted |
-| [1077](./1077-session-scoped-grant-revocation-on-logout.md) | Logout revokes the terminating session's grants, not the subject's | Accepted |
 | [1079](./1079-extensible-pkce-code-challenge-methods.md) | Extensible PKCE `code_challenge_method` transformations | Accepted |
 | [1081](./1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) | Consent is a durable record of decided and granted scopes, enforced at the authorization endpoint | Accepted |
 | [1085](./1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) | CIBA is a pending request in the grant store, delivered by poll, ping or push | Accepted |
@@ -206,9 +205,8 @@ The records are grouped by area; within an area they are in number order.
 | [1093](./1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md) | A pairwise subject is a one-way projection of the principal over a verified sector | Accepted |
 | [1096](./1096-end-session-subject-from-server-state.md) | End-session resolves the stable subject from server-owned state, never by reversing a pairwise `sub` | Accepted |
 | [1097](./1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) | Access tokens are sender-constrained by DPoP or mutual TLS through one proof-of-possession seam | Accepted |
-| [1098](./1098-session-lifecycle-termination-seam.md) | Session lifecycle as an observable termination seam | Accepted |
 | [1101](./1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) | Token exchange issues delegation and impersonation tokens from tokens the tenant issued | Accepted |
-| [1112](./1112-authorization-code-replay-revokes-session.md) | Authorization-code replay revokes the end-user session; first-party resource endpoints enforce it | Accepted |
+| [1112](./1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) | Every end of a session runs one termination seam, once, revoking the grants issued under it | Accepted |
 | [1113](./1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) | At-rest grant payloads are schema-versioned, upcastable, and preserve unknown members | Accepted |
 | [1114](./1114-non-redirectable-authorization-errors-are-content-negotiated.md) | Non-redirectable authorization errors are content-negotiated via a response-formatter seam | Accepted |
 | [1124](./1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md) | JWT lifetime is capped from its earliest asserted start; client assertions default to five minutes | Accepted |
@@ -232,8 +230,6 @@ The records are grouped by area; within an area they are in number order.
 | [1222](./1222-a-grants-payload-is-changed-by-a-read-modify-write.md) | A grant's payload is changed by a read-modify-write that loses no concurrent write | Accepted |
 | [1223](./1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md) | A session that ends unused is terminated once, in the background | Accepted |
 | [1225](./1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) | Every grant that issues tokens for a subject validates it | Accepted |
-| [1227](./1227-a-session-is-terminated-at-most-once-on-every-path.md) | A session is terminated at most once on every path | Accepted |
-| [1228](./1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md) | A session is terminated with the clients it lists when claimed, and a replayed code terminates it | Accepted |
 | [1297](./1297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md) | A refresh token family expires at a fixed horizon that the token response announces | Accepted |
 | [1314](./1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md) | Protocol endpoints keep the HTTP methods their specifications require | Accepted |
 | [1380](./1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md) | A logout without a valid `id_token_hint` for the current session is confirmed by the end-user | Accepted |

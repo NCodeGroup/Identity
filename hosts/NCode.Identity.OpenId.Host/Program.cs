@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Accounts.Authentication;
@@ -45,8 +44,10 @@ var serviceCollection = builder.Services;
 builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger();
 
 // SAFETY GATE: refuse to start a Production deployment that still has development-only conveniences enabled
-// (developer signing keys, a wildcard host filter, developer CORS configuration, seeded accounts). Every one of them is
-// silent — the server would start, serve traffic, and look healthy — so this fails before the port is bound.
+// (developer signing keys, a wildcard host filter, developer CORS configuration, seeded accounts) or that does not serve
+// HTTPS only with a usable certificate. Every one of them is silent — the server would start, serve traffic, and look
+// healthy — so the configuration checks fail before the port is bound and the transport check fails as the host
+// finishes starting, before any probe passes.
 // Inert in every non-Production environment.
 serviceCollection.AddProductionSafety(configuration, hostEnvironment);
 
@@ -58,14 +59,18 @@ serviceCollection.AddHealthChecks();
 // OTEL_EXPORTER_OTLP_ENDPOINT is configured (the Aspire AppHost injects it, so its dashboard shows them). ADR-1197.
 serviceCollection.AddOpenTelemetryMetrics(configuration);
 
-serviceCollection.AddHttpLogging(options =>
-{
-    options.LoggingFields = HttpLoggingFields.All;
-});
+// HTTP logging writes the request and response properties, the allow-listed headers and the duration, never a query
+// string or a credential header value; an endpoint opts in to its own body in code, and the protocol, management and
+// interactive endpoints refuse it, so no log level writes a credential (ADR-1503).
+serviceCollection.AddGuardedHttpLogging();
 
 // Trust a reverse proxy's X-Forwarded-* headers, but only the proxies named in the 'ForwardedHeaders' configuration
 // section. Inert when none are configured, which is the correct posture for a direct-TLS deployment.
 serviceCollection.AddTrustedForwardedHeaders(configuration);
+
+// The pods can require the reverse proxy's client certificate on the proxy-to-pod hop, as configured by the
+// 'ProxyClientCertificate' section (ADR-1506). Inert unless 'ProxyClientCertificate:Required' is true.
+serviceCollection.AddProxyClientCertificate(configuration);
 
 // Send Strict-Transport-Security on every HTTPS response outside Development, as configured by the
 // 'StrictTransportSecurity' section (one year with includeSubDomains by default). A deployment whose TLS-terminating
@@ -79,8 +84,11 @@ serviceCollection.AddStrictTransportSecurity(configuration);
 // this hook: ConfigureHttpsDefaults keeps only the last action, so every HTTPS default belongs in this one call, which
 // HostHttpsDefaults holds. The handshake also accepts only TLS 1.2 and 1.3, and only AEAD cipher suites with forward
 // secrecy where the platform lets a process choose them (ADR-1499).
+var proxyClientCertificate = configuration.GetProxyClientCertificateOptions();
 builder.WebHost.ConfigureKestrel(kestrel =>
-    kestrel.ConfigureHttpsDefaults(HostHttpsDefaults.Configure)
+    kestrel.ConfigureHttpsDefaults(https =>
+        HostHttpsDefaults.Configure(https, proxyClientCertificate)
+    )
 );
 
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
@@ -190,7 +198,12 @@ await using var app = builder.Build();
 if (secretProtectionCommand is not null)
     return await secretProtectionCommand.RunAsync(app.Services, CancellationToken.None);
 
-// MUST be the first middleware: everything downstream that reads the scheme or host — the HTTPS redirect, request
+// MUST be the first middleware, before even the forwarded headers: it refuses a request whose connection does not carry
+// the reverse proxy's client certificate (except the liveness and readiness probes) before anything else reads it. A
+// no-op unless 'ProxyClientCertificate:Required' is true (ADR-1506).
+app.UseProxyClientCertificate();
+
+// Right after the proxy check: everything downstream that reads the scheme or host — the HTTPS redirect, request
 // logging's client IP, and the tenant's base address — has to observe the original request rather than the
 // proxy-to-application hop. A no-op unless 'ForwardedHeaders' names a trusted proxy.
 app.UseTrustedForwardedHeaders();
@@ -207,10 +220,14 @@ if (app.Environment.IsDevelopment())
 // Turnkey OpenAPI document + Scalar API reference, owned by the composition layer (prod and dev).
 app.MapIdentityServerApiReference();
 
-app.UseHttpLogging();
-app.UseHttpsRedirection();
+// Production binds HTTPS endpoints only (AddProductionSafety refuses to start otherwise), so it adds no redirect;
+// every other environment keeps it.
+app.UseHttpsRedirectionOutsideProduction();
 
 app.UseRouting();
+
+// After routing, so HTTP logging sees the selected endpoint and writes a body only for one that opts in to it.
+app.UseHttpLogging();
 
 // Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless the configuration has a
 // Cors section, which AddProductionSafety refuses in Production.

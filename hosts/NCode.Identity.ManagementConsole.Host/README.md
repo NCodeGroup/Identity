@@ -14,13 +14,30 @@ docker build --file hosts/NCode.Identity.ManagementConsole.Host/Dockerfile --tag
 ```
 
 The image runs on a chiseled ASP.NET Core base with no shell. It runs as the non-root `app` user (UID 1654), listens on
-port **8080** over plain HTTP, and serves the `apps/mgmt` bundle from `/app/mgmt`. TLS terminates at the ingress. Probe
-`/health/live` for liveness and `/health/ready` for readiness. The image writes one JSON object per line to standard
-output, with a UTC timestamp. The `Console image` workflow builds it for `linux/amd64` and `linux/arm64`
-([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
+port **8443** over HTTPS only, and serves the `apps/mgmt` bundle from `/app/mgmt`. It serves the PEM certificate and
+private key it finds at `/etc/ncode-identity/tls/tls.crt` and `/etc/ncode-identity/tls/tls.key`
+(`Kestrel__Certificates__Default__Path` and `__KeyPath`), so mount them there, as a Kubernetes `kubernetes.io/tls`
+Secret does; `Kestrel__Endpoints__<name>__…` settings replace the default endpoint and certificate. TLS ends at the pod:
+a proxy in front of it connects over HTTPS. Probe `/health/live` for liveness and `/health/ready` for readiness. The
+image writes one JSON object per line to standard output, with a UTC timestamp. The `Console image` workflow builds it
+for `linux/amd64` and `linux/arm64`
+([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
+
+The `ProxyClientCertificate` section makes the host require the reverse proxy's client certificate. With
+`ProxyClientCertificate__Required=true`, the host answers `403` to every request whose connection carries no certificate
+that chains to the authorities in `ProxyClientCertificate__CertificateAuthorityPath` (a PEM file), has the `client auth`
+usage, is valid and has a subject listed in `ProxyClientCertificate__AllowedSubjects__0`, `__1` and so on, except
+`/health/live` and `/health/ready`, which the kubelet sends without a certificate. It is off by default, and the keys
+are refused while `Required` is false
+([ADR-1506](../../docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
 The image starts in the `Production` environment, which refuses to start until the deployment provides:
 
+- A serving certificate: the host serves HTTPS only. It refuses to start when an endpoint is plain HTTP, no endpoint is
+  bound, or the certificate it serves has no usable private key, is expired or not yet valid, has an RSA key under 2048
+  bits or a signature weaker than SHA-256, or is the ASP.NET Core development certificate
+  ([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+  A self-signed certificate is accepted; the proxy decides whether to trust it.
 - `AllowedHosts`: the console's public host name. A missing value or `*` is refused.
 - `Bff__Frontends__mgmt__Authority`: the OP's issuer URL.
 - `Bff__Frontends__mgmt__PublicOrigin`: the console's public origin, such as `https://manage.example.com`.

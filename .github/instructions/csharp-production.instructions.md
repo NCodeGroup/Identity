@@ -278,6 +278,12 @@ than inlining the rationale.
   host's `AllowAnyClientCertificate()` for mutual TLS
   ([ADR-1202](../../docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 - 👁 **A host maps its probes with `MapHealthProbes()`** (`NCode.Identity.AspNetCore`), and a package tags a check a replica cannot serve without with `HealthCheckTags.Readiness` (`NCode.Identity.Registration`) ([ADR-1456](../../docs/decisions/1456-the-hosts-map-their-health-probes-through-one-general-helper.md)).
+- 👁 **A host registers HTTP logging with `AddGuardedHttpLogging()` and calls `UseHttpLogging()` right after
+  `UseRouting()`** (`NCode.Identity.AspNetCore`). Nothing sets a body, query or trailer field or allow-lists a
+  credential header on `HttpLoggingOptions` (the host refuses to start); an endpoint opts in to its own body with
+  `WithRequestBodyLogging()` or `WithResponseBodyLogging()`, and a package marks every route group whose bodies carry
+  credentials or personal data with `WithConfidentialBodies()`
+  ([ADR-1503](../../docs/decisions/1503-http-logging-writes-a-body-only-for-an-endpoint-that-opts-in-and-never-for-one-that-carries-credentials.md)).
 - ✅ **C# 14 `extension` member syntax** — template
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods)
   (`extension(IServiceBuilder<OpenIdCoreLibrary> builder) { … }` in `DefaultRegistration.cs`).
@@ -1275,6 +1281,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
     | `25000`–`25999` | `NCode.Identity.Bff.Blazor`                         |
     | `26000`–`26999` | `NCode.Identity.Claims`                             |
     | `27000`–`27999` | `NCode.Identity.Cryptography`                       |
+    | `28000`–`28999` | `NCode.Identity.AspNetCore`                         |
 
 ### Metrics
 

@@ -1,8 +1,9 @@
 # ncode-identity-host
 
 The Helm chart for `NCode.Identity.OpenId.Host`, the OpenID Connect and OAuth 2.0 server. It runs the host image as a
-non-root deployment that meets the restricted Pod Security Standard, probes `/health/live` and `/health/ready`, and
-drains each pod before stopping it.
+non-root deployment that meets the restricted Pod Security Standard, serves HTTPS only, probes `/health/live` and
+`/health/ready` over HTTPS, and drains each pod before stopping it
+([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 Setting `managementConsole.enabled` also deploys the management console host on a host name of its own
 ([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 It requires Kubernetes 1.30 or later.
@@ -21,6 +22,51 @@ The chart takes no secret values. It references Secrets you create in the releas
 - `valkey.existingSecret`, for more than one replica: the Valkey connection string, under the `connection-string` key.
 - `migrations.database.existingSecret`, optional: a connection string with the right to change the schema, used only
   by the migration Job. It defaults to `database.existingSecret`.
+- cert-manager, unless `backendTls.existingSecret` names a Secret: the chart creates the `Certificate` (and, without
+  `backendTls.certManager.issuerRef.name`, a private CA) that issues the pods' serving certificate; see
+  [Transport security](#transport-security). The chart also creates the ingress `Certificate` `<release>-ingress`
+  with cert-manager whenever a route uses the ingress controller's Secret and no `ingressSecret` of yours names it.
+- A router that reaches the pods over HTTPS: a Gateway API implementation with `BackendTLSPolicy` (Gateway API v1.4 or
+  later), Traefik, or another Ingress controller you configure; see [Routing to the pods](#routing-to-the-pods).
+
+## Published artifacts
+
+Every merge to `main` and every release tag `v*.*.*` publishes three artifacts to GHCR at one version
+(`0.0.1-alpha.<n>` for a merge to `main`, the tag's version for a release tag), through the Publish artifacts workflow ([ADR-1505](../../docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)):
+
+- `ghcr.io/ncodegroup/ncode-identity-host:<version>`, the host image.
+- `ghcr.io/ncodegroup/ncode-identity-management-console:<version>`, the management console image.
+- `oci://ghcr.io/ncodegroup/charts/ncode-identity-host`, this chart, at version `<version>`.
+
+The chart pins its image tags to its own `appVersion`, so following the chart follows the images. A stable version also tags both images `latest`. A Flux `HelmRelease`
+or `helm install` takes a semver range that includes prereleases, such as `>=0.0.1-alpha`, to follow them.
+
+Verify the chart signature, then the host image provenance:
+
+```bash
+cosign verify ghcr.io/ncodegroup/charts/ncode-identity-host:<version> --certificate-identity-regexp '^https://github.com/NCodeGroup/identity/\.github/workflows/publish-artifacts\.yml@refs/(heads/main|tags/v.+)$' --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+```bash
+gh attestation verify oci://ghcr.io/ncodegroup/ncode-identity-host:<version> --repo NCodeGroup/identity
+```
+
+### Package access
+
+Each package's access is set once, in GitHub: no API sets a package's Actions access, its repository link or its
+visibility. A package the workflow creates is linked to this repository and the workflow can write to it, but it starts
+private. A package first pushed by hand is neither linked nor writable by the workflow, and the workflow's push to it
+fails. For each of `ncode-identity-host`, `ncode-identity-management-console` and `charts/ncode-identity-host`, open the
+package from the organization's **Packages** tab and:
+
+1. In **Package settings**, under **Manage Actions access**, click **Add repository**, choose `NCodeGroup/identity`
+   and give it the **Write** role.
+2. When the package page shows no linked repository, click **Connect repository** and choose `NCodeGroup/identity`.
+3. In **Package settings**, under **Danger Zone**, use **Change visibility** to make the package **Public**, so a
+   cluster pulls it without credentials.
+
+The `verify` job pulls every artifact anonymously, so a package that is still private fails the run with a hint that
+points here.
 
 ## Install
 
@@ -42,6 +88,17 @@ Rendering fails, before anything is applied, when:
 - `allowedHosts` is empty or contains `*`;
 - the probes would send a wildcard `Host` header: when the first allowed host is a wildcard such as `*.example.com`,
   set `probes.host` to a concrete host it accepts;
+- `backendTls.certManager.renewBefore` is not shorter than `duration`, or the key size does not fit its algorithm
+  (ECDSA 256, 384 or 521; RSA 2048 or more), or `ingress.controller` is set and is not `traefik` or `other`;
+- an Ingress is enabled and `ingress.controller` is empty;
+- `httpRoute.enabled` is `true` and `httpRoute.parentRefs` or `httpRoute.hostnames` is empty, or there is no CA
+  ConfigMap: `backendTls.caConfigMap` for the server, or `managementConsole.backendTls.caConfigMap` for the console
+  (which falls back to the server's);
+- `backendTls.caPublisher.enabled` is `true` and the server's certificate does not come from the chart's private CA,
+  because `backendTls.certManager.issuerRef.name` or `backendTls.existingSecret` is set;
+- `backendTls.caPublisher.enabled` is `true`, the management console is enabled with a certificate of your own in
+  `managementConsole.backendTls.existingSecret`, and `managementConsole.backendTls.caConfigMap` is empty, because the
+  console's CA ConfigMap would fall back to the one the publisher writes, which holds only the chart's private CA;
 - `database.existingSecret` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
@@ -558,7 +615,8 @@ entries may be removed afterwards.
 
 With `managementConsole.enabled=true` the chart also deploys the management console host: a Deployment, a Service, a
 ServiceAccount that mounts no token, a PodDisruptionBudget, and an Ingress on `managementConsole.host` that routes
-every path to the console. The console runs its own image, which shares the chart's `appVersion`
+every path to the console. The console takes `managementConsole.httpRoute` the same way, with `managementConsole.host`
+as its hostname. The console runs its own image, which shares the chart's `appVersion`
 ([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 
 Create the two private keys the console's BFF signs with, and a Secret for each, in the release's namespace:
@@ -577,7 +635,7 @@ well, see [The console's keys in a key management service](#the-consoles-keys-in
 
 Register `mgmt-console` with the server as a confidential client of the control-plane tenant, with the metadata of
 [ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)
-decision 6: authentication method `private_key_jwt`, pushed authorization requests and DPoP-bound access tokens
+decision 4: authentication method `private_key_jwt`, pushed authorization requests and DPoP-bound access tokens
 required, the grant types `authorization_code` and `refresh_token`, the redirect URI
 `https://<host>/bff/callback`, the post-logout redirect URI `https://<host>/`, the back-channel logout URI
 `https://<host>/bff/backchannel-logout`, and `jwks_uri` `https://<host>/bff/jwks`.
@@ -682,14 +740,181 @@ service and the request rate fits the service's quota
 
 `ci/management-console-remote-keys-values.yaml` shows a release.
 
+## Transport security
+
+The pods serve HTTPS only, on port 8443. The Service listens on `service.port` (443 by default) with
+`appProtocol: https`, and the Ingress backend names the Service's `https` port. The host refuses to start in
+Production unless Kestrel serves only HTTPS endpoints whose certificate loads, is valid now, has an RSA key of at least
+2048 bits or an ECDSA key, is signed with SHA-256 or stronger, and is not the ASP.NET Core development certificate. A
+TLS-terminating proxy that speaks plain HTTP to the pods is not supported
+([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+
+The probes use HTTPS, and the kubelet does not verify the certificate a probe meets. The host checks its certificate as
+it starts, and Kestrel loads renewed certificate files it watches.
+
+### The serving certificate
+
+By default the chart creates a cert-manager `Certificate` for each component from a private CA it also creates: a
+self-signed Issuer, the CA `Certificate` `<release>-ca`, and an Issuer backed by that CA. The key is ECDSA P-256, the
+`duration` is 2160h and `renewBefore` is 720h. The DNS names are `<service>`, `<service>.<namespace>`,
+`<service>.<namespace>.svc` and `<service>.<namespace>.svc.cluster.local`, plus `backendTls.certManager.dnsNames`.
+
+- `backendTls.certManager.issuerRef` names your own Issuer or ClusterIssuer, so the chart creates no private CA.
+- `backendTls.existingSecret` and `managementConsole.backendTls.existingSecret` name `kubernetes.io/tls` Secrets you
+  create, so the chart creates no `Certificate` for the component whose Secret you name. The private CA is still
+  created while another component needs a `Certificate` from it. Each Secret must also hold `ca.crt`, the CA that
+  signed the certificate: the pods trust it for the ingress controller's certificate.
+
+### Routing to the pods
+
+The router must speak HTTPS to the Service and verify the pods' certificate. The chart renders what each of three
+modes needs:
+
+| Mode            | Values                                      | What the chart renders                                                                       |
+|-----------------|---------------------------------------------|----------------------------------------------------------------------------------------------|
+| Gateway API     | `httpRoute.enabled`                         | An `HTTPRoute` and a `BackendTLSPolicy` that targets the Service's `https` port, verifies the pods against the CA ConfigMap and checks the host name `<service>.<namespace>.svc`. |
+| Traefik Ingress | `ingress.controller: traefik`               | A `ServersTransport` with `serverName`, `rootCAs` naming the ingress controller's Secret and, when the pods require the controller's certificate, `certificatesSecrets`, and the Service annotations `service.serversscheme` and `service.serverstransport`. |
+| Other Ingress   | `ingress.controller: other`                 | Neither. You configure the controller to speak HTTPS to the Service and to verify the pods' certificate. |
+
+The Ingress and the HTTPRoute may both be on. `ingress.annotations`, `managementConsole.ingress.annotations`,
+`httpRoute.annotations` and `managementConsole.httpRoute.annotations` add to the annotations the chart renders. The
+console's `managementConsole.httpRoute` takes `enabled`, `parentRefs` and `annotations`, and its hostname is
+`managementConsole.host`. The Gateway API mode needs the Gateway API v1.4 or later CRDs and a CA ConfigMap;
+`ci/gateway-api-values.yaml` shows a release:
+
+```yaml
+backendTls:
+  caConfigMap: identity-ca
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: shared-gateway
+      namespace: gateway-system
+      sectionName: https
+  hostnames:
+    - id.example.com
+```
+
+A Traefik release needs Traefik's Kubernetes CRD provider, which reads the `ServersTransport`;
+`ci/high-availability-values.yaml` shows one:
+
+```yaml
+ingress:
+  enabled: true
+  controller: traefik
+  className: traefik
+  hosts:
+    - host: id.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+```
+
+With any other controller the chart renders the Ingress alone. Configure the controller to speak HTTPS to the
+Service's `https` port and to verify the pods against the CA, through `ingress.annotations` or its own resources:
+
+```yaml
+ingress:
+  enabled: true
+  controller: other
+  className: my-controller
+  hosts:
+    - host: id.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+```
+
+### The ingress controller's Secret
+
+The Traefik mode reads one Secret, `<release>-ingress`, which cert-manager issues from the issuer of the pods'
+certificates as a client certificate for the common name `backendTls.clientCertificate.commonName`. Its `ca.crt` is
+what Traefik verifies the pods against (the `rootCAs` entry of the `ServersTransport`). Its `tls.crt` and `tls.key` are
+the controller's own client certificate, which authenticates it to the pods; they are never a pod's key, and the
+serving Secret is never the controller's Secret, so the controller, which reads Secrets cluster-wide, never receives a
+pod's private key. The chart issues the Secret when a route uses it: an Ingress with `ingress.controller: traefik`, or
+any route while `backendTls.clientCertificate.required` is `true`, and no `ingressSecret` of yours names it.
+`backendTls.ingressSecret` names a Secret of your own in the release namespace that holds `ca.crt` and, when
+`backendTls.clientCertificate.required` is `true`, `tls.crt` and `tls.key`; the chart then names it in place of
+`<release>-ingress`. `managementConsole.backendTls.ingressSecret` does the same for the console and, when empty, falls
+back to `backendTls.ingressSecret` and then to `<release>-ingress`. Rendering fails when a route uses the controller's
+Secret, its component sets `existingSecret`, and neither `backendTls.certManager.issuerRef.name` nor an `ingressSecret`
+for it is set, because the chart cannot know the CA that signed your certificate.
+
+### The CA ConfigMap
+
+`backendTls.caConfigMap` names a ConfigMap in the release namespace that holds the CA under the `ca.crt` key and
+nothing else, which the Gateway API mode's `BackendTLSPolicy` verifies the pods against. `BackendTLSPolicy` reads only
+ConfigMaps, and cert-manager issues only Secrets, so the CA reaches the Gateway as a ConfigMap and the Gateway never
+reads a Secret that holds a key. The Gateway API mode requires it; the Traefik mode does not use it.
+
+Create it in one of two ways:
+
+- A trust-manager `Bundle` whose target is a ConfigMap with the key `ca.crt`. This is recommended, with a cluster CA
+  named in `backendTls.certManager.issuerRef`.
+- `kubectl -n <namespace> create configmap <name> --from-file=ca.crt=<ca.pem>`.
+
+With the chart's private CA, `backendTls.caPublisher.enabled` publishes the ConfigMap itself. A post-install and
+post-upgrade hook Job, which runs the official `registry.k8s.io/kubectl` image pinned by digest, runs `kubectl apply -k`
+to write the `ca.crt` of the `<release>-ca` Secret to a ConfigMap named `<release>-ca`, or the name
+`backendTls.caConfigMap` sets, and the routes use it. The Job sees only the `ca.crt` key, never the CA's private key,
+and its Role reads and patches only that ConfigMap and may create ConfigMaps, which Kubernetes cannot limit by name.
+The kubelet holds its pod until cert-manager has created the Secret, and `helm uninstall` leaves the ConfigMap it
+wrote. The chart refuses the publisher with an issuer of your own in `backendTls.certManager.issuerRef.name` or a
+server certificate of your own in `backendTls.existingSecret`, because it publishes only the chart's private CA.
+`managementConsole.backendTls.caConfigMap` names the console's ConfigMap and, when empty, falls back to the server's.
+With the publisher, a console certificate of your own in `managementConsole.backendTls.existingSecret` needs its CA in
+`managementConsole.backendTls.caConfigMap`, and the chart refuses the release without it.
+
+### Requiring the ingress controller's certificate
+
+By default the pods accept a connection from any client. `backendTls.clientCertificate.required: true` makes the server
+and the console require the ingress controller's certificate: a pod answers `403` to every request whose connection
+carries no certificate that chains to the CA in the serving Secret's `ca.crt`, has the `client auth` usage, is valid and
+has the subject `CN=<backendTls.clientCertificate.commonName>` (`ncode-identity-ingress` by default), except
+`/health/live` and `/health/ready`, which the kubelet sends without one. The chart sets
+`ProxyClientCertificate__Required`, `__CertificateAuthorityPath` (`/etc/ncode-identity/tls/ca.crt`) and
+`__AllowedSubjects__0`, so the pods need no further mount. For Traefik, the chart adds `certificatesSecrets` to each
+`ServersTransport`, so Traefik presents the Secret's certificate.
+
+In the Gateway API mode the Gateway, not a route, presents the backend client certificate, and the Gateway is yours:
+name the ingress controller's Secret as its `spec.tls.backend.clientCertificateRef`
+([GEP-3155](https://gateway-api.sigs.k8s.io/geps/gep-3155/)), with a `ReferenceGrant` in the release namespace that lets
+the Gateway's namespace read it. A Gateway presents one certificate to every backend behind it, so set
+`backendTls.clientCertificate.commonName` to the subject of the certificate your Gateway presents, issued by the CA that
+signed the pods' certificates.
+
+With `ingress.controller: other`, or with an `ingressSecret` of your own, you configure the controller's certificate
+yourself: it must have the subject `CN=<commonName>` and be issued by the CA in the serving Secret's `ca.crt`.
+
+A pod whose connection carries the controller's certificate never reads it as an end client's. A deployment with
+protocol mutual TLS (RFC 8705) therefore sets `OpenId__MutualTls__CertificateHeaderName` through `extraEnv`, and the
+controller forwards the end client's certificate in that header
+([ADR-1506](../../docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
+
+### Trust
+
+1. A private CA run by cert-manager or a mesh, verified by the proxy, is preferred and is the default.
+2. A pinned self-signed certificate, whose `ca.crt` is the certificate itself, is acceptable.
+3. A self-signed certificate with proxy verification off is unauthenticated encryption, which stops passive
+   eavesdropping and nothing else, and is discouraged. The chart never renders it.
+
+### What CI proves
+
+The `cluster` job of the `Host chart` workflow installs the chart in a kind cluster behind Traefik. It proves that the
+pods become Ready over HTTPS, that a request through the controller succeeds, that a controller whose verification
+Secret holds a foreign CA is refused (`500` from Traefik), and, with `backendTls.clientCertificate.required`,
+that a direct request without a certificate gets `403` on `/` and `200` on `/health/live`, while a request with the
+ingress Secret's certificate is not refused.
+
 ## Strict-Transport-Security
 
 Outside Development, the host sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
 to a request that reached it over HTTPS
-([ADR-1447](../../docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)). Behind the
-ingress the pod serves plain HTTP, so the host sees HTTPS only through the `X-Forwarded-Proto` header of a proxy that
-`forwardedHeaders` trusts: set `forwardedHeaders.knownNetworks` or `forwardedHeaders.knownProxies` to cover the ingress
-controller, or the header is not sent.
+([ADR-1447](../../docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)). The pods
+serve HTTPS, so the host sees HTTPS on every request and sends the header whether or not `forwardedHeaders` trusts the
+ingress. Trusting the ingress (`forwardedHeaders.knownNetworks` or `forwardedHeaders.knownProxies`) is how the host
+learns the client's address and the original host, so set it to cover the ingress controller.
 
 When the ingress controller sends the header itself, set `StrictTransportSecurity__Enabled=false` in `extraEnv`, so
 one component owns it. Change the policy the same way with `StrictTransportSecurity__MaxAge` (for example
@@ -703,6 +928,12 @@ The chart models the settings it validates. Pass any other host setting as an en
 or `extraEnvFrom`, for example `Logging__LogLevel__Default`. The migration Job receives `extraEnv`, `extraEnvFrom`,
 `extraVolumes`, and `extraVolumeMounts` as well, so a setting the database connection needs, such as a CA bundle for
 TLS to Postgres, reaches both the host and the migrations.
+
+Raising a log level, for example `Logging__LogLevel__Default=Debug`, never writes a request or response body, a query
+string, or the value of an `Authorization`, `Cookie`, `DPoP`, `Set-Cookie` or `Location` header: the host's HTTP
+logging writes the request and response properties, the allow-listed headers and the duration, and no setting enables
+more
+([ADR-1503](../../docs/decisions/1503-http-logging-writes-a-body-only-for-an-endpoint-that-opts-in-and-never-for-one-that-carries-credentials.md)).
 
 The image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry
 and its exception in one record

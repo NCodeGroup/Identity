@@ -1,9 +1,10 @@
 # Host image — builds the production image of NCode.Identity.OpenId.Host for every published architecture.
 #
 # The image is the deployable artifact (ADR-1133), so a change that breaks its build — a project the publish needs, a
-# frontend build step, the allow-list .dockerignore — fails here rather than at release. Nothing is pushed: publishing
-# to GHCR belongs to the release workflow. Every stage that runs commands runs on the runner's own architecture and
-# cross-publishes, so the arm64 image builds without emulation (ADR-1248).
+# frontend build step, the allow-list .dockerignore — fails here rather than at release. Nothing is pushed:
+# the Publish artifacts workflow publishes to GHCR (ADR-1505). Every stage that runs commands runs on the runner's own
+# architecture and cross-publishes, so the arm64 image builds without emulation (ADR-1248). The image serves HTTPS
+# only (ADR-1504).
 name: Host image
 
 on:
@@ -90,3 +91,23 @@ jobs:
               exit 1
             fi
           done
+
+      # The image serves HTTPS only on 8443 and reads its certificate from the mount point of the TLS contract
+      # (ADR-1504), so a change that drops it fails here rather than in production.
+      - name: Check the image serves HTTPS
+        run: |
+          env=$(docker image inspect ncode-identity-host:ci --format '{{range .Config.Env}}{{println .}}{{end}}')
+          for setting in \
+            ASPNETCORE_URLS=https://+:8443 \
+            Kestrel__Certificates__Default__Path=/etc/ncode-identity/tls/tls.crt \
+            Kestrel__Certificates__Default__KeyPath=/etc/ncode-identity/tls/tls.key; do
+            if ! grep -qxF "$setting" <<< "$env"; then
+              echo "::error::The image does not set ${setting}"
+              exit 1
+            fi
+          done
+          ports=$(docker image inspect ncode-identity-host:ci --format '{{json .Config.ExposedPorts}}')
+          if [ "$ports" != '{"8443/tcp":{}}' ]; then
+            echo "::error::The image must expose only 8443/tcp, not ${ports}"
+            exit 1
+          fi

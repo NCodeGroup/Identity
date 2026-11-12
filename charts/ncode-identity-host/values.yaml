@@ -176,12 +176,74 @@ secretProtection:
     backoffLimit: 0
     activeDeadlineSeconds: 3600
 
+# TLS between the ingress and the pods (ADR-1504). The pods serve HTTPS only, and the host refuses to start in
+# Production without a certificate it can serve. The chart mounts the certificate at /etc/ncode-identity/tls and points
+# the probes, the Service and the Ingress at the pods' HTTPS port.
+backendTls:
+  # A kubernetes.io/tls Secret the operator created, with tls.crt, tls.key and ca.crt. Its certificate names the
+  # Service's DNS names: <service>, <service>.<namespace>, <service>.<namespace>.svc and
+  # <service>.<namespace>.svc.cluster.local. Empty makes the chart create a cert-manager Certificate.
+  existingSecret: ""
+  # The name of a Secret in the release namespace that the ingress controller reads: ca.crt verifies the pods'
+  # certificate (Traefik rootCAs) and tls.crt and tls.key are the controller's client certificate, which it presents
+  # when clientCertificate.required is true (Traefik certificatesSecrets, a Gateway's backend client certificate). Empty
+  # makes the chart issue <release>-ingress from the issuer of certManager when a route uses it.
+  ingressSecret: ""
+  clientCertificate:
+    # Whether the pods refuse a request whose connection carries no certificate from the ingress controller, except
+    # the liveness and readiness probes. The controller's certificate must have the subject CN=<commonName>.
+    required: false
+    # The common name of the ingress controller's certificate; the pods accept only the subject CN=<commonName>.
+    commonName: ncode-identity-ingress
+  # A ConfigMap in the release namespace that holds only ca.crt, the CA that signs the pods' certificate, which the
+  # Gateway API mode's BackendTLSPolicy verifies the pods against. trust-manager makes it, or: kubectl create configmap
+  # <name> --from-file=ca.crt=<ca.pem>. Empty with caPublisher.enabled names <release>-ca, which the publisher writes.
+  caConfigMap: ""
+  # An opt-in hook Job that publishes the ca.crt of the chart's private CA to the CA ConfigMap after cert-manager issues
+  # it, so a release that uses the private CA needs no manual ConfigMap. It runs 'kubectl apply -k' and never sees the
+  # CA's private key.
+  caPublisher:
+    enabled: false
+    # The official kubectl image, pinned by tag and by the digest of its multi-architecture index; the digest wins when
+    # set.
+    image:
+      repository: registry.k8s.io/kubectl
+      tag: v1.37.2
+      digest: sha256:fe049faa65ae483ac200009a949a68fa4c9985daea12c9cb1195c9c7965301fc
+      pullPolicy: IfNotPresent
+    activeDeadlineSeconds: 600
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 64Mi
+  certManager:
+    # The issuer of the pods' certificate. An empty name makes the chart create a private CA: a self-signed Issuer, a CA
+    # Certificate and a CA Issuer, which signs the pods' certificate. Name an Issuer or ClusterIssuer of your own, such
+    # as one backed by your organization's CA, to use it instead.
+    issuerRef:
+      name: ""
+      kind: Issuer
+      group: cert-manager.io
+    # Hours, because the chart passes them to cert-manager as they are.
+    duration: 2160h
+    renewBefore: 720h
+    privateKey:
+      algorithm: ECDSA
+      size: 256
+    # DNS names beyond the Service's own.
+    dnsNames: []
+
 service:
   type: ClusterIP
-  port: 80
+  port: 443
 
 ingress:
   enabled: false
+  # traefik (a ServersTransport and Service annotations) or other (nothing: the operator wires HTTPS to the Service and
+  # the trust in the CA). Required when this Ingress or the console's is enabled.
+  controller: ""
   className: ""
   annotations: {}
   hosts: []
@@ -193,6 +255,17 @@ ingress:
   #  - secretName: id-example-com-tls
   #    hosts:
   #      - id.example.com
+
+# A Gateway API HTTPRoute and a BackendTLSPolicy that verifies the pods against backendTls.caConfigMap.
+httpRoute:
+  enabled: false
+  # The Gateway listeners the route attaches to.
+  parentRefs: []
+  #  - name: shared-gateway
+  #    namespace: gateway-system
+  #    sectionName: https
+  hostnames: []
+  annotations: {}
 
 serviceAccount:
   create: true
@@ -319,9 +392,21 @@ managementConsole:
   valkey:
     existingSecret: ""
     connectionStringKey: connection-string
+  # The console's serving certificate: a kubernetes.io/tls Secret with tls.crt, tls.key and ca.crt, or empty for a
+  # cert-manager Certificate from the issuer of backendTls.certManager.
+  backendTls:
+    existingSecret: ""
+    # A Secret in the release namespace that the ingress controller reads to verify the console's pods and, when
+    # backendTls.clientCertificate.required is true, to authenticate to them (see backendTls.ingressSecret).
+    # Empty uses backendTls.ingressSecret, and then <release>-ingress.
+    ingressSecret: ""
+    # A ConfigMap in the release namespace that holds only ca.crt, for a Gateway API implementation to verify the
+    # console's pods. Empty uses the server's CA ConfigMap, so the chart requires it when existingSecret is set and
+    # backendTls.caPublisher is enabled.
+    caConfigMap: ""
   service:
     type: ClusterIP
-    port: 80
+    port: 443
   # Routes every path to the console.
   ingress:
     enabled: false
@@ -331,6 +416,11 @@ managementConsole:
     #  - secretName: manage-example-com-tls
     #    hosts:
     #      - manage.example.com
+  # A Gateway API HTTPRoute and a BackendTLSPolicy for the console. Its hostname is managementConsole.host.
+  httpRoute:
+    enabled: false
+    parentRefs: []
+    annotations: {}
   serviceAccount:
     create: true
     name: ""

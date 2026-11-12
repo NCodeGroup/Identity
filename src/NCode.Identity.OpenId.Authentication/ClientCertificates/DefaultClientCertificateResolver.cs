@@ -5,6 +5,7 @@ using System.Collections.Frozen;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -15,8 +16,10 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// Provides the default implementation of the <see cref="IClientCertificateResolver"/> abstraction. When a trusted
 /// forwarded header is configured through <see cref="MutualTlsForwardingOptions"/>, that header is the only source:
 /// its value is decoded by the <see cref="IClientCertificateHeaderDecoder"/> registered for the configured format, and
-/// a value it cannot decode fails the request. Otherwise the certificate negotiated directly on the connection is used.
-/// The result is resolved once per request, and the certificates decoded from a header are disposed with the request.
+/// a value it cannot decode fails the request. Otherwise the certificate negotiated directly on the connection is used,
+/// except on a connection that carries <see cref="IProxyClientCertificateFeature"/>, whose certificate is the reverse
+/// proxy's and is never read as an end client's. The result is resolved once per request, and the certificates decoded
+/// from a header are disposed with the request.
 /// </summary>
 // See ADR-1172.
 internal sealed class DefaultClientCertificateResolver(
@@ -48,9 +51,20 @@ internal sealed class DefaultClientCertificateResolver(
             return resolved as PresentedClientCertificate;
 
         var headerName = Options.CertificateHeaderName;
-        var certificate = string.IsNullOrEmpty(headerName)
-            ? await ReadConnectionCertificateAsync(httpContext, cancellationToken)
-            : DecodeForwardedCertificate(openIdContext, headerName);
+        PresentedClientCertificate? certificate;
+        if (!string.IsNullOrEmpty(headerName))
+        {
+            certificate = DecodeForwardedCertificate(openIdContext, headerName);
+        }
+        else if (httpContext.Features.Get<IProxyClientCertificateFeature>() is not null)
+        {
+            // The connection's certificate is the reverse proxy's, never an end client's.
+            certificate = null;
+        }
+        else
+        {
+            certificate = await ReadConnectionCertificateAsync(httpContext, cancellationToken);
+        }
 
         httpContext.Items[ItemKey] = certificate ?? NoCertificate;
         return certificate;

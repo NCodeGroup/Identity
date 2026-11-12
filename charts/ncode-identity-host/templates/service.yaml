@@ -4,12 +4,17 @@ metadata:
   name: {{ include "identity-host.fullname" . }}
   labels:
     {{- include "identity-host.labels" . | nindent 4 }}
+  {{- if and .Values.ingress.enabled (eq .Values.ingress.controller "traefik") }}
+  annotations:
+    {{- include "identity-host.backendTls.traefikServiceAnnotations" (dict "root" . "name" (include "identity-host.fullname" .)) | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - name: http
+    - name: https
       port: {{ .Values.service.port }}
-      targetPort: http
+      targetPort: https
       protocol: TCP
+      appProtocol: https
   selector:
     {{- include "identity-host.selectorLabels" . | nindent 4 }}

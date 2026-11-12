@@ -46,15 +46,36 @@ builder.Services.AddTrustedForwardedHeaders(builder.Configuration);
 // Send Strict-Transport-Security as configured by the 'StrictTransportSecurity' configuration section.
 builder.Services.AddStrictTransportSecurity(builder.Configuration);
 
+// In Production, refuse to start unless Kestrel serves HTTPS only with a certificate that loads and passes the
+// transport checks (ADR-1504). Inert in every other environment.
+builder.Services.AddTransportSecurity(builder.Environment);
+
+// The pods can require the reverse proxy's client certificate on the proxy-to-pod hop, as configured by the
+// 'ProxyClientCertificate' section (ADR-1506). Inert unless 'ProxyClientCertificate:Required' is true.
+builder.Services.AddProxyClientCertificate(builder.Configuration);
+
+// Request the proxy's client certificate on Kestrel's HTTPS endpoints when 'ProxyClientCertificate:Required' is true.
+var proxyClientCertificate = builder.Configuration.GetProxyClientCertificateOptions();
+builder.WebHost.ConfigureKestrel(kestrel =>
+    kestrel.ConfigureHttpsDefaults(https =>
+        https.RequestProxyClientCertificate(proxyClientCertificate)
+    )
+);
+
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// The first two middleware: everything downstream that reads the scheme or host observes the original request rather
-// than the proxy-to-application hop.
+// MUST be the first middleware: it refuses a request whose connection does not carry the reverse proxy's client
+// certificate (except the liveness and readiness probes) before anything else reads it. A no-op unless
+// 'ProxyClientCertificate:Required' is true (ADR-1506).
+app.UseProxyClientCertificate();
+
+// Right after the proxy check: everything downstream that reads the scheme or host observes the original request
+// rather than the proxy-to-application hop.
 app.UseTrustedForwardedHeaders();
 app.UseStrictTransportSecurity();
-app.UseHttpsRedirection();
+app.UseHttpsRedirectionOutsideProduction();
 app.UseBffSecurityHeaders();
 app.UseBff();
 app.UseAuthentication();

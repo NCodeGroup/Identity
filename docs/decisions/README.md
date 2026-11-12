@@ -102,6 +102,7 @@ The records are grouped by area; within an area they are in number order.
 | [1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) | Every package names one capability under the NCode.Identity prefix, as an abstractions and implementation pair | Accepted |
 | [1501](./1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md) | A project's top-level folder and name say whether it ships and what it is | Accepted |
 | [1502](./1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md) | Code a self-hoster could use is public, and identity holds the product's and platform's decisions | Accepted |
+| [1503](./1503-http-logging-writes-a-body-only-for-an-endpoint-that-opts-in-and-never-for-one-that-carries-credentials.md) | HTTP logging writes a body only for an endpoint that opts in, and never for one that carries credentials | Accepted |
 | [1508](./1508-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md) | A decision record is rewritten when its decision changes and relates only to template records | Accepted |
 
 ### Deployment and local development
@@ -124,6 +125,10 @@ The records are grouped by area; within an area they are in number order.
 | [1485](./1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md) | The host chart enables server KMS vendors and holds console key rings under the console's identity | Accepted |
 | [1495](./1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) | The hosted platform runs customer environments as tenants on production under the ncodeid.net platform domain | Accepted |
 | [1499](./1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md) | The host accepts only TLS 1.2 and 1.3 with AEAD cipher suites | Accepted |
+| [1504](./1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md) | The hosts serve HTTPS only in Production and verify their certificate at startup | Accepted |
+| [1505](./1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md) | Every merge to main publishes the host image, the console image and the chart at one prerelease version | Accepted |
+| [1506](./1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md) | The ingress controller holds a client certificate the pods can require and never read as an end client's | Accepted |
+| [1507](./1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md) | The host chart routes to its HTTPS-only pods through Gateway API, a Traefik Ingress or the operator's own ingress | Accepted |
 
 ### Settings
 

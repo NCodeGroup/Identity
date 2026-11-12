@@ -5,13 +5,18 @@ metadata:
   name: {{ include "identity-host.managementConsole.fullname" . }}
   labels:
     {{- include "identity-host.managementConsole.labels" . | nindent 4 }}
+  {{- if and .Values.managementConsole.ingress.enabled (eq .Values.ingress.controller "traefik") }}
+  annotations:
+    {{- include "identity-host.backendTls.traefikServiceAnnotations" (dict "root" . "name" (include "identity-host.managementConsole.fullname" .)) | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.managementConsole.service.type }}
   ports:
-    - name: http
+    - name: https
       port: {{ .Values.managementConsole.service.port }}
-      targetPort: http
+      targetPort: https
       protocol: TCP
+      appProtocol: https
   selector:
     {{- include "identity-host.managementConsole.selectorLabels" . | nindent 4 }}
 {{- end }}

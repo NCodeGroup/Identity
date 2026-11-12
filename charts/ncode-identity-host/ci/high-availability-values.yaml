@@ -25,6 +25,7 @@ secretProtection:
     disabled: true
 ingress:
   enabled: true
+  controller: traefik
   className: traefik
   hosts:
     - host: id.example.com

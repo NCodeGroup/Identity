@@ -1,0 +1,6 @@
+{{- if and .Values.managementConsole.enabled .Values.managementConsole.httpRoute.enabled }}
+# The Gateway verifies the console's pods against the CA ConfigMap that managementConsole.backendTls.caConfigMap names.
+{{ include "identity-host.httpRoute" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .) "labels" (include "identity-host.managementConsole.labels" .) "annotations" .Values.managementConsole.httpRoute.annotations "parentRefs" .Values.managementConsole.httpRoute.parentRefs "hostnames" (list .Values.managementConsole.host) "port" .Values.managementConsole.service.port) }}
+---
+{{ include "identity-host.backendTls.policy" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .) "labels" (include "identity-host.managementConsole.labels" .)) }}
+{{- end }}

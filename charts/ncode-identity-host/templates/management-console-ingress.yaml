@@ -6,7 +6,8 @@ metadata:
   name: {{ include "identity-host.managementConsole.fullname" . }}
   labels:
     {{- include "identity-host.managementConsole.labels" . | nindent 4 }}
-  {{- with .Values.managementConsole.ingress.annotations }}
+  {{- $annotations := deepCopy .Values.managementConsole.ingress.annotations }}
+  {{- with $annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -28,5 +29,5 @@ spec:
               service:
                 name: {{ include "identity-host.managementConsole.fullname" . }}
                 port:
-                  name: http
+                  name: https
 {{- end }}

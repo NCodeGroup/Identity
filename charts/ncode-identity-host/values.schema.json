@@ -472,6 +472,137 @@
         }
       }
     },
+    "backendTls": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "existingSecret": {
+          "type": "string"
+        },
+        "ingressSecret": {
+          "type": "string"
+        },
+        "clientCertificate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "commonName": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          }
+        },
+        "caConfigMap": {
+          "type": "string"
+        },
+        "caPublisher": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "repository": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tag": {
+                  "type": "string"
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^(sha256:[0-9a-f]{64})?$"
+                },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "IfNotPresent", "Never"]
+                }
+              }
+            },
+            "activeDeadlineSeconds": {
+              "type": "integer",
+              "minimum": 30
+            },
+            "resources": {
+              "type": "object"
+            }
+          }
+        },
+        "certManager": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "issuerRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "Issuer",
+                    "ClusterIssuer"
+                  ]
+                },
+                "group": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "duration": {
+              "type": "string",
+              "pattern": "^[0-9]+h$"
+            },
+            "renewBefore": {
+              "type": "string",
+              "pattern": "^[0-9]+h$"
+            },
+            "privateKey": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "algorithm": {
+                  "type": "string",
+                  "enum": [
+                    "ECDSA",
+                    "RSA"
+                  ]
+                },
+                "size": {
+                  "type": "integer",
+                  "enum": [
+                    256,
+                    384,
+                    521,
+                    2048,
+                    3072,
+                    4096
+                  ]
+                }
+              }
+            },
+            "dnsNames": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
     "service": {
       "type": "object",
       "additionalProperties": false,
@@ -497,6 +628,14 @@
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "controller": {
+          "type": "string",
+          "enum": [
+            "",
+            "traefik",
+            "other"
+          ]
         },
         "className": {
           "type": "string"
@@ -551,6 +690,57 @@
           "items": {
             "type": "object"
           }
+        }
+      }
+    },
+    "httpRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "parentRefs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "group": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "namespace": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "sectionName": {
+                "type": "string"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        },
+        "hostnames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "annotations": {
+          "type": "object"
         }
       }
     },
@@ -825,6 +1015,21 @@
             }
           }
         },
+        "backendTls": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            },
+            "ingressSecret": {
+              "type": "string"
+            },
+            "caConfigMap": {
+              "type": "string"
+            }
+          }
+        },
         "service": {
           "type": "object",
           "additionalProperties": false,
@@ -862,6 +1067,50 @@
               "items": {
                 "type": "object"
               }
+            }
+          }
+        },
+        "httpRoute": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "parentRefs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "group": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "namespace": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "sectionName": {
+                    "type": "string"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            },
+            "annotations": {
+              "type": "object"
             }
           }
         },

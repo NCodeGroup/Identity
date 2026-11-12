@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
-# The production image of NCode.Identity.OpenId.Host (ADR-1248). Build it from the repository root; it takes no build
-# argument:
+# The production image of NCode.Identity.OpenId.Host (ADR-1248). Build it from the repository root; it takes one
+# optional build argument, VERSION, the version the assemblies report (the publishing workflow passes it):
 #
 #   docker buildx build --platform linux/amd64,linux/arm64 \
 #     --file hosts/NCode.Identity.OpenId.Host/Dockerfile .
@@ -31,6 +31,11 @@ ARG TARGETARCH
 ENV NBGV_GitEngine=Disabled
 WORKDIR /source
 COPY . .
+# The published version, when the publishing workflow gives one, replaces the version in version.json, which is the
+# only version input here because the git engine is disabled. build/stamp-version.ps1 refuses a malformed version and
+# fails unless version.json then holds it. A CI image build passes none and keeps version.json's.
+ARG VERSION=""
+RUN if [ -n "$VERSION" ]; then pwsh -NoProfile -File build/stamp-version.ps1 -Version "$VERSION"; fi
 # A multi-arch build runs this stage once per target at the same time. The NuGet cache is locked, not shared, because
 # NuGet extracts a package through a temporary file that a concurrent restore of the same package cannot see.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
@@ -58,7 +63,9 @@ EXPOSE 8080
 
 # The production image: a chiseled (distroless) runtime with no shell or package manager, running as the non-root
 # 'app' user by numeric id so Kubernetes can enforce runAsNonRoot. The "extra" variant carries ICU and time zone data.
-# The image listens on 8080 (ASPNETCORE_HTTP_PORTS); TLS terminates at the ingress.
+# The image serves HTTPS only on 8443 (ASPNETCORE_URLS takes precedence over the base image's ASPNETCORE_HTTP_PORTS)
+# from the PEM certificate and key mounted at /etc/ncode-identity/tls; the host refuses to start in Production without a
+# usable certificate (ADR-1504).
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:cae5b962bfb786606def03d250c6a645cc98839095c89e806e4bd8978a68115b AS final
 WORKDIR /app
 COPY --from=build /app/publish ./
@@ -71,6 +78,9 @@ ENV InteractiveAuthentication__BundleRootPath=/app/auth
 ENV Logging__Console__FormatterName=json \
     Logging__Console__FormatterOptions__UseUtcTimestamp=true \
     Logging__Console__FormatterOptions__TimestampFormat=O
+ENV ASPNETCORE_URLS=https://+:8443 \
+    Kestrel__Certificates__Default__Path=/etc/ncode-identity/tls/tls.crt \
+    Kestrel__Certificates__Default__KeyPath=/etc/ncode-identity/tls/tls.key
 USER $APP_UID
-EXPOSE 8080
+EXPOSE 8443
 ENTRYPOINT ["dotnet", "NCode.Identity.OpenId.Host.dll"]

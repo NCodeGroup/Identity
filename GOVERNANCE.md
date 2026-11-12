@@ -65,7 +65,8 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-id
   runs only the tests its change reaches. A merge goes through the **merge queue**, which runs the full gate on the
   merged result and squash-merges it, so a branch need not be up to date with `main`. An approval requirement is added
   when a second maintainer exists
-  ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md);
+  ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md), which supersedes
+  the unprotected trunk of [ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md);
   [ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
   tiers and the merge queue).
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint that CI and developers run,
@@ -122,6 +123,10 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-id
   workflow, and approve the `nuget` environment. Its publishing job holds only a short-lived key from nuget.org trusted
   publishing, and it refuses a version already published
   ([ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md)).
+- The host image, the management console image and the host chart publish to GHCR through the `Publish artifacts`
+  workflow (`.github/workflows/publish-artifacts.yml`) on every merge to `main` and every release tag, at one version,
+  signed and with provenance
+  ([ADR-1505](docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
 
 ## Definition of Done
 

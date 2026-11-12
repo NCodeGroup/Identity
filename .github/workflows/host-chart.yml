@@ -620,6 +620,7 @@ jobs:
           fi
 
       # The controller presents the client certificate of the chart's ingress Secret, and the pods' probes need none.
+      # A probe and a non-probe path are both requested through the controller.
       - name: Require the ingress controller's certificate
         run: |
           set -euo pipefail
@@ -637,6 +638,18 @@ jobs:
           done
           if [ "$code" != 200 ]; then
             echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code with the client certificate required; expected 200, so the controller did not present its certificate."
+            exit 1
+          fi
+          code=000
+          for attempt in $(seq 1 12); do
+            code=$(through_ingress /.well-known/openid-configuration)
+            if [ "$code" = 200 ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "$code" != 200 ]; then
+            echo "::error::A request to /.well-known/openid-configuration through the ${{ matrix.controller }} controller answered $code with the client certificate required; expected 200, so the controller did not present its certificate on a path the pods do not exempt (a 403 means the pods refused the controller)."
             exit 1
           fi
 
@@ -684,14 +697,12 @@ jobs:
 
           expect_direct 200 /health/live 'A request to /health/live without a certificate'
           expect_direct 403 / 'A request to / without a certificate'
+          expect_direct 403 /.well-known/openid-configuration 'A request to the discovery document without a certificate'
 
           kubectl -n "$NAMESPACE" get secret release-ncode-identity-host-ingress -o jsonpath='{.data.tls\.crt}' | base64 -d > "$RUNNER_TEMP/proxy.crt"
           kubectl -n "$NAMESPACE" get secret release-ncode-identity-host-ingress -o jsonpath='{.data.tls\.key}' | base64 -d > "$RUNNER_TEMP/proxy.key"
-          code=$(direct / --cert "$RUNNER_TEMP/proxy.crt" --key "$RUNNER_TEMP/proxy.key")
-          if [ "$code" = 403 ] || [ "$code" = 000 ]; then
-            echo "::error::A request to / with the ingress Secret's certificate answered $code; expected a code other than 403 and 000, so the pods did not accept the proxy's certificate."
-            exit 1
-          fi
+          expect_direct 200 /.well-known/openid-configuration 'A request to the discovery document with the certificate of the ingress Secret' \
+            --cert "$RUNNER_TEMP/proxy.crt" --key "$RUNNER_TEMP/proxy.key"
 
       # A controller that verifies against a CA that did not sign the pods' certificate must not reach them.
       # The Secret holds a certificate and key as well as the CA, so Traefik loads the ServersTransport and the 502 comes from the failed verification.

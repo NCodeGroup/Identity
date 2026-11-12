@@ -141,6 +141,8 @@ Rendering fails, before anything is applied, when:
   Managed HSM key version identifier, or a Cloud KMS crypto key version name;
 - `managementConsole.replicaCount` is above 1 without `managementConsole.valkey.existingSecret`, because replicas share
   their sessions through Valkey;
+- `apiReference.pageEnabled` is `true` and `apiReference.documentEnabled` is not, because the page renders the OpenAPI
+  document the host serves;
 - a value is unknown or has the wrong type.
 
 ## Migrations
@@ -920,6 +922,16 @@ one component owns it. Change the policy the same way with `StrictTransportSecur
 `730.00:00:00`), `StrictTransportSecurity__IncludeSubDomains` and `StrictTransportSecurity__Preload`. Set `Preload`
 only after submitting the domain to the browsers' preload list: it requires `IncludeSubDomains` and a `MaxAge` of at
 least 365 days, and the host refuses to start without them.
+
+## API reference
+
+The host serves neither the OpenAPI document (`/openapi/v1.json`) nor the Scalar API reference page (`/scalar/v1`) by
+default. `apiReference.documentEnabled` and `apiReference.pageEnabled` turn them on, and the page requires the document.
+Both are anonymous once on: the document lists every management route, schema and scope, while the management API
+still requires a management access token
+([ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md)).
+To serve them on an internal host only, route `/openapi/` and `/scalar/` to the pods only from that host at the
+ingress.
 
 ## Other settings
 

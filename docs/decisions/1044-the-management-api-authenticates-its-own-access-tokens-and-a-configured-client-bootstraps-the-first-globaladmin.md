@@ -58,7 +58,7 @@ seeds.**
    `ManagementProblems.AuthenticationRequired()` (`401`) when the feature is absent, also when the filter did not run.
    They have no authority check, so they declare `401` and no `403`
    ([ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
-   [ADR-1481](1481-a-management-routes-problem-responses-say-when-each-occurs.md)); an authenticated caller that
+   [ADR-1481](1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md)); an authenticated caller that
    resolves to no principal gets `200` with a null `principalId`, because the answer describes the caller.
 6. **Every other route authorizes imperatively from `HttpContext.User`.** It uses `IAuthorizationService.AuthorizeAsync`
    and the validators, answers `401` when anonymous and `403` without authority

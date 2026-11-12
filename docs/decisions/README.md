@@ -172,7 +172,6 @@ The records are grouped by area; within an area they are in number order.
 | [1014](./1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) | Management resources carry opaque server identifiers and list one keyset page at a time | Accepted |
 | [1020](./1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) | A tenant's grants are listed, inspected and revoked by opaque identifier, never by their key | Accepted |
 | [1044](./1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) | The management API authenticates its own access tokens and a configured client bootstraps the first GlobalAdmin | Accepted |
-| [1046](./1046-api-reference-openapi-document-and-scalar.md) | The API reference (OpenAPI document + Scalar) is owned by the composition layer and turnkey for every environment | Accepted |
 | [1067](./1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) | Secret key types form one catalog, and authenticated management callers discover the deployment's capabilities | Accepted |
 | [1086](./1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) | Endpoints compose as a declarative group tree, and a protocol endpoint is a thin mediator-driven provider | Accepted |
 | [1191](./1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md) | A management request is authenticated by the control-plane tenant and scoped by its route's tenant | Accepted |
@@ -184,7 +183,7 @@ The records are grouped by area; within an area they are in number order.
 | [1465](./1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md) | Role lists share one audited grant and revoke flow, and a caller discovers its own assignments | Accepted |
 | [1466](./1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md) | A client is its own principal, and a machine client acts only within its owning node | Accepted |
 | [1480](./1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md) | A management route answers from what it read and declares every problem it answers | Accepted |
-| [1481](./1481-a-management-routes-problem-responses-say-when-each-occurs.md) | A management route's problem responses say when each occurs | Accepted |
+| [1481](./1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md) | The composition layer serves the API reference, and each management problem says when it occurs | Accepted |
 | [1483](./1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md) | A management request whose binding fails is answered as a problem its route declares | Accepted |
 
 ### Protocol endpoints, grants and tokens

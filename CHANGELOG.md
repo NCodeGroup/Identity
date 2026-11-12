@@ -1044,7 +1044,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#701](https://github.com/NCodeGroup/identity/issues/701), [#706](https://github.com/NCodeGroup/identity/issues/706),
   [#708](https://github.com/NCodeGroup/identity/issues/708),
   [ADR-1480](docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
-  [ADR-1481](docs/decisions/1481-a-management-routes-problem-responses-say-when-each-occurs.md),
+  [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
   [ADR-1483](docs/decisions/1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted

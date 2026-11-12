@@ -80,6 +80,6 @@ declares the binding problems it can answer.**
 
 - [ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md): a route
   declares every problem it answers.
-- [ADR-1481](1481-a-management-routes-problem-responses-say-when-each-occurs.md): the problems a route declares say when
+- [ADR-1481](1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md): the problems a route declares say when
   each occurs.
 - [#708](https://github.com/NCodeGroup/identity/issues/708)

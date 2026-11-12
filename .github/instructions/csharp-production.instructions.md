@@ -639,7 +639,7 @@ than inlining the rationale.
   `ManagementRequestBindingTests` and `ManagementOpenApiDocumentTests` pin them. See
   [ADR-1186](../../docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md),
   [ADR-1480](../../docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
-  [ADR-1481](../../docs/decisions/1481-a-management-routes-problem-responses-say-when-each-occurs.md),
+  [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
   [ADR-1067](../../docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) and
   [ADR-1483](../../docs/decisions/1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md).
 - 👁 **A management route reads its caller only from what `ManagementAuthenticationEndpointFilter` published.** The
@@ -1124,20 +1124,20 @@ says for a pre-release project.
   server's own endpoints, so register document transformers (security schemes, tag groups, request/response examples)
   in the composition root's `AddOpenApi(...)`, and expose the document and the API-reference UI through the server's
   turnkey map extension — a host never re-declares them. See
-  [ADR-1046](../../docs/decisions/1046-api-reference-openapi-document-and-scalar.md).
+  [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md).
 - 👁 **Never embed secret material in a served OpenAPI document or renderer configuration.** A renderer may pre-fill
   credentials for a one-click login, but pre-filling a **secret** bakes it into the served config where anyone who can
   load the reference page can read it — pre-fill a secret **only in Development**. The login flow itself (for example
   OAuth2 `client_credentials`) must be wired in **every** environment so the production cold-start/bootstrap path works;
   only the secret pre-fill is environment-gated. See
-  [ADR-1046](../../docs/decisions/1046-api-reference-openapi-document-and-scalar.md) and
+  [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md) and
   [ADR-1011](../../docs/decisions/1011-secret-management-api.md).
 - 👁 **A renderer builds a `x-www-form-urlencoded` body from the schema, not from examples.** Optional schema
   properties render unchecked and are omitted from the request, and a named `example` is not applied to form fields. To
   make a field pre-checked and pre-filled, a document transformer marks it `required` and sets its schema `Default`;
   the renderer's credential location must match the method the client is registered for (the bootstrap administrator
   registers `client_secret_basic`, so its credentials go in the `Authorization` **header**). See
-  [ADR-1046](../../docs/decisions/1046-api-reference-openapi-document-and-scalar.md) and
+  [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md) and
   [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md).
 - 👁 **Handle credential and secret bytes in a pinned, zeroed-on-return buffer.** Encode a password or secret into a
   `SecureMemoryPool<byte>` rental via `SecureEncoding.UTF8` (`NCode.Buffers`) — never a raw `ArrayPool<byte>` +

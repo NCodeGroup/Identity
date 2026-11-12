@@ -1,6 +1,6 @@
 # 1145. A client authenticates only with its registered method
 
-- **Status:** Accepted (amends [ADR-1046](1046-api-reference-openapi-document-and-scalar.md),
+- **Status:** Accepted (amends [ADR-1481](1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
   [ADR-1063](1063-dynamic-client-registration.md), [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
   [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md), and
   [ADR-1144](1144-authorization-codes-are-bound-to-pkce-by-default.md); extended by

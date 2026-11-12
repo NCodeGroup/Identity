@@ -227,5 +227,49 @@ public sealed class DefaultRegistrationTests : BaseTests
         Assert.Contains("names no server", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void AddValkey_ConnectionStringAndParts_Throws()
+    {
+        var configuration = CreateConfiguration(
+            ("ConnectionStrings:valkey", ConnectionString),
+            ("ValkeyConnection:Host", "valkey.example.test"),
+            ("ValkeyConnection:Password", "secret")
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() => AddValkey(configuration));
+
+        Assert.Contains("ConnectionStrings:valkey", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("ValkeyConnection", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AddValkey_Parts_RegistersTheAdapters()
+    {
+        var serviceCollection = AddValkey(
+            CreateConfiguration(
+                ("ValkeyConnection:Host", "valkey.example.test"),
+                ("ValkeyConnection:Password", "secret")
+            )
+        );
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        Assert.IsType<ValkeyExpiringKeySet>(Assert.Single(provider.GetServices<IExpiringKeySet>()));
+        Assert.IsType<ValkeyExpiringCounterSet>(
+            Assert.Single(provider.GetServices<IExpiringCounterSet>())
+        );
+        Assert.IsType<ValkeyExpiringValueSet>(
+            Assert.Single(provider.GetServices<IExpiringValueSet>())
+        );
+        Assert.IsType<ValkeyExpiringIndexSet>(
+            Assert.Single(provider.GetServices<IExpiringIndexSet>())
+        );
+        Assert.IsType<ValkeyReplicaBroadcaster>(
+            Assert.Single(provider.GetServices<IReplicaBroadcaster>())
+        );
+        Assert.NotNull(provider.GetService<IValkeyConnection>());
+    }
+
     #endregion
 }

@@ -29,12 +29,13 @@ logs.
 
 - The final stage of `hosts/NCode.Identity.OpenId.Host/Dockerfile` is `mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra`:
   distroless, with no shell or package manager, and with ICU and time-zone data. It runs as the non-root `app` user by
-  numeric id (`USER $APP_UID`) and listens on 8080 over HTTP. TLS terminates at the ingress.
+  numeric id (`USER $APP_UID`) and serves HTTPS only, on port 8443, so TLS ends at the pod
+  ([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md) holds the transport rule and the certificate mount).
 - The host image builds `apps/auth` in a Node stage with the workspace's pinned pnpm, serves it from `/app/auth` with
   `InteractiveAuthentication__BundleRootPath=/app/auth`, and carries the migration worker in `/app/migrations`.
 - `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile` mirrors it with the same pinned bases. It builds
   `@ncode/app-mgmt`, serves `/app/mgmt` with `ManagementConsole__BundleRootPath=/app/mgmt`, and runs as UID 1654 on
-  8080.
+  8443.
 
 ### Multi-arch without emulation
 
@@ -44,13 +45,15 @@ app host, so `linux/amd64` and `linux/arm64` both build on an amd64 runner.
 ### The build context
 
 `.dockerignore` is an allow-list. It excludes everything, then re-admits the root build files, `src/`, `hosts/`,
-`analyzers/` and `frontend/`, minus outputs, `node_modules`, `launchSettings.json` and local settings. A new root-imported
+`analyzers/` and `frontend/`, `build/stamp-version.ps1`, minus outputs, `node_modules`, `launchSettings.json` and local settings. A new root-imported
 build file must be re-admitted there, or only the image checks find it.
 
 ### The version
 
-The version comes from `version.json` alone (`NBGV_GitEngine=Disabled`, no `.git` in the context), so the assembly version
-omits git height. The release workflow tags the image (#87).
+The build stage disables the git engine (`NBGV_GitEngine=Disabled`, no `.git` in the context), so the version comes
+from `version.json`, whose assembly version omits git height. The version an image reports is stamped by the optional
+`VERSION` build argument, which the Publish artifacts workflow sets on every merge to `main` and every release tag
+([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
 
 ### Pinned base images
 
@@ -58,8 +61,9 @@ omits git height. The release workflow tags the image (#87).
   `mcr.microsoft.com/dotnet/sdk:10.0-noble`, `mcr.microsoft.com/dotnet/aspnet:10.0-noble` for the `base` stage, and
   `aspnet:10.0-noble-chiseled-extra` for the final stage. The `base` stage stays on the full image because Visual
   Studio's fast-mode debugging needs a shell; the final image never builds from it.
-- No `ARG` builds a `FROM`: Dependabot cannot update one, and the digest overrides the version it names. The Dockerfiles
-  take no version argument. The `# syntax=docker/dockerfile:1` frontend stays unpinned.
+- No `ARG` builds a `FROM`: Dependabot cannot update one, and the digest overrides the version it names. Each
+  Dockerfile takes one build argument, the optional `VERSION`, which builds no `FROM`. The
+  `# syntax=docker/dockerfile:1` frontend stays unpinned.
 - The Node major is a literal. The `Host image` and `Console image` workflows fail unless the Dockerfile names
   `node:<major>-trixie-slim@sha256:` for the major in `frontend/.node-version`. The .NET major moves with the target
   framework.
@@ -81,7 +85,9 @@ omits git height. The release workflow tags the image (#87).
 
 The `Host image` workflow (a required check) and the `Console image` workflow (job `Build console image`) build both
 architectures without pushing, on the same triggers, `merge_group` included. They fail unless `docker image inspect` of
-the amd64 image lists the three logging settings. `ProgramTests` pins the `json` formatter.
+the amd64 image lists the three logging settings and the TLS contract of
+[ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md), and exposes only
+8443. `ProgramTests` pins the `json` formatter.
 
 ## Options considered
 
@@ -95,7 +101,7 @@ the amd64 image lists the three logging settings. `ProgramTests` pins the `json`
 ## Consequences
 
 - The image has no shell, so there is no `docker exec` debugging and no `HEALTHCHECK` that runs `curl`. Kubernetes
-  probes `/health/live` and `/health/ready` over HTTP.
+  probes `/health/live` and `/health/ready` over HTTPS.
 - Under its default `Production` environment the image refuses to start until the deployment supplies production
   settings.
 - The base layers of a build are reproducible. A base image moves in a pull request that Dependabot opens and the

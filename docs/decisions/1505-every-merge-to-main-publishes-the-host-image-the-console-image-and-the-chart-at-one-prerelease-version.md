@@ -1,17 +1,14 @@
 # 1505. Every merge to main publishes the host image, the console image and the chart at one prerelease version
 
-- **Status:** Accepted (amends
-  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md); refines
-  [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
-  [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md))
+- **Status:** Accepted
 - **Date:** 2026-11-12
 - **Deciders:** NCode Group
 
 ## Context
 
 The host image, the console image and the host chart are what a deployment runs
-([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)). A consumer deploys every merge to `main`
-automatically, so each merge needs artifacts to deploy. Nerdbank.GitVersioning gives a public-release build one version
+([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)). A consumer deploys
+every merge to `main` automatically, so each merge needs artifacts to deploy. Nerdbank.GitVersioning gives a public-release build one version
 string for every commit, so it cannot tell two merges apart. The chart pins its image tags to its own `appVersion`, so a
 consumer follows the chart's version alone.
 
@@ -33,19 +30,25 @@ consumer follows the chart's version alone.
    never does.
 3. **Each artifact is signed and attested.** `cosign sign` signs each of the three digests keylessly, under the identity
    `https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main`, or
-   `@refs/tags/<tag>` for a release tag. `actions/attest-build-provenance` attests each digest. The images carry a BuildKit SBOM.
-4. **The `verify` job pulls every artifact anonymously.** It holds `contents: read` only and logs in to no registry, so a
-   private or unreachable package fails the run.
+   `@refs/tags/<tag>` for a release tag. `actions/attest-build-provenance` attests each digest. The images carry a
+   BuildKit SBOM.
+4. **The `verify` job pulls every artifact anonymously.** It holds read permissions only (`contents` and
+   `attestations`) and logs in to no registry, so a private or unreachable package fails the run. It checks both
+   architectures of each image, every signature, every provenance attestation and the chart's `version` and
+   `appVersion`.
 5. **The publishing job runs only first-party code on `main`**, reviewed through the merge queue. It is not split from
-   the build the way [ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) splits the privileged upload
-   from third-party build code.
+   the build the way
+   [ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md)
+   splits the privileged upload from third-party build code.
 6. **No approval gate guards the publish.** There is no environment approval.
 7. **The images report the version they were published at.** Each Dockerfile takes the optional build argument
-   `VERSION`, which builds no `FROM`, and runs `build/stamp-version.ps1` to write it over the version in `version.json`
-   inside the build stage, because the git engine is disabled there and `version.json` is the only input; the
-   assemblies' informational version then carries it. The script refuses a version with a character outside
-   `[0-9A-Za-z.-]` and fails unless `version.json` then holds the version, so an image reports the version its tag
-   names. A build without the argument keeps the version in `version.json`.
+   `VERSION`, which builds no `FROM`
+   ([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)),
+   and runs `build/stamp-version.ps1` to write it over the version in `version.json` inside the build stage, because
+   the git engine is disabled there and `version.json` is the only input; the assemblies' informational version then
+   carries it. The script refuses a version with a character outside `[0-9A-Za-z.-]` and fails unless `version.json`
+   then holds the version, so an image reports the version its tag names. A build without the argument keeps the
+   version in `version.json`.
 
 ## Options considered
 
@@ -62,7 +65,7 @@ consumer follows the chart's version alone.
 - A consumer that follows every version resets its database when the schema changes. Until the first stable release the
   host's initial migration is edited in place
   ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)), so the
-  pre-deploy migration Job fails and the release stays on the previous version.
+  pre-deploy migration Job fails and the release keeps the version it runs.
 - A package created outside this workflow needs this repository's write access under the package's "Manage Actions
   access" and public visibility. Both are GitHub settings that no workflow can change.
 
@@ -70,9 +73,7 @@ consumer follows the chart's version alone.
 
 - [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
   [ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md),
-  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
-  [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
-  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md),
+  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)
 - `.github/workflows/publish-artifacts.yml`, `build/artifact-version.ps1`, `build/stamp-version.ps1`

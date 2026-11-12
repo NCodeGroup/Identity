@@ -61,7 +61,9 @@ release the host or the console would refuse.**
 5. **Pods meet the restricted Pod Security Standard.** Each pod runs as UID 1654, drops every capability, cannot
    escalate privileges, uses the `RuntimeDefault` seccomp profile, has a read-only root filesystem with an `emptyDir` at
    `/tmp`, and has no service-account token. Secret files mount with mode `0440` under `fsGroup` 1654.
-6. **Probes and draining match the host.** The startup and liveness probes call `/health/live`, and readiness calls
+6. **Probes and draining match the host.** The pods serve HTTPS only, so the probes use `scheme: HTTPS`
+   ([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md) holds the Certificate, the Service and the
+   rest of the TLS contract). The startup and liveness probes call `/health/live`, and readiness calls
    `/health/ready`. The kubelet sends the pod's IP as `Host`, which `AllowedHosts` rejects, so each probe sends
    `probes.host`, or else the first allowed host. A terminating pod keeps serving for `preStopSleepSeconds` (10) through
    the kubelet `sleep` action, within a 45-second grace period.
@@ -72,8 +74,11 @@ release the host or the console would refuse.**
    and `extraEnvFrom`, so a new setting needs no chart change.
 9. **The console is the `managementConsole` component, off until `managementConsole.enabled`.** It has its own
    Deployment, Service, token-less ServiceAccount, PodDisruptionBudget, Valkey Secret (`managementConsole.valkey`) and
-   restricted pods. Both images share the chart's `appVersion`, so one release deploys both at one version.
-10. **The console's Ingress and URLs are derived.** The Ingress for `managementConsole.host` routes every path to the
+   restricted pods. Its image serves HTTPS only on port 8443
+   ([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)), and its pods carry the same TLS
+   contract as the server's. Both images share the chart's `appVersion`, so one release deploys both at one version.
+10. **The console's route and URLs are derived.** The route for `managementConsole.host`, an Ingress or an HTTPRoute
+    ([ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md)), routes every path to the
     console. `Bff:Frontends:mgmt:Authority` is `managementConsole.authority`, defaulting to the StaticSingle issuer, and
     `Bff:Frontends:mgmt:PublicOrigin` is `https://<managementConsole.host>`. The chart sets
     `ManagementConsole__ManagementApiUrl` to the authority's origin plus `/api` and has no value for it.
@@ -99,11 +104,11 @@ release the host or the console would refuse.**
 - The operator creates the database Secret, the root-key material and, for more than one replica, a Valkey Secret. The
   chart's `README.md` lists them.
 - An operator registers `mgmt-console` with `jwks_uri` `https://<host>/bff/jwks`.
-- An ingress other than the chart's generic `Ingress`, such as a Traefik `IngressRoute`, is the operator's to add.
+- A router the chart does not configure, such as a Traefik `IngressRoute`, is the operator's to add.
 - A single-replica release has downtime on each update.
 - The `Host chart` workflow fails a change that makes an unsafe release render.
-- Publishing the chart with the image as a signed OCI artifact is tracked in
-  [#87](https://github.com/NCodeGroup/identity/issues/87).
+- The Publish artifacts workflow publishes the chart with the images as a signed OCI artifact
+  ([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
 
 ## References
 
@@ -116,5 +121,4 @@ release the host or the console would refuse.**
   [ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
   [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)
 - `charts/ncode-identity-host`, `.github/workflows/host-chart.yml`
-- Issues [#87](https://github.com/NCodeGroup/identity/issues/87),
-  [#610](https://github.com/NCodeGroup/identity/issues/610)
+- Issue [#610](https://github.com/NCodeGroup/identity/issues/610)

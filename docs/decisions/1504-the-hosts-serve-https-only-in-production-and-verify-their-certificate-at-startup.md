@@ -1,16 +1,6 @@
 # 1504. The hosts serve HTTPS only in Production and verify their certificate at startup
 
-- **Status:** Accepted (amends
-  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
-  [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
-  [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md) and
-  [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md);
-  amended by
-  [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md):
-  the controller verifies the pods against the chart's ingress Secret and authenticates to them with its client
-  certificate; and by
-  [ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md):
-  the chart routes through Gateway API, a Traefik Ingress or the operator's own ingress, and has no ingress-nginx mode)
+- **Status:** Accepted
 - **Date:** 2026-11-11
 - **Deciders:** NCode Group
 
@@ -30,7 +20,8 @@ Three facts shape the check:
 - **A completed handshake proves more than a configuration scan.** A TLS connection to the endpoint reads the
   certificate the endpoint serves and proves that its private key is present and usable.
 - **The kubelet cannot present a client certificate and does not verify a probe's server certificate.** What the pod's
-  certificate protects is the hop from the ingress controller, which verifies it.
+  certificate protects is the hop from whatever routes traffic to the pod, which verifies it
+  ([ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md)).
 
 ## Decision
 
@@ -66,20 +57,19 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
    image's `ASPNETCORE_HTTP_PORTS`, read the certificate from `/etc/ncode-identity/tls/tls.crt` and the key from
    `/etc/ncode-identity/tls/tls.key` (`Kestrel__Certificates__Default__Path` and `__KeyPath`), and expose port 8443.
    The mount point is the contract.
-6. **The chart serves HTTPS and has the ingress controller verify the pods.** The values `backendTls` and
-   `managementConsole.backendTls` select the ingress controller (`ingress-nginx` by default, `traefik` or `none`), an
-   `existingSecret` (a `kubernetes.io/tls` Secret that also holds `ca.crt`), the cert-manager `issuerRef`, and an
-   optional `ingressSecret` (a Secret the operator created, which is then the only Secret the controller verifies the
-   pods against; the console's own value falls back to the server's, and without either the controller reads the
-   chart's ingress Secret, never a serving Secret, see [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)). By
-   default the chart creates a cert-manager `Certificate` per component from a private CA that it also creates (a
-   self-signed Issuer, a CA Certificate and a CA Issuer), with an ECDSA P-256 key. The container port is 8443, the
-   probes use `scheme: HTTPS`, the Service is `https` on port 443 with `appProtocol: https`, and the Ingress backend
-   names that port. For ingress-nginx the chart renders the Ingress annotations that turn on HTTPS to the backend and
-   verification of the pod's certificate (`proxy-ssl-verify: "on"` with the Secret and the server name). For Traefik
-   it renders a `ServersTransport` and two Service annotations. For `none` it renders neither, and the operator
-   configures the controller. The Deployment alone carries the TLS environment, mount and volume: the migration and
-   secret-protection Jobs run before cert-manager has created the Secret.
+6. **The chart serves HTTPS.** The server's and the console's Deployments carry the TLS environment, the mount and the
+   volume. The migration Job runs before cert-manager has created the Secret, and the secret-protection Job runs an
+   offline command that binds no endpoint; neither carries a TLS environment, mount or volume. The container port is
+   8443, the three probes use `scheme: HTTPS`, and the Service is `https` on port 443 with `appProtocol: https`, which
+   the chart's Ingress backend names. Without an `existingSecret`, the chart creates a cert-manager `Certificate` per component, with
+   an ECDSA P-256 key, from a private CA that it also creates (a self-signed Issuer, a CA Certificate and a CA Issuer).
+   `backendTls.certManager.issuerRef` names an Issuer or ClusterIssuer of the operator's instead of the private CA, and
+   `backendTls.existingSecret` (`managementConsole.backendTls.existingSecret` for the console) names a
+   `kubernetes.io/tls` Secret of the operator's that also holds `ca.crt`. What routes traffic to the pods, and how it
+   verifies their certificate, is decided in
+   [ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md);
+   the client certificate the pods can require of it is decided in
+   [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md).
 7. **Three trust tiers.** A private CA that cert-manager or a mesh runs, verified by the proxy, is preferred and is the
    default. A pinned self-signed certificate, whose `ca.crt` is the certificate itself, is acceptable. A self-signed
    certificate with proxy verification off is unauthenticated encryption, which stops passive eavesdropping and
@@ -107,9 +97,6 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
   watches, and the check runs at start only.
 - A TLS-terminating proxy has to speak HTTPS to the pod and, to meet the preferred trust tier, verify the pod's
   certificate.
-- The controller's verification Secret is the chart's ingress Secret by default, never a serving Secret;
-  `backendTls.ingressSecret` names an operator's Secret instead
-  ([1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 - The HTTPS redirect of the pipeline applies outside Production only.
 - The unit tests of the inspectors and the probe, the check against real Kestrel, the Production gate and the chart's CI
   gate prove the wiring.
@@ -119,7 +106,9 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
 - Issue [#774](https://github.com/NCodeGroup/identity/issues/774)
 - [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md),
   [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
-  [ADR-1499](1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md)
+  [ADR-1499](1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md),
+  [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md),
+  [ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md)
 - `src/NCode.Identity.AspNetCore/TransportSecurity/`
 - `src/NCode.Identity.AspNetCore/TransportSecurityRegistration.cs`
 - `charts/ncode-identity-host`

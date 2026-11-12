@@ -12,9 +12,11 @@
 bound strictly and validated when the host starts. The family adds where the helpers live, how a host learns that a
 request arrived over HTTPS, and why the host sends the header itself.
 
-A host behind a TLS-terminating ingress sees plain HTTP to an internal address. Without trusted forwarded headers it
-reads the wrong scheme and host, and without the header a browser does not pin HTTPS for the host's origin. Five facts
-shape the decision:
+A host behind a TLS-terminating ingress outside Production sees plain HTTP to an internal address. Without trusted
+forwarded headers it reads the wrong scheme and host, and without the header a browser does not pin HTTPS for the
+host's origin. In Production the host serves HTTPS only
+([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)), so every request arrives over HTTPS. Five facts shape the
+decision:
 
 - The host terminates TLS itself when it authenticates clients by mutual TLS
   ([ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)),
@@ -49,12 +51,14 @@ the header is sent outside Development as `Strict-Transport-Security: max-age=31
    the network's first address, so the network trusted is the one written, and a `ForwardLimit` below 1, which
    consults no forwarded entry.
 2. **Each host composes both.** The OP host and the management console host call `UseTrustedForwardedHeaders()` and
-   then `UseStrictTransportSecurity()` first in their pipelines. `AddIdentityServer()` and `AddIdentityBff()` register
+   then `UseStrictTransportSecurity()` first in their pipelines, after the proxy-certificate check of
+   [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md). `AddIdentityServer()` and `AddIdentityBff()` register
    neither, because whether a proxy terminates TLS is the deployment's decision. A BFF host references
    `NCode.Identity.AspNetCore` to do the same.
 3. **The header follows the template's defaults.** The header is
    `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response to an HTTPS request outside
-   Development. `Enabled` is `true`, `MaxAge` is 365 days, `IncludeSubDomains` is `true` and `Preload` is `false`. The
+   Development, which is every response in Production. The redirect that pairs with the header is added outside
+   Production only. `Enabled` is `true`, `MaxAge` is 365 days, `IncludeSubDomains` is `true` and `Preload` is `false`. The
    issuer's subdomains, such as tenant hosts and the mutual-TLS alias host, are served over HTTPS by the same
    deployment.
 4. **The validator guards preload and age.** It refuses `Preload` without `IncludeSubDomains`, `Preload` with a
@@ -85,8 +89,8 @@ the header is sent outside Development as `Strict-Transport-Security: max-age=31
 
 - The console host trusts its ingress through `ForwardedHeaders:KnownNetworks` and sends the header outside
   Development.
-- Behind a proxy that does not set `X-Forwarded-Proto`, or that `ForwardedHeaders` does not trust, the host sees plain
-  HTTP and sends no header; the proxy sends it instead, or the deployment trusts the proxy.
+- Outside Production, behind a proxy that does not set `X-Forwarded-Proto`, or that `ForwardedHeaders` does not trust,
+  the host sees plain HTTP and sends no header; the proxy sends it instead, or the deployment trusts the proxy.
 - `NCode.Identity.AspNetCore` references `NCode.Identity.Registration` for strict binding and depends on
   `NCode.Buffers`.
 - A host that omits the two calls sends no header and reads the wrong scheme behind an ingress.

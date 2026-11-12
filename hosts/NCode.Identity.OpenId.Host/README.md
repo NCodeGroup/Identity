@@ -295,8 +295,7 @@ and private key it finds at `/etc/ncode-identity/tls/tls.crt` and `/etc/ncode-id
 Secret does; `Kestrel__Endpoints__<name>__…` settings replace the default endpoint and certificate. TLS ends at the pod:
 a proxy in front of it connects over HTTPS. Probe `/health/live` for liveness and `/health/ready` for readiness. The
 image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry and
-its exception in one record; set `Logging__Console__FormatterName=simple` to write text
-([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)). CI builds it for `linux/amd64` and
+its exception in one record; set `Logging__Console__FormatterName=simple` to write text. CI builds it for `linux/amd64` and
 `linux/arm64`
 ([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
 

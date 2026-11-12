@@ -50,7 +50,9 @@ the only source of the certificate, and a value that cannot be decoded fails the
 4. **Decoding is all or nothing.** A value that is not entirely certificates in the format — text around a PEM block,
    an empty entry, a block of another type, a repeated key — decodes nothing.
 5. **Behind a proxy, the header is the only source.** When `MutualTlsForwardingOptions.CertificateHeaderName` is set,
-   a request without that header presented no certificate, and the certificate on the connection is never read. A
+   a request without that header presented no certificate, and the certificate on the connection is never read.
+   Without a forwarded header, a connection whose certificate the host verified as the proxy's
+   (`IProxyClientCertificateFeature`, [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)) is never read as an end client's either. A
    deployment that accepts direct TLS sets no header, because a direct client could forge it.
 6. **A value that cannot be decoded is `invalid_request`, never "no certificate".** The resolver logs a warning naming
    the header and the format and throws `invalid_request` (`400`). A misconfigured proxy is visible instead of hiding

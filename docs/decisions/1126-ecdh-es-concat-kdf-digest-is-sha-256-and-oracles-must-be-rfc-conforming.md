@@ -77,7 +77,7 @@ non-conforming behavior into the assertions.
   pre-release posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) makes this a clean cutover with
   no compatibility shim. P-256 output is unchanged.
 - `NCode.Identity.Jose.Tests` targets `net10.0` rather than `net10.0-windows`, which is what lets the family build and
-  test on a Linux CI runner ([ADR-1125](1125-trunk-based-development-on-main.md) brings that CI online).
+  test on a Linux CI runner ([ADR-1302](1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md) brings that CI online).
 - The ECDH cross-check tests are now a genuine regression test for this defect: reinstating the curve-dependent digest
   fails them on P-384 and P-521.
 - The general rule — *an oracle is only evidence if it is known to conform* — applies beyond ECDH. Where an independent
@@ -92,7 +92,7 @@ non-conforming behavior into the assertions.
   KDF this derivation implements.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release posture that makes the token-format
   correction a clean cutover.
-- [ADR-1125](1125-trunk-based-development-on-main.md) — the continuous-integration gate whose Linux runner surfaced the
+- [ADR-1302](1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md) — the continuous-integration gate whose Linux runner surfaced the
   platform-specific target framework.
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why the oracle-selection rule is recorded here
   rather than left as a review habit.

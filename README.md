@@ -173,7 +173,7 @@ annotated in place, and coverage history and pull-request diff coverage live on
 [`CONTRIBUTING.md`](CONTRIBUTING.md) has the full workflow. Work lands on the single `main` trunk
 ([project-template ADR-0004](docs/decisions/project-template/0004-trunk-based-development-on-the-default-branch.md)),
 and shipped versions are serviced from `release/vX.Y` lines beside it
-([ADR-1305](docs/decisions/1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md)).
+([ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md)).
 
 ## Documentation
 

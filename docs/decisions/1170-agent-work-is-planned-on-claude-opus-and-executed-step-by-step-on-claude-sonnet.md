@@ -131,4 +131,4 @@ exist. User-profile migration entries are outside this contract and take individ
 - [`AGENTS.md` — Plan-and-execute workflow](../../AGENTS.md#plan-and-execute-workflow)
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — conventions and lessons live in the repository
 - [project-template ADR-0018](project-template/0018-agent-attribution-is-avoided-not-enforced.md) — agent attribution is avoided, not enforced
-- [ADR-1305](1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) — trunk-based development on `main` and its release lines
+- [ADR-1302](1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md) — trunk-based development on `main` and its release lines

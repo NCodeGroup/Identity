@@ -66,7 +66,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   merged result and squash-merges it, so a branch need not be up to date with `main`. An approval requirement is added
   when a second maintainer exists
   ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md), which supersedes
-  the unprotected trunk of [ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md);
+  the unprotected trunk of [ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md);
   [ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
   tiers and the merge queue).
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint that CI and developers run,
@@ -89,7 +89,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   `publicReleaseRefSpec`, so their builds carry a clean version with no commit-height suffix. The ruleset
   `release-lines` (`release/v*`) protects them like `main`, but without a merge queue: every pull request runs the full
   gate on a branch up to date with its line
-  ([ADR-1305](docs/decisions/1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md);
+  ([ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md);
   [ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate).
 - **Tags.** A release is an annotated (ideally signed) tag `vMAJOR.MINOR.PATCH` (prereleases `-rc.N` / `-alpha`) on a
   release line. A tag is immutable — one tag = one published package set; the ruleset `release-tags` forbids deleting or
@@ -122,7 +122,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   from a manual run on `main`: bump the prerelease version in `version.json`, merge it, then tag `v<version>` or run the
   workflow, and approve the `nuget` environment. Its publishing job holds only a short-lived key from nuget.org trusted
   publishing, and it refuses a version already published
-  ([ADR-1302](docs/decisions/1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md)).
+  ([ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md)).
 
 ## Definition of Done
 

@@ -697,7 +697,7 @@ The pods serve HTTPS only, on port 8443. The Service listens on `service.port` (
 Production unless Kestrel serves only HTTPS endpoints whose certificate loads, is valid now, has an RSA key of at least
 2048 bits or an ECDSA key, is signed with SHA-256 or stronger, and is not the ASP.NET Core development certificate. A
 TLS-terminating proxy that speaks plain HTTP to the pods is not supported
-([ADR-1503](../../docs/decisions/1503-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
 
 The probes use HTTPS, and the kubelet does not verify the certificate a probe meets. The host checks its certificate as
 it starts, and Kestrel loads renewed certificate files it watches.

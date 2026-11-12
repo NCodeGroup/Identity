@@ -18,7 +18,7 @@ namespace NCode.Identity.AspNetCore.TransportSecurity;
 /// the check runs at <see cref="StartedAsync"/>, when <see cref="IServerAddressesFeature.Addresses"/> lists each one
 /// with its real scheme.
 /// </remarks>
-// See ADR-1503.
+// See ADR-1504.
 internal sealed class TransportSecurityStartupCheck(
     IServer server,
     TransportCertificateProbe probe,

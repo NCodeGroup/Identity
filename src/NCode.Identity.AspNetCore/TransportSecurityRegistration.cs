@@ -15,7 +15,7 @@ namespace NCode.Identity.AspNetCore;
 /// <remarks>
 /// Safe to leave wired: the check is registered only in the Production environment.
 /// </remarks>
-// See ADR-1503.
+// See ADR-1504.
 [PublicAPI]
 public static class TransportSecurityRegistration
 {

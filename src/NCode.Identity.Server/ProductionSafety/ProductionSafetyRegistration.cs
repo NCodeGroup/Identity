@@ -85,7 +85,7 @@ public static class ProductionSafetyRegistration
             if (!hostEnvironment.IsProduction())
                 return serviceCollection;
 
-            // Kestrel serves HTTPS only, with a certificate that passes the transport checks (ADR-1503); inert outside Production, checked as the host finishes starting.
+            // Kestrel serves HTTPS only, with a certificate that passes the transport checks (ADR-1504); inert outside Production, checked as the host finishes starting.
             serviceCollection.AddTransportSecurity(hostEnvironment);
 
             // Data Protection is composed after this gate runs, so the key ring is checked as the host starts.

@@ -176,7 +176,7 @@ secretProtection:
     backoffLimit: 0
     activeDeadlineSeconds: 3600
 
-# TLS between the ingress and the pods (ADR-1503). The pods serve HTTPS only, and the host refuses to start in
+# TLS between the ingress and the pods (ADR-1504). The pods serve HTTPS only, and the host refuses to start in
 # Production without a certificate it can serve. The chart mounts the certificate at /etc/ncode-identity/tls and points
 # the probes, the Service and the Ingress at the pods' HTTPS port.
 backendTls:

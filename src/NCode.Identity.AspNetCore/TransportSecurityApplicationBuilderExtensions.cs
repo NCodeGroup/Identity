@@ -12,7 +12,7 @@ namespace NCode.Identity.AspNetCore;
 /// Provides the request-pipeline counterpart to <see cref="TransportSecurityRegistration"/>: applies the HTTPS
 /// redirect only in the environments that can bind a plain-HTTP endpoint.
 /// </summary>
-// See ADR-1503.
+// See ADR-1504.
 [PublicAPI]
 public static class TransportSecurityApplicationBuilderExtensions
 {

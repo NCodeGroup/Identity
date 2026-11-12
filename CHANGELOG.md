@@ -1523,7 +1523,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **JWT-bearer client authentication (`private_key_jwt` / `client_secret_jwt`)** (issue
   [#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1102](docs/decisions/1102-jwt-bearer-client-authentication.md)). Confidential clients authenticate with a signed
+  [ADR-1102](docs/decisions/1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md)). Confidential clients authenticate with a signed
   `client_assertion` (`client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer`,
   `OpenIdConstants.ClientAssertionTypes.JwtBearer`; OpenID Connect Core §9, RFC 7523). Two handlers share one base, one
   for the asymmetric `private_key_jwt`, the FAPI-eligible method, and one for the HMAC `client_secret_jwt`, non-FAPI, so

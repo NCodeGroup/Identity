@@ -229,7 +229,7 @@ The records are grouped by area; within an area they are in number order.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [1092](./1092-token-endpoint-401-www-authenticate-challenge.md) | Token-endpoint `401` + `WWW-Authenticate` challenge and the response-header seam | Accepted |
-| [1102](./1102-jwt-bearer-client-authentication.md) | JWT-bearer client authentication (`private_key_jwt` and `client_secret_jwt`) | Accepted |
+| [1102](./1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md) | A client authenticates with a single-use JWT assertion signed by its key or its secret | Accepted |
 | [1106](./1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md) | Runtime `jwks_uri` client-key resolution and a shared, extensible outbound-fetch SSRF guard | Accepted |
 | [1107](./1107-mutual-tls-client-authentication.md) | Mutual-TLS client authentication (`tls_client_auth` and `self_signed_tls_client_auth`) | Accepted |
 | [1111](./1111-complete-outbound-fetch-ssrf-coverage.md) | Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch | Accepted |

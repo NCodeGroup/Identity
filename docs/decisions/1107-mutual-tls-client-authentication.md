@@ -10,7 +10,7 @@
 
 FAPI 2.0 readiness (issue [#54](https://github.com/NCodeGroup/identity/issues/54)) requires **strong client authentication**: a confidential client proves its identity
 with asymmetric cryptography rather than a shared secret. `private_key_jwt`
-([ADR-1102](1102-jwt-bearer-client-authentication.md)) is one of the two FAPI-permitted mechanisms; **mutual-TLS client
+([ADR-1102](1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md)) is one of the two FAPI-permitted mechanisms; **mutual-TLS client
 authentication** ([RFC 8705](https://datatracker.ietf.org/doc/html/rfc8705) §2) is the other.
 
 The server already **binds** access tokens to a presented client certificate (`cnf.x5t#S256`, gated by the client's

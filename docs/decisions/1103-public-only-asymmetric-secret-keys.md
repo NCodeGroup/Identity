@@ -11,7 +11,7 @@ PKCS#8 **private** key, `ISecretKeyFactory.CreateRsa` / `CreateEcc` export that 
 `ISecretKeyFactory.Create(X509Certificate2)` **threw** when the certificate carried no private key. This fit the
 original use — the tenant's own signing keys, which the OP both signs and verifies with.
 
-JWT-bearer client authentication ([ADR-1102](1102-jwt-bearer-client-authentication.md)), JWT-Secured Authorization
+JWT-bearer client authentication ([ADR-1102](1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md)), JWT-Secured Authorization
 Requests (JAR), and client `jwks_uri` / BYOK onboarding all need the **opposite**: the OP holds a relying party's
 **public** key and only ever **verifies** with it. A public key is not secret and the party never shares its private
 half, so there was no way to represent such a key — a client's registered public certificate or JWKS entry could not
@@ -55,7 +55,7 @@ certificate without a private key.**
 ## Consequences
 
 - The OP can hold a relying party's public key as a first-class `SecretKey`, unblocking `private_key_jwt`
-  ([ADR-1102](1102-jwt-bearer-client-authentication.md)) and JAR verification against a client's registered keys, and
+  ([ADR-1102](1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md)) and JAR verification against a client's registered keys, and
   providing the primitive the client `jwks_uri` / BYOK onboarding ([#54](https://github.com/NCodeGroup/identity/issues/54) Phase 0, [#161](https://github.com/NCodeGroup/identity/issues/161)) builds on.
 - A client registered with a **public certificate** (`x509` secret) now authenticates via `private_key_jwt` with no new
   secret type: `DefaultSecretSerializer` deserializes the certificate through the relaxed `Create`, producing a

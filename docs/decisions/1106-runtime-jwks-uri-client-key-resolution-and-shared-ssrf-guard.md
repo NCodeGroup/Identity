@@ -13,7 +13,7 @@
 ## Context
 
 FAPI 2.0 readiness (issue [#54](https://github.com/NCodeGroup/identity/issues/54)) requires strong client authentication. `private_key_jwt`
-([ADR-1102](1102-jwt-bearer-client-authentication.md)) and signed request objects (JAR, RFC 9101) both verify a
+([ADR-1102](1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md)) and signed request objects (JAR, RFC 9101) both verify a
 client-signed JWT against the client's **public** keys. A client may onboard those keys two ways:
 
 - **inline JWK Set** at registration (static, stored as verify-only secrets, [ADR-1104](1104-import-public-asymmetric-secret-material.md)); or

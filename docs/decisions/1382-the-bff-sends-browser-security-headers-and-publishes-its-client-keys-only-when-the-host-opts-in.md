@@ -31,7 +31,7 @@ Four forces shape both:
   be one the application can change.
 - The client-authentication key ring, `Bff:ClientAuthentication:KeyRing`, also holds the private keys that decrypt
   encrypted ID tokens and UserInfo responses
-  ([ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)). The OP needs their public
+  ([ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md)). The OP needs their public
   halves to encrypt to the BFF.
 - The DPoP key ring, `Bff:DPoP:KeyRing`, is different: a DPoP proof carries its own public key, so no party needs it
   in advance ([ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)).
@@ -108,7 +108,7 @@ Four forces shape both:
   [ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md),
   [ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md),
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
-  [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md),
+  [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md),
   [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)
 - RFC 7517, RFC 7523, RFC 10017 §6.1.4.1, W3C Content Security Policy Level 3
 - `src/NCode.Identity.Bff/Hardening/`, `src/NCode.Identity.Bff/Endpoints/BffJwksHandler.cs`

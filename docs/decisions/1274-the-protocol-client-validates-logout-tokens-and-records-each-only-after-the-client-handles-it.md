@@ -32,7 +32,7 @@ reports that it handled the token. An invalid token is returned as data.**
 
 1. **A separate validator.** `ILogoutTokenValidator` is a contract of its own, not a mode of `IIdTokenValidator`, so
    each contract keeps its claim rules exact. It validates under Back-Channel Logout 1.0 §2.6 through the shared
-   provider-JWT core of [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md), with the
+   provider-JWT core of [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md), with the
    ID-token signature policy.
 2. **Token checks.** The JWT validator checks the signature, `iss`, `aud`, `exp` and `iat` (both required), with a
    5-minute clock skew and a 10-minute `MaxLifetime` measured from the earlier of `iat` and `nbf`. The specification
@@ -119,7 +119,7 @@ reports that it handled the token. An invalid token is returned as data.**
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) — ID-token validation
   and the signature policy
-- [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) — the shared provider-JWT core
+- [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md) — the shared provider-JWT core
   and decrypting a logout token
 - OpenID Connect Back-Channel Logout 1.0 §2.4 (logout token), §2.6 (logout token validation), §2.8 and §4 (security
   considerations)

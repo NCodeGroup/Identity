@@ -2638,7 +2638,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   accept only RSA-OAEP and ECDH-ES and no compression, require every token to be encrypted, and check a replicated `iss`
   header. An undecryptable token fails with `TokenValidationFailureCodes.DecryptionFailed` (`decryption_failed`), and a
   client that registers no encryption refuses an encrypted token with `algorithm_not_permitted`
-  ([ADR-1280](docs/decisions/1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md), issue
+  ([ADR-1280](docs/decisions/1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md), issue
   [#347](https://github.com/NCodeGroup/identity/issues/347)).
 
 - **The OpenID protocol client validates back-channel logout tokens.** `ILogoutTokenValidator.ValidateAsync` takes a

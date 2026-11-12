@@ -15,7 +15,7 @@ Ed25519 and Ed448, whose hash is not named by the `alg` suffix.
 
 The signature policy, the provider keys and their rotation, the failure of a provider and the text of a failure reason
 are those of the shared provider-JWT core in
-[ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md). A JWT is validated only under
+[ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md). A JWT is validated only under
 an explicit policy ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)),
 and [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) makes
 `SignatureAlgorithm.GetTokenHashFunction` the source of the hash each signing algorithm defines.
@@ -92,7 +92,7 @@ Connect claims and the token hashes, and returns an invalid token as data.**
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) — fully specified signature
   algorithms and their token hash
-- [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) — the shared provider-JWT core
+- [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md) — the shared provider-JWT core
 - [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md) — the token hash
   function of a signature algorithm
 - OpenID Connect Core 1.0 §3.1.3.6–3.1.3.8 (ID token validation) and §12.2 (refresh token response)

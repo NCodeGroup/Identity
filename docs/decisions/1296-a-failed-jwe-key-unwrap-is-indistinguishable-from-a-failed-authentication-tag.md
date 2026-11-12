@@ -52,7 +52,7 @@ every recipient of the JSON serialization.
 
 ## References
 
-- [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) — decryption in the protocol
+- [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md) — decryption in the protocol
   client
 - [ADR-1282](1282-the-jose-library-does-not-implement-rsa1-5.md) — no `RSA1_5`
 - RFC 7516 §11.5 (timing attacks)

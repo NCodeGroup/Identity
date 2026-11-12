@@ -74,7 +74,7 @@ vocabularies and where each code is set.
    `token_replayed`.
 7. **The client passes a JWT code through with no mapping table.** The one exception is an unverifiable signature,
    which is `invalid_signature`, or `decryption_failed` when it arose before the signing keys were resolved
-   ([ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)).
+   ([ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md)).
 8. **`IdTokenValidationResult` and `LogoutTokenValidationResult` carry the same `FailureCode`.** Their failure
    constructors take `(string failureCode, string failureReason)`, and `IsValid` is `FailureCode is null`.
 9. **`FailureReason` is human-readable text that never contains the token.** Code acts on `FailureCode`, never on the

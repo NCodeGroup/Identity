@@ -2445,8 +2445,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   bookmarked, shared and reloaded, back and forward move between surfaces and scopes, and a deep link that lands on the sign-in screen returns
   to the same page once signed in. The management scope is derived from the route, and a host that serves the console
   answers every console path with `index.html`
-  ([ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md),
-  [ADR-1255](docs/decisions/1255-each-tenant-surface-of-the-management-console-has-its-own-address.md), issue
+  ([ADR-1255](docs/decisions/1255-the-management-consoles-url-is-its-navigation-state-and-every-scopes-surface-has-its-own-address.md), issue
   [#236](https://github.com/NCodeGroup/identity/issues/236)).
 
 - **Management console cache tags are scoped.** Every tag id names the scope that owns the resource (`scopeTagId` in
@@ -4056,7 +4055,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md),
-  [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
+  [ADR-1255](docs/decisions/1255-the-management-consoles-url-is-its-navigation-state-and-every-scopes-surface-has-its-own-address.md)).
 
 - **Master keys rotate, rekey on demand and are rewrapped and destroyed in the background.** An owner's active master key
   (the platform's or a tenant's) rotates after `SecretProtection:MasterKeys:RotationPeriod` (365 days) in a daily pass that

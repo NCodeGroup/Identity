@@ -89,7 +89,7 @@ a resource server are tenant resources, addressed by their tenant alone.**
 
 - [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md): a single cohesive frontend presentation platform; the scopes are
   distinct browsing contexts.
-- [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md): the console's URL is its navigation state;
+- [ADR-1255](1255-the-management-consoles-url-is-its-navigation-state-and-every-scopes-surface-has-its-own-address.md): the console's URL is its navigation state;
   the scope derives from the route.
 - [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md):
   the control-plane tenant and the route's tenant.

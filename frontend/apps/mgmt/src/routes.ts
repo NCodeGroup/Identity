@@ -1,7 +1,7 @@
 import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@ncode/api';
 
 /**
- * The console's URL is its navigation state (ADR-1174). The path names the security boundary first and the surface
+ * The console's URL is its navigation state (ADR-1255). The path names the security boundary first and the surface
  * within it second, so the platform ↔ team ↔ tenant boundaries (ADR-1064) stay explicit in every address:
  *
  * - `/home` — the caller's home: the places it holds authority (ADR-1465);

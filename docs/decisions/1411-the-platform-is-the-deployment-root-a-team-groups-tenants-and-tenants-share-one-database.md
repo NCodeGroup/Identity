@@ -92,7 +92,7 @@ settings cascade and in authority.**
     team own settings but no secrets.
 13. **The console names the scope first.** Platform surfaces sit at the root, team surfaces under `/teams/{teamId}/…`
     and tenant surfaces under `/tenants/{tenantId}/…`
-    ([ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md)); it opens on the caller's
+    ([ADR-1255](1255-the-management-consoles-url-is-its-navigation-state-and-every-scopes-surface-has-its-own-address.md)); it opens on the caller's
     `/home`
     ([ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md)).
 14. **The words.** "Platform" is the deployment root; the platform environments of ADR-1495 (`production`, `lab`, `ci`)
@@ -154,7 +154,7 @@ settings cascade and in authority.**
 - [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
 - [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md) —
   the platform master key
-- [ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md) — console addresses
+- [ADR-1255](1255-the-management-consoles-url-is-its-navigation-state-and-every-scopes-surface-has-its-own-address.md) — console addresses
 - [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — nested teams
 - [ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md) — the caller's home
 - [ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md) — machine clients

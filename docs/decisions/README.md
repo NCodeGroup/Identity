@@ -328,8 +328,7 @@ The records are grouped by area; within an area they are in number order.
 | [1084](./1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md) | The Playground explores the recommended flow and the conformance harness measures the published spec surface | Accepted |
 | [1151](./1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md) | Every frontend workspace builds and tests from one preset that fails on warnings and oversized chunks | Accepted |
 | [1152](./1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md) | The frontend pins Node and pnpm once, gates dependencies by release age, and tracks supported upstreams | Accepted |
-| [1174](./1174-the-management-consoles-url-is-its-navigation-state.md) | The management console's URL is its navigation state | Accepted |
-| [1255](./1255-each-tenant-surface-of-the-management-console-has-its-own-address.md) | Each tenant surface of the management console has its own address | Accepted |
+| [1255](./1255-the-management-consoles-url-is-its-navigation-state-and-every-scopes-surface-has-its-own-address.md) | The management console's URL is its navigation state, and every scope's surface has its own address | Accepted |
 | [1256](./1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md) | Every page the server writes has a strict Content-Security-Policy and is framed only by design | Accepted |
 | [1258](./1258-the-server-sends-strict-transport-security-outside-development.md) | The server sends Strict-Transport-Security outside Development | Accepted |
 | [1290](./1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) | The BFF keeps each session as an encrypted server-side record under a cookie handle | Accepted |

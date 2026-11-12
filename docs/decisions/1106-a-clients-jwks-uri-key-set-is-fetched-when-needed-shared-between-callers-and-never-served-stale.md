@@ -100,7 +100,7 @@ shared between concurrent callers, remembered when the fetch fails, and never se
 
 - [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md),
   decisions 4 and 5
-- [ADR-1104](1104-import-public-asymmetric-secret-material.md),
+- [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1161](1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md),
   [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)
 - Issues [#54](https://github.com/NCodeGroup/identity/issues/54) and

@@ -40,9 +40,9 @@ No").
 2. **`AKP` is a first-class `AsymmetricSecretKey`, modeled on the OKP seam.** `AkpSecretKey` is a public abstract
    extension point consistent with `RsaSecretKey` / `EccSecretKey` / `OkpSecretKey`: it carries the ML-DSA parameter
    set (`MLDsaAlgorithm`) and the raw public key, exports its public material as `SubjectPublicKeyInfo` DER through the
-   buffer-writer primitive ([ADR-1115](1115-asymmetric-keys-model-der-material-via-buffer-writers.md)), and reaches the
+   buffer-writer primitive ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)), and reaches the
    two concrete implementations (`internal` has-private and public-only) through the single
-   `ISecretKeyTypeDescriptor` seam ([ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md)). The descriptor
+   `ISecretKeyTypeDescriptor` seam ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)). The descriptor
    generates a key pair, imports a public JWK (`kty`=`AKP`) / PEM, exports the public JWK + SPKI PEM, and deserializes
    stored PKCS#8 / SPKI. Because discovery partitions signing algorithms by
    `typeof(AsymmetricSecretKey).IsAssignableFrom(KeyType)`, ML-DSA is advertised in the asymmetric signing metadata

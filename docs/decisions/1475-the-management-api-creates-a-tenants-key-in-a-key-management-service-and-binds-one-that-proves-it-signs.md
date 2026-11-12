@@ -62,7 +62,7 @@ public half the operator supplied.**
    leaves no key behind.
 4. **Import binds a key the KMS holds and proves the binding.** The server imports the supplied public half under the
    client-key policy (`IClientKeyImporter.TryImportKey`, `Use` `sig`, [ADR-1161](1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md),
-   [ADR-1104](1104-import-public-asymmetric-secret-material.md)) and stores it as a `remote` secret with `Origin`
+   [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)) and stores it as a `remote` secret with `Origin`
    `supplied` and no `ManagedBy`, so the server never destroys it. The `RemoteKeyId` is stored in the reference
    `<provider>:<keyId>`, which holds at most 8,000 characters (`SecretMaxLengths.EncodedValue`), so the identifier
    holds at most 8,000 less the provider name's length and the colon (7,992 for `aws-kms`); it holds no control
@@ -123,5 +123,5 @@ public half the operator supplied.**
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md): authorization
   before any read.
 - [ADR-1161](1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md),
-  [ADR-1104](1104-import-public-asymmetric-secret-material.md): the import policy of a supplied public half.
+  [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md): the import policy of a supplied public half.
 - [#648](https://github.com/NCodeGroup/identity/issues/648)

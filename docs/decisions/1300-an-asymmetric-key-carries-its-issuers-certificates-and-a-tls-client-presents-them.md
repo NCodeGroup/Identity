@@ -34,7 +34,7 @@ client presents them with the client certificate.**
    certificate. Every other certificate, except a copy of that one, becomes an issuer certificate, in the order given.
    No private key, or more than one, is an `ArgumentException`, because the key's certificate would be ambiguous. The
    single-certificate `Create(KeyMetadata, X509Certificate2)` keeps its behavior, including accepting a public-only
-   certificate ([ADR-1103](1103-public-only-asymmetric-secret-keys.md)), and gives the key no issuers.
+   certificate ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)), and gives the key no issuers.
 3. **The protocol client presents them.** When `ClientCertificateProvider` selects a certificate, it also caches the
    key's issuer certificates under the same thumbprint, and the handler's `ClientCertificateContext` is
    `SslStreamCertificateContext.Create(certificate, issuers, offline: true)`. Offline, the context builds the chain from

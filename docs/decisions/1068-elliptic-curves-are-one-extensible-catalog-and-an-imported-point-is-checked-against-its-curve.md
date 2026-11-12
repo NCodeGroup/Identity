@@ -41,7 +41,7 @@ before the platform imports it.
    ECC descriptor resolves the curve by name and refuses a size that differs from it; a non-ECC descriptor refuses a
    curve. `Curve` flows from `CreateSecretRequest` to `GenerateSecretRequest` to the descriptor.
 5. **Publication reads the catalog.** The ECC descriptor's `ExportPublicKey`
-   ([ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md)) reads `crv` from the catalog by the key's actual
+   ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)) reads `crv` from the catalog by the key's actual
    curve. The capabilities document
    ([ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md))
    has an `eccCurves` section (`EccCurveCapabilitiesProvider`), and the console's create-secret form offers a
@@ -79,7 +79,7 @@ before the platform imports it.
 ## References
 
 - [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
-  [ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md),
+  [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
   [ADR-1398](1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)

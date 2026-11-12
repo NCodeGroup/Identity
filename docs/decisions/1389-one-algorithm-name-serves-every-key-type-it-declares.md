@@ -66,7 +66,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
    (RFC 7518 §4.6).
 4. **The `epk` is a JSON Web Key of the recipient key's type, written and read through that type's descriptors.** The
    algorithm finds the key type's `ISecretKeyTypeDescriptor` and its `JsonWebKeyTypeDescriptor`
-   ([ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md),
+   ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
    [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md)); a key type without a JSON Web Key form cannot
    carry an ephemeral key and is refused.
    - Writing, the descriptor exports the ephemeral public key and only the type's required members (RFC 7638 §3.2) are
@@ -162,7 +162,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
   [RFC 7638 §3.2](https://datatracker.ietf.org/doc/html/rfc7638#section-3.2)
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
-  [ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md),
+  [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1126](1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),

@@ -51,10 +51,10 @@ The two hashes EdDSA needs — **SHA-512** (Ed25519) and **SHAKE256** (Ed448) �
    public primitives (the JWK `crv` name, the key size, the raw public key, an optional certificate), with the two
    concrete implementations (`internal` has-private and public-only) reached through DI per the `DefaultFoo` convention
    ([project-template ADR-0105](project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)). Its public material is produced as `SubjectPublicKeyInfo`
-   DER (RFC 8410) through the buffer-writer primitive ([ADR-1115](1115-asymmetric-keys-model-der-material-via-buffer-writers.md)),
+   DER (RFC 8410) through the buffer-writer primitive ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)),
    and the private seed is held data-protected in memory, exported only through `ExportPrivateKey`. The descriptor
    generates (random seed → PKCS#8), imports public JWK/PEM, exports the public JWK + SPKI PEM, and deserializes stored
-   PKCS#8/SPKI — the single `ISecretKeyTypeDescriptor` seam ([ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md)).
+   PKCS#8/SPKI — the single `ISecretKeyTypeDescriptor` seam ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)).
 
 5. **The EdDSA curve set is closed, not an extensibility seam.** RFC 8032 defines exactly two curves (Ed25519, Ed448),
    and a third is a different algorithm, so the curve catalog (`OkpCurve` / `OkpCurves`) is `internal` — deliberately

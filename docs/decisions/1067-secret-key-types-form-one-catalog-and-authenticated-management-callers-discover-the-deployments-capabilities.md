@@ -14,7 +14,7 @@ drifts from the server, and the server has no other surface that tells a client.
 The forces:
 
 - **The knowledge has one source.** Key types are registered descriptors
-  ([ADR-1104](1104-import-public-asymmetric-secret-material.md)), so the server already holds what each type can do,
+  ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)), so the server already holds what each type can do,
   and a client reads it instead of keeping a copy.
 - **The set is open.** A sibling package adds a key type, an algorithm or a remote key provider by registering it, so
   the document that describes them is composed from registered parts, like the OpenID Connect discovery document.
@@ -44,7 +44,7 @@ reads it.**
    - `eccCurves`, from `EccCurveCapabilitiesProvider`.
    - `remoteKeyProviders`, from `RemoteKeyProviderCapabilitiesProvider`.
 3. **Key types are registered descriptors.** The `secretTypes` section reads the key-type catalog of
-   [ADR-1104](1104-import-public-asymmetric-secret-material.md), so a new key type is a registered descriptor and
+   [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md), so a new key type is a registered descriptor and
    appears in the document without any other edit.
 4. **No client hard-codes secret types.** The management console reads the document to gate public-key export and to
    drive its key forms.
@@ -87,7 +87,7 @@ The catalog is a strategy collection and the document is a mediator fan-out
 - `SecretTypeCapabilitiesProvider`, `AlgorithmCapabilitiesProvider`, `EccCurveCapabilitiesProvider`,
   `RemoteKeyProviderCapabilitiesProvider`
 - `ManagementProblems.AuthenticationRequired()`, `IManagementCallerFeature`, `ManagementRouteProblemDeclarationTests`
-- [ADR-1104](1104-import-public-asymmetric-secret-material.md): the key-type catalog.
+- [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md): the key-type catalog.
 - [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md): the algorithms section.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): strategy
   collection and mediator.

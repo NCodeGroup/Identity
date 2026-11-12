@@ -62,7 +62,7 @@ replica reloads, under the API's `ETag` and `If-Match` model.
 - The reveal is also gated by type. `SecretMaterial` is set only for a generated symmetric secret
   (`GeneratedSecret.SecretMaterial`). A generated asymmetric secret keeps its private half, so the field is `null`, and
   a client that holds its own key pair imports only the public half
-  ([ADR-1104](1104-import-public-asymmetric-secret-material.md)).
+  ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)).
 - `Operations.Create` at the owner's node
   ([ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md))
   is the only gate on the reveal. The plaintext never reaches an audit event, a log, a trace or the stored row, and a
@@ -147,7 +147,7 @@ no secret and is not marked. A secret-revealing endpoint of an extending package
 - `NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource` and `CreatedSecretResource`
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md),
   [ADR-1049](1049-openid-errors-audited-from-single-funnel.md),
-  [ADR-1104](1104-import-public-asymmetric-secret-material.md),
+  [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
   [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md),
   [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)

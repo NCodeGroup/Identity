@@ -728,7 +728,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCode.Identity.Secrets.Abstractions` references the package, so JWK is first-class in the secrets and JOSE stacks
   without any `*.Abstractions` package carrying logic. Public `JsonWebKey(JsonElement)` / `JsonWebKey(JsonObject)`
   constructors take in-memory nodes and `JsonWebKey.Parse(string)` takes JSON text. The key type descriptor seam
-  ([ADR-1105](docs/decisions/1105-secret-key-type-descriptor-first-class-seam.md)) owns per-key-type member production;
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)) owns per-key-type member production;
   `ExportedPublicKey.Jwk` is a `JsonWebKey`, the JWKS endpoint returns a `JsonWebKeySet`, and the DPoP proof validator
   parses the embedded key into a `JsonWebKey` and thumbprints it with `ComputeThumbprint()`
   ([ADR-1119](docs/decisions/1119-first-class-jwk-jwks-and-thumbprint.md)).
@@ -1076,7 +1076,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Edwards-curve (OKP) and post-quantum keys. RSA and ECC implement it from their family exports; OKP and PQC keys
   implement it from their own DER encoders. Callers that need a live classical algorithm use the family-specific
   `ExportRSA()` / `ExportECDsa()` accessors
-  ([ADR-1115](docs/decisions/1115-asymmetric-keys-model-der-material-via-buffer-writers.md),
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 
 - **Verify-only (public-only) asymmetric secret keys.** `ISecretKeyFactory.CreateRsaPublicKey` and `CreateEccPublicKey`
@@ -1085,7 +1085,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   certificate and yields a verify-only key, so a relying party's registered public certificate (persisted as an `x509`
   secret) is a usable verification key with no separate secret type. This is the primitive that lets the OP hold a
   client's public key for `private_key_jwt`, JAR and `jwks_uri` / BYOK onboarding
-  ([ADR-1103](docs/decisions/1103-public-only-asymmetric-secret-keys.md),
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [#54](https://github.com/NCodeGroup/identity/issues/54), [#161](https://github.com/NCodeGroup/identity/issues/161)).
 
 - **An asymmetric key carries its issuers' certificates.** `AsymmetricSecretKey.IssuerCertificatesRawData` keeps the
@@ -1116,7 +1116,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   extension bases `SecretKeyTypeDescriptor` and `AsymmetricSecretKeyTypeDescriptor` are public, so an application adds a
   custom key type by deriving from them. Shared key state (metadata, key size, certificate handling) lives on
   `AsymmetricSecretKey`, and the `Default*` / `Public*` concretes hold only their key material
-  ([ADR-1105](docs/decisions/1105-secret-key-type-descriptor-first-class-seam.md),
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1067](docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md)).
 
 - **The secret-key types live in purpose-based namespaces.** `NCode.Identity.Secrets.KeyTypes` holds the secret-key type
@@ -1158,7 +1158,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   is rejected. Import is public-only by construction (a private or symmetric key is rejected), so the reveal-once model
   ([ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)) is the sole path a symmetric value leaves
   the server. Dynamic client registration consumes an inline `jwks` set at registration
-  ([ADR-1104](docs/decisions/1104-import-public-asymmetric-secret-material.md),
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md),
   [#161](https://github.com/NCodeGroup/identity/issues/161), [#54](https://github.com/NCodeGroup/identity/issues/54)).
 

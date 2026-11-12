@@ -13,7 +13,7 @@ enter the server at four points: the JSON Web Key Set a client registers by valu
 7591, [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)),
 the set it publishes at its `jwks_uri`
 ([ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)),
-a key imported for it through the management API ([ADR-1104](1104-import-public-asymmetric-secret-material.md)), and
+a key imported for it through the management API ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)), and
 the metadata an administrator updates on a stored key. Tenants and resource servers import and update keys through the
 same management API. The forces are:
 

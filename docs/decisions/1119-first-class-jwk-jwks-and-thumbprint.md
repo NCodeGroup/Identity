@@ -9,7 +9,7 @@
 Issue [#72](https://github.com/NCodeGroup/identity/issues/72) asked for first-class **JSON Web Key** (RFC 7517), **JSON Web Key Set** (RFC 7517 §5), and
 **JWK Thumbprint** / **Thumbprint URI** (RFC 7638 / RFC 9278) types. Before this, a key's JWK form existed only as a
 raw `System.Text.Json.Nodes.JsonObject` produced by the secret-key-type descriptor
-([ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md)), the JWKS endpoint hand-assembled a result object of
+([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)), the JWKS endpoint hand-assembled a result object of
 `JsonObject` keys, and the DPoP proof validator computed the `jkt` thumbprint from a **hand-rolled canonical JSON
 string** (`$$"""{"e":"…","kty":"RSA","n":"…"}"""`) — three separate, duplicative treatments of the same concept.
 
@@ -56,7 +56,7 @@ package, not folded into Secrets or JOSE.
    `JsonWebKeySet(IEnumerable<JsonWebKey>)`; JSON **text** parses via the static `Parse(string)`. (The verb split is
    the rule: a constructor adopts an in-memory value, `Parse` deserializes text.)
 
-5. **The descriptor seam is unchanged; `JsonWebKey` is a generic wire model, not a per-family converter.** ADR-1105
+5. **The descriptor seam is unchanged; `JsonWebKey` is a generic wire model, not a per-family converter.** ADR-1104
    deliberately removed a per-key-type `IJsonWebKeyConverter` / typed `RsaJsonWebKey`/`EccJsonWebKey` registry. This
    does **not** reintroduce it: the descriptor still owns per-key-type member production (it assembles the `JsonObject`
    of members), and `JsonWebKey` is a single generic type that merely wraps those members and adds parse / serialize /

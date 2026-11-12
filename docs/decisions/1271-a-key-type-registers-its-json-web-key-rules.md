@@ -73,7 +73,7 @@ listed `kty` and `pub` only.
 ## References
 
 - [ADR-1119](1119-first-class-jwk-jwks-and-thumbprint.md) — first-class JWK, JWKS and thumbprint (amended)
-- [ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md) — the secret key type descriptor seam
+- [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md) — the secret key type descriptor seam
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - RFC 7638 — JSON Web Key (JWK) Thumbprint
 - RFC 9964 — JOSE and COSE Algorithm Key Pair (AKP) key type

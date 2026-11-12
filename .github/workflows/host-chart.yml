@@ -4,11 +4,11 @@
 # values file under ci/ must lint strictly and render, and each release the chart must refuse — the host would refuse
 # it, or its replicas would not share state — must fail to render. The pre-deploy migration Job must render unless
 # disabled (ADR-1180). The chart takes the database as a finished connection string or as the parts of a Postgres
-# operator's Secret, and refuses both for one connection (ADR-1509). The chart's management console component is
-# checked too: it must render on a host of its own that routes every path to the console, call the management API at
-# its authority's origin, stay opt-in (ADR-1458, ADR-1437), and hold its key rings in a key management service under
-# its own identity. A server remote key provider is registered only when enabled, with or without its location
-# (ADR-1485).
+# operator's Secret, and refuses both for one connection (ADR-1509); Valkey takes the same two forms (ADR-1510). The
+# chart's management console component is checked too: it must render on a host of its own that routes every path to
+# the console, call the management API at its authority's origin, stay opt-in (ADR-1458, ADR-1437), and hold its key
+# rings in a key management service under its own identity. A server remote key provider is registered only when
+# enabled, with or without its location (ADR-1485).
 # The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
 # the certificate, and the chosen route verifies it (ADR-1504, ADR-1507). The pods can require the ingress controller's
 # client certificate, and the chart's ingress certificate and its Secret are checked. The cluster job installs the chart
@@ -91,6 +91,10 @@ jobs:
           refuse --set database.existingSecret= --set database.parts.existingSecret=identity-db-app --set database.parts.passwordKey=
           refuse --set migrations.database.existingSecret=schema --set migrations.database.parts.existingSecret=schema-parts
           refuse --set database.parts.unknownKey=x
+          # Valkey takes the same two forms, one per connection (ADR-1510).
+          refuse --set valkey.existingSecret=a --set valkey.parts.existingSecret=b
+          refuse --set valkey.parts.existingSecret=vk --set valkey.parts.hostKey=
+          refuse --set valkey.parts.unknownKey=x
           refuse --set secretProtection.rootKeyProvider=
           refuse --set secretProtection.rootKeyProvider=ephemeral
           refuse --set environment=Staging --set secretProtection.rootKeyProvider=
@@ -211,6 +215,47 @@ jobs:
           expect "$(helm template release "$CHART" --values "$CHART/ci/rewrap-job-values.yaml" \
             --set database.existingSecret= --set database.parts.existingSecret=identity-db-app \
             --show-only templates/secret-protection-job.yaml)" 'OpenIdDatabase__Host'
+
+      - name: Take Valkey as a finished connection string or as its parts
+        run: |
+          base="$CHART/ci/high-availability-values.yaml"
+          parts="$CHART/ci/valkey-parts-values.yaml"
+          expect() {
+            local rendered="$1"; shift
+            for expected in "$@"; do
+              if ! grep -q -- "$expected" <<< "$rendered"; then
+                echo "::error::The release lacks: $expected"
+                exit 1
+              fi
+            done
+          }
+          reject() {
+            local rendered="$1"; shift
+            for unexpected in "$@"; do
+              if grep -q -- "$unexpected" <<< "$rendered"; then
+                echo "::error::The release renders what it must not: $unexpected"
+                exit 1
+              fi
+            done
+          }
+          # A parts Secret reaches the pods as one variable per part, and no connection string is built.
+          deployment=$(helm template release "$CHART" --values "$parts" --show-only templates/deployment.yaml)
+          expect "$deployment" 'name: ValkeyConnection__Host' 'name: identity-valkey-app' 'key: "password"'
+          reject "$deployment" 'ConnectionStrings__valkey'
+          # TLS to the server is the boolean ssl, and an empty key leaves its part out.
+          reject "$deployment" 'ValkeyConnection__Ssl'
+          expect "$(helm template release "$CHART" --values "$parts" --set valkey.parts.ssl=true \
+            --show-only templates/deployment.yaml)" 'ValkeyConnection__Ssl'
+          reject "$(helm template release "$CHART" --values "$parts" --set valkey.parts.passwordKey= \
+            --show-only templates/deployment.yaml)" 'ValkeyConnection__Password'
+          # A finished connection string reaches the pods as one variable, and no part is passed.
+          string=$(helm template release "$CHART" --values "$base" --show-only templates/deployment.yaml)
+          expect "$string" 'ConnectionStrings__valkey'
+          reject "$string" 'ValkeyConnection__'
+          # The management console reads its own parts Secret.
+          expect "$(helm template release "$CHART" --values "$parts" \
+            --show-only templates/management-console-deployment.yaml)" \
+            'ValkeyConnection__Host' 'name: console-valkey-app'
 
       - name: Register a remote key provider and carry its credentials only when it is enabled
         run: |

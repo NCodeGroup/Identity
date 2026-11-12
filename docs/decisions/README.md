@@ -119,12 +119,10 @@ The records are grouped by area; within an area they are in number order.
 | [1134](./1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) | The platform and the host follow written cloud-native operating principles | Accepted |
 | [1135](./1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md) | Platform resources carry one stable tag set, and provenance comes from attestations and audit logs | Accepted |
 | [1146](./1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md) | A development seeder registers only the clients its configuration declares | Accepted |
-| [1178](./1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) | The host image is chiseled, non-root, multi-arch, and carries the login bundle | Accepted |
 | [1179](./1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) | The host chart references its secrets and refuses a release the host would refuse | Accepted |
 | [1180](./1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) | Each host context's migrations run before the rollout and only expand the schema | Accepted |
 | [1247](./1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md) | The platform master key protects the Data Protection ring, and an unreadable key stops the host | Accepted |
-| [1248](./1248-the-host-image-writes-one-line-json-logs.md) | The host image writes one-line JSON logs | Accepted |
-| [1249](./1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md) | The host image's base images are pinned by digest and tracked by Dependabot | Accepted |
+| [1248](./1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md) | The host and console images are chiseled, non-root, multi-arch, digest-pinned and log one-line JSON | Accepted |
 | [1313](./1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md) | Development conveniences are inert unless configured and run through the production path | Accepted |
 | [1370](./1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md) | A host names its root key provider, and development secrets are generated per machine | Accepted |
 | [1430](./1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md) | End-to-end suites run the BFF in real browsers against a containerized Keycloak in their own gate | Accepted |

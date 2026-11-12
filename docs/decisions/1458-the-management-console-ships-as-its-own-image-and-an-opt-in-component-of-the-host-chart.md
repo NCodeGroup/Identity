@@ -3,7 +3,7 @@
 - **Status:** Accepted (amends
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
   [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) and
-  [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md); amended by
+  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md); amended by
   [ADR-1485](1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md):
   the console's key rings are `managementConsole.keyRings.client` and `managementConsole.keyRings.dpop`, each a PEM
   Secret, keys a key management service holds, or both, reached through the console's own workload identity, and the
@@ -21,7 +21,7 @@ The management console is a host and an origin of its own
 routes `/api` to the OP and every other path to the console. The console's key rings are PEM files
 ([ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)). The image and the chart are the
 deployable artifacts of a host
-([ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md),
+([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
 [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Issue
 [#610](https://github.com/NCodeGroup/identity/issues/610) asks for both.
 
@@ -68,9 +68,9 @@ host.**
 
 - [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
   [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
-  [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md),
+  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md),
-  [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)
+  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)
 - `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile`, `.github/workflows/console-image.yml`,
   `charts/ncode-identity-host`
 - Issue [#610](https://github.com/NCodeGroup/identity/issues/610)

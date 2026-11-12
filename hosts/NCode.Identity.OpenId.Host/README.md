@@ -281,7 +281,7 @@ DataProtection key ring are in the same database and are purged with it.
 
 The `Dockerfile` builds the production image from the repository root. Its base images are pinned by tag and digest, and
 Dependabot moves the digests
-([ADR-1249](../../docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)); the
+([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)); the
 Node image's major matches the single pin in `frontend/.node-version`, which the `Host image` workflow checks:
 
 ```bash
@@ -293,9 +293,9 @@ port **8080** over plain HTTP, and serves the `apps/auth` login bundle from `/ap
 Probe `/health/live` for liveness and `/health/ready` for readiness. The image writes one JSON object per line to
 standard output, with a UTC timestamp, so a log collector keeps an entry and its exception in one record; set
 `Logging__Console__FormatterName=simple` to write text
-([ADR-1248](../../docs/decisions/1248-the-host-image-writes-one-line-json-logs.md)). CI builds it for `linux/amd64` and
+([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)). CI builds it for `linux/amd64` and
 `linux/arm64`
-([ADR-1178](../../docs/decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
 
 The image starts in the `Production` environment, which refuses to start until the deployment provides:
 

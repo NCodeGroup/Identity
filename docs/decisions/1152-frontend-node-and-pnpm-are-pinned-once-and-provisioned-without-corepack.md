@@ -6,7 +6,7 @@
   runtime is Node 26 and `engines.node` is its floor; amended by
   [ADR-1153](1153-one-release-age-window-gates-frontend-dependencies.md): pnpm also enforces Dependabot's three-day
   release-age window; and by
-  [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md): the host image names
+  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md): the host image names
   the Node major as a literal that the Host image workflow checks against .node-version; and by
   [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md): the AppHost fails at startup when
   the pinned Node or the workspace install is missing or stale)
@@ -92,7 +92,7 @@ pin by pnpm's own tooling, not by Corepack.
 - The frontend runtime is supported until 2029-04-30.
 - Moving to the next Node major means changing `.node-version`, `engines.node`, the two `@types/node` ranges, the Node
   image of the host Dockerfile, whose major the `Host image` workflow checks
-  ([ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)), plus whatever code
+  ([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)), plus whatever code
   the new types break. CI, the AppHost, the bootstrap script, and the documentation follow the file.
 - Each developer re-runs `build/frontend-install.ps1` once. It adds Node 26 through NVS and installs pnpm 10. pnpm 10
   then replaces the `node_modules` that pnpm 9 built, without the interactive confirmation it would otherwise ask

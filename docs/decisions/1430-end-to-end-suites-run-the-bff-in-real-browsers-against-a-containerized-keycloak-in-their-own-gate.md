@@ -6,7 +6,7 @@
   project under tests/ whose name does not end in .Tests is a support project that no tier runs)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
-- **Refines:** [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md), [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)
+- **Refines:** [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md), [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)
 
 ## Context
 
@@ -55,7 +55,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
 
 6. **The OP is Keycloak 26.8.1 for both suites.** The image is pinned by digest in a `Dockerfile` beside a checked-in
    realm, and Dependabot's docker ecosystem keeps it current, ignoring majors
-   ([ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
+   ([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
    [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md)). Keycloak
    implements every standard the BFF uses and can require PAR, PKCE, DPoP and the ID-token algorithm per client, so a
    login that succeeds proves the BFF used them. The browser suite's assertions are about the BFF, so it needs no NCode
@@ -129,7 +129,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
 
 - [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md),
   [ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md),
-  [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
+  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md),
   [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md)
 - Issues [#418](https://github.com/NCodeGroup/identity/issues/418) and

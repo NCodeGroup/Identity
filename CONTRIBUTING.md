@@ -226,7 +226,7 @@ refactored ahead of its first release (issue [#36](https://github.com/NCodeGroup
 ecosystem sets `open-pull-requests-limit: 0`. Security updates still arrive as pull requests (one group per ecosystem)
 whenever a published advisory affects a dependency. The docker and dotnet-sdk ecosystems keep their limit of 5 and run
 during the pause: a digest pin and the SDK floor in `global.json` follow their upstream releases
-([ADR-1249](docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
+([ADR-1248](docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
 [ADR-1493](docs/decisions/1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md)).
 
 When one is red, the fix belongs **on its branch**: check out the PR branch, commit the code or config the new versions

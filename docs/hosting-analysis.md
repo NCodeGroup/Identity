@@ -643,7 +643,7 @@ speed-test endpoint from the Denver network the users are on.
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
   developer CORS, seeders). Its image is chiseled, runs non-root on port 8080, is built for amd64 and arm64, and
   carries the login bundle
-  ([ADR-1178](decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Its Helm
+  ([ADR-1248](decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)). Its Helm
   chart runs restricted pods that probe `/health/live` and `/health/ready`, drain before stopping, and require Valkey
   for more than one replica
   ([ADR-1179](decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Before

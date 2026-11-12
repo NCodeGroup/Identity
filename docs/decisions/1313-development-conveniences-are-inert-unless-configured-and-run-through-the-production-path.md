@@ -12,7 +12,7 @@
   [ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) and
-  [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)
+  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)
 
 ## Context
 

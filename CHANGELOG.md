@@ -345,13 +345,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   cross-build on the build platform, so the image builds for `linux/amd64` and `linux/arm64` without emulation in one
   multi-architecture build, whose NuGet cache mount is locked so the two publishes take turns rather than reading
   packages the other is still extracting; the `Host image` CI workflow builds both. The build context is an allow-list
-  ([ADR-1178](docs/decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+  ([ADR-1248](docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
 
 - **The host image writes one-line JSON logs.** The image sets `Logging__Console__FormatterName=json`,
   `Logging__Console__FormatterOptions__UseUtcTimestamp=true` and
   `Logging__Console__FormatterOptions__TimestampFormat=O`, so every entry, the migration worker's included, is one JSON
   object on one line with a UTC timestamp; `Logging__Console__FormatterName=simple` selects text
-  ([ADR-1248](docs/decisions/1248-the-host-image-writes-one-line-json-logs.md), issue
+  ([ADR-1248](docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md), issue
   [#265](https://github.com/NCodeGroup/identity/issues/265)).
 
 - **The management console host ships a production container image.**
@@ -4389,7 +4389,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   versions from those lines alone, with no version build argument; a weekly `docker` Dependabot stream moves the digests
   of both images in one pull request, and the `Host
   image` workflow checks the Node major against `.node-version`
-  ([ADR-1249](docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md), issue
+  ([ADR-1248](docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md), issue
   [#226](https://github.com/NCodeGroup/identity/issues/226)).
 
 - **Dependencies are pinned to releases without known advisories.** Every `Microsoft.AspNetCore.*`,

@@ -86,7 +86,7 @@ A reviewer checks these by hand:
 ### The migration runs in the chart as a hook Job
 
 - The host image carries the worker at `/app/migrations`
-  ([ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)), so a release always
+  ([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)), so a release always
   migrates to the schema its host reads and a separate migration image could never fall out of step.
 - The chart runs the worker as a `pre-install` and `pre-upgrade` hook Job. Helm waits for it before it changes anything
   else, so a failed migration fails the release while the previous version serves and no pod is replaced.
@@ -149,7 +149,7 @@ rule for every migration author.
 - [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
-  [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md),
+  [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md),
   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)
 - [#535](https://github.com/NCodeGroup/identity/issues/535)

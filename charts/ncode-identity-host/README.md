@@ -708,5 +708,5 @@ TLS to Postgres, reaches both the host and the migrations.
 
 The image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry
 and its exception in one record
-([ADR-1248](../../docs/decisions/1248-the-host-image-writes-one-line-json-logs.md)). Set
+([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)). Set
 `Logging__Console__FormatterName=simple` in `extraEnv` to write text instead.

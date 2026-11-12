@@ -9,7 +9,7 @@
 # refactored heavily ahead of its first release, a weekly version bump is mostly churn against code that is about to
 # move. Every other ecosystem therefore sets `open-pull-requests-limit: 0`, which is GitHub's documented way to pause
 # version updates while keeping their configuration. The docker ecosystem keeps its limit of 5 because a digest pin
-# receives its fixes only through that stream (ADR-1249). The dotnet-sdk ecosystem keeps its limit of 5 too, because the
+# receives its fixes only through that stream (ADR-1248). The dotnet-sdk ecosystem keeps its limit of 5 too, because the
 # floor of global.json follows each SDK release (ADR-1493). Security updates continue: with the repository setting
 # "Dependabot security updates" on, Dependabot opens a pull request whenever a published advisory affects a
 # dependency, and the limit does not apply to those. Everything below — ignore rules, cooldown, groups — stays in
@@ -113,7 +113,7 @@ updates:
         applies-to: security-updates
         patterns: ['*']
 
-  # The host and management console images' base images (ADR-1249). Both images share the same base images, so one pull
+  # The host and management console images' base images (ADR-1248). Both images share the same base images, so one pull
   # request moves both. A digest pin receives operating-system and runtime fixes only through this
   # stream, so it runs while issue #36 pauses the other ecosystems. A runtime major moves deliberately, together with
   # frontend/.node-version or the target framework, so semver-major updates are ignored.
@@ -136,7 +136,7 @@ updates:
         applies-to: security-updates
         patterns: ['*']
 
-  # The end-to-end suites' OpenID Provider image. It is digest-pinned like the host image's base images (ADR-1249), so it
+  # The end-to-end suites' OpenID Provider image. It is digest-pinned like the host image's base images (ADR-1248), so it
   # receives its fixes only through this stream and runs while issue #36 pauses the other ecosystems. A Keycloak major
   # moves deliberately, together with a review of the realm, so semver-major updates are ignored.
   - package-ecosystem: docker

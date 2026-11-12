@@ -26,7 +26,7 @@ cache
 carries a content security policy with `img-src 'self'` and no `manifest-src`
 ([ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
 The image builds' context holds only `src/`, `hosts/`, `analyzers/`, `frontend/` and the root build files
-([ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)), so a frontend build
+([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)), so a frontend build
 cannot read `brand/`.
 
 A web manifest makes a page installable as an app named "NCode Identity". A tenant has a `logoUrl`, a header picture of
@@ -83,7 +83,7 @@ into the `assets/` its host already serves.**
 - **One shared copy and a preset plugin.** Rejected: a link into another package resolves in a build but not on a dev
   server ([ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
 - **Reading `brand/` directly.** Rejected: the image builds' context holds no `brand/`
-  ([ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+  ([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
 - **Linking the web manifest.** Rejected for the reasons of decision 4.
 
 ## Consequences
@@ -99,7 +99,7 @@ into the `assets/` its host already serves.**
 - Issue [#737](https://github.com/NCodeGroup/identity/issues/737)
 - `brand/README.md`
 - [ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)
-- [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)
+- [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)
 - [ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md)
 - [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)

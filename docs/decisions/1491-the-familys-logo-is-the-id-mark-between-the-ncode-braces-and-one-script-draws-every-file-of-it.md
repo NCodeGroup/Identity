@@ -80,5 +80,5 @@ palette. `brand/build.py` draws every file of it, and `brand/` holds them.**
 - [`THIRD-PARTY-NOTICES.md`](../../THIRD-PARTY-NOTICES.md) — Inter's copyright and license.
 - [ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) — the bundled list that set the practice for
   third-party material: a pinned source, a script that verifies its SHA-256, and a notice.
-- [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) — the host image
+- [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md) — the host image
   and its allow-listed build context.

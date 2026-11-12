@@ -9,8 +9,9 @@
 # provider is registered only when enabled, with or without its location (ADR-1485).
 # The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
 # the certificate, and the chosen route verifies it (ADR-1504, ADR-1507). The pods can require the ingress controller's
-# client certificate, and the chart's ingress certificate and its Secret are checked. The cluster job installs the chart
-# in kind behind Traefik (ADR-1506).
+# client certificate, and the chart's ingress certificate and its Secret are checked. The cluster job installs the
+# server and the management console in kind behind Traefik and behind an Envoy Gateway, which implements the Gateway's
+# backend client certificate (ADR-1506, ADR-1507).
 # The chart serves no API reference unless its values enable it (ADR-1481).
 # The Publish artifacts workflow publishes the chart (ADR-1505).
 name: Host chart
@@ -518,10 +519,13 @@ jobs:
           reject "$pem" 'AWS_ROLE_ARN' 'RemoteKeyProviders'
 
   # Rendering cannot prove what only a cluster does: cert-manager issuing the certificates, Traefik reading the
-  # ServersTransport the chart renders, and Traefik verifying the pods' certificate and presenting its own. This job
-  # installs the chart in a kind cluster behind Traefik to prove them (ADR-1506, ADR-1507).
+  # ServersTransport the chart renders, Traefik and Envoy Gateway verifying the pods' certificate and presenting
+  # their own, and the pods requiring it. This job installs the chart with the server and the management console in a
+  # kind cluster, first behind Traefik and then behind an Envoy Gateway, to prove them (ADR-1506, ADR-1507). Envoy
+  # Gateway is the Gateway API implementation because it implements the Gateway's backend client certificate
+  # (spec.tls.backend.clientCertificateRef), which the pods' client certificate requirement needs.
   cluster:
-    name: Install the host chart in kind behind Traefik
+    name: Install the host chart in kind behind Traefik and a Gateway
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -805,6 +809,43 @@ jobs:
           expect_route 200 "envoy-gateway-system/$service" manage.example.com / \
             'A request to / on the console host through the Gateway with the client certificate required, which proves that the Gateway presented its certificate to the console (a 403 means the console refused the Gateway),'
 
+      # The pods require the client certificate that the Gateway presents, so a Gateway without one must be refused.
+      # Removing spec.tls from the Gateway takes its clientCertificateRef away. The pods answer 403 to a missing proxy
+      # certificate on every path except /health/*, which they exempt, so the discovery document and the console's page
+      # are refused and /health/ready is still served. Applying the manifest again restores the Gateway's certificate.
+      - name: Refuse a Gateway that presents no client certificate
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          kubectl -n gateway-system patch gateway identity-gateway --type=json \
+            -p '[{"op":"remove","path":"/spec/tls"}]'
+          expect_route 403 "$GATEWAY_SERVICE" id.example.com /.well-known/openid-configuration \
+            'A request to /.well-known/openid-configuration through a Gateway without a client certificate, which proves that the pods require the certificate of the Gateway,'
+          expect_route 403 "$GATEWAY_SERVICE" manage.example.com / \
+            'A request to / on the console host through a Gateway without a client certificate, which proves that the console pods require the certificate of the Gateway,'
+          expect_route 200 "$GATEWAY_SERVICE" id.example.com /health/ready \
+            'A request to /health/ready through a Gateway without a client certificate, which the pods exempt from the requirement and which proves that the Gateway still reaches them,'
+          kubectl apply -f "$CHART/ci/kind-gateway.yaml"
+          expect_route 200 "$GATEWAY_SERVICE" id.example.com /.well-known/openid-configuration \
+            'A request to /.well-known/openid-configuration through the Gateway after its client certificate is restored, which proves that the certificate is what the pods accepted,'
+
+      # A BackendTLSPolicy that verifies against a CA that did not sign the pods' certificate must not reach them.
+      # The wrong-ca ConfigMap holds a foreign CA, and the release names it instead of the ConfigMap that the publisher
+      # writes, so the publisher is turned off and cannot overwrite it. The console falls back to the server's
+      # ConfigMap, so its BackendTLSPolicy verifies against the same foreign CA.
+      # Envoy's answer to a failed upstream TLS verification is 503, and the pods would answer 200.
+      - name: Refuse a BackendTLSPolicy that verifies against the wrong CA
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          kubectl -n "$NAMESPACE" create configmap wrong-ca --from-file=ca.crt="$RUNNER_TEMP/wrong-ca.pem"
+          helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-gateway-api-values.yaml" \
+            --set backendTls.caPublisher.enabled=false --set backendTls.caConfigMap=wrong-ca --wait --timeout 10m
+          expect_route 503 "$GATEWAY_SERVICE" id.example.com /health/ready \
+            'A request to /health/ready through the Gateway with a foreign CA in the BackendTLSPolicy, which proves that the BackendTLSPolicy verifies the certificate of the pods,'
+          expect_route 503 "$GATEWAY_SERVICE" manage.example.com /health/ready \
+            'A request to /health/ready on the console host through the Gateway with a foreign CA in the BackendTLSPolicy, which proves that the BackendTLSPolicy verifies the certificate of the console pods,'
+
       - name: Show the cluster when a step fails
         if: failure()
         run: |
@@ -813,8 +854,11 @@ jobs:
           kubectl get issuers -A || true
           kubectl get ingress -A || true
           kubectl get serverstransports.traefik.io -A || true
+          kubectl get gateways,httproutes,backendtlspolicies,referencegrants -A || true
+          kubectl -n envoy-gateway-system get pods || true
           kubectl -n "$NAMESPACE" describe pods || true
           kubectl -n "$NAMESPACE" logs -l app.kubernetes.io/component=server --tail=200 || true
           kubectl -n "$NAMESPACE" logs -l app.kubernetes.io/component=management-console --tail=200 || true
           kubectl -n "$NAMESPACE" logs --all-containers --tail=200 -l app.kubernetes.io/component=migrations || true
           kubectl -n traefik logs --all-containers --tail=200 -l app.kubernetes.io/name=traefik || true
+          kubectl -n envoy-gateway-system logs --all-containers --tail=200 -l app.kubernetes.io/name=envoy || true

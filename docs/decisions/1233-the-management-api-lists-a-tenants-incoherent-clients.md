@@ -59,7 +59,7 @@ API lists it on demand.**
   change of the server's settings produces them.
 - **A filter on the client list.** Rejected: whether a client is incoherent is computed by rules over the resolved
   settings, so the predicate cannot be pushed to the database
-  ([ADR-1080](1080-store-query-methods-push-filtering-to-dbms.md)).
+  ([ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md)).
 - **A route under `/clients`.** Rejected: it collides with `/clients/{clientId}`, which would answer it as a client
   identifier.
 - **One response for every client.** Rejected: the work of a request would be proportional to the size of the tenant.
@@ -82,7 +82,7 @@ API lists it on demand.**
 
 ## References
 
-- [ADR-1080](1080-store-query-methods-push-filtering-to-dbms.md) — a computed predicate cannot be pushed to the
+- [ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) — a computed predicate cannot be pushed to the
   database.
 - [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) — the coherence rules and the
   validator.

@@ -2402,7 +2402,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   only, including the grant's session id: the internal `HashedKey` and the grant `PayloadJson` are never exposed. See
   [ADR-1020](docs/decisions/1020-grant-management-read-surface.md),
   [ADR-1022](docs/decisions/1022-grant-filters-and-bulk-revocation.md) and
-  [ADR-1099](docs/decisions/1099-forward-compatible-evolving-parameters.md).
+  [ADR-1080](docs/decisions/1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md).
 
 - **`/api/tenants/{tenantId}/sessions` lets an administrator list and revoke a subject's sessions** (issue
   [#63](https://github.com/NCodeGroup/identity/issues/63),
@@ -2913,7 +2913,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   grants with a `GrantFilter` init-only record struct (`SubjectId`, `ClientId`, `SessionId`, `GrantType`), so pagination
   (for example a sort direction) and selection criteria grow without a signature change (issue
   [#26](https://github.com/NCodeGroup/identity/issues/26),
-  [ADR-1099](docs/decisions/1099-forward-compatible-evolving-parameters.md)).
+  [ADR-1080](docs/decisions/1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md)).
 
 - **`ITenantStore.GetSettingsPageAsync` and `IClientStore.GetSettingsPageAsync` page through settings documents.** Each
   reads a page of settings documents without their secrets and without change tracking, for a pass over every tenant or
@@ -2950,7 +2950,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   scope value rather than on the owner-leading composite unique `(ResourceServerId, NormalizedValue)` index;
   `ResourceServerEntity.IsDisabled` is deliberately not indexed, because a low-selectivity boolean index would not be
   chosen by the planner and would only add write cost (issue [#23](https://github.com/NCodeGroup/identity/issues/23),
-  [ADR-1080](docs/decisions/1080-store-query-methods-push-filtering-to-dbms.md)).
+  [ADR-1080](docs/decisions/1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md)).
 
 - **`IPersistedGrantService.AddAsync` returns the server-generated grant id.** It returns `ValueTask<string>`, the
   opaque public `GrantId` of the persisted grant, so a caller such as the initial-access-token management endpoint can

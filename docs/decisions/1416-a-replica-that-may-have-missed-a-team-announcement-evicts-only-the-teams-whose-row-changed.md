@@ -43,7 +43,7 @@ store's and evicts only the teams whose token differs or whose row is gone, with
 4. **The store answers the current tokens in one query.** `ITeamStore.GetConcurrencyTokensAsync` takes the team
    identifiers and returns the row token of each listed team that exists, keyed by team identifier without regard to
    case, filtered in the DBMS
-   ([ADR-1080](1080-store-query-methods-push-filtering-to-dbms.md)).
+   ([ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md)).
 5. **The handler evicts the stale teams.** `TeamChangeBroadcastHandler.HandleMissedMessagesAsync` collects both
    caches' revisions, reads the current tokens in batches of 500, and evicts each team whose token differs or whose
    row is gone exactly as an announcement does: the team, then its tenants. When the tokens cannot be read, it logs
@@ -75,4 +75,4 @@ store's and evicts only the teams whose token differs or whose row is gone, with
 - [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — settings converge through
   one reconciliation
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor manages concurrency tokens
-- [ADR-1080](1080-store-query-methods-push-filtering-to-dbms.md) — store query methods push filtering to the DBMS
+- [ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) — store query methods push filtering to the DBMS

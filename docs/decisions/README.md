@@ -81,8 +81,7 @@ The records are grouped by area; within an area they are in number order.
 | [1052](./1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md) | Entity Framework persistence is a reusable framework that domain slices plug into | Accepted |
 | [1056](./1056-abstractions-split-into-framework-free-tiered-packages.md) | `NCode.Identity.Abstractions` is split into framework-free, correctly-tiered packages | Accepted |
 | [1069](./1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) | DI registration proves every prerequisite at compile time through marker builders | Accepted |
-| [1080](./1080-store-query-methods-push-filtering-to-dbms.md) | Store query methods push entity filtering into the DBMS | Accepted |
-| [1099](./1099-forward-compatible-evolving-parameters.md) | Forward-compatible evolving parameters: filter/criteria DTOs | Accepted |
+| [1080](./1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) | Filtered reads are intent-named store methods, and growing criteria are init-only DTOs | Accepted |
 | [1116](./1116-memory-allocations-and-buffer-operations.md) | Memory allocations and buffer operations use spans, pooled writers, and secure lifetimes | Accepted |
 | [1125](./1125-trunk-based-development-on-main.md) | Trunk-based development on a single `main` trunk | Superseded |
 | [1127](./1127-warnings-are-errors-in-every-project.md) | Warnings are errors in every project, including tests | Accepted |

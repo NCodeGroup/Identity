@@ -239,7 +239,7 @@ than inlining the rationale.
   [Public API](csharp.instructions.md#public-api).
 - 👁 **An evolving set of optional selection criteria is a DTO, not positional parameters** — template
   [Public API](csharp.instructions.md#public-api): `GrantFilter`, and the shared `PageRequest` that every store
-  `GetPageAsync` takes ([ADR-1099](../../docs/decisions/1099-forward-compatible-evolving-parameters.md)).
+  `GetPageAsync` takes ([ADR-1080](../../docs/decisions/1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md)).
 - 👁 **Annotate a reflection-/DI-/serializer-consumed public type with `[PublicAPI]`** (JetBrains.Annotations) — the
   house pattern across the packages. Members of a public type touched only by the JSON serializer, the options binder,
   or the DI container have no in-repo call site, so the unused-member analyzers flag them; `[PublicAPI]` states the
@@ -947,7 +947,7 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   (`ClaimsIdentity(authenticationType, nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   worth a parameter object.
 - **Push store filtering into the DBMS** — template [Clean Code](csharp.instructions.md#clean-code) and
-  [ADR-1080](../../docs/decisions/1080-store-query-methods-push-filtering-to-dbms.md): an intent-named store method
+  [ADR-1080](../../docs/decisions/1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md): an intent-named store method
   (`FindEnabledByScopesAsync`, `GetEnabledIdentifiersAsync`), with `GetPageAsync` kept for genuine unfiltered
   pagination.
 - **No repeated magic string literals** — template [Clean Code](csharp.instructions.md#clean-code); a sentinel in

@@ -40,7 +40,7 @@ the store's and evicts only the tenants whose token differs or whose row is gone
    token. `IOpenIdTenantCache.GetRevisionsAsync` returns one revision per cached tenant.
 4. **The store answers the current tokens in one query.** `ITenantStore.GetConcurrencyTokensAsync` takes the tenant
    identifiers and returns the row token of each listed tenant that exists, keyed by tenant identifier without regard to
-   case, filtered in the DBMS ([ADR-1080](1080-store-query-methods-push-filtering-to-dbms.md)).
+   case, filtered in the DBMS ([ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md)).
 5. **The handler evicts the stale tenants.** `TenantChangeBroadcastHandler.HandleMissedMessagesAsync` reads the current
    tokens in batches of 500 and evicts each tenant whose token differs or whose row is gone exactly as an announcement
    does: the cache entry and the tenant's master keys. When the tokens cannot be read, it logs
@@ -86,6 +86,6 @@ the store's and evicts only the tenants whose token differs or whose row is gone
 - [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md) — a
   replica that may have missed a team announcement evicts only the teams whose row changed
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor manages concurrency tokens
-- [ADR-1080](1080-store-query-methods-push-filtering-to-dbms.md) — store query methods push filtering to the DBMS
+- [ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) — store query methods push filtering to the DBMS
 - [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md) — a management write that loses a
   concurrency race is answered 412

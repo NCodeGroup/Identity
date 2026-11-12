@@ -23,6 +23,9 @@ public sealed class ManagementConsoleTransportSecurityTests
     private static string StagingEnvironment { get; } =
         Microsoft.Extensions.Hosting.Environments.Staging;
 
+    private static string ProductionEnvironment { get; } =
+        Microsoft.Extensions.Hosting.Environments.Production;
+
     [Fact]
     public async Task GetHealth_OverHttpsOutsideDevelopment_SendsStrictTransportSecurity()
     {
@@ -73,13 +76,47 @@ public sealed class ManagementConsoleTransportSecurityTests
         Assert.False(response.Headers.Contains(HeaderName));
     }
 
+    [Fact]
+    public async Task CreateClient_InProductionOnAServerThatIsNotKestrel_RefusesToStart()
+    {
+        await using var factory = new ManagementConsoleApplicationFactory();
+        await using var production = CreateHost(
+            factory,
+            ProductionEnvironment,
+            trustLoopback: false
+        );
+
+        var exception = Record.Exception(() => production.CreateClient());
+
+        Assert.NotNull(exception);
+        Assert.Contains(
+            "not Kestrel",
+            string.Join(Environment.NewLine, Flatten(exception).Select(inner => inner.Message))
+        );
+    }
+
+    private static IEnumerable<Exception> Flatten(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            yield return current;
+        }
+    }
+
     private static WebApplicationFactory<ManagementConsoleHostMarker> CreateStaging(
         ManagementConsoleApplicationFactory factory,
+        bool trustLoopback
+    ) => CreateHost(factory, StagingEnvironment, trustLoopback);
+
+    private static WebApplicationFactory<ManagementConsoleHostMarker> CreateHost(
+        ManagementConsoleApplicationFactory factory,
+        string environmentName,
         bool trustLoopback
     )
     {
         var values = new Dictionary<string, string?>
         {
+            ["AllowedHosts"] = "console.integration.test",
             ["Bff:Frontends:mgmt:Authority"] = "https://id.integration.test",
             ["Bff:Frontends:mgmt:PublicOrigin"] = "https://console.integration.test",
             ["ManagementConsole:ManagementApiUrl"] = "https://id.integration.test/api",
@@ -92,7 +129,7 @@ public sealed class ManagementConsoleTransportSecurityTests
 
         return factory.WithWebHostBuilder(builder =>
             builder
-                .UseEnvironment(StagingEnvironment)
+                .UseEnvironment(environmentName)
                 .ConfigureAppConfiguration(configurationBuilder =>
                     configurationBuilder.AddInMemoryCollection(values)
                 )

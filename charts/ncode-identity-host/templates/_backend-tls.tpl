@@ -199,4 +199,28 @@ Refuses a certificate the chart's Certificate could not describe to cert-manager
 {{- if and (eq $certManager.privateKey.algorithm "RSA") (lt (int $certManager.privateKey.size) 2048) }}
 {{- fail "backendTls.certManager.privateKey.size must be at least 2048 for an RSA key." }}
 {{- end }}
+{{- $console := .Values.managementConsole }}
+{{- $consoleOn := $console.enabled }}
+{{- if and (or .Values.ingress.enabled (and $consoleOn $console.ingress.enabled)) (not .Values.ingress.controller) }}
+{{- fail "ingress.controller must be traefik or other when an Ingress is enabled: the pods serve HTTPS only, so the controller must speak HTTPS to the Service and verify the pods' certificate." }}
+{{- end }}
+{{- if .Values.httpRoute.enabled }}
+{{- if not .Values.httpRoute.parentRefs }}
+{{- fail "httpRoute.parentRefs must name a Gateway listener when httpRoute.enabled is true: an HTTPRoute without a parent attaches to nothing." }}
+{{- end }}
+{{- if not .Values.httpRoute.hostnames }}
+{{- fail "httpRoute.hostnames must not be empty when httpRoute.enabled is true: the route needs a host to match." }}
+{{- end }}
+{{- if not .Values.backendTls.caConfigMap }}
+{{- fail "backendTls.caConfigMap must be set when httpRoute.enabled is true: the BackendTLSPolicy verifies the pods' certificate against the CA in that ConfigMap." }}
+{{- end }}
+{{- end }}
+{{- if and $consoleOn $console.httpRoute.enabled }}
+{{- if not $console.httpRoute.parentRefs }}
+{{- fail "managementConsole.httpRoute.parentRefs must name a Gateway listener when managementConsole.httpRoute.enabled is true: an HTTPRoute without a parent attaches to nothing." }}
+{{- end }}
+{{- if not (include "identity-host.backendTls.caConfigMap" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .))) }}
+{{- fail "managementConsole.backendTls.caConfigMap or backendTls.caConfigMap must be set when managementConsole.httpRoute.enabled is true: the BackendTLSPolicy verifies the console pods' certificate against the CA in that ConfigMap." }}
+{{- end }}
+{{- end }}
 {{- end }}

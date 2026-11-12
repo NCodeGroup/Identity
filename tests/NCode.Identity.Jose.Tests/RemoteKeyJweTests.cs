@@ -12,7 +12,7 @@ using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Jose.Tests;
 
-// See ADR-1477.
+// See ADR-1471.
 public class RemoteKeyJweTests : BaseTests
 {
     private const string Payload = """{"foo":"bar","n":123}""";

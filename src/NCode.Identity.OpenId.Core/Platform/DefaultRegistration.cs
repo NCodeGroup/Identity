@@ -54,7 +54,7 @@ internal static class DefaultRegistration
             );
 
             // A committed platform settings change is applied on this replica before the write returns and then announced
-            // to every replica (ADR-1219).
+            // to every replica (ADR-1412).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<PlatformSettingsChangedCommand>,
@@ -63,7 +63,7 @@ internal static class DefaultRegistration
             );
 
             // A platform settings change announced on the replica broadcast channel makes every replica read the committed
-            // settings again, so each serves the change rather than only the one that made it (ADR-1219).
+            // settings again, so each serves the change rather than only the one that made it (ADR-1412).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IReplicaBroadcastHandler,
@@ -72,7 +72,7 @@ internal static class DefaultRegistration
             );
 
             // A platform or tenant interval that a timer refuses stops the host when it starts instead of failing the
-            // first time a timer is created (ADR-1221).
+            // first time a timer is created (ADR-1137).
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

@@ -765,7 +765,7 @@ internal class TenantApiEndpointHandler(
             return ManagementProblems.ResourceNotFound();
         }
 
-        // A tenant is named by its creator (ADR-1159); the validator checks the name with the rest of its address.
+        // A tenant is named by its creator (ADR-1160); the validator checks the name with the rest of its address.
         var tenantId = request.TenantId;
 
         // A tenant written without an issuer gets the one its strategy derives for it, judged like an explicit one
@@ -997,7 +997,7 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // Previewing a new tenant is part of creating it, which is authority at the team node (ADR-1034).
+        // Previewing a new tenant is part of creating it, which is authority at the team node (ADR-1417).
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             GetTeamNode(httpContext, teamId),
@@ -1150,8 +1150,7 @@ internal class TenantApiEndpointHandler(
             );
         }
 
-        // An update that clears the issuer or the alias restores the one the tenant's strategy derives for it (ADR-1165,
-        // ADR-1195).
+        // An update that clears the issuer or the alias restores the one the tenant's strategy derives for it (ADR-1165).
         model.Issuer =
             NullIfEmpty(model.Issuer)
             ?? await TenantResolver.GetDefaultIssuerAsync(tenant.TenantId, cancellationToken);
@@ -1428,7 +1427,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's setting limits.</response>
     /// <response code="404">The tenant does not exist.</response>
-    // See ADR-1448.
+    // See ADR-1418.
     [EndpointName("api/tenants/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
         HttpContext httpContext,
@@ -1548,7 +1547,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the tenant setting that does not permit each value, or
     /// an empty list.</returns>
-    // See ADR-1206 and ADR-1241.
+    // See ADR-1206 and ADR-1245.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         string teamId,
         string tenantId,
@@ -2242,7 +2241,7 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetOwnerList(tenantId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
@@ -2313,7 +2312,7 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetAdminList(tenantId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
@@ -2338,7 +2337,7 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetAdminList(tenantId);
         return await ProcessRemoveRoleAssignmentAsync(
             httpContext,

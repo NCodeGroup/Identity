@@ -7,7 +7,7 @@
 #     --file hosts/NCode.Identity.ManagementConsole.Host/Dockerfile .
 #
 # Every base image is pinned by tag and by the digest of its multi-architecture index, and Dependabot moves the digests
-# (ADR-1249). The Node major equals the single pin in frontend/.node-version, which the `Console image` workflow
+# (ADR-1248). The Node major equals the single pin in frontend/.node-version, which the `Console image` workflow
 # checks (ADR-1152).
 #
 # Every build stage runs on the build machine's own architecture and cross-publishes for the target, so a multi-arch

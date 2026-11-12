@@ -19,7 +19,7 @@
 
 Every option is judged against the platform's operating principles — cattle not pets, immutable artifacts, everything as
 code, stateless services, redundancy by default, proven recoverability, and secure by default
-([ADR-1134](decisions/1134-cloud-native-operating-principles.md)).
+([ADR-1134](decisions/1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md)).
 
 ## 2. Summary and ranked recommendations
 
@@ -59,7 +59,7 @@ Neon / Aiven free tiers as the always-on database (wrong region, scale-to-zero, 
 
 ### Environment model
 
-Decided in [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md).
+Decided in [ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md).
 
 - **Customer environments are tenants on production.** A customer's dev, test, and prod are separate tenants on the one
   production platform (the Auth0 model): `acme-dev.auth.ncodeid.net`, `acme-test.auth.ncodeid.net`,
@@ -71,7 +71,7 @@ Decided in [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostn
   owner's private proving ground for platform changes, upgrades, and conformance experiments, which never hosts a
   customer tenant. Lab hosts carry a `lab` label (`auth.lab.ncodeid.net`) so a platform environment can't be confused
   with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
-  platform environment ([ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)).
+  platform environment ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)).
 - **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits (done, issue [#84](https://github.com/NCodeGroup/identity/issues/84)) and
   quotas (done, issue [#118](https://github.com/NCodeGroup/identity/issues/118)) keep one tenant's load test from starving another.
 
@@ -79,7 +79,7 @@ Decided in [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostn
 
 1. **Now — the lab:** run it on OCI's Pay-As-You-Go A1 allowance in Phoenix as an **OKE Basic** cluster (free managed
    control plane) with a 3 × 1 OCPU / 8 GB node pool spread across the region's three availability domains
-   (**~$0–4/month**) — managed node pools keep the lab disposable ([ADR-1134](decisions/1134-cloud-native-operating-principles.md))
+   (**~$0–4/month**) — managed node pools keep the lab disposable ([ADR-1134](decisions/1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md))
    — plus ephemeral load-test and topology runs on the Azure Visual Studio credit
    ([§10](#10-devtest-and-conformance-on-azure-visual-studio-credit), $0). The Kubernetes layer (Traefik, charts, app)
    is identical to production; only the cluster, LB, and database modules differ — acceptable because no customer
@@ -98,7 +98,7 @@ control plane (+$60).
 
 | Concern                                        | Service                                       | Free allowance (verified 2026-10-18 unless noted)                                                                        |
 | ---------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Source, infrastructure code, CI, images        | GitHub Actions + GitHub Container Registry    | Free for public repositories and public packages, including environments with required reviewers ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)) |
+| Source, infrastructure code, CI, images        | GitHub Actions + GitHub Container Registry    | Free for public repositories and public packages, including environments with required reviewers ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)) |
 | DNS                                            | Cloudflare DNS                                | Free plan, incl. DNSSEC; registrar stays at Porkbun. Keep identity hosts **DNS-only** — proxying would terminate TLS at Cloudflare and drop the client certificate |
 | Server certificates                            | Let's Encrypt via cert-manager                | Free                                                                                                                     |
 | OpenTofu state, Postgres backups, vendor tokens | AWS S3 + SSM Parameter Store (dedicated account) | **Not free — cents/month at this size:** S3 Standard $0.023/GB-month, $5/M writes, $0.40/M reads; SSM standard parameters free |
@@ -152,15 +152,15 @@ flowchart LR
   certificate; PROXY protocol v2 preserves the client IP.
 - Traefik terminates TLS, **requests** the client certificate on the mTLS host, and forwards it with the
   `passTLSClientCert` middleware; the server reads it via `OpenId:MutualTls:CertificateHeaderName`
-  ([ADR-1097](decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md)).
+  ([ADR-1097](decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)).
 - RFC 8705 §5 mTLS endpoint aliases map naturally to a dedicated mTLS hostname (the tenant's
   `mtlsEndpointAliasAuthority`), so only that host asks for client certificates; per-tenant alias hosts route to their
-  tenant ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
+  tenant ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 ### Domains and DNS
 
 The platform names four domains
-([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
+([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)):
 
 | Domain              | Role                                                                          |
 | ------------------- | ----------------------------------------------------------------------------- |
@@ -178,7 +178,7 @@ public infrastructure repository, the Cloudflare account and a short-lived boots
 IAM Identity Center (home region `us-west-2`), the OCI tenancy for the lab (home region Phoenix), running the bootstrap
 stack, the registrar delegation, and the email-routing verification.
 
-**Bootstrap stack** ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)) — OpenTofu run once
+**Bootstrap stack** ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)) — OpenTofu run once
 from the owner's machine with those short-lived credentials (local state, then migrated into the bucket it creates):
 the S3 **state bucket** (versioning, encryption, public-access block, TLS-only policy) and **backup bucket** (Object
 Lock in compliance mode, archive lifecycle); the GitHub OIDC provider with a read-only **plan** role and an **apply**
@@ -198,20 +198,20 @@ into Kubernetes Secrets that Traefik serves. Traefik's built-in ACME client keep
 it across 3 replicas, so it isn't used.
 
 **Hostnames** — the issuer URL is baked into every client's configuration, so choose these once (decided in
-[ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)). The scheme uses
+[ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)). The scheme uses
 **functional namespaces** under the apex — `auth` for the OpenID protocol, `mtls` for its certificate-bound aliases,
-`manage` for the management plane — mirroring Auth0 (`{tenant}.us.auth0.com` for tenants, `manage.auth0.com` for the
+`manage` for the management console — mirroring Auth0 (`{tenant}.us.auth0.com` for tenants, `manage.auth0.com` for the
 dashboard). The platform's hosts live on `ncodeid.net`, which carries nothing else, and the site, docs, status page
-and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
+and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)):
 
 | Hostname                                        | Serves                                                                                                   | Certificate                    |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `auth.ncodeid.net`                              | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-1031](decisions/1031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.ncodeid.net`            |
+| `auth.ncodeid.net`                              | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-1417](decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)) | `auth.ncodeid.net`            |
 | `{tenant}.auth.ncodeid.net`                     | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.ncodeid.net`)                     | `*.auth.ncodeid.net`          |
-| `mtls.ncodeid.net`, `{tenant}.mtls.ncodeid.net` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1195) | `mtls.…` + `*.mtls.ncodeid.net` |
-| `manage.ncodeid.net`                            | Management API (`/api`) and admin console — the control-plane surface ([ADR-1042](decisions/1042-management-api-route-driven-tenant-scope.md)) | `manage.ncodeid.net`          |
+| `mtls.ncodeid.net`, `{tenant}.mtls.ncodeid.net` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1165) | `mtls.…` + `*.mtls.ncodeid.net` |
+| `manage.ncodeid.net`                            | The management console only; the management API is `/api` on `auth.ncodeid.net` ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)) | `manage.ncodeid.net`          |
 | `ncodeid.net`, `www.ncodeid.net`                  | Redirect (301) to `https://ncodeid.com`, with the HSTS header                                            | `ncodeid.net` + `www.ncodeid.net` (cert-manager) |
-| `ncodeid.com`, `www.ncodeid.com`, `status.ncodeid.com` | Project site, docs and status page — the brand domain ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)) | Hosting provider               |
+| `ncodeid.com`, `www.ncodeid.com`, `status.ncodeid.com` | Project site, docs and status page — the brand domain ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)) | Hosting provider               |
 
 Why this shape:
 
@@ -220,30 +220,31 @@ Why this shape:
 - **Tenants nest under a function label rather than the apex** (`acme.auth.ncodeid.net`, not `acme.ncodeid.net`): no
   tenant name can ever collide with a service host (`www`, `manage`, `mtls`, `status`, `docs`, `dev`, …), so there is no
   reserved-name list to maintain, and each function gets one wildcard certificate. A tenant can still be moved to a
-  dedicated deployment ([ADR-1024](decisions/1024-control-plane-and-per-tenant-planes.md)) by changing its DNS record, without
+  dedicated deployment ([ADR-1411](decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)) by changing its DNS record, without
   changing its issuer.
 - **`mtls` is a sibling namespace, not `mtls.{tenant}.auth…`:** a wildcard covers one label only, so nesting would need a
   certificate per tenant.
-- **`manage` is separate from `auth`:** the management plane gets its own CORS, rate-limit, and IP-allow-list policy at
-  Traefik, and `/api` is routed **only** on `manage` (blocked on `auth` / `mtls` hosts) as defense in depth.
+- **`manage` is separate from `auth`:** the management console is a confidential client with a BFF host and origin of
+  its own, so it gets its own CORS, rate-limit, and IP-allow-list policy at Traefik, and calls the management API at
+  `/api` on `auth` ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 - **Custom domains later** (Auth0 parity): the tenant's issuer is its single origin — it both routes the tenant and
-  anchors every published URL ([ADR-1129](decisions/1129-the-tenant-issuer-is-the-single-authoritative-origin.md)) — so a
+  anchors every published URL ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)) — so a
   custom domain (`login.customer.com`, CNAME'd to the platform) *becomes* the tenant's issuer. Choose it before clients
   integrate; cert-manager issues its certificate over HTTP-01.
 - **The server derives these hosts from configuration**
-  ([ADR-1165](decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
+  ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)):
   `OpenId:TenantResolution:StrategyCode = DynamicByHost`, `DynamicByHost:IssuerTemplate =
   https://{tenantId}.auth.ncodeid.net`, and `Root:Issuer = https://auth.ncodeid.net`. A tenant created without an
   issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The mTLS
   aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.ncodeid.net` and
   `Root:MtlsEndpointAliasAuthority = https://mtls.ncodeid.net`
-  ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). The root tenant
+  ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). The root tenant
   is created when the first request reaches `auth.ncodeid.net`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
-  [ADR-1166](decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
-  `manage.ncodeid.net`, which is no tenant's host, because the management API authenticates against the root tenant
-  rather than the host it is called on
-  ([ADR-1191](decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
+  [ADR-1166](decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)). `/api` is served on
+  `auth.ncodeid.net`, the control-plane tenant's origin, because the OP accepts the console's DPoP-bound call only at
+  that origin plus `/api` ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)); the API authenticates by the control-plane tenant whichever host or path addresses it
+  ([ADR-1191](decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 
 **Environments.** Customer environments are just tenants on production (`acme-dev.auth.ncodeid.net`), so they need no
 extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.ncodeid.net`,
@@ -267,7 +268,7 @@ All identity hosts are **DNS-only** in Cloudflare (no proxy), so TLS reaches Tra
 - **Inbound mail only:** Cloudflare Email Routing (free, receive-only; `cloudflare_email_routing_settings` / `_dns` /
   `_address` / `_rule`) runs on `ncodeid.com` only and forwards per-purpose addresses — `security@` for `security.txt`,
   `platform@` as the owner of every cloud resource
-  ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account such as
+  ([ADR-1135](decisions/1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md)), and one per vendor account such as
   `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Every zone publishes DMARC
   `v=DMARC1; p=reject` because nothing sends mail yet — an identity domain is a prime phishing target. Every zone except
   `ncodeid.com` publishes SPF `v=spf1 -all` and a null MX (`0 .`); `ncodeid.com` publishes the Email Routing MX records
@@ -289,7 +290,7 @@ available and requires at least two years of registration remaining and a `_psl`
 
 **Code and package namespaces:** repositories and container images stay under `NCodeGroup` (`ghcr.io/ncodegroup/…`),
 which doesn't need to match the product domain; GitHub remains the single home for source, infrastructure code, CI and
-packages ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)). On npm the `@ncode` scope
+packages ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)). On npm the `@ncode` scope
 belongs to an unrelated party, so JavaScript packages publish under the org-owned `@ncodegroup` scope (matching the
 GitHub organization and GitHub Packages' scope rule). The frontend's `@ncode/*` workspace packages are private and
 resolve only through `workspace:*`, so they are renamed only if and when one is published. The family publishes on NuGet
@@ -320,11 +321,11 @@ No production load data exists yet, so these are **planning estimates**; confirm
 - **Bandwidth is not a cost driver.** Token responses are a few KB; even 1M interactive logins/month at ~500 KB of
   assets each is ~0.5 TB, below every vendor's included transfer.
 - **Multi-replica readiness:** Data Protection keys already persist to Postgres
-  ([ADR-1073](decisions/1073-postgres-dev-database-and-aspire-migration-worker.md); each key is encrypted under the platform
+  ([ADR-1073](decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md); each key is encrypted under the platform
   master key, whose root key lives outside the database —
-  [ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
+  [ADR-1235](decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
   and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
-  connection string ([ADR-1164](decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); the
+  connection string ([ADR-1164](decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)); the
   in-process job dispatcher does not coordinate across nodes (issue [#25](https://github.com/NCodeGroup/identity/issues/25)).
 
 **Measure before buying:** run the host (`NCode.Identity.OpenId.Host`) with `dotnet-counters` attached, drive the token
@@ -404,10 +405,10 @@ cluster). Neon and Aiven Free/Developer are fine for dev/staging, not for a prod
 
 **Self-hosting is the recommended default.** Valkey backs the shared-state port that records DPoP nonces and the
 single-use DPoP-proof and client-assertion `jti`s
-([ADR-1164](decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); losing it on restart only
+([ADR-1164](decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)); losing it on restart only
 reopens a replay window bounded by the proof and assertion lifetimes. Enable AOF persistence if that window matters.
 Valkey also carries the replica broadcast port, so a tenant, team or platform settings change reaches every replica at once
-([ADR-1205](decisions/1205-replicas-announce-changes-through-a-broadcast-port.md)); the access-control user needs `PUBLISH`
+([ADR-1205](decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md)); the access-control user needs `PUBLISH`
 and `SUBSCRIBE` as well as the key-set and counter commands, and an outage costs only that promptness, because the
 replicas converge through their polls and the 15-minute tenant cache lifetime.
 Address it with the `valkey` connection string (TLS and an access-control user in production:
@@ -451,15 +452,15 @@ Verified against Traefik v3.7 documentation and source:
 - **[#83](https://github.com/NCodeGroup/identity/issues/83) — chain in the forwarded header (resolved).** The default `Base64Der` format reads Traefik's comma-separated
   chain, the client's own certificate first, and surfaces the rest as intermediates for chain building. A forwarded
   value that cannot be decoded fails the request with `invalid_request` rather than reading as no certificate
-  ([ADR-1172](decisions/1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
+  ([ADR-1172](decisions/1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md)).
 - **[#82](https://github.com/NCodeGroup/identity/issues/82) — chain validation in the server (resolved).** `tls_client_auth` builds the presented certificate's chain to
   the client's `tls_client_auth_trust_anchors` (tenant- or client-scoped PEM CAs, custom root trust, `clientAuth` EKU,
   validity, `tls_client_auth_revocation_mode`) before matching the subject, and trusts no certificate when no anchor is
   configured. The proxy only requests and forwards the certificate
-  ([ADR-1173](decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
+  ([ADR-1173](decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)).
 - **[#86](https://github.com/NCodeGroup/identity/issues/86) — the mTLS alias host routes to its tenant (resolved).** The alias is the tenant property
   `MtlsEndpointAliasAuthority`; `DynamicByHost` routes its derived host as well as the issuer's, and validation keeps
-  both hosts unique ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Each tenant's
+  both hosts unique ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). Each tenant's
   alias is derived from `DynamicByHost:MtlsEndpointAliasTemplate` unless one is set through the management API ([#117](https://github.com/NCodeGroup/identity/issues/117)).
 
 **Proxy rule:** on the mTLS host, use `RequireAnyClientCert` (request, don't verify) and forward the certificate. The
@@ -498,7 +499,7 @@ state key. A cluster reaches it through web identity federation, which needs the
 publicly discoverable, because AWS IAM fetches the issuer's discovery document and JWKS; a cluster whose issuer is
 private needs IAM Roles Anywhere (issue [#177](https://github.com/NCodeGroup/identity/issues/177)) or the `local` provider. Google Cloud KMS, by contrast, accepts an
 uploaded JWKS, so a private issuer is no obstacle there. The `azure-key-vault` and `google-cloud-kms` providers
-([ADR-1260](decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)) let a deployment keep its root key
+([ADR-1260](decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)) let a deployment keep its root key
 in either service instead.
 
 | Service                    | Key cost                                         | Sign-operation cost                                            | Throughput notes                                                         |
@@ -592,10 +593,10 @@ janitor that destroys anything older than a few hours — that also keeps every 
   the buckets, OIDC roles, zone, and vendor tokens (§3). Prefer **OpenTofu** for client-side **state and plan
   encryption** (state and plans contain connection strings and keys).
 - **Repository:** the public `NCodeGroup/identity-platform`, with the guardrails in
-  [ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md) — no secrets in Git (push protection,
+  [ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md) — no secrets in Git (push protection,
   `gitleaks`), no credentials for untrusted pull requests, no plans in public logs or artifacts, operator-specific values
   in SSM.
-- **Same artifacts as self-hosters** ([ADR-1133](decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)): the host's
+- **Same artifacts as self-hosters** ([ADR-1133](decisions/1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)): the host's
   Helm chart ships from the library repository as a signed OCI chart. `NCodeGroup/identity-platform` layers small
   **component modules** (`modules/`: e.g. `cloudflare-zone`, `aws-state-backend`, `akamai-lke`, `akamai-postgres`,
   `oci-k3s`, `flux-bootstrap`) and **in-cluster components** (`kubernetes/components/`: `traefik`, `cert-manager`,
@@ -636,23 +637,24 @@ speed-test endpoint from the Denver network the users are on.
   secrets and the Data Protection key ring in the same Postgres database, so a backup would otherwise hold everything
   needed to use them. Every private value is encrypted under a per-owner master key wrapped by a root key held in a key
   management service, and a Production host refuses to start without a real root key and a recovery decision
-  ([ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
+  ([ADR-1235](decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
   [#165](https://github.com/NCodeGroup/identity/issues/165)).
 - **Kubernetes deployment artifacts** — issue [#85](https://github.com/NCodeGroup/identity/issues/85), done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ForwardedHeaders:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
   developer CORS, seeders). Its image is chiseled, runs non-root, serves HTTPS only on port 8443, is built for amd64 and
   arm64, and carries the login bundle
-  ([ADR-1178](decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Its Helm
+  ([ADR-1248](decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)). Its Helm
   chart runs restricted pods that probe `/health/live` and `/health/ready` over HTTPS, drain before stopping, and
   require Valkey for more than one replica
-  ([ADR-1179](decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Before
+  ([ADR-1458](decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)). Before
   each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
-  working ([ADR-1180](decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
-  needed: publishing the image and chart ([#87](https://github.com/NCodeGroup/identity/issues/87)).
+  working ([ADR-1180](decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). Every
+  merge to `main` publishes the image and the chart
+  ([ADR-1505](decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
 - **Per-tenant rate limits and quotas** — issues [#84](https://github.com/NCodeGroup/identity/issues/84) and [#118](https://github.com/NCodeGroup/identity/issues/118), done
-  ([ADR-1196](decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-  [ADR-1198](decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)); the mTLS work ([#82](https://github.com/NCodeGroup/identity/issues/82), [#83](https://github.com/NCodeGroup/identity/issues/83),
+  ([ADR-1246](decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
+  [ADR-1198](decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)); the mTLS work ([#82](https://github.com/NCodeGroup/identity/issues/82), [#83](https://github.com/NCodeGroup/identity/issues/83),
   [#86](https://github.com/NCodeGroup/identity/issues/86), and [#117](https://github.com/NCodeGroup/identity/issues/117)) is done.
 
 **Operations:**
@@ -661,14 +663,14 @@ speed-test endpoint from the Denver network the users are on.
   is the primary restore path, but it lives in the same vendor account. A nightly `pg_dump`, encrypted client-side with
   `age` (it contains signing keys and the Data Protection key ring), goes off-vendor to the AWS backup bucket — Object
   Lock in compliance mode, write-only credentials, 14 daily + 12 monthly copies with monthly ones moved to an archive
-  tier ([ADR-1132](decisions/1132-platform-infrastructure-as-code-is-public-on-github.md)). A restore drill before launch and
+  tier ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)). A restore drill before launch and
   quarterly; written RPO / RTO targets.
 - **Cluster secrets** never sit in Git as plaintext: SOPS + age (free) or External Secrets Operator syncing from the
   key vault.
 - **Alerting:** Grafana Cloud alerts on token-endpoint error rate and p95 latency, certificate expiry, database
   connections and replication lag, and node/disk pressure; on-call via Grafana IRM's free tier; a public status page
   (`status.ncodeid.com`, UptimeRobot free).
-- **Audit events** ([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)): decide retention and customer export —
+- **Audit events** ([ADR-1047](decisions/1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)): decide retention and customer export —
   they contain PII.
 - **Cost guardrails:** billing alerts on every vendor, an Azure budget alert, and bandwidth-overage alerts.
 
@@ -679,7 +681,10 @@ speed-test endpoint from the Denver network the users are on.
 - **Kubernetes:** Pod Security `restricted`, default-deny NetworkPolicies (only Traefik → app and app →
   Postgres / Valkey / key vault), read-only root filesystems, the Kubernetes API reachable only from the pipeline, no
   SSH.
-- **Management plane:** `manage.` behind an IP allow-list or operator mTLS in addition to OAuth.
+- **Management surfaces:** the console host `manage.` sits behind an IP allow-list in addition to OAuth, and the
+  management API at `/api` on `auth.` authenticates only access tokens the control-plane tenant issued
+  ([ADR-1191](decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)), and the console calls it with a DPoP-bound token
+  ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 - **Accounts:** passkeys / hardware 2FA on every vendor account (Porkbun, Cloudflare, Akamai, OCI, AWS, GitHub, GitLab,
   npm, Spaceship, Azure, Grafana), least-privilege API tokens, recovery codes stored offline, and a second trusted admin.
 - **Web:** HSTS with `includeSubDomains` on every domain. `ncodeid.net` is preloaded once every host serves HTTPS (the
@@ -689,7 +694,7 @@ speed-test endpoint from the Denver network the users are on.
 
 **Business and legal (before onboarding customers):** privacy policy, terms, a DPA and subprocessor list (Akamai,
 Cloudflare, Grafana Labs, and the key-vault provider); data residency is US-only (Dallas) — EU customers will need a
-separate EU deployment later ([ADR-1024](decisions/1024-control-plane-and-per-tenant-planes.md)); an SLA no higher than a
+separate EU deployment later ([ADR-1411](decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)); an SLA no higher than a
 single-datacenter platform supports (~99.9%); an incident-response runbook.
 
 **Outbound email (future):** verification, password reset, and email MFA need a sending provider — OCI Email Delivery
@@ -704,10 +709,10 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
 2. **Managed vs. self-managed Kubernetes:** DOKS / LKE / VKE (free control plane) vs. k3s on 3 VMs (HA control plane
    included).
 3. **Postgres:** managed same-DC (Akamai 3-node $37 is the HA sweet spot) vs. CloudNativePG in-cluster.
-4. **Environments — decided** ([ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)):
+4. **Environments — decided** ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)):
    customer dev/test/prod are tenants on production; the platform runs production plus a private lab
    on the OCI Pay-As-You-Go A1 allowance (~$4) and ephemeral Azure runs on the Visual Studio credit (§2, §10,
    issue [#132](https://github.com/NCodeGroup/identity/issues/132)).
 5. **Server prerequisites before mTLS goes live:** done — [#86](https://github.com/NCodeGroup/identity/issues/86) (route per-tenant mTLS alias hosts), [#82](https://github.com/NCodeGroup/identity/issues/82) (in-app
    chain validation), [#83](https://github.com/NCodeGroup/identity/issues/83) (Traefik header format), and [#117](https://github.com/NCodeGroup/identity/issues/117) (each tenant's alias derived from a template).
-6. **Domains — decided** ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)): `ncodeid.net` carries every issuer, `ncodeid.com` the site, docs, status page and mail (§3).
+6. **Domains — decided** ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)): `ncodeid.net` carries every issuer, `ncodeid.com` the site, docs, status page and mail (§3).

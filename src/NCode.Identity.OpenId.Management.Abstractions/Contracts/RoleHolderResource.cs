@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.Contracts;
 /// Represents a principal that holds one role at a node of the resource hierarchy: an item of a role list and the
 /// answer to a grant of the role.
 /// </summary>
-// See ADR-1469.
+// See ADR-1465.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class RoleHolderResource

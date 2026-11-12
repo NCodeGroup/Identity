@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// discovery document builds the URLs it publishes. The request's <c>Host</c> therefore never widens the values the
 /// server accepts: a forged <c>Host</c> chooses at most which of the tenant's own published origins is compared.
 /// </remarks>
-// Mirrors OpenIdLinkGeneratorExtensions.GetTenantUriByName. See project-template ADR-0126 and ADR-1387.
+// Mirrors OpenIdLinkGeneratorExtensions.GetTenantUriByName. See project-template ADR-0126 and ADR-1365.
 internal static class TenantRequestUri
 {
     private const int DefaultHttpsPort = 443;

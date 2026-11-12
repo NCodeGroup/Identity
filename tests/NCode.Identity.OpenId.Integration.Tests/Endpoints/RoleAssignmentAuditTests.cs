@@ -17,7 +17,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // Every role assignment the management API grants or revokes is audited as role_assignment.created or
-// role_assignment.deleted, naming the acting administrator or client (ADR-1449).
+// role_assignment.deleted, naming the acting administrator or client (ADR-1465).
 public class RoleAssignmentAuditTests
 {
     private const string RootIssuer = "http://localhost";
@@ -29,7 +29,7 @@ public class RoleAssignmentAuditTests
 
     #region CreateTeam Tests
 
-    // A machine client holds roles only within its owning node (ADR-1467), so the creator is the team's machine client
+    // A machine client holds roles only within its owning node (ADR-1466), so the creator is the team's machine client
     // and the team it creates sits beneath its owning team.
     [Fact]
     public async Task CreateTeam_RecordsTheCreatorsOwnerAndTeamAdminAssignments()

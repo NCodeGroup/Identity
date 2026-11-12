@@ -20,9 +20,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// to that endpoint.
 /// </para>
 /// <para>
-/// Anchoring to the tenant's <c>BaseAddress</c> removes that choice from the caller. The base address is the
-/// tenant's issuer where one is set; only when it is unset does it fall back to the request, which is a
-/// development-only convenience.
+/// Anchoring to the tenant's <c>BaseAddress</c> removes that choice from the caller. The base address is parsed from
+/// the tenant's issuer, which every tenant has: nothing derives it from the request.
 /// </para>
 /// <para>
 /// <b>Use this rather than <see cref="LinkGenerator"/> directly</b> for any URL that leaves the process.

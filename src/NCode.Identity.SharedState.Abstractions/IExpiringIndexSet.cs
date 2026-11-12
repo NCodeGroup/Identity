@@ -12,7 +12,7 @@ namespace NCode.Identity.SharedState;
 /// correct only for a single replica; a deployment that runs several replicas registers a shared adapter (for example
 /// Valkey) so a member added by one replica is seen by all of them.
 /// </summary>
-// See ADR-1267.
+// See ADR-1164.
 [PublicAPI]
 public interface IExpiringIndexSet
 {

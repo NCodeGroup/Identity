@@ -219,7 +219,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <param name="readNodeAboveAsync">A function that reads the node above <paramref name="node"/>, or returns <c>null</c> when not found.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
-    // See ADR-1448.
+    // See ADR-1418.
     internal virtual ValueTask<IResult> ProcessGetSettingLimitsAsync(
         HttpContext httpContext,
         ResourceNode node,
@@ -384,7 +384,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <param name="imported">The imported key.</param>
     /// <param name="owner">The kind of owner, such as <c>client</c> or <c>tenant</c>, for the problem detail.</param>
     /// <returns>The conflict result, or <c>null</c> when the <c>kid</c> is free.</returns>
-    // See ADR-1161 and ADR-1186.
+    // See ADR-1161.
     internal static IResult? KeyIdConflictOrDefault(
         IEnumerable<PersistedSecret> secrets,
         PersistedSecret imported,

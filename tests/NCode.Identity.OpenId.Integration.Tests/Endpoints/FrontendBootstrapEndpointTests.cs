@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// Pins the frontend bootstrap document to the tenant and host that serve the surface: the bundle trusts that
 /// authority and sends its access token to that API base, so the serving request's <c>Host</c> changes neither.
 /// </summary>
-// See ADR-1182 and ADR-1312.
+// See ADR-1182.
 public class FrontendBootstrapEndpointTests(HostApplicationFactory factory)
     : IClassFixture<HostApplicationFactory>
 {

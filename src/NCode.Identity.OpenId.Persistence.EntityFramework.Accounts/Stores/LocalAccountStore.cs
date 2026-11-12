@@ -163,7 +163,7 @@ internal sealed class LocalAccountStore(
             cancellationToken
         );
         // The limit counts the user name the account holds, and a refused password is verified against the dummy hash,
-        // so a refusal costs what a wrong password costs. See ADR-1244.
+        // so a refusal costs what a wrong password costs. See ADR-1237.
         var countedUserName = entity?.UserName ?? userName;
         var isRefused = await isRefusedAsync(countedUserName, cancellationToken);
         // A disabled account's credential is verified too, so the sign-in can tell the end user why it is refused.

@@ -1,8 +1,6 @@
 # 1402. The interactive surface renders in the locale the request prefers among the registered UI locales
 
-- **Status:** Accepted (amends
-  [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md): the page the host
-  renders carries its language, which the bundle reads before it renders)
+- **Status:** Accepted
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 
@@ -13,11 +11,11 @@ as BCP 47 language tags ordered by preference, and says an unsupported locale SH
 Logout 1.0 §2 defines the same parameter for the end-session request. Discovery advertises the locales the provider's
 interface supports as `ui_locales_supported`. The authorization endpoint parses the parameter into
 `IAuthorizationRequest.UiLocales`, and the `ui_locales_supported` tenant setting is a discoverable `*_supported`
-ceiling whose unset value is unrestricted ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)).
+ceiling whose unset value is unrestricted ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 
 The interface the preference applies to is the interactive surface: the server-rendered no-JavaScript login, consent,
 logout confirmation and authorization error pages, and the `apps/auth` bundle that mounts over them and draws the
-account pages ([ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md)). Every page
+account pages ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)). Every page
 reaches the surface through a redirect, the login challenge's and the consent and logout confirmation challenges', and
 a page the surface redirects back to, such as the login page after a refused sign-in, starts from a new request. The
 surface is one capability a host may replace with an interface of its own, so the locales an interface renders are
@@ -36,7 +34,7 @@ forms carry on.**
    renders, as a strategy collection; `IUiLocaleCatalog` (`DefaultUiLocaleCatalog`) indexes them without regard to
    case and refuses a tag that is not well formed or is registered twice. The catalog reads only the registered data,
    so the setting descriptors consult it inside options validation
-   ([ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md)).
+   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
 2. **The settings name registered locales only.** `ui_locales_supported` accepts only registered language tags, so
    discovery advertises only locales the interface renders, and stays unset when the tenant restricts nothing, which
    lets a request select any registered locale. `default_ui_locale` names the registered locale the surface renders
@@ -108,7 +106,7 @@ forms carry on.**
   carrying the preference on the redirect and the forms costs nothing and reaches the end-session and account pages
   the parked request does not cover.
 - **Remember the selected locale in a cookie.** Rejected: a cookie is state the tenant route must scope
-  ([ADR-1310](1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md)) and a second source of truth beside the
+  ([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)) and a second source of truth beside the
   request's preference; the hidden field and the query carry the choice exactly as far as it applies.
 - **Let the bundle negotiate from `navigator.languages`.** Rejected: the no-JavaScript pages would stay in one
   language, the first frame would flash another, and the document's `lang` would not match what the user reads. The
@@ -129,14 +127,14 @@ forms carry on.**
 - A tenant advertises only locales the interface renders, chooses which of them a request may select, and chooses
   its default language among them: the advertised set and the rendered default never disagree. A stored
   `ui_locales_supported` or `default_ui_locale` that names an unregistered locale is outside its domain and fails
-  closed like any other setting ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)).
+  closed like any other setting ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)).
 - A host that renders its own interface registers its locales and reads the request's preference the same way; a
   host that keeps the surface adds a language with one `InteractiveLocale` and one bundle catalog, and rewords a
   shipped one with `AddInteractiveLocale`. A locale registered without the surface's messages stops the host as it
   starts.
 - The `lang` attribute, the `ui_locales` hidden field and the `ui_locales` query are part of the contract between
   the host's pages and the bundle, as the stable ids are
-  ([ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md)).
+  ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 - A bundle built from another `index.html` without the placeholder keeps that document's `lang`; the bundle then
   renders in its default language.
 
@@ -146,8 +144,8 @@ forms carry on.**
 - [RP-Initiated Logout 1.0 §2](https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout): `ui_locales`
   at the end-session endpoint.
 - [RFC 4647 §3.4](https://www.rfc-editor.org/rfc/rfc4647#section-3.4): lookup.
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md), [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md).
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md), [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
+  [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md).
 - Issue [#540](https://github.com/NCodeGroup/identity/issues/540).
 - Code: `src/NCode.Identity.OpenId.Abstractions/Locales/`, `src/NCode.Identity.OpenId.Core/Locales/`,
   `src/NCode.Identity.OpenId.Authentication.Interactive.Abstractions/InteractiveLocale.cs`,

@@ -18,7 +18,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// applies.</param>
 /// <param name="ClearsRecovery"><see langword="true"/> when the master key has no recovery copy, because an owner root
 /// key wraps it, so any existing recovery copy is removed.</param>
-// See ADR-1414 and ADR-1429.
+// See ADR-1414.
 internal readonly record struct MasterKeyWraps(
     WrappedKey Root,
     string? RootKeyReference,

@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Platform;
 /// The registry has no dependencies, so the platform provider can register the platform it materializes without creating
 /// a cycle through the services that need the platform.
 /// </remarks>
-// See ADR-1219.
+// See ADR-1412.
 internal interface IMaterializedPlatformRegistry : IMaterializedPlatformAccessor
 {
     /// <summary>

@@ -24,10 +24,10 @@ It holds until the first stable release.
 This repository, `NCodeGroup/identity`, holds the product: packages, hosts, images, the chart, the frontend, and the
 decisions and issues of the product and its platform. `NCodeGroup/identity-platform` holds the platform's
 infrastructure, and the private `NCodeGroup/identity-cloud` only the managed offering's proprietary parts
-([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)).
+([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)).
 
 A project's top-level folder says whether it ships
-([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)): `src/` holds only the published
+([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)): `src/` holds only the published
 NuGet packages, and every project there packs; `hosts/` holds the deployables; `analyzers/` holds the repository's own
 Roslyn analyzers; `frontend/` holds the pnpm workspace of the web apps; and test projects (the `*Tests` projects) live
 under `tests/`. Each folder outside `src/` turns packing off in its `Directory.Build.props`, and the build fails a
@@ -40,20 +40,19 @@ End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./buil
 ([ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 A project under `tests/` whose name does not end in `.Tests` is a support project that a suite references: the solution
 compiles it and no gate tests it
-([ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+([ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 - **Foundation** — `NCode.Identity.Json` (the JSON value model of JOSE, OAuth and OpenID Connect),
   `NCode.Identity.Time` (`NumericDate` precision, timer and time periods) and `NCode.Identity.AspNetCore(.Abstractions)`
   (page and response security, front-channel metadata, host hardening and the HTTP result contracts), which any package
   may reference
-  ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md))
+  ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md))
 - **JOSE / JWT** — `NCode.Identity.Jwk` (the JSON Web Key, key set and thumbprint model that the JOSE and Secrets
   libraries share), `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.Jwt(.Abstractions)`, and the opt-in algorithm
   packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K), and the
   opt-in `NCode.Identity.Jose.SdJwt`, Selective Disclosure for JWTs (RFC 9901) over the JWT library with the SD-JWT
   VC profile as data
-  ([ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
-  [ADR-1406](docs/decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md))
+  ([ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md))
 - **COSE / CWT** — the opt-in `NCode.Identity.Cose(.Abstractions)`, CBOR Object Signing and Encryption (RFC 9052 / 9053)
   over `System.Formats.Cbor` and the family's JOSE algorithms and secret keys, and the opt-in
   `NCode.Identity.Cwt(.Abstractions)`, CBOR Web Tokens (RFC 8392) over it
@@ -62,21 +61,18 @@ compiles it and no gate tests it
 - **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)` and its
   opt-in KMS adapters `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`, which wrap
   root keys and hold the remote keys of tenants, protocol clients and BFFs
-  ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
-  [ADR-1260](docs/decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
-  [ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-  [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
-  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+  ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
-  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md))
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md))
 - **OpenID** — `NCode.Identity.OpenId.Abstractions` + `.Core` (environments, errors, messages, serialization),
   `.Authentication(.Abstractions)` (endpoints, grant handlers, token/claims services), `.Management(.Abstractions)`
   (the `.Abstractions` package holds the wire contracts under the `NCode.Identity.OpenId.Management.Contracts` namespace),
   `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework` with its slices
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core` and
   `NCode.Identity.OpenId.Persistence.EntityFramework.Accounts`
-  ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-framework-plus-slices.md)), and
+  ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md)), and
   `NCode.Identity.OpenId.Protocol.Abstractions` (the dependency-free OAuth/OIDC wire vocabulary `OpenIdProtocol`, shared
   by the OP and the protocol client —
   [ADR-1276](docs/decisions/1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md))
@@ -85,41 +81,38 @@ compiles it and no gate tests it
   `NCode.Identity.OpenId.Accounts.Authentication` (the password grant and interactive credential verification against
   local accounts) and `NCode.Identity.OpenId.Accounts.Management(.Abstractions)` (the management API's local-account
   endpoints)
-  ([ADR-1051](docs/decisions/1051-local-accounts-behind-a-pluggable-account-source-seam.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md))
+  ([ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md))
 - **Interactive login and consent** — `NCode.Identity.OpenId.Authentication.Interactive(.Abstractions)`: the opt-in
   sign-in, consent and account surface that the OP serves from the `apps/auth` bundle, with a pluggable credential
   verifier
-  ([ADR-1062](docs/decisions/1062-opt-in-interactive-login-consent-ui.md),
-  [ADR-1070](docs/decisions/1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md))
+  ([ADR-1062](docs/decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md))
 - **OpenID protocol client** — `NCode.Identity.OpenId.Client(.Abstractions)`: an OAuth 2.0 / OIDC client for server-side
   callers (discovery, JWKS, client authentication, token and revocation requests) built on the family's JOSE stack
-  ([ADR-1270](docs/decisions/1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md))
+  ([ADR-1285](docs/decisions/1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md))
 - **Backend for frontend** — `NCode.Identity.Bff(.Abstractions)`: makes an ASP.NET Core app the confidential client of
   its browser frontend, or several, each a `Bff:Frontends:<name>` entry that a registered rule selects per request
-  ([ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)),
+  ([ADR-1442](docs/decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)),
   with an opaque `__Host-` cookie over an encrypted server-side session every replica sees
   ([ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)),
   forwards remote APIs with the right token through YARP, its own `MapBffRemoteApi` or configured routes
   (`AddBffTransforms()`, `AsBffRemoteApis()`)
-  ([ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)),
+  ([ADR-1381](docs/decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)),
   refuses to start when an endpoint's BFF metadata is incomplete
-  ([ADR-1433](docs/decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)),
+  ([ADR-1433](docs/decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)),
   and on opt-in sends browser security headers (`UseBffSecurityHeaders()`) and publishes its client keys at `/bff/jwks`
-  ([ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md));
+  ([ADR-1382](docs/decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md));
   `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`), which also loads the
   key rings that `Bff:KeyRings` names from PEM files
-  ([ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)); the opt-in
+  ([ADR-1439](docs/decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)); the opt-in
   `NCode.Identity.Bff.Blazor` (`AddBffBlazorLibrary()`, `AsBffComponents()`) and `NCode.Identity.Bff.Blazor.Client`
   (`AddBffBlazorClient()`) serve Blazor's interactive server and WebAssembly render modes over the same session, and
   server-rendered pages and SignalR hubs use the core
-  ([ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md));
+  ([ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md));
   the dependency-free `NCode.Identity.Bff.Protocol.Abstractions` holds the names the server and the WebAssembly client
-  share
-  ([ADR-1440](docs/decisions/1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md));
+  share;
   `NCode.Identity.ManagementConsole` composes the management console's BFF host, and
   `NCode.Identity.ManagementConsole.Host` is its reference host
-  ([ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md))
+  ([ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md))
 - **Settings, claims and cryptography** — `NCode.Identity.Settings(.Abstractions)`,
   `NCode.Identity.Claims(.Abstractions)` and `NCode.Identity.Cryptography(.Abstractions)`, each registered by its own
   `Add…Library()` and composed under `AddOpenIdCoreLibrary`
@@ -127,7 +120,7 @@ compiles it and no gate tests it
 - **Infrastructure ports** — `NCode.Identity.Dispatch(.Abstractions)` (background jobs),
   `NCode.Identity.Events(.Abstractions)`, `NCode.Identity.SharedState(.Abstractions)` (state every replica sees) and its
   opt-in `NCode.Identity.SharedState.Valkey` adapter
-  ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md))
+  ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md))
 - **Composition** — `NCode.Identity.Registration` (the `IServiceBuilder<TMarker>` builder) and
   `NCode.Identity.Registration.AspNetCore` (endpoint registration), `NCode.Identity.Server` (`AddIdentityServer()`)
 - **Hosts (`hosts/`)** — the deployables, which no package ships: `NCode.Identity.OpenId.Host` (the ASP.NET Core
@@ -135,23 +128,23 @@ compiles it and no gate tests it
   `NCode.Identity.OpenId.Host.MigrationService` (the migration worker the host image carries),
   `NCode.Identity.ManagementConsole.Host` (the management console's BFF host) and `NCode.Identity.OpenId.LocalDev`
   (the .NET Aspire local-dev orchestrator)
-  ([ADR-1073](docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md),
-  [ADR-1180](docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
-  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
-  [ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md))
+  ([ADR-1073](docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
+  [ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
+  [ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md))
 - **Build analyzers** — `NCode.Identity.Analyzers`, under `analyzers/`, the repository's own Roslyn analyzers, which
   every project's build loads and no package ships: `NCID0001` reports a field that could be an auto-property
-  ([ADR-1486](docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md))
+  ([ADR-1486](docs/decisions/1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md))
 - **Frontend (`frontend/`)** — the pnpm workspace of the web apps (`apps/auth`, `apps/mgmt`, `apps/playground`,
   `apps/conformance`, `apps/conformance-runner`) and their shared `@ncode/*` packages, with a gate of its own
-  ([ADR-1064](docs/decisions/1064-frontend-presentation-platform.md))
+  ([ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md))
 - **Logo** — `brand/`, the family's logo kit: the `{id}` mark as SVG masters and as the PNG and ICO files each platform
   takes, which every package, the host chart and the README show. `brand/build.py` draws every file there, so change
   the script and run it, never a file it writes
-  ([ADR-1491](docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md))
+  ([ADR-1492](docs/decisions/1492-the-familys-id-logo-is-drawn-by-one-script-and-every-web-app-shows-its-icon.md))
 
 The central extensibility model — **service** vs **strategy collection** vs **mediator** — is captured in
-[ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md). Extensibility is the family's goal: a
+[ADR-1001](docs/decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md). Extensibility is the family's goal: a
 consumer or sibling package extends any vocabulary (settings, setting scopes, profiles, grant types, methods) by
 registering into it, so vocabularies are **open by default** and a closed construct such as an `enum` must be provably
 closed ([ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)).
@@ -168,14 +161,16 @@ non-obvious decisions lives in [`docs/decisions/`](docs/decisions/): the project
 [`docs/decisions/project-template/`](docs/decisions/project-template/README.md), the source of truth for every rule
 they cover, and this family's own beside them. A family record never restates a template record: one that builds on
 it names it on a `**Refines:**` line, and one that still contradicts it on a `**Conflicts with:**` line with the issue
-that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
+that tracks the alignment. A family record relates to no other family record: a changed decision rewrites its record
+in place
+([ADR-1508](docs/decisions/1508-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md)). Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Nine family records override template records:
+so a bare ADR number names one record. Ten family records override template records:
 
-- [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
+- [ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
-- [ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) supersedes
+- [ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md) supersedes
   project-template ADR-0007, because a Markdown file links an issue by its address, which GitHub doesn't autolink in a
   file.
 - [ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
@@ -183,24 +178,30 @@ so a bare ADR number names one record. Nine family records override template rec
 - [ADR-1314](docs/decisions/1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md) supersedes
   project-template ADR-0129's decision 2 for the authorization, continue and end-session endpoints, whose GET the OAuth
   2.0 and OpenID Connect specifications require.
-- [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) supersedes
-  two points of project-template ADR-0145: a client-supplied document's fetch limits stay settings that a tenant or
-  client can only lower, and revocation data is fetched over `http`, where RFC 5280 publishes it.
-- [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md) supersedes
-  project-template ADR-0145's choice of `Microsoft.Extensions.Http.Resilience` for the OpenID protocol client, which
-  bounds its calls with the same Polly strategies through `Polly.Core` alone, so it does not carry the telemetry
-  dependency that replaces consumers' logging generator.
-- [ADR-1385](docs/decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) supersedes the
-  same choice for `NCode.Identity.OpenId.Authentication`'s guarded outbound client, so no package of the family
-  carries `Microsoft.Extensions.Http.Resilience`, and the build fails a shipping package that would replace its
-  consumers' logging generator.
-- [ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
+- [ADR-1424](docs/decisions/1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)
   supersedes project-template ADR-0129's decision 6 for the management API, which answers a caller without authority
   `403` for any identifier, because it authorizes at a node before it reads, so the answer discloses nothing.
-- [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)
+- [ADR-1315](docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md) supersedes
+  two points of project-template ADR-0145: a client-supplied document's fetch limits stay settings that a tenant or
+  client can only lower, and revocation data is fetched over `http`, where RFC 5280 publishes it.
+- [ADR-1385](docs/decisions/1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md) supersedes
+  project-template ADR-0145's choice of `Microsoft.Extensions.Http.Resilience` for every shipping package, so the
+  guarded outbound client and the OpenID protocol client bound their calls through `Polly.Core` alone, and the build
+  fails a shipping package that would replace its consumers' logging generator.
+- [ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) supersedes
+  project-template ADR-0123 for tenants, whose identifier its creator chooses and which is never reissued, because a
+  tenant's identifier is part of its address, so its issuer is known before it exists.
+- [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)
   overrides the project template's rule that production projects live under `src/`, because `src/` holds only the
   published packages: the deployables, the build analyzers and the web apps' workspace live in `hosts/`, `analyzers/`
   and `frontend/`.
+- [ADR-1508](docs/decisions/1508-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md)
+  supersedes project-template ADR-0010's consequence that a reversal is a new record superseding the old one, because
+  a family record is rewritten in place and relates only to template records.
+
+One family record conflicts with a template record:
+[ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) with
+project-template ADR-0141, tracked in [#25](https://github.com/NCodeGroup/identity/issues/25).
 
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.
@@ -224,18 +225,18 @@ The build scripts' PowerShell conventions are in
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
 [GitHub issues](https://github.com/NCodeGroup/identity/issues), the single source of truth for it
-([ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)). Record a pending item as an issue labeled by
+([ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md)). Record a pending item as an issue labeled by
 its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
 ([project-template ADR-0001](docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an issue
 closes it with `Closes #<number>`. The same issues and [`docs/decisions/`](docs/decisions/) also hold the pending work
 and decisions of [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform), whose pull
 requests close an issue here with `Closes NCodeGroup/identity#<number>`
-([ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)).
+([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)).
 
 ## Plan-and-execute workflow
 
 Multi-step changes run as **plan-and-execute**
-([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)):
+([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md)):
 Claude Opus plans into a root `PLAN.md`, Claude Sonnet 5.5 executes it one verified step at a time, and any step that
 needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI or Claude Code.
 
@@ -290,7 +291,7 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   `/ship-plan` (every tool has it): it runs the [Landing](#landing) section's `gate`, pushes the plan's branch and
   opens a pull request against `main`, as a draft because that section sets `draft: yes`: a pull request stays a draft
   until its author reviews it
-  ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). The squash merge takes
+  ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)). The squash merge takes
   its subject from the pull request title, which `/ship-plan` takes from the plan's title, so a plan's title is a
   conventional commit subject, such as `# Plan: build: update project-template to v0.23.0`. `/continue-plan` shows
   where every open plan stands and the command to run next. In Claude Code, `/run-issues #<number> …` takes issues, or
@@ -340,7 +341,7 @@ cannot read, but this repository already provides their skill equivalents. Use *
 which files the runtime can read. Generic conversion loses prompt-specific agent/model/tool selection and adds
 `disable-model-invocation: true`, which is not part of our supported skill configuration. User-profile customizations
 are separate: review any such entries individually rather than assuming the repository skills cover them. See
-[ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
+[ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md#dual-runtime-customization-contract).
 
 ## Landing
 
@@ -368,15 +369,16 @@ after that many rounds of review feedback, `/run-issues` and `/run-feedback` rec
 PowerShell command that sets up the shell the workflow's commands run in, which `/ship-plan`, `/run-issues`,
 `/address-feedback` and `/run-feedback` dot-source before the gate. Here the `main`
 ruleset already requires pull requests through the merge queue
-([ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so `protect`
+([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)), so `protect`
 is `none`; releases are tagged on `release/vX.Y` lines, never one per plan
 ([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none` and `tag-release.yml` publishes
 nothing; the family has released nothing and
-stores nothing a reader must keep ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)), so
+stores nothing a reader must keep ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), so
 `pre-release` is `untracked`; a pull request stays a draft until
-its author reviews it ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),
+its author reviews it
+([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)),
 so `draft` is `yes`; `gate` is the push protocol's local pre-push gate
-([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)); NCode
+([ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)); NCode
 Review reviews every pull request (`.github/workflows/code-review.yml`), so `review-bots` is `ncode-review`; nothing
 needs a shell set up, so `prelude` is `none`; and a plan's title is already the conventional commit subject the squash
 merge takes, so `pr-format` is `none`.
@@ -410,7 +412,7 @@ narrow the tests with `-Filter <expr>` (a `dotnet test --filter` expression, for
 pre-push gate** (the push protocol's final check): it runs only the test projects the change reaches since its merge
 base with `origin/main`, while still building the whole solution. The plain `./build/dod.ps1` is the full gate, which
 runs in the merge queue, on `main` and on the release lines; a pull request into `main` runs it with `-Affected`
-([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)). It is also
+([ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)). It is also
 available locally for a thorough clean Release check. The end-to-end suites are not part of it: `./build/e2e.ps1` runs
 them and needs a running Docker engine. Package versions are centrally managed in
 [`Directory.Packages.props`](Directory.Packages.props); versioning is stamped in lockstep by Nerdbank.GitVersioning
@@ -420,10 +422,10 @@ from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTI
 
 This family is **greenfield and pre-release**: all work lands on the single `main` trunk through pull requests
 ([project-template ADR-0004](docs/decisions/project-template/0004-trunk-based-development-on-the-default-branch.md),
-[ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), breaking changes are
+[ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)), breaking changes are
 acceptable (prefer a clean cutover over compatibility shims, and expect `PublicAPI.Unshipped.txt` churn), and the design
 follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more flexible, data-driven controls. See
-[ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md). Because of this posture, **default to the
+[ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md). Because of this posture, **default to the
 best long-term, cohesive design**: when a change forks between a minimal compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage, and surface a fork for the user only when the options are genuinely equal in quality. Breaking changes are

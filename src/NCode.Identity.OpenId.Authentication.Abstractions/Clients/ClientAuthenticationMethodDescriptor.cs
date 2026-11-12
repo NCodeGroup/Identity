@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// descriptor through <c>ICollectionDataSource&lt;ClientAuthenticationMethodDescriptor&gt;</c> beside each
 /// <see cref="IClientAuthenticationHandler"/> it registers.
 /// </summary>
-// See ADR-1207.
+// See ADR-1145.
 [PublicAPI]
 public sealed class ClientAuthenticationMethodDescriptor
 {

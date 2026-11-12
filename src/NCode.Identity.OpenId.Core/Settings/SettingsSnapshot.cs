@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// Writes a platform's effective settings as the JSON object that records what every tenant and client was reconciled
 /// against: each setting's name and its value as the setting serializer reads it back, in ordinal order of the names.
 /// </summary>
-// See ADR-1234.
+// See ADR-1412.
 internal static class SettingsSnapshot
 {
     /// <summary>

@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Authentication.ResourceServers;
 /// server a caller acts for at token introspection — carrying the scopes it owns, the effective settings that bound
 /// the access tokens issued for it, and its own secret keys.
 /// </summary>
-// See ADR-1075, ADR-1154, and ADR-1168.
+// See ADR-1158, ADR-1154, and ADR-1168.
 [PublicAPI]
 public sealed class ResolvedResourceServer
 {

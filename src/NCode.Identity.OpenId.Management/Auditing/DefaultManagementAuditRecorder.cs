@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 [SuppressMessage(
     "Design",
     "NCID0003",
-    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351)."
 )]
 internal class DefaultManagementAuditRecorder(
     IEventPublisher eventPublisher,
@@ -516,7 +516,7 @@ internal class DefaultManagementAuditRecorder(
     {
         // A client acting for itself is the actor of the changes it makes. The management authentication filter
         // resolved the acting client before the change committed, and the resolver answers from that resolution.
-        // See ADR-1419, ADR-1450 and ADR-1470.
+        // See ADR-1466.
         var openIdContext = httpContext.GetOpenIdContextOrDefault();
         if (openIdContext is not null)
         {

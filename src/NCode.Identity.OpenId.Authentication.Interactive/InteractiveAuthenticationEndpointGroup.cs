@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// <c>MapEndpointGroups</c> discovery as every other endpoint instead of a bespoke mapping call.
 /// Its endpoints have confidential bodies, so HTTP logging never writes their request or response bodies.
 /// </summary>
-// See ADR-1138 and ADR-1193.
+// See ADR-1165 and ADR-1193.
 internal sealed class InteractiveAuthenticationEndpointGroup : IEndpointGroup
 {
     /// <summary>

@@ -39,8 +39,9 @@ public sealed class MutualTlsForwardingOptions
     /// <summary>
     /// Gets or sets the name of the format in which the header carries the certificate: the
     /// <see cref="IClientCertificateHeaderDecoder.Format"/> of a registered decoder (the known names are the values of
-    /// <see cref="ClientCertificateHeaderFormats"/>). A name no registered decoder reads stops the host when it starts.
-    /// Defaults to <see cref="ClientCertificateHeaderFormats.Base64Der"/>.
+    /// <see cref="ClientCertificateHeaderFormats"/>). When <see cref="CertificateHeaderName"/> is set, a name no
+    /// registered decoder reads stops the host when it starts. Defaults to
+    /// <see cref="ClientCertificateHeaderFormats.Base64Der"/>.
     /// </summary>
     public string Format { get; set; } = ClientCertificateHeaderFormats.Base64Der;
 }

@@ -230,7 +230,7 @@ internal class DefaultOpenIdPlatformFactory(
         Func<CancellationToken, ValueTask<IReadOnlyCollection<Setting>?>> loadChangedSettingsAsync =
             ct => LoadChangedSettingsAsync(openIdEnvironment, persistedPlatform, ct);
 
-        // A committed change is read at once through OpenIdPlatform.RefreshSettingsAsync; the interval is the fallback (ADR-1219).
+        // A committed change is read at once through OpenIdPlatform.RefreshSettingsAsync; the interval is the fallback (ADR-1412).
         var dataSource = ActivatorUtilities.CreateInstance<RefreshableSettingsCollectionDataSource>(
             ServiceProvider,
             initialSettings,

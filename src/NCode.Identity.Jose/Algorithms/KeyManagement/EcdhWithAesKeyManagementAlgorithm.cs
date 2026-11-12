@@ -19,7 +19,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="kekSizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
-// See ADR-1477.
+// See ADR-1471.
 internal class EcdhWithAesKeyManagementAlgorithm(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     IEnumerable<IEcdhKeyAgreement> keyAgreements,
@@ -126,7 +126,7 @@ internal class EcdhWithAesKeyManagementAlgorithm(
     }
 
     /// <inheritdoc />
-    // See ADR-1477.
+    // See ADR-1471.
     public override ValueTask<int> UnwrapKeyAsync(
         SecretKey secretKey,
         JsonElement header,

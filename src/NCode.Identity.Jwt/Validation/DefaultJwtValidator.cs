@@ -351,7 +351,7 @@ internal sealed class DefaultJwtValidator(
         );
     }
 
-    // A remote key decrypts through a billed service call, so a header that names a held key costs one call (ADR-1477).
+    // A remote key decrypts through a billed service call, so a header that names a held key costs one call (ADR-1471).
     private static IEnumerable<SecretKey> NarrowByKeyId(
         JsonElement header,
         IEnumerable<SecretKey> keys

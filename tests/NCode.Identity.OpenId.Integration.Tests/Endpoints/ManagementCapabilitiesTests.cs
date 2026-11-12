@@ -8,7 +8,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // The management capabilities document discloses the deployment's key management services, algorithms and secret
-// types, so only an authenticated management caller reads it. See ADR-1482.
+// types, so only an authenticated management caller reads it. See ADR-1067.
 public class ManagementCapabilitiesTests
 {
     private const string CapabilitiesPath = "/api/capabilities";

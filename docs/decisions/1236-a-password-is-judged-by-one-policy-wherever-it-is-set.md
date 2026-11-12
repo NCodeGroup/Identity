@@ -1,20 +1,16 @@
 # 1236. A password is judged by one policy wherever it is set
 
-- **Status:** Accepted (amended by
-  [ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md): the policy judges the NFC form of a
-  password, and the ASP.NET Core Identity adapter stores a password without Identity's password validators; amended by
-  [ADR-1370](1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md): the developer
-  seed's administrator password is generated per machine, never committed)
+- **Status:** Accepted
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
 ## Context
 
 Four paths set the password of a local account: the management API's create and reset
-([ADR-1226](1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md)), the
-self-service change ([ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)), and the
-developer and conformance seeders. Each of them accepts any non-empty value, so an account can hold a password that
-anyone guesses at the first attempt (issue [#292](https://github.com/NCodeGroup/identity/issues/292)).
+([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), the
+self-service change ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)), and the
+developer and conformance seeders. A path that accepted any non-empty value would let an account hold a password that
+anyone guesses at the first attempt.
 
 NIST SP 800-63B-4 §3.1.1.2 sets what a verifier requires of a password:
 
@@ -46,10 +42,10 @@ lists.**
    seeders and a consumer's own verifier. `PasswordPolicyContext` carries the tenant's effective settings, the account's
    user name and its email. The defaults are internal classes in `NCode.Identity.OpenId.Authentication`, in the folder
    `Passwords/`, registered by `AddPasswordServices()`, which `AddOpenIdAuthenticationLibrary` calls, so the composition
-   root wires them ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)) and a host replaces any of
+   root wires them ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)) and a host replaces any of
    them.
 2. **Two tenant settings set the length.** Both apply to tenants and neither is discoverable
-   ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)).
+   ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)).
    - `password_min_length` is an `int` between 8 and 64 that defaults to 15, and merges with `Max`, so a narrower scope
      may only raise the floor. 15 is the requirement for a single-factor password, and 8 is the absolute floor.
    - `password_max_length` is an `int` between 64 and 4096 that defaults to 128, and merges with `Replace`. 64 is the
@@ -57,7 +53,7 @@ lists.**
 3. **The length is counted in Unicode code points over the whole password.** `DefaultPasswordPolicy` counts the runes of
    the password (`ReadOnlySpan<char>.EnumerateRunes()`), so a surrogate pair is one character. It counts the code points
    of the password's Unicode Normalization Form C
-   ([ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), does not truncate the password and
+   ([ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md)), does not truncate the password and
    requires no character classes. A password with fewer characters than the minimum is `password_too_short`, and one
    with more than the maximum is `password_too_long`.
 4. **The blocklists are a strategy collection.** `IPasswordBlocklist.ContainsAsync(PasswordPolicyContext,
@@ -85,7 +81,7 @@ lists.**
    `password_blocklisted`, and a replacement policy may report other codes
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)). The description names the requirement, such as
    "The password must have at least 15 characters." The management API returns the description, and the change page
-   maps the code to a message of its own.
+   maps the code to a message of its own ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)).
 7. **Each entry point answers in its own form, and the policy runs before the store hashes the password.**
    - The management API's create and reset answer a refusal with a `400` problem that carries the description.
      `LocalAccountApiEndpointHandler` resolves the tenant's settings from the stored tenant document with
@@ -98,15 +94,6 @@ lists.**
      that names the kind of account, its user name and the description.
 
    A refused password is never hashed, and a store need not repeat the rules.
-8. **The change result carries the error code that the page shows.** `InteractivePasswordChangeResult` is a sealed
-   class with the static results `Changed`, `NotSupported` and `CurrentPasswordInvalid`, `Refused(string error)`,
-   `Error` and `IsChanged`, which is `[MemberNotNullWhen(false, nameof(Error))]`. `InteractivePasswordChangeErrors`
-   names the codes that the page knows: `invalid_request`, `password_mismatch`, `invalid_current_password` and
-   `not_supported`. The vocabulary is open, so the page shows a general message for a code it does not know, and the
-   endpoint redirects with `?error=` and the result's error code.
-9. **The page offers guidance.** The new-password field of the change page shows helper text that advises a long
-   passphrase that the end user uses nowhere else, and the page maps `password_too_short`, `password_too_long` and
-   `password_blocklisted` to messages that say what to do.
 
 ## Options considered
 
@@ -118,7 +105,7 @@ lists.**
 - **A store's own validators.** Rejected: each store differs, the defaults of ASP.NET Core Identity impose composition
   rules, and a custom store would skip them.
 - **A much larger list.** Rejected: the limit on failed attempts
-  ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md)) throttles guessing, so a larger list is of
+  ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)) throttles guessing, so a larger list is of
   little benefit, and the list is embedded in the package.
 - **Per-client settings.** Rejected: an account belongs to its tenant, not to a client.
 
@@ -128,27 +115,19 @@ lists.**
   tenant with its settings or refuses more passwords with a blocklist.
 - A password that an account holds is judged only when it is next set; no stored password is re-validated.
 - The bundled list adds about 450 KB to the Authentication package.
-- The developer seed's administrator password is `dev-admin-password`, because a password of 12 characters fails the
-  policy.
 - The ASP.NET Core Identity adapter stores a password through the user store without Identity's password validators, so
   the policy is the only judge of a password the server sets there too
-  ([ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)).
-- **Breaking:**
-  - `InteractivePasswordChangeResult` is a sealed class that carries an error code, so a custom
-    `IInteractivePasswordChanger` returns its static results or `Refused(code)`.
-  - `IPasswordPolicy`, `IPasswordBlocklist`, `PasswordPolicyContext`, `PasswordPolicyResult`, `PasswordPolicyErrors` and
-    `InteractivePasswordChangeErrors` are added.
-- This implements issue [#292](https://github.com/NCodeGroup/identity/issues/292).
+  ([ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md)).
 
 ## References
 
 - [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b/authenticators/) §3.1.1.2 — the length, the blocklist
   and the guidance for a password.
-- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — the composition root wires the defaults.
-- [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — the domains of the length settings.
+- [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — the composition root wires the defaults.
+- [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — the domains of the length settings.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — the error codes are an open vocabulary.
-- [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) — the self-service change.
-- [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts.
+- [ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md) — the self-service change.
+- [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md) — the limit on failed attempts.
 - Code: `NCode.Identity.OpenId.Authentication.Passwords.IPasswordPolicy`,
   `NCode.Identity.OpenId.Authentication.Passwords.DefaultPasswordPolicy`,
   `NCode.Identity.OpenId.Authentication.Passwords.CommonPasswordBlocklist`,

@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// <see cref="RetryAfter"/> has elapsed. The default value admits the request.
 /// </summary>
 /// <param name="RetryAfter">How long the caller waits before retrying; <see langword="null"/> when admitted.</param>
-// See ADR-1196 and ADR-1246.
+// See ADR-1246.
 [PublicAPI]
 public readonly record struct RateLimitDecision(TimeSpan? RetryAfter)
 {

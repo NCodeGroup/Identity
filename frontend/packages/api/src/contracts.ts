@@ -208,7 +208,7 @@ export type AddRoleHolderRequest = {
 };
 
 /**
- * Mirror of `CallerResource`: where the signed-in caller holds authority (ADR-1420). `principalId` is
+ * Mirror of `CallerResource`: where the signed-in caller holds authority (ADR-1465). `principalId` is
  * `null` when the caller resolves to no principal.
  */
 export type CallerResource = {
@@ -395,7 +395,7 @@ export type SecretResource = {
    * secret, never one that uses it as a key, such as `client_secret_jwt` or an `HS256` request object.
    */
   readonly isVerifier: boolean;
-  // See ADR-1475.
+  // See ADR-1476.
   /**
    * The remote key provider whose key management service holds the key's private half, such as `aws-kms`, or `null`
    * for a key the server holds.
@@ -441,7 +441,7 @@ export type RotateSecretRequest = {
  * Mirror of `CreateRemoteSecretRequest`. `POST /api/tenants/{tenantId}/secrets/remote` creates the key in the
  * provider's key management service (KMS), which keeps its private half, and reveals nothing.
  */
-// See ADR-1475, ADR-1476 and ADR-1477.
+// See ADR-1476 and ADR-1471.
 export type CreateRemoteSecretRequest = {
   readonly remoteKeyProvider: string;
   readonly secretType: string;
@@ -458,7 +458,7 @@ export type CreateRemoteSecretRequest = {
  * half from the KMS, checks it is a key of the named type, size and curve, stores it once the key signs a challenge
  * that half verifies, or decrypts a challenge encrypted to that half, and never destroys a bound key.
  */
-// See ADR-1475, ADR-1476 and ADR-1477.
+// See ADR-1476 and ADR-1471.
 export type ImportRemoteSecretRequest = {
   readonly remoteKeyProvider: string;
   readonly remoteKeyId: string;
@@ -484,7 +484,7 @@ export type CreatedSecretResource = SecretResource & {
  * Mirror of `PublicKeyResource` — the public key material of an asymmetric secret, in two representations:
  * `jwk` (an RFC 7517 JSON Web Key carrying only the public members, the same shape the JWKS endpoint publishes)
  * and `pem` (a `SubjectPublicKeyInfo` PEM string). No private material is ever included; only asymmetric secrets
- * (`rsa`, `ecc`) expose this sub-resource. See ADR-1058.
+ * (`rsa`, `ecc`) expose this sub-resource. See ADR-1268.
  */
 export type PublicKeyResource = {
   readonly secretId: string;
@@ -607,7 +607,7 @@ export type EffectiveSettingsResource = {
   readonly settings: Readonly<Record<string, unknown>>;
 };
 
-/** Mirror of `SettingLimitsResource`: the limits an owner's settings may carry and whether the caller may change them (ADR-1448). */
+/** Mirror of `SettingLimitsResource`: the limits an owner's settings may carry and whether the caller may change them (ADR-1418). */
 export type SettingLimitsResource = {
   readonly names: readonly string[];
   readonly canChange: boolean;

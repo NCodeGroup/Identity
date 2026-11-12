@@ -56,7 +56,7 @@ Every gate run clears and rewrites `artifacts/test-results/` (one JUnit report p
 of a full run) and prints a test digest and a per-stage duration table; a full run also writes the merged coverage
 report to `artifacts/coverage/` — open `index.html` to browse it. In CI the same results appear on the run's summary
 page, failed tests and the failing stage are annotated, and coverage is uploaded to Codecov
-([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md)). The frontend workspace's equivalent is
+([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md)). The frontend workspace's equivalent is
 `pnpm run test:report` (in `frontend`), which adds per-package JUnit and coverage output to `pnpm test`.
 
 The Definition of Done gates the .NET tier only. A change under `frontend` also runs that workspace's gates before
@@ -69,10 +69,10 @@ To preview the CI presentation (job summary + annotations) without pushing, run 
 point `GITHUB_STEP_SUMMARY` at an empty temporary file, then read that file. The build writes nothing to `GITHUB_ENV`:
 `version.json` turns off Nerdbank.GitVersioning's cloud-build variables, whose unlocked appends from parallel MSBuild
 nodes tore that file and failed the job
-([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)).
+([ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)).
 
 When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**`, `/hosts/` for `hosts/**`, `/analyzers/` for `analyzers/**`, `/tests/` for `tests/**` and `/benchmarks/` for `benchmarks/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`)
-— never at the solution root. A published package goes under `src/` and packs; any other project goes under the folder of its role, whose `Directory.Build.props` turns packing off, and the build fails a project whose folder and packing disagree ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)).
+— never at the solution root. A published package goes under `src/` and packs; any other project goes under the folder of its role, whose `Directory.Build.props` turns packing off, and the build fails a project whose folder and packing disagree ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)).
 
 ## Benchmarks
 
@@ -105,7 +105,7 @@ The suite also runs a Blazor Web App (interactive server and WebAssembly) from t
 from another origin is refused, that an idle hub connection closes once its session ends, and that a WebAssembly
 component's traffic carries no token. A project under `tests/` whose name does not end in `.Tests` is a support project:
 the solution compiles it and no gate tests it
-([ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+([ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 
 ```pwsh
 # Run every end-to-end suite (installs the Playwright browsers and pulls the Keycloak image on the first run):
@@ -159,8 +159,8 @@ marked tool-enforced or review-only. Every rule lives in one of them, once. The 
    and every review thread is resolved, merging ("Merge when ready") adds it to the merge queue, which runs the full
    gate on the merged result and squash-merges it, so the branch need not be up to date with `main`; no one pushes to
    `main` directly. See
-   [ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) and
-   [ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md). CI runs on a
+   [ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) and
+   [ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md). CI runs on a
    pull request, in the merge queue, and on a push to `main` or a release line, not on a push to any other branch, so a
    branch's commits are checked once. To check a branch that has no pull request, open a draft pull request or run the
    workflows by hand (`workflow_dispatch`).
@@ -170,7 +170,7 @@ Claude Sonnet 5.5 executes one verified step at a time, and Opus re-plans any st
 Copilot CLI or Claude Code. The workflow files come from the project template; update them with
 `/plan-template-update`, which plans and runs `./.template/Update-Project.ps1`, never by hand. See
 [AGENTS.md](AGENTS.md#plan-and-execute-workflow) and
-[ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md).
+[ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md).
 
 See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how versions map onto tags.
 
@@ -206,7 +206,7 @@ The version is pinned with `rollForward: false` so formatting output never drift
 ## Package versions — Central Package Management (CPM)
 
 Package **versions live in one place** ([`Directory.Packages.props`](Directory.Packages.props)) and are not repeated
-per project ([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)).
+per project ([ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)).
 
 - A `<PackageVersion Include="X" Version="1.2.3" />` in `Directory.Packages.props` says **which version**.
 - A `<PackageReference Include="X" />` (no `Version`) in a `.csproj` says **which project uses it**. NuGet errors with
@@ -226,7 +226,7 @@ refactored ahead of its first release (issue [#36](https://github.com/NCodeGroup
 ecosystem sets `open-pull-requests-limit: 0`. Security updates still arrive as pull requests (one group per ecosystem)
 whenever a published advisory affects a dependency. The docker and dotnet-sdk ecosystems keep their limit of 5 and run
 during the pause: a digest pin and the SDK floor in `global.json` follow their upstream releases
-([ADR-1249](docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
+([ADR-1248](docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
 [ADR-1493](docs/decisions/1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md)).
 
 When one is red, the fix belongs **on its branch**: check out the PR branch, commit the code or config the new versions
@@ -243,14 +243,14 @@ directories. Dependabot starts with no cache, and a warm local metadata cache ca
 When an upgrade **cannot land yet** (the upstream ecosystem has not caught up), hold it with an `ignore` rule in
 `dependabot.yml` that explains why, plus an issue for lifting it. That is how TypeScript majors and `@types/node`
 majors are held today
-([ADR-1147](docs/decisions/1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Without the rule,
+([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)). Without the rule,
 every weekly group PR fails on the same package.
 
 The frontend has no lockfile-free path: after changing a `package.json`, run `pnpm install` in `frontend` and commit
 `pnpm-lock.yaml`, because CI installs with `--frozen-lockfile`. Frontend versions must be three days old before anyone
 installs them: pnpm's `minimumReleaseAge` gates people and Dependabot's npm `cooldown` gates its updates. Keep the two
 windows equal, because Dependabot fails while the lockfile holds a version younger than its cooldown
-([ADR-1153](docs/decisions/1153-one-release-age-window-gates-frontend-dependencies.md)).
+([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 Workflows reference GitHub's own `actions/*` by major tag (`actions/checkout@v7`) and every **third-party** action by
 full commit SHA with its version in a trailing comment
@@ -263,7 +263,7 @@ Because these libraries are built for publication, an accidental change to the p
 consumer. The
 [`Microsoft.CodeAnalysis.PublicApiAnalyzers`](https://github.com/dotnet/roslyn-analyzers/blob/main/src/PublicApiAnalyzers/PublicApiAnalyzers.Help.md)
 Roslyn analyzer makes the surface explicit and reviewable via a `PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`
-pair per packable project ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)):
+pair per packable project ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)):
 
 - Add public API → add its lines to `PublicAPI.Unshipped.txt` (the IDE's _"Add to public API"_ code fix generates them).
 - Remove public API → prefix the removed line with `*REMOVED*` in `PublicAPI.Unshipped.txt`.

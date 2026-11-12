@@ -14,7 +14,7 @@ namespace NCode.Identity.AspNetCore;
 /// A host that serves a single-page bundle on behalf of a tenant uses this class to drop the bundle's own icons and to
 /// link the tenant's icon in their place.
 /// </remarks>
-// See ADR-1494.
+// See ADR-1253.
 [PublicAPI]
 public static partial class HtmlIconLinks
 {

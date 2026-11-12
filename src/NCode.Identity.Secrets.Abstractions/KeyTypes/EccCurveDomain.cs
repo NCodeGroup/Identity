@@ -11,7 +11,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// Describes the domain of a short-Weierstrass elliptic curve <c>y² = x³ + ax + b</c> over the prime field of order
 /// <see cref="Prime"/>, and checks whether a point lies on it independently of the platform's cryptography provider.
 /// </summary>
-// See ADR-1427.
+// See ADR-1068.
 [PublicAPI]
 public sealed class EccCurveDomain
 {

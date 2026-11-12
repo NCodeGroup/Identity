@@ -26,7 +26,7 @@ public class TokenExchangeEndpointTests
                 .TokenExchange,
         };
 
-    // See ADR-1419.
+    // See ADR-1466.
     [Fact]
     public async Task PostToken_WhenTheSubjectTokenIsAClientCredentialsAccessToken_ReturnsInvalidGrant()
     {

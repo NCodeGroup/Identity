@@ -9,7 +9,7 @@
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Status**         | Available. Grant payloads, private keys, client secrets and the Data Protection key ring are all covered, master keys rotate, rekey and are destroyed once nothing names them, and a tenant can wrap its master keys under a root key it controls.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Packages**       | `NCode.Identity.Secrets.Persistence(.Abstractions)`, plus one opt-in package per cloud: `.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **Key decisions**  | [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) cloud root keys · [ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md) grant payloads · [ADR-1116](../decisions/1116-memory-allocations-and-buffer-operations.md) secure buffers · [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) master key lifecycle · [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) offline rewrap · [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md) tenant root keys · [ADR-1415](../decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md) wrapping under a named key |
+| **Key decisions**  | [ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-1260](../decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md) cloud root keys · [ADR-1266](../decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) secure buffers · [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md) master key lifecycle · [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) offline rewrap · [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md) tenant root keys |
 | **Operator guide** | [Helm chart: Secret protection](../../charts/ncode-identity-host/README.md#secret-protection)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ## Contents
@@ -114,9 +114,9 @@ flowchart TB
 | Data                                                                                    | Owner                | At rest                                                                                                    |
 | --------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Tenant **private signing and encryption keys**                                      | Tenant               | `nce1.` envelope                                                                                           |
-| **Client secrets** of a client that only compares its secret (`client_secret_basic`, `client_secret_post`) | Tenant | A one-way verifier in an `nce1.` envelope: the server cannot read the secret back. A supplied secret's PBKDF2 verifier can still be searched by whoever holds the root key and the database, so choose a long random one ([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)) |
+| **Client secrets** of a client that only compares its secret (`client_secret_basic`, `client_secret_post`) | Tenant | A one-way verifier in an `nce1.` envelope: the server cannot read the secret back. A supplied secret's PBKDF2 verifier can still be searched by whoever holds the root key and the database, so choose a long random one ([ADR-1391](../decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)) |
 | **Client secrets** of a client that uses its secret as a key (`client_secret_jwt`), and resource-server keys | Tenant | `nce1.` envelope |
-| **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md))     |
+| **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md))     |
 | ASP.NET Core **Data Protection key ring** (sign-in cookies, anti-forgery tokens)        | Platform             | Each key in an `nce1.` envelope                                                                            |
 | Your own application's sensitive data                                                   | Platform / tenant    | `nce1.` envelope ([see below](#protect-your-own-data-with-it))                                             |
 | **Public keys** (`spki`, `x509`)                                                        | n/a                  | Clear text, by design: they are public                                                                     |
@@ -149,7 +149,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 - **The payload isn't bound to a master key.** Rotating a master key only rewraps 32-byte data keys and never
   re-encrypts payloads.
 - **Open provider model.** Any KMS can be a root key provider by registering an `IKeyWrapper`
-  ([ADR-1150](../decisions/1150-vocabularies-are-open-unless-provably-closed.md), [ADR-1279](../decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
+  ([ADR-1150](../decisions/1150-vocabularies-are-open-unless-provably-closed.md), [ADR-1260](../decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)).
 - **Keyless cloud credentials.** Every cloud provider authenticates with workload identity federation, so no cloud
   credential is stored in the cluster.
 
@@ -157,8 +157,8 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 <summary><b>Alternatives we rejected, and why</b></summary>
 
 - **Keep the certificate-wrapped Data Protection ring.** It gives one key to every tenant, that key is long-lived and
-  rotated by hand, renewing it in place breaks it silently, and it offers no tenant isolation or deletion. It was
-  superseded ([ADR-1177](../decisions/1177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
+  rotated by hand, renewing it in place breaks it silently, and it offers no tenant isolation or deletion
+  ([ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 - **A secrets manager (Infisical, Doppler, cloud secret managers) as the store.** It duplicates the store the server
   already has, bills per secret or per identity, and from outside the vendor's cloud it usually needs a stored
   credential. Their KMS offerings can still be root key providers.
@@ -168,7 +168,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 - **A platform key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys
   anyway, and it would stop a tenant from bringing its own root key.
 
-Full reasoning: [ADR-1235 § Options considered](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md#options-considered).
+Full reasoning: [ADR-1235 § Options considered](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md#options-considered).
 
 </details>
 
@@ -202,7 +202,7 @@ right one for its owner and version. A partial unique index guarantees **exactly
 **Failing closed.** If a grant's payload doesn't decrypt (it was altered, it comes from a foreign row, or its master
 key was lost), the server treats the grant as **absent** and logs `GrantPayloadUnreadable`. An unreadable row never
 authorizes anything, and never turns into a 500
-([ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md)).
+([ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 > [!TIP]
 > Envelope layout and binding are specified in
@@ -216,7 +216,7 @@ Encryption at rest is only as strong as the way the process handles plaintext. I
 `byte[]` or a `string`) leaks: the garbage collector **moves** objects during compaction and leaves stale copies
 behind, a `string` is immutable and can't be wiped, and nothing is cleared before memory is reused, swapped or written
 to a crash dump. NCode.Identity treats secret memory as a resource with an explicit lifetime
-([ADR-1116](../decisions/1116-memory-allocations-and-buffer-operations.md)):
+([ADR-1266](../decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)):
 
 | What                                   | Where it lives                                                                                      | When it is wiped                                                       |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -292,8 +292,8 @@ keep unwrapping under their own version.
 > [!TIP]
 > Setting each provider up (key policies, workload identity, chart values) is covered in the
 > [Helm chart README](../../charts/ncode-identity-host/README.md#secret-protection). The design is in
-> [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) and
-> [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md).
+> [ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) and
+> [ADR-1260](../decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md).
 
 ## Tenant root keys (bring your own key)
 
@@ -306,7 +306,7 @@ rewrapped under it unreadable, in the database and in every backup
 - **Providers.** A tenant chooses among the key wrappers listed in `SecretProtection:OwnerRootKeys:Providers`. The list
   is empty by default, so no tenant can bring a key until the operator opts in: the server calls the tenant's KMS with
   the deployment's own workload identity. A provider has to wrap under a key the caller names, which `aws-kms`,
-  `azure-key-vault` and `google-cloud-kms` do ([ADR-1415](../decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md));
+  `azure-key-vault` and `google-cloud-kms` do ([ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md));
   `ephemeral`, `local` and the recovery wrapper hold a deployment secret, never a key a third party controls. A listed
   provider that is not such a wrapper stops the host as it starts. The list governs setting a key only: a tenant bound
   to a provider that leaves the list keeps its key, so its data stays readable.
@@ -325,7 +325,7 @@ rewrapped under it unreadable, in the database and in every backup
   The `platform` owner is refused, because its master keys protect the deployment's Data Protection key ring and the
   host's own data. The
   control-plane tenant is refused too: the management API authenticates every administrator against it
-  ([ADR-1191](../decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)), so a revoked
+  ([ADR-1191](../decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)), so a revoked
   key would fail every management request, including the ones that restore it, and lock the administrators out. Their
   keys stay under the deployment's root key. A consumer registers its own `IOwnerRootKeyPolicy` to refuse further
   owners.
@@ -430,12 +430,12 @@ A master key does not live forever. Each owner's active master key **rotates** t
 `SecretProtection:MasterKeys:RotationPeriod` (365 days), or at once when an administrator **rekeys** it. The old version
 retires. A tenant's 32-byte data keys that it wrapped are **rewrapped** under the new version in the background, and the
 retired key is **destroyed** once its grace has passed and no stored value names it
-([ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+([ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 The platform's next version protects the Data Protection keys and the host data created afterwards. An existing Data
 Protection key is never re-encrypted, so a retired platform version stays while a live ring key names it; a value that
 a registered protected-value source reports for the platform (a host's own data) is rewrapped like a tenant's, and the
 version is destroyed once its grace has passed and no live ring key and no such value names it
-([ADR-1413](../decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)).
+([ADR-1247](../decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 
 ```mermaid
 sequenceDiagram
@@ -498,7 +498,7 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
 - **Data Protection key ring gate.** If the platform's master key can't decrypt a live key in the Data Protection key
   ring (for example after a partial restore), the host **stops** instead of silently signing everyone out. The error
   names each affected key, and one setting revokes them
-  ([ADR-1247](../decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
+  ([ADR-1247](../decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 - **The `secret-protection` command.** `secret-protection rewrap` rewraps every master key under the configured root key
   provider and recovery public key, and `rewrap-recovery` replaces only the recovery copies. Run it once as a Job from
   the host image. When the root key is lost, `--recovery-private-key <file>` unwraps each key from its recovery copy. The
@@ -513,7 +513,7 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
 | Environment     | Behavior                                                                                                                                                                                       |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Production**  | Refuses to start with the `ephemeral` provider, with a root key written inline in configuration (even if unused), or with no recovery decision. It reports every finding together.              |
-| **Helm chart**  | Refuses to render a malformed KMS key ARN, key name or key id, and mounts cloud credentials only for the selected provider ([ADR-1179](../decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). |
+| **Helm chart**  | Refuses to render a malformed KMS key ARN, key name or key id ([ADR-1458](../decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)), and mounts cloud credentials only for the selected provider ([ADR-1485](../decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)). |
 | **Development** | No root key or development credential is ever committed, and `ephemeral` is selected only by the host's Development and Conformance overlays. The LocalDev AppHost generates one per machine, outside the repository. If the root key changes, development key pruning (`DeveloperKeys:PruneUnreadableKeys`) heals the platform and the affected tenants: the platform starts over with a new master key, and its Data Protection keys are revoked.       |
 
 ## Protect your own data with it
@@ -569,17 +569,15 @@ We'd rather say what this doesn't do yet:
 
 **Decisions**
 
-- [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): stored secrets are protected by a key hierarchy under an external root key
-- [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md): Azure Key Vault and Google Cloud KMS are root key providers
-- [ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md): grant payloads are protected under the tenant master key
-- [ADR-1247](../decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a Data Protection key the server can't decrypt stops the host
-- [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): a master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it
+- [ADR-1235](../decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): stored secrets are protected by a key hierarchy under an external root key; grant payloads are protected under the tenant master key
+- [ADR-1260](../decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md): Azure Key Vault and Google Cloud KMS are root key providers
+- [ADR-1247](../decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md): a Data Protection key the server can't decrypt stops the host
+- [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md): a master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it
 - [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): an offline host command rewraps every master key under the configured root and recovery keys
-- [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): a tenant can wrap its master keys under a root key it controls
-- [ADR-1415](../decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md): a key wrapper can wrap under a key the caller names
-- [ADR-1116](../decisions/1116-memory-allocations-and-buffer-operations.md): spans, pooled writers and secure lifetimes
-- [ADR-1050](../decisions/1050-secret-material-revealed-once-on-create.md): secret material is revealed once, on create
-- [ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): a client secret that is only compared is stored as a one-way verifier
+- [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): a tenant can wrap its master keys under a root key it controls; a key wrapper can wrap under a key the caller names
+- [ADR-1266](../decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md): spans, pooled writers and secure lifetimes
+- [ADR-1050](../decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md): secret material is revealed once, on create
+- [ADR-1391](../decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md): a client secret that is only compared is stored as a one-way verifier
 
 **Code**
 

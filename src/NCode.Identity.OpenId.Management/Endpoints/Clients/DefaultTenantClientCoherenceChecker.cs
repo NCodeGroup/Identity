@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 /// which carries no secrets, and checks it through the <see cref="IClientCoherenceValidator"/>, which resolves the
 /// client's settings onto the tenant's.
 /// </summary>
-// See ADR-1206 and ADR-1241.
+// See ADR-1206 and ADR-1245.
 internal sealed class DefaultTenantClientCoherenceChecker(
     IAmbientTenantAccessor ambientTenantAccessor,
     IClientCoherenceValidator clientCoherenceValidator,
@@ -108,7 +108,7 @@ internal sealed class DefaultTenantClientCoherenceChecker(
     /// is left out, because it can name an effective value that the change moves, as a lowered lifetime names its
     /// ceiling, so a violation that predates the change is matched however the change moves that value.
     /// </summary>
-    // See ADR-1240.
+    // See ADR-1206.
     private static (string SettingName, string Value, string GoverningSettingName) GetIdentity(
         ClientCoherenceViolation violation
     ) => (violation.SettingName, violation.Value, violation.GoverningSettingName);

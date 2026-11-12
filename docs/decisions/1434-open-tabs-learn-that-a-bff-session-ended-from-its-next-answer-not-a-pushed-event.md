@@ -7,17 +7,16 @@
 ## Context
 
 A BFF session ends in four ways: the user logs out, the OP posts a back-channel logout
-([ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)), a refresh
+([ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)), a refresh
 comes back `invalid_grant`, or the idle or absolute timeout passes. Only the first happens in the tab that is open. The
-other tabs of the same browser keep showing a signed-in page until they make a call. The design leaves the question open
-([`docs/backend-for-frontend.md`](../backend-for-frontend.md) §11 question 3, issue
-[#523](https://github.com/NCodeGroup/identity/issues/523)): should the BFF push the end of a session to open tabs, for
-example through a server-sent-events endpoint, or is the next guarded call's `401` soon enough?
+other tabs of the same browser keep showing a signed-in page until they make a call. Whether the BFF should push the
+end of a session to open tabs, for example through a server-sent-events endpoint, or the next guarded call's `401` is
+soon enough, is a choice the BFF has to make.
 
 A push endpoint would have to keep every guarantee of the BFF's other endpoints:
 
 - It is guarded by the session cookie, the anti-forgery header and Fetch Metadata
-  ([ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)). A browser's
+  ([ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)). A browser's
   `EventSource` cannot send a custom header, so the endpoint needs `fetch` streaming or a second guard.
 - It carries no token in the stream.
 - It bounds the number of connections per session, because HTTP/1.1 allows six connections per origin and a few open
@@ -46,11 +45,13 @@ between tabs.**
    - checks again on `visibilitychange` when a hidden tab becomes visible, because a hidden tab's timers are throttled;
    - tells its other tabs through a `BroadcastChannel` when a call answers `401` or when the user logs out, so one
      tab's answer clears every tab;
-   - navigates to `/bff/login` when it learns that the session ended.
+   - sends the user to the BFF's login when it learns that the session ended, directly or through a sign-in screen
+     whose click starts it, as the management console does
+     ([ADR-1438](1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 4. **Freshness is the frontend's choice.** The BFF sets no polling interval. A frontend that accepts a stale page until
    the next call polls nothing and handles the `401` of that call.
 
-## Alternatives considered
+## Options considered
 
 - **Server-sent events.** Rejected: each tab holds a connection, and the six connections that HTTP/1.1 allows per origin
   starve the application when a few tabs are open. The endpoint needs a pub/sub primitive in SharedState, or per-stream
@@ -62,21 +63,23 @@ between tabs.**
   saw, and never learns of a back-channel logout, an expired idle window or a failed refresh. It is part of the pattern
   and does not replace the poll.
 - **The OpenID session-management iframe.** Rejected: it depends on third-party cookies, which browsers block
-  ([ADR-1074](1074-session-management-and-logout.md)).
+  ([ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md)).
+- **The `401` as the signal, with frontend polling and a `BroadcastChannel`.** Chosen: the BFF adds nothing, and each
+  frontend picks its freshness.
 
 ## Consequences
 
 - The BFF adds no endpoint and no shared-state primitive, and a replica holds no connection per tab.
 - A frontend chooses how fresh its signed-in state is: no polling, a probe at the expiry times, a poll at an interval, or
   any mix.
-- The consequence of [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
-  holds: telling other open tabs that the session ended is not part of the BFF, and their next guarded call answers
-  `401`.
+- Telling other open tabs that the session ended is the frontend's work; a tab that does nothing learns it from its next
+  guarded call, which answers `401`.
 
 ## References
 
-- [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.7, §5.8 and §11
-- [ADR-1074](1074-session-management-and-logout.md),
-  [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
-  [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
+- [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.7 and §5.8
+- [ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md),
+  [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
+  [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
+  [ADR-1438](1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)
 - Issue [#523](https://github.com/NCodeGroup/identity/issues/523)

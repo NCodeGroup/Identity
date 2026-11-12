@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// the client secret as a key without requiring one.
 /// </para>
 /// </remarks>
-// See ADR-1207.
+// See ADR-1145.
 internal sealed class DefaultClientAuthenticationMethodCatalog : IClientAuthenticationMethodCatalog
 {
     private FrozenDictionary<

@@ -1,10 +1,6 @@
 # 1289. A tenant declares its environment type, which selects its guardrails
 
-- **Status:** Accepted (amended by
-  [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
-  audit record carries `tenant_environment_type` in its `"1.0"` schema; amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a team's settings
-  document selects the environment type its tenants inherit)
+- **Status:** Accepted
 - **Date:** 2026-10-28
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md)
@@ -12,144 +8,133 @@
 ## Context
 
 Operators run a customer's dev, test and prod as separate tenants
-([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)), but a tenant could not say which one it
-is. Nothing distinguished a sandbox from the tenant that serves real users, so nothing could protect the latter more
-than the former: a production tenant could be deleted as easily as a scratch one, could register clients with plain
-`http` redirect URIs, and a developer could not tell from the login page that they were signing in to a non-production
-tenant. Telemetry could not separate the traffic of a load-test tenant from production traffic either.
+([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)),
+so a tenant has to say which one it is. Without a declaration nothing distinguishes a sandbox from the tenant that
+serves real users, so nothing protects the latter more than the former: a production tenant could be deleted as easily
+as a scratch one, could register clients with plain `http` redirect URIs, and a developer could not tell from the login
+page that they are signing in to a non-production tenant. Telemetry could not separate the traffic of a load-test
+tenant from production traffic either.
 
-The family already has the pieces a declaration needs: tenant settings that cascade from the server
-([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)), security profiles that accumulate down the cascade as
-ceilings, defaults and requirements ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)), and a
-tenant branding document that the interactive pages embed
-([ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md)). The open questions were what the
-declaration is (free text, or a vocabulary), what it defaults to, where the guardrails apply, and what telemetry may
+The family already has the pieces a declaration needs: tenant settings that cascade
+([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)), security
+profiles that accumulate down the cascade as ceilings, defaults and requirements
+([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)),
+and a tenant branding document that the interactive pages embed
+([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)). The open questions are what the
+declaration is (free text or a vocabulary), what it defaults to, where the guardrails apply, and what telemetry may
 carry.
 
 ## Decision
 
-**A tenant declares a registered environment type in its settings; the type, not free text, selects the guardrails, and a
-tenant that declares nothing is `production`.**
+**A tenant declares a registered environment type in its settings; the type, not free text, selects the guardrails, and
+a tenant that declares nothing is `production`.**
 
-1. **Three tenant settings.** `environment_type`, `environment_name` and `deletion_protection`, each applying to the
-   tenant scope only ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)), not discoverable, and merged with
-   `Replace`. `environment_type` is the name of a registered environment type; `environment_name` is a free-form display
-   name of at most 64 characters with no control characters, empty by default ("sandbox", "qa"), used for display only,
-   never for behavior and never in telemetry; `deletion_protection` is a bool, false by default, which the `production`
-   profile defaults to true.
+1. **Three tenant settings.** `environment_type`, `environment_name` and `deletion_protection` each apply to the tenant
+   scope, are not discoverable and are merged with `Replace`. A platform or team settings document may set them as the
+   defaults its tenants inherit
+   ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)).
+   `environment_type` is the name of a registered environment type. `environment_name` is a free-form display name of at
+   most 64 characters with no control characters ("sandbox", "qa"); it is used for display only, never for behavior and
+   never in telemetry. `deletion_protection` is a bool, `false` by default.
 2. **The type vocabulary is open.** `ITenantEnvironmentType` (`TypeName`, `IsProduction`, `SecurityProfiles`) is a DI
    strategy collection resolved through `ITenantEnvironmentCatalog` (`TryGetType`, `GetEffectiveType`,
-   `SelectImpliedProfiles`). The names are the constants in `OpenIdConstants.TenantEnvironmentTypes` (`development`,
-   `testing`, `staging`, `production`), and a package adds a type by registering a class, never by editing the library
-   ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)). The setting's domain is the registered type
-   names, and the catalog rejects a duplicate or empty name, and a type that selects an unregistered profile, when it is
-   composed.
+   `SelectImpliedProfiles`). The names are the constants in `OpenIdConstants.TenantEnvironmentTypes`, and a package adds
+   a type by registering a class, never by editing the library
+   ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)). The catalog rejects an empty or duplicate name,
+   and a type that selects an unregistered profile, when it is composed.
 3. **Four built-in types.** `development` and `testing` are not production and select no profile. `staging` is not
-   production but selects the `production` profile, because staging must mirror production's rules; it still shows the
-   banner. `production` is production and selects the `production` profile.
-4. **The default is `production`.** A tenant that declares nothing gets the guardrails. Defaulting to `development`
-   would fail open: a forgotten declaration would silently drop them.
+   production but selects the `production` profile, because staging mirrors production's rules, and it shows the banner.
+   `production` is production and selects the `production` profile.
+4. **The default is `production`.** A tenant that declares nothing gets the guardrails, so the default fails closed.
 5. **The guardrails are a registered security profile.** `ProductionSecurityProfile`, named `production`
-   (`OpenIdConstants.SecurityProfiles.Production`), sets the ceilings `redirect_uri_kinds_supported` to https, loopback
-   and private_use (it drops plain `http`) and `registration_endpoint_allow_anonymous` to false, defaults
-   `deletion_protection` to true, and has no requirements. Because it is an ordinary profile, any scope may also select
-   it directly through `security_profiles`.
+   (`OpenIdConstants.SecurityProfiles.Production`), sets the ceilings `redirect_uri_kinds_supported` to `https`,
+   `loopback` and `private_use` (it drops plain `http`) and `registration_endpoint_allow_anonymous` to `false`, defaults
+   `deletion_protection` to `true`, and has no requirements. It is an ordinary profile, so any scope may also select it
+   through `security_profiles`.
 6. **The type's profiles are added at read time.** `IEffectiveSettingsResolver.ReadScopeSettings(parentSettings,
-   scopeName, settings)` deserializes a scope's document, calls `ITenantEnvironmentCatalog.SelectImpliedProfiles` and
-   then `ISecurityProfileCatalog.Expand`. The catalog is consulted only at a scope that `environment_type` applies to,
-   which is the tenant; the type is the tenant's own value, else the parent's effective value, else the default.
-   `environment_type` merges with `Replace`, so a ceiling applied at the server scope, where the default sits in the
-   baseline, would bind development tenants too. The guardrails must follow the tenant's effective type, so they are
-   added where that type is known.
-7. **Deletion protection.** While `deletion_protection` is true, `DELETE /api/tenants/{tenantId}` is refused with `409`.
-   The operator turns it off first, which is a deliberate act.
-8. **A non-production tenant shows a banner.** The interactive pages embed the tenant's branding JSON; a non-production
-   type adds `"environment":{"type":...,"name":...}` (`InteractiveBranding.Environment`, omitted for a production
-   type), and the `apps/auth` bundle shows a warning `Alert`, "<name or type> environment — not for production use"
-   (`EnvironmentBanner`).
-9. **Telemetry carries only the registered type name.** The name is bounded by registration
-   ([ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)); `environment_name` is
-   never emitted. The audit record gains the field `tenant_environment_type`, written after `tenant_id`
+   scopeName, settings)` calls `ITenantEnvironmentCatalog.SelectImpliedProfiles` before
+   `ISecurityProfileCatalog.Expand`, only at the tenant scope, with the tenant's own type, else its parent's effective
+   value, else the default. A ceiling applied at the platform would bind development tenants too, because the type
+   merges with `Replace`; the guardrails follow the tenant's effective type, so they are added where that type is known.
+7. **Deletion protection.** While `deletion_protection` is `true`, `DELETE /api/tenants/{tenantId}` answers `409`. The
+   operator turns it off first, which is a deliberate act.
+8. **A non-production tenant shows a banner.** A non-production type adds `"environment":{"type":…,"name":…}`
+   (`InteractiveBranding.Environment`) to the branding JSON the interactive pages embed, and `apps/auth`'s
+   `EnvironmentBanner` shows "<name or type> environment — not for production use".
+9. **Telemetry carries only the registered type name**, which registration bounds
+   ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
+   The audit field `tenant_environment_type` follows `tenant_id` in audit schema `1.0`
    ([ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md)), as
-   `IAuditEvent.TenantEnvironmentType` and `AuditRecordFields.TenantEnvironmentType`, and
-   `AuditRecordWriter.SchemaVersion` moves from 1.0 to 1.1, an additive change. The metric attribute
-   `ncode.identity.tenant.environment_type` is added to `ncode.identity.events.published` (for audit events that carry
-   it) and to `ncode.identity.rate_limiting.requests`. Protocol audit events (`DefaultAuditEventRecorder`) set it, and
-   so do management audit events that name a tenant: `DefaultManagementAuditRecorder` resolves the tenant's effective
-   type from its committed settings under the server's, once per tenant per request, and a tenant deletion records the
-   type the tenant had before its row is gone. Server events name no tenant and leave it null.
-10. **The hosts declare their own environments.** `appsettings.Development.json`, which the integration-test host also
-    loads, declares `OpenId:Server:Settings:environment_type` as `development`, so a developer sees the environment
-    banner, can delete a scratch tenant, and a host that lets clients register anonymously keeps that setting;
-    `appsettings.Conformance.json` declares `testing`, because the conformance suite registers its clients
-    anonymously, which the `production` profile forbids.
-11. **A Production host refuses a non-production server-wide type.** The server-wide type is the default of every
-    tenant that declares none, so a development overlay copied into a Production deployment would silently drop every
-    such tenant's guardrails. `AddProductionSafety` therefore refuses to start, in the Production host environment, when
-    the configured `OpenId:Server:Settings:environment_type` names a registered type whose `IsProduction` is false; the
-    registered types decide, so a contributed type is judged by its own flag. Non-production tenants in a Production
-    host declare their type on the tenant.
-12. **A changed server reaches cached tenants at once.** A materialized tenant computes the profiles its type implies
-    from the server's settings when it reads its own document, so the server provider evicts every cached tenant on the
-    replica whenever the server's settings provider signals a change (a configuration reload, a committed change read
-    again, or a poll that saw one). A replica that missed the signal converges within
-    `OpenIdTenantOptions.TenantCacheLifetime`
-    ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+   `IAuditEvent.TenantEnvironmentType` and `AuditRecordFields.TenantEnvironmentType`. The metric attribute
+   `ncode.identity.tenant.environment_type` is on `ncode.identity.events.published` and
+   `ncode.identity.rate_limiting.requests`. `DefaultAuditEventRecorder` stamps protocol events;
+   `DefaultManagementAuditRecorder` resolves the tenant's effective type once per tenant per request, and a tenant
+   deletion records the type it had. Platform and team events leave the field null.
+10. **The hosts declare their own environments.** `appsettings.Development.json` declares
+    `OpenId:Platform:Settings:environment_type` as `development`, and `appsettings.Conformance.json` as `testing`,
+    because the conformance suite registers clients anonymously, which the `production` profile forbids.
+11. **A Production host refuses a non-production platform-wide type.** In the Production host environment
+    `AddProductionSafety` (`ProductionEnvironmentTypeValidator`) refuses to start when the configured platform
+    `environment_type` names a registered type whose `IsProduction` is `false`; the registered types decide, so a
+    contributed type is judged by its own flag. Non-production tenants in a Production host declare their type on the
+    tenant.
+12. **A changed platform reaches cached tenants at once.** A platform settings change clears every cached team and
+    tenant on the replica, so the implied profiles follow immediately
+    ([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)); a replica that missed it converges within
+    `TenantCacheLifetime`.
 13. **The management API and console show each tenant's environment.** `TenantResource.Environment`
-    (`TenantEnvironmentResource`: `type`, `name`, `isProduction`) is the tenant's effective environment, resolved like
-    the audit stamp — its committed settings under the server's, the server's read once per list — and only after the
-    caller is authorized. `isProduction` is the registered type's `IsProduction`, so a client tells production from a
-    contributed type without knowing its name. The environment is best-effort: when the tenant's or the server's stored
-    settings cannot be honored, or name an unregistered type, it is omitted rather than answering `409`
-    ([ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)), because the
-    operator needs the list to find the tenant to repair. An audit record's resource values carry only the tenant's own
-    state and omit it. The `apps/mgmt` tenant list shows the environment, highlights every non-production one, and
-    filters by the types the listed tenants have.
+    (`TenantEnvironmentResource`: `type`, `name`, `isProduction`) is resolved after authorization and is best-effort: it
+    is omitted rather than answering `409` when stored settings are unreadable or name an unregistered type
+    ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)),
+    because the operator needs the list to find the tenant to repair. An audit record's resource values omit it. The
+    `apps/mgmt` tenant list highlights non-production tenants and filters by type.
 
 ## Options considered
 
 - **A free-form environment name only.** Rejected: nothing may key behavior or metrics off arbitrary text, so a name
-  alone could not select guardrails or label telemetry. It survives as `environment_name`, display only.
-- **One setting whose types carry aliases (`sandbox` resolving to `development`).** Rejected: it is extra machinery, and
-  "sandbox" means different things to different companies. An operator who wants another name registers a type or uses
+  alone cannot select guardrails or label telemetry. It survives as `environment_name`, display only.
+- **Type aliases (`sandbox` resolving to `development`).** Rejected: it is extra machinery, and "sandbox" means
+  different things to different companies. An operator who wants another name registers a type or uses
   `environment_name`.
-- **A `PersistedTenant` column and migration.** Rejected: the settings document already cascades and is validated, so
-  settings need no migration.
-- **Applying the production ceilings at the server scope.** Rejected: `environment_type` merges with `Replace` and its
-  default sits in the baseline, so a server-scope ceiling would bind development tenants too (decision 6).
-- **Defaulting to `development`.** Rejected: it fails open, and a forgotten declaration would drop the guardrails
+- **A `PersistedTenant` column.** Rejected: the settings document already cascades and is validated, so settings need
+  no schema change.
+- **Production ceilings at the platform.** Rejected: `environment_type` merges with `Replace`, so a platform ceiling
+  would bind development tenants too (decision 6).
+- **`development` as the default.** Rejected: it fails open, and a forgotten declaration would drop the guardrails
   (decision 4).
-- **Refusing a non-production server-wide type in every host.** Rejected: development and conformance hosts declare
-  one on purpose (decision 10); only the Production host environment refuses it (decision 11).
-- **Passing the environment type from each management handler.** Rejected: dozens of call sites would each have to
-  remember it; resolving it in the recorder stamps every event that names a tenant (decision 9).
+- **Refusing non-production types in every host.** Rejected: development and conformance hosts declare one on purpose
+  (decision 10); only the Production host environment refuses it (decision 11).
+- **Passing the type from each management handler.** Rejected: dozens of call sites would each have to remember it;
+  resolving it in the recorder stamps every event that names a tenant (decision 9).
+- **Chosen:** a registered, open type vocabulary whose production type is the default and selects a registered profile
+  at read time.
 
 ## Consequences
 
-- Existing tenants become `production` on upgrade, because they declare nothing: they gain the ceilings and, by
-  default, deletion protection. An operator who runs a non-production tenant declares its type.
+- A tenant that declares nothing is `production` and has the ceilings and deletion protection. An operator who runs a
+  non-production tenant declares its type.
 - The development and conformance host overlays declare a non-production type, so local development and conformance
-  runs keep working; any other host that runs non-production tenants must declare it at the server or tenant.
-- A change to the server-wide `environment_type` reaches cached tenants at once on every replica that sees the
-  server's settings change (decision 12), at the cost of materializing each tenant again on its next request.
-- The audit record schema is 1.1; the new field is additive, so a reader of 1.0 records keeps working. A management
-  audit event that names a tenant costs one read of the tenant's settings per tenant per request.
-- `IEffectiveSettingsResolver.ReadScopeSettings` takes the parent settings, a breaking change to the public API,
-  acceptable before release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  runs work; any other host that runs non-production tenants declares it at the platform, team or tenant.
+- A platform `environment_type` change reaches cached tenants at once on every replica that sees it, at the cost of
+  materializing each tenant again on its next request.
+- A management audit event that names a tenant costs one read of the tenant's settings per tenant per request.
 - A package adds an environment type by registering a class; a type that selects an unregistered profile fails when the
   catalog is composed rather than when a tenant is read.
 
 ## References
 
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — pre-release posture
-- [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) — hosted platform environment model
-- [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — security profiles accumulate down the
-  cascade
-- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) — settings declare their scopes
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)
+  — hosted platform environment model
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)
+  — security profiles accumulate down the cascade
+- [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) — settings
+  declare their scopes
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed
-- [ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md) — tenant branding
-- [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — bounded metric
-  dimensions
-- [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — plan-tier quotas; dev and test
-  tenants run on the production platform
+- [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md) — tenant branding
+- [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) —
+  bounded metric dimensions
 - [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) — audit records
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — platform and teams
+- [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings reconciliation
+- [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)
+  — unreadable stored settings

@@ -16,7 +16,7 @@ namespace NCode.Identity.Server;
 /// <c>AddProductionSafety</c> is the one place that refuses each of those sections in Production, so this
 /// registration never decides the environment.
 /// </remarks>
-// See ADR-1313.
+// See ADR-1370.
 [PublicAPI]
 public static class DevelopmentEnvironmentRegistration
 {
@@ -32,7 +32,7 @@ public static class DevelopmentEnvironmentRegistration
         /// <remarks>
         /// Safe to leave wired unconditionally: a host that configures none of the sections gets nothing from it.
         /// </remarks>
-        // See ADR-1313.
+        // See ADR-1370.
         public IServiceBuilder<IdentityServer> AddDevelopmentEnvironment(
             IConfiguration configuration
         )
@@ -50,7 +50,7 @@ public static class DevelopmentEnvironmentRegistration
             // drives. Inert unless the Conformance environment overlay supplies its section.
             builder.AddConformanceSeed(configuration);
 
-            // Chooses whether signing keys that can no longer be read are pruned (ADR-1313). Every tenant signs with the
+            // Chooses whether signing keys that can no longer be read are pruned (ADR-1370). Every tenant signs with the
             // keys provisioning persists through the store (ADR-1169); the opt-in only lets a lost root key heal.
             if (configuration.GetDeveloperKeysOptions().PruneUnreadableKeys)
             {

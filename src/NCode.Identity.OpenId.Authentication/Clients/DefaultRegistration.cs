@@ -71,7 +71,7 @@ internal static class DefaultRegistration
             );
 
             // Each client-authentication handler below has a descriptor of the same name, so the methods are named
-            // without constructing a handler (ADR-1207).
+            // without constructing a handler (ADR-1145).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICollectionDataSource<ClientAuthenticationMethodDescriptor>,

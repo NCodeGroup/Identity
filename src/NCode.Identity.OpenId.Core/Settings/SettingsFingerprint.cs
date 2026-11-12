@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// every rule that reads such a list reads it as a set. Two collections with the same settings and values therefore
 /// have the same fingerprint, whatever order they enumerate in.
 /// </summary>
-// See ADR-1234 and ADR-1412.
+// See ADR-1412.
 internal static class SettingsFingerprint
 {
     /// <summary>

@@ -50,7 +50,7 @@ internal class DefaultUserInfoEndpointProvider(
     private const string JwtContentType = "application/jwt";
 
     // A UserInfo access token binds the OpenID identity resource server, which owns the openid/profile/email scopes
-    // (ADR-1027); require that audience so a token minted for a different resource server is rejected.
+    // (ADR-1026); require that audience so a token minted for a different resource server is rejected.
     private static string[] UserInfoAudiences { get; } =
     [OpenIdConstants.SystemResourceServerIdentifiers.OpenId];
 
@@ -149,7 +149,7 @@ internal class DefaultUserInfoEndpointProvider(
         }
 
         // UserInfo answers for an end-user; a token in which the client acts for itself names none (OpenID Connect Core 1.0 §5.3).
-        // See ADR-1450 and ADR-1470.
+        // See ADR-1466.
         var actingClient = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
             openIdContext,
             ticket.Subject,

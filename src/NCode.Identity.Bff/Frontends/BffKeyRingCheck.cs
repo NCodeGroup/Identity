@@ -10,7 +10,7 @@ namespace NCode.Identity.Bff.Frontends;
 /// registered.
 /// </summary>
 /// <param name="keyRings">The provider that says which key rings are registered.</param>
-// See ADR-1446.
+// See ADR-1439.
 internal sealed class BffKeyRingCheck(IClientKeyRingProvider keyRings) : IBffFrontendSetCheck
 {
     private IClientKeyRingProvider KeyRings { get; } = keyRings;

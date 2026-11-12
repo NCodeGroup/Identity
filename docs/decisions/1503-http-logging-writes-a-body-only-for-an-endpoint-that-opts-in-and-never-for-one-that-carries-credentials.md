@@ -74,6 +74,6 @@ enables a body.**
 ## References
 
 - Issue [#778](https://github.com/NCodeGroup/identity/issues/778)
-- [ADR-1248](1248-the-host-image-writes-one-line-json-logs.md)
+- [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)
 - `src/NCode.Identity.AspNetCore/GuardedHttpLoggingRegistration.cs`
 - `src/NCode.Identity.AspNetCore/HttpBodyLoggingEndpointConventionBuilderExtensions.cs`

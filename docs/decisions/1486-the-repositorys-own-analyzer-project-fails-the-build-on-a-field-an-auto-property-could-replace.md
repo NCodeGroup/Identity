@@ -1,0 +1,99 @@
+# 1486. The repository's own analyzer project fails the build on a field an auto-property could replace
+
+- **Status:** Accepted
+- **Date:** 2026-11-09
+- **Deciders:** NCode Group
+
+## Context
+
+`.github/instructions/csharp.instructions.md` (Members and Constructors) prefers an auto-property to a field, static or
+instance, private included, and allows a field only for a `ref`, `Interlocked`, `fixed` or `stackalloc` target. Review
+alone keeps the rule. The forces:
+
+- **No existing gate can tell a field that must stay from one that need not.** `.editorconfig`, `BannedSymbols.txt` and
+  a text gate cannot see whether the code uses a field by reference, so none of them can allow a field passed to
+  `Interlocked` and report the one beside it.
+- **A field can be a contract.** [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)
+  keeps a benchmark input a field because the measured method takes it by `in`. `Fe448` reads its limbs as one span
+  through `Unsafe.As<Fe448, ulong>`, so the layout of its fields is a contract.
+- **A reference can sit far from the field.** A nested type passes an outer type's field by `ref`, and a mutable struct
+  held in a field is mutated through it by a call or a write.
+- **Some fields come from a generator.** The Razor compiler declares a `@code` block's field in generated code and maps
+  it to the `.razor` file with a `#line` directive.
+
+## Decision
+
+**A Roslyn analyzer of the repository's own, `NCode.Identity.Analyzers`, is loaded by every project and fails the build
+with `NCID0001` on a field that a property could replace.**
+
+1. **The analyzer is the project `analyzers/NCode.Identity.Analyzers`.** It targets `netstandard2.0`, never packs
+   (`analyzers/Directory.Build.props` sets `IsPackable` to false) and ships in no package. It sets `IsRoslynComponent`
+   and `EnforceExtendedAnalyzerRules`, so `Microsoft.CodeAnalysis.Analyzers` checks the analyzer itself. It has no
+   release tracking: release tracking documents the rules of a published analyzer package, and its `RS2002` check finds
+   a descriptor only in a static field, which `NCID0001` forbids. The project suppresses `RS2008` and has no
+   `AnalyzerReleases.*.md` files.
+2. **It builds against Roslyn 5.0.0.** `Microsoft.CodeAnalysis.CSharp` 5.0.0 is the version EF Core Design's
+   `Microsoft.CodeAnalysis.CSharp.Workspaces` requires exactly under central transitive pinning. That Roslyn is older
+   than the Roslyn of every SDK `global.json` admits ([ADR-1493](1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md)),
+   so every admitted SDK loads the analyzer. Dependabot ignores the minor and major updates of the package, because it
+   moves with EF Core Design.
+3. **`NCID0001` is an error, on by default.** Its category is Design and it carries the `CompilationEnd` tag. It has no
+   code fix, and nothing suppresses it: not `#pragma warning disable`, not `[SuppressMessage]`, not an `.editorconfig`
+   severity.
+4. **It reports a field, instance or static, unless the field is one of these:**
+   - a `const` or an enum member;
+   - a `ref` field;
+   - a fixed-size buffer;
+   - a `volatile` field;
+   - a field of a struct with `[StructLayout]` or `[InlineArray]`;
+   - compiler-declared: the backing field of an auto-property or an event, or the captured parameter of a primary
+     constructor;
+   - used by reference anywhere in the compilation: an argument to a `ref`, `out`, `in` or `ref readonly` parameter,
+     with or without the keyword (so `Interlocked`, `Volatile`, `LazyInitializer` and benchmark inputs qualify), the
+     operand of `ref` or `&`, or a mutable struct whose non-`readonly` member is called, or whose member is written,
+     through the field.
+
+   A `stackalloc` buffer lives in a local, so it needs no case.
+5. **The analysis spans the compilation.** A nested type can pass an outer type's field by `ref`, so the analyzer
+   collects every by-reference use across the compilation and reports at compilation end, never per type.
+6. **Generated code is read for by-reference uses and reported only where a hand-written file owns the field.** A
+   generated file can use a hand-written type's field by reference, so the analyzer reads it. A field a generated file
+   declares is reported only when a visible `#line` directive maps its declaration to a hand-written file, as the Razor
+   compiler maps a `@code` block's field to its `.razor` file. A generator's own fields are never reported.
+7. **`Directory.Build.props` loads the analyzer in every project except the analyzer and its tests.** One
+   `ProjectReference` carries `OutputItemType="Analyzer"`, `ReferenceOutputAssembly="false"`, `PrivateAssets="all"` and
+   `IsAspireProjectResource="false"`, so the Aspire AppHost does not treat the analyzer as a resource. The test project
+   references the analyzer as a library instead, because two references to one project conflict.
+8. **The tests compile snippets with Roslyn.** They build a `CSharpCompilation` against the test host's
+   `TRUSTED_PLATFORM_ASSEMBLIES` and run the analyzer through `CompilationWithAnalyzers`, so no test downloads a
+   reference assembly.
+
+## Options considered
+
+- **A text gate in `build/`, like `build/doc-comment-citations.ps1`.** A text gate cannot see a by-reference use, so it
+  either reports a field that must stay or misses one that need not.
+- **`Microsoft.CodeAnalysis.Testing`.** Its reference assemblies download from NuGet while the tests run, which breaks
+  hermetic tests.
+- **A per-type analysis with symbol-start actions.** It misses a nested type that passes an outer type's field by `ref`.
+- **A warning, or an IDE-only rule.** The rule must fail the build, because the build, not review, keeps it.
+- **A packed analyzer.** Nothing ships it, so a package would only add a release process.
+- **A project-owned analyzer loaded by every project (chosen).** It sees every by-reference use across the compilation
+  and fails the build on the rest.
+
+## Consequences
+
+- The rule is tool-enforced: `.github/instructions/csharp-production.instructions.md` §1 marks it as such.
+- A field compiles only when it is one of the exemptions above, so the code holds state in auto-properties.
+- `Fe448` states its layout with `[StructLayout(LayoutKind.Sequential)]`, because it reads its limbs as one span through
+  `Unsafe.As<Fe448, ulong>`; the attribute exempts its limbs and records the layout as a contract.
+- A change to the analyzer reaches every project, so every test project is affected by it.
+
+## References
+
+- [#713](https://github.com/NCodeGroup/identity/issues/713)
+- [#714](https://github.com/NCodeGroup/identity/issues/714)
+- [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md): a benchmark input
+  stays a field because the measured method takes it by `in`.
+- [ADR-1493](1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md): the SDK versions `global.json`
+  admits.
+- `analyzers/NCode.Identity.Analyzers/AutoPropertyAnalyzer.cs`

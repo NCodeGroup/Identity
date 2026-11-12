@@ -9,7 +9,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// Describes the public half of a key for a <see cref="IRemoteKeyProvider"/> to read.
 /// </summary>
 // See ADR-1474.
-// See ADR-1477.
+// See ADR-1471.
 [PublicAPI]
 public sealed class RemotePublicKeyRequest
 {

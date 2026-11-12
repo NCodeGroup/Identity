@@ -129,7 +129,7 @@ internal sealed class DefaultSecretValidator(
     }
 
     /// <inheritdoc />
-    // See ADR-1475.
+    // See ADR-1476.
     public SecretCreateValidation ValidateCreateRemote(
         CreateRemoteSecretRequest request,
         DateTimeOffset createdWhen
@@ -167,7 +167,7 @@ internal sealed class DefaultSecretValidator(
 
     /// <inheritdoc />
     // See ADR-1476.
-    // See ADR-1477.
+    // See ADR-1471.
     public SecretCreateValidation ValidateRemoteKey(RemoteKeyAlgorithmSelector selector)
     {
         var secretType = selector.SecretType;
@@ -230,7 +230,7 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        // See ADR-1477.
+        // See ADR-1471.
         if (!string.Equals(row.Use, impliedUse, StringComparison.Ordinal))
         {
             return Invalid(
@@ -346,7 +346,6 @@ internal sealed class DefaultSecretValidator(
     }
 
     /// <inheritdoc />
-    // See ADR-1475.
     // See ADR-1476.
     public SecretCreateValidation ValidateImportRemote(
         ImportRemoteSecretRequest request,
@@ -433,7 +432,7 @@ internal sealed class DefaultSecretValidator(
     }
 
     /// <inheritdoc />
-    // See ADR-1161 and ADR-1186.
+    // See ADR-1161.
     public ManagementError? ValidateUpdate(PersistedSecret secret, UpdateSecretRequest request)
     {
         ArgumentNullException.ThrowIfNull(secret);
@@ -448,7 +447,7 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        // An update keeps the algorithm of a key that a key management service holds (ADR-1475).
+        // An update keeps the algorithm of a key that a key management service holds (ADR-1476).
         if (
             SecretEncodings.IsRemote(secret.SecretEncoding)
             && !string.Equals(request.Algorithm, secret.Algorithm, StringComparison.Ordinal)

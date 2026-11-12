@@ -19,7 +19,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// (<see cref="SecretEncodings.SymmetricRaw"/>) when the server also uses it as a key, as <c>client_secret_jwt</c>
 /// uses it as an HMAC key. Every secret records its <see cref="PersistedSecret.Origin"/>.
 /// </summary>
-// See ADR-1110 and ADR-1391.
+// See ADR-1391.
 [PublicAPI]
 public interface ISecretGenerator
 {

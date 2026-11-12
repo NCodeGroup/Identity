@@ -3,8 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
-- **Supersedes:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md),
-  decision 2 only, for the endpoints below
+- **Supersedes:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md), decision 2, for the authorization, continue and end-session endpoints
 
 ## Context
 
@@ -20,27 +19,30 @@ every conforming relying party.
 
 ## Decision
 
-The authorization endpoint, `/oauth2/continue` and the `end_session_endpoint` accept `GET`.
+The authorization endpoint, `/oauth2/continue` and the `end_session_endpoint` accept `GET` as well as `POST`, whatever
+the template's rule says about state changes on a `GET`.
 
-- `/oauth2/continue` resumes the same stored authorization request after sign-in, and the interactive surface reaches it
-  by redirect.
-- Their protections are the protocols': PKCE, exact redirect URIs and `state` at the authorization endpoint, and
-  `id_token_hint` and registered `post_logout_redirect_uris` at the `end_session_endpoint`
-  ([ADR-1074](1074-session-management-and-logout.md)).
-- Every other browser-facing change uses `POST` with antiforgery: interactive login, consent and logout, the account
-  pages' revocations, and the BFF's logout ([ADR-1311](1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md)).
+- `/oauth2/continue` resumes the stored authorization request after sign-in, and the interactive surface reaches it by
+  redirect, so it accepts `GET`.
+- At the authorization endpoint the protections are the protocol's own: PKCE, exact redirect URIs and `state`.
+- At the `end_session_endpoint` they are `id_token_hint`, registered `post_logout_redirect_uris`, and the end user's
+  confirmation of a logout that arrives without a valid hint for the current session
+  ([ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
+- Interactive login, consent and logout, the account pages' revocations and the BFF's logout
+  ([ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)) use `POST`
+  with antiforgery.
 
 ## Options considered
 
 - `POST` only. Rejected: it breaks every conforming relying party.
-- A confirmation page for every logout that arrives without an `id_token_hint`. Not chosen here.
+- `GET` at the authorization, continue and end-session endpoints, with `POST` and antiforgery at interactive login,
+  consent and logout, the account pages' revocations and the BFF's logout. Chosen: it follows the specifications where they require `GET` and keeps the template's rule
+  everywhere else.
 
 ## Consequences
 
-- A cross-site top-level navigation to the `end_session_endpoint` without an `id_token_hint` ends the OP session from
-  its cookie. RP-Initiated Logout §2 recommends asking the end-user first, and that gap is recorded as pending work in
-  the issue tracker.
-- A reader sees the exception in one record, and AGENTS.md lists it with the other overrides of template records.
+- A reader finds the exception in this one record, and AGENTS.md lists it with the other overrides of template records.
+- The endpoints that accept `GET` rely on the protocol's own protections rather than on antiforgery.
 
 ## References
 
@@ -48,4 +50,3 @@ The authorization endpoint, `/oauth2/continue` and the `end_session_endpoint` ac
   [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) §3.1.2.1 and
   [RP-Initiated Logout 1.0](https://openid.net/specs/openid-connect-rpinitiated-1_0.html) §2.
 - [`DefaultEndSessionEndpointProvider.cs`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/DefaultEndSessionEndpointProvider.cs).
-- [NCodeGroup/identity#442](https://github.com/NCodeGroup/identity/issues/442).

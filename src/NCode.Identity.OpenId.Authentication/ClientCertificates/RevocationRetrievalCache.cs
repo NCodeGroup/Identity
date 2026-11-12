@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// names, concurrent callers of one key share a single retrieval, and a retrieval that yielded nothing usable is
 /// remembered for <see cref="ClientCertificateRevocationOptions.FailureCacheDuration"/>.
 /// </summary>
-// See ADR-1252.
+// See ADR-1400.
 internal sealed class RevocationRetrievalCache(
     IMemoryCache memoryCache,
     IOptions<ClientCertificateRevocationOptions> options,
@@ -61,7 +61,7 @@ internal sealed class RevocationRetrievalCache(
         where T : class
     {
         // A retrieval that yielded nothing usable is remembered, so an unreachable or misbehaving source is not
-        // asked again for every check. See ADR-1252.
+        // asked again for every check. See ADR-1400.
         if (TryGetRemembered(key, out T? remembered))
         {
             if (remembered is null)
@@ -77,7 +77,7 @@ internal sealed class RevocationRetrievalCache(
         }
 
         // Concurrent checks share one retrieval; it runs without the caller's token, so a caller that gives up does
-        // not break it for the others. See ADR-1252 and ADR-1350.
+        // not break it for the others. See ADR-1400 and ADR-1315.
         var value = await Retrievals.RunAsync(
             key,
             retrievalToken => RetrieveAsync(key, retrieve, retrievalToken),
@@ -108,7 +108,7 @@ internal sealed class RevocationRetrievalCache(
         where T : class
     {
         // A caller that checked the caches just before a previous retrieval recorded its result and left the in-flight
-        // dictionary starts this one, so the caches are checked again before anything is downloaded. See ADR-1366.
+        // dictionary starts this one, so the caches are checked again before anything is downloaded. See ADR-1400.
         if (TryGetRemembered(key, out T? remembered))
             return remembered;
 

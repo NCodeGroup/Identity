@@ -21,16 +21,18 @@ protocol version and the cipher suite of the connection.
 **The host accepts only TLS 1.2 and TLS 1.3 everywhere, and restricts the cipher suites where the platform lets a
 process choose them.**
 
-1. **Two protocol versions.** `HostHttpsDefaults.Configure` sets `SslProtocols` to TLS 1.2 and TLS 1.3 on every
-   platform.
-2. **Six cipher suites.** Where the platform supports `CipherSuitesPolicy`, the handshake negotiates only
+1. **Two protocol versions.** `HostHttpsDefaults.Configure`, an internal type of `NCode.Identity.OpenId.Host`, sets
+   `SslProtocols` to `Tls12 | Tls13` on every platform.
+2. **Six cipher suites.** Where the platform supports `CipherSuitesPolicy` (Linux and macOS), its `OnAuthenticate` callback restricts the
+   handshake to the `PermittedCipherSuites`:
    `TLS_AES_256_GCM_SHA384`, `TLS_AES_128_GCM_SHA256`, `TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384`,
    `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`, `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384` and
-   `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`, which are AEAD suites with forward secrecy. On Windows the host does not
-   set a policy.
+   `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`, which are AEAD suites with forward secrecy. On Windows the host sets no policy, and SChannel's system
+   configuration applies.
 3. **One call holds every HTTPS default.** Kestrel keeps only the last action passed to `ConfigureHttpsDefaults`, so
-   `HostHttpsDefaults` also holds the acceptance of any client certificate at the handshake (RFC 8705), and the host
-   passes `HostHttpsDefaults.Configure` as that one action.
+   `HostHttpsDefaults.Configure` also calls `AllowAnyClientCertificate()` (RFC 8705), which stays inert until an
+   endpoint requests a certificate through `Kestrel:EndpointDefaults:ClientCertificateMode`, and `Program.cs` passes
+   `HostHttpsDefaults.Configure` as that one action.
 
 ## Options considered
 
@@ -38,7 +40,7 @@ process choose them.**
   the host runs on, and a system that still enables TLS 1.0 or 1.1 or a non-AEAD suite fails FAPI 1.0 Part 2 §8.5.
 - **A restriction for FAPI tenants only.** Rejected: the handshake precedes tenant resolution, so the host cannot
   apply a tenant's profile to the connection.
-- **Windows-specific registry guidance.** Out of scope: the SChannel configuration is a deployment concern, set per
+- **Windows registry guidance.** Rejected: the SChannel configuration is a deployment concern, set per
   machine, not in the host's code.
 
 ## Consequences
@@ -47,7 +49,8 @@ process choose them.**
   macOS.
 - Windows hosts cannot choose cipher suites in the process. A deployment on Windows, or behind a TLS-terminating proxy,
   sets the cipher suite policy in its own TLS layer.
-- The accepted protocols, the cipher suites and the client certificate acceptance are one type, covered by unit tests.
+- The accepted protocols, the cipher suites and the client certificate acceptance are one type, covered by
+  `HostHttpsDefaultsTests`.
 
 ## References
 

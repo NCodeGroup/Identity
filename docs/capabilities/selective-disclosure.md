@@ -8,7 +8,7 @@
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**         | Available: issuance, presentation and verification of SD-JWTs (RFC 9901) and the SD-JWT VC profile                                                                                                                                                      |
 | **Packages**       | `NCode.Identity.Jose.SdJwt` over `NCode.Identity.Jwt` and `NCode.Identity.Jose`                                                                                                                                                                         |
-| **Key decisions**  | [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md), [ADR-1406](../decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md) |
+| **Key decisions**  | [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md) |
 | **Operator guide** | None: the package is a library a host composes with `AddSdJwt()`                                                                                                                                                                                       |
 
 ## The promises
@@ -70,8 +70,7 @@ sequenceDiagram
 <details>
 <summary>Options we rejected</summary>
 
-See the Options considered of [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md#options-considered)
-and [ADR-1406](../decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md#options-considered).
+See the Options considered of [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md#options-considered).
 
 </details>
 
@@ -84,7 +83,7 @@ and the profile. It returns the SD-JWT with every disclosure, whose `ToString()`
 holder.
 
 > [!TIP]
-> [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md) decision 2;
+> [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md) decision 2;
 > `DefaultSdJwtIssuer` and `IssuanceWalk` in `NCode.Identity.Jose.SdJwt`.
 
 ## Presenting
@@ -95,7 +94,7 @@ disclosures, their parents, and the Key Binding JWT when `SdJwtKeyBindingOptions
 audience and the nonce.
 
 > [!TIP]
-> [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md) decision 2;
+> [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md) decision 2;
 > `DefaultSdJwtHolder` in `NCode.Identity.Jose.SdJwt`.
 
 ## Verifying
@@ -107,7 +106,7 @@ carries the resolved claims, where each disclosure landed, the decoded issuer-si
 or the `SdJwtVerificationFailureCodes` code of the rule the presentation failed.
 
 > [!TIP]
-> [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md) decisions 3
+> [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md) decisions 3
 > and 4; `DefaultSdJwtVerifier` and `SdJwtPayloadProcessor` in `NCode.Identity.Jose.SdJwt`.
 
 ## Limits and roadmap
@@ -120,8 +119,7 @@ or the `SdJwtVerificationFailureCodes` code of the rule the presentation failed.
 
 ## Further reading
 
-- [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
-  [ADR-1406](../decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md)
+- [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md)
 - [RFC 9901](https://datatracker.ietf.org/doc/html/rfc9901),
   [draft-ietf-oauth-sd-jwt-vc](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc)
 - `src/NCode.Identity.Jose.SdJwt`, `tests/NCode.Identity.Jose.SdJwt.Tests`

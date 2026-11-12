@@ -227,7 +227,7 @@ internal class TenantPromotionApiEndpointHandler(
 
     // Refuses before reading, reads both tenants, plans the promotion, then refuses it when the caller lacks the
     // authority it needs: Update at the node above each changed limit (ADR-1418), then Create at each node whose
-    // role-holding client it changes (ADR-1419). Only a promotion that no check refused reaches completeAsync, while
+    // role-holding client it changes (ADR-1466). Only a promotion that no check refused reaches completeAsync, while
     // the unit of work is still open.
     private async ValueTask<IResult> PlanPromotionAsync(
         HttpContext httpContext,

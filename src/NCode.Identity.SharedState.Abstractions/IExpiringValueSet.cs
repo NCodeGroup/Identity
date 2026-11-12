@@ -14,7 +14,7 @@ namespace NCode.Identity.SharedState;
 /// runs several replicas registers a shared adapter (for example Valkey) so a value written by one replica is seen by
 /// all of them.
 /// </summary>
-// See ADR-1267 and ADR-1308.
+// See ADR-1164 and ADR-1291.
 [PublicAPI]
 public interface IExpiringValueSet
 {

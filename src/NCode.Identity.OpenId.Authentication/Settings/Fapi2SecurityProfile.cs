@@ -14,7 +14,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
     // FAPI 2.0 §5.4 permits PS256, ES256 and "EdDSA (using the Ed25519 variant)" for every JWT the parties create or
     // process. Ed25519 is the fully-specified identifier for exactly that variant (RFC 9864); the polymorphic EdDSA is
     // excluded, because it also accepts an Ed448 key. Intersected with the registered algorithms, Ed25519 applies only
-    // when the EdDSA package is registered (ADR-1272).
+    // when the EdDSA package is registered (ADR-1392).
     private static string[] SigningAlgorithms { get; } =
     [
         AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
@@ -95,7 +95,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.ClockSkew, TimeSpan.FromSeconds(60));
 
         // Pin the client-assertion lifetime at the secure default (Min ceiling) so raising the platform-wide value for
-        // other clients never extends to a FAPI client (ADR-1124).
+        // other clients never extends to a FAPI client (ADR-1187).
         ceiling.Set(OpenIdSettingKeys.ClientAssertionMaxLifetime, TimeSpan.FromMinutes(5));
 
         // A request object carries 'nbf' and 'exp', at most 60 minutes apart (FAPI 2.0 Message Signing §5.3.1,

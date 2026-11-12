@@ -38,7 +38,7 @@ public interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <param name="payload">The destination buffer that receives the decoded payload.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask DecodeAsync(
         JoseToken token,
         SecretKey secretKey,
@@ -55,7 +55,7 @@ public interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The decoded payload from the JSON Web Token (JWT).</returns>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<string> DecodeAsync(
         JoseToken token,
         SecretKey secretKey,
@@ -71,7 +71,7 @@ public interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The decoded payload from the JSON Web Token (JWT).</returns>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<string> DecodeAsync(
         string token,
         SecretKey secretKey,
@@ -88,7 +88,7 @@ public interface IJoseSerializer
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from the JSON Web Token (JWT).</returns>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<T?> DeserializeAsync<T>(
         JoseToken token,
         SecretKey secretKey,
@@ -107,7 +107,7 @@ public interface IJoseSerializer
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from the JSON Web Token (JWT).</returns>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<T?> DeserializeAsync<T>(
         JoseToken token,
         SecretKey secretKey,
@@ -126,7 +126,7 @@ public interface IJoseSerializer
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from the JSON Web Token (JWT).</returns>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<T?> DeserializeAsync<T>(
         string token,
         SecretKey secretKey,
@@ -145,7 +145,7 @@ public interface IJoseSerializer
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from the JSON Web Token (JWT).</returns>
-    // See ADR-1477.
+    // See ADR-1471.
     ValueTask<T?> DeserializeAsync<T>(
         string token,
         SecretKey secretKey,

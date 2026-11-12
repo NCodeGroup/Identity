@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 /// decrypts a challenge encrypted to that half — before it stores the key, and never destroys it.
 /// </summary>
 // See ADR-1476.
-// See ADR-1477.
+// See ADR-1471.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ImportRemoteSecretRequest

@@ -3,7 +3,7 @@
 The **OpenID Foundation Conformance Suite** — the certified, spec-author-maintained oracle — is the authoritative gate
 behind the fast in-house probe-runner pre-flight, driven by one committed, runnable command. This document describes
 that harness and how the OP fares against it. Parent design: [`docs/conformance-testing.md`](../conformance-testing.md).
-Decision record: [ADR-1084](../decisions/1084-spec-coverage-conformance-harness.md) (the `browser` / `probe-runner` /
+Decision record: [ADR-1084](../decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md) (the `browser` / `probe-runner` /
 `external-suite` exercise boundary). Tracking issues: [#129](https://github.com/NCodeGroup/identity/issues/129) and
 [#124](https://github.com/NCodeGroup/identity/issues/124).
 
@@ -34,7 +34,7 @@ local feedback before the heavier suite spins up.
 
 ## Exercise boundary (why both)
 
-Per [ADR-1084](../decisions/1084-spec-coverage-conformance-harness.md), coverage is split across three actors and the
+Per [ADR-1084](../decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md), coverage is split across three actors and the
 harness runs the first two locally, pre-flighting the third:
 
 | Actor            | Drives                                                                    | In this harness                                  |
@@ -64,7 +64,7 @@ hermetic [`build/dod.ps1`](../../build/dod.ps1) inner loop — consistent with
 
 The Basic OP plan runs end-to-end under **Dynamic Client Registration**: the config carries no static `alias` or
 `client`/`client2`, so the suite registers a client per module
-([ADR-1063](../decisions/1063-dynamic-client-registration.md), with `registration_endpoint_allow_anonymous=true` in
+([ADR-1192](../decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md), with `registration_endpoint_allow_anonymous=true` in
 `appsettings.Conformance.json`). The `Verify Complete` callback match is `/test/*/callback*` (DCR has no `/a/<alias>/`
 segment), and the `Login` task is `optional`, so no-login `prompt=none` / `max_age` flows do not error. The login and
 consent pages serve a no-JavaScript progressive `<form>`, which the suite's default `BrowserControl` — a no-JavaScript
@@ -84,7 +84,7 @@ Each module below exercises OP behavior that a specification requires; the OP be
   client that owns a secret, and a generated `client_secret` authenticates, because the secret is stored in the form
   its client's method needs: a one-way verifier the presented secret is compared with, or the UTF-8 bytes a
   `client_secret_jwt` assertion is keyed from (`IClientSecretIssuer` —
-  [ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  [ADR-1391](../decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 - **`oidcc-refresh-token`** — the consent screen (no-JS form + SPA) pre-selects every requested scope, so a first-time
   `prompt=consent` + `offline_access` consent records `openid`/`offline_access` and the token response carries the
   `id_token` and `refresh_token`.
@@ -126,7 +126,7 @@ Each module below exercises OP behavior that a specification requires; the OP be
       claims (RFC 9068 §2.2) (`DefaultGetIdTokenPayloadClaimsHandler`).
 - **`acr` emission (`oidcc-ensure-request-with-acr-values-succeeds`)** — the conformance environment advertises
   `acr_values_supported` and sets a `default_acr` baseline (platform settings in `appsettings.Conformance.json`), so the
-  password login's resolved `acr` ([ADR-1091](../decisions/1091-acr-emission-and-conditional-auth-time.md)) is emitted
+  password login's resolved `acr` ([ADR-1039](../decisions/1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md)) is emitted
   and matches the suite's requested `acr_values`.
 - **UserInfo access token in the POST body (`oidcc-userinfo-post-body`)** — `DefaultAuthenticateSubjectHandler` accepts
   the bearer token as an `access_token` form parameter (RFC 6750 §2.2 / OIDC §5.3.1) for a non-GET
@@ -138,19 +138,20 @@ Each module below exercises OP behavior that a specification requires; the OP be
 - **Access-token revocation on authorization-code reuse (`oidcc-codereuse-30seconds`)** — RFC 6749 §4.1.2 says the OP
   SHOULD revoke the tokens issued from a reused code _"when possible"_. The OP rejects the second code use with
   `invalid_grant` (one-time codes), enforces PKCE `S256`, and treats a second redemption of a consumed code as a
-  compromise signal: the token endpoint revokes the end-user **session's** grants (the access and refresh tokens issued
-  from that code) through the session-scoped grant revocation the logout seam uses — without the
-  back-channel-logout/audit side effects — and the OP's own resource endpoints (UserInfo, introspection, management API)
+  compromise signal: the token endpoint terminates the end-user **session** through the termination seam with reason
+  `authorization_code_replay`, which revokes the grants issued under it (the access and refresh tokens issued from that
+  code), notifies the relying parties by back-channel logout and audits the termination, and the OP's own resource
+  endpoints (UserInfo, introspection, management API)
   reject an access token whose `sid` resolves to a revoked session (`invalid_token`). Every subject-bound access token
   carries `sid`. There is no global access-token denylist and no per-token store: one indexed session lookup on
   first-party access-token authentication and one session-scoped revocation on the rare replay path. External resource
-  servers treat the JWT as self-contained. See [ADR-1112](../decisions/1112-authorization-code-replay-revokes-session.md)
-  (refines [ADR-1028](../decisions/1028-token-revocation-refresh-tokens-only.md)).
+  servers treat the JWT as self-contained. See [ADR-1112](../decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)
+  (refines [ADR-1028](../decisions/1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)).
 
 ### Codified intentional deviations
 
 [`expected-failures.json`](../../build/conformance/expected-failures.json) holds one intentional deviation: every
-authorization code is bound to PKCE ([ADR-1144](../decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)),
+authorization code is bound to PKCE ([ADR-1144](../decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)),
 and the conformance host relaxes `require_pkce` and attests the suite's clients with `pkce_nonce_exemption`, so its
 nonce-carrying requests need no `code_challenge` — but `oidcc-ensure-request-without-nonce-succeeds-for-code-flow`
 sends neither a challenge nor a nonce, which leaves the code unprotected against injection, and the OP refuses it with

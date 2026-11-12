@@ -26,7 +26,7 @@ export type UseClientAdministrationOptions = {
 /**
  * Hook: the administration both client pages share — the create/edit form dialog, the delete
  * confirmation, their error state, and the drill-in selection. A client's edit and delete address
- * the client through its own `tenantId` (ADR-1421), so a machine client reaches the control-plane
+ * the client through its own `tenantId` (ADR-1257), so a machine client reaches the control-plane
  * tenant's client routes whichever scope lists it (ADR-1466). Only the create call differs between
  * pages, so the page passes it in.
  */

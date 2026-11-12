@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { createAppStore, type BffUser } from '@ncode/store';
 import type { BffRuntimeConfig } from '@ncode/config';
 import { App } from './App.js';
-// Each surface is a lazily loaded chunk (ADR-1175). Loading the modules first lets each lazy surface resolve from the
+// Each surface is a lazily loaded chunk (ADR-1151). Loading the modules first lets each lazy surface resolve from the
 // module cache, so a test waits for the surface's data and render rather than a cold transform of its chunk.
 import './containers/ClientsPage.js';
 import './containers/GrantsPage.js';

@@ -44,9 +44,10 @@ public sealed class TenantEntity : ISupportConcurrencyToken
 
     /// <summary>
     /// Gets or sets the issuer identifier for this tenant — its request-independent identity, and therefore also the
-    /// origin of every absolute URL the server publishes for it. Optional; when <c>null</c> the origin is derived from
-    /// the incoming request, which is a development-only convenience.
+    /// origin of every absolute URL the server publishes for it. <c>null</c> only for a tenant no strategy serves; a served
+    /// tenant always has one, and nothing derives the origin from the incoming request.
     /// </summary>
+    // See ADR-1165.
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.Issuer)]
     public required string? Issuer { get; set; }

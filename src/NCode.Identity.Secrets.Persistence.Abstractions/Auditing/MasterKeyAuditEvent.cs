@@ -31,7 +31,7 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
     /// Gets the master key that the change concerns: the new active key of a rotation, or the destroyed key. Its owner
     /// is the owner that the change protects.
     /// </summary>
-    // See ADR-1414 and ADR-1429.
+    // See ADR-1414.
     public required MasterKeyInfo Key { get; init; }
 
     /// <summary>

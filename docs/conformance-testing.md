@@ -87,10 +87,10 @@ Selected under "Test an OpenID Provider" in the suite:
 2. **Config OP** (`oidcc-config-certification-test-plan`) — validates `/.well-known/openid-configuration`.
 3. **Form Post OP** — `response_mode=form_post` is supported; run per auth profile.
 4. **Implicit OP / Hybrid OP** — the OP does not advertise implicit or hybrid response types by default
-   ([ADR-1083](decisions/1083-secure-by-default-discovery-metadata.md)), so these profiles apply only to a host that
+   ([ADR-1010](decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)), so these profiles apply only to a host that
    enables them.
 5. **Dynamic OP** — Dynamic Client Registration (RFC 7591) is implemented
-   ([ADR-1063](decisions/1063-dynamic-client-registration.md)).
+   ([ADR-1192](decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)).
 6. **FAPI 1.0 Advanced** — wired as `run-conformance.ps1 -Fapi1Advanced`; its run and baseline are tracked in
    [#124](https://github.com/NCodeGroup/identity/issues/124). FAPI 2 is out of scope unless the family targets
    open-finance ecosystems.
@@ -217,7 +217,7 @@ negative tests.
 ## Appendix C — Client seeding checklist (manual, non-DCR path)
 
 The Basic OP plan needs **three** client registrations; each is a distinct client, because a client authenticates only
-with the one method it registers ([ADR-1145](decisions/1145-a-client-authenticates-only-with-its-registered-method.md)). All
+with the one method it registers ([ADR-1145](decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). All
 must register the suite callback as a redirect URI.
 
 - **`client` (primary):** `token_endpoint_auth_method=client_secret_basic`; grants
@@ -229,11 +229,11 @@ must register the suite callback as a redirect URI.
   (local: `https://localhost.emobix.co.uk:8443/test/a/<ALIAS>/callback`;
   hosted: `https://www.certification.openid.net/test/a/<ALIAS>/callback`).
 - **PKCE:** allow `S256`. The OP binds every authorization code to PKCE by default
-  ([ADR-1144](decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)); the conformance host relaxes
+  ([ADR-1144](decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)); the conformance host relaxes
   `require_pkce` and attests its clients with `pkce_nonce_exemption`, because the suite's requests carry a `nonce` but
   send PKCE in only one module.
 
-> Under Dynamic Client Registration ([ADR-1063](decisions/1063-dynamic-client-registration.md)), which the committed
+> Under Dynamic Client Registration ([ADR-1192](decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)), which the committed
 > Basic OP plan uses, none of the above applies: the config carries no `alias`, and the suite registers clients itself
 > and runs modules in parallel.
 

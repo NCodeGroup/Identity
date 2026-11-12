@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// Validates the options for terminating the sessions that ended while no request used them when the host starts, so
 /// an interval that a timer refuses stops the host instead of failing the first time the termination runs.
 /// </summary>
-// See ADR-1223 and ADR-1221.
+// See ADR-1223 and ADR-1137.
 internal sealed class EndedSessionTerminationOptionsValidator
     : IValidateOptions<EndedSessionTerminationOptions>
 {

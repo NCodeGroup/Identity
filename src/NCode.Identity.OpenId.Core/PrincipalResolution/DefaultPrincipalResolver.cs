@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// when it is disabled, and is never provisioned as a federated principal. The subject is derived through the
 /// environment's host-configured <c>GetSubjectId</c>; the issuer claim name is a per-tenant setting.
 /// </summary>
-// See ADR-1053 and ADR-1450.
+// See ADR-1053 and ADR-1466.
 internal class DefaultPrincipalResolver(
     IStoreManagerFactory storeManagerFactory,
     ICryptoService cryptoService,

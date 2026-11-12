@@ -1,7 +1,7 @@
 # @ncode/app-conformance-runner
 
 Headless OAuth 2.x / OpenID Connect **conformance probe runner** — the `probe-runner` actor of the spec-coverage harness
-([ADR-1084](../../../docs/decisions/1084-spec-coverage-conformance-harness.md)).
+([ADR-1084](../../../docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)).
 
 Where the browser dashboard ([`apps/conformance`](../conformance)) verifies the CORS-reachable, credential-free
 endpoints, this runner exercises the **confidential and server-initiated legs a browser cannot drive**:

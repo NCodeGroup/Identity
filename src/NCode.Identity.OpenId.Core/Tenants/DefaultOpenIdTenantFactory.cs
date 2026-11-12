@@ -128,8 +128,8 @@ public class DefaultOpenIdTenantFactory(
         // falls through to a full resolve. A cache hit intentionally serves the cached tenant without re-reading the
         // store. A committed change announces the tenant (TenantChangedCommand), and every replica evicts it when the
         // announcement arrives (ADR-1205). A replica that may have missed an announcement evicts each cached tenant
-        // whose stored row changed when its subscription is restored (ADR-1454), and a cached tenant lives at most
-        // OpenIdTenantOptions.TenantCacheLifetime (ADR-1219).
+        // whose stored row changed when its subscription is restored (ADR-1416), and a cached tenant lives at most
+        // OpenIdTenantOptions.TenantCacheLifetime (ADR-1412).
         PersistedTenant? persistedTenant = null;
         if (!TenantResolver.TryGetTenantId(httpContext, out var tenantId))
         {
@@ -232,7 +232,7 @@ public class DefaultOpenIdTenantFactory(
         // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-1166). The provisioner
         // is scoped (its mediator is request-scoped), so it is resolved from the request's services. The seed returns the
         // tenant row it committed, so the tenant carries the row, settings and secrets concurrency tokens of its own seed,
-        // and a replica that revalidates its cached tenants after a missed announcement keeps it (ADR-1454, ADR-1463).
+        // and a replica that revalidates its cached tenants after a missed announcement keeps it (ADR-1416, ADR-1166).
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         var persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
 
@@ -429,7 +429,7 @@ public class DefaultOpenIdTenantFactory(
 
         // Every write path gives a tenant a strategy serves an issuer (ADR-1165), so a tenant without one is malformed
         // and fails closed (ADR-1395): deriving an origin from the request would let a caller's Host header choose
-        // where the server tells clients to send their credentials (ADR-1129).
+        // where the server tells clients to send their credentials.
         throw new InvalidOperationException(
             $"The tenant with id '{persistedTenant.TenantId}' has no issuer and cannot be served. Give it an issuer "
                 + "through the management API."
@@ -543,7 +543,7 @@ public class DefaultOpenIdTenantFactory(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <c>issuer identifier</c>.</returns>
     /// <exception cref="InvalidOperationException">The tenant has no issuer.</exception>
-    // See ADR-1129 (the issuer is the single authoritative origin) and ADR-1165 (every served tenant has an issuer).
+    // See ADR-1165 (the issuer is the single authoritative origin).
     protected virtual ValueTask<string> GetTenantIssuerAsync(
         HttpContext httpContext,
         PersistedTenant persistedTenant,
@@ -565,7 +565,7 @@ public class DefaultOpenIdTenantFactory(
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="UriDescriptor"/> instance.</returns>
-    // See ADR-1138.
+    // See ADR-1165.
     protected virtual ValueTask<UriDescriptor> GetTenantBaseAddressAsync(
         HttpContext httpContext,
         PersistedTenant persistedTenant,

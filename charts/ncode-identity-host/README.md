@@ -2,10 +2,9 @@
 
 The Helm chart for `NCode.Identity.OpenId.Host`, the OpenID Connect and OAuth 2.0 server. It runs the host image as a
 non-root deployment that meets the restricted Pod Security Standard, serves HTTPS only, probes `/health/live` and
-`/health/ready` over HTTPS, and drains each pod before stopping it
-([ADR-1179](../../docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+`/health/ready` over HTTPS, and drains each pod before stopping it.
 Setting `managementConsole.enabled` also deploys the management console host on a host name of its own
-([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
+([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 It requires Kubernetes 1.30 or later.
 
 ## Before the first install
@@ -153,7 +152,7 @@ the migrations.
 
 The previous version keeps serving while the Job runs and until the rollout ends, so every migration must keep it
 working: add first, and drop or rename only in a later release
-([ADR-1180](../../docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). A `helm rollback` runs no migration.
+([ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). A `helm rollback` runs no migration.
 
 To apply migrations another way, such as with a generated idempotent script, set `migrations.enabled=false`.
 
@@ -167,7 +166,7 @@ after the old one has terminated, so each update has a short outage.
 
 The host encrypts every stored secret, and the Data Protection key ring, under a root key held outside the database, so
 a database dump or backup is useless without it
-([ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 `secretProtection.rootKeyProvider` chooses where the root key lives, is required, and Production refuses `ephemeral`:
 
 - `local`: an AES key in a Secret the chart mounts into the pod. It suits a homelab: the key is outside the database,
@@ -276,7 +275,7 @@ of the platform and of each tenant retires and the next version takes over, a te
 a registered protected-value source reports, are rewrapped under the new version, and a retired key is destroyed once
 its grace has passed and nothing names it: the platform's retired version stays while a live Data Protection key
 names it, because an existing Data Protection key is never re-encrypted
-([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 An administrator rekeys at once with `POST /api/tenants/{tenantId}/encryption-keys/rekey` or
 `POST /api/platform/encryption-keys/rekey`, and reads the keys with `GET .../encryption-keys`. Tune the
 lifecycle with environment variables in `extraEnv`: `SecretProtection__MasterKeys__RotationPeriod`,
@@ -498,8 +497,7 @@ without removing it first, loses every value written or rewrapped under it, in t
 
 A tenant's signing and encryption keys can be held in a key management service, which signs every token and decrypts
 every content key, so the private key never reaches the server
-([ADR-1471](../../docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-[ADR-1477](../../docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md)).
+([ADR-1471](../../docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 The operator registers the providers a tenant may choose from, and the host reaches each with the deployment's own
 workload identity. The values are:
 
@@ -523,7 +521,7 @@ workload identity. The values are:
 
 The chart renders an enabled provider as `SecretProtection__RemoteKeyProviders__AwsKms__*`, `__AzureKeyVault__*` or
 `__GoogleCloudKms__*`, which registers it as the host registers a provider whose configuration section exists
-([ADR-1490](../../docs/decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md));
+([ADR-1485](../../docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md));
 it renders `pendingWindowInDays` and `hardwareProtected` whenever the provider is enabled and its location only when
 set, and `hardwareProtected` applies only to the keys the provider creates; a provider that is not enabled renders
 nothing and no tenant can choose it; the deployment renders as `SecretProtection__RemoteKeys__Deployment` with
@@ -542,7 +540,7 @@ three.
 
 **Binding keys without creating any.** An enabled provider without its location binds keys a KMS already holds and
 creates none
-([ADR-1489](../../docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)):
+([ADR-1474](../../docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)):
 the management API binds a key by its identifier and the server reads, signs with and decrypts with it;
 `tenant_key_provider` cannot name the provider, the management API refuses to create a key in it, the sweep skips it,
 and the release needs no `secretProtection.remoteKeys.deployment`; the server never destroys a key it binds.
@@ -596,7 +594,7 @@ enabled provider already holds. See [Remote keys](../../docs/capabilities/remote
 
 The host refuses to start while the Data Protection key ring holds a live key, one that is not revoked and has not
 expired, that the platform's master key cannot decrypt, and it names each such key in the error
-([ADR-1247](../../docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)). It happens when the
+([ADR-1247](../../docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)). It happens when the
 master key rows are lost or recreated while the key ring survives, such as after restoring part of a backup.
 
 Restore the master keys if you can. Otherwise list each ID in `extraEnv` as `DataProtectionKeyRing__RevokedKeyIds__0`,
@@ -618,7 +616,7 @@ With `managementConsole.enabled=true` the chart also deploys the management cons
 ServiceAccount that mounts no token, a PodDisruptionBudget, and an Ingress on `managementConsole.host` that routes
 every path to the console. The console takes `managementConsole.httpRoute` the same way, with `managementConsole.host`
 as its hostname. The console runs its own image, which shares the chart's `appVersion`
-([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
+([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 
 Create the two private keys the console's BFF signs with, and a Secret for each, in the release's namespace:
 
@@ -635,8 +633,8 @@ chart mounts each read-only and points `Bff__KeyRings__mgmt-client__PemFiles__0`
 well, see [The console's keys in a key management service](#the-consoles-keys-in-a-key-management-service).
 
 Register `mgmt-console` with the server as a confidential client of the control-plane tenant, with the metadata of
-[ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
-decision 4: authentication method `private_key_jwt`, pushed authorization requests and DPoP-bound access tokens
+[ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)
+decision 6: authentication method `private_key_jwt`, pushed authorization requests and DPoP-bound access tokens
 required, the grant types `authorization_code` and `refresh_token`, the redirect URI
 `https://<host>/bff/callback`, the post-logout redirect URI `https://<host>/`, the back-channel logout URI
 `https://<host>/bff/backchannel-logout`, and `jwks_uri` `https://<host>/bff/jwks`.
@@ -645,7 +643,7 @@ The console calls the server's management API at `/api` on the origin of the con
 compares the console's DPoP proofs with, and the chart sets `ManagementConsole__ManagementApiUrl` to it:
 `https://id.example.com/api` for the authority `https://id.example.com`. The console's host serves only the console, so
 `allowedHosts` need not list it, and machine callers reach the management API at the server's own host
-([ADR-1488](../../docs/decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md)).
+([ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 The console's authority defaults to `tenantResolution.staticSingle.issuer` under the `StaticSingle` strategy; set
 `managementConsole.authority` for any other strategy.
 
@@ -673,8 +671,8 @@ Each console key ring, `managementConsole.keyRings.client` (`Bff:KeyRings:mgmt-c
 `managementConsole.keyRings.dpop` (`Bff:KeyRings:mgmt-dpop`), holds a PEM key from a Secret, keys that a key management
 service holds, or both. A key a key management service holds signs every request the console makes, so the private key
 never reaches the pod
-([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
-[ADR-1485](../../docs/decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md)).
+([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
+[ADR-1485](../../docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)).
 A ring has these values:
 
 - `pemSecret`, the Secret holding `mgmt-client.pem` or `mgmt-dpop.pem`;
@@ -712,7 +710,7 @@ The chart renders each remote key as `Bff__KeyRings__<ring>__RemoteKeys__<kid>__
 registers the AWS KMS, Azure Key Vault and Google Cloud KMS providers without a key-creation location, and the console
 reads every key where the key's own identifier names, so the chart renders no
 `SecretProtection__RemoteKeyProviders__…` setting for it
-([ADR-1489](../../docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)).
+([ADR-1474](../../docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)).
 
 **Credentials.** The console has an identity of its own under `managementConsole.secretProtection`:
 `awsKms.webIdentity`, `azureKeyVault.workloadIdentity` and `googleCloudKms.workloadIdentityFederation`, with the same
@@ -737,7 +735,7 @@ effect when the console restarts. The key is the operator's: the console never c
 out of the `ncid-` groups and out of the tag of `secretProtection.remoteKeys.deployment`, in a scope of its own, so the
 server's sweep never names it. Keep the DPoP key in a Secret unless the threat model needs it in a key management
 service and the request rate fits the service's quota
-([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
 
 `ci/management-console-remote-keys-values.yaml` shows a release.
 
@@ -912,7 +910,7 @@ ingress Secret's certificate is not refused.
 
 Outside Development, the host sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
 to a request that reached it over HTTPS
-([ADR-1258](../../docs/decisions/1258-the-server-sends-strict-transport-security-outside-development.md)). The pods
+([ADR-1447](../../docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)). The pods
 serve HTTPS, so the host sees HTTPS on every request and sends the header whether or not `forwardedHeaders` trusts the
 ingress. Trusting the ingress (`forwardedHeaders.knownNetworks` or `forwardedHeaders.knownProxies`) is how the host
 learns the client's address and the original host, so set it to cover the ingress controller.
@@ -938,5 +936,5 @@ more
 
 The image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry
 and its exception in one record
-([ADR-1248](../../docs/decisions/1248-the-host-image-writes-one-line-json-logs.md)). Set
+([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)). Set
 `Logging__Console__FormatterName=simple` in `extraEnv` to write text instead.

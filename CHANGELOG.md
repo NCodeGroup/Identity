@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project aims to adhere to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Versioning is stamped in lockstep across the family by
-Nerdbank.GitVersioning ([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)); from the
+Nerdbank.GitVersioning ([ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)); from the
 first stable release, a breaking change to the public API is a **major** version bump
 ([project-template ADR-0015](docs/decisions/project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)).
 
@@ -27,9 +27,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IsRegistered<TMarker>()` answers whether a marker is registered. Chain roots and generic utility helpers are bare
   `IServiceCollection` extensions, and cross-library helpers invoked from several library builders
   (`AddMessageFactory<TMessage>`, `AddEndpointProvider<T>`, `AddEndpointGroup<T>`) take the non-generic
-  `IServiceBuilder` receiver ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md),
-  [ADR-1061](docs/decisions/1061-local-account-management-is-an-opt-in-capability.md)).
+  `IServiceBuilder` receiver ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md),
+  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md)).
 
 - **The library chain composes off typed builders.** `AddJoseLibrary()` extends `IServiceBuilder<SecretsLibrary>` and
   `AddJwtLibrary()` extends `IServiceBuilder<JoseLibrary>`, each returning its own library builder, so the
@@ -46,7 +46,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenIdManagementLibrary` in `NCode.Identity.OpenId.Management.Abstractions`, `LocalAccountLibrary` in
   `NCode.Identity.OpenId.Accounts.Abstractions` and `StoreManagerLibrary` in `NCode.Identity.Persistence.Abstractions`. The
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core` registration class is `DefaultRegistration`
-  ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md)).
+  ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)).
 
 - **A local-account capability cannot be written without a store.** Every local-account store registration
   (`AddLocalAccountEntityFramework()`, `AddAspNetIdentityLocalAccountStore<TUser>()` or a custom store) receives
@@ -56,12 +56,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IServiceBuilder<OpenIdAuthenticationLibrary>`, and `AddLocalAccountManagement(IServiceBuilder<LocalAccountLibrary>)`
   extends `IServiceBuilder<OpenIdManagementLibrary>`, each returning its receiver for chaining, for example
   `AddIdentityServer().OpenIdAuthenticationLibraryBuilder.AddLocalAccountAuthentication(localAccountStore)`
-  ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
+  ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)).
 
 - **Strict configuration binding is public.** `NCode.Identity.Registration.StrictConfigurationBindingExtensions.BindStrictly`
   binds a section so that a key that maps to no option fails, so an extension binds its own section the way the family
-  does ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
+  does ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 
 - **Endpoints register through declarative, hierarchical endpoint groups in the cross-cutting
   `NCode.Identity.Registration.AspNetCore` package.** The mechanism (`IEndpointGroup`, `IEndpointGroupBuilder`,
@@ -77,8 +77,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   surface is the hierarchy `api` (`/api`) → `api/tenant` (`/tenants/{tenantId}`) → `api/tenant/client`
   (`/clients/{clientId}`), so tenant-bound families (clients, grants, resource servers, client grants) nest under the
   tenant and map only their relative sub-routes, and the protocol surface is a single `openid` group
-  ([ADR-1043](docs/decisions/1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md),
-  [ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md)).
+  ([ADR-1086](docs/decisions/1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md),
+  [ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 
 - **Every package names one capability under the `NCode.Identity` prefix.** Each capability publishes its contracts in
   an `.Abstractions` package and its default implementation beside it, so a consumer implements, decorates or replaces
@@ -92,24 +92,20 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCode.Identity.Persistence.Abstractions` holds every persistence contract, and `NCode.Identity.OpenId.Abstractions`
   references `NCode.Identity.Registration.AspNetCore` directly because it exposes `ReadOnlyEndpointDisposition` on its
   public surface ([#758](https://github.com/NCodeGroup/identity/issues/758),
-  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
-  [ADR-1056](docs/decisions/1056-abstractions-split-into-framework-free-tiered-packages.md)).
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 - **The `NCode.Identity.Json` foundation package holds the shared `JsonElement` helpers.** `JsonElements` (`EmptyObject`,
   `OrEmptyObject`, `IsNullOrUndefined`, `TryGetPropertyValue<T>`, namespace `NCode.Identity.Json`) is the single home for
   `JsonElement` helpers, so the persistence layer and any package beneath `NCode.Identity.*` reuse it without an ASP.NET
   Core framework reference. Detached JSON parsing uses `JsonElement.Parse(string)`
-  ([ADR-1055](docs/decisions/1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md),
-  [#758](https://github.com/NCodeGroup/identity/issues/758),
-  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
-  [ADR-1056](docs/decisions/1056-abstractions-split-into-framework-free-tiered-packages.md)).
+  ([#758](https://github.com/NCodeGroup/identity/issues/758),
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 - **General ASP.NET Core helpers live in the `NCode.Identity.AspNetCore` foundation package.** `.WithNoStore()` and
   `HttpResponse.SetNoStore()` are in the `NCode.Identity.AspNetCore` namespace, because an Abstractions package holds contracts
   only ([#492](https://github.com/NCodeGroup/identity/issues/492),
   [#758](https://github.com/NCodeGroup/identity/issues/758),
-  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
-  [ADR-1355](docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 - **Minimal-API request delegates are generated at compile time, so a host starts fast.** Every package builds with the
   Request Delegate Generator, so a host does not compile each endpoint's expression trees before it answers its first
@@ -128,8 +124,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Microsoft.Extensions.Telemetry`, `Microsoft.Extensions.Telemetry.Abstractions`, `Polly.Extensions` or
   `Polly.RateLimiting` to a consumer: a project that uses one of them, such as `AddStandardResilienceHandler`,
   references that package itself ([#471](https://github.com/NCodeGroup/identity/issues/471),
-  [ADR-1385](docs/decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md)).
-- **Project template v0.84.3.** The repository's plan-and-execute workflow, agent instructions and checks come from project-template v0.84.3. They include the template's pre-release posture, which `- pre-release: untracked` in `AGENTS.md`'s Landing section selects, as project-template ADR-0015 records: until the first stable release every text describes the family as it is, each plan keeps `## [Unreleased]` a catalog under `### Added` and `### Security`, `/review-plan-diff` checks that a plan's texts describe the product as it is, and no change keeps compatibility, so a stored payload's shape changes in place at version 1 and a stored document that isn't a versioned envelope is refused (project-template ADR-0108); `build/Get-TestRuntimes.ps1`, which names the runtime of each older .NET a test project targets, and the `.github/actions/install-dotnet` composite action, through which CI, the end-to-end and frontend checks, the prerelease publish and the Copilot cloud agent's setup install the SDK `global.json` selects and those runtimes; `build/Install-Dotnet.ps1`, which installs the same SDK and runtimes on a developer's machine, each download checked against the SHA-512 in Microsoft's release metadata; the `/address-feedback` and `/run-feedback` commands, in Claude Code and Copilot, which fix or answer every review thread, top-level comment and review summary on a pull request and reply to each, `/run-feedback` repeating that every five minutes until the pull request merges or closes and asking NCode Review to review each push with a `/review` comment, and each resuming a run that stopped, whichever tool started it; `/run-issues`, which does the same for the pull requests it opens and turns a finding the issue doesn't ask for into a follow-up; project-template ADR-0014, under which every such discussion is remediated and replied to before the pull request merges, with the person who merges resolving each thread; the weekly `template-update` workflow, which keeps an issue open while a newer template version is out; the template's `Tag and publish release` workflow, `.github/workflows/tag-release.yml`, which runs `.template/Publish-Release.ps1` on each push to `main` and publishes nothing, because the Landing section says `release: none`; `/ship-plan`'s choice to act on a plan's follow-ups next, which files them as issues and has `/finish-plan` end with a `/plan-issue` command for each; Claude Code settings that allow every Bash and PowerShell command, ask before one that mentions `.env` or `secrets`, and deny reading `.env` files and `secrets/`, with a `SessionStart` hook, `.claude/hooks/session-start.sh`, that runs each `.claude/hooks/ensure-*.sh` in a Claude Code cloud session, among them `ensure-pwsh.sh`, which installs `pwsh` where it is missing; `code-review-auto-merge.yml` for NCode Review pin bumps, which turns on auto-merge with the first merge method `main` allows; the template's C# test conventions in `.github/instructions/csharp-tests.instructions.md`; and the template's general decision records in `docs/decisions/project-template/`, the source of truth for the rules they cover. The workflow commands that post to GitHub run through `gh api` REST routes in a session that refuses GitHub's GraphQL API, such as a Claude Code cloud session; `/ship-plan` and `/run-issues` delete agent attribution lines from the pull request title and description they write, and nothing checks commits or pull requests for attribution (project-template ADR-0018). The template's `file_header_template` is the two-line SPDX header [ADR-1309](docs/decisions/1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) enforces, and `build/dod.ps1` is this repository's own: the `project_owned_files` answer names it, so template updates leave it alone ([#516](https://github.com/NCodeGroup/identity/issues/516), [#536](https://github.com/NCodeGroup/identity/issues/536), [#542](https://github.com/NCodeGroup/identity/issues/542)).
+  [ADR-1385](docs/decisions/1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md)).
+- **Project template v0.84.3.** The repository's plan-and-execute workflow, agent instructions and checks come from project-template v0.84.3. They include the template's pre-release posture, which `- pre-release: untracked` in `AGENTS.md`'s Landing section selects, as project-template ADR-0015 records: until the first stable release every text describes the family as it is, each plan keeps `## [Unreleased]` a catalog under `### Added` and `### Security`, `/review-plan-diff` checks that a plan's texts describe the product as it is, and no change keeps compatibility, so a stored payload's shape changes in place at version 1 and a stored document that isn't a versioned envelope is refused (project-template ADR-0108); `build/Get-TestRuntimes.ps1`, which names the runtime of each older .NET a test project targets, and the `.github/actions/install-dotnet` composite action, through which CI, the end-to-end and frontend checks, the prerelease publish and the Copilot cloud agent's setup install the SDK `global.json` selects and those runtimes; `build/Install-Dotnet.ps1`, which installs the same SDK and runtimes on a developer's machine, each download checked against the SHA-512 in Microsoft's release metadata; the `/address-feedback` and `/run-feedback` commands, in Claude Code and Copilot, which fix or answer every review thread, top-level comment and review summary on a pull request and reply to each, `/run-feedback` repeating that every five minutes until the pull request merges or closes and asking NCode Review to review each push with a `/review` comment, and each resuming a run that stopped, whichever tool started it; `/run-issues`, which does the same for the pull requests it opens and turns a finding the issue doesn't ask for into a follow-up; project-template ADR-0014, under which every such discussion is remediated and replied to before the pull request merges, with the person who merges resolving each thread; the weekly `template-update` workflow, which keeps an issue open while a newer template version is out; the template's `Tag and publish release` workflow, `.github/workflows/tag-release.yml`, which runs `.template/Publish-Release.ps1` on each push to `main` and publishes nothing, because the Landing section says `release: none`; `/ship-plan`'s choice to act on a plan's follow-ups next, which files them as issues and has `/finish-plan` end with a `/plan-issue` command for each; Claude Code settings that allow every Bash and PowerShell command, ask before one that mentions `.env` or `secrets`, and deny reading `.env` files and `secrets/`, with a `SessionStart` hook, `.claude/hooks/session-start.sh`, that runs each `.claude/hooks/ensure-*.sh` in a Claude Code cloud session, among them `ensure-pwsh.sh`, which installs `pwsh` where it is missing; `code-review-auto-merge.yml` for NCode Review pin bumps, which turns on auto-merge with the first merge method `main` allows; the template's C# test conventions in `.github/instructions/csharp-tests.instructions.md`; and the template's general decision records in `docs/decisions/project-template/`, the source of truth for the rules they cover. The workflow commands that post to GitHub run through `gh api` REST routes in a session that refuses GitHub's GraphQL API, such as a Claude Code cloud session; `/ship-plan` and `/run-issues` delete agent attribution lines from the pull request title and description they write, and nothing checks commits or pull requests for attribution (project-template ADR-0018). The template's `file_header_template` is the two-line SPDX header [ADR-1309](docs/decisions/1309-c-files-carry-a-two-line-spdx-header-that-the-build-checks.md) enforces, and `build/dod.ps1` is this repository's own: the `project_owned_files` answer names it, so template updates leave it alone ([#516](https://github.com/NCodeGroup/identity/issues/516), [#536](https://github.com/NCodeGroup/identity/issues/536), [#542](https://github.com/NCodeGroup/identity/issues/542)).
 
 - **The reference host, its local-dev orchestrator and the shipped library carry distinct names.**
   `NCode.Identity.OpenId.Host` is the deployable reference host, with its companions
@@ -140,7 +136,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   that is deployed and faces the internet, so nothing invites leaving ephemeral keys, wildcard `AllowedHosts` or
   development seeding switched on there. The frontend `apps/playground` flow explorer and its `playground-spa` client
   are a genuine playground and carry that name. These projects are `IsPackable=false`
-  ([ADR-1130](docs/decisions/1130-distinct-names-for-host-local-dev-orchestrator-and-library.md)).
+  ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)).
 
 - **The reference host is a minimal-hosting ASP.NET Core application with the first-party .NET 10 OpenAPI stack.**
   `NCode.Identity.OpenId.Host` boots from a single top-level `Program.cs` using `WebApplication.CreateBuilder(...)`, and
@@ -175,7 +171,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   accept any client certificate an endpoint requests (`Kestrel:EndpointDefaults:ClientCertificateMode`), and the OP
   validates it against the client it authenticates. It is inert while no endpoint requests a certificate. A host that
   terminates TLS itself and serves mutual-TLS clients does the same in its own `ConfigureHttpsDefaults`
-  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **The reference host configures tenant selection under `OpenId:TenantResolution`** (`StrategyCode`, `StaticSingle:…`),
   distinct from the tenant materialization section `OpenId:Tenant`, and a tenant-selection shape under the wrong section
@@ -189,7 +185,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   without CORS services. The reference host's `appsettings.Development.json` lists its dev-server origins.
   `AddDeveloperCors` is a standalone CORS policy, so it is a bare `IServiceCollection` extension
   ([#441](https://github.com/NCodeGroup/identity/issues/441),
-  [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 
 - **Development signing keys are the tenant's persisted keys, self-healing on opt-in.** Every tenant is provisioned with
   persisted signing keys through the tenant secret store, so the runtime, the JWKS endpoint and the management API share
@@ -197,8 +193,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `launchSettings.json` sets) registers `AddDeveloperKeyPruning()`, which removes a tenant key that cannot be read,
   because its master key or the root key wrapping it was lost or changed, when the tenant is seeded, and provisioning
   generates a fresh key in its place. Production refuses a `DeveloperKeys` section
-  ([ADR-1021](docs/decisions/1021-developer-signing-keys-seeded-through-persistence.md),
-  [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+  ([ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 
 - **Development seeding signs in end to end (`AddDeveloperInteractiveSeed`).** A development-only, idempotent seeder
   provisions public (PKCE-only) single-page-application clients, confidential BFF clients and a deterministic
@@ -216,16 +211,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   publishes `playground-spa`, and an integration test fails if the bootstrap document publishes a client id the seed
   does not register (issues [#139](https://github.com/NCodeGroup/identity/issues/139),
   [#133](https://github.com/NCodeGroup/identity/issues/133),
-  [ADR-1146](docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)).
+  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 
 - **`IIdentityServerBuilder.AddFrontendBootstrap(configuration)` publishes a surface-aware runtime frontend bootstrap
   document at `/config/bootstrap.json`** (issue [#136](https://github.com/NCodeGroup/identity/issues/136),
-  [ADR-1064](docs/decisions/1064-frontend-presentation-platform.md),
-  [ADR-1082](docs/decisions/1082-playground-and-conformance-surfaces.md)). It binds the `Frontend` configuration section
+  [ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md),
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). It binds the `Frontend` configuration section
   into `FrontendBootstrapOptions` and registers the endpoint as an `IEndpointProvider`, so the host's single
   `MapEndpointGroups()` call maps it. The document carries the API base, issuer, client id, scopes, feature flags and
-  branding, and falls back to the serving request's origin for the API base and issuer, so a single-origin host serves
-  every tier from one bundle with no configuration. `@ncode/config`'s `loadRuntimeConfig` sends the bundle's
+  branding, and, with nothing configured, publishes the serving tenant's issuer (its stored one, or the one its strategy derives before the tenant is
+  provisioned; the root tenant's when the request names none) and the host's root-relative path base as the API base,
+  so a single-origin host serves every tier from one bundle with no configuration. `@ncode/config`'s `loadRuntimeConfig` sends the bundle's
   `SurfaceKind` as `?surface=`, and `FrontendBootstrapOptions.Surfaces` maps each surface to a `FrontendSurfaceOptions`
   override: client id and scopes override the default, so a read-only surface publishes none; feature flags merge;
   branding falls back. The bootstrap types (`FrontendBootstrapOptions`, `FrontendSurfaceOptions`,
@@ -249,8 +245,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   client. `appsettings.Conformance.json` seeds the three Basic-OP clients (`client` and `client2` with
   `client_secret_basic`, `client-secret-post` with `client_secret_post`, all `S256`), the FAPI clients and
   `conformance-user`. It must not be used in production
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md),
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **A `Conformance` launch profile runs the OpenID host as an externally reachable HTTPS process for the OpenID
   Foundation Conformance Suite** (issue [#126](https://github.com/NCodeGroup/identity/issues/126)). It binds all
@@ -264,10 +260,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
 
 - **The local-dev Aspire graph runs a dedicated conformance OP instance, `conformanceapi`, that opts into the
-  capabilities the stock server keeps off** ([ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md),
-  [ADR-1088](docs/decisions/1088-opt-in-front-channel-logout-and-session-management.md),
-  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)). It is the same host project
+  capabilities the stock server keeps off** ([ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md),
+  [ADR-1088](docs/decisions/1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md),
+  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)). It is the same host project
   under the Conformance environment (the `ConformanceAspire` launch profile) on its own port (`https://localhost:5003`,
   which its issuer is pinned to), serving its own `conformance` tenant from the one shared Postgres, and the conformance
   dashboard reads its discovery. Its `appsettings.Conformance.json` sets the `OpenId:Platform:Settings` root ceiling to
@@ -279,7 +275,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   in one module; the Basic OP module that sends neither PKCE nor a nonce
   (`oidcc-ensure-request-without-nonce-succeeds-for-code-flow`) is an expected failure. The default server keeps the
   secure defaults. Development and conformance convenience only
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 - **FAPI 1.0 Advanced conformance harness.** `build/conformance/run-conformance.ps1 -Fapi1Advanced` runs the conformance
   suite's `fapi1-advanced-final-test-plan` with `private_key_jwt` and `self_signed_tls_client_auth` clients, pushed
@@ -288,11 +284,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   into a gitignored folder, so no private key is committed, supplies each key set through
   `ConformanceSeed__Clients__<client_id>__Jwks`, renders both FAPI configurations from one
   `fapi1-advanced.template.json`, and takes the OP's URLs from `-IssuerUrl`
-  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
+  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md),
   [#235](https://github.com/NCodeGroup/identity/issues/235)).
 
 - **One .NET Aspire launch runs the full local stack**
-  ([ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md), issue
+  ([ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md), issue
   [#143](https://github.com/NCodeGroup/identity/issues/143)). The AppHost project `NCode.Identity.OpenId.LocalDev`
   orchestrates Postgres, Valkey, the migration worker, the OpenID host (`api`), the conformance OP (`conformanceapi`),
   the interactive-login build-watcher (`auth`), the management console host (`console`) and its build-watcher (`mgmt`),
@@ -312,13 +308,13 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The host's local database is PostgreSQL run by the Aspire AppHost, migrated by a dedicated worker** (issue
   [#144](https://github.com/NCodeGroup/identity/issues/144),
-  [ADR-1073](docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md)). A stable named data volume
+  [ADR-1073](docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). A stable named data volume
   persists data across restarts, and `build/dev-db-reset.ps1` (detecting Docker or Podman) purges it on demand. The
   `NCode.Identity.OpenId.Host.MigrationService` worker applies the EF Core migrations and exits, and the OP instances
   wait for its completion, so a migration failure shows as a failed dashboard resource that blocks them. The migrations
   and Npgsql wiring live in the host-owned `NCode.Identity.OpenId.Host.Database` project the hosts and the worker share,
   where each of its two contexts has one `InitialCreate` migration that creates its whole model
-  ([ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  ([ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
   When a context's migrations history records a migration the project does not hold, the worker applies nothing and
   fails with a message that names the context and says to reset the local database with `build/dev-db-reset.ps1`.
   The host persists its Data Protection key ring in the same database (`PersistKeysToDbContext`), so one purge resets
@@ -333,7 +329,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The AppHost fails fast when the frontend toolchain is stale.** Before any resource starts it requires a Node of the
   major pinned in `frontend/.node-version` and a `node_modules` that matches the pinned pnpm and `pnpm-lock.yaml`,
   and otherwise stops with one message that names `./build/frontend-install.ps1`
-  ([ADR-1287](docs/decisions/1287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md), issue
+  ([ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md), issue
   [#401](https://github.com/NCodeGroup/identity/issues/401)).
 
 - **The standalone Vite surfaces serve HTTPS outside Aspire too.** `./build/frontend-install.ps1` exports the ASP.NET
@@ -349,13 +345,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   so the image builds for `linux/amd64` and `linux/arm64` without emulation in one multi-architecture build, whose NuGet
   cache mount is locked so the two publishes take turns rather than reading packages the other is still extracting; the
   `Host image` CI workflow builds both. The build context is an allow-list
-  ([ADR-1178](docs/decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+  ([ADR-1248](docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
 
 - **The host image writes one-line JSON logs.** The image sets `Logging__Console__FormatterName=json`,
   `Logging__Console__FormatterOptions__UseUtcTimestamp=true` and
   `Logging__Console__FormatterOptions__TimestampFormat=O`, so every entry, the migration worker's included, is one JSON
   object on one line with a UTC timestamp; `Logging__Console__FormatterName=simple` selects text
-  ([ADR-1248](docs/decisions/1248-the-host-image-writes-one-line-json-logs.md), issue
+  ([ADR-1248](docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md), issue
   [#265](https://github.com/NCodeGroup/identity/issues/265)).
 
 - **The management console host ships a production container image.**
@@ -363,7 +359,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   base images: no shell, the non-root `app` user, HTTPS only on port 8443 from the certificate and key mounted at
   `/etc/ncode-identity/tls`, the `apps/mgmt` bundle served from `/app/mgmt`, and one-line JSON logs; the `Console image`
   CI workflow builds it for `linux/amd64` and `linux/arm64`
-  ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
+  ([ADR-1248](docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   issue [#610](https://github.com/NCodeGroup/identity/issues/610)).
 
 - **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` on Kubernetes 1.30 or
@@ -390,7 +386,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   lints the chart, renders each example release, and checks that each unsafe release is refused; the workflow also
   installs the chart in a kind cluster behind Traefik and proves the pods are Ready over HTTPS, that the controller
   verifies their certificate and that a controller holding the wrong CA is refused
-  ([ADR-1179](docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md),
+  ([ADR-1458](docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
   [ADR-1506](docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md),
   [ADR-1507](docs/decisions/1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md)
   and issue [#792](https://github.com/NCodeGroup/identity/issues/792)).
@@ -408,9 +404,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   that is not `https`, a key ring with no key, two keys of a key ring with one id, a remote key whose id is not its
   service's key form, a half-set console identity, or more than one console replica without the console's own
   Valkey
-  ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
-  [ADR-1485](docs/decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),
-  [ADR-1488](docs/decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md),
+  ([ADR-1458](docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
+  [ADR-1485](docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
   issues [#610](https://github.com/NCodeGroup/identity/issues/610),
   [#712](https://github.com/NCodeGroup/identity/issues/712) and
   [#720](https://github.com/NCodeGroup/identity/issues/720)).
@@ -426,8 +422,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the 63-character label-value limit. Every migration passes the expand-and-contract gate, so from the first stable
   release, when each context's `InitialCreate` becomes the baseline, a model change adds first and drops in a later
   release (issue [#85](https://github.com/NCodeGroup/identity/issues/85),
-  [ADR-1180](docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
-  [ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  [ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 
 - **The family builds with repository-wide engineering conventions.** These are Central Package Management, lockstep
   Nerdbank.GitVersioning versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of
@@ -451,16 +446,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   converts the wordmark to outlines from a pinned release of Inter, whose license `THIRD-PARTY-NOTICES.md` records
   ([#737](https://github.com/NCodeGroup/identity/issues/737),
   [#745](https://github.com/NCodeGroup/identity/issues/745),
-  [ADR-1491](docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md),
-  [ADR-1492](docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md),
-  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
+  [ADR-1492](docs/decisions/1492-the-familys-id-logo-is-drawn-by-one-script-and-every-web-app-shows-its-icon.md),
+  [ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
 - **Feature branches run a fast gate, and the merge queue runs the full gate.** `./build/dod.ps1 -Affected` (with
   `-Base`) runs only the test projects a change reaches through the project graph, and `-Filter` passes a `dotnet test
   --filter` expression through; test assemblies run in parallel in every mode. A pull request into `main` runs the
   affected tests, and the merge queue, `main` and the `release/**` lines run the full gate, so a branch need not be up
   to date with `main` before it merges
-  ([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
+  ([ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)).
 
 - **CI runs once per commit of a pull request.** A push runs CI only on `main` and the `release/**` lines; any other
   branch is checked through its pull request or by running the workflow by hand, so each check appears once.
@@ -470,7 +464,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   EF Core migrations and `[GeneratedCode]` members, and keeps the reference host in scope because it ships.
   `codecov.yml` counts a partially covered line as a hit, as ReportGenerator does, so both report the same figure from
   the same lines
-  ([ADR-1185](docs/decisions/1185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md)).
+  ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md)).
 
 - **Doc comments cite no decision records, in production code or tests.** No `///` comment under `src/` or `tests/`
   names an ADR or links into `docs/decisions/`, so each package's XML documentation (IntelliSense) and, for the
@@ -487,7 +481,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   than reading the clock during render. `@types/node` follows the Node runtime major, pinned workspace-wide by a pnpm
   override, `engines.node` states the toolchain's real floor, and Dependabot ignores TypeScript and `@types/node` majors
   so a grouped update brings no upgrade that cannot land
-  ([ADR-1147](docs/decisions/1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)).
+  ([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 - **The frontend runs on Node 26, and its Node and pnpm versions are each set in one place.** Node 26 is in Active LTS
   and supported until 2029-04-30. `frontend/.node-version` is the only place the Node major is set: CI reads it
@@ -499,15 +493,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#153](https://github.com/NCodeGroup/identity/issues/153)). Every pnpm setting lives in `pnpm-workspace.yaml`, and a
   dependency's install script fails `pnpm install` until it is allowed or denied there; esbuild's is denied because
   esbuild does not need it
-  ([ADR-1152](docs/decisions/1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
+  ([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 - **Frontend tests fail on warnings, and frontend coverage holds a floor.** A test that logs `console.error` or
   `console.warn` fails, through a console guard in the test-only `@ncode/test-support` workspace (the usual culprit is a
   React "not wrapped in act(...)" warning, meaning the test asserted before an update settled). A test that makes no
   assertion fails, lint fails on any warning, and tests, stories and setup files are type-checked. Each workspace's
-  coverage measures every source file and holds a floor at its level, enforced by `pnpm run test:report` in CI. The
-  conformance runner's CLI logic lives in a tested `cli.ts`, and its `--help` documents exit code `2`
-  ([ADR-1151](docs/decisions/1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)).
+  coverage measures every source file and holds a floor at its level, enforced by `pnpm run test:report` in CI
+  ([ADR-1151](docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
+  The conformance runner's CLI logic lives in a tested `cli.ts`, and its `--help` documents exit code `2`.
 
 - **The JOSE serializer encodes and decodes the Compact, Flattened and General JSON serializations, with multiple
   signatures and recipients (RFC 7515 §7.2, RFC 7516 §7.2).** The JSON serializations carry multiple signatures (JWS) or
@@ -527,8 +521,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `SignatureAlgorithm.SignAsync`, which signs with a local key synchronously behind its `ValueTask` and verifies a
   remote key's signature before a token carries it
   ([#75](https://github.com/NCodeGroup/identity/issues/75),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md),
-  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md)).
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 
 - **`IJoseSerializer` works on a parsed `JoseToken`, defined in a contracts-only abstractions package.** `Parse(string)`
   returns a `JoseToken` once, exposing the JOSE header through `JoseToken.Header` before validation or decryption, and
@@ -551,8 +545,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   so EdDSA proofs (Ed25519 and Ed448) work once the opt-in EdDSA package is registered. The OpenId DPoP validator
   consumes the service and keeps the server-nonce challenge and the replay cache. The DPoP vocabulary is
   `JoseTokenTypes.DPoPJwt` and `JoseClaimNames.Payload.Htm`, `.Htu`, and `.Ath`
-  ([ADR-1176](docs/decisions/1176-dpop-proofs-are-a-jose-building-block.md),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
+  ([ADR-1176](docs/decisions/1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md),
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
 
 - **Post-quantum ML-DSA signing (FIPS 204 / RFC 9964) is in the core libraries.** The JWA `alg` values `ML-DSA-44`,
   `ML-DSA-65` and `ML-DSA-87` are registered by default beside RSA and ECC, with no opt-in package, on the in-box .NET
@@ -563,7 +557,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   advertised only where `MLDsa.IsSupported` (OpenSSL 3.5+ / recent Windows 11), so discovery and JWKS never offer an
   algorithm the running OS cannot fulfill; discovery lists them in the asymmetric token-signing metadata automatically
   (the signing-algorithm partition keys on `AsymmetricSecretKey`)
-  ([ADR-1118](docs/decisions/1118-ml-dsa-post-quantum-signatures-in-core.md)).
+  ([ADR-1118](docs/decisions/1118-ml-dsa-post-quantum-signatures-ship-in-the-core-libraries-over-the-bcl-mldsa-type.md)).
 
 - **EdDSA signing over Ed25519 and Ed448, and ECDH-ES over X25519 and X448, are available as the opt-in
   `NCode.Identity.Jose.EdDsa` package.** It registers the fully-specified JWA `alg` values `Ed25519` and `Ed448` (RFC
@@ -582,10 +576,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `AddSecretsLibrary().AddJoseLibrary().AddEdDsa()`, an extension of `IServiceBuilder<JoseLibrary>`; discovery then
   advertises its signature algorithms in the asymmetric token-signing metadata automatically, and the FAPI 2.0 signing
   ceiling is PS256, ES256, EdDSA and Ed25519
-  ([ADR-1117](docs/decisions/1117-eddsa-clean-room-implementation-opt-in-package.md),
-  [ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
-  [#336](https://github.com/NCodeGroup/identity/issues/336),
-  [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+  ([ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md),
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
+  [#336](https://github.com/NCodeGroup/identity/issues/336)).
 
 - **Selective Disclosure for JWTs (SD-JWT, RFC 9901) is available as the opt-in `NCode.Identity.Jose.SdJwt` package.**
   `AddSdJwt()`, an extension of `IServiceBuilder<JwtLibrary>`, registers `ISdJwtIssuer`, `ISdJwtHolder` and
@@ -609,15 +602,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   through to the verified claims; an application defines another `SdJwtProfile` as data, whose required claims
   are protected whether or not it lists them
   ([#73](https://github.com/NCodeGroup/identity/issues/73),
-  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
-  [ADR-1406](docs/decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md)).
+  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md)).
 
 - **ES256K over secp256k1 is available as the opt-in `NCode.Identity.Jose.Secp256k1` package.** `AddSecp256k1()`, an
   extension of `IServiceBuilder<JoseLibrary>` as `AddEdDsa()` is, registers the secp256k1 curve (`crv` `secp256k1`,
   RFC 8812) in the elliptic-curve catalog, so `ecc` keys on it are generated, imported and published as JSON Web Keys,
   and the `ES256K` JWS algorithm (ECDSA over secp256k1 with SHA-256), bound to the curve. It registers nothing where the
   platform's cryptography lacks the curve, as on macOS ([#337](https://github.com/NCodeGroup/identity/issues/337),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 
 - **CBOR Object Signing and Encryption (COSE, RFC 9052 / 9053) is available as the opt-in `NCode.Identity.Cose` package.**
   `AddCoseLibrary()`, an extension of `IServiceBuilder<JoseLibrary>`, registers `ICoseSerializer`, which signs
@@ -638,7 +630,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   what it reads
   ([#76](https://github.com/NCodeGroup/identity/issues/76),
   [ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
 
 - **CBOR Web Tokens (CWT, RFC 8392) are available as the opt-in `NCode.Identity.Cwt` package.** `AddCwtLibrary()`, an
   extension of `IServiceBuilder<CoseLibrary>`, registers `ICwtIssuer` (`IssueAsync`) and `ICwtValidator`. The issuer writes the
@@ -651,7 +643,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CwtValidationFailureCodes` or `CoseFailureCodes` code
   ([#76](https://github.com/NCodeGroup/identity/issues/76),
   [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
 
 - **A package contributes an ECDSA algorithm as data.** An `EccSignatureAlgorithmSpecification` service (in
   `NCode.Identity.Jose.Abstractions`) names an `alg` code, its one curve and its hash, and the JOSE library serves an
@@ -660,7 +652,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   specification, an empty, whitespace or duplicate code, or a curve the elliptic-curve catalog does not hold by both
   `crv` and OID. `TryAddEnumerableInstance` in `NCode.Identity.Registration` registers such an instance once without dropping
   the other instances of its type ([#337](https://github.com/NCodeGroup/identity/issues/337),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 
 - **A keyed algorithm declares the key types it accepts, and decides which keys fit it.** `KeyedAlgorithm.KeyTypes`
   lists `AlgorithmKeyType` values, in the algorithm's order of preference: the `SecretKey` CLR type (`KeyClrType`), the
@@ -672,8 +664,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   and every ECDH agreement, and `SignatureAlgorithm.GetTokenHashFunction` supplies the hash of the ID-token `at_hash`,
   `c_hash` and `s_hash` claims. `AuthenticatedEncryptionAlgorithm` derives from `Algorithm`, because its key is a
   content encryption key ([#327](https://github.com/NCodeGroup/identity/issues/327),
-  [ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)).
 
 - **Keys are resolved, checked and generated on their algorithm's curve.** `TryGetKeyedAlgorithm` on
   `IAlgorithmCollection` returns a registered signature or key-management algorithm with the use it implies.
@@ -689,9 +681,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   key, whose material is not at hand, by a `KeySizeDeclaration` of its type and size, and refuses an asymmetric key
   type, which is checked by its stored public half ([#327](https://github.com/NCodeGroup/identity/issues/327),
   [#337](https://github.com/NCodeGroup/identity/issues/337), [#534](https://github.com/NCodeGroup/identity/issues/534),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
-  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
+  [ADR-1398](docs/decisions/1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)).
 
 - **A key type refuses a curve requested with another size, and a size two of its curves share.** The `ecc`, `okp`
   and `AKP` secret key types refuse generation parameters that name a curve, or an ML-DSA parameter set, whose keys
@@ -701,7 +693,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   share it, as P-256 and secp256k1 do with `AddSecp256k1()`; an `okp` key is generated only on a named curve.
   Management secret creation, tenant key provisioning and every other caller of the key types meet the same checks
   ([#534](https://github.com/NCodeGroup/identity/issues/534),
-  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+  [ADR-1398](docs/decisions/1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)).
 
 - **The EdDsa primitives have benchmarks.** `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks` measures the field, scalar
   and group arithmetic and the Ed25519 and Ed448 signing and verification of `NCode.Identity.Jose.EdDsa` with
@@ -722,7 +714,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   written and read through the key type's `ISecretKeyTypeDescriptor` and JSON Web Key rules. `ECDH-ES+A*KW` generates a
   random content encryption key and wraps it under the key agreed with the `epk` (RFC 7518 §4.6)
   ([#327](https://github.com/NCodeGroup/identity/issues/327),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)).
 
 - **ECDH-ES key agreement uses SHA-256 as the Concat KDF digest on every curve, as [RFC 7518
   §4.6.2](https://datatracker.ietf.org/doc/html/rfc7518#section-4.6.2) requires.** The digest belongs to the JWE
@@ -732,7 +724,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   jose-jwt's RFC-conforming managed implementation (`EcdhKeyManagementUnix`, backed by the BCL `ECDiffieHellman`) as
   their oracle. They do not use the Windows CNG implementation (`EcdhKeyManagementWin` + `CngKey`), because its
   `SP800_56A_CONCAT` KDF derives a curve-dependent digest on P-384 and P-521.
-  [ADR-1126](docs/decisions/1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md) records the
+  [ADR-1126](docs/decisions/1126-the-ecdh-es-concat-kdf-digest-is-sha-256-and-a-test-oracle-must-conform-to-the-rfc.md) records the
   reasoning and the testing rule.
 
 - **Hash names are open.** `HashAlgorithmName.GetHashSizeBits` and `GetHashFunction` serve every hash the platform
@@ -748,10 +740,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCode.Identity.Secrets.Abstractions` references the package, so JWK is first-class in the secrets and JOSE stacks
   without any `*.Abstractions` package carrying logic. Public `JsonWebKey(JsonElement)` / `JsonWebKey(JsonObject)`
   constructors take in-memory nodes and `JsonWebKey.Parse(string)` takes JSON text. The key type descriptor seam
-  ([ADR-1105](docs/decisions/1105-secret-key-type-descriptor-first-class-seam.md)) owns per-key-type member production;
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)) owns per-key-type member production;
   `ExportedPublicKey.Jwk` is a `JsonWebKey`, the JWKS endpoint returns a `JsonWebKeySet`, and the DPoP proof validator
   parses the embedded key into a `JsonWebKey` and thumbprints it with `ComputeThumbprint()`
-  ([ADR-1119](docs/decisions/1119-first-class-jwk-jwks-and-thumbprint.md)).
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)).
 
 - **The JWK package names the JSON Web Key vocabulary.** `NCode.Identity.Jwk` has `JsonWebKeyUses`,
   `JsonWebKeyOperations`, `JsonWebKeyTypes`, `JsonWebKeySetParameterNames` and `JsonWebKeyParameterNames`.
@@ -769,7 +761,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `JsonWebKey(JsonObject, JsonWebKeyTypeDescriptor)` constructors. `ISecretKeyTypeDescriptor.JwkKeyType` is a
   `JsonWebKeyTypeDescriptor?`. DPoP proof validation, client key import and provider key import build typed keys, so a
   contributed key type's thumbprint and private members work
-  ([ADR-1271](docs/decisions/1271-a-key-type-registers-its-json-web-key-rules.md)).
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)).
 
 - **A JSON Web Key Set types the keys of contributed key types and skips a key without a usable `kty`.** The constructor
   `JsonWebKeySet(JsonElement, IEnumerable<JsonWebKeyTypeDescriptor>)` and `JsonWebKeySet.Parse(string,
@@ -779,14 +771,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   Web Key form). A set deserialized through `System.Text.Json` uses the standard descriptors only. Every constructor and
   `Parse` overload that reads JSON skips an array member that is not a JSON object or whose `kty` is the empty string,
   missing or not a string, and reads the rest of the set, so one malformed key cannot poison the whole set
-  ([ADR-1281](docs/decisions/1281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md),
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md),
   [#329](https://github.com/NCodeGroup/identity/issues/329)).
 
 - **A JWK Thumbprint URI names every registered hash the framework computes.** `JsonWebKey.ComputeThumbprintUri` takes
   the hash's name from the IANA Named Information Hash Algorithm Registry (RFC 9278 §4) and covers SHA-256, SHA-384,
   SHA-512, SHA3-256, SHA3-384 and SHA3-512 (`sha-256` … `sha3-512`). `ComputeThumbprintUri(HashAlgorithmName, string)`
   takes the registry name of any other hash; a truncated hash name is never produced
-  ([ADR-1281](docs/decisions/1281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md),
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md),
   [#328](https://github.com/NCodeGroup/identity/issues/328)).
 
 - **`NCode.Identity.Jwt(.Abstractions)` encodes and validates JWTs through segregated services and ASP.NET Core-style
@@ -805,15 +797,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   `…Jwt.Validation`, `…Jwt.Claims`), and the evaluator, handlers, key resolver and claims factory in the implementation
   package; `NCode.Identity.OpenId.Authentication` references `NCode.Identity.Jwt.Abstractions` only
   ([#28](https://github.com/NCodeGroup/identity/issues/28),
-  [ADR-1120](docs/decisions/1120-jwt-validation-requirements-and-handlers.md),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
+  [ADR-1154](docs/decisions/1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
 
 - **A JWT validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
   the JWT validator's codes (`invalid_signature`, `invalid_issuer`, `invalid_audience`, `expired`, `not_yet_valid`,
   `algorithm_not_permitted`, …). A handler fails with `JwtValidationContext.Fail(failureCode, reason)`, and
   `ClaimValueRequirement.FailureCode` names a claim check's code. `JwtValidationException.FailureCode` and
   `JwtValidationResult.FailureCode` report the first failure's code
-  ([ADR-1278](docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code.md),
+  ([ADR-1278](docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md),
   [#343](https://github.com/NCodeGroup/identity/issues/343)).
 
 - **JWT audience validation follows [RFC 7519 §4.1.3](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3).** An
@@ -824,10 +816,10 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **A JWT's lifetime claims are required per token.** `JwtEncodingParameters.EnsureTokenLifetime` controls whether an
   encoded JWT must carry a lifetime, so a JWT that is not a credential can omit `exp`
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)). On
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)). On
   validation, `TokenLifetimeRequirement` and `ValidateTokenLifeTimeOptions` carry `RequireNotBefore` and
   `RequireIssuedAt` beside `RequireExpirationTime`
-  ([ADR-1187](docs/decisions/1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md)).
+  ([ADR-1187](docs/decisions/1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md)).
 
 - **JWT claim values map to and from JSON by declared type, losslessly, in one symmetric mapper.** Both directions of
   the JWT claim-value mapping live in one internal `ClaimValueMapper`, guarded by a decode → encode round-trip test over
@@ -840,7 +832,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   outside its declared type, including a `Double` of `NaN`/`Infinity` or malformed `JSON`, is emitted as its verbatim
   string. `IJwtEncoder` emits every entry of `JwtEncodingParameters.ExtraPayloadClaims`, including a lone one such as
   `azp` ([#34](https://github.com/NCodeGroup/identity/issues/34),
-  [ADR-1122](docs/decisions/1122-jwt-claim-values-map-to-json-by-declared-type.md)).
+  [ADR-1122](docs/decisions/1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md)).
 
 - **Claim dates parse only by declared type, through the public `NCode.Identity.Json.DateCoercion`.** `DateCoercion` is the
   date/time policy shared by `ObjectJsonConverter`, `JsonElements` and `ObjectGraphExtensions`, and its
@@ -851,7 +843,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   a `ClaimValueTypes.String` claim (an OpenID Connect `birthdate` of `"1990-03-15"` stays `"1990-03-15"`), and a caller
   parses it with `DateCoercion` where the claim is known to be a date
   ([#32](https://github.com/NCodeGroup/identity/issues/32),
-  [ADR-1121](docs/decisions/1121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md)).
+  [ADR-1122](docs/decisions/1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md)).
 
 - **Applications protect their own data under the secret key hierarchy.** `ISecretProtector` is buffer-first: it writes
   into caller-supplied `IBufferWriter<T>`s, sizes its output with `GetProtectedLength`, and offers a `ProtectToString`
@@ -859,7 +851,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with a namespaced purpose. `ISecretSerializer` and `ISecretGenerator` run under an `ISecretProtector`,
   `ISecretSerializer.DeserializePublicSecret` reads a public secret without one, and imported public keys (`spki`,
   `x509`) are stored as plain base64url
-  ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 - **Key wrapping is a shared secrets abstraction.** Every key wrapper implements `IKeyWrapper` (`Name`, `WrapAsync`, and
   `UnwrapAsync`, which writes the key into an `IBufferWriter<byte>`) and returns `WrappedKey` (`WrapperName`, `KeyId`,
@@ -872,7 +864,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CryptographicException` for empty or malformed text; the AES-GCM, AWS KMS, Azure Key Vault and Google Cloud KMS
   wrappers decode through it, so every wrapper reports empty ciphertext as "The wrapped key is empty."
   `NCode.Identity.Secrets.Abstractions` references `NCode.Base64Url`
-  ([ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
+  ([ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   [#373](https://github.com/NCodeGroup/identity/issues/373)).
 
 - **`NCode.Identity.Secrets.AwsKms` wraps the root key with AWS KMS.** `AddAwsKmsKeyWrapper` (`aws-kms`,
@@ -880,7 +872,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   encryption context and takes credentials from the AWS SDK's default chain, never from configuration. The reference
   host and the Helm chart wire it in; the chart federates the pod's service-account token with AWS
   (`secretProtection.awsKms`) only when `aws-kms` is selected, and refuses a malformed key ARN
-  ([ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
+  ([ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)).
 
 - **`NCode.Identity.Secrets.GoogleCloudKms` and `NCode.Identity.Secrets.AzureKeyVault` wrap the
   root key with Google Cloud KMS and Azure Key Vault.** The Google Cloud KMS wrapper (`google-cloud-kms`,
@@ -892,8 +884,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DefaultAzureCredential`), never from configuration. The reference host and the Helm chart wire them in; the chart's
   `secretProtection.googleCloudKms` / `secretProtection.azureKeyVault` values mount workload identity credentials only
   for the selected provider and refuse a malformed key name, key identifier or workload identity pool provider
-  ([ADR-1260](docs/decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
-  [ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
+  ([ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   [#173](https://github.com/NCodeGroup/identity/issues/173)).
 
 - **Every tenant is provisioned with persisted keys, so a production deployment can sign from its first request.** The
@@ -918,10 +909,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   the tenant holds that serves an algorithm, or will, suppresses generation; a key an operator supplied is never
   overwritten or removed, and a key the tenant cannot unprotect fails the tenant with a message naming the tenant and
   the master key or root key to restore, rather than being regenerated
-  ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [#327](https://github.com/NCodeGroup/identity/issues/327), [#534](https://github.com/NCodeGroup/identity/issues/534),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
-  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
+  [ADR-1398](docs/decisions/1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md)).
 
 - **Every stored secret has an active window inside its validity window, and every use of a key honors them.** A
   `PersistedSecret` carries `CreatedWhen`, `ActivatesWhen`, `RetiresWhen` and `ExpiresWhen`, in that order
@@ -938,7 +929,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `SecretResource` and `CreatedSecretResource` show both instants, `PersistedSecret.GetLifecycleState` names the
   state (`SecretLifecycleStates`: `upcoming`, `active`, `retired`, `expired`), and the management console's secrets
   table shows the instants and the state
-  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
+  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md),
   [#166](https://github.com/NCodeGroup/identity/issues/166)).
 
 - **A tenant's provisioned keys roll over on their own, ahead of retirement and with a grace after it.** The tenant
@@ -965,8 +956,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   pass publishes after its save, and a seed queues its events on `TenantSeedContext.RunAfterCommit`, whose steps the
   provisioner runs once the seed has committed
   ([ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
-  [ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [docs/capabilities/key-rollover.md](docs/capabilities/key-rollover.md), [docs/audit-records.md](docs/audit-records.md),
   [#166](https://github.com/NCodeGroup/identity/issues/166)).
 
@@ -1022,14 +1013,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#690](https://github.com/NCodeGroup/identity/issues/690), [#691](https://github.com/NCodeGroup/identity/issues/691),
   [#721](https://github.com/NCodeGroup/identity/issues/721),
   [#725](https://github.com/NCodeGroup/identity/issues/725),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-  [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
-  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
-  [ADR-1475](docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
-  [ADR-1476](docs/decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md),
-  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
-  [ADR-1489](docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md),
-  [ADR-1490](docs/decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md)).
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
+  [ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
+  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md),
+  [ADR-1476](docs/decisions/1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md),
+  [ADR-1485](docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)).
 
 - **A background job destroys the KMS keys that no stored secret names.** Every key the server creates in a KMS carries
   the deployment that `SecretProtection:RemoteKeys:Deployment` names
@@ -1046,7 +1034,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#654](https://github.com/NCodeGroup/identity/issues/654), [#704](https://github.com/NCodeGroup/identity/issues/704),
   [#725](https://github.com/NCodeGroup/identity/issues/725),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
-  [ADR-1490](docs/decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md)).
+  [ADR-1485](docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)).
 
 - **A management route answers from what it read and declares every problem it answers.** Every management route
   answers `404 Not Found` and `409 Conflict` from the rows it read before writing — a missing resource, a secret
@@ -1063,9 +1051,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#689](https://github.com/NCodeGroup/identity/issues/689), [#700](https://github.com/NCodeGroup/identity/issues/700),
   [#701](https://github.com/NCodeGroup/identity/issues/701), [#706](https://github.com/NCodeGroup/identity/issues/706),
   [#708](https://github.com/NCodeGroup/identity/issues/708),
-  [ADR-1480](docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
-  [ADR-1481](docs/decisions/1481-a-management-routes-problem-responses-say-when-each-occurs.md),
-  [ADR-1483](docs/decisions/1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md)).
+  [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
+  [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -1076,7 +1063,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant's keys under another setting adds its name. A `fapi2` tenant holds and publishes no RS256 key it never signs
   with, and a key the tenant already holds is kept. A platform or team settings change that permits a configured algorithm
   provisions its key in every running tenant without a restart: a background job re-seeds each tenant that names the
-  algorithm ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  algorithm ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [#241](https://github.com/NCodeGroup/identity/issues/241)).
 
 - **A Development host can recover from keys it cannot read.** `DeveloperKeys:PruneUnreadableKeys`
@@ -1086,8 +1073,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   with a new master key. The reference host's Development launch profiles set it, and Production refuses the
   `DeveloperKeys` section
   ([#569](https://github.com/NCodeGroup/identity/issues/569),
-  [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md),
-  [ADR-1423](docs/decisions/1423-developer-key-pruning-starts-the-platform-over-when-its-master-keys-cannot-be-unwrapped.md)).
+  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
+  [ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 
 - **Asymmetric secret keys model their public half as `SubjectPublicKeyInfo` DER through a buffer writer.** The
   `AsymmetricSecretKey` base exposes `ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination)`, writing into a
@@ -1096,8 +1083,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   Edwards-curve (OKP) and post-quantum keys. RSA and ECC implement it from their family exports; OKP and PQC keys
   implement it from their own DER encoders. Callers that need a live classical algorithm use the family-specific
   `ExportRSA()` / `ExportECDsa()` accessors
-  ([ADR-1115](docs/decisions/1115-asymmetric-keys-model-der-material-via-buffer-writers.md),
-  [ADR-1116](docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
+  [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 
 - **Verify-only (public-only) asymmetric secret keys.** `ISecretKeyFactory.CreateRsaPublicKey` and `CreateEccPublicKey`
   produce `RsaSecretKey` / `EccSecretKey` instances that hold only the public half (a `SubjectPublicKeyInfo`, stored
@@ -1105,7 +1092,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   certificate and yields a verify-only key, so a relying party's registered public certificate (persisted as an `x509`
   secret) is a usable verification key with no separate secret type. This is the primitive that lets the OP hold a
   client's public key for `private_key_jwt`, JAR and `jwks_uri` / BYOK onboarding
-  ([ADR-1103](docs/decisions/1103-public-only-asymmetric-secret-keys.md),
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [#54](https://github.com/NCodeGroup/identity/issues/54), [#161](https://github.com/NCodeGroup/identity/issues/161)).
 
 - **An asymmetric key carries its issuers' certificates.** `AsymmetricSecretKey.IssuerCertificatesRawData` keeps the
@@ -1113,7 +1100,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ISecretKeyFactory.Create(KeyMetadata, X509Certificate2Collection)`, which every `ISecretKeyFactory` implements,
   builds a key from a collection such as a loaded PKCS#12 file: the one certificate with a private key is the key's, and
   the others are its issuers
-  ([ADR-1300](docs/decisions/1300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md),
+  ([ADR-1300](docs/decisions/1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md),
   [#407](https://github.com/NCodeGroup/identity/issues/407)).
 
 - **A generated private key stores its public key.** `PersistedSecret.PublicKey` holds the base64url SPKI of every
@@ -1124,7 +1111,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   stored secret's public half and returns `false` with the reason for one it cannot read; the client key importer, the
   management secret validator and tenant key provisioning share it, so a stored public key that cannot be read is
   handled the same way on each path
-  ([ADR-1268](docs/decisions/1268-a-generated-private-key-stores-its-public-key-beside-it.md),
+  ([ADR-1268](docs/decisions/1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md),
   [#176](https://github.com/NCodeGroup/identity/issues/176), [#327](https://github.com/NCodeGroup/identity/issues/327)).
 
 - **The secret-key-type descriptor is the seam for every key operation, and its catalog is the single source of truth
@@ -1136,8 +1123,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   extension bases `SecretKeyTypeDescriptor` and `AsymmetricSecretKeyTypeDescriptor` are public, so an application adds a
   custom key type by deriving from them. Shared key state (metadata, key size, certificate handling) lives on
   `AsymmetricSecretKey`, and the `Default*` / `Public*` concretes hold only their key material
-  ([ADR-1105](docs/decisions/1105-secret-key-type-descriptor-first-class-seam.md),
-  [ADR-1067](docs/decisions/1067-secret-type-capability-catalog-and-capabilities-discovery.md)).
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
+  [ADR-1067](docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md)).
 
 - **The secret-key types live in purpose-based namespaces.** `NCode.Identity.Secrets.KeyTypes` holds the secret-key type
   descriptors, the type catalog and the ECC-curve / ML-DSA reference data; `NCode.Identity.Secrets.Collections` holds
@@ -1154,7 +1141,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   application adds a curve by registering one `EccCurveSpecification`, and `EccCurveSpecification.P256`, `P384` and
   `P521` define the NIST curves once, for the curve catalog, the `ES*` algorithms and `ECDH-ES`. `GenerateSecretRequest`
   carries the whole `SecretKeyGenerationParameters` as `GenerationParameters`
-  ([ADR-1068](docs/decisions/1068-unified-extensible-elliptic-curve-catalog.md),
+  ([ADR-1068](docs/decisions/1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md),
   [#337](https://github.com/NCodeGroup/identity/issues/337)).
 
 - **The secrets library registers logging.** `AddSecretsLibrary()` registers logging itself (`AddLogging()`), which its
@@ -1176,9 +1163,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CreateRsaSpki` / `CreateEccSpki`. The management endpoints, the secret importer and client-key import reject a format
   the secret type does not list, with a `400` message listing the type's formats; `format` compares ordinally, so `JWK`
   is rejected. Import is public-only by construction (a private or symmetric key is rejected), so the reveal-once model
-  ([ADR-1050](docs/decisions/1050-secret-material-revealed-once-on-create.md)) is the sole path a symmetric value leaves
+  ([ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)) is the sole path a symmetric value leaves
   the server. Dynamic client registration consumes an inline `jwks` set at registration
-  ([ADR-1104](docs/decisions/1104-import-public-asymmetric-secret-material.md),
+  ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md),
   [#161](https://github.com/NCodeGroup/identity/issues/161), [#54](https://github.com/NCodeGroup/identity/issues/54)).
 
@@ -1191,8 +1178,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   identifier). Key types are matched by their JSON Web Key `kty` through `ISecretKeyTypeDescriptor.JwkKeyType` and
   `ISecretKeyTypeCatalog.TryGetByJwkKeyType`, so a client may register `OKP` (EdDSA) and `AKP` (ML-DSA) keys as well as
   RSA and EC, and the key-to-algorithm rule is `IAlgorithmCollection.ValidateKeyAlgorithm` (`KeyAlgorithmDeclaration`)
-  ([ADR-1497](docs/decisions/1497-a-registered-key-set-names-a-key-without-a-kid-by-its-thumbprint.md),
-  [ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **A client secret is stored as a one-way verifier or as the UTF-8 bytes of the string it reveals, and a cryptographic
   key as raw bytes.** A symmetric `PersistedSecret` serves three purposes with three storage shapes: a shared secret an
@@ -1213,8 +1199,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   names the scheme for generated secrets (`GeneratedSecretScheme`, `SecretVerifierSchemes.Sha256` by default) and for
   supplied ones (`SuppliedSecretScheme`, `SecretVerifierSchemes.Pbkdf2Sha256`). Client authentication compares a
   presented secret with its verifier, and `client_secret_jwt` keys its HMAC from the stored bytes
-  ([ADR-1110](docs/decisions/1110-shared-secret-vs-cryptographic-key-storage.md),
-  [#69](https://github.com/NCodeGroup/identity/issues/69), [#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  ([ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md),
+  [#69](https://github.com/NCodeGroup/identity/issues/69), [#163](https://github.com/NCodeGroup/identity/issues/163)).
 
 - **Hash algorithms and binary encodings are open vocabularies.** `ICryptoService.HashValue` takes the framework's
   `HashAlgorithmName` and computes the digest with `CryptographicOperations`, so SHA-384 and SHA-3 are available.
@@ -1222,7 +1208,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IBinaryEncoder`, and `EncodeBinary`, `GenerateKey` and `HashValue` take the name as a `string`. `AddCryptographyLibrary`
   registers the three built-in encoders, a package adds one, such as Base32, by registering another, and an unregistered
   or duplicate encoding name is rejected
-  ([ADR-1190](docs/decisions/1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md),
+  ([ADR-1190](docs/decisions/1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md),
   [ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)).
 
 - **The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package.**
@@ -1245,12 +1231,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   carry the tenant route's values and no explicit default port the issuer does not.
   `IEndpointGroup.GetPrefix(IServiceProvider)` returns a group's `RoutePattern` when routes are mapped, so a group's
   prefix can come from configuration
-  ([ADR-1138](docs/decisions/1138-protocol-endpoints-are-served-under-the-tenant-route.md)).
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 - **OpenID protocol errors map to HTTP statuses consistently.** An OpenID protocol error without a status code is
   `400 Bad Request`: a validation error such as an unsupported scope or response type or a missing `code_challenge`, at
   the pushed authorization request endpoint and elsewhere, is rendered as `400` (RFC 6749 §5.2, RFC 9126 §2.3,
-  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)). A form body that is malformed or
+  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)). A form body that is malformed or
   over the form limits answers `400 invalid_request` at the token, revocation, introspection, pushed authorization,
   device authorization, CIBA, authorization, end-session, device verification and UserInfo endpoints (UserInfo reads a
   form body for its access token) and at the BFF's back-channel logout, and device verification reads its form
@@ -1263,7 +1249,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `WWW-Authenticate: Basic realm="<issuer>"` challenge**, as [RFC 6749
   §5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2) requires; body-based (`client_secret_post`) and
   assertion-based methods answer `400` (issue [#48](https://github.com/NCodeGroup/identity/issues/48),
-  [ADR-1092](docs/decisions/1092-token-endpoint-401-www-authenticate-challenge.md)). The challenge rides the general
+  [ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). The challenge rides the general
   response-header seam `ISupportResponseHeaders` (sibling of `ISupportStatusCode`), which `IOpenIdError` implements and
   `OpenIdResult<T>` renders, so it covers every client-authenticating endpoint (token, introspection, revocation, device
   authorization, CIBA, PAR) through the shared `IClientAuthenticationService`, and it carries the `WWW-Authenticate`
@@ -1283,7 +1269,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   to `DefaultOpenIdRedirectResultExecutor`. The interactive surface (`AddInteractiveAuthentication`) registers the HTML
   page, written through `SecureEncoding.UTF8` like `DefaultAuthorizationResultExecutor`; a deployment without the
   interactive package answers with JSON
-  ([ADR-1114](docs/decisions/1114-non-redirectable-authorization-errors-are-content-negotiated.md)).
+  ([ADR-1114](docs/decisions/1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md)).
 
 - **Discovery metadata lists only standardized parameters.** The discovery endpoint does not list itself as
   `discovery_endpoint`, a parameter neither OpenID Connect Discovery 1.0 nor RFC 8414 defines, and because CIBA Core
@@ -1295,10 +1281,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   request's subject steps, and the cross-slice
   `ValidateSubjectAuthenticationCommand`/`DefaultValidateSubjectAuthenticationHandler` validate an existing login
   session's `SubjectAuthentication` (tenant, `max_age`, `acr`)
-  ([ADR-1030](docs/decisions/1030-userinfo-endpoint-and-subject-authentication-seam.md)). Subject and resource-request
+  ([ADR-1225](docs/decisions/1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md)). Subject and resource-request
   authentication are separate commands: `AuthenticateSubjectCommand` authenticates only the end-user session, and
   `AuthenticateResourceRequestCommand` authenticates a bearer access token for a set of required audiences
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **The authorization endpoint treats an invalid end-user session cookie as no session.** A cookie that is present but
   fails authentication (expired, tampered, or undecryptable after a data-protection key change) leads to interactive
@@ -1314,12 +1300,12 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **`prompt=login`, `prompt=select_account` and `prompt=create` run their interactive step once per authorization
   request.** `DefaultAuthorizeHandler` skips them on the resumed continuation (`!IsContinuation`), as it does for
-  `prompt=consent` ([ADR-1081](docs/decisions/1081-granular-consent-and-authorized-applications.md)). The authorization
+  `prompt=consent` ([ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)). The authorization
   then completes, and the re-authenticated ID token carries a later `auth_time`.
 
 - **Response types are whole values, enforced exactly and kept consistent with grant types.** `response_types_supported`
   lists whole `response_type` values (`code`, `id_token`, `token`, `code id_token`, `code token`, `id_token token`,
-  `code id_token token`, all in `OpenIdConstants.ResponseTypes`) in canonical form (names in ordinal order), the shape
+  `code id_token token`, all in `OpenIdProtocol.ResponseTypes`) in canonical form (names in ordinal order), the shape
   OpenID Connect Discovery, RFC 8414 and RFC 7591 define; a non-canonical value such as `id_token code` is outside the
   domain. Discovery advertises the list as configured, and the authorization endpoint accepts exactly a listed value
   (its names in any order), so an operator enables one implicit or hybrid flow by listing it. A response type needs the
@@ -1333,7 +1319,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (and omitted `response_types` to `code` only for a client that uses the authorization endpoint), refuses with
   `invalid_client_metadata` a response type whose grant type is not registered or a grant type or response type the
   tenant does not support, and reports an empty list as `"response_types": []`
-  ([ADR-1141](docs/decisions/1141-response-types-are-whole-values.md)).
+  ([ADR-1141](docs/decisions/1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)).
 
 - **Response modes are an open vocabulary, resolved through one provider from handlers that declare their traits.** The
   authorization result executor delivers each response through the `IAuthorizationResponseModeHandler` registered for
@@ -1358,7 +1344,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenIdClient` and delivery and is delivered by `result.Delivery.ResponseModeHandler`.
   `IAuthorizationRequest.ResponseMode` is the value the request asked for, possibly `null`
   ([ADR-1201](docs/decisions/1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), issues
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md), issues
   [#229](https://github.com/NCodeGroup/identity/issues/229), [#238](https://github.com/NCodeGroup/identity/issues/238)).
 
 - **JWT-secured authorization responses (JARM).** The authorization endpoint serves the `query.jwt`, `fragment.jwt`,
@@ -1393,11 +1379,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   `authorization_response_iss_parameter_supported` (RFC 9207, default `true`), and the authorization response redirect
   uses 303 See Other (FAPI 2.0 §5.2.2, OAuth 2.1) for every client. The operator-configured `clock_skew` setting governs
   validation of signed request objects and client assertions, and the FAPI 2.0 profile caps it at 60 seconds through the
-  merge lattice ([ADR-1109](docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md)).
+  merge lattice ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 
 - **The OP serves Pushed Authorization Requests (RFC 9126) at `pushed_authorization_request_endpoint` (`/oauth2/par`)**
   (issue [#46](https://github.com/NCodeGroup/identity/issues/46),
-  [ADR-1089](docs/decisions/1089-pushed-authorization-requests.md)). A client authenticates as at the token endpoint and
+  [ADR-1089](docs/decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md)). A client authenticates as at the token endpoint and
   POSTs its authorization parameters form-encoded; the request is loaded and validated exactly as the authorization
   endpoint would, persisted as a single-use grant and answered with `201 Created`, an opaque `request_uri`
   (`urn:ietf:params:oauth:request_uri:<reference>`) and `expires_in`. The client then calls the authorization endpoint
@@ -1426,9 +1412,10 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The resource-owner password grant is an opt-in account capability.** It lives in
   `NCode.Identity.OpenId.Accounts.Authentication` (`AddLocalAccountAuthentication()`, with
   `CreatePasswordGrantSubjectCommand`), so `NCode.Identity.OpenId.Authentication` does not depend on the account
-  packages; without that capability the base package answers the grant with `unsupported_grant_type`. The metadata
-  projection claim types are in `NCode.Identity.OpenId.Principals.SubjectMetadataClaimTypes`
-  ([ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)). Its tickets
+  packages; without that capability the base package answers the grant with `unsupported_grant_type`
+  ([ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)). The
+  metadata projection claim types are in `NCode.Identity.OpenId.Principals.SubjectMetadataClaimTypes`
+  ([ADR-1055](docs/decisions/1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md)). Its tickets
   carry the authentication's `AuthenticationProperties`: `DefaultPasswordGrantHandler` records the authentication
   instant once, at the start of the token request, passes it as `AuthenticationProperties.IssuedUtc` through
   `AuthenticatePasswordGrantCommand.AuthenticationProperties` and uses the same timestamp for the token's `CreatedWhen`,
@@ -1437,7 +1424,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Extension grants ([RFC 6749 §4.5](https://datatracker.ietf.org/doc/html/rfc6749#section-4.5)) are added by
   registering an `ITokenGrantHandler`** whose `GrantTypes` include the grant's absolute-URI identifier; the token
-  endpoint needs no change ([ADR-1092](docs/decisions/1092-token-endpoint-401-www-authenticate-challenge.md)).
+  endpoint needs no change ([ADR-1101](docs/decisions/1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)).
 
 - **OAuth 2.0 Device Authorization Grant (RFC 8628).** Input-constrained clients (smart TVs, CLIs, IoT devices) obtain
   tokens by having the end user authorize on a second device. The `device_authorization_endpoint`
@@ -1450,17 +1437,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   through the general-purpose `IPersistedGrantService.UpdatePayloadAsync`. The settings `device_code_lifetime`,
   `device_code_polling_interval` and `user_code_length` tune the flow, `user_code` generation is the replaceable
   `IUserCodeGenerator` seam, and discovery advertises the endpoint and grant type
-  ([ADR-1059](docs/decisions/1059-device-authorization-grant.md)). The endpoint follows the canonical endpoint shape:
+  ([ADR-1059](docs/decisions/1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md)). The endpoint follows the canonical endpoint shape:
   `DefaultDeviceAuthorizationEndpointHandler` is a thin orchestrator over the strongly typed
   `IDeviceAuthorizationRequest` / `DeviceAuthorizationRequest : OpenIdMessage<…>` and the mediator commands
   `ValidateDeviceAuthorizationRequestCommand` and `CreateDeviceAuthorizationRequestCommand` (returning
   `DeviceAuthorizationResult`), like the token, end-session and CIBA endpoints, so each protocol step is independently
   testable and replaceable (issue [#56](https://github.com/NCodeGroup/identity/issues/56),
-  [ADR-1086](docs/decisions/1086-canonical-openid-endpoint-shape.md)).
+  [ADR-1086](docs/decisions/1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)).
 
 - **The OP implements OpenID Connect Client-Initiated Backchannel Authentication (CIBA) with poll, ping and push
   delivery** (issues [#41](https://github.com/NCodeGroup/identity/issues/41) and
-  [#55](https://github.com/NCodeGroup/identity/issues/55), [ADR-1085](docs/decisions/1085-ciba-grant.md)). The pending
+  [#55](https://github.com/NCodeGroup/identity/issues/55), [ADR-1085](docs/decisions/1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)). The pending
   authorization is a persisted grant, as in the device flow, with no table of its own. The
   `backchannel_authentication_endpoint` (`/oauth2/bc-authorize`) accepts a strongly typed
   `BackchannelAuthenticationRequest` and orchestrates the mediator commands
@@ -1474,7 +1461,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   injectable services with safe defaults. Push mode issues the tokens on approval and delivers them to the client's
   `client_notification_endpoint`, and the token endpoint rejects a push-mode poll. `client_notification_endpoint`
   defaults to empty, so a ping or push client that registers none is rejected for the missing endpoint
-  ([ADR-1140](docs/decisions/1140-setting-values-are-validated-against-their-domain.md)). A client may send its
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)). A client may send its
   parameters as a signed `request` JWT validated against its keys. Discovery advertises the endpoint, the grant,
   `backchannel_token_delivery_modes_supported` (default `poll`, `ping`, `push`; `BackchannelTokenDeliveryModes`),
   `backchannel_user_code_parameter_supported` and `backchannel_authentication_request_signing_alg_values_supported`;
@@ -1482,23 +1469,23 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **CIBA ping and push delivery and back-channel logout are delivered at least once through the dispatch port** (issue
   [#24](https://github.com/NCodeGroup/identity/issues/24),
-  [ADR-1090](docs/decisions/1090-durable-outbound-delivery-dispatch-adapter.md)). On approval `ICibaRequestService`
+  [ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)). On approval `ICibaRequestService`
   dispatches a CIBA delivery job whose handler performs the HTTP `POST` to the client and throws on failure so the
   dispatcher retries; the default `IBackChannelLogoutNotifier` builds the signed `logout_token` and dispatches its
   delivery the same way. The concrete delivery jobs are internal. A ping or push client is also told when its request is
   denied: a denial, also of an approval whose subject is refused, sends the ping notification, after which the token
   endpoint answers `access_denied`, or the push error payload with `error=access_denied`, and only the call that decided
   the request notifies the client
-  ([ADR-1231](docs/decisions/1231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md), issue
+  ([ADR-1085](docs/decisions/1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md), issue
   [#291](https://github.com/NCodeGroup/identity/issues/291)).
 
 - **OAuth 2.0 Token Exchange (RFC 8693)** (issue [#61](https://github.com/NCodeGroup/identity/issues/61),
-  [ADR-1101](docs/decisions/1101-oauth-token-exchange-rfc8693.md)). The token endpoint's
+  [ADR-1101](docs/decisions/1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)). The token endpoint's
   `DefaultTokenExchangeGrantHandler` serves `urn:ietf:params:oauth:grant-type:token-exchange`
-  (`OpenIdConstants.GrantTypes.TokenExchange`) through the `ITokenGrantHandler` extension-grant seam. A client presents
+  (`OpenIdProtocol.GrantTypes.TokenExchange`) through the `ITokenGrantHandler` extension-grant seam. A client presents
   a `subject_token` (and, for delegation, an `actor_token`) and receives an `access_token`, `refresh_token` or
-  `id_token` output (`requested_token_type` in, `issued_token_type` out; `OpenIdConstants.TokenTypeIdentifiers.*`, the
-  RFC 8693 `OpenIdConstants.Parameters.*` and `TokenTypes.NotApplicable`). Both impersonation and delegation are
+  `id_token` output (`requested_token_type` in, `issued_token_type` out; `OpenIdProtocol.TokenTypeIdentifiers.*`, the
+  RFC 8693 `OpenIdProtocol.Parameters.*` and `TokenTypes.NotApplicable`). Both impersonation and delegation are
   supported: a delegated exchange emits an `act` claim identifying the actor and nests any existing `act` to preserve
   the delegation chain, and requires the subject token to pre-authorize the actor through a `may_act` claim
   (`JoseClaimNames.Payload.MayAct`, RFC 8693 §4). Presented tokens are validated through the replaceable
@@ -1528,8 +1515,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#275](https://github.com/NCodeGroup/identity/issues/275)). Concurrent refreshes that extend a sliding expiration both
   succeed, because the sliding-expiration update keeps the other request's change (issue
   [#260](https://github.com/NCodeGroup/identity/issues/260))
-  ([ADR-1211](docs/decisions/1211-a-rotated-refresh-token-is-spent-with-its-successor.md),
-  [ADR-1217](docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
+  ([ADR-1216](docs/decisions/1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md),
+  [ADR-1217](docs/decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)).
 
 - **Client-authentication methods are named by registered descriptors.** `ClientAuthenticationMethodDescriptor` names a
   method, says whether it authenticates with a client secret (`RequiresClientSecret`) and whether it keys from that
@@ -1538,14 +1525,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   registered names and finds a descriptor without constructing a handler. Every client-authentication handler is paired
   with a registered descriptor: the host does not compose when the registered handlers and descriptors differ, and
   options validation constructs no handler
-  ([ADR-1207](docs/decisions/1207-client-authentication-methods-are-named-by-registered-descriptors.md), issue
-  [#251](https://github.com/NCodeGroup/identity/issues/251), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md), issue
+  [#251](https://github.com/NCodeGroup/identity/issues/251), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **JWT-bearer client authentication (`private_key_jwt` / `client_secret_jwt`)** (issue
   [#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1102](docs/decisions/1102-jwt-bearer-client-authentication.md)). Confidential clients authenticate with a signed
+  [ADR-1102](docs/decisions/1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md)). Confidential clients authenticate with a signed
   `client_assertion` (`client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer`,
-  `OpenIdConstants.ClientAssertionTypes.JwtBearer`; OpenID Connect Core §9, RFC 7523). Two handlers share one base, one
+  `OpenIdProtocol.ClientAssertionTypes.JwtBearer`; OpenID Connect Core §9, RFC 7523). Two handlers share one base, one
   for the asymmetric `private_key_jwt`, the FAPI-eligible method, and one for the HMAC `client_secret_jwt`, non-FAPI, so
   each assertion is handled once and each method is advertised independently in `token_endpoint_auth_methods_supported`.
   The client is identified from the assertion (`iss == sub == client_id`), the signature is verified against the
@@ -1559,7 +1546,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Mutual-TLS client authentication (`tls_client_auth` / `self_signed_tls_client_auth`)** (issue
   [#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1107](docs/decisions/1107-mutual-tls-client-authentication.md)). A confidential client can authenticate with a
+  [ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)). A confidential client can authenticate with a
   mutual-TLS client certificate (RFC 8705 §2), the second FAPI-permitted strong client-authentication mechanism beside
   `private_key_jwt`. `self_signed_tls_client_auth` matches the presented certificate against one the client registered
   by SHA-256 thumbprint; `tls_client_auth` matches its subject distinguished name or a subject alternative name
@@ -1572,7 +1559,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   checking that it carries the key's public key, so a client that registers its keys as `jwks` or publishes them at a
   `jwks_uri` authenticates with a certificate listed there (RFC 8705 §2.2), and a key whose `x5c` is empty, malformed,
   or carries another key is refused
-  ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **`DistinguishedName` matches a distinguished name as RFC 4517 `distinguishedNameMatch` does.**
   `DistinguishedName.TryParse` reads an RFC 4514 string and what an operator pastes: whitespace around `=`, `,`, and
@@ -1586,7 +1573,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the registered `tls_client_auth_subject_dn`, and the setting rule accepts the RFC 4514 forms an operator pastes, such
   as `CN=client,O=Example`. A value written with `;` separators or in the `/C=US/O=Example` form does not parse, matches
   no certificate and is refused by the setting rule
-  ([ADR-1173](docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), issue
+  ([ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md), issue
   [#209](https://github.com/NCodeGroup/identity/issues/209)).
 
 - **A forwarded client certificate is decoded by a registered format, and every format reads the whole chain the client
@@ -1598,16 +1585,17 @@ Until the first stable release, the [Unreleased] section describes the product a
   well as `Cert`, honoring quoted values. The resolver returns a `PresentedClientCertificate`: the client's certificate
   and the other certificates it sent, as untrusted `Intermediates` for chain building, resolved once per request.
   Formats are an open vocabulary: each is an `IClientCertificateHeaderDecoder` registered under a `Format` name (the
-  known names are `ClientCertificateHeaderFormats`), `MutualTlsForwardingOptions.Format` is a string, and the host
-  refuses to start when `OpenId:MutualTls:Format` names no registered decoder. `IClientCertificateResolver` and
+  known names are `ClientCertificateHeaderFormats`), `MutualTlsForwardingOptions.Format` is a string, and, when
+  `CertificateHeaderName` is configured, the host refuses to start when `OpenId:MutualTls:Format` names no registered
+  decoder. `IClientCertificateResolver` and
   `MutualTlsForwardingOptions` live in `NCode.Identity.OpenId.Authentication.ClientCertificates`, registered by
   `AddClientCertificateServices()`, and `ResolveCertificateAsync` takes an `OpenIdContext`
-  ([ADR-1097](docs/decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md),
-  [ADR-1172](docs/decisions/1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
+  ([ADR-1097](docs/decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md),
+  [ADR-1172](docs/decisions/1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md)).
 
 - **A client's public keys resolve at runtime from its `jwks_uri`** (issue
   [#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1106](docs/decisions/1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)). A FAPI client can
+  [ADR-1106](docs/decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)). A FAPI client can
   authenticate with `private_key_jwt`, or present a signed request object (JAR), with keys it rotates without
   re-registering. `IClientKeyResolver` resolves a client's effective key collection, and the `client_assertion` handlers
   and the JAR loader verify against it. The fetch is SSRF-guarded, requires absolute `https`, and is bounded and cached
@@ -1616,12 +1604,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   fetch of a client's key set, and a fetch that yields no key is not repeated for
   `OutboundHttpOptions.FailureCacheDuration` (`OpenId:OutboundHttp:FailureCacheDuration`, one minute), validated when
   the host starts ([#466](https://github.com/NCodeGroup/identity/issues/466),
-  [ADR-1335](docs/decisions/1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)).
+  [ADR-1106](docs/decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)).
 
 - **A `kid` is the client's own name for its key, unique among that client's keys.** Any number of clients, in any
   tenants, register keys with the same `kid`; the management import keeps a JSON Web Key's `kid`, so a client that signs
   with it matches its key; and a registration update (RFC 7592) that changes `jwks` sets the client's keys to the ones
-  it lists ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  it lists ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **OAuth 2.0 Dynamic Client Registration (RFC 7591/7592).** The `registration_endpoint` (`POST /oauth2/register`),
   advertised in discovery, accepts a JSON client-metadata document and returns the assigned `client_id`, a one-time
@@ -1633,17 +1621,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   `registration_access_token` and the RFC 7591 `initial_access_token` are hash-keyed persisted grants. The
   deployment-specific `IInitialAccessTokenValidator` seam decides what counts as a valid initial access token. The error
   codes `invalid_client_metadata` and `invalid_redirect_uri` are defined
-  ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md)). `client_name`, `client_uri`, `logo_uri`, `tos_uri`,
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)). `client_name`, `client_uri`, `logo_uri`, `tos_uri`,
   `policy_uri`, `contacts`, `jwks`, `software_id` and `software_version` are stored as registered client settings; the
   requested `scope` is not stored, because the OpenID Connect scopes are available to every client, and the response's
   `scope` reports the scopes the client may request, taken from `IClientScopeService`, since scope entitlement comes
-  from resource servers and client grants. Discovery publishes `scopes_supported`
-  ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)). Registration checks relations only through
+  from resource servers and client grants
+  ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)). Discovery publishes `scopes_supported`
+  ([ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)). Registration checks relations only through
   the coherence rules — the checks of the supported metadata, the algorithms, and the backchannel metadata are coherence
   rules, so `ValidateCoherence` is its only relation check — and an error description names the client setting, such as
   `grant_types_supported` rather than `grant_types`, with the error code `invalid_redirect_uri` for `redirect_uris`,
   else `invalid_client_metadata`
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md), issue
   [#253](https://github.com/NCodeGroup/identity/issues/253)).
 
 - **The management API mints initial access tokens for protected Dynamic Client Registration, optionally scoped to a
@@ -1652,7 +1641,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   revealed once and never retrievable again, together with the grant id for revocation through the grant management
   endpoint, and records an `InitialAccessTokenCreatedAuditEvent`, so a deployment that wants protected registration
   needs no out-of-band grant seeding or custom `IInitialAccessTokenValidator`
-  ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md)). A `resourceServerId` scopes the token to a resource
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)). A `resourceServerId` scopes the token to a resource
   server, under the same checks as when the management API binds a client: the resource server exists in the tenant, is
   not a system resource server, and the caller may update it. A client registered with a scoped token is bound to that
   resource server, must be confidential, and cannot be made public by an RFC 7592 update. A bound client registers
@@ -1660,7 +1649,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   client is refused, and the client information response reports the binding as `resource_server_id`.
   `IInitialAccessTokenValidator.ValidateAsync` returns the token's `InitialAccessTokenGrant`, or `null` for a token it
   refuses
-  ([ADR-1192](docs/decisions/1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)).
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)).
 
 - **Dynamic client registration accepts the strong client-authentication methods.** A self-registered client can
   register `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, or `self_signed_tls_client_auth`: registration
@@ -1669,7 +1658,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `jwks` or `jwks_uri` (a `jwks` by value with an `x5c` certificate for the latter); `tls_client_auth` requires exactly
   one `tls_client_auth_*` identity parameter, which the read and update responses report. Only the `client_secret_*`
   methods are issued a `client_secret`
-  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md)). A client also registers
+  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). A client also registers
   `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2), which narrows the client's own
   list to it under the tenant's ceiling, and the client information response reports it.
 
@@ -1680,13 +1669,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   https notification endpoint, and a client may claim the `user_code` parameter only where the tenant supports it;
   otherwise registration answers `invalid_client_metadata`. `backchannel_user_code_parameter_supported` also applies to
   clients, where the registered flag is stored (issue [#105](https://github.com/NCodeGroup/identity/issues/105),
-  [ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  [ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **Dynamic client registration accepts every logout member, and logout follows what the tenant advertises.**
   `RegisterClientRequest` and `RegisterClientResponse` carry `BackchannelLogoutUri` and
   `BackchannelLogoutSessionRequired`, stored as the `backchannel_logout_uri` and `backchannel_logout_session_required`
   client settings, so a self-registered client receives logout tokens, and the URI must be an absolute https URI without
-  a fragment ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md), issue
+  a fragment ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md), issue
   [#389](https://github.com/NCodeGroup/identity/issues/389)). They also carry `PostLogoutRedirectUris`,
   `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated Logout 1.0 §3.1 and
   Front-Channel Logout 1.0 §2 require (issue [#399](https://github.com/NCodeGroup/identity/issues/399)). The
@@ -1699,7 +1688,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Dynamic Client Registration accepts, validates, persists and returns the `subject_type` and `sector_identifier_uri`
   client metadata, and verifies the sector document** (issue [#58](https://github.com/NCodeGroup/identity/issues/58),
-  [ADR-1095](docs/decisions/1095-sector-identifier-uri-fetch-and-ssrf-guard.md)). As OpenID Connect Core 1.0 §8.1
+  [ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)). As OpenID Connect Core 1.0 §8.1
   requires, it fetches the JSON document the `sector_identifier_uri` references and checks that it lists every one of
   the client's `redirect_uris`, so a pairwise client shares a sector only when the party controlling that document
   vouches for its redirect URIs. The fetch is the replaceable `ISectorIdentifierValidator` seam. Registration requires
@@ -1720,14 +1709,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   `introspection_encrypted_response_alg` or `authorization_encrypted_response_alg` without the matching `enc` gets the
   default `enc` (the tenant's, normally `A128CBC-HS256`); when the tenant's supported `enc` values exclude that default,
   registration answers `invalid_client_metadata`, so no client is registered whose responses cannot be encrypted
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **A custom token service can protect ID tokens as the client registered.** `IClientJwtCredentialSelector`,
   `ClientJwtCredentials`, and `ClientJwtProtectionSettings` are public in
   `NCode.Identity.OpenId.Authentication.Abstractions`. Every issuer of a JWT addressed to a client resolves the
   selector, and a deployment can register its own before `AddIdentityServer()` (issue
   [#108](https://github.com/NCodeGroup/identity/issues/108),
-  [ADR-1181](docs/decisions/1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md)).
+  [ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **The end-session endpoint accepts an `id_token_hint` the client re-encrypted to the server.** OpenID Connect
   RP-Initiated Logout 1.0 §2 lets a relying party that received an encrypted ID token re-encrypt the signed token to the
@@ -1738,7 +1727,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1167](docs/decisions/1167-the-server-validates-the-tokens-it-issued-under-one-policy.md)).
 
 - **DPoP and mTLS binding are governed by client and tenant settings and advertised in discovery**
-  ([ADR-1097](docs/decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md)).
+  ([ADR-1097](docs/decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)).
   `require_dpop_bound_access_tokens` and `require_tls_client_certificate_bound_access_tokens` are a client's
   requirements that its access tokens be bound; they are named `require_` plus the RFC 9449 §5.2 client metadata member
   `dpop_bound_access_tokens` and the RFC 8705 §3.4 member `tls_client_certificate_bound_access_tokens`, apply to clients
@@ -1756,8 +1745,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DPoPBoundAccessTokenCoherenceRule` reports a client that requires DPoP-bound access tokens while its effective
   `dpop_signing_alg_values_supported` is set and empty, so no proof could be accepted, and
   `CertificateBoundAccessTokenCoherenceRule` a client that requires certificate binding while its effective support is
-  `false` ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
-  [ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issues
+  `false` ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md),
+  [ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md), issues
   [#233](https://github.com/NCodeGroup/identity/issues/233), [#256](https://github.com/NCodeGroup/identity/issues/256)).
   The settings `dpop_nonce_required` and `dpop_proof_lifetime` tune DPoP, and a tenant's mTLS endpoint alias
   (`OpenIdTenant.MtlsEndpointAliasAuthority`) advertises the RFC 8705 §5 mTLS endpoint aliases. The errors `invalid_dpop_proof` and `use_dpop_nonce` (with a `DPoP-Nonce`
@@ -1771,7 +1760,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   response is a discovery-style, extensible result (`IntrospectionResult` with `[JsonExtensionData]` claims) that
   further `ICommandHandler<IntrospectTokenCommand>` handlers may enrich. The endpoint is a thin
   `IOpenIdEndpointProvider` that authenticates the client, parses a typed `ITokenIntrospectionRequest` and delegates to
-  the `IntrospectTokenCommand` mediator handler ([ADR-1029](docs/decisions/1029-token-introspection-endpoint.md)).
+  the `IntrospectTokenCommand` mediator handler ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 
 - **A resource server can introspect through a client that acts for it, and receive the answer as a signed JWT.** A
   client created with `CreateClientRequest.resourceServerId` acts for that resource server: it authenticates like any
@@ -1784,7 +1773,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `introspection_encrypted_response_alg` / `_enc`. Discovery advertises the
   `introspection_{signing_alg,encryption_alg,encryption_enc}_values_supported` lists and the client-authentication
   methods and algorithms of the introspection and revocation endpoints
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 
 - **The server reads the encrypted access tokens it issues.** UserInfo, the management API, introspection and token
   exchange decrypt access tokens with the tenant's keys, and introspection also uses the calling resource server's own
@@ -1797,7 +1786,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   an unknown or non-revocable token (a stateless JWT access token included) is a no-op, and the endpoint always responds
   `200 OK`, so it never reveals token state. The endpoint is a thin `IOpenIdEndpointProvider` that authenticates the
   client, parses a typed `ITokenRevocationRequest` and delegates to the `RevokeTokenCommand` mediator handler
-  ([ADR-1028](docs/decisions/1028-token-revocation-refresh-tokens-only.md)).
+  ([ADR-1028](docs/decisions/1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)).
 
 - **An OpenID Connect UserInfo endpoint** (`GET`/`POST /oauth2/userinfo`, [OpenID Connect Core
   5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo), advertised as `userinfo_endpoint` in discovery).
@@ -1805,10 +1794,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   `GetUserInfoClaimsCommand` enricher pipeline, whose default handler supplies only the required `sub` claim, with
   applications registering further `ICommandHandler<GetUserInfoClaimsCommand>` handlers to contribute profile, email and
   other claims. The response is an extensible `[JsonExtensionData]` result (`UserInfoResult`)
-  ([ADR-1030](docs/decisions/1030-userinfo-endpoint-and-subject-authentication-seam.md)). The endpoint validates a
+  ([ADR-1401](docs/decisions/1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md)). The endpoint validates a
   presented `Authorization: Bearer` access token inside the request environment, after the environment resolves the
   tenant's signing keys and issuer, through the self-issued `AuthenticateAccessTokenCommand` path the management API
-  uses ([ADR-1044](docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md)), and requires the
+  uses ([ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)), and requires the
   OpenID identity audience (`urn:ncode:openid`), so the host configures no authentication scheme for it. It also accepts
   the access token in a form-encoded request body: per RFC 6750 §2.2 and OpenID Connect Core 1.0 §5.3.1, an
   `access_token` form parameter on a non-GET request whose body is `application/x-www-form-urlencoded` is honored beside
@@ -1840,14 +1829,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   persisted as a short-lived stateful grant (`OpenIdConstants.PersistedGrantTypes.UserInfoClaims`) keyed by the access
   token's `jti` and bounded by its lifetime, then resolved at UserInfo, so the access token itself is never inflated.
   `value`/`values` are advisory and `essential` is best-effort; a host imposes stricter semantics with a higher-priority
-  claims handler ([ADR-1039](docs/decisions/1039-claims-request-parameter.md)).
+  claims handler ([ADR-1039](docs/decisions/1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md)).
 
 - **Tokens carry the authentication context: `amr`, an `acr` from a replaceable resolver, and `auth_time` when it is
   due** (issue [#49](https://github.com/NCodeGroup/identity/issues/49),
-  [ADR-1091](docs/decisions/1091-acr-emission-and-conditional-auth-time.md)). Local interactive sign-in and the
+  [ADR-1039](docs/decisions/1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md)). Local interactive sign-in and the
   resource-owner-password subject handler record `amr=["pwd"]` (RFC 8176) and resolve `acr` through the async,
   DI-overridable `IAuthenticationContextReferenceResolver`: the default asserts the PAPE multi-factor URN
-  (`OpenIdConstants.AuthenticationContextClassReferences.MultiFactor`) when several factors were used and otherwise the
+  (`OpenIdProtocol.AuthenticationContextClassReferences.MultiFactor`) when several factors were used and otherwise the
   `default_acr` setting (unset omits the claim); a deployment overrides it by setting, by its own resolver or by a
   custom verifier. The resolved `acr` is stamped on the principal, captured on the session
   (`SessionGrant.AuthenticationContextClassReference`) and emitted by the ID-token and access-token subject-claims
@@ -1861,12 +1850,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   `PrincipalId`. They are projected identically for every grant flow (ROPC, interactive, refresh) and every connection
   kind (local or external IdP). The provider reads fresh per issuance, so the result is cluster-consistent; there is no
   built-in cache, and host-side caching is a concern of a custom provider, which must be distributed
-  ([ADR-1055](docs/decisions/1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md), amends
-  [ADR-1054](docs/decisions/1054-local-account-metadata-projection.md)).
+  ([ADR-1055](docs/decisions/1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md)).
 
 - **`SubjectAuthentication.Create` guarantees `Subject.sub == PrincipalId` by construction** (issue
   [#60](https://github.com/NCodeGroup/identity/issues/60),
-  [ADR-1094](docs/decisions/1094-resolve-principal-at-every-authentication-entry-point.md)). Every entry point builds
+  [ADR-1035](docs/decisions/1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)). Every entry point builds
   its ticket through this factory, which normalizes the credential principal's subject claim to the resolved
   `PrincipalId`, and the interactive login cookie is stamped through the same seam. The normalization is the inverse of
   subject extraction and a tenant-aware, host-replaceable seam symmetric with `GetSubjectId`:
@@ -1879,18 +1867,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   authorization and token validators reject out-of-scope requests, discovery's `scopes_supported` is derived from the
   tenant's resource-server catalog, `offline_access` comes from the system identity resource server, and refresh-token
   issuance is governed by the request and the `refresh_token` grant type
-  ([ADR-1026](docs/decisions/1026-scope-enforcement-via-resource-servers-and-client-grants.md)).
+  ([ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)).
 
 - **An access token's `aud` names the resource servers that own its effective scopes.**
   `IClientScopeService.ResolveAudiencesAsync` resolves them, so a resource server can validate that a token was minted
   for it; a token spanning several resource servers carries a multi-valued `aud`, a scopeless token carries the client
   id, and the ID token's `aud` is the client
-  ([ADR-1027](docs/decisions/1027-access-token-audience-from-resource-servers.md)).
+  ([ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)).
 
 - **The OP establishes a server-side end-user session at interactive sign-in and emits its `sid`** (issue
   [#39](https://github.com/NCodeGroup/identity/issues/39), the `sid` portion of
   [#49](https://github.com/NCodeGroup/identity/issues/49),
-  [ADR-1074](docs/decisions/1074-session-management-and-logout.md)). The session is a `PersistedGrant` of type `session`
+  [ADR-1220](docs/decisions/1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md)). The session is a `PersistedGrant` of type `session`
   keyed by an opaque `sid`, with no table of its own; the `sid` is minted onto the login cookie and emitted in ID
   tokens. A session spans every client, so its lifecycle controls are tenant settings (issue
   [#63](https://github.com/NCodeGroup/identity/issues/63)): `session_absolute_lifetime`; `session_idle_timeout`, a
@@ -1900,7 +1888,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ISessionEvictionPolicy`.
 
 - **Every session termination flows through one mediator seam, `OnSessionTerminatedCommand`, with an open vocabulary of
-  reasons** ([ADR-1098](docs/decisions/1098-session-lifecycle-termination-seam.md),
+  reasons** ([ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
   [ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)). The default handlers revoke the
   session's (or subject's) grants, send back-channel logout notifications and audit, so an idle, evicted or
   administratively revoked session notifies its relying parties and is audited exactly like an RP-initiated logout; an
@@ -1920,23 +1908,23 @@ Until the first stable release, the [Unreleased] section describes the product a
   of work. `RevokeAllAsync` revokes every grant of the subject before it dispatches, and the sessions management API
   reports the sessions the request terminated. `ISessionService.RevokeAsync` returns `bool`, and `RevokeAllAsync` and
   `RevokeAllExceptAsync` return the number of sessions the call terminated
-  ([ADR-1227](docs/decisions/1227-a-session-is-terminated-at-most-once-on-every-path.md), issue
+  ([ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md), issue
   [#286](https://github.com/NCodeGroup/identity/issues/286)). `IPersistedGrantService.RevokeSessionOnceAsync<TPayload>`
   returns the session grant as the call revoked it (`PersistedGrant<TPayload>?`), and every termination notifies the
   clients that grant lists, so a client added to the session by an ID token issued after an earlier read receives
   back-channel logout. A subject-wide termination also claims a session that ended and awaits the background termination
-  ([ADR-1228](docs/decisions/1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
+  ([ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
   issue [#288](https://github.com/NCodeGroup/identity/issues/288)).
 
 - **The grant prune survives a store timeout.** `GrantPruneService` logs a failed pass (`GrantPruneFailed`), a store
   timeout surfacing as `TaskCanceledException` included, and prunes again at the next tick; only the host's stopping
   token ends it, so a timeout never stops the service or, under `BackgroundServiceExceptionBehavior.StopHost`, the host
   ([#472](https://github.com/NCodeGroup/identity/issues/472),
-  [ADR-1218](docs/decisions/1218-ended-grants-are-removed-after-a-retention-period.md)).
+  [ADR-1218](docs/decisions/1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md)).
 
 - **RP-Initiated Logout is served at the discovery-advertised `end_session_endpoint`, and Back-Channel Logout notifies
   relying parties server to server** (issue [#39](https://github.com/NCodeGroup/identity/issues/39),
-  [ADR-1074](docs/decisions/1074-session-management-and-logout.md)). The endpoint loads a typed `IEndSessionRequest`
+  [ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)). The endpoint loads a typed `IEndSessionRequest`
   through `LoadEndSessionRequestCommand`, validates the `id_token_hint`, clears the OP login, ends the session through
   the termination seam and redirects to a validated `post_logout_redirect_uri`, echoing `state`. The pluggable
   `IBackChannelLogoutNotifier` delivers a signed `logout_token`, typed `logout+jwt` (`JoseTokenTypes.LogoutJwt` is the
@@ -1947,7 +1935,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Front-Channel Logout 1.0 and Session Management 1.0 are available behind opt-in settings, off by default**
   (issue [#22](https://github.com/NCodeGroup/identity/issues/22),
-  [ADR-1088](docs/decisions/1088-opt-in-front-channel-logout-and-session-management.md)). With
+  [ADR-1088](docs/decisions/1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md)). With
   `frontchannel_logout_supported`, the `end_session_endpoint` renders a hidden iframe per participating client at its
   `frontchannel_logout_uri`, appending `iss` and `sid` when the client sets `frontchannel_logout_session_required`
   (advertised by `frontchannel_logout_session_supported`). With `session_management_supported`, the authorization
@@ -1957,7 +1945,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Back-Channel Logout are the recommended mechanisms.
 
 - **End-user consent is a durable, first-class aggregate, separate from the grant store, and enforced at the authorize
-  endpoint** ([ADR-1076](docs/decisions/1076-consent-persistence-and-enforcement.md)). `PersistedConsent`,
+  endpoint** ([ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)). `PersistedConsent`,
   `IConsentStore` and the `ConsentEntity` table, keyed by `(tenant, client, subject)` and upserted in place, survive
   logout. The client setting `require_consent` (default off, and forced by `prompt=consent`) makes
   `DefaultAuthorizeHandler` route a subject whose recorded consent does not cover the request to the interactive consent
@@ -1975,15 +1963,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`InteractiveAuthenticationDefaults.CookieSchemeName`) that the authorize endpoint's challenge redirects into, issues
   the cookie session, and honors a server-validated local return URL. The shell resolves its surfaces (account, consent,
   login) through a declarative route table, and the forms expose stable automation ids (`username`, `password`, `login`,
-  `consent-allow`, `consent-deny`). See [ADR-1062](docs/decisions/1062-opt-in-interactive-login-consent-ui.md) and
-  [ADR-1065](docs/decisions/1065-interactive-login-consent-op-hosted-auth-surface.md); issues
+  `consent-allow`, `consent-deny`). See [ADR-1062](docs/decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md); issues
   [#125](https://github.com/NCodeGroup/identity/issues/125), [#135](https://github.com/NCodeGroup/identity/issues/135).
 
 - **The interactive login surface is backend-agnostic through a pluggable credential verifier.** Credential verification
   goes through the `IInteractiveCredentialVerifier` seam in the `.Abstractions` package; its local-account
   implementation lives in `NCode.Identity.OpenId.Accounts.Authentication`, is registered by
   `AddLocalAccountInteractiveAuthentication()`, and shares the path the resource-owner password grant uses. See
-  [ADR-1070](docs/decisions/1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md); issue
+  [ADR-1062](docs/decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md); issue
   [#142](https://github.com/NCodeGroup/identity/issues/142).
 
 - **Local accounts have one pluggable, backing-store-agnostic seam: `ILocalAccountStore`.** Credential handling is a set
@@ -1992,7 +1979,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   adapter (`NCode.Identity.OpenId.Accounts.AspNetIdentity`) implements `ILocalAccountStore` over `UserManager<TUser>`
   (`AddAspNetIdentityLocalAccountStore<TUser>()`). `IFederatedPrincipalStore` provides `UpdateAsync` and `RemoveAsync`,
   and `IFederatedIdentityStore` provides `RemoveAsync`. See
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md).
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md).
 
 - **The interactive surface is served under the tenant route.** The login, consent, logout, and account endpoints share
   the protocol endpoints' tenant route, so interactive flows work under `DynamicByPath` at `/{tenantId}/account/*`.
@@ -2001,14 +1988,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   `<base href="{tenant path}/account/">`; the `apps/auth` bundle builds with a relative base and resolves its API and
   page paths against `document.baseURI`, so one build works beneath any tenant. The host adds no middleware for the
   bundle, and `defineBackendServedSurfaceConfig` in `@ncode/vite-config` takes no `base`. See
-  [ADR-1193](docs/decisions/1193-the-interactive-surface-is-served-under-the-tenant-route.md).
+  [ADR-1193](docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md).
 
 - **The `apps/auth` bundle's files are cached for a year and served without resolving the tenant.** The host serves only
   the bundle's content-hashed `assets` directory, at `GET|HEAD {tenant}/account/assets/{**asset}`, with
   `Cache-Control: public, max-age=31536000, immutable` and its `ETag` and `Last-Modified` validators, from a route group
   that resolves no tenant, so a returning browser loads the bundle without a request. Other files of the bundle's
   directory, such as `index.html`, are not served, and `@ncode/vite-config` pins `build.assetsDir` to `assets`
-  ([ADR-1254](docs/decisions/1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md),
+  ([ADR-1193](docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md),
   issue [#221](https://github.com/NCodeGroup/identity/issues/221)).
 
 - **The interactive login and consent pages work without JavaScript, and the bundle mounts at once over the page the
@@ -2021,7 +2008,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   field that had focus, and the consent scopes the end-user cleared carry into its forms, and a carried password is
   written to the input's `value` property, never to an attribute. The authorization error page served with the bundle
   shows its error, not a login form
-  ([ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), issue
+  ([ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md), issue
   [#211](https://github.com/NCodeGroup/identity/issues/211)).
 
 - **The server-rendered pages stream into the response from a cached, pre-split bundle index.** The login, consent and
@@ -2038,12 +2025,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   time and length, resolves only the files of its `assets` directory, and serves them with
   `Cache-Control: public, max-age=31536000, immutable`, validators and range requests; the interactive surface and the
   management console each register one
-  ([ADR-1457](docs/decisions/1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md), issue
+  ([ADR-1193](docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md), issue
   [#612](https://github.com/NCodeGroup/identity/issues/612)).
 
 - **The consent screen shows the real client and a per-scope choice with friendly names, every requested scope
-  pre-selected** ([ADR-1076](docs/decisions/1076-consent-persistence-and-enforcement.md),
-  [ADR-1081](docs/decisions/1081-granular-consent-and-authorized-applications.md), issue
+  pre-selected** ([ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md), issue
   [#131](https://github.com/NCodeGroup/identity/issues/131)). `GET /account/consent/details` resolves the pending
   request from the return URL without consuming it and, through `ResolvePendingConsentAsync` and
   `IScopeDescriptionService`, returns the client's `client_name` and each scope's description and already-granted state;
@@ -2053,7 +2039,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `refresh_token`; the end-user unchecks a scope to grant fewer.
 
 - **The OP's interactive surface has a first-party account page at `/account` with a Sign out that runs the full
-  server-side logout** ([ADR-1074](docs/decisions/1074-session-management-and-logout.md)). The page reads the
+  server-side logout** ([ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)). The page reads the
   same-origin `/account/me` JSON endpoint and shows the current session (subject, `auth_time`, `amr`, `idp`, `sid`).
   Sign out POSTs, antiforgery-protected, to `/account/logout`, which runs the same `EndSessionCommand` as the
   `end_session_endpoint`, identified by the cookie rather than an `id_token_hint`, so a first-party sign-out revokes the
@@ -2071,7 +2057,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The account surface has an authorized-applications page where the end-user reviews and revokes the applications they
   have authorized** (issue [#40](https://github.com/NCodeGroup/identity/issues/40),
-  [ADR-1081](docs/decisions/1081-granular-consent-and-authorized-applications.md)): the `/account/applications` page,
+  [ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)): the `/account/applications` page,
   `/account/applications/list` JSON and an antiforgery-protected `/account/applications/revoke` POST, backed by
   `IConsentService.GetAuthorizedApplicationsAsync` and `RevokeConsentAsync`.
 
@@ -2081,7 +2067,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   sends back-channel logout, revokes every grant issued under no session (`GrantFilter.WithoutSession`), and keeps the
   current session and the consents. A credential backend offers the change by registering `IInteractivePasswordChanger`,
   which returns an `InteractivePasswordChangeResult`, as the local accounts do
-  ([ADR-1230](docs/decisions/1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md), issue
+  ([ADR-1230](docs/decisions/1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md), issue
   [#290](https://github.com/NCodeGroup/identity/issues/290)).
 
 - **A tenant brands its login, consent, and account pages.** The interactive surface registers the tenant settings
@@ -2095,9 +2081,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `parseBrandingConfig`, which the bootstrap parser uses too, so a malformed branding token is dropped, never trusted.
   A tenant that sets `branding_favicon_uri` shows that icon in its pages' tabs instead of the family's: the host links
   it, drops the bundle's family icon links, and admits its origin in the page's `img-src`
-  ([ADR-1194](docs/decisions/1194-a-tenant-brands-its-interactive-surface-through-settings.md),
-  [ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md),
-  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md),
+  ([ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md),
   issues [#211](https://github.com/NCodeGroup/identity/issues/211),
   [#745](https://github.com/NCodeGroup/identity/issues/745)).
 
@@ -2126,7 +2110,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   front-channel marker is general endpoint metadata: `IFrontChannelEndpointMetadata`, `FrontChannelEndpointMetadata` and
   `FrontChannelEndpointConventionBuilderExtensions`, with `WithFrontChannel()` and `Endpoint.IsFrontChannel`.
   `NCode.Identity.AspNetCore` references `NCode.Buffers` ([#513](https://github.com/NCodeGroup/identity/issues/513),
-  [ADR-1388](docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md)).
+  [ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
 
 - **One TypeScript UI platform serves every frontend surface (`frontend`).** Management, login/consent, playground
   and OIDC conformance surfaces share React + Material UI, Redux Toolkit + RTK Query, Vite, Vitest + React Testing
@@ -2136,7 +2120,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   global-vs-tenant boundary browsing. Bundles are tier-agnostic: all configuration is discovered at runtime from the
   serving host and nothing is baked in at build time, and a branding seam supports per-tenant theming. The toolchain is
   isolated under `frontend` and is separate from the .NET Definition of Done. See
-  [ADR-1064](docs/decisions/1064-frontend-presentation-platform.md).
+  [ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md).
 
 - **The frontend runs on React 19 and Material UI 9.** This covers every surface, including the login and consent pages
   the OpenID Provider host serves. Components style through `sx` and pass input attributes through `slotProps`, and
@@ -2147,11 +2131,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   Vite preset splits React, MUI with emotion, Redux and every other package into their own vendor chunks, and each app
   lazy-loads its route-level containers, so no chunk exceeds 500 kB after minification. The preset's
   `failOnOversizedChunks` plugin fails `pnpm build` when a chunk exceeds the build's `chunkSizeWarningLimit`
-  ([ADR-1175](docs/decisions/1175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md)).
+  ([ADR-1151](docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
 
-- **The management API is served under a top-level `/api` route group.** `ManagementEndpointGroupProvider` maps the
+- **The management API is served under a top-level `/api` route group.** `ManagementRootGroup` maps the
   management endpoints there, apart from the OpenID protocol endpoints at the root
-  ([ADR-1009](docs/decisions/1009-endpoint-families-own-their-route-group.md)). The control plane is `/api/platform`
+  ([ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md),
+  [ADR-1086](docs/decisions/1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)). The control plane is `/api/platform`
   and `/api/teams`, and tenants are created and listed under `/api/teams/{teamId}/tenants`; every tenant-plane family
   (a tenant's own secrets, settings, address and usage, its clients, resource servers, grants, sessions, principals,
   local accounts and audit records) is addressed under `/api/tenants/{tenantId}/…`, the
@@ -2169,9 +2154,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   one audience into one resource server per tenant, seeding `Control`-plane families only into the root tenant. The
   static single-tenant strategy provisions the root tenant lazily alongside its workload tenant, so a single-tenant
   deployment has its control plane with no extra configuration. See
-  [ADR-1033](docs/decisions/1033-authorization-model-scopes-roles-and-ownership.md),
-  [ADR-1031](docs/decisions/1031-control-plane-management-resource-server-and-root-tenant-seeding.md) and
-  [ADR-1024](docs/decisions/1024-control-plane-and-per-tenant-planes.md).
+  [ADR-1417](docs/decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
+  [ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) and
+  [ADR-1166](docs/decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md).
 
 - **Resource ownership is data-driven.** Persisted `(principal, role, resource-node)` role assignments
   (`PersistedRoleAssignment` / `IRoleAssignmentStore`) back an additive `OwnershipHandler` that grants a principal every
@@ -2183,7 +2168,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OwnerRemoval`). The ownership service and resource-node abstraction (`IResourceOwnershipService`, `IResourceNode`,
   `ResourceNode`, `ResourceNodeTypes`) are public, so applications own and enforce their own resource types; the
   built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
-  [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
+  [ADR-1417](docs/decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) and
+  [ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md).
 
 - **A client acting for itself is a principal.** Every client has a principal (`PersistedClient.PrincipalId`,
   `ClientResource.principalId`, `OpenIdClient.PrincipalId`) that its store generates when the client is added — 128
@@ -2201,9 +2187,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#632](https://github.com/NCodeGroup/identity/issues/632),
   [#633](https://github.com/NCodeGroup/identity/issues/633),
   [#634](https://github.com/NCodeGroup/identity/issues/634),
-  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
-  [ADR-1450](docs/decisions/1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md),
-  [ADR-1470](docs/decisions/1470-a-callers-acting-client-is-resolved-once-per-request.md)).
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)).
 
 - **A team or the platform owns its machine clients.** `POST`/`GET /api/teams/{teamId}/clients` and
   `POST`/`GET /api/platform/clients` create and list the control-plane clients that the team or the platform owns
@@ -2213,7 +2197,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   through the control-plane tenant's client routes by its owner's administrators, holds roles only at its owning node
   or beneath it, and is left alone by promotions; a team that owns one cannot be deleted (`409`)
   ([#588](https://github.com/NCodeGroup/identity/issues/588),
-  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)).
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)).
 
 - **The management API tells a caller where it holds authority.** `GET /api/me` returns the caller's principal
   (`CallerResource.principalId`), whether it holds authority at the platform node (`isPlatformAdministrator`) and its
@@ -2223,31 +2207,31 @@ Until the first stable release, the [Unreleased] section describes the product a
   serves every team and tenant the caller administers and names none of them
   ([#566](https://github.com/NCodeGroup/identity/issues/566),
   [#715](https://github.com/NCodeGroup/identity/issues/715),
-  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md),
-  [ADR-1484](docs/decisions/1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md)).
+  [ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
 
 - **The management console opens on the caller's home.** `/home` lists the platform for a caller with platform
   authority and the teams and tenants the caller holds a role at, and opens the only one at once when there is one.
   A team administrator signs in with the same token as a platform administrator and works within its teams; a
   platform route sends a caller without platform authority home, and a scope's back control leads home when the
   caller holds no role at the scope above it ([#566](https://github.com/NCodeGroup/identity/issues/566),
-  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md)).
+  [ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md)).
 
 - **Collection endpoints page through management resources by keyset.** A collection `GET`, such as `GET api/teams`,
   `GET api/tenants` or `GET api/tenants/{tenantId}/clients`, returns a page of resources (`CollectionResource<T>`, with
   `items` and `continuationToken`) using keyset (cursor) pagination (`?limit=` clamped to 100, `?cursor=` an opaque
   continuation token). Keyset pagination lives in `BaseStore`, so a store not keyed by a resource id, such as the grant
   store, paginates on its chronological surrogate id. There is deliberately no query protocol (no OData); see
-  [ADR-1019](docs/decisions/1019-collection-endpoints-keyset-pagination.md).
+  [ADR-1014](docs/decisions/1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md).
 
 - **Every management write honors optimistic concurrency.** A resource carries its `concurrencyToken`, a write sends it
   as `If-Match`, and a write that loses a concurrency race is answered `412 Precondition Failed`
-  ([ADR-1214](docs/decisions/1214-a-management-write-that-loses-a-race-is-answered-412.md), issue
+  ([ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md), issue
   [#261](https://github.com/NCodeGroup/identity/issues/261)).
 
 - **`GET /api/capabilities` publishes a management discovery document composed from registered providers
   to an authenticated management caller**
-  ([ADR-1067](docs/decisions/1067-secret-type-capability-catalog-and-capabilities-discovery.md)). Like the OpenID
+  ([ADR-1067](docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md)). Like the OpenID
   discovery document, the `[JsonExtensionData]` document is assembled from
   `ICommandHandler<DiscoverManagementCapabilitiesCommand>` providers, so a capability is exposed by registering a
   provider rather than by editing the endpoint or resource type. It reports the secret-type catalog, including which
@@ -2257,7 +2241,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   and every compatible secret type (from `ISecretKeyTypeCatalog`) with its key sizes and curves (`keyTypes: [{
   secretType, keyBitSizes, curves: [{ curveName, curveSizeBits }] }]`)
   ([#327](https://github.com/NCodeGroup/identity/issues/327),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)).
 
 - **Authenticated effective-settings preview endpoints.** `GET api/platform/effective-settings`,
   `GET api/teams/{teamId}/effective-settings`, `GET api/tenants/{tenantId}/effective-settings`,
@@ -2269,8 +2253,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   authorization as reading that entity's raw settings and carries no `ETag` (a merged view spans several persisted
   entities). The wire contracts include `PlatformEffectiveSettingsResource`, `TeamEffectiveSettingsResource`,
   `TenantEffectiveSettingsResource` and `ClientEffectiveSettingsResource`. See
-  [ADR-1040](docs/decisions/1040-effective-settings-preview-endpoints.md) and
-  [ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md).
+  [ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) and
+  [ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md).
 
 - **A management request answers `409` for a stored settings document it cannot honor.** The effective-settings reads, a
   client's create and settings update, the incoherent-client report, a local account's create and password reset, and a
@@ -2279,7 +2263,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (event ID 3009); a settings write that overwrites the document repairs it. `IEffectiveSettingsResolver` provides
   `ResolveStored`, and it and `ResolvePlatformAsync(CancellationToken)` throw `UnreadableSettingsException`, a
   `JsonException` that names the document
-  ([ADR-1245](docs/decisions/1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
+  ([ADR-1245](docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md),
   issue [#301](https://github.com/NCodeGroup/identity/issues/301)).
 
 - **The management API rejects a client algorithm its effective settings do not permit.** Client create and settings
@@ -2293,9 +2277,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   mismatch is reported when the settings are written rather than at issuance.
   `OpenIdPlatform.ConfiguredSettingsProvider` holds the settings the platform derives from its defaults and the host's
   configuration, onto which its persisted settings document
-  is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
-  [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md)).
+  is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
   page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
@@ -2303,7 +2286,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   or the `documentError` of a settings document that cannot be honored; a page can list no client while
   `continuationToken` remains. `IClientCoherenceReporter` finds them for the API and for the reconciliation's report,
   and `IncoherentClient`, `IncoherentClientResource` and `ClientCoherenceViolationResource` describe them
-  ([ADR-1233](docs/decisions/1233-the-management-api-lists-a-tenants-incoherent-clients.md), issue
+  ([ADR-1245](docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md), issue
   [#278](https://github.com/NCodeGroup/identity/issues/278)).
 
 - **A tenant is named by whoever creates it.** `POST /api/teams/{teamId}/tenants` requires `CreateTenantRequest.TenantId`: 1 to 63
@@ -2313,7 +2296,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   is the editable label. The configured root tenant ID and `StaticSingle:TenantId` must have the same form or the host
   does not start. Creating a tenant commits the tenant row first, then the creator's ownership role assignment, and the
   response carries the tenant's concurrency token after seeding
-  ([ADR-1159](docs/decisions/1159-a-tenant-is-named-by-its-creator.md)).
+  ([ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 
 - **A tenant's address is a routed tenant property the management API previews before it is written.** `TenantResource`,
   `CreateTenantRequest` and the tenant update carry the tenant's `issuer` and its mTLS endpoint alias authority
@@ -2325,7 +2308,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `TenantAddressResource`: the issuer the tenant has or would be given and whether it is the derived one, the alias and
   whether it is derived (`isMtlsEndpointAliasAuthorityDerived`), whether the tenant already exists, and every reason the
   tenant could not be served there, by the same rules the create and update apply
-  ([ADR-1195](docs/decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), issue
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md),
+  [ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md), issue
   [#157](https://github.com/NCodeGroup/identity/issues/157)).
 
 - **The management API reports each tenant's environment.** `TenantResource` carries `environment`
@@ -2339,7 +2323,8 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **Deleting a tenant removes its keys, its system resource servers and its role assignments.** They are deleted with
   the tenant in one unit of work, so a tenant with provisioned keys can be deleted and only a client or a resource
   server the tenant did not seed blocks the delete with `409`
-  ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md), issue
+  ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
+  [ADR-1212](docs/decisions/1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md), issue
   [#242](https://github.com/NCodeGroup/identity/issues/242)).
 
 - **The tenant usage query validates its range.** `GET /api/tenants/{tenantId}/usage` answers a `400` validation problem
@@ -2362,32 +2347,32 @@ Until the first stable release, the [Unreleased] section describes the product a
   `PUT`, delete). Granted scopes are validated at write time against the target resource server's scopes, both surfaces
   assert their preconditions up front through replaceable validators (`IResourceServerValidator` /
   `IClientGrantValidator`), and system resource servers and their scopes cannot be deleted. See
-  [ADR-1023](docs/decisions/1023-scopes-and-resources-management-model.md).
+  [ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md).
 
 - **Resource servers are settings and secret owners like clients and tenants** (issue
   [#134](https://github.com/NCodeGroup/identity/issues/134),
-  [ADR-1066](docs/decisions/1066-resource-server-settings-and-secret-owner.md)). A resource server (an API, in Auth0
+  [ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)). A resource server (an API, in Auth0
   terms) owns a wrapped settings object and a secret collection, each with its own concurrency token:
   `GET`/`PATCH api/tenants/{tenantId}/resource-servers/{resourceServerId}/settings`, its effective settings, and full
-  `…/secrets` CRUD with the one-time reveal ([ADR-1050](docs/decisions/1050-secret-material-revealed-once-on-create.md))
+  `…/secrets` CRUD with the one-time reveal ([ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md))
   and `If-Match`. A `resource_server_secrets` scope family is seeded. A resource server's introspection clients are the
   clients bound to it
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 
 - **Every key the management API reports carries its `kid`.** `SecretResource` and `CreatedSecretResource` have a
   required `KeyId`: the `kid` the key was imported with, or its secret identifier when it has none
-  ([ADR-1186](docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **A secret is created with the key parameters its validation resolved.** `ISecretValidator.ValidateCreate` returns a
   `SecretCreateValidation` that carries the resolved `SecretKeyGenerationParameters`, and the endpoints generate the key
   with what was validated, on the curve its algorithm accepts
   ([#337](https://github.com/NCodeGroup/identity/issues/337),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 
 - **The management API and its console show how a secret is stored.** `SecretResource.IsVerifier` is `true` for a
   secret stored as a one-way verifier, which authenticates a method that compares the secret and never one that keys
   from it, such as `client_secret_jwt`, and the management console marks such a secret with a `Verifier` chip from the
-  contract's `isVerifier` ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  contract's `isVerifier` ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **The management API reads an asymmetric secret's public key.** The read-only sub-resource
   `GET /api/…/{tenants|clients|resource-servers}/{ownerId}/secrets/{secretId}/public-key` returns a
@@ -2395,7 +2380,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   key's `ISecretKeyTypeDescriptor.ExportPublicKey` seam) and a SubjectPublicKeyInfo PEM (`-----BEGIN PUBLIC KEY-----`)
   for an admin UI or crypto tooling. Private key material is never exposed; a symmetric secret has no public-key
   sub-resource and answers `404 Not Found`. The read is gated by the same `Operations.Read` authorization as reading the
-  secret. See [ADR-1058](docs/decisions/1058-asymmetric-public-key-material-read-path.md).
+  secret. See [ADR-1268](docs/decisions/1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md).
 
 - **Rotating a client secret keeps the rotated secret beside its replacement.**
   `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate` generates a replacement shared secret with
@@ -2404,8 +2389,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CreatedSecretResource`, the only place its material appears; delete the rotated secret when the switch is done. The
   optional `rotatedExpiresWhen` shortens the rotated secret's expiry and never extends it. Rotation is authorized as
   creating a secret and updating the rotated one, `If-Match` is honored, and a key answers `400`
-  ([ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
-  [ADR-1183](docs/decisions/1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md), issues
+  ([ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md), issues
   [#159](https://github.com/NCodeGroup/identity/issues/159), [#445](https://github.com/NCodeGroup/identity/issues/445)).
 
 - **Grant administration is a tenant-scoped, read-and-revoke surface.** `GET api/tenants/{tenantId}/grants` (paged,
@@ -2415,13 +2399,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   Revocation sets `RevokedWhen` and keeps the row for audit, and is idempotent. Grants are addressed by an opaque,
   server-generated `GrantId` (`PersistedGrant.GrantId` / `GrantEntity.GrantId`), and `GrantResource` projects metadata
   only, including the grant's session id: the internal `HashedKey` and the grant `PayloadJson` are never exposed. See
-  [ADR-1020](docs/decisions/1020-grant-management-read-surface.md),
-  [ADR-1022](docs/decisions/1022-grant-filters-and-bulk-revocation.md) and
-  [ADR-1099](docs/decisions/1099-forward-compatible-evolving-parameters.md).
+  [ADR-1020](docs/decisions/1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) and
+  [ADR-1080](docs/decisions/1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md).
 
 - **`/api/tenants/{tenantId}/sessions` lets an administrator list and revoke a subject's sessions** (issue
   [#63](https://github.com/NCodeGroup/identity/issues/63),
-  [ADR-1100](docs/decisions/1100-explicit-tenant-context-materialization.md)). `GET ?subjectId=…` lists a subject's
+  [ADR-1036](docs/decisions/1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)). `GET ?subjectId=…` lists a subject's
   active sessions as `SessionResource`; `DELETE /{sessionId}` revokes one session and `DELETE ?subjectId=…` every
   session the subject holds. Each revocation runs the full session-termination seam (grant revocation, back-channel
   logout and session auditing) in the addressed tenant's security domain and attributes the acting administrator
@@ -2431,7 +2414,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   principal whatever its connections, `POST api/tenants/{tenantId}/principals/{principalId}/unblock` lifts the block,
   and `GET api/tenants/{tenantId}/principals/{principalId}` reports it (`PersistedFederatedPrincipal.IsBlocked`, stored
   on the federated principals table). The endpoints carry `OpenIdConstants.EndpointTags.Principals`
-  ([ADR-1226](docs/decisions/1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md),
   issues [#284](https://github.com/NCodeGroup/identity/issues/284),
   [#289](https://github.com/NCodeGroup/identity/issues/289)).
 
@@ -2454,9 +2437,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Operations`, `TenantScopeResource`, the `ManagementEndpointGroups.Tenant` group-name constant for attaching a keyed
   `IEndpointProvider` to the tenant group, and the generic audit seam
   `RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent)`. See
-  [ADR-1057](docs/decisions/1057-local-account-eager-provisioning-and-management-seam.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) and
-  [ADR-1061](docs/decisions/1061-local-account-management-is-an-opt-in-capability.md).
+  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md) and
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md).
 
 - **The management API looks up audit records.** `GET api/tenants/{tenantId}/audit-records` lists the tenant's records
   from the audit store, newest first by event time with ties broken by id, filtered by `startTime`/`endTime`,
@@ -2479,13 +2461,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   bookmarked, shared and reloaded, back and forward move between surfaces and scopes, and a deep link that lands on the sign-in screen returns
   to the same page once signed in. The management scope is derived from the route, and a host that serves the console
   answers every console path with `index.html`
-  ([ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md),
-  [ADR-1255](docs/decisions/1255-each-tenant-surface-of-the-management-console-has-its-own-address.md), issue
+  ([ADR-1255](docs/decisions/1255-the-management-consoles-url-is-its-navigation-state-and-every-scopes-surface-has-its-own-address.md), issue
   [#236](https://github.com/NCodeGroup/identity/issues/236)).
 
 - **Management console cache tags are scoped.** Every tag id names the scope that owns the resource (`scopeTagId` in
   `@ncode/api`), so a mutation in the platform scope or one tenant refetches only that scope's caches, as
-  [ADR-1064](docs/decisions/1064-frontend-presentation-platform.md) intends.
+  [ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) intends.
 
 - **The management console creates, edits and deletes tenants.** RTK Query mutations
   (`createTenant`/`updateTenant`/`deleteTenant`), a stateless MUI `TenantFormDialog`, a reusable `ConfirmDialog`
@@ -2507,7 +2488,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Its `ClientResource` mirrors the server's shape, and writes send `concurrencyToken` as `If-Match` over a
   `replace`-only JSON Patch. Selecting a client opens its detail page with Secrets and Settings tabs (issue
   [#134](https://github.com/NCodeGroup/identity/issues/134),
-  [ADR-1421](docs/decisions/1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md)).
+  [ADR-1257](docs/decisions/1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md)).
 
 - **The management console manages resource servers and their scopes.** Within a tenant the console creates, edits and
   deletes resource servers (APIs) and their nested scopes (permissions) through RTK Query mutations addressed by the
@@ -2517,18 +2498,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   drills into a `ResourceServerDetailPage` with Scopes, Secrets, Settings and Clients tabs; resource servers embed their
   scopes inline, so a scope mutation refreshes both views, and the Clients tab lists and creates the clients bound to
   the resource server for introspection
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
   Resource-server edits send `concurrencyToken` as `If-Match` over a `replace`-only JSON Patch, a scope update is a
   whole-resource `PUT`, and system resource servers and their scopes expose no delete control and no Secrets tab (issue
   [#134](https://github.com/NCodeGroup/identity/issues/134),
-  [ADR-1421](docs/decisions/1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md)).
+  [ADR-1257](docs/decisions/1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md)).
 
 - **The management console reaches every owner's secrets and settings through one endpoint per operation.**
   `@ncode/store` exposes `useListSecretsQuery`, `useCreateSecretMutation`, `useDeleteSecretMutation`,
   `useRotateSecretMutation`, `useLazyGetSecretPublicKeyQuery`, `useGetSettingsQuery`, `useGetEffectiveSettingsQuery` and
   `useUpdateSettingsMutation`, each taking a `ManagementOwner` from `@ncode/api`, and `OwnerSecretsTab` and
   `OwnerSettingsTab` serve every detail page: clients, resource servers, the tenant's own surfaces, teams and the platform
-  ([ADR-1257](docs/decisions/1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
+  ([ADR-1257](docs/decisions/1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md),
   issue [#236](https://github.com/NCodeGroup/identity/issues/236)).
 
 - **The management console manages owners and administrators.** A team's and a tenant's Access surface lists, grants
@@ -2538,11 +2519,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   shows itself read-only otherwise, and every role list refreshes after any grant or revoke
   ([#582](https://github.com/NCodeGroup/identity/issues/582),
   [#623](https://github.com/NCodeGroup/identity/issues/623),
-  [ADR-1465](docs/decisions/1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md)).
+  [ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md)).
 
 - **The management console manages secrets with a one-time reveal.** An owner's Secrets tab creates, lists and deletes
   secrets; generated key material is shown exactly once in a `RevealSecretDialog` with a copy affordance and is never
-  re-fetched ([ADR-1050](docs/decisions/1050-secret-material-revealed-once-on-create.md)), and an asymmetric secret has
+  re-fetched ([ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)), and an asymmetric secret has
   no material to reveal. The create-secret form, driven by the capabilities document's `algorithms` section, offers the
   secret types the server advertises, such as `okp`, and only algorithms compatible with the chosen secret type, derives
   the read-only use, and bounds the key size by every size the chosen type's entry allows (min, max, step). It offers
@@ -2554,7 +2535,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   capabilities document reports as not asymmetric) carry a rotate action that, after confirmation, adds a replacement
   expiring a year out, reveals it once, and keeps the current secret for up to seven days
   ([ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
   issues [#155](https://github.com/NCodeGroup/identity/issues/155),
   [#327](https://github.com/NCodeGroup/identity/issues/327), [#445](https://github.com/NCodeGroup/identity/issues/445)).
 
@@ -2571,7 +2552,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   action (RFC 7591; `createInitialAccessToken`) takes an optional description, lifetime and resource server, picked from
   the tenant's non-system resource servers and sent as `resourceServerId`, and shows the plaintext token exactly once in
   `RevealInitialAccessTokenDialog`, naming the resource server the registered client is bound to
-  ([ADR-1192](docs/decisions/1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md), issue
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md), issue
   [#134](https://github.com/NCodeGroup/identity/issues/134)).
 
 - **An OpenID protocol client for server-side callers that needs no ASP.NET Core runtime.**
@@ -2585,8 +2566,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Microsoft.Extensions.Logging.Abstractions`, `Microsoft.Extensions.Options` and `Microsoft.Extensions.Primitives`
   directly and not the `Microsoft.AspNetCore.App` shared framework, so a console app, worker or function runs it on the
   .NET runtime alone
-  ([ADR-1270](docs/decisions/1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md),
-  [ADR-1285](docs/decisions/1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md), issues
+  ([ADR-1285](docs/decisions/1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md), issues
   [#123](https://github.com/NCodeGroup/identity/issues/123), [#321](https://github.com/NCodeGroup/identity/issues/321)).
 
 - **The protocol client's calls are bounded and retried.** Every call of `NCode.Identity.OpenId.Client`, mutual-TLS
@@ -2598,7 +2578,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `TotalTimeout` below 10 seconds needs an `AttemptTimeout` no higher. The BFF checks its refresh lease against
   `TotalTimeout`. The package bounds its calls through `Polly.Core` alone, without
   `Microsoft.Extensions.Http.Resilience` ([#469](https://github.com/NCodeGroup/identity/issues/469),
-  [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
+  [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md)).
 
 - **The OpenID protocol client authenticates with mutual TLS.** The methods `tls_client_auth` and
   `self_signed_tls_client_auth` present the TLS client certificate from `ClientRegistration.KeyRing`: the first RSA or
@@ -2608,8 +2588,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   when it has one, and sends `client_id`. `IClientAuthenticator.UsesMutualTls` declares the transport,
   `OpenIdProviderMetadata.MtlsEndpointAliases` carries the aliases, and
   `OpenIdClientDefaults.MutualTlsHttpClientNamePrefix` names the per-certificate HTTP clients
-  ([ADR-1288](docs/decisions/1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md),
-  [ADR-1300](docs/decisions/1300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md),
+  ([ADR-1300](docs/decisions/1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md),
   issues [#392](https://github.com/NCodeGroup/identity/issues/392),
   [#407](https://github.com/NCodeGroup/identity/issues/407)).
 
@@ -2636,8 +2615,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `SecretProtection:RemoteKeyProviders` setting
   ([#651](https://github.com/NCodeGroup/identity/issues/651),
   [#721](https://github.com/NCodeGroup/identity/issues/721),
-  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
-  [ADR-1489](docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)).
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
+  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)).
 
 - **The OpenID protocol client pushes authorization requests.**
   `IAuthorizationRequestClient.CreateAuthorizationUriAsync` takes a `ClientRegistration` and an `AuthorizationRequest`
@@ -2647,7 +2626,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ClientRegistration.RequirePushedAuthorizationRequests` requires PAR. A PAR error is returned as data. An
   authorization URI percent-encodes every parameter character outside the RFC 3986 unreserved set (`! * ( ) @` included)
   ([ADR-1275](docs/decisions/1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md),
-  [ADR-1285](docs/decisions/1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md), issues
+  [ADR-1285](docs/decisions/1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md), issues
   [#123](https://github.com/NCodeGroup/identity/issues/123), [#321](https://github.com/NCodeGroup/identity/issues/321)).
 
 - **The OpenID protocol client validates ID tokens.** `IIdTokenValidator.ValidateAsync` takes a `ClientRegistration` and
@@ -2658,7 +2637,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   through `SignatureAlgorithm.GetTokenHashFunction` by the shared `TokenHash` helper in
   `NCode.Identity.Jose.Algorithms`, which the server's ID-token payload handler also uses. The ID-token, logout-token
   and UserInfo validations share one validation core
-  ([ADR-1273](docs/decisions/1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md),
+  ([ADR-1273](docs/decisions/1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md),
   issue [#335](https://github.com/NCodeGroup/identity/issues/335)).
 
 - **The OpenID protocol client decrypts encrypted ID tokens and logout tokens.**
@@ -2668,7 +2647,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   accept only RSA-OAEP and ECDH-ES and no compression, require every token to be encrypted, and check a replicated `iss`
   header. An undecryptable token fails with `TokenValidationFailureCodes.DecryptionFailed` (`decryption_failed`), and a
   client that registers no encryption refuses an encrypted token with `algorithm_not_permitted`
-  ([ADR-1280](docs/decisions/1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md), issue
+  ([ADR-1280](docs/decisions/1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md), issue
   [#347](https://github.com/NCodeGroup/identity/issues/347)).
 
 - **The OpenID protocol client validates back-channel logout tokens.** `ILogoutTokenValidator.ValidateAsync` takes a
@@ -2680,8 +2659,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `jti` is recorded in `IExpiringKeySet`, and `TryRecordHandledAsync` records it once the client has ended the token's
   sessions, so a delivery the client failed to handle validates again when the OP retries it; that needs a SharedState
   adapter registered
-  ([ADR-1274](docs/decisions/1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md),
-  [ADR-1284](docs/decisions/1284-a-logout-token-is-recorded-only-after-the-client-handles-it.md), issues
+  ([ADR-1274](docs/decisions/1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md), issues
   [#123](https://github.com/NCodeGroup/identity/issues/123), [#349](https://github.com/NCodeGroup/identity/issues/349)).
 
 - **The protocol client's token validation failures carry a machine-readable code.** `IdTokenValidationResult` and
@@ -2689,7 +2667,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   codes with `subject_mismatch`, `nonce_mismatch`, `max_age_exceeded`, `token_hash_mismatch` and `token_replayed`; their
   failure constructors take `(failureCode, failureReason)`, and `FailureReason` is text without the token.
   `NCode.Identity.OpenId.Client.Abstractions` references `NCode.Identity.Jwt.Abstractions`
-  ([ADR-1278](docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code.md), issue
+  ([ADR-1278](docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md), issue
   [#343](https://github.com/NCodeGroup/identity/issues/343)).
 
 - **The protocol client reads UserInfo, plain or signed and encrypted.** `IUserInfoClient` requests the provider's
@@ -2705,8 +2683,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   lifetime claims, then the ID token's `sub`; it refuses JSON, and a client that registered no signing refuses a JWT.
   The BFF names what it registered in each frontend's `IdToken` and `UserInfo` sections (`SigningAlgorithms`, `KeyManagementAlgorithms`,
   `ContentEncryptionAlgorithms`), validated at startup
-  ([ADR-1299](docs/decisions/1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md),
-  [ADR-1301](docs/decisions/1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md),
+  ([ADR-1301](docs/decisions/1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md),
   issues [#415](https://github.com/NCodeGroup/identity/issues/415),
   [#421](https://github.com/NCodeGroup/identity/issues/421)).
 
@@ -2715,7 +2692,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   fraction such as `60.5` is rejected with `OpenIdProviderException`. `NCode.Identity.Json` provides
   `JsonElement.TryGetWholeInt32`, `TryGetPropertyWholeInt32` and `WholeInt32JsonConverter` for such values, and
   `NCode.Identity.OpenId.Client.Abstractions` references `NCode.Identity.Json`
-  ([ADR-1277](docs/decisions/1277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md), issue
+  ([ADR-1123](docs/decisions/1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md), issue
   [#352](https://github.com/NCodeGroup/identity/issues/352)).
 
 - **The backend-for-frontend core (`NCode.Identity.Bff`).** The `NCode.Identity.Bff` and
@@ -2739,10 +2716,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IdTokenValidationResult` exposes the validated `Identity` ([#394](https://github.com/NCodeGroup/identity/issues/394),
   [#395](https://github.com/NCodeGroup/identity/issues/395),
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
-  [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
-  [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
-  [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
-  [ADR-1431](docs/decisions/1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
+  [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
+  [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
+  [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)).
 
 - **A BFF is composed in one call.** The `NCode.Identity.Bff.Server` package is the BFF's composition root:
   `AddIdentityBff(configuration)` composes the shared-state (in-process by default), events, secrets, JOSE, JWT,
@@ -2764,7 +2740,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`RefreshLeaseReleaseFailed`, event 19004), and the lease expires on its own; a failure of the refresh itself is
   reported as that failure ([#422](https://github.com/NCodeGroup/identity/issues/422),
   [#462](https://github.com/NCodeGroup/identity/issues/462),
-  [ADR-1308](docs/decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
+  [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
 
 - **BFF session claim and `/bff/user` contributors.** `IBffSessionClaimContributor` strategies shape a session's claims
   once, at login, after the ID token validates and before the login gates, which judge the shaped claims;
@@ -2778,7 +2754,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The BFF can merge UserInfo into a session at login.** A frontend's `UserInfo:Load` merges UserInfo into a session at login,
   before the claim contributors and the login gates; a failure ends the login with `userinfo_failed`
   ([#415](https://github.com/NCodeGroup/identity/issues/415),
-  [ADR-1299](docs/decisions/1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md)).
+  [ADR-1301](docs/decisions/1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)).
 
 - **The BFF serves several token requirements and forwards remote APIs.** An endpoint or remote API names its token
   requirement from `BffTokenRequirementNames`: `user` (the user's token), `client` (the BFF's own `client_credentials`
@@ -2793,8 +2769,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   configures; `NCode.Identity.Bff` depends on `Yarp.ReverseProxy`
   ([#395](https://github.com/NCodeGroup/identity/issues/395),
   [#716](https://github.com/NCodeGroup/identity/issues/716),
-  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
-  [ADR-1487](docs/decisions/1487-the-bff-forwards-a-remote-api-through-a-named-http-client-a-host-can-configure.md)).
+  [ADR-1381](docs/decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
 
 - **YARP-configured routes can carry the BFF's token.** `AddReverseProxy()…AddBffTransforms()` makes every route whose
   metadata names `BffTokenRequirement` (with the optional `BffResource` and `BffScope`) a remote API, and
@@ -2804,14 +2779,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   forwards or accepts the BFF's own. Route metadata is validated when YARP loads it, and the proxy refuses to start when
   another `IForwarderHttpClientFactory` is registered after `AddBffTransforms()`. Routing beyond a path prefix goes
   through YARP's routes and clusters ([#395](https://github.com/NCodeGroup/identity/issues/395),
-  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
-  decision 8).
+  [ADR-1381](docs/decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
+  decision 9).
 
 - **The BFF can publish its client keys.** A frontend's `Jwks:Enabled` maps an anonymous, never-cached
   `GET {PathPrefix}/jwks` for that frontend that publishes the public keys of its `ClientAuthentication:KeyRing`, for an
   OP that reads a `private_key_jwt` client's keys from its `jwks_uri`; it is off by default and validated when the host
   starts ([#396](https://github.com/NCodeGroup/identity/issues/396),
-  [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+  [ADR-1382](docs/decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)).
 
 - **One BFF serves several browser frontends.** Each `Bff:Frontends:<name>` entry (`BffFrontendOptions`) is a frontend
   with its own client registration, `PublicOrigin`, `PathPrefix`, return URLs, claims, session, DPoP, security headers,
@@ -2820,7 +2795,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   selects, and the set is validated at startup and whenever its configuration changes. `MapBffEndpoints()` maps each
   frontend's endpoints under its `PathPrefix`, and `RequireBffFrontend()`/`[BffFrontend]` and the YARP `BffFrontend`
   metadata limit an endpoint to frontends ([#396](https://github.com/NCodeGroup/identity/issues/396),
-  [ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
+  [ADR-1442](docs/decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 - **BFF frontends follow their configuration without a restart.** When the `Bff` section reloads,
   `BffFrontendCatalog` validates the whole candidate set (the options validators, the selection rules, each frontend's
@@ -2830,7 +2805,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   conventions added to their route group, the endpoint check runs again, and each frontend's security headers and
   client-credential tokens belong to the frontend as built for the set
   ([#602](https://github.com/NCodeGroup/identity/issues/602),
-  [ADR-1442](docs/decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
+  [ADR-1442](docs/decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 - **Blazor hosts use the BFF session.** The opt-in `NCode.Identity.Bff.Blazor` package (`AddBffBlazorLibrary`,
   `AsBffComponents`, a revalidating `AuthenticationStateProvider`, circuit token access, the user document persisted
@@ -2850,10 +2825,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#604](https://github.com/NCodeGroup/identity/issues/604),
   [#605](https://github.com/NCodeGroup/identity/issues/605),
   [#613](https://github.com/NCodeGroup/identity/issues/613),
-  [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
-  [ADR-1440](docs/decisions/1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md),
-  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
-  [ADR-1445](docs/decisions/1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md)).
+  [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md),
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 
 - **The management console is served by a BFF host of its own.** `NCode.Identity.ManagementConsole`
   (`AddManagementConsole(configuration)`, `MapManagementConsole()`) and `NCode.Identity.ManagementConsole.Host` serve
@@ -2868,9 +2841,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#158](https://github.com/NCodeGroup/identity/issues/158),
   [#611](https://github.com/NCodeGroup/identity/issues/611),
   [#745](https://github.com/NCodeGroup/identity/issues/745),
-  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
-  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
-  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
+  [ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
+  [ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
 - **A BFF loads its key rings from PEM files and key management services when the host starts.**
   `Bff:KeyRings:{name}:PemFiles` lists EC or RSA private-key PEM files, each key's `kid` its file name without the
@@ -2883,9 +2856,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   starts and on every configuration change
   ([#614](https://github.com/NCodeGroup/identity/issues/614),
   [#651](https://github.com/NCodeGroup/identity/issues/651),
-  [ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
-  [ADR-1446](docs/decisions/1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md),
-  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+  [ADR-1439](docs/decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md),
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
 
 - **The management console reads its session from its BFF.** The `RuntimeConfig` union and `loadBffRuntimeConfig`, the
   `session` slice and `fetchBffUser`, `SessionGate` (poll, expiry and visibility probes, `BroadcastChannel`), sign-out
@@ -2906,7 +2878,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#418](https://github.com/NCodeGroup/identity/issues/418), [#419](https://github.com/NCodeGroup/identity/issues/419),
   [#603](https://github.com/NCodeGroup/identity/issues/603),
   [ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md),
-  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 
 - **Entity Framework persistence is a reusable framework plus domain slices.** The framework package
   `NCode.Identity.OpenId.Persistence.EntityFramework` provides a `DbSet`-less `OpenIdDbContext` that slices plug into
@@ -2918,8 +2890,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`AddEntityFrameworkCorePersistence<TDbContext>()`), and a slice may expose typed `DbSet` accessors for its own
   entities as extension members. `EntityStoreManager` has a `DbContext`-less store-factory fallback, so a store that is
   not built on Entity Framework resolves without referencing `OpenIdDbContext`
-  ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-framework-plus-slices.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
+  ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md),
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)).
 
 - **Store queries take extensible parameter records.** Every store's `GetPageAsync` pages with a shared `PageRequest {
   Cursor, Limit }` init-only record struct (in `NCode.Identity.Persistence.Stores`, beside `PagedResult<T>`) across
@@ -2928,14 +2900,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   grants with a `GrantFilter` init-only record struct (`SubjectId`, `ClientId`, `SessionId`, `GrantType`), so pagination
   (for example a sort direction) and selection criteria grow without a signature change (issue
   [#26](https://github.com/NCodeGroup/identity/issues/26),
-  [ADR-1099](docs/decisions/1099-forward-compatible-evolving-parameters.md)).
+  [ADR-1080](docs/decisions/1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md)).
 
 - **`ITenantStore.GetSettingsPageAsync` and `IClientStore.GetSettingsPageAsync` page through settings documents.** Each
   reads a page of settings documents without their secrets and without change tracking, for a pass over every tenant or
   client (issue [#212](https://github.com/NCodeGroup/identity/issues/212)).
 
-- **A tenant's issuer is optional and, when present, unique.** Its unique index is filtered (`WHERE "NormalizedIssuer"
-  IS NOT NULL`), so on relational providers any number of tenants may omit it.
+- **A tenant's stored issuer is unique.** Its unique index is filtered (`WHERE "NormalizedIssuer" IS NOT NULL`), so on
+  relational providers any number of tenants that no strategy serves may hold none; a tenant without an issuer is not
+  served.
 
 - **A lost optimistic-concurrency race surfaces as the store-neutral `StoreConcurrencyException`.** The store manager
   throws it from `IStoreManager.SaveChangesAsync` when another unit of work changed an entity after it was read, and
@@ -2943,7 +2916,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   caller catches one type around any store method or `SaveChangesAsync` without a reference to Entity Framework, and a
   store that is not built on Entity Framework reports a lost race the same way; a caller that saves through a
   `DbContext` directly receives Entity Framework's `DbUpdateConcurrencyException`
-  ([ADR-1208](docs/decisions/1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), issue
+  ([ADR-1012](docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md), issue
   [#257](https://github.com/NCodeGroup/identity/issues/257)).
 
 - **The persistence model stores resource-server settings and secrets.** `PersistedResourceServerSettings`,
@@ -2951,7 +2924,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `resource_server` resource type; `IResourceServerStore.UpdateSettingsAsync` and secret CRUD; and in EF Core the
   `SettingsConcurrencyToken` and `SecretsConcurrencyToken` columns and a tenant-scoped `ResourceServerSecrets` join
   table. Deleting a resource server cascades to its scopes and secrets
-  ([ADR-1066](docs/decisions/1066-resource-server-settings-and-secret-owner.md)).
+  ([ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)).
 
 - **Resource-server runtime reads push their filtering into the database through intent-named `IResourceServerStore`
   queries.** `GetEnabledScopesAsync`, `GetEnabledIdentifiersAsync`, `GetEnabledScopeProjectionsByScopesAsync`,
@@ -2965,11 +2938,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   scope value rather than on the owner-leading composite unique `(ResourceServerId, NormalizedValue)` index;
   `ResourceServerEntity.IsDisabled` is deliberately not indexed, because a low-selectivity boolean index would not be
   chosen by the planner and would only add write cost (issue [#23](https://github.com/NCodeGroup/identity/issues/23),
-  [ADR-1080](docs/decisions/1080-store-query-methods-push-filtering-to-dbms.md)).
+  [ADR-1080](docs/decisions/1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md)).
 
 - **`IPersistedGrantService.AddAsync` returns the server-generated grant id.** It returns `ValueTask<string>`, the
   opaque public `GrantId` of the persisted grant, so a caller such as the initial-access-token management endpoint can
-  reference it for revocation ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md)).
+  reference it for revocation ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)).
 
 - **At-rest grant payloads are schema-versioned and upcastable.** Every grant payload
   (`PersistedGrant<TPayload>.Payload`: authorization codes, refresh tokens, device and CIBA requests, pushed
@@ -2981,8 +2954,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   lacks a member the serving code always writes, is rejected with a `JsonException`. The long-lived, in-place-mutated
   payloads (`SessionGrant`, `CibaGrant`, `DeviceCodeGrant`) carry a `[JsonExtensionData]` bag, so a mixed-version node
   never drops unknown members on a read-modify-write
-  ([ADR-1113](docs/decisions/1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md),
-  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
+  ([ADR-1395](docs/decisions/1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)).
 
 - **A change to a grant's payload loses no concurrent write.** The touch of a session, the addition of a client to it,
   and the polls and decisions of the device-code and CIBA grants apply their change to the grant as stored and read it
@@ -2990,14 +2962,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   approval that landed before its write, and only the CIBA approval that decided the request delivers.
   `IPersistedGrantService.UpdatePayloadAsync` takes the function that computes the change, as a
   `PersistedGrantUpdate<TPayload>`, and `ISessionService.AddClientAsync` reports whether this call added the client
-  ([ADR-1222](docs/decisions/1222-a-grants-payload-is-changed-by-a-read-modify-write.md), issue
+  ([ADR-1222](docs/decisions/1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md), issue
   [#282](https://github.com/NCodeGroup/identity/issues/282)).
 
 - **Grants are removed after a retention period.** `GrantPruneService` runs in every replica every
   `GrantRetentionOptions.PruneInterval` (one hour) and removes, in bounded batches, the grants that expired or were
   revoked more than `GrantRetentionOptions.Retention` ago (14 days by default), so the grants table holds live grants
   and those that ended within the retention. `IGrantStore.RemoveEndedBeforeAsync` stages one batch for removal, and
-  `Grants.RevokedWhen` is indexed ([ADR-1218](docs/decisions/1218-ended-grants-are-removed-after-a-retention-period.md),
+  `Grants.RevokedWhen` is indexed ([ADR-1218](docs/decisions/1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md),
   issue [#267](https://github.com/NCodeGroup/identity/issues/267)).
 
 - **The usage ledger adds each numbered batch of a replica's usage once.** `ITenantUsageStore.AddAsync(replicaId,
@@ -3007,7 +2979,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   batch that a replica retries is added once. An empty `usage` and a `batchNumber` below one throw
   `ArgumentOutOfRangeException`. A store implementer skips such a batch and records the number with the counts. The
   Entity Framework store keeps the checkpoint in `TenantUsageCheckpointEntity`, in the `TenantUsageCheckpoints` table
-  ([ADR-1209](docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), issue
+  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md), issue
   [#216](https://github.com/NCodeGroup/identity/issues/216)).
 
 - **The usage ledger is pruned in bounded batches on every provider.** `ITenantUsageStore.RemoveBeforeAsync(day, limit,
@@ -3015,7 +2987,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   checkpoints of the replicas whose latest usage day is before it, and returns the count of usage entries it staged;
   they are removed when the unit of work is saved. The removal goes through the change tracker, which every Entity
   Framework provider supports, EF InMemory included, and the prune service removes batches of 256 entries, each its own
-  unit of work, while a batch is full ([ADR-1213](docs/decisions/1213-the-usage-ledger-is-pruned-in-bounded-batches.md),
+  unit of work, while a batch is full ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md),
   issue [#264](https://github.com/NCodeGroup/identity/issues/264)).
 
 - **Audit records are kept in an indexed store.** Every audit event's record is queued in memory and written in batches
@@ -3042,12 +3014,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   changes seed data unless the migration carries `[ExpandMigration("why")]`, when the release still serving reads every
   row it writes, or `[ContractMigration("why")]`, when it does not; a deliberate contract step carries
   `[ContractMigration("why")]`, and the rule fails that marker on a migration that only expands
-  ([ADR-1184](docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md),
-  [ADR-1250](docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md),
+  ([ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md),
   issue [#205](https://github.com/NCodeGroup/identity/issues/205)). Until the first stable release,
   `InitialCreateTests` fails a host context that holds any migration but its `InitialCreate`, and a migration that
   changes data, so the `InitialCreate` migrations pass the rule unmarked
-  ([ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  ([ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 
 - **`NCode.Identity.Dispatch(.Abstractions)` runs deferred, at-least-once background work behind a
   bring-your-own-orchestration port.** A job is a serializable `IDispatchJob`, handled by an `IDispatchJobHandler<TJob>`
@@ -3055,10 +3026,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `AddDispatchServices().AddInProcessJobDispatcher()` registers the in-process, self-scheduling adapter: a bounded
   in-memory queue drained by hosted workers that retry with exponential back-off. A deployment registers its own
   `IJobDispatcher` for a durable or distributed backend (a transactional outbox, a broker such as RabbitMQ, a scheduler
-  such as Quartz) without changing producers or handlers; the durable-audit outbox
-  ([ADR-1048](docs/decisions/1048-durable-audit-delivery-outbox.md)) is one adapter of this port
+  such as Quartz) without changing producers or handlers
   ([#24](https://github.com/NCodeGroup/identity/issues/24),
-  [ADR-1090](docs/decisions/1090-durable-outbound-delivery-dispatch-adapter.md)).
+  [ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)).
 
 - **The in-process dispatcher runs jobs concurrently and is configured from `OpenId:InProcessJobDispatcher`.** Up to
   `MaxConcurrentJobs` jobs (16 by default) run at once, so a delivery that waits on an unreachable endpoint holds one
@@ -3067,8 +3037,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   subsection, which `InProcessJobDispatcherOptions.SectionName` names, and the host refuses to start on an unknown key,
   a `QueueCapacity` or `MaxConcurrentJobs` below 1, or a `FullMode` that names no member of `BoundedChannelFullMode`;
   each failure names its key
-  ([ADR-1232](docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md),
-  [ADR-1242](docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md), issues
+  ([ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md), issues
   [#276](https://github.com/NCodeGroup/identity/issues/276) and
   [#294](https://github.com/NCodeGroup/identity/issues/294)).
 
@@ -3077,11 +3046,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   `HttpClient` timeout during a back-channel logout or CIBA delivery, fails the attempt and retries the job with
   back-off without ending the dispatcher's worker or stopping the host. A job whose handlers fail is retried once per
   attempt, however many of them failed, and a handler that cannot be resolved fails the attempt
-  ([ADR-1232](docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md), issue
+  ([ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md), issue
   [#276](https://github.com/NCodeGroup/identity/issues/276)).
 
 - **The event bus is a marker-bearing library
-  ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md)).** `AddEventServices()` mints
+  ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)).** `AddEventServices()` mints
   the `EventsLibrary` marker (`NCode.Identity.Events.Abstractions`) and returns `IServiceBuilder<EventsLibrary>`; its
   opt-ins `AddEventHandler<TEvent, THandler>()` and `AddBackgroundEventDelivery()` (in `EventLibraryRegistration`)
   receive that builder, so an event opt-in cannot be added without the event services.
@@ -3121,7 +3090,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   access token. An access token that authenticates but names no client the tenant serves is audited, when the tenant
   turns the setting on, as `denied` with the error code `invalid_token` and no claims.
   `IAuditEventRecorder.RecordUserInfoAccessedAsync` and `RecordUserInfoAccessDeniedAsync` publish the two outcomes
-  ([ADR-1401](docs/decisions/1401-userinfo-access-is-audited-when-a-tenant-or-client-opts-in.md),
+  ([ADR-1401](docs/decisions/1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md),
   [#21](https://github.com/NCodeGroup/identity/issues/21), [audit records](docs/audit-records.md)).
 
 - **Several replicas share DPoP nonces and single-use records through Valkey.**
@@ -3133,7 +3102,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   registers the Valkey adapters and adds a `valkey` health check tagged `ready`. The reference host calls it, and the
   Aspire AppHost runs a Valkey container and injects the connection string, so local development uses the same adapter
   as a multi-replica deployment
-  ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
+  ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)).
 
 - **A shared expiring counter set backs rate limiting.** `NCode.Identity.SharedState.Abstractions` provides
   `IExpiringCounterSet`: `IncrementAsync(key, expiresWhen)` atomically increments a counter that spans one fixed window
@@ -3141,14 +3110,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   default, which `AddIdentityServer` registers beside the in-process key set, and `AddValkey` registers in its place a
   Valkey adapter that runs `INCR` and `PEXPIRE` as one script, so every replica counts against one counter. It is the
   foundation of per-tenant rate limiting
-  ([ADR-1196](docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), issue
+  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md), issue
   [#84](https://github.com/NCodeGroup/identity/issues/84)).
 
 - **Shared state holds versioned expiring values and membership indexes.** `IExpiringValueSet` stores an opaque,
   versioned `ExpiringValue` with an atomic take and a compare-and-replace, and `IExpiringIndexSet` keeps expiring
   membership indexes. `AddInProcessExpiringValueSet` and `AddInProcessExpiringIndexSet` register the in-process
   adapters, and `AddValkey` registers both Valkey adapters
-  ([ADR-1267](docs/decisions/1267-replicas-share-versioned-expiring-values-and-membership-indexes.md), issue
+  ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md), issue
   [#123](https://github.com/NCodeGroup/identity/issues/123)).
 
 - **`HealthCheckTags.Readiness` tags every readiness health check.** `NCode.Identity.Registration` publishes the tag
@@ -3163,7 +3132,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   publisher cancelled. `AddInProcessReplicaBroadcaster()` is the default, and `AddIdentityServer` registers it. The
   Valkey adapter publishes with `PUBLISH` and `SUBSCRIBE` on the key prefix plus the channel, so its access-control user
   needs both commands. The `tenant-changed` channel evicts a changed tenant on every replica
-  ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md), issue
+  ([ADR-1205](docs/decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md), issue
   [#240](https://github.com/NCodeGroup/identity/issues/240)).
 
 - **A replica that may have missed a broadcast drops what the message would have invalidated.** The Valkey subscriber
@@ -3178,11 +3147,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   materialized over (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
   `IOpenIdTenantCache.GetTeamRevisionsAsync`) with the store's (`ITeamStore.GetConcurrencyTokensAsync`) and clearing
   both caches when it cannot read them, and the platform handler reads the platform's settings again
-  ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
-  [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
-  [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
-  [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md),
+  ([ADR-1205](docs/decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md),
+  [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
+  [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   issue [#249](https://github.com/NCodeGroup/identity/issues/249),
   [#564](https://github.com/NCodeGroup/identity/issues/564),
   [#579](https://github.com/NCodeGroup/identity/issues/579)).
@@ -3192,7 +3160,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   own 30-second token, so a client that disconnects does not skip the announcement and a store or Valkey timeout does
   not fail a write that has already committed; a failed refresh or announcement is logged, and a failed eviction is
   still announced ([#485](https://github.com/NCodeGroup/identity/issues/485),
-  [ADR-1351](docs/decisions/1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)).
+  [ADR-1351](docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 
 - **Protocol-endpoint metrics.** The protocol endpoints tag ASP.NET Core's `http.server.request.duration` with
   `ncode.identity.openid.endpoint` (the endpoint's registered name, stable when routes or tenant routing change),
@@ -3209,7 +3177,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   exported over OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; the exporter is added to the metrics pipeline only, so
   logs and traces stay the host's choice. Every meter comes from `IMeterFactory`. The catalog is
   [`docs/metrics.md`](docs/metrics.md)
-  ([ADR-1197](docs/decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md), issue
+  ([ADR-1197](docs/decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md), issue
   [#119](https://github.com/NCodeGroup/identity/issues/119)).
 
 - **The outbound clients count their retries and timeouts.** The guarded outbound client records
@@ -3223,7 +3191,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The guarded client's options are its only time bound.** The one client that serves every fetch of, and delivery to,
   a caller-supplied URL has `HttpClient`'s own timeout off, so `OutboundHttpOptions.TotalTimeout` applies in full, above
   100 seconds included ([#481](https://github.com/NCodeGroup/identity/issues/481),
-  [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+  [ADR-1315](docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)).
 
 - **The BFF measures and traces its refreshes and its session store.** The `NCode.Identity.Bff` meter records
   `ncode.identity.bff.token.refresh.duration` (with the result `refreshed`, `joined` or `failed`, lock and lease waits
@@ -3232,7 +3200,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ncode.identity.bff.reason` to `ncode.identity.events.published`, which counts logins, session ends, refresh failures
   and rejections. `BffTelemetry` names the meter and the source; a package traces its own mechanisms through one
   activity source named like its meter
-  ([ADR-1298](docs/decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md),
+  ([ADR-1197](docs/decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md),
   issue [#416](https://github.com/NCodeGroup/identity/issues/416)).
 
 - **A replica adds each usage batch to the ledger once, and its final flush runs once.** A replica numbers its batches,
@@ -3240,7 +3208,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   when the connection drops after the commit, never overcounts a tenant's billed usage. Every host stop waits for the
   one final flush, so a host stopped twice at once never disposes its services under it; usage the flush cannot add is
   logged as discarded (event 2051), and the stop does not throw
-  ([ADR-1209](docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), issues
+  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md), issues
   [#216](https://github.com/NCodeGroup/identity/issues/216) and
   [#245](https://github.com/NCodeGroup/identity/issues/245)).
 
@@ -3263,7 +3231,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   control an operator configured is never silently dropped. `ISettingSerializer.ValidateSettings` returns `SettingError`
   values, and `ISettingCollection.Set(key, value)` throws for a key with no descriptor of that value type; an extension
   registers a descriptor for every setting it reads or writes
-  ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
+  ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)).
 
 - **A setting is accepted only at a scope that reads it.** Every setting declares the scopes it applies to
   (`SettingDescriptor.AppliesTo`): the platform, team, tenant, client or resource-server scopes whose effective settings the
@@ -3277,7 +3245,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   effective-settings previews list only the settings that apply within the previewed scope.
   `ISettingSerializer.DeserializeSettings`, `ISettingSerializer.ValidateSettings` and the JSON overload of
   `ISecurityProfileCatalog.Expand` take the name of the scope whose document they read
-  ([ADR-1149](docs/decisions/1149-settings-declare-the-scopes-they-apply-to.md)).
+  ([ADR-1149](docs/decisions/1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)).
 
 - **Setting scopes are an open vocabulary.** Each scope is a registered `SettingScopeDescriptor` (a name and the scope
   it inherits from), collected by `ISettingScopeCollection` through `ISettingScopeCollectionProvider`, and the cascade
@@ -3297,7 +3265,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The default `claims_supported` list is part of the replaceable `IDefaultSettingsProvider` baseline.** A host that
   enables `claims_supported_is_strict` extends the allow-list by registering its own baseline provider, unbound by a
-  descriptor literal ([ADR-1010](docs/decisions/1010-supported-settings-unset-means-unrestricted.md)).
+  descriptor literal ([ADR-1010](docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 
 - **Configuration is bound strictly and checked before the host accepts traffic.** A key that maps to no option stops
   the host with an error naming the section, the options type and the key. This covers the whole OpenID section and the
@@ -3308,7 +3276,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Settings`, carried by `OpenIdPlatformOptions.Settings`), `Team` (team settings reconciliation), `Tenant` (tenant materialization and caching),
   `TenantResolution` (tenant selection), `MutualTls`, `GrantRetention` and `TenantUsage`; any other subsection is
   rejected. `AddConfiguration` binds the mutual-TLS forwarding options too, so a host's chosen section name applies to
-  them ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
+  them ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 
 - **Intervals and retentions are configured and validated when the host starts, and the host refuses one that a timer
   cannot run.** `AddConfiguration` binds `GrantRetentionOptions` (`OpenId:GrantRetention`: `Retention`, `PruneInterval`)
@@ -3318,7 +3286,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenId:Tenant:TenantCacheLifetime`, `GrantRetentionOptions.PruneInterval` and `TenantUsageOptions.FlushInterval` must
   be between one millisecond and 4,294,967,294 milliseconds (about 49.7 days), and a retention must not be negative; the
   error names the option and its configuration key. `NCode.Identity.Time.TimerPeriod` states the range
-  ([ADR-1221](docs/decisions/1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md), issues
+  ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md), issues
   [#274](https://github.com/NCodeGroup/identity/issues/274) and
   [#277](https://github.com/NCodeGroup/identity/issues/277)).
 
@@ -3326,11 +3294,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   a tenant's document, and a client's or resource server's document, with the security profiles' ceilings and defaults:
   `ReadScopeSettings`, which takes the parent settings, and `Resolve` read a scope's document and merge it onto its
   parent's effective settings, and the two `ResolvePlatformAsync` overloads resolve a proposed or the committed platform
-  document onto the configured settings and `ResolveTeamAsync` resolves a team's. Every effective-settings merge, `DefaultOpenIdTenantFactory` and
-  `EphemeralOpenIdTenantFactory` included, goes through it. Seeds and management previews read the platform's committed
+  document onto the configured settings and `ResolveTeamAsync` resolves a team's. Every effective-settings merge,
+  `DefaultOpenIdTenantFactory` included, goes through it. Seeds and management previews read the platform's committed
   settings rather than a replica's 5-minute poll of them, and `ITenantStore` and `IClientStore` expose
   `GetSettingsPageAsync`, which a custom store implements. Its default is registered with `TryAddSingleton`, so a host
-  registers its own ([ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service.md),
+  registers its own ([ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md),
   [#230](https://github.com/NCodeGroup/identity/issues/230)).
 
 - **Redirect URI kinds, which a client's settings narrow.** The `redirect_uri_kinds_supported` setting lists the kinds
@@ -3340,12 +3308,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenIdConstants.RedirectUriKinds`, sort a redirect URI into at most one: `https`, `loopback` (an `http` URI whose
   host is `127.0.0.1` or `[::1]`, RFC 8252 §7.3), `http` (any other `http` URI, `localhost` included), and `private_use`
   (a reverse-domain scheme such as `com.example.app`, RFC 8252 §7.1)
-  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly.md),
+  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md),
   [#244](https://github.com/NCodeGroup/identity/issues/244)).
 
 - **Security profiles are an open registry of ceilings, defaults and requirement objects**
   ([#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1109](docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md)). A profile is an
+  [ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). A profile is an
   `ISecurityProfile` (its name, its ceiling settings, its default settings and its composed `Requirements`);
   `ISecurityProfileCatalog` is the single registry that resolves the selected profiles, expands their settings, and runs
   their requirements for a given enforcement phase through `EvaluateRequirementsAsync<TContext>`. Each requirement is a
@@ -3368,8 +3336,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   support is off. Ceilings merge at every scope, because a bound only narrows. FAPI 2.0 defaults
   `id_token_signed_response_alg` and `introspection_signed_response_alg` to `PS256`, so a client under the profile that
   registers no algorithm is signed with an algorithm the profile permits
-  ([ADR-1148](docs/decisions/1148-security-profiles-accumulate-down-the-settings-cascade.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
+  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md),
   [#259](https://github.com/NCodeGroup/identity/issues/259)).
 
 - **A security profile selected in the platform's configuration supplies its defaults at the platform root, and every
@@ -3381,7 +3349,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   profile. `Expand(scopeSettings, scopeName)` and `Expand(scopeSettings, scopeName, baselineSettings)` take the name of
   the scope whose settings they expand, `OpenIdSettingScopes.Platform` at the platform's root, as the overload that takes a
   settings document does, and an unregistered scope name is refused with an `ArgumentException`
-  ([ADR-1148](docs/decisions/1148-security-profiles-accumulate-down-the-settings-cascade.md), issues
+  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md), issues
   [#233](https://github.com/NCodeGroup/identity/issues/233) and
   [#259](https://github.com/NCodeGroup/identity/issues/259)).
 
@@ -3396,7 +3364,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   setting that requires a companion is not a ceiling, and carries a `Description` that every caller reports;
   `ClientCoherenceViolation.Missing` reports a required value that is absent. A package adds a rule by registering it
   with `TryAddEnumerable`
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issues
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md), issues
   [#231](https://github.com/NCodeGroup/identity/issues/231) and
   [#253](https://github.com/NCodeGroup/identity/issues/253)).
 
@@ -3410,7 +3378,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `id_token_encrypted_response_alg`. `BackchannelTokenDeliveryCoherenceRule` reports a client that has no
   `client_notification_endpoint` while its delivery mode is not `poll`, and a client that may use the CIBA grant while
   `backchannel_token_delivery_modes_supported` excludes its delivery mode
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
   [#253](https://github.com/NCodeGroup/identity/issues/253)).
 
 - **Every entry point checks a client through the coherence validator.** Dynamic registration, the management API and
@@ -3422,7 +3390,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   client and lists its violations; the bootstrap seeder checks before it imports the secret, and a client that exists is
   left as it is. A management validation problem lists the first ten errors of each setting, in order, and adds `Errors
   not listed for '<name>': <n>.` for the rest, so a change that makes many clients incoherent answers a bounded response
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issues
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md), issues
   [#231](https://github.com/NCodeGroup/identity/issues/231), [#246](https://github.com/NCodeGroup/identity/issues/246),
   [#253](https://github.com/NCodeGroup/identity/issues/253) and
   [#254](https://github.com/NCodeGroup/identity/issues/254)).
@@ -3433,7 +3401,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   as a violation the change introduces; a write that overwrites such a document of its own checks no client and logs it
   (`PlatformSettingsUnreadable`, 3008, `TeamSettingsUnreadable` or `TenantSettingsUnreadable`), so the management API can repair it. The
   incoherent-client report lists such a client
-  ([ADR-1241](docs/decisions/1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md),
+  ([ADR-1245](docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md),
   [#295](https://github.com/NCodeGroup/identity/issues/295)).
 
 - **One tenant-resolution abstraction serves the OpenID runtime and the management API, and one
@@ -3442,7 +3410,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with the default implementation in `NCode.Identity.OpenId.Core`, so both select the ambient tenant from a single
   source of truth. The factory composes `ITenantResolver` for tenant selection and performs only materialization, and
   `OpenIdTenantOptions` carries only materialization settings
-  ([ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)).
+  ([ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).
 
 - **Tenant resolution probes the tenant cache before reading the tenant store, and a cached tenant lives at most 15
   minutes.** `ITenantResolver` and `ITenantStrategy` expose `TryGetTenantId(httpContext, out tenantId)`, a store-free
@@ -3452,8 +3420,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenIdTenantOptions.TenantCacheLifetime` (`OpenId:Tenant:TenantCacheLifetime`, 15 minutes) is an absolute lifetime
   counted from materialization, however often the tenant is used, so a replica that missed a tenant's change
   announcement serves the tenant at most that long
-  ([ADR-1037](docs/decisions/1037-tenant-cache-probe-before-store-load.md),
-  [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  ([ADR-1036](docs/decisions/1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md),
+  [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [#249](https://github.com/NCodeGroup/identity/issues/249)).
 
 - **Every replica sees a tenant change at once.** Every management write to a tenant (its record, its settings, a
@@ -3462,14 +3430,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   or re-addressed tenant from its cache. After a settings change the default handler seeds the tenant again, so a key
   for an algorithm the settings permit is provisioned before the write returns. The platform provider evicts every cached
   tenant whenever the platform's settings change, so a platform-wide setting such as `environment_type` reaches tenants at
-  once. `Ephemeral` developer mode keeps one key per tenant for the life of the process, so the eviction does not
-  invalidate issued tokens ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md), issues
+  once ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
+  [ADR-1205](docs/decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md), issues
   [#240](https://github.com/NCodeGroup/identity/issues/240) and
   [#409](https://github.com/NCodeGroup/identity/issues/409)).
 
 - **An `OpenIdContext` can be materialized for an explicit, route-addressed tenant**
-  ([ADR-1100](docs/decisions/1100-explicit-tenant-context-materialization.md)).
+  ([ADR-1036](docs/decisions/1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)).
   `IOpenIdContextFactory.CreateForTenantAsync` and `IOpenIdTenantFactory.CreateTenantByIdAsync` build the context from
   the tenant's own configured issuer, independent of the request's tenant-resolution strategy. Each is paired by name
   with its request-driven counterpart, `CreateForRequestAsync` and `CreateTenantForRequestAsync`; "Resolve" is reserved
@@ -3478,7 +3445,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The control-plane tenant is named from configuration and served from the tenant cache.** `ITenantStrategy` and
   `ITenantResolver` expose `GetControlPlaneTenantId()`, and `CreateControlPlaneTenantAsync` probes the tenant cache with
   that identifier first, reading the store only on a miss
-  ([ADR-1191](docs/decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
+  ([ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 
 - **A tenant's issuer is a first-class tenant property, and a tenant created without one is given the issuer its tenant
   strategy derives.** Each tenant holds its own issuer, `PersistedTenant.Issuer`, alongside `DisplayName` and
@@ -3492,7 +3459,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   platform's `https://auth.<apex>` beside `https://{tenantId}.auth.<apex>`), and its address is reserved for it. A
   template is validated when the host starts: it carries `{tenantId}` once, varies the host under the host strategy, and
   ends with the tenant route under the path strategy
-  ([ADR-1165](docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 - **A tenant's mTLS endpoint alias is a routed tenant property with a derived default (RFC 8705 §5).** The alias is
   `PersistedTenant.MtlsEndpointAliasAuthority` (an `https` origin, stored with a derived, indexed
@@ -3513,7 +3480,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   address previews (`GET /teams/{teamId}/tenants/{tenantId}/address` for a tenant that does not exist yet and
   `GET /tenants/{tenantId}/address` for an existing one) take an optional `mtlsEndpointAliasAuthority` and return the
   effective `MtlsEndpointAliasAuthority` and `IsMtlsEndpointAliasAuthorityDerived` on `TenantAddressResource`
-  ([ADR-1195](docs/decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md),
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md),
   [#117](https://github.com/NCodeGroup/identity/issues/117)).
 
 - **A tenant is provisioned through one pipeline under every tenant strategy: the root tenant is created from
@@ -3530,19 +3497,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenants under every strategy. A tenant is materialized, and a created tenant answered, from the row its seed
   committed, so it carries the concurrency tokens its own seed wrote, and a replica that revalidates its cached tenants
   after a missed announcement keeps it. The Aspire conformance instance serves its own `conformance` tenant
-  ([ADR-1166](docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
-  [ADR-1463](docs/decisions/1463-a-seeded-tenant-is-materialized-from-the-row-its-seed-committed.md),
+  ([ADR-1166](docs/decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md),
   [#619](https://github.com/NCodeGroup/identity/issues/619)).
 
 - **Concurrent seeds of one tenant converge.** When two replicas, or two requests that miss the tenant cache together,
   seed the same tenant, a seed whose commit fails runs once more in a fresh unit of work; seed contributors are
   idempotent, so it adds only what the other seed did not, and both requests succeed with one set of keys and resource
-  servers ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)).
+  servers ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
 
 - **A tenant the deployment requires cannot be deleted.** `DELETE /api/tenants/{tenantId}` answers `409 Conflict` for
   the root tenant or the static single-tenant strategy's tenant, because a deleted tenant identifier is never reissued.
   `ITenantStrategy` and `ITenantResolver` expose `IsRequiredTenant`, so a custom strategy names the tenants it requires
-  ([ADR-1189](docs/decisions/1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)).
+  ([ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 
 - **Tenants declare their environment.** The tenant settings `environment_type`, `environment_name` and
   `deletion_protection` say which environment a tenant is: the type is one of the registered `development`, `testing`,
@@ -3563,7 +3529,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`OpenId:Platform:SettingsPeriodicRefreshInterval`, 5 minutes) is the fallback for a replica that missed the
   announcement. `OpenIdPlatform.RefreshSettingsAsync`, `IOpenIdTenantCache.ClearAsync` and
   `IReplicaBroadcastHandler.HandleMissedMessagesAsync` are members a custom implementation implements
-  ([ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issues
+  ([ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md), issues
   [#241](https://github.com/NCodeGroup/identity/issues/241), [#248](https://github.com/NCodeGroup/identity/issues/248),
   [#249](https://github.com/NCodeGroup/identity/issues/249) and
   [#252](https://github.com/NCodeGroup/identity/issues/252)).
@@ -3573,9 +3539,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   logs every stored client the settings make incoherent, each handling `ReconcileTeamSettingsCommand` for the team's
   tenants only; `PersistedTeam.ReconciledSettings` and `ReconciledSettingsFingerprint` record what was reconciled, so a
   pass a restart interrupted runs again and a start that changes nothing runs none
-  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
-  [ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-1234](docs/decisions/1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md)).
+  ([ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
+  [ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
 
 - **Rate limits and quotas are registered descriptors judged in one round trip per stage.** Each limit is a
   `RateLimitDescriptor` (name, stage, order, window, sliding or fixed, limit and overage settings, metered only, usage
@@ -3587,7 +3552,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IExpiringCounterSet.IncrementUntilExceededAsync`, which every implementation of the port implements, counts a stage's
   limits in one call (one Valkey script, measured as `counter.increment_until_exceeded`). Shared-state keys carry the
   tenant in braces as a hash tag, and the `RateLimitExceeded` log event names the window
-  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md),
+  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [#232](https://github.com/NCodeGroup/identity/issues/232)).
 
 - **The rate limiter bounds its store calls and pauses them during an outage.** Each counter call is bounded to 100 ms
@@ -3595,7 +3560,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`store_unavailable`) before trying it again. The failure that opens the pause logs one warning and the answer that
   ends it logs one information message (`RateLimitStoreRecovered`), so an outage is logged once per replica. Valkey
   stays a readiness dependency, since single-use state fails closed without it
-  ([ADR-1196](docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)).
+  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)).
 
 - **Per-tenant daily quotas.** Two tenant settings bound a tenant's consumption per UTC calendar day for plan tiers:
   `quota_tenant_requests_per_day` (requests to its metered protocol endpoints, judged after the per-minute rate limits)
@@ -3606,8 +3571,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   writes a plan tier's quotas on a team, and a team's administrators may set lower ones on its tenants. They are
   counted in the shared `IExpiringCounterSet` and reported under the rate-limiting partitions `daily_requests` and
   `daily_token_requests`
-  ([ADR-1198](docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
-  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  ([ADR-1198](docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
+  [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **Billed overage past a daily quota.** A plan tier can admit requests past its daily quota and bill them:
@@ -3618,8 +3583,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   request admitted past a quota is recorded in the usage ledger under the meters `requests_overage` and
   `token_requests_overage`, which the usage report and the admin UI's Usage tab show with the others, and is counted in
   `ncode.identity.rate_limiting.requests` with the result `overage`
-  ([ADR-1200](docs/decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md),
-  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  ([ADR-1198](docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
+  [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **Per-tenant usage ledger.** Every tenant's daily usage is recorded durably for billing and customer reports in the
@@ -3631,8 +3596,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   every `TenantUsageOptions.PruneInterval` (`OpenId:TenantUsage:PruneInterval`, one hour). `GET
   /api/tenants/{tenantId}/usage?from=&to=` reads a tenant's usage for up to 366 days, the last 30 by default; the admin
   UI shows it on the tenant page's **Usage** tab, a column per meter with a total row, over a chosen UTC date range
-  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
-  [ADR-1213](docs/decisions/1213-the-usage-ledger-is-pruned-in-bounded-batches.md),
+  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md),
   [#443](https://github.com/NCodeGroup/identity/issues/443)).
 
 - **An endpoint declares whether it is the tenant's metered usage, and only served requests are billed.** A metered
@@ -3640,14 +3604,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IOpenIdEndpointMeteredMetadata` is metered, and a package that adds a public metadata endpoint opts it out with
   `WithOpenIdMetered(false)`. The request filter records a request once its endpoint has run and skips one that any
   limit (per-client rate limit, token quota) refused with `429`, so a refused request never counts as usage or overage
-  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
+  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 
 - **One public form reader serves the OpenID endpoints and the BFF.**
   `NCode.Identity.AspNetCore.FormRequestExtensions.TryReadFormAsync` reads a request's form, or returns `null` when it has none
   or its body is malformed or over the form limits ([#517](https://github.com/NCodeGroup/identity/issues/517),
   [#758](https://github.com/NCodeGroup/identity/issues/758),
-  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md),
-  [ADR-1355](docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+  [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 - **`NCode.Identity.Json.ObjectJsonConverter` deserializes loosely-typed JSON.** The public `System.Text.Json` converter in the
   `NCode.Identity.Json` foundation package reads JSON into an `object` graph (objects → `Dictionary<string, object?>`,
@@ -3674,7 +3637,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `UriJsonConverter.Singleton`. `DelegatingJsonConverter<TInterface, TImplementation>` serializes an interface by
   delegating to a concrete implementation and has no singleton, because it carries mutable `MatchExact` state per
   interface/implementation pair. The OpenID-coupled `StringValuesJsonConverter` (which relies on
-  `OpenIdConstants.ParameterSeparatorChar`) and the claims, message, and JWK converters live in their domain packages,
+  `OpenIdProtocol.ParameterSeparatorChar`) and the claims, message, and JWK converters live in their domain packages,
   so `NCode.Identity.Json` stays dependency-free.
 
 - **`NCode.Identity.Json.ObjectGraphExtensions.TryGetValue<T>` reads typed values from loosely-typed object graphs, tolerant of
@@ -3692,7 +3655,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The `NCode.Identity.Time` foundation package holds the whole-second time helpers.** `DateTimeExtensions`,
   `DateTimeOffsetExtensions` and `TimeProviderExtensions` (`WithPrecisionInSeconds`, `GetUtcNowWithPrecisionInSeconds`,
   `GetTimestampWithPrecisionInSeconds`) live in namespace `NCode.Identity.Time`, so `NCode.Identity.Jose.Abstractions` holds no
-  logic ([ADR-1188](docs/decisions/1188-general-time-helpers-live-in-a-dependency-free-package.md), issue
+  logic ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md), issue
   [#31](https://github.com/NCodeGroup/identity/issues/31)).
 
 - **Every namespace is named for its purpose, and a contract, its DTOs and its default implementation share it** (issue
@@ -3735,7 +3698,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   benchmarks. Each folder outside `src/` turns packing off in its `Directory.Build.props`, and the build fails a project
   under `src/` that does not pack and a project outside it that does
   ([#759](https://github.com/NCodeGroup/identity/issues/759),
-  [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)).
+  [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)).
 
 - **Code a self-hoster could use is public, and the product's repositories and artifacts follow one naming scheme.**
   `NCodeGroup/identity` holds the packages, hosts, images, the host chart, the frontend, and the decisions and issues
@@ -3744,7 +3707,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCodeGroup/identity-cloud` holds only the managed offering's proprietary parts. NuGet packages are named
   `NCode.Identity.*`, the chart and images `ncode-identity-*`, the npm workspace packages `@ncode/*`, all private,
   and the platform's domains `ncodeid.*` ([#760](https://github.com/NCodeGroup/identity/issues/760),
-  [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)).
+  [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)).
 
 - **The build reports a field that could be an auto-property.** `NCode.Identity.Analyzers`, the repository's own Roslyn
   analyzer project, which every project of the solution loads and no package ships, fails the build with `NCID0001` on
@@ -3755,7 +3718,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   as a Razor `@code` block's field is, and the analyzer's tests compile their snippets against the test host's own
   assemblies ([#713](https://github.com/NCodeGroup/identity/issues/713),
   [#714](https://github.com/NCodeGroup/identity/issues/714),
-  [ADR-1486](docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)).
+  [ADR-1486](docs/decisions/1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md)).
 
 - **The build reports an own async method that returns `Task` or takes no trailing `CancellationToken`.**
   `NCode.Identity.Analyzers` fails the build with `NCID0002` on a method returning `Task` or `Task<T>` and with
@@ -3766,13 +3729,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   a method of the post-commit types that run on their own bounded token, or a method an ADR makes uncancellable
   ([#743](https://github.com/NCodeGroup/identity/issues/743),
   [#744](https://github.com/NCodeGroup/identity/issues/744),
-  [ADR-1496](docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md)).
+  [ADR-1496](docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md)).
 
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`; `.editorconfig` sets the header as
   `file_header_template` and raises `IDE0073` to `warning`, so a file whose header is missing or differs fails the build
   ([#448](https://github.com/NCodeGroup/identity/issues/448),
-  [ADR-1309](docs/decisions/1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md)).
+  [ADR-1309](docs/decisions/1309-c-files-carry-a-two-line-spdx-header-that-the-build-checks.md)).
 
 - **The family's decision records are numbered from 1000, and the `adr index` stage of `./build/dod.ps1` checks them and
   every link to them.** Each record is `docs/decisions/1NNN-<slug>.md`; numbers below 1000 belong to the project
@@ -3809,7 +3772,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   committed on every platform; the template update runs on Windows when the repository's `.gitignore` ignores a folder
   the template's does not, such as `frontend/node_modules`; and every checkout except `copilot-setup-steps.yml`'s sets
   `persist-credentials: false`, keeping the job's token out of `.git/config`
-  ([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+  ([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md)).
 
 - **Local and Copilot workflow formats are supported together.** The repository keeps both the Local prompts and the
   Copilot skills. The first Definition-of-Done stage checks every pair's name, description, and ordered workflow body,
@@ -3818,12 +3781,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   selection; Local prompts keep their model-selection metadata. [AGENTS.md](AGENTS.md#local-and-copilot-customizations)
   explains model selection and Copilot's Review Migrations banner. See issue
   [#179](https://github.com/NCodeGroup/identity/issues/179) and
-  [ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
+  [ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md#dual-runtime-customization-contract).
 
 - **Pull requests into `main` squash-merge through the merge queue.**
-  [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) records the
-  decision and supersedes project-template ADR-0013; ADR-1261, ADR-1263 and ADR-1269 refine project-template ADR-0005
-  and ADR-0006.
+  [ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) records the
+  decision, supersedes project-template ADR-0013 and refines project-template ADR-0005 and ADR-0006; ADR-1263 also
+  refines project-template ADR-0005.
 
 - **CI runs show their results on GitHub.** The run summary page opens with the Definition of Done verdict and a
   per-stage duration table, then the test results (one table across every test assembly or frontend package, plus each
@@ -3835,7 +3798,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   required check. The frontend tier has the same reports and coverage (`pnpm run test:report`), and the `coverage`
   artifact holds a browsable HTML report. Locally, `./build/dod.ps1` writes each run's results to
   `artifacts/test-results/` (cleared first) and the coverage report to `artifacts/coverage/index.html`, so coverage
-  reflects only the current run. See [ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md).
+  reflects only the current run. See [ADR-1143](docs/decisions/1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md).
 
 - **Dependabot waits three days before it offers a NuGet package, action or base image release**, and gives NCode
   Review's pin bump a group of its own.
@@ -3849,18 +3812,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   test suite covers the gate: a loader that ignores its abort signal and settles late never overwrites newer
   configuration, configuration that reaches the store another way clears an earlier error, and an error without a
   message shows the generic one. `SurfaceKind` is an open vocabulary, so a surface needs only its host override, not a
-  change to `@ncode/config`. See [ADR-1156](docs/decisions/1156-shared-app-shell-containers-live-in-ncode-shell.md).
+  change to `@ncode/config`. See [ADR-1064](docs/decisions/1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md).
 
 - **Every frontend workspace builds and tests from one Vite preset.** The `@ncode/vite-config` workspace owns the test
   gates and the three serving models (standalone, backend-served and BFF-served), and each workspace's Vite or Vitest
   config is one call that states its coverage floors. Every workspace collects `.test.tsx` files, including those on
   the `node` test environment, and each standalone dev server pins the port its redirect URI and CORS origin assume. Locally, Turborepo re-runs a
   workspace's tests and type-check when an internal package it depends on, `tsconfig.base.json`, or `eslint.config.js`
-  changes. See [ADR-1157](docs/decisions/1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md).
+  changes. See [ADR-1151](docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md).
 
 - **`apps/playground` is an authorization-code + PKCE (`S256`) flow explorer that exercises the OP's consent surface out
   of the box** (issue [#135](https://github.com/NCodeGroup/identity/issues/135),
-  [ADR-1082](docs/decisions/1082-playground-and-conformance-surfaces.md)). The Playground discovers the provider and
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). The Playground discovers the provider and
   walks the flow end to end, surfacing the PKCE verifier and challenge, `state`, `nonce`, the authorize URL, the token
   response and the decoded JWT header and claims, then exercises UserInfo, refresh and RP-Initiated Logout; it offers no
   implicit, hybrid or resource-owner-password flow. It has a **Force consent (`prompt=consent`)** toggle, the
@@ -3871,8 +3834,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The conformance dashboard (`apps/conformance`) audits the OP's security posture and measures it against the full
   published OAuth, OIDC, CIBA and FAPI catalog** (issues [#135](https://github.com/NCodeGroup/identity/issues/135),
   [#129](https://github.com/NCodeGroup/identity/issues/129),
-  [ADR-1082](docs/decisions/1082-playground-and-conformance-surfaces.md),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md)). It audits the published discovery metadata
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). It audits the published discovery metadata
   against OAuth 2.1, RFC 9700, OpenID Connect Core and Discovery, and RFC 7636/8414/7009/7662/9126, flags insecure or
   deprecated configuration, and reports OpenID Foundation Basic and Config OP readiness and the external-suite
   configuration (issuer, alias, RP callback URL). A spec-coverage matrix classifies every capability from the live
@@ -3885,11 +3847,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   shows only the current issuer's audit: a discovery load superseded by an issuer change never updates it, whether it
   fails or succeeds late. It is a standalone Vite SPA on the shared `@ncode/*` platform, on port `5175` in the Aspire
   AppHost, and a development and conformance convenience only
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 - **The headless conformance probe runner exercises the legs a browser cannot drive** (issue
   [#129](https://github.com/NCodeGroup/identity/issues/129),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md)). The `@ncode/app-conformance-runner` CLI
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). The `@ncode/app-conformance-runner` CLI
   exercises the confidential and server-initiated legs: `client_credentials`, token introspection and revocation with
   client authentication, device-code issuance and polling, CIBA, `private_key_jwt`, DPoP/mTLS, and back-channel logout.
   Each probe reports `verified`, `failed` or `skipped` (with an actionable reason, such as an unadvertised capability or
@@ -3900,11 +3862,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   (discovery fetch, the security audit, the spec-coverage catalog and the browser-drivable probes) lives in the shared,
   unit-tested `@ncode/conformance-core` package used by both the dashboard (`apps/conformance`) and the runner.
   Development and conformance tooling only, outside the .NET inner loop
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 - **The probe runner signs its asymmetric legs with Node `crypto`** (issues
   [#130](https://github.com/NCodeGroup/identity/issues/130), [#334](https://github.com/NCodeGroup/identity/issues/334),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md)). The `private_key_jwt` and DPoP probes take
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). The `private_key_jwt` and DPoP probes take
   `--private-key` / `--dpop-key` options that load a PEM- or JWK-encoded private key; the JWA signature algorithm is
   inferred from the key (the curve for EC `ES256`/`ES384`/`ES512`, `EdDSA` for Ed25519/Ed448, `PS256` for RSA) and is
   overridable through `--private-key-alg` / `--dpop-key-alg` (for example `RS256`, or `Ed25519` and `Ed448` for a key on
@@ -3913,12 +3875,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   client assertion (OIDC Core §9, carrying the JWK `kid` when present) and the DPoP proof (RFC 9449 §4, embedding the
   public JWK in the `dpop+jwt` header); ECDSA uses the JOSE raw `ieee-p1363` encoding and RSA-PSS uses digest-length
   salt. Development and conformance tooling only, outside the .NET inner loop
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 - **The OpenID Foundation Conformance Suite is the certified oracle behind the in-house pre-flight** (issues
   [#129](https://github.com/NCodeGroup/identity/issues/129), [#131](https://github.com/NCodeGroup/identity/issues/131),
   [#124](https://github.com/NCodeGroup/identity/issues/124),
-  [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md)). A runnable harness under
+  [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). A runnable harness under
   [`build/conformance/`](build/conformance) drives the suite against the OpenID host end to end:
   [`run-conformance.ps1`](build/conformance/run-conformance.ps1) launches the OP on the reachable HTTPS origin (the
   `Conformance` launch profile), runs the headless `@ncode/app-conformance-runner` probe runner as a fast pre-flight,
@@ -3954,8 +3916,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`OpenId:Platform:Settings`) and one persisted settings document, read and written through `GET`/`PATCH
   /api/platform/settings` and previewed through `GET /api/platform/effective-settings`, are the root of every team's and
   tenant's settings; its authority node is `(platform, platform)`, and its master key protects the Data Protection key
-  ring ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1413](docs/decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)).
+  ring ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
+  [ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 
 - **A team groups a customer's related tenants.** `POST /api/teams` creates a team named by its creator (the tenant-id
   form) with a display name, an `isDisabled` flag and a settings document; `GET`/`PATCH`/`DELETE /api/teams/{teamId}`,
@@ -3963,7 +3925,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant belongs to exactly one team and never moves: `POST /api/teams/{teamId}/tenants` creates a tenant under its team
   and `GET /api/teams/{teamId}/tenants` lists them, `TenantResource` carries `teamId`, and the platform's own team
   (`TenantResolution:Root:TeamId`, default `platform`) holds the root tenant and every tenant a strategy creates
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)).
 
 - **A team can nest beneath a parent team.** `POST /api/teams/{teamId}/teams` creates a team beneath its parent and
   `GET /api/teams/{teamId}/teams` lists a team's child teams; `TeamResource` carries `parentTeamId`, and `GET /api/teams`
@@ -3973,7 +3935,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (1 to 8; unset means 8) bounds the depth a team is created at, each team row stores its path from its top-level team
   (`TeamPaths`), a materialized team exposes its `Parent` and `Path`, and the platform's own team holds no teams
   ([#567](https://github.com/NCodeGroup/identity/issues/567),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 
 - **A team's settings cascade into every team and tenant beneath it.** The settings scopes are `platform`, `team`,
   `tenant`, `client` and `resource_server`; a team's effective settings merge the platform's, then each ancestor team's
@@ -3983,9 +3945,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   and `max_teams` apply to the team scope, merge with `Min` and are limits set by the administrators above the team: a
   team's `max_tenants` bounds the tenants of the team and of every team beneath it, its `max_teams` bounds the teams
   beneath it at every level, and a creation that would exceed the limit of any team above it answers `409`
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
+  [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **A team is an authority node.** Authority runs platform → each team from the top-level team down → tenant → leaf: a
@@ -3995,8 +3957,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   globally unique, retired identifiers and match an assignment on type and identifier, and any other node counts an
   assignment only when it belongs to the node's tenant, because client and resource-server identifiers
   are unique only within a tenant
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 
 - **A team promotes one tenant's configuration to another.** `POST /api/teams/{teamId}/promotions/preview` reports what
   a promotion would create, update or leave unchanged and `POST /api/teams/{teamId}/promotions` applies it: the
@@ -4007,15 +3969,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   parent team's administrators promote within a child team through that team's route; a promotion needs read authority
   on the source and creation authority on the target, and a promoted limit needs the authority that sets it (`403`
   naming the limit). It records each change and `tenant.promoted`, and the console offers it on a team's tenants page
-  ([ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  ([ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [ADR-1425](docs/decisions/1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md),
-  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md),
   [#565](https://github.com/NCodeGroup/identity/issues/565)).
 
 - **A tenant has administrators.** `GET`/`POST`/`DELETE /api/tenants/{tenantId}/admins` list, grant and revoke the
   `TenantAdmin` role at the tenant's node, which manages the tenant and everything beneath it and creates its clients,
   resource servers and other resources; granting or revoking it is creation authority at the tenant
-  ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
+  ([ADR-1417](docs/decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [#556](https://github.com/NCodeGroup/identity/issues/556)).
 
 - **A setting can be a limit set from above.** `SettingDescriptor.IsLimit` marks a limit, which merges with a meet; a
@@ -4023,8 +3985,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   needs `Update` authority at the node above it: the platform for a top-level team, the parent team for a child team,
   the team for a tenant and the tenant for a client or resource server, or answers `403` naming the limits, and
   `ISettingSerializer.GetChangedLimits` names them
-  ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  ([ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **A caller learns which limits a scope's settings carry and whether it may change them.** `GET …/settings/limits` on
@@ -4032,7 +3994,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   settings may carry (`ISettingSerializer.GetLimits`) and `canChange`, whether the caller holds `Update` at the node
   above. The management console shows a caller without that authority the limits read-only beside the settings it
   edits, and its save never changes them
-  ([ADR-1448](docs/decisions/1448-a-settings-reader-learns-which-limits-it-may-change.md),
+  ([ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#581](https://github.com/NCodeGroup/identity/issues/581)).
 
 - **A caller learns whether it may grant and revoke a role where it reads who holds it.** `GET …/owners` on a team, a
@@ -4043,9 +4005,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   takes `AddRoleHolderRequest` and answers the `RoleHolderResource` it grants, or `409` for a client's principal that
   cannot hold the role there, and every list grants and revokes its role through one flow, so every role answers the
   same statuses and records the same audit events
-  ([ADR-1465](docs/decisions/1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md),
-  [ADR-1467](docs/decisions/1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md),
-  [ADR-1469](docs/decisions/1469-every-role-list-shares-role-neutral-contracts-and-one-grant-and-revoke-flow.md),
+  ([ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md),
   [#623](https://github.com/NCodeGroup/identity/issues/623), [#627](https://github.com/NCodeGroup/identity/issues/627),
   [#628](https://github.com/NCodeGroup/identity/issues/628)).
 
@@ -4060,9 +4021,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   and a request for every team covers them all, so none is dropped however many arrive
   ([#559](https://github.com/NCodeGroup/identity/issues/559)). A team change evicts the team, every team beneath it and
   their tenants on every replica over the `team-changed` channel
-  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
-  [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md),
+  ([ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [#601](https://github.com/NCodeGroup/identity/issues/601)).
 
 - **Disabling a team suspends every team and tenant beneath it, and a team with tenants or teams cannot be deleted.** A
@@ -4073,21 +4033,21 @@ Until the first stable release, the [Unreleased] section describes the product a
   Creating, deleting, disabling and restoring a top-level team, and `GET /api/teams` and `GET /api/tenants`, need
   `GlobalAdmin` or an assignment at the platform node. Creating, deleting, disabling and restoring a child team need
   that authority at its parent team
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 
 - **Usage is queryable per team, across every team beneath it.** Every usage row carries the path of the teams its
   tenant belonged to, so a deleted tenant's or deleted team's final days still bill to every team above it, and
   `GET /api/teams/{teamId}/usage?from=&to=` lists the counts of each tenant of the team and of every team beneath it per
   day and meter, each entry naming its team and tenant
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
-  [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
+  [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 
 - **Team and platform changes are audited in the control-plane tenant.** `TeamChangedAuditEvent` (`team`) and
   `PlatformChangedAuditEvent` (`platform`) are recorded under the control-plane tenant, and a tenant's audit event names
   its team as a parent resource
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)).
 
 - **The management console manages teams, machine clients and the platform's settings.** The platform scope has a
   Teams surface (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete), a Clients surface, a Settings
@@ -4099,10 +4059,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   principal; the console routes `/teams`, `/clients`, `/settings`, `/encryption-keys`,
   `/teams/{teamId}/{tenants|teams|clients|settings|access|usage}` and `/tenants/{tenantId}/…`
   ([#636](https://github.com/NCodeGroup/identity/issues/636),
-  [ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
-  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
-  [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
+  [ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md),
+  [ADR-1255](docs/decisions/1255-the-management-consoles-url-is-its-navigation-state-and-every-scopes-surface-has-its-own-address.md)).
 
 - **Master keys rotate, rekey on demand and are rewrapped and destroyed in the background.** An owner's active master key
   (the platform's or a tenant's) rotates after `SecretProtection:MasterKeys:RotationPeriod` (365 days) in a daily pass that
@@ -4128,8 +4088,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `master_key.rotated` and `master_key.destroyed` are `key` audit events; and the management console shows the keys of a
   tenant and of the platform with a confirmed "Rekey" action that says how long to wait when it comes too soon
   ([#171](https://github.com/NCodeGroup/identity/issues/171),
-  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
-  [ADR-1422](docs/decisions/1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md)).
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md),
+  [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md)).
 
 - **A management problem that asks the caller to wait carries the wait.** A rekey or a root key change that comes too
   soon, and a root key that is unavailable, answer through `RetryAfterProblem.Create` with `Retry-After` and
@@ -4137,7 +4097,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ManagementProblemMembers` names every extension member the management API writes, and the console's
   `apiErrorMessage` says "Try again in …" with the wait in seconds, minutes or hours
   ([#571](https://github.com/NCodeGroup/identity/issues/571),
-  [ADR-1422](docs/decisions/1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md)).
+  [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md)).
 
 - **The host image rewraps every master key offline.** `secret-protection rewrap` wraps every master key under the
   configured root key provider and recovery public key, and `secret-protection rewrap-recovery` replaces only the
@@ -4190,15 +4150,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   key the caller names, implemented by the AWS KMS, Google Cloud KMS and Azure Key Vault wrappers, and
   `IOwnerRootKeyManager` sets, removes and validates a root key
   ([#174](https://github.com/NCodeGroup/identity/issues/174), [#574](https://github.com/NCodeGroup/identity/issues/574),
-  [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
-  [ADR-1429](docs/decisions/1429-a-tenant-root-key-can-be-reached-through-an-identity-the-tenant-grants.md)).
+  [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)).
 
 - **A package maps the exceptions it owns to protocol errors.** `IOpenIdExceptionTranslator` implementations, registered
   as a collection, turn an exception into the error a protocol endpoint answers with; the endpoint filters and the
   authorization endpoint consult them, and an exception none answers is `server_error`
   ([#573](https://github.com/NCodeGroup/identity/issues/573),
-  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md)).
 
 - **Every merge to `main` and every release tag publishes the host image, the management console image and the chart.**
   The three artifacts share one version on GHCR, are signed and carry build provenance, and a verification job pulls
@@ -4230,14 +4188,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   script; its calls carry the `__Host-Http-bff.mgmt` cookie and the anti-forgery header, and the console's origin is
   separate from the OP's login, consent and account pages
   (RFC 10017,
-  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
   [ADR-1438](docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 
 - **Management authority comes from role assignments.** No role claim but the bootstrap administrator's `GlobalAdmin`
   confers authority; a tenant administrator reaches nothing above its tenant, so the control-plane tenant's
   administrators never reach the platform or a team. The host-managed bootstrap administrator client is changed by no
   management caller, so authority over the root tenant's clients never yields a `GlobalAdmin` token
-  ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
+  ([ADR-1417](docs/decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md),
   [#556](https://github.com/NCodeGroup/identity/issues/556)).
 
 - **A management route's caller is only the principal its management access token authenticates.** On every management
@@ -4250,15 +4209,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#707](https://github.com/NCodeGroup/identity/issues/707),
   [#715](https://github.com/NCodeGroup/identity/issues/715),
   [#716](https://github.com/NCodeGroup/identity/issues/716),
-  [ADR-1482](docs/decisions/1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md),
-  [ADR-1484](docs/decisions/1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md)).
+  [ADR-1067](docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
 
 - **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the
   authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a child
   team's the limits its parent team sets, nor a tenant's the limits its team sets. A client's registration update keeps
   the limits its settings carry
-  ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  ([ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **A management route answers a caller without authority the same for any identifier.** Every team, tenant, client,
@@ -4267,8 +4226,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant, client, resource server, scope, grant, account, setting, secret, key, owner or administrator exists, and no
   row is read for the caller. A client's or resource server's settings, scopes and secrets are authorized at its own
   node, so its owner edits them, and creating or rotating a secret takes the authority to create there
-  ([ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
-  [ADR-1451](docs/decisions/1451-every-management-route-authorizes-at-its-node-before-it-reads.md),
+  ([ADR-1424](docs/decisions/1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md),
   [#558](https://github.com/NCodeGroup/identity/issues/558), [#596](https://github.com/NCodeGroup/identity/issues/596)).
 
 - **A unit of work resolves a tracked row only in its ambient tenant.** A store's lookup that the change tracker answers
@@ -4282,7 +4240,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   days by default, so the window a compromised key can be abused in is bounded, each successor is published two days
   before the first token it signs, and a retired key stays published for seven days or the longest token lifetime plus
   the clock skew, whichever is longer, so no token outlives the key that verifies it
-  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
+  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md),
   [ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)).
 - **An SD-JWT presentation is verified fail-closed under bounded work.** The issuer-signed JWT must be a compact JWS,
   never a Nested JWT whatever decryption keys the verifier's parameters name, signed with an asymmetric key under
@@ -4305,7 +4263,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   refuses an over-long presentation before any disclosure is decoded and `MaxNestingDepth` bounds the depth the
   resolved claims may reach; the issuer refuses claims beyond either limit, and both are validated when the host
   starts ([#73](https://github.com/NCodeGroup/identity/issues/73),
-  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)).
+  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md)).
 
 - **A COSE message (`NCode.Identity.Cose`) and a CWT (`NCode.Identity.Cwt`) are processed fail-closed under bounded
   work.** The algorithm of a message must be in the protected header bucket and in the caller's permitted list, which is
@@ -4330,7 +4288,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   its own configuration section is present, so a host can leave the call wired unconditionally and a further convenience
   inherits the same rule. `AddProductionSafety` is the one Production check, and it refuses each of those sections
   ([#441](https://github.com/NCodeGroup/identity/issues/441),
-  [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 
 - **The server refuses to start in Production with development-only settings or unprotected secrets.**
   `AddProductionSafety(configuration, hostEnvironment)` validates configuration during composition and throws before the
@@ -4343,7 +4301,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   hosts keep their conveniences. Each setting checked is correct in Development, dangerous on a public origin, and
   silent — a deployment that forgets to override it starts, serves traffic, and looks healthy — so each is a startup
   failure rather than a log warning
-  ([ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+  ([ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 
 - **The hosts serve HTTPS only in Production and refuse to start otherwise.** `AddTransportSecurity(hostEnvironment)`
   (`NCode.Identity.AspNetCore`, composed by `AddProductionSafety` for the reference host and called by the management
@@ -4379,7 +4337,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the `SecretProtection` section names and which lives outside the database, so a database dump or backup is useless
   without it. In Production, `AddProductionSafety` refuses to start the host when the key ring has no repository or no
   `IXmlEncryptor`
-  ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 - **Forwarded headers are trusted only from configured proxies (`AddTrustedForwardedHeaders` /
   `UseTrustedForwardedHeaders`).** When TLS terminates at a proxy, the connection the application sees is plaintext
@@ -4392,15 +4350,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   has bits set past its prefix (so `10.0.0.4/8` is never masked to `10.0.0.0/8`), and a forward limit below one stop
   the host. `NCode.Identity.AspNetCore` holds it, and the reference host and the management console host compose it
   ([#611](https://github.com/NCodeGroup/identity/issues/611),
-  [ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md),
-  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
+  [ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
+  [ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)).
 
 - **Host configuration sections are bound strictly and validated.** `InteractiveAuthentication`, `DeveloperKeys` and
   `Cors` are bound strictly into `InteractiveAuthenticationOptions`, `DeveloperKeysOptions` (read through
   `DeveloperKeysConfiguration.GetDeveloperKeysOptions()`) and `DeveloperCorsOptions`, so a key that maps to no option
   stops the host, and an allowed origin that can never match a browser's `Origin` header (a trailing slash, a path, a
   wildcard) stops the host with an error naming the entry. `TrustedForwardedHeadersOptions` and `InteractiveAuthenticationOptions`
-  are resolved through `IOptions<T>` ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
+  are resolved through `IOptions<T>` ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 
 - **The reference host and the management console host send `Strict-Transport-Security` on every HTTPS response outside
   Development.** `AddStrictTransportSecurity` (`NCode.Identity.AspNetCore`) binds `StrictTransportSecurityOptions` strictly from
@@ -4411,8 +4369,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `max-age=31536000; includeSubDomains`; `Preload` requires `IncludeSubDomains` and a `MaxAge` of at least 365 days;
   `localhost`, `127.0.0.1` and `[::1]` never receive it; a deployment whose TLS-terminating proxy sends the header sets
   `StrictTransportSecurity:Enabled` to `false`
-  ([ADR-1258](docs/decisions/1258-the-server-sends-strict-transport-security-outside-development.md),
-  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
+  ([ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
   issues [#304](https://github.com/NCodeGroup/identity/issues/304),
   [#611](https://github.com/NCodeGroup/identity/issues/611)).
 
@@ -4427,7 +4384,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   be the root tenant. Tenants created at runtime are seeded through the same pipeline, so none of them receives a client
   whose tokens carry `GlobalAdmin` or accounts with well-known passwords. `GlobalAdmin` is conferred only on the
   bootstrap client in its tenant, not on a client that shares its identifier elsewhere
-  ([ADR-1166](docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)).
+  ([ADR-1166](docs/decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)).
 
 - **No development or conformance credential is committed.** The bootstrap administrator's client secret
   (`BootstrapAdmin__ClientSecret`), the developer seed's administrator password
@@ -4442,7 +4399,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   administrator, and without the conformance credentials the seed skips those clients and the test user; the
   `Conformance` profile starts by hand after `Get-ConformanceSeedCredentials.ps1 -SetEnvironment`
   ([#496](https://github.com/NCodeGroup/identity/issues/496), [#514](https://github.com/NCodeGroup/identity/issues/514),
-  [ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
+  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 
 - **The host chart takes its root key by reference, and its README documents rotating it by hand.**
   `secretProtection.rootKeyProvider` selects `local`, `aws-kms`, `azure-key-vault` or `google-cloud-kms` (`ephemeral`
@@ -4451,14 +4408,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   unwrap through a rotation. The README warns never to overwrite a root key in place, such as by writing other contents
   into the same Secret, because that destroys the only key that can unwrap the existing master keys and leaves the
   stored secrets unreadable after the next restart, recoverable only with the recovery key
-  ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 - **The host image's base images are pinned by digest and tracked by Dependabot.** Every `FROM` of the host and console
   Dockerfiles names its tag and the digest of its multi-architecture index, and each Dockerfile takes its .NET and Node
   versions from those lines alone, with no version build argument; a weekly `docker` Dependabot stream moves the digests
   of both images in one pull request, and the `Host
   image` workflow checks the Node major against `.node-version`
-  ([ADR-1249](docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md), issue
+  ([ADR-1248](docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md), issue
   [#226](https://github.com/NCodeGroup/identity/issues/226)).
 
 - **Dependencies are pinned to releases without known advisories.** Every `Microsoft.AspNetCore.*`,
@@ -4472,7 +4429,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   lockfile, and `pnpm add` picks the newest version old enough. The window equals Dependabot's npm cooldown, stated in
   `dependabot.yml`, because on pnpm 10 Dependabot enforces its cooldown on every version already in the lockfile.
   Dependabot security updates bypass both gates, and any other urgent version goes in `minimumReleaseAgeExclude`
-  ([ADR-1153](docs/decisions/1153-one-release-age-window-gates-frontend-dependencies.md)).
+  ([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 - **Dependabot raises security updates, and version updates are held.** The `nuget` and `npm` ecosystems in
   `.github/dependabot.yml` set `open-pull-requests-limit: 0`, GitHub's documented way to hold version updates while
@@ -4490,15 +4447,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   for the `use` and `alg` its metadata declares; the JSON serializations are rejected. `DecodedJwt.SigningKey` reports
   the verifying key, and a Nested JWT also reports its `EncryptionHeader` and `DecryptionKey`. The encoder marks a
   Nested JWT with `cty` `JWT`
-  ([ADR-1154](docs/decisions/1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)).
+  ([ADR-1154](docs/decisions/1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)).
 
 - **The JOSE library does not implement the unsecured `none` algorithm, and the JWT validator rejects an unsigned
   token.** The default algorithm registry has no `none` signature algorithm, a JWS that names it fails as an unsupported
   algorithm, and every policy refuses `none` by name. The JWT validator rejects an unsigned (`alg:none`) token at every
   level, with no option to accept one, so such a token authenticates nowhere: not at UserInfo, introspection, token
   exchange or the management API
-  ([ADR-1154](docs/decisions/1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
-  [ADR-1295](docs/decisions/1295-the-jose-library-does-not-implement-the-none-algorithm.md),
+  ([ADR-1154](docs/decisions/1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
+  [ADR-1282](docs/decisions/1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md),
   [#379](https://github.com/NCodeGroup/identity/issues/379)).
 
 - **JWT validation enforces an explicit, expected `typ` (RFC 8725 §3.11).**
@@ -4516,7 +4473,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   and through every `IJwtValidator` call, including one that sets no `ValidKeyManagementAlgorithms`.
   `AlgorithmCodes.KeyManagement.RsaPkcs1` is the name a policy refuses, and the algorithm settings and the protocol
   client refuse `RSA1_5` even when a host registers an implementation of its own
-  ([ADR-1282](docs/decisions/1282-the-jose-library-does-not-implement-rsa1-5.md),
+  ([ADR-1282](docs/decisions/1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md),
   [#339](https://github.com/NCodeGroup/identity/issues/339)).
 
 - **Algorithm settings name only what the server can safely honor.** The server neither compresses what it encrypts nor
@@ -4526,14 +4483,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   the CIBA signing list admits only asymmetric signatures; and no list offers `RSA1_5`. The request-object, UserInfo and
   ID token lists apply to clients as well as tenants, and `RegisterClientRequest` and `RegisterClientResponse` carry
   that registration metadata
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **ES256, ES384, ES512 and ES256K accept only their own curve.** RFC 7518 §3.4 binds `ES256`, `ES384` and `ES512` to
   P-256, P-384 and P-521, and RFC 8812 binds `ES256K` to secp256k1, so a 256-bit key on another curve does not sign as
   ES256, a P-256 key never signs as `ES256K`, and a secp256k1 key never signs as `ES256`. `EccSecretKey.GetECCurve()`
   reads the actual curve from the key material, not from the key size
-  ([ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  ([ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 
 - **A key is refused when it is declared for an algorithm that rejects its curve.** `ValidateKeyAlgorithm` checks the
   declared key's type, size and curve with the check the cryptographic runtime makes before it uses the key, so a
@@ -4547,9 +4503,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   authentication tag ([#327](https://github.com/NCodeGroup/identity/issues/327),
   [#336](https://github.com/NCodeGroup/identity/issues/336), [#337](https://github.com/NCodeGroup/identity/issues/337),
   [#534](https://github.com/NCodeGroup/identity/issues/534),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
-  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md),
-  [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
+  [ADR-1398](docs/decisions/1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md),
+  [ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 
 - **ECDH-ES publishes only the public half of its ephemeral key and refuses a degenerate agreement.** The `ECDH-ES`
   and `ECDH-ES+A*KW` key management algorithms write an `epk` header that carries only the required members of the key
@@ -4558,12 +4514,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   confidential. An X25519 or X448 agreement whose shared secret is all zeros, from an `epk` or a recipient key of small
   order, is refused on both sides (RFC 7748 §6) ([#327](https://github.com/NCodeGroup/identity/issues/327),
   [#336](https://github.com/NCodeGroup/identity/issues/336),
-  [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
+  [ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 
 - **A failed JWE key unwrap is indistinguishable from a failed authentication tag.** A failed key unwrap substitutes a
   random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with one
   `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
-  ([ADR-1296](docs/decisions/1296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
+  ([ADR-1282](docs/decisions/1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md),
   [#380](https://github.com/NCodeGroup/identity/issues/380)).
 
 - **A JOSE token's encoded members are decoded whole or refused.** Every base64url segment of a JWS or JWE, the
@@ -4577,16 +4534,16 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed
   before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release
   ([#440](https://github.com/NCodeGroup/identity/issues/440),
-  [ADR-1116](docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
+  [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 
 - **An `AKP` JWK thumbprint covers `alg`.** The thumbprint is computed over `alg`, `kty` and `pub`, as RFC 9964 §6
   requires, so two `AKP` keys that differ only in algorithm have different thumbprints
-  ([ADR-1271](docs/decisions/1271-a-key-type-registers-its-json-web-key-rules.md)).
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)).
 
 - **A JWT signed with a certificate key is checked against the certificate's validity in UTC.** Client assertions,
   request objects and CIBA requests signed with an expired certificate fail, and current ones pass, whatever the host's
   time zone. A client key registered or published with an `x5c` certificate is subject to this certificate-lifetime
-  check ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  check ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **RFC 7519 `NumericDate` values are read strictly and never fault the server.** `NCode.Identity.Json.DateCoercion` offers the
   non-throwing `TryFromNumericDate(long)`, `TryFromNumericDate(double)` (fractional seconds, kept to tick precision as
@@ -4600,7 +4557,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   date string, or validation fails, so an unreadable `nbf` never lets a token be used early and an unreadable `exp`
   never makes it immortal. `DateTimeOffset.FromUnixTimeSeconds` / `FromUnixTimeMilliseconds` are banned in shipping code
   (`RS0030`) ([#33](https://github.com/NCodeGroup/identity/issues/33),
-  [ADR-1123](docs/decisions/1123-numeric-date-is-read-strictly-and-range-guarded.md)).
+  [ADR-1123](docs/decisions/1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md)).
 
 - **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
   are banned (`RS0030`) in production and test code, which parse with `JsonElement.Parse` and read a stream with
@@ -4615,7 +4572,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `request_uri` request objects and other inbound text are decoded strictly. JWT UserInfo and introspection responses
   are written as strict UTF-8 bytes with `Content-Type: application/jwt`, and `text/plain` responses declare
   `charset=utf-8`. The build bans lenient encodings with `RS0030` in every project
-  ([ADR-1266](docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
+  ([ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 
 - **Stored secrets are protected by a key hierarchy under an external root key.** Stored private and symmetric secrets
   are AES-256-GCM envelopes (`nce1.`) under a fresh data key, wrapped by an HKDF-derived purpose key of the owning
@@ -4624,8 +4581,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   and the application data a host protects under the platform, and no stored secret. The public contracts are
   `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`, `SecretOwner` and
   `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant deletes
-  its master keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
-  [ADR-1413](docs/decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md),
+  its master keys ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
   [#167](https://github.com/NCodeGroup/identity/issues/167)).
 
 - **A database dump or backup reveals no secret material without the root key, and every host names its root key
@@ -4636,7 +4593,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `secretProtection.rootKeyProvider` in every environment. Production refuses the ephemeral root key provider, an inline
   local root key (whatever provider is selected), and running without a recovery-key decision, and reports them with
   every other production-safety finding as "setting(s) are unsafe for a production deployment"
-  ([ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md),
+  ([ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
   [#495](https://github.com/NCodeGroup/identity/issues/495)).
 
 - **A client secret that is only compared is stored as a one-way verifier, and its verification is bounded.** The
@@ -4648,7 +4605,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (600,000, the least a Production host may set), and every verification with a work factor takes a turn of the
   process's `ISecretVerificationGate`, sized by `SecretVerificationGateOptions` (`MaxConcurrency`, `MaxQueueLength`,
   `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound
-  ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **Failed client authentications are limited per remote address by default, without a per-client lockout.** Every
   handler of a client-authentication method that verifies a credential asks `IClientAuthenticationAttemptLimiter`
@@ -4682,12 +4639,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   its key ring, and the host names each undecryptable key rather than letting Data Protection write a default key over
   them; a Development host revokes the key and logs a warning. `DataProtectionKeyRing:RevokedKeyIds`
   (`DataProtectionKeyRingOptions`) revokes keys by ID, and `AddConfiguration` registers Data Protection
-  ([ADR-1247](docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md),
+  ([ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
   [#239](https://github.com/NCodeGroup/identity/issues/239)).
 
 - **Every host signs with the keys tenant provisioning persists.** Tests included, no host signs with ephemeral
   in-memory developer keys; development conveniences run through the production path
-  ([ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md),
+  ([ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
   [#441](https://github.com/NCodeGroup/identity/issues/441)).
 
 - **Outbound calls to caller-supplied URLs share one guarded, bounded client.** Every fetch of, and delivery to, a
@@ -4698,12 +4655,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   bounded by default to 10 seconds per attempt and 30 seconds in total, so an endpoint that takes longer than 10 seconds
   to answer fails that delivery attempt, and back-channel logout and CIBA deliveries do not read the response body
   ([#444](https://github.com/NCodeGroup/identity/issues/444),
-  [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+  [ADR-1315](docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)).
 
 - **Every server-initiated outbound HTTP call to a client-controlled URL is SSRF-guarded uniformly**
-  ([ADR-1095](docs/decisions/1095-sector-identifier-uri-fetch-and-ssrf-guard.md),
-  [ADR-1106](docs/decisions/1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md),
-  [ADR-1111](docs/decisions/1111-complete-outbound-fetch-ssrf-coverage.md)). One injectable guard,
+  ([ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md),
+  [ADR-1106](docs/decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md),
+  [ADR-1315](docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)). One injectable guard,
   `IOutboundHttpForgeryGuard`, pins each connection to the resolved IP and refuses loopback, private, CGNAT, link-local,
   unique-local, multicast and reserved ranges (the IANA special-use registry), which defeats DNS rebinding, and no
   guarded call follows a redirect, so a registered internal URL cannot turn the OP into a confused deputy. That address
@@ -4728,7 +4685,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   issuer origin or its mutual-TLS alias authority, and a DPoP proof's `htu` is compared with the endpoint's URL under
   the origin the tenant publishes for it; neither is built from the request's `Host`, so a forged `Host` cannot widen
   what the server accepts ([#518](https://github.com/NCodeGroup/identity/issues/518),
-  [ADR-1387](docs/decisions/1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md)).
+  [ADR-1365](docs/decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)).
 
 - **An absolute URI means the same on every platform.** `NCode.Identity.OpenId.AbsoluteUri.TryParse` accepts only text
   that names its own scheme and contains no whitespace, so `/path` is never read as `file:///path` and whitespace is
@@ -4740,13 +4697,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   returns only the settings marked `IsDiscoverable` and the endpoints marked discoverable, and no query-string parameter
   widens it, so an anonymous caller cannot enumerate non-advertised settings or endpoints; the full merged settings view
   is served only by the authenticated effective-settings endpoints of the management API
-  ([ADR-1040](docs/decisions/1040-effective-settings-preview-endpoints.md)).
+  ([ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)).
 
 - **Discovery metadata is secure by default and operator-overridable
-  ([ADR-1083](docs/decisions/1083-secure-by-default-discovery-metadata.md)).** The OpenID Provider advertises no
+  ([ADR-1010](docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).** The OpenID Provider advertises no
   deprecated or insecure flows out of the box: `response_types_supported` defaults to `["code"]`,
   `grant_types_supported` omits `implicit`, `code_challenge_methods_supported` defaults to `["S256"]`, and
-  `subject_types_supported` defaults to `["public"]` so the required OpenID Connect Discovery field is present. The
+  `subject_types_supported` defaults to `["public", "pairwise"]` so the required OpenID Connect Discovery field is present. The
   cross-trust-boundary token-signing fields (`id_token`, `userinfo`, `access_token`) advertise asymmetric algorithms
   only, never `HS256`; `request_object` and `token_endpoint_auth` signing list the full set for `client_secret_jwt`.
   Discovery and request-time enforcement share one settings source, so the implicit and hybrid authorization paths are
@@ -4762,7 +4719,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   and `POST /oauth2/bc-authorize` answer with `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache`, so
   no client or intermediary cache keeps the one-time `request_uri`, `device_code` and `user_code`, or `auth_req_id` (RFC
   9126 §2.2, RFC 8628 §3.2, CIBA Core §7.3) ([#488](https://github.com/NCodeGroup/identity/issues/488),
-  [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+  [ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)).
 
 - **No CORS on the front-channel endpoints.** The authorization, continue, and end-session endpoints and the interactive
   login/consent surface carry `IFrontChannelEndpointMetadata` (`WithFrontChannel()`), and `UseDeveloperCors` applies the
@@ -4771,7 +4728,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   preflight to the endpoint itself, which refuses it with `405` and no CORS headers; `UseDeveloperCors` answers no
   preflight that selects no endpoint, such as one for a method a front-channel path does not map. A host that adds its
   own CORS middleware skips both
-  ([ADR-1109](docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md)).
+  ([ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
 
 - **Authorization responses carry only wire parameters.** The authorization response executor applies
   `ShouldSerialize(…, SerializationFormat.OpenId)`, the contract the JSON serializer uses, so internal `$`-prefixed
@@ -4795,8 +4752,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   the `Location` header. The token endpoint compares `redirect_uri` ordinally with the authorization request's value
   (RFC 6749 §4.1.3), so a value that differs in the case of its host or in its user information is refused with
   `invalid_grant` (issue [#243](https://github.com/NCodeGroup/identity/issues/243))
-  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md),
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **A redirect URI's kind is checked, and a URI of no kind is never permitted.** A `private_use` URI has a
   reverse-domain-name scheme of at least two non-empty labels, such as `com.example.app`, so `javascript:`, `data:`,
@@ -4812,18 +4769,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   `post_logout_redirect_uri` like an unregistered one when `redirect_uri_kinds_supported` excludes its kind, and escapes
   its `Location` header as an authorization response's is (issue
   [#247](https://github.com/NCodeGroup/identity/issues/247))
-  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md),
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **`response_types_supported` is the only control over the tokens the authorization endpoint returns.** To forbid an
   access token from the authorization endpoint, a tenant or client lists no response type that includes `token`; the
   default list is `code` alone. Discovery, dynamic client registration and the authorization endpoint agree on the one
   list, and a refusal is `unsupported_response_type` when the tenant imposes it and `unauthorized_client` when only the
-  client does ([ADR-1142](docs/decisions/1142-listed-response-types-are-the-only-front-channel-token-control.md)). A
+  client does ([ADR-1141](docs/decisions/1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)). A
   response type that returns a token or an ID token defaults to the fragment response mode on every path: without a
   `response_mode`, the authorization endpoint returns such a response — tokens or an error — in the fragment, as OAuth
   2.0 Multiple Response Type Encoding Practices requires, so no token is placed in a URL query
-  ([ADR-1141](docs/decisions/1141-response-types-are-whole-values.md)).
+  ([ADR-1141](docs/decisions/1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)).
 
 - **`response_modes_supported` is checked once, for the requested and the resolved mode.** When the setting is set, the
   authorization endpoint requires both the response mode as the request wrote it, so `jwt` itself must be listed, and
@@ -4848,10 +4805,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   advertised in discovery), which accepts the registered transformations and defaults to `S256` alone, so a deployment
   that registers another transformation offers it by listing it (issue
   [#50](https://github.com/NCodeGroup/identity/issues/50),
-  [ADR-1079](docs/decisions/1079-extensible-pkce-code-challenge-methods.md)). A `code_challenge` must name its
+  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)). A `code_challenge` must name its
   `code_challenge_method` (`AuthorizationRequest.CodeChallengeMethod` is `null` when the request names none), and both
   the challenge and the verifier must have the RFC 7636 syntax (43 to 128 unreserved characters)
-  ([ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)).
+  ([ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)).
 
 - **A request object's parameters are the only parameters of an authorization request (RFC 9101 §6.3), so an unsigned
   parameter cannot change a signed request.** The outer parameters follow one table,
@@ -4867,7 +4824,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   authorization endpoint verifies the object before it redirects, takes `redirect_uri`, `response_mode` and `state` from
   it, and returns an error raised before then without redirecting
   ([ADR-1201](docs/decisions/1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), issues
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md), issues
   [#229](https://github.com/NCodeGroup/identity/issues/229), [#238](https://github.com/NCodeGroup/identity/issues/238)).
 
 - **A signed request object is short-lived and addressed to the issuer.** The authorization endpoint (`request` /
@@ -4880,8 +4837,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   names the issuer as its audience. The `request_object_nbf_required` setting (`Or` merge, default `false`) makes `nbf`
   mandatory. The FAPI 2.0 profile pins both, at 60 minutes and `true`. A CIBA signed authentication request carries
   `iat`, `nbf`, `exp`, and `jti` (CIBA Core §7.1.1), and the CIBA loader applies the client's `clock_skew`
-  ([ADR-1187](docs/decisions/1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  ([ADR-1187](docs/decisions/1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md),
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **An unsigned (`alg:none`) request object is rejected with `request_not_supported`** (issue
   [#131](https://github.com/NCodeGroup/identity/issues/131)). As OpenID Connect Core 1.0 §6.1 requires,
@@ -4898,22 +4855,22 @@ Until the first stable release, the [Unreleased] section describes the product a
   authenticating client's effective `token_endpoint_auth_signing_alg_values_supported`, so a client's narrower list, and
   the ceiling of a security profile the client (not only its tenant) selects, such as FAPI 2.0, bind the algorithm of
   its `private_key_jwt` and `client_secret_jwt` assertions
-  ([ADR-1149](docs/decisions/1149-settings-declare-the-scopes-they-apply-to.md)). At these trust boundaries an unset
+  ([ADR-1149](docs/decisions/1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). At these trust boundaries an unset
   list, or a list narrowed to nothing, permits no algorithm
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **The `fapi1-advanced` security profile requires `nonce` and `state`.** It refuses, with `invalid_request`, an
   authorization request for the `openid` scope without `nonce` and any other request without `state` (FAPI 1.0 Advanced
-  §5.2.2.2–3, [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  §5.2.2.2–3, [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security profile's
   signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party cannot sign with an Ed448 key
   through `EdDSA`, and `dpop_signing_alg_values_supported` is under the same ceiling
-  ([ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
+  ([ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md), issue
   [#333](https://github.com/NCodeGroup/identity/issues/333)).
 
 - **A pushed `request_uri` is consumed once and bound to the client that pushed it, and client secrets are never
-  persisted with it** ([ADR-1089](docs/decisions/1089-pushed-authorization-requests.md)). A replay is rejected, a
+  persisted with it** ([ADR-1089](docs/decisions/1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md)). A replay is rejected, a
   `request_uri` issued to another client is rejected with `invalid_request_uri`, and `client_secret`, `client_assertion`
   and `client_assertion_type` are stripped before persistence and never replayed. The PAR endpoint derives the response
   delivery when a request is pushed (RFC 9126 §2.1), so it refuses a `redirect_uri` the client has not registered at
@@ -4941,7 +4898,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with `invalid_request`. The developer single-page-application clients register `none`, a conformance client registers
   only its configured method, and the bootstrap administrator registers `client_secret_basic` and presents its secret
   with HTTP Basic, as does the API reference's client-credentials login
-  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **Every client secret is held in the form its client's method needs.** `IClientSecretIssuer` issues every client
   secret, for the management API, dynamic client registration and the seeds, as `ClientAuthenticationMethodDescriptor`'s
@@ -4956,7 +4913,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   that compares its secret cannot register a symmetric request-object algorithm such as `HS256`, and
   `OpenIdConfidentialClient.CredentialId` names the credential that authenticated the client. A verification refused a
   turn of the `ISecretVerificationGate` is answered `503 Service Unavailable` with `temporarily_unavailable` and
-  `Retry-After: 1`, because the secret was never compared ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  `Retry-After: 1`, because the secret was never compared ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **Client credentials stop authenticating at their expiry, and client secrets have at least 256 bits.** A client secret
   or registered key whose `expiresWhen` has passed does not authenticate its client.
@@ -4967,7 +4924,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Client assertions have a bounded lifetime, and JWT lifetime validation reads `iat`** (issue
   [#78](https://github.com/NCodeGroup/identity/issues/78),
-  [ADR-1124](docs/decisions/1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)). A `private_key_jwt` /
+  [ADR-1187](docs/decisions/1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md)). A `private_key_jwt` /
   `client_secret_jwt` assertion is rejected with `invalid_client` when its lifetime exceeds the non-discoverable
   `client_assertion_max_lifetime` setting (`OpenIdSettingKeys.ClientAssertionMaxLifetime`, default five minutes, Auth0's
   maximum). The setting is a `Min` ceiling, so a tenant or client may only shorten it, and the FAPI 2.0 security profile
@@ -4984,7 +4941,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A DPoP proof or client assertion is accepted once, across every replica.** The replay stores record a DPoP proof or
   a `private_key_jwt` / `client_secret_jwt` assertion with one atomic add-if-absent, so two concurrent presentations of
   the same one cannot both pass, and with Valkey configured the record holds across every replica
-  ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
+  ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)).
 
 - **A client's public keys have one source and are imported under one policy.** A client's keys are the keys stored for
   it (registered by value at dynamic client registration or imported through the management API) or, when it has a
@@ -4996,14 +4953,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   key added while a `jwks_uri` is set. Registration imports the keys of a `jwks` as the client's secrets, every
   registration response projects them back from the stored keys, and a registration update (RFC 7592) sets the client's
   public keys to its `jwks`, or removes them when it switches to a `jwks_uri`
-  ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **A client's key set carries only consistent public keys.** A key carrying any private or symmetric member (`d`, `p`,
   `q`, `dp`, `dq`, `qi`, `oth`, `k`, `priv`) is refused at registration, at the management import, and by every key-type
   descriptor, and a `jwks_uri` set that publishes one is refused as a whole, so no private or symmetric key material is
   stored in settings or echoed back. A key's `use`, `key_ops`, and `alg` must agree with each other and with the key at
   every entry point, including the management update of a client key's metadata
-  ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **`tls_client_auth` validates the presented certificate's chain in the server and fails closed.** Matching a
   registered subject is not enough, and the server never trusts a TLS terminator to have validated the chain, so a
@@ -5013,13 +4970,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   usage, validity, and `tls_client_auth_revocation_mode`. A `tls_client_auth` client with no trust anchors does not
   authenticate. The replaceable `IClientCertificateChainValidator` performs the check, and a failure is audited as
   `client_certificate_untrusted`
-  ([ADR-1173](docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
+  ([ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)).
 
 - **Behind a proxy, a forwarded certificate that cannot be decoded fails the request, and the connection's certificate
   is never taken for the client's.** When a forwarded certificate header is configured it is the only source: an absent
   header is no certificate, and a value the configured format cannot decode is `invalid_request` with a warning naming
   the header and the format, so the proxy's own certificate on a re-encrypting hop never stands in for the client's
-  ([ADR-1172](docs/decisions/1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
+  ([ADR-1172](docs/decisions/1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md)).
 
 - **Client certificates are checked for revocation through OCSP and every CRL form, failing closed.**
   `tls_client_auth_revocation_mode` is `online` (the default), `online_soft_fail`, which refuses a revoked certificate
@@ -5049,10 +5006,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   certificate chains to the same trust anchor and is not revoked; a list signed with RSASSA-PSS verifies. A list that is
   not DER, not current, not properly signed, or not understood is `Unknown`. Log events 2050 and 2061 name the
   revocation source and record the `Location`
-  ([ADR-1173](docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md),
-  [ADR-1252](docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  [ADR-1259](docs/decisions/1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md),
-  [ADR-1400](docs/decisions/1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md),
+  ([ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md),
+  [ADR-1400](docs/decisions/1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md),
+  [ADR-1259](docs/decisions/1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md),
   issues [#207](https://github.com/NCodeGroup/identity/issues/207), [#255](https://github.com/NCodeGroup/identity/issues/255),
   [#38](https://github.com/NCodeGroup/identity/issues/38)).
 
@@ -5067,16 +5023,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   that misses a CRL or OCSP result recorded a moment earlier finds it and does not download it once more; a parsed list
   is cached per location until its `nextUpdate` or `MaxCacheDuration` and verified by each check; and a retrieval or
   responder location that yields no usable answer is not repeated for `FailureCacheDuration`
-  ([ADR-1252](docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  [ADR-1366](docs/decisions/1366-the-revocation-retrieval-checks-its-caches-again-inside-the-shared-retrieval.md),
+  ([ADR-1400](docs/decisions/1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md),
   issues [#207](https://github.com/NCodeGroup/identity/issues/207),
   [#255](https://github.com/NCodeGroup/identity/issues/255), [#500](https://github.com/NCodeGroup/identity/issues/500)).
 
 - **Dynamic Client Registration is protected by default.** The `registration_endpoint_allow_anonymous` setting defaults
   to `false`, so registration requires an initial access token, and it merges with the boolean meet, so a more specific
-  scope cannot loosen it ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md)). The registration endpoint
+  scope cannot loosen it ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)). The registration endpoint
   validates every presented initial access token, even when anonymous registration is allowed
-  ([ADR-1192](docs/decisions/1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)).
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)).
 
 - **An initial access token authorizes one registration and expires within 30 days.** Every token, scoped or not, is
   spent by the registration it authorizes, so a leaked token registers at most one client, and only until it expires.
@@ -5089,13 +5044,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   unspent, and a failure storing the client after the spend leaves it spent. `PersistedGrant<TPayload>.ConsumedWhen`
   records when a grant was spent, `ValidateAsync` answers `null` for a grant whose `ConsumedWhen` is set, and the
   default spends the grant row, whose concurrency token makes the spend atomic across replicas
-  ([ADR-1192](docs/decisions/1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md),
-  [ADR-1063](docs/decisions/1063-dynamic-client-registration.md), issue
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md), issue
   [#208](https://github.com/NCodeGroup/identity/issues/208)).
 
 - **Access tokens can be sender-constrained by DPoP (RFC 9449) or mutual TLS (RFC 8705)** (issue
   [#45](https://github.com/NCodeGroup/identity/issues/45),
-  [ADR-1097](docs/decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md)). `IProofOfPossessionService`
+  [ADR-1097](docs/decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)). `IProofOfPossessionService`
   evaluates, once per token request, an optional DPoP proof (the `DPoP` header: a `typ: dpop+jwt` JWS with an embedded
   public JWK, validated for signature, `htm`, `htu`, `iat`, `jti` and replay against the asymmetric
   `dpop_signing_alg_values_supported` set) and/or a mutual-TLS client certificate, and binds the issued token's
@@ -5132,12 +5086,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   evaluates an `AccessTokenPolicy` under which `ITokenService` issues access tokens; an extension can register its own
   service to add a bound, and `ResolvedResourceServer` carries its `SecretsProvider` (issue
   [#139](https://github.com/NCodeGroup/identity/issues/139),
-  [ADR-1075](docs/decisions/1075-runtime-consumption-of-resource-server-secrets.md),
-  [ADR-1158](docs/decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)).
+  [ADR-1158](docs/decisions/1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)).
 
 - **Resource indicators (RFC 8707) are a multi-valued `resource` parameter that narrows and validates the access token's
   audience** (issue [#50](https://github.com/NCodeGroup/identity/issues/50),
-  [ADR-1078](docs/decisions/1078-resource-indicators-rfc-8707.md)). The authorization endpoint rejects an unknown or
+  [ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)). The authorization endpoint rejects an unknown or
   disabled resource with `invalid_target` (`IOpenIdErrorFactory.InvalidTarget(...)`), the authorization-code token
   request rejects a resource not authorized at the authorization endpoint, and
   `IResourceServerCredentialResolver.ResolveAsync(…, requestedResources, …)`, the single choke point every grant funnels
@@ -5169,12 +5122,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   server: `OpenIdClient` and `PersistedClient` carry `ResourceServerId` (a foreign key in the client table),
   `IClientStore` exposes `GetPageByResourceServerAsync`, `IntrospectTokenCommand` carries the caller's
   `ResolvedResourceServer`, and `IOpenIdClientFactory.CreatePublicClientAsync` takes an `OpenIdClientDefinition`
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 
 - **The UserInfo endpoint requires an access token.** It authenticates only a bearer access token (in the
   `Authorization` header or the form body) whose audience includes the OpenID resource server, issued to an enabled
   client, and never the end-user's session cookie; anything else, an invalid or expired token included, is `401`
-  `invalid_token` ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  `invalid_token` ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **The ID token carries only the OpenID Connect ID-token claim set.** The client is identified in the ID token by the
   standard `azp` (authorized party) alone (`DefaultGetIdTokenPayloadClaimsHandler`); `tid` and `client_id` are JWT
@@ -5187,16 +5140,16 @@ Until the first stable release, the [Unreleased] section describes the product a
   `id_token_encryption_required`, a client that registers no `id_token_encrypted_response_alg` is refused rather than
   given a guess. Logout tokens follow the client's ID token registration, and one the server cannot protect as
   registered is skipped with a warning
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **Every authentication entry point resolves the verified credential to one stable, server-owned principal id** (issue
   [#60](https://github.com/NCodeGroup/identity/issues/60),
-  [ADR-1094](docs/decisions/1094-resolve-principal-at-every-authentication-entry-point.md)). Interactive login (after
+  [ADR-1035](docs/decisions/1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)). Interactive login (after
   the pluggable `IInteractiveCredentialVerifier`, before the session is established), resource-owner-password and bearer
   re-authentication all key grants, consent, sessions and revocation by `SubjectAuthentication.PrincipalId`, so revoking
   everything for a subject and reusing consent span a user's activity however they authenticated, and the internal
   `LocalAccountId` is never emitted as `sub`
-  ([ADR-1035](docs/decisions/1035-federated-principals-and-identity-resolution.md)).
+  ([ADR-1035](docs/decisions/1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)).
   `IPrincipalResolver.ResolvePrincipalIdAsync(OpenIdContext, ClaimsPrincipal, CancellationToken)` is a self-contained
   unit of work with no persistence types in its signature. The persistence and request `SubjectId` members hold the
   resolved principal id.
@@ -5204,7 +5157,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A client registered with `subject_type = pairwise` receives a per-sector Pairwise Pseudonymous Identifier as its
   `sub`**, so relying parties in different sectors cannot correlate the same end-user (issue
   [#47](https://github.com/NCodeGroup/identity/issues/47), OpenID Connect Core 1.0 §8,
-  [ADR-1093](docs/decisions/1093-pairwise-subject-identifiers.md)). The identifier is a stateless, deterministic
+  [ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)). The identifier is a stateless, deterministic
   derivation, `base64url(SHA-256(sectorIdentifier ∥ principalId ∥ tenantId ∥ pairwise_salt))`, through the replaceable
   `ISubjectIdentifierService`, with no table or store of its own. The principal id stays the one internal subject behind
   grants, consent, sessions and revocation; pairwise changes only the emitted `sub` in the ID token, access token,
@@ -5218,11 +5171,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DefaultValidateSubjectAuthenticationHandler` denies with `access_denied` unless the subject's satisfied `acr` is
   among the requested values, so no token is issued with a mismatched `acr`. Voluntary `acr` requests, including the
   whole `acr_values` parameter, stay best-effort
-  ([ADR-1091](docs/decisions/1091-acr-emission-and-conditional-auth-time.md)).
+  ([ADR-1039](docs/decisions/1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md)).
 
 - **Consent is granular: the end-user grants a subset of the requested scopes, and the OP issues only that subset**
   (issue [#40](https://github.com/NCodeGroup/identity/issues/40),
-  [ADR-1081](docs/decisions/1081-granular-consent-and-authorized-applications.md)). The consent record tracks the scopes
+  [ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)). The consent record tracks the scopes
   the subject decided on (`PersistedConsent.RequestedScopes`, `ConsentEntity.RequestedScopesJson`) and the subset they
   granted, so the authorize endpoint prompts only when a request introduces an undecided scope and otherwise issues the
   intersection of the request and the granted scopes. `IConsentService.ResolveConsentAsync` returns a
@@ -5234,7 +5187,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`SessionTerminationReasons.UserBlocked`), which revokes its grants and sends back-channel logout, and keeps its
   consents; every grant refuses a blocked principal with `access_denied`, and the authorization request and the
   interactive sign-in refuse it with `access_denied`
-  ([ADR-1226](docs/decisions/1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md),
   issue [#289](https://github.com/NCodeGroup/identity/issues/289)).
 
 - **Every grant that issues tokens for a subject validates it.** The device-code grant, the CIBA grant (at the token
@@ -5255,15 +5208,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   `SessionTerminationReasons.AuthorizationCodeReplay` (`authorization_code_replay`), so the grants issued under it, the
   access and refresh tokens issued from that code included, are revoked, its relying parties receive back-channel logout
   and the termination is audited; a code that expired unused terminates nothing
-  ([ADR-1228](docs/decisions/1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
+  ([ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md),
   issue [#287](https://github.com/NCodeGroup/identity/issues/287)). The session identifier (`sid`, RFC 9068 §2.2.1) is
   always emitted into subject-bound access tokens, and every endpoint that authenticates a self-issued access token
   (UserInfo, introspection, the management API) rejects a token whose `sid` resolves to a revoked session
   (`invalid_token`). There is no global access-token denylist and no per-token store: one indexed session lookup on
   first-party access-token authentication; external resource servers treat the JWT as self-contained (issue
   [#131](https://github.com/NCodeGroup/identity/issues/131),
-  [ADR-1112](docs/decisions/1112-authorization-code-replay-revokes-session.md), which refines
-  [ADR-1028](docs/decisions/1028-token-revocation-refresh-tokens-only.md)).
+  [ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md), which refines
+  [ADR-1028](docs/decisions/1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)).
 
 - **A concurrent second spend of a single-use grant is answered as a second spend.** Of two requests that spend one
   authorization code, device code, CIBA request, pushed authorization request, initial access token, or `state` of a
@@ -5271,7 +5224,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   row's concurrency token as a second spend: `invalid_grant` for an authorization code, a device code and a CIBA
   request, `invalid_request_uri` for a pushed request, `401` `invalid_token` for an initial access token, and `400` for
   the `state` of a paused authorization flow at the continue endpoint
-  ([ADR-1208](docs/decisions/1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), issue
+  ([ADR-1012](docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md), issue
   [#257](https://github.com/NCodeGroup/identity/issues/257)).
 
 - **A revocation wins a concurrency race.** The revocation endpoint, the device user code, logout and session eviction,
@@ -5279,7 +5232,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   retry when another write changed a grant first, so a concurrent write such as a sliding-expiration update never leaves
   a grant active or reaches the caller as `500` or `412`. `IPersistedGrantService.RevokeWhereAsync` revokes the grants a
   `GrantFilter` (including `GrantFilter.GrantId`) selects, and `DefaultRevokeGrantsOnSessionTerminatedHandler` revokes
-  through `IPersistedGrantService` ([ADR-1215](docs/decisions/1215-a-revocation-wins-a-concurrency-race.md), issue
+  through `IPersistedGrantService` ([ADR-1222](docs/decisions/1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md), issue
   [#269](https://github.com/NCodeGroup/identity/issues/269)).
 
 - **A rotated refresh token is spent with its successor, and a token two requests present at once is spent once.**
@@ -5289,12 +5242,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   implements the three members. Of two requests that present one refresh token at once, the losing request receives
   `invalid_grant` and the `token.refresh.replay` audit event, and under `refresh_token_reuse_policy` `revoke_all` the
   whole rotation family is revoked, the winner's successor token included (RFC 9700 §4.14.2)
-  ([ADR-1211](docs/decisions/1211-a-rotated-refresh-token-is-spent-with-its-successor.md), issue
+  ([ADR-1216](docs/decisions/1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md), issue
   [#260](https://github.com/NCodeGroup/identity/issues/260)).
 
 - **A replayed refresh token revokes its whole rotation family** (issue
   [#42](https://github.com/NCodeGroup/identity/issues/42),
-  [ADR-1087](docs/decisions/1087-refresh-token-reuse-detection-and-family-revocation.md)). A revoked refresh token
+  [ADR-1217](docs/decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md)). A revoked refresh token
   presented again, outside the client's `refresh_token_reuse_interval`, is audited (`token.refresh.replay`) and handled
   per the client setting `refresh_token_reuse_policy` (`OpenIdConstants.RefreshTokenReusePolicy`): `revoke_all`, the
   default, revokes every refresh token descended from the same authorization grant, so a stolen token cannot be
@@ -5304,7 +5257,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `GrantEntity`); a fresh issuance starts a family and each rotation inherits its parent's lineage.
   `IGrantStore.RevokeByRefreshTokenLineageAsync` and `IPersistedGrantService.RevokeByRefreshTokenLineageAsync` revoke a
   family, and the revocation endpoint revokes every refresh token of the presented token's rotation family
-  ([ADR-1217](docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), issue
+  ([ADR-1217](docs/decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md), issue
   [#270](https://github.com/NCodeGroup/identity/issues/270)).
 
 - **A public client's refresh token is rotated unless it is sender-constrained.** `refresh_token_rotation_policy` is
@@ -5313,7 +5266,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   public client's unbound refresh token (RFC 9700 §4.14.2), and the FAPI 2.0 security profile defaults a client to
   `unbound`. The policy merges by replacement, so a tenant's `always` is a default that a client's own `unbound`
   overrides; a public client's unbound token rotates whatever the policy
-  ([ADR-1216](docs/decisions/1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md), issue
+  ([ADR-1216](docs/decisions/1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md), issue
   [#268](https://github.com/NCodeGroup/identity/issues/268)).
 
 - **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family expires
@@ -5341,8 +5294,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   of `/account/sessions/list` are the time the session ends unless it is used again, never `null`. An authorize
   request that finds an ended session terminates it with `absolute_expiry` or `idle_timeout`, which revokes the grants
   issued under it and notifies its relying parties
-  ([ADR-1220](docs/decisions/1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md),
-  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
+  ([ADR-1220](docs/decisions/1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md),
+  [ADR-1395](docs/decisions/1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md),
   issue [#271](https://github.com/NCodeGroup/identity/issues/271)).
 
 - **A session that ends while no request uses it is terminated within a minute.** One replica in each
@@ -5359,12 +5312,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IOpenIdContextFactory.CreateForBackgroundAsync` and `IMaterializedPlatformAccessor` serve the pass, which the grants
   table's index on grant type, revocation and expiry supports
   ([ADR-1223](docs/decisions/1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md),
-  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
+  [ADR-1395](docs/decisions/1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md),
   issue [#281](https://github.com/NCodeGroup/identity/issues/281)).
 
 - **Logout revokes only the terminating session's grants**, so signing out of one login leaves the subject's other
   sessions intact (issue [#55](https://github.com/NCodeGroup/identity/issues/55),
-  [ADR-1077](docs/decisions/1077-session-scoped-grant-revocation-on-logout.md)). A grant records the opaque `sid` it was
+  [ADR-1112](docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)). A grant records the opaque `sid` it was
   issued under (`PersistedGrant.SessionId`, `PersistedGrant<TPayload>`, and a `GrantEntity.SessionId` column with a
   `(TenantId, SessionId)` index); the authorization-code, refresh-token and per-access-token UserInfo-claims grants and
   the session grant stamp the `sid` from the authenticated subject (`SubjectAuthentication.SessionId`).
@@ -5382,7 +5335,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   so a custom subject resolver states whether the end-user must confirm. `ParkEndSessionRequestCommand` parks a logout
   that needs confirmation and `EndSessionConfirmationChallengeCommand` asks for it, and when an OP login is present its
   session takes precedence over the `id_token_hint`'s `sid` ([#494](https://github.com/NCodeGroup/identity/issues/494),
-  [ADR-1380](docs/decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)).
+  [ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
 
 - **RP-Initiated Logout reads and clears the login in the OP login scheme.** The end-session endpoint reads the
   end-user's login from, and clears it from, the tenant's `authorization_authenticate_scheme` and, when the logout names
@@ -5393,13 +5346,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#515](https://github.com/NCodeGroup/identity/issues/515)).
 
 - **End-session finds the subject from server state, never from the `sub` of the `id_token_hint`.** With pairwise
-  subject identifiers ([ADR-1093](docs/decisions/1093-pairwise-subject-identifiers.md)), the hint's `sub` is a
+  subject identifiers ([ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)), the hint's `sub` is a
   per-sector pseudonym from a one-way projection. `DefaultResolveEndSessionSubjectHandler` reads only `sid` and
   `client_id` from the hint and looks up the stable subject in the persisted session grant, or in the OP login cookie
   when there is no grant. Subject-keyed revocation therefore matches the subject's grants, and each relying party's
   back-channel `logout_token` carries the pairwise `sub` that party knows. A presented value is matched forward and
   never reversed, so no pseudonym-to-principal map exists to correlate subjects across sectors
-  ([ADR-1096](docs/decisions/1096-end-session-subject-from-server-state.md)).
+  ([ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)).
 
 - **The interactive surface's cookies are host-only, and tenants that share an origin keep separate sessions.** The
   session cookie is `__Host-NCode.Identity.Interactive`, the antiforgery cookie `__Host-NCode.Identity.Antiforgery`, the
@@ -5408,8 +5361,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Path=/` without `Domain`, so a sibling subdomain cannot set them, and a tenant's session cookie name is qualified by
   the tenant's path. Separate cookies are not an isolation boundary within an origin; tenants that must be isolated are
   selected by host ([#442](https://github.com/NCodeGroup/identity/issues/442),
-  [ADR-1310](docs/decisions/1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md),
-  [ADR-1193](docs/decisions/1193-the-interactive-surface-is-served-under-the-tenant-route.md)).
+  [ADR-1193](docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)).
 
 - **Every page the server writes has a strict Content-Security-Policy and cannot be framed, except the
   `check_session_iframe` and, by its client's origin, the `form_post` response.**
@@ -5437,8 +5389,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   root-relative path base, never anything taken from the `Host` header. The response is `Cache-Control: no-store`, and `Frontend:Issuer` and `Frontend:ApiBaseUrl` are
   overrides (issues [#113](https://github.com/NCodeGroup/identity/issues/113),
   [#442](https://github.com/NCodeGroup/identity/issues/442),
-  [ADR-1182](docs/decisions/1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md),
-  [ADR-1312](docs/decisions/1312-the-frontend-bootstrap-api-base-is-root-relative-unless-configured.md)).
+  [ADR-1182](docs/decisions/1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md)).
 
 - **A self-service session revoke is guarded to the authenticated subject**, so a crafted `sid` cannot terminate another
   subject's session (issue [#63](https://github.com/NCodeGroup/identity/issues/63)).
@@ -5453,7 +5404,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   request answers a signed-in end user whose standing is refused with `access_denied` for every `prompt`, a consent
   denial answers the request with `access_denied`, and the self-service pages serve a cookie only while the session it
   names is active
-  ([ADR-1229](docs/decisions/1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md), issue
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md), issue
   [#289](https://github.com/NCodeGroup/identity/issues/289)).
 
 - **Deleting or disabling a local account ends its sessions, and every token request checks the account.** Disabling an
@@ -5465,7 +5416,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with `access_denied` at the authorization request and at the authorization-code, refresh-token and password grants,
   whichever connection the subject signed in through. `NCode.Identity.OpenId.Accounts.Management` references
   `NCode.Identity.OpenId.Authentication.Abstractions`
-  ([ADR-1224](docs/decisions/1224-deleting-or-disabling-an-account-ends-its-sessions.md), issue
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md), issue
   [#280](https://github.com/NCodeGroup/identity/issues/280)).
 
 - **Every password a local account is given meets the password policy.** The management API's create and reset, the
@@ -5493,8 +5444,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   a store that never calls `isRefusedAsync` fails every verification. A password refused at the limit is verified
   against the dummy hash and counted as a failed attempt, so neither the answer nor the work tells whether an account
   has the user name under any spelling a database collation matches
-  ([ADR-1237](docs/decisions/1237-failed-password-attempts-are-limited-per-account.md),
-  [ADR-1244](docs/decisions/1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md), issues
+  ([ADR-1237](docs/decisions/1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md), issues
   [#293](https://github.com/NCodeGroup/identity/issues/293), [#300](https://github.com/NCodeGroup/identity/issues/300)).
 
 - **A wrong password takes as long whether or not an account has the user name.** When no account has the user name, the
@@ -5508,7 +5458,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Unicode Normalization Form C (NFC) and its blocklists see that form, and an `IPasswordHasher` hashes and verifies the
   NFC form of the bytes it is given, so a password typed with another composition of the same characters, such as `e`
   and a combining accent for `é`, verifies; a stored hash of a password in another form verifies and is rehashed in its
-  NFC form ([ADR-1238](docs/decisions/1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), issue
+  NFC form ([ADR-1238](docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md), issue
   [#297](https://github.com/NCodeGroup/identity/issues/297)).
 
 - **A host's own ASP.NET Core Identity pages verify the password the adapter stores.**
@@ -5518,41 +5468,41 @@ Until the first stable release, the [Unreleased] section describes the product a
   composition of a password. A host that registers its `IPasswordHasher<TUser>` after the call, or sets
   `UserManager<TUser>.PasswordHasher`, wraps it in `NormalizingPasswordHasher<TUser>`: the adapter throws
   `InvalidOperationException` rather than hash or verify through a hasher that does not normalize
-  ([ADR-1243](docs/decisions/1243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md),
+  ([ADR-1238](docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md),
   issue [#299](https://github.com/NCodeGroup/identity/issues/299)).
 
 - **The ASP.NET Core Identity adapter stores a password the password policy accepts.** It hashes a password with the
   user manager's password hasher and stores the hash through `IUserPasswordStore<TUser>`, creating the user with
   `CreateAsync(user)` and rotating the security stamp on a reset, so ASP.NET Core Identity's password validators, whose
   default composition rules NIST SP 800-63B forbids, never refuse a password the policy accepted; a transparent rehash
-  keeps the security stamp ([ADR-1238](docs/decisions/1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md),
+  keeps the security stamp ([ADR-1238](docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md),
   issue [#296](https://github.com/NCodeGroup/identity/issues/296)).
 
 - **The management API authenticates every caller against the control-plane tenant and takes its data scope from the
   route.** Whatever host or path it is reached on (a collection route such as `POST /api/teams/{teamId}/tenants` under `DynamicByPath`,
-  a `/api/tenants/{tenantId}/…` route, or the `manage.<apex>` host under `DynamicByHost`), the caller's token is
+  a `/api/tenants/{tenantId}/…` route, or any host under `DynamicByHost`), the caller's token is
   validated with the control-plane tenant (the root tenant, or a static strategy's own tenant). `ITenantStrategy` and
   `ITenantResolver` expose `ResolveControlPlaneTenantAsync`, `IOpenIdTenantFactory` exposes
   `CreateControlPlaneTenantAsync`, and `IOpenIdContextFactory` exposes `CreateForControlPlaneAsync`
-  ([ADR-1191](docs/decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)). The route's
+  ([ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)). The route's
   `{tenantId}` only scopes the data: it sets the ambient tenant scope, so a central-admin caller administers a tenant by
   id while the persistence-layer query filter confines the read fail-closed
-  ([ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)); a control-plane route without
+  ([ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)); a control-plane route without
   `{tenantId}` uses the resolved tenant, which has no effect on the unscoped platform, team and tenant rows those routes act on
-  ([ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md)).
+  ([ADR-1191](docs/decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 
 - **The bootstrap administrator's `ClientSecret` is supplied Base64Url-encoded and kept off the GC heap.** The seed
   handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`) and stores it as a PBKDF2
   verifier, because the administrator registers `client_secret_basic`, and the OpenAPI example and
   Scalar prefill that surface the presentable secret appear only in the development environment. See
-  [ADR-1044](docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md) and [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md).
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md), [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md) and [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md).
 
 - **Every owner's keys are imported and updated under the client-key policy.** The client, tenant and
   resource-server import endpoints use `IClientKeyImporter.TryImportKey`, so a JSON Web Key keeps its `kid`, a key whose
   `use`, `key_ops` or `alg` contradicts it is refused with a `400` that says why, and a `kid` already used by another of
   the owner's keys is a `409 Conflict`. Their update endpoints check `use` and `alg` against the key through
   `ISecretValidator.ValidateUpdate` and keep the key's `kid`
-  ([ADR-1186](docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **A system resource server holds no keys.** The management API refuses to create or import a secret for a system
   resource server with `409 Conflict`, and issuance ignores any key stored on one
@@ -5564,7 +5514,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   gateway cache keeps the one-time secret. An endpoint opts in with the `.WithNoStore()` endpoint convention, and
   `HttpResponse.SetNoStore()` is public in the `NCode.Identity.AspNetCore` package
   ([#473](https://github.com/NCodeGroup/identity/issues/473),
-  [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+  [ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)).
 
 - **A caller who may not read a secret never loads its owner's master keys.**
   `ManagementApiEndpointHandler.ProcessGetAsync` has an overload whose asynchronous mapper runs only after authorization
@@ -5580,7 +5530,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (resource type `principal`, `ManagementResourceTypes.Principal`), `LocalAccountChangedAuditEvent` for a local
   account and `RoleAssignmentChangedAuditEvent` (`role_assignment.created` / `role_assignment.deleted`) for every role
   the management API grants or revokes, the creator's included, naming the acting administrator
-  ([ADR-1449](docs/decisions/1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md),
+  ([ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [#583](https://github.com/NCodeGroup/identity/issues/583)).
 
 - **A management audit record survives the request's cancellation.** Every `IManagementAuditRecorder` method records a
@@ -5588,7 +5538,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   30-second token, so a client that disconnects after the commit drops no audit event; a record that fails or times
   out is logged and never fails the committed write, and the recorder's methods take no `CancellationToken`
   ([#621](https://github.com/NCodeGroup/identity/issues/621),
-  [ADR-1464](docs/decisions/1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md)).
+  [ADR-1351](docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 
 - **A security effect that follows a committed change is bounded and never fails the change.** Ending a principal's
   or an account's sessions after a block, a disable, an administrator's password reset or a self-service password
@@ -5597,19 +5547,19 @@ Until the first stable release, the [Unreleased] section describes the product a
   a client that disconnects skips none of them, a hung store holds the response at most 30 seconds, and an effect that
   fails or times out is logged (`PostCommitSessionTerminationFailed`, `PostCommitPasswordAttemptResetFailed`) and never
   fails the committed change or skips its audit record ([#626](https://github.com/NCodeGroup/identity/issues/626),
-  [ADR-1468](docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
+  [ADR-1351](docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 
 - **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
   account's principal is terminated with the `password_reset` reason (`SessionTerminationReasons.PasswordReset`): its
   grants and refresh tokens are revoked, its relying parties receive back-channel logout, and its consents are kept
-  ([ADR-1226](docs/decisions/1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  ([ADR-1229](docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md),
   issue [#285](https://github.com/NCodeGroup/identity/issues/285)).
 
 - **Deleting an owner removes the role assignments it anchors.** Deleting a client or a resource server, also when a
   dynamically registered client is deregistered, removes the assignments of every role at its node, ownership included,
   in the same unit of work. Removing a federated principal, or deleting a local account, removes every role assignment
   its principal holds, ownership included, in every tenant, and deleting a tenant removes the assignments its principals
-  hold in other tenants ([ADR-1212](docs/decisions/1212-deleting-an-owner-removes-what-it-owns.md), issues
+  hold in other tenants ([ADR-1212](docs/decisions/1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md), issues
   [#266](https://github.com/NCodeGroup/identity/issues/266), [#273](https://github.com/NCodeGroup/identity/issues/273)).
 
 - **A platform or team settings PATCH reads only what it checks.** It walks the clients only when a setting that the client
@@ -5619,12 +5569,12 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The management console treats the access token as opaque.** The user's subject comes from the ID token only (RFC
   9068 §6), so sign-in and silent renewal work with opaque access tokens, and a refresh that returns no ID token keeps
   the current subject and ID token
-  ([ADR-1151](docs/decisions/1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)).
+  ([ADR-1151](docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
 
 - **An encrypted UserInfo response must also be signed.** The protocol client never accepts a UserInfo response
   encrypted without a signature, so a `ClientRegistration` with UserInfo encryption and no UserInfo signing throws
   before the request
-  ([ADR-1301](docs/decisions/1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md),
+  ([ADR-1301](docs/decisions/1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md),
   issue [#421](https://github.com/NCodeGroup/identity/issues/421)).
 
 - **The OpenID protocol client keeps provider responses in zeroed, pooled memory.** It streams each response body, under
@@ -5636,7 +5586,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The protocol client fails a token with an out-of-range NumericDate with `invalid_claim`.** An ID token's
   `auth_time`, checked under `max_age`, and a logout token's `exp` are read as strict NumericDates, so a value such as
   `1e300` or one near the end of time fails the token with `invalid_claim` and never throws
-  ([ADR-1123](docs/decisions/1123-numeric-date-is-read-strictly-and-range-guarded.md), issue
+  ([ADR-1123](docs/decisions/1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md), issue
   [#367](https://github.com/NCodeGroup/identity/issues/367)).
 
 - **The BFF keeps tokens off the browser and accepts its cookie only where it should.** The browser holds only the
@@ -5654,35 +5604,33 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#603](https://github.com/NCodeGroup/identity/issues/603),
   [#604](https://github.com/NCodeGroup/identity/issues/604),
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
-  [ADR-1292](docs/decisions/1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
-  [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
-  [ADR-1436](docs/decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md),
-  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
-  [ADR-1444](docs/decisions/1444-a-bff-page-reached-without-its-strict-session-cookie-reloads-itself-once.md)).
+  [ADR-1292](docs/decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
+  [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md),
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 
 - **BFF logout is a form POST.** `POST /bff/logout` takes `sid` and `returnUrl` in a form body and is the only logout
   method; `/bff/user` returns `logoutUrl` as the path alone and the logout guard as `logoutSid`, a reserved field
   ([#442](https://github.com/NCodeGroup/identity/issues/442),
-  [ADR-1311](docs/decisions/1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md)).
+  [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)).
 
 - **No published URL comes from the request's `Host`.** Each frontend's `PublicOrigin` is required: the absolute URL the BFF is
   published at (scheme, host, optional port and path base; `https` outside Development), from which it builds its
   `redirect_uri` and `post_logout_redirect_uri`; set it to the URL the BFF's callback is registered under. The
   interactive surface's login redirect is root-relative, so a forged `Host` header cannot choose where any of them point
   ([#493](https://github.com/NCodeGroup/identity/issues/493),
-  [ADR-1365](docs/decisions/1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md)).
+  [ADR-1365](docs/decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)).
 
 - **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` through the shared `SetNoStore()`
   ([#512](https://github.com/NCodeGroup/identity/issues/512),
-  [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+  [ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)).
 
 - **The BFF's remote-API forwarder stays inside its destination and keeps browser credentials at the edge.** The
   forwarder answers `400` for a path that could leave the destination's base path and `405`
   (`BffProblemTypes.MethodNotAllowed`) for a method outside `AllowedMethods`, never forwards the browser's cookies,
   credentials or forwarding headers, drops the upstream `Set-Cookie`, and never follows a redirect
   ([#395](https://github.com/NCodeGroup/identity/issues/395),
-  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
+  [ADR-1381](docs/decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
 
 - **The BFF can send browser security headers.** `app.UseBffSecurityHeaders()` writes `Content-Security-Policy`,
   `X-Content-Type-Options: nosniff`, `Referrer-Policy` and `Cross-Origin-Opener-Policy` on every response, from
@@ -5690,13 +5638,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CrossOriginOpenerPolicy`; the strict defaults for a request no frontend selects), unless the application set the
   header itself; the options are validated when the host starts
   ([#396](https://github.com/NCodeGroup/identity/issues/396),
-  [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+  [ADR-1382](docs/decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)).
 
 - **BFF frontends never share a session.** Each frontend's cookies are `__Host-Http-bff.<name>` and
   `__Host-Http-bff-login.<name>`, another frontend ignores a frontend's session and deletes its cookie, and refuses its
   login transaction (`frontend_mismatch`), and a logout token ends only the receiving frontend's sessions
   ([#396](https://github.com/NCodeGroup/identity/issues/396),
-  [ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
+  [ADR-1442](docs/decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)).
 
 - **A BFF session ends when its frontend is removed or registered as another client.** A session records its
   frontend's `Authority` and `ClientId`; a request or connection ends one whose frontend is configured with another
@@ -5712,7 +5660,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   endpoint naming an unconfigured frontend stop the host with one message; a later change of the endpoints or the
   frontends is checked again and logged, and such a route still answers `502`
   ([#522](https://github.com/NCodeGroup/identity/issues/522),
-  [ADR-1433](docs/decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)).
+  [ADR-1433](docs/decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)).
 
 - **All persisted OpenID data is tenant-scoped except the platform and teams.** `FederatedPrincipal`, `FederatedIdentity` and
   `LocalAccount` are tenant-owned: their persisted DTOs carry a required `TenantId`, and their server-generated ids and
@@ -5722,22 +5670,22 @@ Until the first stable release, the [Unreleased] section describes the product a
   resolved request tenant, with no global grant key space. The tenant-scope global query filter is navigation-free:
   `ISupportTenantEntity` carries a denormalized `NormalizedTenantId` discriminator, so the filter is a single
   indexed-column comparison and the framework stays decoupled from the concrete tenant entity
-  ([ADR-1035](docs/decisions/1035-federated-principals-and-identity-resolution.md),
-  [ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)).
+  ([ADR-1035](docs/decisions/1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md),
+  [ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).
 
 - **The management API never materializes a resource outside the request's tenant.** An `IAmbientTenantAccessor`
   (`NCode.Identity.OpenId.Persistence.Abstractions`) and an `OpenIdDbContext` global query filter on tenant-child
   entities scope every read when tenancy is request-derived (dynamic-by-host or dynamic-by-path), so a cross-tenant read
   returns `404` and no fetch-then-reject leak window exists. A reusable `TenantScopeEndpointFilter` establishes the
   scope; tenant, team and platform administration are central-admin (unscoped)
-  ([ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)).
+  ([ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).
 
 - **Deleting an owner removes what it owns.** `IClientStore.RemoveAsync` removes a client's secrets, grants to resource
   servers, consents, the grants issued to it and the role assignments at its resource node in the same unit of work as
   the client, so deleting a client through the management API and RFC 7592 deregistration (`DELETE
   /oauth2/register/{client_id}`) answer `204` whatever the client holds; deleting a tenant whose users signed in
   likewise removes what exists for it, on every provider including PostgreSQL
-  ([ADR-1212](docs/decisions/1212-deleting-an-owner-removes-what-it-owns.md), issue
+  ([ADR-1212](docs/decisions/1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md), issue
   [#250](https://github.com/NCodeGroup/identity/issues/250)).
 
 - **Grant payloads are encrypted at rest.** A persisted grant's payload (authorization codes, refresh tokens, sessions,
@@ -5745,7 +5693,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   envelope in `PersistedGrant.ProtectedPayload`/`GrantEntity.ProtectedPayload` (`string`), under the master key of the
   grant's tenant, with purpose `grant-payload` and the grant's hashed key as the item id, so a payload copied to another
   grant row does not decrypt. A payload that cannot be unprotected makes the grant absent and logs a warning rather than
-  failing the request ([ADR-1265](docs/decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md),
+  failing the request ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   issue [#175](https://github.com/NCodeGroup/identity/issues/175)).
 
 - **A failed sign-in records the attempted user name as a detail, never as the subject.** `subject.authentication`
@@ -5762,7 +5710,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   store is unreachable, these checks fail closed. `IDPoPProofReplayCache.TryRecordAsync` and
   `IClientAssertionReplayCache.TryRecordAsync` take the request's `OpenIdContext` as their first parameter. The server
   registers no `IDistributedCache`, so a host that resolves one registers its own
-  ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
+  ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)).
 
 - **Session creation and termination are audited and logged.** `IAuditEventRecorder.RecordSessionCreatedAsync` and
   `RecordSessionTerminatedAsync` record the `session.created` and `session.terminated` events (issue
@@ -5777,7 +5725,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `federated_identity_*` requirement flags are floors; `allow_*` and `request(_uri)_parameter_supported` are ceilings;
   and `allowed_identity_providers` and `subject_types_supported` merge as intersect ceilings.
   `allowed_identity_providers` is fail-closed: unset means unrestricted, but an explicit or narrowed-to-empty allowlist
-  denies every IdP ([ADR-1038](docs/decisions/1038-setting-merge-lattice-duals.md)).
+  denies every IdP ([ADR-1010](docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 
 - **Setting values are validated against their domain, not only their type.** A value of the right type that the server
   would not honor is rejected wherever a setting enters: configuration stops the host (and a reload is rejected), a
@@ -5800,7 +5748,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   runtime uses them (`jwks_uri`, `sector_identifier_uri` and `client_notification_endpoint` are https,
   `client_notification_endpoint` defaults to empty, and redirect URIs are absolute without a fragment). A list setting
   that contains `null` is a type error. A refresh token always expires (RFC 9700 §4.14.2)
-  ([ADR-1140](docs/decisions/1140-setting-values-are-validated-against-their-domain.md)).
+  ([ADR-1140](docs/decisions/1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)).
 
 - **A security profile that the platform, a team or a tenant selects binds every scope below it, whichever profile it is.**
   `security_profiles` (`OpenIdSettingKeys.SecurityProfiles`, a `SettingKey<IReadOnlyCollection<string>>`) is a list that
@@ -5816,7 +5764,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   by `SettingDescriptor.HasLatticeMerge`), so no child scope can override it and several profiles combine in any order;
   a ceiling on a setting that a child could override, or whose merge would ignore it, fails when a scope selects the
   profile. A requirement's error description reads "a selected security profile"
-  ([ADR-1148](docs/decisions/1148-security-profiles-accumulate-down-the-settings-cascade.md)).
+  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 
 - **A client value that a ceiling lowers is incoherent.** `RegisteredValueCoherenceRule` checks every setting a client
   registers whose merge is a meet (`Min`, `And` or `Intersect`, which the abstract `SettingDescriptor.HasMeetMerge`
@@ -5826,12 +5774,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   '01:00:00' exceeds the effective 'access_token_lifetime' value '00:05:00'.` A value that a ceiling already lowers
   blocks no write that moves that ceiling, because a write matches a violation that predates it without its description.
   A floor (`Max`, `Or`, `Union`) is never reported
-  ([ADR-1240](docs/decisions/1240-a-client-value-that-a-ceiling-lowers-is-incoherent.md),
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
   [#262](https://github.com/NCodeGroup/identity/issues/262)).
 
 - **A tenant or client opts into the FAPI 2.0 Security Profile by selecting `fapi2`**
   ([#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1108](docs/decisions/1108-fapi-security-profile-merge-lattice-ceiling-injection.md)). Listing `fapi2`
+  [ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). Listing `fapi2`
   (`OpenIdConstants.SecurityProfiles.Fapi2`) in `security_profiles` expands the profile into concrete ceiling settings
   at the scope that selects it, and the floor/ceiling merge lattice carries them down the platform → team → tenant → client
   cascade un-loosenably, so discovery and request-time enforcement read one source of truth: signing restricted to
@@ -5840,7 +5788,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   authorization-code and PAR `request_uri` lifetimes. A tenant can mandate the profile and a client cannot loosen it.
   `AlgorithmCodes.DigitalSignature.EdDsa` names the EdDSA algorithm, implemented in the opt-in
   `NCode.Identity.Jose.EdDsa` package
-  ([ADR-1117](docs/decisions/1117-eddsa-clean-room-implementation-opt-in-package.md)).
+  ([ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 
 - **FAPI 1.0 Advanced security profile (`fapi1-advanced`).** A tenant or client that selects it through
   `security_profiles` gets these ceilings: `code` with a JWT-secured (JARM) response mode, or `code id_token` once the
@@ -5853,7 +5801,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   codes that live at most 60 seconds and PAR `request_uri`s at most 90. A request for plain `code` without a `.jwt`
   response mode is refused with `invalid_request`. `AuthorizationRequestProfileContext` carries the composed
   `IAuthorizationRequest` for request-time requirements, and the spec-coverage matrix has a `profile-fapi1-advanced` row
-  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
+  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md),
   [#233](https://github.com/NCodeGroup/identity/issues/233)).
 
 - **A client whose refresh tokens rotate under the FAPI 2.0 profile must be able to retry a rotation.** The client
@@ -5861,8 +5809,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   by the FAPI 2.0 security profile, and the coherence rule `RefreshTokenRotationRetryCoherenceRule` refuses a client
   that requires it while its refresh tokens rotate (`refresh_token_rotation_policy` `always`, or `unbound` for a public
   client) and its `refresh_token_reuse_interval` is zero (FAPI 2.0 §5.3.2.1)
-  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
-  [ADR-1217](docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md),
+  ([ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
+  [ADR-1217](docs/decisions/1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md),
   [#272](https://github.com/NCodeGroup/identity/issues/272)).
 
 - **A tenant's issuer is its single authoritative origin, and the host-based tenant strategy routes on the hosts it
@@ -5874,8 +5822,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   share a host (`https://op.example/tenant-a`, `…/tenant-b`); host uniqueness is a requirement of the host-based
   strategy alone, enforced by validation. `ITenantStore` exposes `GetOrDefaultByIssuerAsync`, and
   `GetOrDefaultByHostAsync` routes by the issuer host or the mTLS endpoint-alias host
-  ([ADR-1129](docs/decisions/1129-the-tenant-issuer-is-the-single-authoritative-origin.md),
-  [ADR-1195](docs/decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 - **Every tenant a strategy serves has an issuer, and no published URL follows the request's `Host` header.** The tenant
   factory takes a tenant's issuer and base address from its stored issuer alone and fails closed for a served tenant
@@ -5887,7 +5834,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant: `Root:Issuer` or their issuer template. A host is reached at the origin its issuer names, an issuer's host
   labels may be at most 63 characters, and a disabled static tenant is not served, like any other disabled tenant.
   `DefaultOpenIdTenantFactory` resolves `GetTenantIssuerAsync` before `GetTenantBaseAddressAsync`, which receives the
-  issuer ([ADR-1165](docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+  issuer ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 - **A tenant's identifier and issuer, and each strategy's options, are validated by the tenant strategy that serves
   it.** Creating a tenant, and updating its issuer, require an absolute `https` issuer (`http` only for a loopback host)
@@ -5900,7 +5847,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `TenantValidationFailure`s. A configured `StaticSingle:Issuer` must use `https` (`http` only for a loopback host) and
   carry no user information, and a `DynamicByPath:TenantPath` route may carry only the tenant parameter, with no
   constraint, default value, optional marker or catch-all, so a tenant's route follows from its identifier alone
-  ([ADR-1160](docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
+  ([ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 
 - **A retired tenant identifier or issuer is never reissued.** Deleting a tenant retires its identifier and its issuer,
   and changing a tenant's issuer retires the one it gives up, so no other tenant can take an identity that relying
@@ -5909,12 +5856,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant gave up, as a conflict: the management API answers `409 Conflict` on create and update, and the address preview
   lists it. Only the tenant that gave up an issuer can take it back. `ITenantStore` exposes `IsTenantIdRetiredAsync` and
   `GetRetiredIssuerHolderOrDefaultAsync`
-  ([ADR-1189](docs/decisions/1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)).
+  ([ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 
 - **Deleting a tenant erases the data of its end users.** Its local accounts and their claims, federated principals and
   identities, sessions and other grants are removed with it. Deleting a tenant that still has clients or resource
   servers answers `409`, and its usage records are kept
-  ([ADR-1212](docs/decisions/1212-deleting-an-owner-removes-what-it-owns.md),
+  ([ADR-1212](docs/decisions/1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md),
   [#250](https://github.com/NCodeGroup/identity/issues/250)).
 
 - **A production tenant gets production guardrails, and a production host refuses a non-production platform default.** The
@@ -5933,17 +5880,16 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IExpiringCounterSet` with a two-window sliding estimate, so the limits hold across replicas that share Valkey.
   A refused request is answered `429 Too Many Requests` with `temporarily_unavailable`, `Retry-After`, and
   `Cache-Control: no-store`, and is neither handled nor audited
-  ([ADR-1196](docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
+  [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#84](https://github.com/NCodeGroup/identity/issues/84),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **Anonymous discovery and JSON Web Key Set requests cannot spend a tenant's daily request quota.** The two endpoints
   are not metered: they count only against the per-minute rate limits and are not recorded as `requests` usage, so no
   anonymous caller can exhaust a tenant's quota, run up billable overage, or have the tenant's clients refused until
-  midnight UTC ([ADR-1198](docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
-  [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
-  [ADR-1200](docs/decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md)).
+  midnight UTC ([ADR-1198](docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
+  [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 
 - **Agent attribution stays out of commits by rule and setting, and no check enforces it.** The instructions tell every
   agent never to add a `Co-authored-by:` trailer naming an agent, a `Claude-Session:` trailer or a "Generated with"
@@ -5959,7 +5905,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   unwrap every master key exists only inside the offline rewrap command
   ([#171](https://github.com/NCodeGroup/identity/issues/171),
   [#172](https://github.com/NCodeGroup/identity/issues/172),
-  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md),
   [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
 - **A revoked tenant root key shreds the tenant's data and the server fails closed.** A master key under a root key the
   tenant brings has no operator recovery copy, so revoking, disabling or destroying that key makes every value written
@@ -5976,14 +5922,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#573](https://github.com/NCodeGroup/identity/issues/573),
   [#579](https://github.com/NCodeGroup/identity/issues/579),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
-  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md),
-  [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md)).
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md),
+  [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md)).
 - **An imported elliptic-curve public key is checked against its curve.** A JWK's `x` and `y` must each be the curve's
   field length, below its prime and satisfy its curve equation before the platform imports the point, so an off-curve or
   invalid-curve point is rejected with the same error on every platform
   ([#575](https://github.com/NCodeGroup/identity/issues/575),
-  [ADR-1427](docs/decisions/1427-an-imported-elliptic-curve-point-is-checked-against-its-curve-before-the-platform-imports-it.md)).
+  [ADR-1068](docs/decisions/1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md)).
 
 - **Custody of a machine client needs the authority to grant every role it can hold.** Updating, deleting, configuring
   or changing the owners or secrets of a machine client needs creation authority at the platform or team that owns it,
@@ -5992,8 +5937,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   credentials were set, and an administrator of the control-plane tenant cannot set the credentials of a team's machine
   client ([#557](https://github.com/NCodeGroup/identity/issues/557),
   [#589](https://github.com/NCodeGroup/identity/issues/589),
-  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
-  [ADR-1467](docs/decisions/1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md)).
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)).
 
 - **A remote key never leaves its KMS, every signature it makes is verified before a token carries it, and every content
   key it unwraps is authenticated by the JWE's tag.** The server holds the key's public half and a reference only; a
@@ -6012,8 +5956,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#654](https://github.com/NCodeGroup/identity/issues/654),
   [#659](https://github.com/NCodeGroup/identity/issues/659),
   [#651](https://github.com/NCodeGroup/identity/issues/651),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
-  [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
+  [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
-  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).

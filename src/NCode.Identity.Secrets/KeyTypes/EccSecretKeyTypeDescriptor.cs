@@ -76,7 +76,7 @@ internal sealed class EccSecretKeyTypeDescriptor(
         var y = GetRequiredBase64UrlMember(root, JsonWebKeyParameterNames.Y);
 
         // The point is checked against the curve's domain before the platform sees it, because platforms disagree on
-        // how they report an off-curve point; see ADR-1427.
+        // how they report an off-curve point; see ADR-1068.
         var fieldSizeBytes = specification.Domain.FieldSizeBytes;
         if (x.Length != fieldSizeBytes || y.Length != fieldSizeBytes)
             throw new ArgumentException(

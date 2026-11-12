@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// year, and it keeps its validators so a browser that does revalidate it does so cheaply. Nothing outside the assets
 /// directory, including the bundle's <c>index.html</c>, is served.
 /// </summary>
-// See ADR-1254.
+// See ADR-1193.
 internal sealed class InteractiveBundleAssetEndpointHandler(
     SinglePageBundle<InteractiveBundleShell> bundle
 ) : IEndpointProvider

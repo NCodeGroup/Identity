@@ -7,7 +7,7 @@ renaming a field or an event changes this document in the same change.
 ## Overview
 
 An operation that is audited (a token issued, a client that failed to authenticate, a configuration change) publishes an
-audit event through the event seam ([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)). Which
+audit event through the event seam ([ADR-1047](decisions/1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)). Which
 operations are audited, and their outcomes, are the same whatever sink receives the event.
 
 One record shape serves every sink:
@@ -274,7 +274,7 @@ Every key lifecycle event writes the same `details`: `reason` (one of `TenantKey
 `key_id` (the `kid` the key is published under), `secret_type`, `algorithm` and `use` (when the key declares them), and
 the instants `activates_when`, `retires_when` and `expires_when` (RFC 3339), as the key stands after the change. A key
 held in a key management service also writes `remote_key_provider`, the name of its provider
-([ADR-1471](decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+([ADR-1471](decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 Only a key the rollover provisioned (`managed_by` is `tenant_key_rollover` on the stored secret) is the subject of these events;
 a key an operator creates, imports, updates or deletes through the management API is recorded as a `tenant.secret.*`
 resource-change event with the `administrator` actor instead.
@@ -282,7 +282,7 @@ resource-change event with the `administrator` actor instead.
 #### Master keys
 
 Every master key event is a `MasterKeyAuditEvent` with `event_category` `key` and the outcome `success`
-([ADR-1407](decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+([ADR-1407](decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 It lists the `master_key` first and the owner second (`tenant` or `platform`, with the owner's id), carries no key
 material, wrapped key or key check, and is published once the change has committed. An administrator's rekey through the
 management API has `event_source` `management`, the `administrator` actor and the request; the background pass has
@@ -457,7 +457,7 @@ events library builder, and call `AuditRecordWriter.Write` (into a `Utf8JsonWrit
 `IBufferWriter<byte>`, ref structs included, through a pooled staging buffer) for the record. The request context is
 captured when the event is published, so a sink that runs in the background after the request has completed still sees
 it. A handler that throws neither fails the audited operation nor stops the other handlers
-([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)).
+([ADR-1047](decisions/1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)).
 
 ## Indexing
 

@@ -24,8 +24,8 @@ The product spans the repositories below.
 
 | Repository                     | Visibility | Holds |
 | ------------------------------ | ---------- | ----- |
-| `NCodeGroup/identity`          | Public     | The product: the NuGet packages (`src/`), the deployables (`hosts/`), the host and console images, the host chart (`charts/ncode-identity-host`), the web apps' pnpm workspace (`frontend/`), and the decisions and issues of the product and its platform ([ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)) |
-| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the platform's live configuration for `lab` and `production` ([ADR-1132](docs/decisions/1132-platform-infrastructure-as-code-is-public-on-github.md), [ADR-1133](docs/decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)) |
+| `NCodeGroup/identity`          | Public     | The product: the NuGet packages (`src/`), the deployables (`hosts/`), the host and console images, the host chart (`charts/ncode-identity-host`), the web apps' pnpm workspace (`frontend/`), and the decisions and issues of the product and its platform ([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)) |
+| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the platform's live configuration for `lab` and `production` ([ADR-1132](docs/decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md), [ADR-1133](docs/decisions/1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)) |
 | `NCodeGroup/identity-cloud`    | Private    | Only the managed offering's proprietary parts: billing and metering, sign-up, the customer portal, support tooling and private runbooks |
 
 - **Public or private.** Code is public when a self-hoster could use it. Anything in `identity-cloud` that a
@@ -36,21 +36,21 @@ The product spans the repositories below.
 - **Naming.**
   - Repositories: lowercase kebab-case, product first: `identity`, `identity-platform`, `identity-cloud`.
   - NuGet packages: `NCode.Identity.*`
-    ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md)), under the
+    ([ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), under the
     `NCode` ID prefix the NCode Group holds on nuget.org.
   - The chart and the images: `ncode-identity-*`: the chart `ncode-identity-host`, the images
     `ghcr.io/ncodegroup/ncode-identity-host` and `ghcr.io/ncodegroup/ncode-identity-management-console`.
   - npm workspace packages: `@ncode/*`, every one `"private": true` and none published: the workspace root
     `@ncode/frontend`, the packages such as `@ncode/ui` and `@ncode/api`, and the apps `@ncode/app-*`.
   - Domains: `ncodeid.*`
-    ([ADR-1495](docs/decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
+    ([ADR-1495](docs/decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)):
     `ncodeid.net` is the platform domain that carries every issuer, `ncodeid.com` the brand domain; the redirect-only
     `ncodeidentity.com` and `ncodeidentity.net` guard the name.
 - **GitHub names.** Each repository's name on GitHub is the one the naming bullet gives, and every link and reference
   spells it that way, such as `https://github.com/NCodeGroup/identity`. GitHub resolves a repository name without
   regard to case, so a link in any capitalization reaches the repository.
 
-See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md).
+See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md).
 
 ## Change control
 
@@ -65,17 +65,16 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   runs only the tests its change reaches. A merge goes through the **merge queue**, which runs the full gate on the
   merged result and squash-merges it, so a branch need not be up to date with `main`. An approval requirement is added
   when a second maintainer exists
-  ([ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md), which supersedes
-  the unprotected trunk of [ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md);
-  [ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
+  ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md);
+  [ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
   tiers and the merge queue).
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint that CI and developers run,
   each place in the gate tier that ADR-1263 assigns it. See [CONTRIBUTING](CONTRIBUTING.md).
 - Versioning is **lockstep** across the whole family via Nerdbank.GitVersioning (one root `version.json`,
-  [ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)). From the first stable release,
+  [ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)). From the first stable release,
   validation-affecting or otherwise breaking changes are **major** version bumps, and the public surface evolves
   backward-compatibly per [`docs/api-compatibility.md`](docs/api-compatibility.md)
-  ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)); before it, a breaking change
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)); before it, a breaking change
   needs no major version, deprecation step or migration path
   ([project-template ADR-0015](docs/decisions/project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)).
 
@@ -89,8 +88,8 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   `publicReleaseRefSpec`, so their builds carry a clean version with no commit-height suffix. The ruleset
   `release-lines` (`release/v*`) protects them like `main`, but without a merge queue: every pull request runs the full
   gate on a branch up to date with its line
-  ([ADR-1305](docs/decisions/1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md);
-  [ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate).
+  ([ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md);
+  [ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate).
 - **Tags.** A release is an annotated (ideally signed) tag `vMAJOR.MINOR.PATCH` (prereleases `-rc.N` / `-alpha`) on a
   release line. A tag is immutable — one tag = one published package set; the ruleset `release-tags` forbids deleting or
   moving a `v*` tag. Only a **major** is gated behind a release candidate; minors and patches ship straight to GA.
@@ -113,7 +112,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
 
 ## Publishing
 
-- Packages (`.nupkg`) and portable symbols (`.snupkg`, [ADR-1007](docs/decisions/1007-provenance-sourcelink-and-symbols.md))
+- Packages (`.nupkg`) and portable symbols (`.snupkg`, [ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md))
   are published to [nuget.org](https://www.nuget.org). Only protected `main` / `release/*` / `v*` refs publish.
 - Release packages should be signed and RFC-3161 timestamped so signatures outlive the certificate; verify with
   `dotnet nuget verify`. Prereleases may publish unsigned.
@@ -122,7 +121,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   from a manual run on `main`: bump the prerelease version in `version.json`, merge it, then tag `v<version>` or run the
   workflow, and approve the `nuget` environment. Its publishing job holds only a short-lived key from nuget.org trusted
   publishing, and it refuses a version already published
-  ([ADR-1302](docs/decisions/1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md)).
+  ([ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md)).
 - The host image, the management console image and the host chart publish to GHCR through the `Publish artifacts`
   workflow (`.github/workflows/publish-artifacts.yml`) on every merge to `main` and every release tag, at one version,
   signed and with provenance

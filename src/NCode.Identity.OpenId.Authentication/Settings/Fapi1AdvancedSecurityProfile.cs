@@ -86,7 +86,7 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
         // Tight clock skew for signed request objects / client assertions (Min ceiling).
         ceiling.Set(OpenIdSettingKeys.ClockSkew, TimeSpan.FromSeconds(60));
 
-        // Pin the client-assertion lifetime at the secure default (Min ceiling) (ADR-1124).
+        // Pin the client-assertion lifetime at the secure default (Min ceiling) (ADR-1187).
         ceiling.Set(OpenIdSettingKeys.ClientAssertionMaxLifetime, TimeSpan.FromMinutes(5));
 
         // A request object carries 'nbf' and 'exp', at most 60 minutes apart (§5.2.2-13, -17) (ADR-1187).

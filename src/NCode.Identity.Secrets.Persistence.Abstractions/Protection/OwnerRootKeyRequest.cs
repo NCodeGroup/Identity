@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 /// <param name="KeyWrapperName">The name of the key wrapper, which has to be allowed.</param>
 /// <param name="KeyReference">The reference to the key.</param>
-// See ADR-1429.
+// See ADR-1414.
 [PublicAPI]
 public sealed record OwnerRootKeyRequest(string KeyWrapperName, string KeyReference)
 {

@@ -271,7 +271,7 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
-        // The response may reveal a secret the change issues, so no cache may keep it (ADR-1345).
+        // The response may reveal a secret the change issues, so no cache may keep it (ADR-1050).
         clients
             .MapPatch("/{clientId}/settings", UpdateSettingsAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status200OK)
@@ -297,7 +297,7 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
-        // The response reveals a secret once, so no cache may keep it (ADR-1345).
+        // The response reveals a secret once, so no cache may keep it (ADR-1050).
         clients
             .MapPost("/{clientId}/secrets", CreateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
@@ -349,7 +349,7 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed);
-        // The response reveals a secret once, so no cache may keep it (ADR-1345).
+        // The response reveals a secret once, so no cache may keep it (ADR-1050).
         clients
             .MapPost("/{clientId}/secrets/{secretId}/rotate", RotateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
@@ -854,7 +854,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="limit">The maximum number of clients to check on the page.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">A page of incoherent clients.</response>
-    // See ADR-1233.
+    // See ADR-1245.
     [EndpointName("api/clients/incoherent/list")]
     internal virtual async ValueTask<IResult> ListIncoherentClientsAsync(
         HttpContext httpContext,
@@ -955,7 +955,7 @@ internal class ClientApiEndpointHandler(
             ? null
             : request.ResourceServerId;
 
-        // Authorization is asserted from the route and the request, before any row is read (ADR-1424, ADR-1451).
+        // Authorization is asserted from the route and the request, before any row is read (ADR-1424).
         var authorizationError = await ClientValidator.AuthorizeCreateAsync(
             httpContext.User,
             tenantId,
@@ -1064,7 +1064,7 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // Authorization is asserted from the route values, before any row is read (ADR-1424, ADR-1451).
+        // Authorization is asserted from the route values, before any row is read (ADR-1424).
         var authorizationError = await ClientValidator.AuthorizeCreateMachineClientAsync(
             httpContext.User,
             owningNode.TenantId,
@@ -1327,7 +1327,7 @@ internal class ClientApiEndpointHandler(
         }
 
         // The core precondition (If-Match) is asserted by the validator against the hydrated
-        // model (ADR-1015).
+        // model (ADR-1424).
         var error = await ClientValidator.ValidateUpdateAsync(
             client,
             model,
@@ -1489,7 +1489,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The client's setting limits.</response>
     /// <response code="404">The client does not exist.</response>
-    // See ADR-1448.
+    // See ADR-1418.
     [EndpointName("api/clients/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
         HttpContext httpContext,
@@ -1805,7 +1805,7 @@ internal class ClientApiEndpointHandler(
     [SuppressMessage(
         "Design",
         "NCID0003",
-        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351)."
     )]
     private async ValueTask RecordSecretChangesAsync(
         HttpContext httpContext,
@@ -1987,7 +1987,7 @@ internal class ClientApiEndpointHandler(
             // A client's symmetric secret is its client_secret, presented verbatim for client_secret_basic/post and
             // used as the HMAC key for client_secret_jwt: the issuer stores it in the form the client's method needs,
             // never as the raw-byte / base64url-reveal crypto-key material GenerateSecret produces (which never UTF-8
-            // round-trips). See ADR-1110 and ADR-1391.
+            // round-trips). See ADR-1391.
             generatedSecret = isSharedSecret
                 ? ClientSecretIssuer.GenerateClientSecret(
                     protector,
@@ -2569,8 +2569,7 @@ internal class ClientApiEndpointHandler(
         GeneratedSecret generatedSecret;
         try
         {
-            // A client's shared secret is its client_secret (ADR-1110), stored in the form the client's method needs
-            // (ADR-1391).
+            // A client's shared secret is its client_secret (ADR-1391), stored in the form the client's method needs.
             generatedSecret = ClientSecretIssuer.GenerateClientSecret(
                 protector,
                 tokenEndpointAuthMethod,
@@ -2723,7 +2722,7 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetOwnerList(tenantId, clientId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -2823,7 +2822,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="client">The client the request changes.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The refusal result, or <c>null</c> when the change may proceed.</returns>
-    // See ADR-1417 and ADR-1467.
+    // See ADR-1417 and ADR-1466.
     private async ValueTask<IResult?> GetClientChangeRefusalOrDefaultAsync(
         HttpContext httpContext,
         PersistedClient client,

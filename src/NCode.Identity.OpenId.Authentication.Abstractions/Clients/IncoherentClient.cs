@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Describes a stored client whose settings the effective settings of its tenant make incoherent, as an
 /// <see cref="IClientCoherenceReporter"/> finds it.
 /// </summary>
-// See ADR-1233.
+// See ADR-1245.
 [PublicAPI]
 public sealed class IncoherentClient
 {

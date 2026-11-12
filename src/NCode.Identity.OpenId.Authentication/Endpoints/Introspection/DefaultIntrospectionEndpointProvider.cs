@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 /// see. A caller acting for a resource server may request the response as a signed, and optionally encrypted, JSON Web
 /// Token (JWT) (<see href="https://datatracker.ietf.org/doc/html/rfc9701">RFC 9701</see>).
 /// </summary>
-// See ADR-1029 and ADR-1168.
+// See ADR-1168.
 internal class DefaultIntrospectionEndpointProvider(
     TimeProvider timeProvider,
     IClientAuthenticationService clientAuthenticationService,

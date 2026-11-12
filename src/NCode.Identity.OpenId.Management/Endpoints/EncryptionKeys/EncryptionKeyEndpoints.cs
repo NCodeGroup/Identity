@@ -73,7 +73,7 @@ internal static class EncryptionKeyEndpoints
     /// header and the same wait in the problem's <c>retryAfterSeconds</c>; one that loses a race to another rekey throws <see cref="StoreConcurrencyException"/>, which the
     /// management route group answers <c>412</c>.
     /// </summary>
-    // See ADR-1214.
+    // See ADR-1483.
     public static async ValueTask<IResult> RekeyAsync(
         IMasterKeyManager masterKeyManager,
         IManagementAuditRecorder auditRecorder,

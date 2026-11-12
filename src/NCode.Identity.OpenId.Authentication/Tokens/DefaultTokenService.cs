@@ -147,7 +147,7 @@ internal class DefaultTokenService(
         var mediator = openIdContext.Mediator;
         var openIdTenant = openIdContext.Tenant;
 
-        // Resolve the resource servers this token targets: they bind its audience (ADR-1027), and their settings bound
+        // Resolve the resource servers this token targets: they bind its audience (ADR-1026), and their settings bound
         // the token together with the client's (ADR-1158). Disposed after issuance so their transient secret-key
         // providers are released.
         await using var resolution = await ResourceServerCredentialResolver.ResolveAsync(
@@ -237,7 +237,7 @@ internal class DefaultTokenService(
         // when available); it is not synthesized here.
         var effectiveClaims = FilterClaims(settings, subjectClaims);
 
-        // Bind the access token audience to the resource servers resolved above (ADR-1027); fall back to the client
+        // Bind the access token audience to the resource servers resolved above (ADR-1026); fall back to the client
         // when no resource-server audience applies (for example, a scopeless token).
         StringValues audience =
             resolution.Audiences.Count > 0

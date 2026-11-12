@@ -9,7 +9,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// Describes one row of the mapping from a JOSE algorithm to the way a key management service creates a key and
 /// operates with it. Each kind of row names the operation that the service performs with the key.
 /// </summary>
-// See ADR-1477.
+// See ADR-1471.
 [PublicAPI]
 public abstract record RemoteKeyAlgorithm
 {

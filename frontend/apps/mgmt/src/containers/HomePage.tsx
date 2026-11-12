@@ -18,7 +18,7 @@ export type HomePageProps = {
 };
 
 /**
- * Container: the caller's home (ADR-1420). Lists the places the signed-in caller holds authority: the
+ * Container: the caller's home (ADR-1465). Lists the places the signed-in caller holds authority: the
  * platform for a platform administrator, and the teams and tenants at which it holds a role. When exactly one
  * destination exists it opens it at once, replacing the home entry. Owns no state; the caller's access comes
  * from the store layer.

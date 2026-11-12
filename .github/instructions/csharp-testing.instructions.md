@@ -21,7 +21,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Test Style](csharp-tests.instructions.md#test-style).
 - ⏳ **Warnings are errors in test projects too** — template
   [Warnings and Analyzers](csharp-tests.instructions.md#warnings-and-analyzers) and
-  [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md); relax a rule that is noise in tests in
+  [ADR-1127](../../docs/decisions/1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md); relax a rule that is noise in tests in
   the `[tests/**/*.cs]` block of [`.editorconfig`](../../.editorconfig) with a one-line justification, never with a
   project-level `NoWarn`.
 - ✅ **Prefer a real fix over a suppression for nullable warnings** — template
@@ -72,13 +72,13 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   `StubOkpSecretKey` in `EdDsaSignatureAlgorithmTests`). An `OKP` key's use is tested the same way: an X25519 key
   has an Ed25519 key's size, so it proves that the curve's use, not the size check, refuses it for `EdDSA` and an
   Ed25519 key for `ECDH-ES`
-  ([ADR-1390](../../docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+  ([ADR-1390](../../docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 - 👁 **A test of a curve the platform may lack skips through a fact attribute, and Linux proves the gate.** .NET serves
   secp256k1 only where the platform's cryptography does (not on macOS), so a test that needs the curve is a
   `[Secp256k1Fact]`, which sets `Skip` from the package's own probe, rather than one that returns early and reports a
   pass. One unconditional test asserts that the probe answers `true` on Linux, where CI runs, so a gate that wrongly
   answers `false` cannot skip every test silently (`Secp256k1CurveTests`)
-  ([ADR-1392](../../docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  ([ADR-1392](../../docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 - 👁 **Test a contributed key type's private members with a member no standard key type uses.** A JWK counts a
   member as private when it is a standard private name (`d`, `k`, `priv` and the RSA factors) or one of its key
   type's `JsonWebKeyTypeDescriptor.PrivateMembers`, so a contributed type that keeps its private half in `d` is
@@ -92,7 +92,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - ✅ **Tests encode text through a strict encoding too.** Use `SecureEncoding.UTF8` / `SecureEncoding.ASCII`; the build
   enforces it with `RS0030`. A test that needs UTF-16 or a byte-order mark builds a strict encoding, such as
   `new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true)`. See
-  [ADR-1266](../../docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md).
+  [ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md).
 - ✅ **No decision-record citations in `///` doc comments in tests either.** Put the citation on a `//` line after the
   doc comment (`// See ADR-1201.`), as production code does
   ([`csharp-production.instructions.md`](csharp-production.instructions.md) §10); the `doc comment citations` stage of
@@ -194,7 +194,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Store and EF behavior is tested against a real provider, not a mocked store** — template
   [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core); a `SavingChanges`-only interceptor never
   runs, because the codebase saves through `SaveChangesAsync`
-  ([ADR-1012](../../docs/decisions/1012-interceptor-managed-concurrency-tokens.md)).
+  ([ADR-1012](../../docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 - 👁 **A handler that writes through more than one store needs an end-to-end test** — template
   [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core): a store resolves the tenant that owns a
   row with a database query, so a row a tenant owns can be added only after the tenant row commits
@@ -213,7 +213,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   (`TenantStoreContributedEntityRemovalTests`).
 - 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
   `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
-  [ADR-1208](../../docs/decisions/1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
+  [ADR-1012](../../docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md).
 - 👁 **Build a stored grant's payload with `TestGrantPayloadProtector.Protect(...)`**
   (which wraps the real `DefaultPersistedPayloadSerializer`), never a bare `JsonSerializer` call. The server stores a
   protected, versioned envelope, so a test that hands the code the bare payload passes while the code fails on every
@@ -231,13 +231,13 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques).
 - 👁 **Test a read-modify-write through the update function it passes** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`DefaultSessionServiceTests`,
-  [ADR-1222](../../docs/decisions/1222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
+  [ADR-1222](../../docs/decisions/1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)).
 - 👁 **A mocked `OpenIdContext` or `OpenIdTenant` that the code under test disposes sets up its protected
   `DisposeAsyncCore`** — template [Setup Techniques](csharp-tests.instructions.md#setup-techniques)
   (`EndedSessionTerminationServiceTests`).
 - 👁 **A global query filter is bypassed for change-tracked entities** — template
   [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core); the tenant-scoping filter
-  ([ADR-1018](../../docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)) behaves this way, and EF
+  ([ADR-1018](../../docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)) behaves this way, and EF
   InMemory honors query filters, so it covers the case.
 - 👁 **Data-protection integration tests are not hermetic under a shared host** — template
   [Integration Tests](csharp-tests.instructions.md#integration-tests): give each such test its own
@@ -270,7 +270,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Real Collaborators](csharp-tests.instructions.md#real-collaborators)
   (`AddIdentityServer_ReadingTheOpenIdOptions_ConstructsNoClientAuthenticationHandler`).
 - 👁 **A test host pins an issuer for every tenant it serves.** A tenant is served only beneath its stored issuer
-  ([ADR-1165](../../docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so
+  ([ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)), so
   `HostApplicationFactory` pins the static tenant to `HostApplicationFactory.TestServerIssuer` (`http://localhost`). A
   test that changes the tenant path pins a matching `StaticSingle:Issuer`; a test that selects a dynamic strategy
   configures its issuer template (or `Root:Issuer`, which the dynamic strategies require) and seeds tenants with an
@@ -294,11 +294,11 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   signing keys, and a tenant reads its settings and keys once, when it is first served, so neither can be added after a
   request reaches it. List a key-management
   algorithm such as `RSA-OAEP-256` beside a signing algorithm in `OpenId:Tenant:KeyProvisioning:Keys`
-  ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)), and persist the settings the
+  ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)), and persist the settings the
   tenant needs with `HostApplicationFactory.SeedTenantSettingsAsync` before the first request. Assert that the token is
   a JWE (five segments), so a key that was never provisioned fails the test (`TokenIntrospectionEndpointTests`).
 - 👁 **Drive the authorization endpoint the way a conforming client does.** Every authorization code is bound to an
-  `S256` PKCE challenge by default ([ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)),
+  `S256` PKCE challenge by default ([ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)),
   so an integration test that requests a code sends `TestPkce.QueryParameters` (or `TestPkce.FormFields` at the pushed
   authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
   refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery
@@ -309,7 +309,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   class's own helpers — returns `ValueTask` or `ValueTask<T>`, ends in `Async` and takes a `CancellationToken` last,
   which it passes to every awaited call that accepts one. `NCID0002` and `NCID0003` enforce this in every test
   project, as in production
-  ([ADR-1496](../../docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md)).
+  ([ADR-1496](../../docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md)).
   A test method passes
   `CancellationToken.None` to each of these methods and leaves the optional token of a framework call, such as
   `HttpClient.SendAsync` or `HttpContent.ReadAsStringAsync`, at its default, which is `CancellationToken.None` too.
@@ -367,10 +367,10 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Assertions](csharp-tests.instructions.md#assertions).
 - 👁 **A private-use redirect URI in a test is a reverse domain name** (`com.example.app:/callback`);
   `myapp://callback` is of no registered kind and is refused
-  ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
+  ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md)).
 - 👁 **Seed a client registered for the method the test authenticates with.** A client authenticates only with its
   registered `token_endpoint_auth_method`
-  ([ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test
+  ([ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)), so each integration-test
   seeder registers one: `SeedConfidentialClientAsync` (`client_secret_post`), `SeedClientSecretBasicClientAsync`,
   `SeedClientSecretJwtClientAsync`, `SeedSharedSecretClientWithSettingsAsync` (either shared-secret method, with
   redirect URIs and settings), the certificate and `jwks_uri` seeders (`private_key_jwt`), the mutual-TLS seeders, and
@@ -391,7 +391,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Read the logout token the server delivers from the back-channel logout client.** Set
   `HostApplicationFactory.BackChannelLogoutExchanges` to a `ConcurrentQueue<RecordedHttpExchange>` before the first
   request, which replaces the primary handler of the one SSRF-guarded client (`GuardedHttpClient.Name`,
-  [ADR-1315](../../docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)) with
+  [ADR-1315](../../docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)) with
   a stub whose `POST` handler is
   `StubRecordingHttpMessageHandler` (answers `200`, records each `POST`); the server notifies a client only after it
   issued that client an ID token in the session, so run the code flow first, end the session with
@@ -438,11 +438,11 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **A project under `tests/` whose name does not end in `.Tests` is a support project.** The solution compiles it, no
   tier of `build/test-projects.ps1` lists it, and it is no test project and has no JUnit logger, so a suite references
   it and no gate tests it
-  ([ADR-1441](../../docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+  ([ADR-1441](../../docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 - 👁 **Host a Blazor Web App through `WebApplicationFactory<TEntryPoint>.UseKestrel()` over the suite's certificate,
   then call `StartServer()`.** The factory locates the app's static web assets, which a `WebApplication.CreateBuilder`
   in the test process does not
-  ([ADR-1441](../../docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+  ([ADR-1441](../../docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)).
 - 👁 **An end-to-end suite is not hermetic by design.** Every host stays on loopback over the run's throwaway
   certificate, the container reaches the host only through `TestcontainersSettings.ExposeHostPortsAsync`, and
   credentials are generated per run

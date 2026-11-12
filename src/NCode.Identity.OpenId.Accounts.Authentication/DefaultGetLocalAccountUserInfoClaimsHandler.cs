@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// claims permitted by the token's granted scopes or explicitly requested are emitted. A host fronting a different
 /// user store registers its own enricher instead.
 /// </summary>
-// See ADR-1030, ADR-1051.
+// See ADR-1401, ADR-1051.
 internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
     IStoreManagerFactory storeManagerFactory,
     IPersistedGrantService persistedGrantService

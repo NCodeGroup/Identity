@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 
 namespace NCode.Identity.Secrets.RemoteKeys;
 
-// See ADR-1477.
+// See ADR-1471.
 public class RemoteKeyDecryptionTests : BaseTests
 {
     private const string KeyId = "key-1";

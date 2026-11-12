@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Authentication.Persistence;
 /// Validates the options for removing the grants that ended when the host starts, so a negative retention or a prune
 /// interval that a timer refuses stops the host instead of failing the first time the prune runs.
 /// </summary>
-// See ADR-1218 and ADR-1221.
+// See ADR-1218 and ADR-1137.
 internal sealed class GrantRetentionOptionsValidator : IValidateOptions<GrantRetentionOptions>
 {
     /// <inheritdoc />

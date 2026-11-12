@@ -236,7 +236,7 @@ internal class ResourceServerApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
-        // The response reveals a secret once, so no cache may keep it (ADR-1345).
+        // The response reveals a secret once, so no cache may keep it (ADR-1050).
         resourceServers
             .MapPost("/{resourceServerId}/secrets", CreateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
@@ -443,7 +443,7 @@ internal class ResourceServerApiEndpointHandler(
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
-        // Authorization is asserted from the route, before any row is read (ADR-1424, ADR-1451).
+        // Authorization is asserted from the route, before any row is read (ADR-1424).
         var authorizationError = await ResourceServerValidator.AuthorizeCreateAsync(
             httpContext.User,
             tenantId,
@@ -719,7 +719,7 @@ internal class ResourceServerApiEndpointHandler(
     /// <response code="201">The created scope.</response>
     /// <response code="404">The resource server does not exist.</response>
     /// <response code="409">A scope with the same value already exists.</response>
-    // See ADR-1480.
+    // See ADR-1483.
     [EndpointName("api/resource-servers/scopes/create")]
     internal virtual async ValueTask<IResult> CreateScopeAsync(
         HttpContext httpContext,
@@ -829,7 +829,7 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="204">The scope was updated.</response>
     /// <response code="404">The resource server or the scope does not exist.</response>
-    // See ADR-1480.
+    // See ADR-1483.
     [EndpointName("api/resource-servers/scopes/update")]
     internal virtual async ValueTask<IResult> UpdateScopeAsync(
         HttpContext httpContext,
@@ -903,7 +903,7 @@ internal class ResourceServerApiEndpointHandler(
     /// <response code="204">The scope was deleted.</response>
     /// <response code="404">The resource server or the scope does not exist.</response>
     /// <response code="409">The scope is a system scope and cannot be removed.</response>
-    // See ADR-1480.
+    // See ADR-1483.
     [EndpointName("api/resource-servers/scopes/delete")]
     internal virtual async ValueTask<IResult> DeleteScopeAsync(
         HttpContext httpContext,
@@ -1009,7 +1009,7 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-1469.
+        // See ADR-1465.
         var roleList = GetOwnerList(tenantId, resourceServerId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
@@ -1180,7 +1180,7 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="200">The resource server's setting limits.</response>
     /// <response code="404">The resource server does not exist.</response>
-    // See ADR-1448.
+    // See ADR-1418.
     [EndpointName("api/resource-servers/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
         HttpContext httpContext,

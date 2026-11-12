@@ -45,11 +45,11 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
-    // See ADR-1449.
+    // See ADR-1465.
     [SuppressMessage(
         "Design",
         "NCID0003",
-        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351)."
     )]
     protected internal virtual ValueTask RecordRoleAssignmentChangedAsync(
         HttpContext httpContext,
@@ -176,7 +176,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// Creates the <c>409 Conflict</c> response for a grant that is refused because the principal is a client that
     /// cannot hold the role at the node.
     /// </summary>
-    // See ADR-1467.
+    // See ADR-1466.
     internal static ProblemHttpResult RoleRefusedForPrincipal() =>
         TypedResults.Problem(
             detail: "A client holds a role only as a machine client, at the node that owns it or a node beneath it.",
@@ -199,7 +199,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
     /// </returns>
-    // See ADR-1469.
+    // See ADR-1465.
     protected internal virtual async ValueTask<IResult> ProcessAddRoleAssignmentAsync(
         HttpContext httpContext,
         RoleList roleList,
@@ -278,7 +278,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
     /// </returns>
-    // See ADR-1469.
+    // See ADR-1465.
     protected internal virtual async ValueTask<IResult> ProcessRemoveRoleAssignmentAsync(
         HttpContext httpContext,
         RoleList roleList,
@@ -339,7 +339,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
     /// </returns>
-    // See ADR-1469.
+    // See ADR-1465.
     protected internal virtual async ValueTask<IResult> ProcessRemoveOwnerAsync(
         HttpContext httpContext,
         RoleList roleList,

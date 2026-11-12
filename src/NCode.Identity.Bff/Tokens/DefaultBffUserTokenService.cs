@@ -89,7 +89,7 @@ internal class DefaultBffUserTokenService(
     [SuppressMessage(
         "Design",
         "NCID0003",
-        Justification = "The work must complete whatever the caller does, so it runs on its own token and takes none (ADR-1308)."
+        Justification = "The work must complete whatever the caller does, so it runs on its own token and takes none (ADR-1291)."
     )]
     private async ValueTask<BffTokenResult> EndRefreshFailedAsync(
         IBffSessionScope scope,
@@ -134,7 +134,7 @@ internal class DefaultBffUserTokenService(
     }
 
     // The refresh is measured as the request experienced it: refreshed when it presented the refresh token, joined when
-    // another request or replica refreshed the session for it, failed otherwise. See ADR-1197 and ADR-1298.
+    // another request or replica refreshed the session for it, failed otherwise. See ADR-1197.
     private void RefreshCompleted(
         Activity? activity,
         long startTimestamp,
@@ -298,11 +298,11 @@ internal class DefaultBffUserTokenService(
     /// </summary>
     /// <param name="lease">The refresh lease to release.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    // See ADR-1308.
+    // See ADR-1291.
     [SuppressMessage(
         "Design",
         "NCID0003",
-        Justification = "The work must complete whatever the caller does, so it runs on its own token and takes none (ADR-1308)."
+        Justification = "The work must complete whatever the caller does, so it runs on its own token and takes none (ADR-1291)."
     )]
     private async ValueTask ReleaseLeaseAsync(BffRefreshLease lease)
     {

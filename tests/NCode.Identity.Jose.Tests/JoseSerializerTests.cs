@@ -640,7 +640,7 @@ public class JoseSerializerTests : BaseTests
 
     public static IEnumerable<object[]> GetEncodeDecodeJwsTestData()
     {
-        // The library implements no `none` algorithm (ADR-1295).
+        // The library implements no `none` algorithm (ADR-1282).
         var jwsAlgorithms = Enum.GetValues<JwsAlgorithm>()
             .Where(algorithm => algorithm != JwsAlgorithm.none);
         foreach (var jwsAlgorithm in jwsAlgorithms)

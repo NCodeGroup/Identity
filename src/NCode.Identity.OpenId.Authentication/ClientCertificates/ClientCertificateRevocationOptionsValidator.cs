@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// source catalog, which is built from descriptors, so validation constructs no source.
 /// </summary>
 /// <param name="catalog">The catalog of the registered revocation-source descriptors.</param>
-// See ADR-1252 and ADR-1400.
+// See ADR-1400.
 internal sealed class ClientCertificateRevocationOptionsValidator(
     IClientCertificateRevocationSourceCatalog catalog
 ) : IValidateOptions<ClientCertificateRevocationOptions>

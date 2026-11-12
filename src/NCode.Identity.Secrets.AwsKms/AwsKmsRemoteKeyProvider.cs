@@ -39,7 +39,6 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// </para>
 /// </remarks>
 // See ADR-1471.
-// See ADR-1477.
 // See ADR-1478.
 internal class AwsKmsRemoteKeyProvider(
     IAwsKmsClientFactory clientFactory,

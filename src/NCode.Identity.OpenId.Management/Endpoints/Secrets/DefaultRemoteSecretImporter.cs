@@ -22,9 +22,8 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// half that does not match the request and a signature or decryption that does not prove the key are a <c>400</c>;
 /// any other failure is logged and is a <c>502</c>.
 /// </summary>
-// See ADR-1475.
 // See ADR-1476.
-// See ADR-1477.
+// See ADR-1471.
 internal class DefaultRemoteSecretImporter(
     ISecretGenerator secretGenerator,
     ISecretSerializer secretSerializer,

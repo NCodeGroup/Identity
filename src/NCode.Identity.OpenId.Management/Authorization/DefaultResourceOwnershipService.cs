@@ -59,7 +59,7 @@ internal class DefaultResourceOwnershipService(
         }
 
         // A creator that is a client is assigned no owner when it cannot hold the role at this node.
-        // See ADR-1467.
+        // See ADR-1466.
         var creatorNode = ResourceNode.For(tenantId, resourceType, resourceId);
         var canHoldRole = await CanHoldRoleAsync(
             storeManager,
@@ -149,7 +149,7 @@ internal class DefaultResourceOwnershipService(
             };
         }
 
-        // Refuse to orphan the resource; a tenant or global admin can always reassign ownership (ADR-1034).
+        // Refuse to orphan the resource; a tenant or global admin can always reassign ownership (ADR-1417).
         if (owners.Count - toRemoveCount < 1)
         {
             return new OwnerRemoval
@@ -209,7 +209,7 @@ internal class DefaultResourceOwnershipService(
         ArgumentException.ThrowIfNullOrEmpty(principalId);
 
         // A client holds a role only as a machine client, at the node that owns it or a node beneath it.
-        // See ADR-1467.
+        // See ADR-1466.
         var node = ResourceNode.For(tenantId, resourceType, resourceId);
         var canHoldRole = await CanHoldRoleAsync(
             storeManager,
@@ -279,7 +279,7 @@ internal class DefaultResourceOwnershipService(
         return toRemove;
     }
 
-    // See ADR-1467.
+    // See ADR-1466.
     private async ValueTask<bool> CanHoldRoleAsync(
         IStoreManager storeManager,
         string principalId,

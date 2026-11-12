@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// Answers a problem that asks the caller to wait. The wait goes in the <c>Retry-After</c> header (RFC 9110 §10.2.3)
 /// and in the problem's <c>retryAfterSeconds</c> member, so a client that cannot read the header still knows it.
 /// </summary>
-// See ADR-1422.
+// See ADR-1483.
 internal static class RetryAfterProblem
 {
     /// <summary>

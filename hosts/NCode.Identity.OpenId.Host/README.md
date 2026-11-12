@@ -6,7 +6,7 @@ A runnable ASP.NET Core reference host for the OpenID Connect + OAuth 2.0 librar
 ## Database provider
 
 The dev database is **PostgreSQL**, orchestrated by the Aspire AppHost
-([ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md)). Run the stack through the
+([ADR-1073](../../docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). Run the stack through the
 AppHost (not this project directly) so the database, migrations, and host come up in the right order:
 
 ```pwsh
@@ -37,7 +37,7 @@ one purge resets all of them consistently.
 ### Secret protection
 
 Every stored secret, including the key ring, is encrypted under a key hierarchy whose root key lives **outside** the
-database ([ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+database ([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 A **Production** host refuses to start without a real root key, and a root key must never be committed. The
 `SecretProtection` section selects it (environment variables use `__`, for example
 `SecretProtection__RootKeyProvider=local`):
@@ -57,7 +57,7 @@ A **Production** host refuses to start without a real root key, and a root key m
 
 The setting is required: a host that leaves it unset stops when it starts, naming it. `ephemeral` keeps the root key in
 memory, so it suits only development and tests, and Production refuses it
-([ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
+([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 
 Further providers ship as packages that register themselves by name. The reference host registers the three below, and
 each stays inert until `SecretProtection:RootKeyProvider` selects it. `aws-kms` takes
@@ -78,7 +78,7 @@ and reset the database together. A host started without the AppHost selects `eph
 in-memory database: its stored secrets do not survive a restart. The server never discards or replaces a key it cannot
 unprotect: a tenant whose keys were protected under another root key is not served, and its error says that the key
 that protected them is missing or has changed
-([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)). Restore the root key, or
+([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)). Restore the root key, or
 reset the database with it.
 
 ### Remote keys
@@ -136,7 +136,7 @@ rewrapped under the new version in the background. The platform's next version p
 host data created afterwards, and an existing Data Protection key is never re-encrypted. A retired key is destroyed
 once its grace has passed and no stored secret, grant payload, live Data Protection key or reported platform value
 names it, so the platform's retired version stays while a live Data Protection key names it
-([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 
 The host also runs one offline command from its own image, for a one-off Job (the Helm chart's
 `secretProtection.rewrapJob` runs it): it rewraps every master key under the configured root key provider and recovery
@@ -161,7 +161,7 @@ for a usage error. A run is repeatable.
 ### Development credentials
 
 No development credential is committed
-([ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
+([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 On first run the AppHost writes `bootstrap-admin-secret` and `admin-password` beside `root-key` in
 `LocalApplicationData/NCode.Identity/LocalDev` (`%LOCALAPPDATA%` on Windows, `~/.local/share` on Linux,
 `~/Library/Application Support` on macOS) and hands them to the hosts. It also writes `mgmt-client.pem` and
@@ -203,7 +203,7 @@ dotnet run --project hosts/NCode.Identity.OpenId.Host --launch-profile Conforman
 ## Schema management (EF Core migrations)
 
 The schema is managed by **EF Core migrations**, not `EnsureCreated()`
-([ADR-1041](../../docs/decisions/1041-host-owned-ef-migrations-deliberate-outside-development.md)). The migrations live in the
+([ADR-1073](../../docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). The migrations live in the
 host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/OpenId` and
 `Migrations/DeveloperDataProtection`; the published persistence library ships none.
 
@@ -211,7 +211,7 @@ host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/O
 - **Production** (any non-Development deployment) applies schema deliberately, once per release, before the rollout.
   The Helm chart runs the same worker from the host's image as a `pre-install` and `pre-upgrade` Job, and a failed
   migration stops the release before any pod changes
-  ([ADR-1180](../../docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Without the
+  ([ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). Without the
   chart, run the worker the same way, or apply a generated idempotent script
   (`dotnet ef migrations script --idempotent`).
 
@@ -219,7 +219,7 @@ host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/O
 
 Until the first stable release ([#535](https://github.com/NCodeGroup/identity/issues/535)), each context has one
 migration, `InitialCreate`, which creates its whole model and changes no data
-([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+([ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 After changing the EF model, delete the context's migration, designer file and model snapshot, and scaffold
 `InitialCreate` again (the `Database` project carries the design-time factories, so it is both `--project` and
 `--startup-project`):
@@ -238,7 +238,7 @@ The Data Protection context scaffolds the same way with `--context DeveloperData
 `InitialCreateTests` fails a context that holds any migration but `InitialCreate`, and a migration that changes data.
 Renaming, retiring or narrowing a setting edits its descriptor and needs no migration: a stored settings document that
 names an unregistered setting fails closed
-([ADR-1396](../../docs/decisions/1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md)).
+([ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)).
 A re-scaffold gives `InitialCreate` a fresh identifier. Before it applies anything, the migration worker compares the
 migration identifiers each context's history records with the migrations the `Database` project holds, and when the
 history records one the project lacks it applies nothing and fails with a message that names the context and says to
@@ -249,8 +249,7 @@ reset the local database with `build/dev-db-reset.ps1` (below).
 From the first stable release ([#535](https://github.com/NCodeGroup/identity/issues/535)), each context's
 `InitialCreate` is its baseline and every model change adds a migration, which only expands the schema unless it is
 marked a contract step
-([ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
-[ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
+([ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 The Definition of Done enforces the rule over every migration, the `InitialCreate` migrations included, which pass
 unmarked. `ExpandOnlyRuleTests` runs `ExpandOnlyRule.Check` and fails a migration that drops or renames a table or
 column; adds a required column without a default; makes a column required, removes the default of a required column,
@@ -282,7 +281,7 @@ DataProtection key ring are in the same database and are purged with it.
 
 The `Dockerfile` builds the production image from the repository root. Its base images are pinned by tag and digest, and
 Dependabot moves the digests
-([ADR-1249](../../docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)); the
+([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)); the
 Node image's major matches the single pin in `frontend/.node-version`, which the `Host image` workflow checks:
 
 ```bash
@@ -296,10 +295,9 @@ and private key it finds at `/etc/ncode-identity/tls/tls.crt` and `/etc/ncode-id
 Secret does; `Kestrel__Endpoints__<name>__…` settings replace the default endpoint and certificate. TLS ends at the pod:
 a proxy in front of it connects over HTTPS. Probe `/health/live` for liveness and `/health/ready` for readiness. The
 image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry and
-its exception in one record; set `Logging__Console__FormatterName=simple` to write text
-([ADR-1248](../../docs/decisions/1248-the-host-image-writes-one-line-json-logs.md)). CI builds it for `linux/amd64` and
+its exception in one record; set `Logging__Console__FormatterName=simple` to write text. CI builds it for `linux/amd64` and
 `linux/arm64`
-([ADR-1178](../../docs/decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
 
 The `ProxyClientCertificate` section makes the host require the reverse proxy's client certificate. With
 `ProxyClientCertificate__Required=true`, the host answers `403` to every request whose connection carries no certificate
@@ -322,12 +320,12 @@ The image starts in the `Production` environment, which refuses to start until t
   `SecretProtection__RootKeyProviders__Local__KeyPath` for `local`, and either
   `SecretProtection__Recovery__PublicKeyPath` or `SecretProtection__Recovery__Disabled=true`, which acknowledges running
   without a recovery key
-  ([ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  ([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 - `ConnectionStrings__openiddb`: the Postgres database. It also stores the key ring, so the host refuses to start
   without it.
 - `OpenId__TenantResolution__StaticSingle__Issuer`: the public issuer URL, or another tenant resolution mode. A served
   tenant without an issuer fails closed
-  ([ADR-1165](../../docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+  ([ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 The host does not migrate on boot. The image also carries the migration worker, which runs from `/app/migrations` with
 `dotnet NCode.Identity.OpenId.Host.MigrationService.dll` and the same `ConnectionStrings__openiddb`.

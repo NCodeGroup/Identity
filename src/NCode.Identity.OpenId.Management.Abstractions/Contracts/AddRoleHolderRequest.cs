@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Management.Contracts;
 /// <summary>
 /// Represents the request to grant a principal the role of a role list at its node.
 /// </summary>
-// See ADR-1469.
+// See ADR-1465.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class AddRoleHolderRequest

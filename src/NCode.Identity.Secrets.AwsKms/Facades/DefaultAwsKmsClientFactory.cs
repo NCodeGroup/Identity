@@ -30,7 +30,7 @@ namespace NCode.Identity.Secrets.AwsKms.Facades;
 /// stored is kept: the others are never stored, so <see cref="Dispose"/> cannot dispose them.
 /// </para>
 /// </remarks>
-// See ADR-1235 and ADR-1429.
+// See ADR-1235 and ADR-1414.
 [ExcludeFromCodeCoverage(
     Justification = "Creates AWS SDK clients; a passthrough to AWSSDK.KeyManagementService."
 )]

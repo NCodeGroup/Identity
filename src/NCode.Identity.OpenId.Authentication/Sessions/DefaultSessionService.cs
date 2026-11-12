@@ -230,7 +230,7 @@ internal class DefaultSessionService(
         // terminates it, so its relying parties are notified once. The same unit of work revokes the grants issued
         // under the session, so a failure of the dispatch that follows leaves no token of the session active. The
         // termination names the subject and the clients the session lists as claimed, so a client added after an
-        // earlier read is notified too. See ADR-1223, ADR-1227 and ADR-1228.
+        // earlier read is notified too. See ADR-1223, ADR-1112.
         if (
             await PersistedGrantService.RevokeSessionOnceAsync<SessionGrant>(
                 openIdContext,
@@ -477,7 +477,7 @@ internal class DefaultSessionService(
                     continue;
 
                 // A payload that does not authenticate reads as absent and is skipped; a malformed session throws, so
-                // the listing fails closed rather than hiding a session the subject holds. See ADR-1265 and ADR-1395.
+                // the listing fails closed rather than hiding a session the subject holds. See ADR-1235 and ADR-1395.
                 var unprotected = await PayloadProtector.UnprotectOrDefaultAsync<SessionGrant>(
                     envelope.TenantId,
                     envelope.GrantType,
@@ -518,7 +518,7 @@ internal class DefaultSessionService(
     // The identifiers of the sessions of the subject that no caller has terminated, an ended one included, read from
     // the store without their payloads. A subject-wide termination claims every session no caller terminated, an ended
     // one included, so the background pass never finds an ended session revoked without its relying parties notified.
-    // See ADR-1228.
+    // See ADR-1112.
     private async ValueTask<IReadOnlyList<string>> GetUnrevokedSessionIdsAsync(
         string subjectId,
         CancellationToken cancellationToken
@@ -565,7 +565,7 @@ internal class DefaultSessionService(
         var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         // The termination names the subject and the clients of the session as claimed, so the session is not read
-        // first. See ADR-1228.
+        // first. See ADR-1112.
         return await TerminateOnceAsync(openIdContext, sessionId, reason, now, cancellationToken);
     }
 
@@ -583,7 +583,7 @@ internal class DefaultSessionService(
 
         // Claim each session so a session that another caller terminates at the same time notifies its relying parties
         // once, and union the relying parties of the sessions this call claimed, as the claim returned them, so every
-        // participant is notified once, including a client added after the sessions were listed. See ADR-1228.
+        // participant is notified once, including a client added after the sessions were listed. See ADR-1112.
         var sessionIds = await GetUnrevokedSessionIdsAsync(subjectId, cancellationToken);
         var clientIds = new List<string>();
         var terminated = 0;
@@ -606,7 +606,7 @@ internal class DefaultSessionService(
         }
 
         // The grants the subject holds outside its sessions are revoked before the dispatch, so a dispatch that fails
-        // leaves none of them active. See ADR-1227.
+        // leaves none of them active. See ADR-1112.
         await PersistedGrantService.RevokeWhereAsync(
             openIdContext,
             new GrantFilter { SubjectId = subjectId },

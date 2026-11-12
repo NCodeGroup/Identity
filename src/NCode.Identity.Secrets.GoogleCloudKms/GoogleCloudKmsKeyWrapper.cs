@@ -44,7 +44,7 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// to reach the service is never mistaken for a wrong key.
 /// </para>
 /// </remarks>
-// See ADR-1260, ADR-1415 and ADR-1429.
+// See ADR-1260, ADR-1414.
 internal class GoogleCloudKmsKeyWrapper(
     IGoogleCloudKmsClientFactory clientFactory,
     IOptions<GoogleCloudKmsKeyWrapperOptions> options

@@ -1,6 +1,6 @@
 # A production release whose root key is a local key, and whose server binds tenants' keys that AWS KMS,
 # Azure Key Vault and Google Cloud KMS already hold and creates none: each provider is enabled without its
-# key-creation location, so the release needs no remoteKeys.deployment (ADR-1489, ADR-1490).
+# key-creation location, so the release needs no remoteKeys.deployment (ADR-1474, ADR-1485).
 allowedHosts:
   - id.example.com
 tenantResolution:

@@ -1,9 +1,6 @@
 # 1239. A password is verified in the same time whether or not its account exists
 
-- **Status:** Accepted (amended by
-  [ADR-1244](1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md): a password refused at the
-  attempt limit is verified against the dummy hash and counted, and the verification's own lookup names the counted
-  user name)
+- **Status:** Accepted
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -16,11 +13,11 @@ Verifying a password costs a password hash, which takes hundreds of milliseconds
 account costs a lookup. A store that holds no hash to verify for the submitted user name would answer sooner than one
 that verifies: no account has the user name, the account has no password, the ASP.NET Core Identity user is locked out
 (the adapter refuses the password of a locked-out user without verifying it,
-[ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)), or the stored hash
+[ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), or the stored hash
 cannot be read. The sign-in, the password grant and the self-service change of a password would tell by their response
-time whether an account exists (issue [#298](https://github.com/NCodeGroup/identity/issues/298)).
+time whether an account exists.
 
-The limit on failed attempts ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md)) counts a user name
+The limit on failed attempts ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)) counts a user name
 that no account has like one that an account has, so its answer reveals nothing about the account, but it does not
 change how long a verification takes.
 
@@ -44,14 +41,14 @@ the result.**
    internal singleton that `AddAspNetIdentityLocalAccountStore<TUser>()` registers. It holds a hash that the user
    manager's hasher made of a random password of 32 characters, and the adapter gets it before the lookup, so the first
    verification costs the same on every path. An unknown user name, a locked-out user, whose own hash stays unverified
-   ([ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)), and a user without
+   ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), and a user without
    a password, whose stored hash is absent or empty, are verified against it through the routine that verifies a stored
    hash, and refused.
 5. **The dummy takes the steps of a stored hash.** A password that is not in NFC is verified in its NFC form and then as
-   submitted ([ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), against the dummy as
+   submitted ([ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md)), against the dummy as
    against a stored hash, so a wrong password costs the same number of hash verifications on every path.
 6. **Some differences stay.** A password refused at the limit of failed attempts takes the work of a wrong one
-   ([ADR-1244](1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)), and these remain:
+   ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)), and these remain:
    - A stored hash with weaker parameters than the current ones costs less to verify until its next successful
      verification replaces it.
    - The adapter verifies a stored hash with the host's ASP.NET Core Identity hasher, which refuses a non-empty hash
@@ -59,6 +56,7 @@ the result.**
      that is not Base64.
    - A request that is refused before its user name is read, such as one whose client fails to authenticate, never
      reaches a store.
+   - A verified password does a rehash and the claims read, which a refused one does not.
 
 ## Options considered
 
@@ -68,15 +66,14 @@ the result.**
   verification that the hasher makes of a password that is not in NFC would not be mirrored.
 - **Verifying the password of an account that reached its limit against its stored hash.** Rejected: a right password
   would take another number of verifications or a rehash, so the refusal would tell it; a refused password is verified
-  against the dummy hash ([ADR-1244](1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)).
+  against the dummy hash ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)).
 
 ## Consequences
 
 - Every failed attempt costs a password hash whether or not the account exists, and the request rate limiter bounds the
-  rate ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)).
+  rate ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)).
 - Tests record that the hasher verified the dummy hash, never the time, because elapsed time is flaky in a parallel run.
-- **Breaking:** `IPasswordHasher` gains `DummyPasswordHash`, which a custom hasher implements.
-- This implements issue [#298](https://github.com/NCodeGroup/identity/issues/298).
+- `IPasswordHasher` exposes `DummyPasswordHash`, which a custom hasher implements.
 
 ## References
 
@@ -84,11 +81,11 @@ the result.**
   cannot be deduced from failed authentication.
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) —
   the responses to a failed authentication are the same whether or not the account exists.
-- [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — the request rate limiter.
-- [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) — a locked-out user's
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — the request rate limiter.
+- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — a locked-out user's
   password is not verified.
-- [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts.
-- [ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md) — the form of a password that is hashed
+- [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md) — the limit on failed attempts.
+- [ADR-1238](1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md) — the form of a password that is hashed
   and verified.
 - Code: `NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher`,
   `NCode.Identity.OpenId.Accounts.Credentials.DefaultPasswordHasher`,

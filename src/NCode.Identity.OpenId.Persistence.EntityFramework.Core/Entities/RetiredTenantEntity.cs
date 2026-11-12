@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// Represents an entity framework data contract for the identifier of a deleted tenant. A tenant identifier is never
 /// reissued, so a new tenant cannot take the name a deleted tenant was known by.
 /// </summary>
-// See ADR-1189.
+// See ADR-1160.
 [Index(nameof(NormalizedTenantId), IsUnique = true)]
 public sealed class RetiredTenantEntity
 {

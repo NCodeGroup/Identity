@@ -81,7 +81,7 @@ public interface IOwnerRootKeyManager
     /// otherwise <see langword="null"/>.
     /// </param>
     /// <returns><see langword="true"/> when the identity is acceptable; otherwise, <see langword="false"/>.</returns>
-    // See ADR-1429.
+    // See ADR-1414.
     bool TryValidateAccessIdentity(
         string keyWrapperName,
         string accessIdentity,
@@ -95,7 +95,7 @@ public interface IOwnerRootKeyManager
     /// <param name="owner">The owner that brings the key.</param>
     /// <returns>The access binding of the owner.</returns>
     /// <exception cref="ArgumentException">Thrown when the owner is the default value of <see cref="SecretOwner"/>.</exception>
-    // See ADR-1429.
+    // See ADR-1414.
     string GetAccessBinding(SecretOwner owner);
 
     /// <summary>
@@ -121,7 +121,7 @@ public interface IOwnerRootKeyManager
     /// key.
     /// </exception>
     /// <exception cref="StoreConcurrencyException">Thrown when another writer stored a root key first.</exception>
-    // See ADR-1429.
+    // See ADR-1414.
     ValueTask<OwnerRootKeyChange> SetAsync(
         SecretOwner owner,
         OwnerRootKeyRequest request,

@@ -65,7 +65,7 @@ public class TokenEndpointClientCredentialsTests
         Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
         Assert.Equal(TestPlatformSettingsProvider.ApiScope, root.GetProperty("scope").GetString());
 
-        // The access token audience is bound to the resource server that owns the scope, not the client (ADR-1027).
+        // The access token audience is bound to the resource server that owns the scope, not the client (ADR-1026).
         var payload = DecodeJwtPayload(accessToken.GetString()!);
         var audElement = payload.GetProperty("aud");
         var audiences =
@@ -111,7 +111,7 @@ public class TokenEndpointClientCredentialsTests
         var principalId = await GetClientPrincipalIdAsync(factory, CancellationToken.None);
         var payload = DecodeJwtPayload(accessToken);
 
-        // A client acting for itself is the token's subject, and 'sub' names its principal (ADR-1450).
+        // A client acting for itself is the token's subject, and 'sub' names its principal (ADR-1466).
         Assert.Equal(principalId, payload.GetProperty("sub").GetString());
         Assert.NotEqual(ClientId, payload.GetProperty("sub").GetString());
         Assert.Equal(ClientId, payload.GetProperty("client_id").GetString());

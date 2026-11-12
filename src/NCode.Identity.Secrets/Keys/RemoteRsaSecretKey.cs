@@ -13,7 +13,6 @@ namespace NCode.Identity.Secrets.Keys;
 /// and it signs or decrypts by asking the service through its <see cref="RemoteKeyBinding"/>.
 /// </summary>
 // See ADR-1471.
-// See ADR-1477.
 internal sealed class RemoteRsaSecretKey(
     KeyMetadata metadata,
     int modulusSizeBits,

@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Platform;
 /// announcement follows the local refresh even when the refresh fails, because the change is committed either way.
 /// Neither failure fails the committed write: a replica that did not apply the change picks it up at its next poll.
 /// </summary>
-// See ADR-1219 and ADR-1351.
+// See ADR-1412 and ADR-1351.
 internal sealed class PlatformSettingsChangedHandler(
     IMaterializedPlatformRegistry materializedPlatformRegistry,
     IReplicaBroadcaster replicaBroadcaster,

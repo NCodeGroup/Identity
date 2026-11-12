@@ -4,7 +4,7 @@
 - **Date:** YYYY-MM-DD
 - **Deciders:** _who was involved_
 
-_A record that builds on one of the project template's decisions in [project-template/](project-template/README.md) adds a line here: **Refines:** project-template ADR-NNNN when it adds NCode.Identity-specific decisions to it, or **Supersedes:** project-template ADR-NNNN when it replaces it (list the override in AGENTS.md)._
+_A record that builds on one of the project template's decisions in [project-template/](project-template/README.md) adds a line here: **Refines:** project-template ADR-NNNN when it adds NCode.Identity-specific decisions to it, **Supersedes:** project-template ADR-NNNN when it replaces it (list the override in AGENTS.md), or **Conflicts with:** project-template ADR-NNNN with the issue that tracks bringing the two into line. A record carries no other relation line: when its decision changes, rewrite it in place. Status is `Proposed` or `Accepted`._
 
 ## Context
 
@@ -28,4 +28,4 @@ _What becomes easier and what becomes harder as a result. Include follow-ups and
 
 ## References
 
-_Links to code, issues, prior art, or superseded ADRs._
+_Links to code, issues, prior art, and the records whose rules this one relies on._

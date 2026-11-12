@@ -1,12 +1,12 @@
-# Host chart — lints and renders the Helm chart of NCode.Identity.OpenId.Host (ADR-1179).
+# Host chart — lints and renders the Helm chart of NCode.Identity.OpenId.Host (ADR-1458).
 #
 # The chart encodes the host's configuration surface, so it changes with the host and is checked on every change: each
 # values file under ci/ must lint strictly and render, and each release the chart must refuse — the host would refuse
 # it, or its replicas would not share state — must fail to render. The pre-deploy migration Job must render unless
 # disabled (ADR-1180). The chart's management console component is checked too: it must render on a host of its own
 # that routes every path to the console, call the management API at its authority's origin, stay opt-in (ADR-1458,
-# ADR-1488), and hold its key rings in a key management service under its own identity (ADR-1485). A server remote key
-# provider is registered only when enabled, with or without its location (ADR-1490).
+# ADR-1437), and hold its key rings in a key management service under its own identity. A server remote key
+# provider is registered only when enabled, with or without its location (ADR-1485).
 # The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
 # the certificate, and the chosen route verifies it (ADR-1504, ADR-1507). The pods can require the ingress controller's
 # client certificate, and the chart's ingress certificate and its Secret are checked. The cluster job installs the chart
@@ -102,7 +102,7 @@ jobs:
           refuse --set secretProtection.remoteKeyProviders.googleCloudKms.enabled=true --set secretProtection.remoteKeyProviders.googleCloudKms.keyRing=projects/p/locations/l/keyRings/r/cryptoKeys/k
           refuse --set secretProtection.remoteKeyProviders.azureKeyVault.enabled=true --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
           refuse --set secretProtection.remoteKeyProviders.awsKms.enabled=yes
-          # A location registers nothing on its own: its vendor is enabled explicitly (ADR-1490).
+          # A location registers nothing on its own: its vendor is enabled explicitly (ADR-1485).
           refuse --set secretProtection.remoteKeyProviders.awsKms.region=us-west-2
           refuse --set secretProtection.remoteKeyProviders.azureKeyVault.vaultUri=https://contoso.vault.azure.net
           refuse --set secretProtection.remoteKeyProviders.googleCloudKms.keyRing=projects/my-project/locations/us-central1/keyRings/ncode-identity-tenant-keys
@@ -170,7 +170,7 @@ jobs:
           }
           # A provider that is not enabled is not registered, and the pods carry none of its credentials.
           reject "$(helm template release "$CHART" --values "$base" --set "$role")" 'AWS_ROLE_ARN' 'RemoteKeyProviders'
-          # Enabled without its location, a provider binds keys and creates none, so it needs no deployment (ADR-1490).
+          # Enabled without its location, a provider binds keys and creates none, so it needs no deployment (ADR-1485).
           binding=$(helm template release "$CHART" --values "$base" --set "$role" --set "$aws.enabled=true" \
             --set secretProtection.remoteKeys.deployment=)
           expect "$binding" 'AWS_ROLE_ARN' 'SecretProtection__RemoteKeyProviders__AwsKms__PendingWindowInDays'
@@ -391,7 +391,7 @@ jobs:
           refuse --set managementConsole.keyRings.client.pemSecret=
           refuse --set managementConsole.keyRings.dpop.pemSecret=
           refuse --set managementConsole.replicaCount=2
-          # Every path of the console's host reaches the console; the server answers only at its own hosts (ADR-1488).
+          # Every path of the console's host reaches the console; the server answers only at its own hosts (ADR-1437).
           ingress=$(helm template release "$CHART" --values "$base" --show-only templates/management-console-ingress.yaml)
           if grep -q 'path: /api' <<< "$ingress" || grep -Eq 'name: release-ncode-identity-host$' <<< "$ingress"; then
             echo "::error::The management console Ingress routes a path to the server."
@@ -491,7 +491,7 @@ jobs:
             'name: AWS_ROLE_ARN' \
             'name: aws-web-identity' 'name: Bff__KeyRings__mgmt-dpop__PemFiles__0'
           # A key ring without pemSecret mounts no Secret.
-          # The console registers every vendor without a key-creation location, so it renders no provider section (ADR-1489).
+          # The console registers every vendor without a key-creation location, so it renders no provider section (ADR-1474).
           reject "$aws" 'Bff__KeyRings__mgmt-client__PemFiles' 'name: client-key' 'RemoteKeyProviders'
           # The server's pods never carry the console's identity.
           reject "$(helm template release "$CHART" --values "$base" --show-only templates/deployment.yaml)" 'AWS_ROLE_ARN'

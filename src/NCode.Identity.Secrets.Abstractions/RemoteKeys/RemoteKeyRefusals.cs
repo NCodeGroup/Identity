@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// a consumer that refuses the request with an exception and one that answers it with an error state it in the same
 /// words.
 /// </summary>
-// See ADR-1489.
+// See ADR-1474.
 [PublicAPI]
 public static class RemoteKeyRefusals
 {

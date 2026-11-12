@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Platform;
 /// the replica that made the change, and a repeated message, are harmless. A replica that may have missed an
 /// announcement reads the settings again too.
 /// </summary>
-// See ADR-1205 and ADR-1219.
+// See ADR-1205 and ADR-1412.
 internal sealed class PlatformSettingsChangeBroadcastHandler(
     IMaterializedPlatformRegistry materializedPlatformRegistry
 ) : IReplicaBroadcastHandler

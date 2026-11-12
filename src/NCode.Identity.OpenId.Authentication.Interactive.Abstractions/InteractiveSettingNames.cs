@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// Contains the names of the settings the interactive surface registers: the branding a tenant shows its end-users on
 /// the login, consent, and account pages. Each is a tenant setting, and an empty value leaves the surface's own default.
 /// </summary>
-// See ADR-1194.
+// See ADR-1253.
 [PublicAPI]
 public static class InteractiveSettingNames
 {

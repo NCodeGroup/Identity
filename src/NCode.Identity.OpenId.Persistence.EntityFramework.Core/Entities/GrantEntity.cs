@@ -149,7 +149,7 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the payload, protected under the tenant's master key.
     /// </summary>
-    // See ADR-1265.
+    // See ADR-1235.
     [Unicode(false)]
     public required string ProtectedPayload { get; set; }
 

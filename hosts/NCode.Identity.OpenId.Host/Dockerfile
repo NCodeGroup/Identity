@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 #
-# The production image of NCode.Identity.OpenId.Host (ADR-1178). Build it from the repository root; it takes one
+# The production image of NCode.Identity.OpenId.Host (ADR-1248). Build it from the repository root; it takes one
 # optional build argument, VERSION, the version the assemblies report (the publishing workflow passes it):
 #
 #   docker buildx build --platform linux/amd64,linux/arm64 \
 #     --file hosts/NCode.Identity.OpenId.Host/Dockerfile .
 #
 # Every base image is pinned by tag and by the digest of its multi-architecture index, and Dependabot moves the digests
-# (ADR-1249). The Node major equals the single pin in frontend/.node-version, which the `Host image` workflow
+# (ADR-1248). The Node major equals the single pin in frontend/.node-version, which the `Host image` workflow
 # checks (ADR-1152).
 #
 # Every build stage runs on the build machine's own architecture and cross-publishes for the target, so a multi-arch

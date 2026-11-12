@@ -199,7 +199,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // access_token_encryption_required: whether issued access tokens must be encrypted (default false).
             // Floor (Or): once a parent requires it, a child cannot un-require it. Scopes: the client's and every
-            // targeted resource server's requirements combine at issuance (ADR-1075, ADR-1158).
+            // targeted resource server's requirements combine at issuance (ADR-1158).
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionRequired,
@@ -449,7 +449,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // client_assertion_max_lifetime: longest lifetime accepted for a private_key_jwt / client_secret_jwt
-            // assertion, from its earliest 'iat'/'nbf' to its 'exp' (RFC 7523 §3; default 5 minutes, ADR-1124).
+            // assertion, from its earliest 'iat'/'nbf' to its 'exp' (RFC 7523 §3; default 5 minutes, ADR-1187).
             // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
@@ -1032,7 +1032,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // registration_endpoint_allow_anonymous: whether the dynamic client registration endpoint accepts
-            // anonymous (no initial access token) requests (default false). (ADR-1063)
+            // anonymous (no initial access token) requests (default false). (ADR-1192)
             // Floor (And): once a parent disallows anonymous registration, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {

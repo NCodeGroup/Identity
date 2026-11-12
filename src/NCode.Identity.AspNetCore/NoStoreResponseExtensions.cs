@@ -10,7 +10,7 @@ namespace NCode.Identity.AspNetCore;
 /// Provides the extension method that marks a response as non-cacheable, so that no client or intermediary stores a
 /// response that can carry secret material.
 /// </summary>
-// See ADR-1345.
+// See ADR-1050.
 [PublicAPI]
 public static class NoStoreResponseExtensions
 {

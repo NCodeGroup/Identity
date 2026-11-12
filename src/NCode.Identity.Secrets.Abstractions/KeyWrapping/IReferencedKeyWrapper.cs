@@ -16,7 +16,7 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 /// key that is reached through an identity that the holder grants takes that identity, through
 /// <see cref="UnwrapAsync(WrappedKey, KeyAccess, ReadOnlyMemory{byte}, IBufferWriter{byte}, CancellationToken)"/>.
 /// </summary>
-// See ADR-1415 and ADR-1429.
+// See ADR-1414.
 [PublicAPI]
 public interface IReferencedKeyWrapper : IKeyWrapper
 {

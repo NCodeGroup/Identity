@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The coverage scope of the Definition of Done (ADR-1185). build/dod.ps1 passes this file to `dotnet test` only when it
+  The coverage scope of the Definition of Done (ADR-1143). build/dod.ps1 passes this file to `dotnet test` only when it
   collects coverage, so the job summary and Codecov both read reports that already leave out generated code:
 
   - files under obj/: source-generator output (OpenAPI XML comments, GeneratedRegex), a build intermediate;

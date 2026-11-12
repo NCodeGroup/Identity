@@ -37,7 +37,7 @@ This is a settled decision, not a question. Apply it without asking, and never r
 ## Design posture (greenfield, pre-release)
 
 This family is **greenfield and pre-release** — nothing is shipped and there is **no backward-compatibility to
-preserve** ([ADR-1025](../../docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)). **Default to the best
+preserve** ([ADR-1025](../../docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)). **Default to the best
 long-term, cohesive design.** When a change forks between a minimal, compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage — PublicAPI churn, setting renames/removals, signature changes, moved types, and clean cutovers are expected
@@ -68,9 +68,10 @@ package, type, setting, endpoint or behavior is and does, never how it differs f
   removes, as the template's planning, review and landing commands do in a pre-release project.
 - **No breaking marker.** Commit subjects and pull request titles never carry the conventional-commit `!` marker
   (`feat:`, never `feat!:`), and no commit message or pull request description carries a `BREAKING CHANGE:` footer.
-- **Decision records relate through their metadata.** A record's `Status`, `Amends`, `Supersedes`, `Refines` and
-  `Conflicts with` lines are the decision-record mechanism, not change tracking; its Context states its forces in the
-  present tense.
+- **Decision records are rewritten, not superseded.** A changed decision rewrites its record in place, and the
+  record's only relation lines, `Refines`, `Supersedes` and `Conflicts with`, name project template records
+  ([ADR-1508](../../docs/decisions/1508-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md));
+  its Context states its forces in the present tense.
 
 ### Extensibility is the goal — nothing closed by default
 
@@ -124,7 +125,7 @@ during a task into the instruction files or an ADR as part of the same change. S
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
 [GitHub issues](https://github.com/NCodeGroup/identity/issues), the single source of truth for it
-([ADR-1306](../../docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)). Record a pending item as an issue
+([ADR-1306](../../docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md)). Record a pending item as an issue
 labeled by its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
 ([project-template ADR-0001](../../docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an
 issue closes it with `Closes #<number>`. Read open issues with `gh issue list`; reference one as
@@ -172,14 +173,14 @@ lines from the pull request title and description they write. See
 
 When the user authorizes a push (says "push"), it pushes the current **topic branch** — never `main`, which accepts
 changes only by pull request through the merge queue
-([ADR-1261](../../docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
-[ADR-1263](../../docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
+([ADR-1261](../../docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md),
+[ADR-1263](../../docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
 pull request against `main` as a **draft** if none exists (a push to an open pull request's branch updates it). For a
 plan, `/ship-plan` does both, as the [Landing](../../AGENTS.md#landing) section of `AGENTS.md` says: its `draft: yes`
 opens the pull request as a draft, and its `gate` runs gate 4 below before each push. Without a plan, push the branch
 and run `gh pr create --draft`. The agent stops there: it never marks the pull request ready for review and never
 enables auto-merge, because the user self-reviews the draft and that step is the approval
-([ADR-1269](../../docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). Run these gates
+([ADR-1261](../../docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)). Run these gates
 **before** pushing:
 
 1. **Finish the plan.** If a `PLAN.md` exists, every step is `[x]`, its review (`/review-plan-diff`) has run with
@@ -189,7 +190,7 @@ enables auto-merge, because the user self-reviews the draft and that step is the
    pushed, and `/finish-plan` deletes it once the pull request merges. The `Plan step N` checkpoints reach the pull
    request's branch but never `main`: the merge queue squash-merges, taking the commit's subject from the pull request
    title, which `/ship-plan` takes from the plan's title, so a plan's title is a conventional commit subject
-   ([ADR-1170](../../docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+   ([ADR-1170](../../docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md)).
 2. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
    into the scoped instruction files, a non-obvious decision into an ADR under [`docs/decisions/`](../../docs/decisions/), a
    change to what the family does into the [`CHANGELOG.md`](../../CHANGELOG.md) catalog, and pending work into a
@@ -202,7 +203,7 @@ enables auto-merge, because the user self-reviews the draft and that step is the
    as the Landing section's `gate` and stops when it exits non-zero. CI owns the full `./build/dod.ps1` (all tests,
    coverage, packing, and NuGet advisories as errors): the merge queue runs it on the merged result before anything
    reaches `main`
-   ([ADR-1263](../../docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
+   ([ADR-1263](../../docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
    does **not** run before a local push. Neither gate builds the host image: when a change adds a file that a root
    build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` and
    `Console image` checks on the pull request find it.

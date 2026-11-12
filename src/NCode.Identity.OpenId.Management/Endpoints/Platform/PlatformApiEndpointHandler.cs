@@ -189,7 +189,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The platform's setting limits.</response>
-    // See ADR-1448.
+    // See ADR-1418.
     [EndpointName("api/platform/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
         HttpContext httpContext,
@@ -532,7 +532,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="replacedSettings">The platform's committed settings document.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The platform's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
-    // See ADR-1241.
+    // See ADR-1245.
     private async ValueTask<IReadOnlySettingCollection?> ResolveReplacedPlatformSettingsOrDefaultAsync(
         JsonElement replacedSettings,
         CancellationToken cancellationToken
@@ -573,7 +573,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the platform setting that does not permit each
     /// value, or an empty list.</returns>
-    // See ADR-1206 and ADR-1241.
+    // See ADR-1206 and ADR-1245.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         IReadOnlySettingCollection currentPlatformSettings,
         IReadOnlySettingCollection newPlatformSettings,
@@ -635,8 +635,8 @@ internal class PlatformApiEndpointHandler(
     }
 
     // Announces a committed change to the platform's settings document, so every handler of the change (the default one
-    // reads the document again on every replica, ADR-1219, and each team's reconciliation then seeds the tenants and
-    // checks the clients, ADR-1412) runs after the write. The mediator is request-scoped, so it is resolved from the
+    // reads the document again on every replica, ADR-1412, and each team's reconciliation then seeds the tenants and
+    // checks the clients) runs after the write. The mediator is request-scoped, so it is resolved from the
     // request's services.
     private static ValueTask NotifyPlatformSettingsChangedAsync(
         HttpContext httpContext,

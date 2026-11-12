@@ -20,7 +20,7 @@ namespace NCode.Identity.Bff.Server;
 /// Provides the default implementation of <see cref="IIdentityBffBuilder"/>: the composition root that references the
 /// implementation packages a BFF needs and wires them together.
 /// </summary>
-// See ADR-1016.
+// See ADR-1500.
 internal sealed class IdentityBffBuilder : ServiceBuilder<IdentityBff>, IIdentityBffBuilder
 {
     /// <inheritdoc />

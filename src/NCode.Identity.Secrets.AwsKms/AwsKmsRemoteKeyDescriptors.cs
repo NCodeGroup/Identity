@@ -24,7 +24,6 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// <c>ECDH-ES+A256KW</c>.
 /// </remarks>
 // See ADR-1471.
-// See ADR-1477.
 internal sealed class AwsKmsRemoteKeyDescriptors(IOptions<AwsKmsRemoteKeyProviderOptions> options)
     : IRemoteKeyDescriptorSource
 {

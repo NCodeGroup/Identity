@@ -39,7 +39,7 @@ GET api/me/tenants
 /// authenticated from a management access token, which it reads from <see cref="IManagementCallerFeature"/>; any other
 /// request gets the authentication-required problem.
 /// </summary>
-// See ADR-1420 and ADR-1484.
+// See ADR-1465 and ADR-1044.
 internal class CallerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,

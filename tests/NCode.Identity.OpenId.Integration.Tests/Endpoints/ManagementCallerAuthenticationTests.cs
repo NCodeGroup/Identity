@@ -13,7 +13,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A management route takes its caller only from a management access token, whatever principal another authentication
-// scheme set. See ADR-1484.
+// scheme set. See ADR-1044.
 public class ManagementCallerAuthenticationTests
 {
     #region Helpers

@@ -90,7 +90,7 @@ public interface ISecretValidator
     /// <returns>The resolved size and curve of the key, or the error that describes the first failed
     /// check.</returns>
     // See ADR-1476.
-    // See ADR-1477.
+    // See ADR-1471.
     SecretCreateValidation ValidateRemoteKey(RemoteKeyAlgorithmSelector selector);
 
     /// <summary>

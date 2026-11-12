@@ -8,7 +8,7 @@ First-class **JSON Web Key** (JWK, RFC 7517), **JSON Web Key Set** (JWKS, RFC 75
 
 This is intentional, and it is the one place in the family where a type is deliberately **not** split into a contracts
 package. The decision is
-[ADR-1119](../../docs/decisions/1119-first-class-jwk-jwks-and-thumbprint.md). In short:
+[ADR-1119](../../docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md). In short:
 
 - **Our `*.Abstractions` packages hold contracts only — no logic.** That rule is what the whole Abstractions/impl split
   exists to enforce.
@@ -33,7 +33,7 @@ A `JsonWebKey` carries a `JsonWebKeyTypeDescriptor` that names its thumbprint me
 key types (`RSA`, `EC`, `OKP`, `oct` and `AKP`) are built in as `JsonWebKeyTypeDescriptors`. A contributed key type
 returns its own descriptor from `ISecretKeyTypeDescriptor.JwkKeyType`, and code that resolved it constructs
 `new JsonWebKey(element, descriptor)` so the key uses that type's rules. The standard private member names stay private
-for every key type. See [ADR-1271](../../docs/decisions/1271-a-key-type-registers-its-json-web-key-rules.md).
+for every key type. See [ADR-1119](../../docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md).
 A set read with `JsonWebKeySet.Parse(json, keyTypeDescriptors)` or `new JsonWebKeySet(element, keyTypeDescriptors)`
 builds each key of a supplied type with its descriptor; pass the `JwkKeyType` of each
 `ISecretKeyTypeCatalog.Descriptors` entry that has one (it is `null` for a key type with no JSON Web Key form, and a
@@ -46,4 +46,4 @@ descriptors only.
 names in the IANA [Named Information Hash Algorithm Registry](https://www.iana.org/assignments/named-information)
 (`sha-256` … `sha3-512`), as RFC 9278 §4 requires. For another hash the framework computes, pass its registry name to
 `ComputeThumbprintUri(HashAlgorithmName, string)`. A truncated hash name, such as `sha-256-128`, is never produced. See
-[ADR-1281](../../docs/decisions/1281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md).
+[ADR-1119](../../docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md).

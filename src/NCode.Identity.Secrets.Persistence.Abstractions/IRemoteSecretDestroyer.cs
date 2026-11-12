@@ -13,12 +13,12 @@ namespace NCode.Identity.Secrets.Persistence;
 /// created there. A caller runs it after the commit that removed the records, so a key is never destroyed while a
 /// record still names it.
 /// </summary>
-// See ADR-1468 and ADR-1471.
+// See ADR-1351 and ADR-1471.
 [PublicAPI]
 [SuppressMessage(
     "Design",
     "NCID0003",
-    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+    Justification = "The work follows a committed change and runs on its own bounded token, so no caller can pass a token that drops it (ADR-1351)."
 )]
 public interface IRemoteSecretDestroyer
 {

@@ -337,7 +337,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     {
         // OpenID Connect Core §9 accepts either the issuer identifier or the URL of the endpoint receiving the request;
         // a security profile may further restrict this (see IClientAuthenticationProfileRequirement). The endpoint's URL
-        // is one the tenant publishes, never one built from the request's Host (ADR-1387).
+        // is one the tenant publishes, never one built from the request's Host (ADR-1365).
         return [openIdContext.Tenant.Issuer, .. TenantRequestUri.GetPublishedUris(openIdContext)];
     }
 

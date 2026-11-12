@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Host.Database;
 /// release reads that shape any more. A migration with neither marker only expands the schema and changes no data,
 /// which <see cref="ExpandOnlyRule.Check"/> checks for every migration.
 /// </summary>
-// See ADR-1184.
+// See ADR-1180.
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class ContractMigrationAttribute(string reason) : Attribute

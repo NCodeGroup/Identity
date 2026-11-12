@@ -1,7 +1,7 @@
 # Discovery-metadata alignment
 
 `/.well-known/openid-configuration` advertises **exactly what the OP honours** — no more, no less — with secure-by-default
-values an operator overrides through configuration ([ADR-1083](../decisions/1083-secure-by-default-discovery-metadata.md)).
+values an operator overrides through configuration ([ADR-1010](../decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 The Config OP profile reads the discovery document and **fails on anything advertised that the OP cannot deliver**, so
 over-advertising is a certification blocker, not a warning. This document is the field-by-field reference and
 rationale. Parent design: [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #4 and Appendix A).

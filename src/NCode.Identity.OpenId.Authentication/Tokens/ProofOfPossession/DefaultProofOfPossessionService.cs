@@ -137,7 +137,7 @@ internal class DefaultProofOfPossessionService(
             }
 
             // The htu is compared with the URL the tenant publishes for this endpoint, never one built from the request's
-            // Host (ADR-1387).
+            // Host (ADR-1365).
             var httpUri = TenantRequestUri.GetPublishedUri(openIdContext);
             string proofJwkThumbprint;
             try
@@ -260,7 +260,7 @@ internal class DefaultProofOfPossessionService(
         }
 
         // The htu is compared with the URL the tenant publishes for this endpoint, never one built from the request's
-        // Host (ADR-1387).
+        // Host (ADR-1365).
         var httpUri = TenantRequestUri.GetPublishedUri(openIdContext);
 
         return await DPoPProofValidator.ValidateAsync(

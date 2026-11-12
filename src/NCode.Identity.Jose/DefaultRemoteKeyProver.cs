@@ -19,8 +19,8 @@ namespace NCode.Identity.Jose;
 /// compact JWE (<c>A256GCM</c>). A signature or a decryption that does not prove the key is a
 /// <see cref="RemoteKeyRefusedException"/>; any other failure propagates.
 /// </summary>
-// See ADR-1475.
-// See ADR-1477.
+// See ADR-1476.
+// See ADR-1471.
 // See ADR-1479.
 internal sealed class DefaultRemoteKeyProver(
     IJoseSerializer joseSerializer,
@@ -119,7 +119,7 @@ internal sealed class DefaultRemoteKeyProver(
         }
     }
 
-    // See ADR-1477.
+    // See ADR-1471.
     private async ValueTask ProveDecryptionAsync(
         SecretKey key,
         KeyManagementAlgorithm keyManagementAlgorithm,

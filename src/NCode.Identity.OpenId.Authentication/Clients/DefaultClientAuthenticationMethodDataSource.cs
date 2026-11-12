@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// the order that the server advertises them in <c>token_endpoint_auth_methods_supported</c>. Each descriptor has the
 /// name of the <see cref="IClientAuthenticationHandler"/> that authenticates the method.
 /// </summary>
-// See ADR-1207.
+// See ADR-1145.
 internal sealed class DefaultClientAuthenticationMethodDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<ClientAuthenticationMethodDescriptor>
 {

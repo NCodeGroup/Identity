@@ -229,8 +229,9 @@ public static class IdentityServerBuilderExtensions
         /// override, and registers the endpoint that publishes the document so the host's single
         /// <c>MapEndpointGroups</c> call maps it alongside every other endpoint. The tier-agnostic frontend bundles
         /// fetch this document from the serving host at boot to discover their deployment coordinates (API base,
-        /// issuer, client id, scopes, feature flags, branding); when the API base and issuer are left unconfigured the
-        /// published document falls back to the serving request's own origin, so a single-origin host needs no
+        /// issuer, client id, scopes, feature flags, branding); when the issuer is left unconfigured the published
+        /// document carries the issuer of the tenant that serves the surface, and when the API base is left
+        /// unconfigured it carries the host's root-relative path base, never the request's origin, so a host needs no
         /// configuration.
         /// </summary>
         /// <remarks>

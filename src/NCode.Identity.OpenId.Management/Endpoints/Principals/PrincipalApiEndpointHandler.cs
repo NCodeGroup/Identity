@@ -189,7 +189,7 @@ internal class PrincipalApiEndpointHandler(
 
         // A blocked principal's sessions end, which revokes its grants and notifies its relying parties. The change is
         // committed, so the termination runs on its own bounded token and a failure is logged; the audit record
-        // follows. See ADR-1226 and ADR-1468.
+        // follows. See ADR-1229 and ADR-1351.
         await PostCommitSecurityEffects.TerminateSessionsAsync(
             tenantContext,
             principal.PrincipalId,
@@ -265,7 +265,7 @@ internal class PrincipalApiEndpointHandler(
     [SuppressMessage(
         "Design",
         "NCID0003",
-        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351, ADR-1464, ADR-1468)."
+        Justification = "The work follows a committed change and runs on its own bounded token through the audit recorder, so no caller can pass a token that drops it (ADR-1351)."
     )]
     private ValueTask RecordPrincipalChangedAsync(
         HttpContext httpContext,

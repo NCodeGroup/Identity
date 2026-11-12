@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 /// must not reverse. Resolving the subject forward from the <c>sid</c> mirrors the one-way-hashed grant-key model where
 /// a presented value is matched forward, never reversed. It also reports whether the end-user must confirm the logout.
 /// </summary>
-// See ADR-1093, ADR-1096 and ADR-1380.
+// See ADR-1093, ADR-1380.
 internal class DefaultResolveEndSessionSubjectHandler(
     IIssuedTokenValidator issuedTokenValidator,
     IOpenIdClientResolver clientResolver,
@@ -85,7 +85,7 @@ internal class DefaultResolveEndSessionSubjectHandler(
         var loginSchemes = await GetLoginSchemesAsync(openIdContext, clientId, cancellationToken);
 
         // The current OP login cookies supply the session (and a provisional subject). A cookie's `sub` is the stable
-        // PrincipalId (ADR-1094).
+        // PrincipalId (ADR-1035).
         var loginSessionIds = new List<string?>(loginSchemes.Count);
         foreach (var loginScheme in loginSchemes)
         {

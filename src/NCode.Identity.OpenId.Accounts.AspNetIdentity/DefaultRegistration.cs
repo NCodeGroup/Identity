@@ -44,7 +44,7 @@ public static class DefaultRegistration
             // See ADR-1239.
             serviceCollection.TryAddSingleton<AspNetIdentityDummyPasswordHash<TUser>>();
 
-            // See ADR-1243.
+            // See ADR-1238.
             AddNormalizingPasswordHasher<TUser>(serviceCollection);
 
             // The store is backing-store-agnostic, so it registers the DbContext-less factory the store manager falls
@@ -64,7 +64,7 @@ public static class DefaultRegistration
 
     // Replaces the last registration of the host's hasher in place with one that wraps it, so the order of this call
     // and of ASP.NET Core Identity's registration, which keeps a registration that exists, does not matter. See
-    // ADR-1243.
+    // ADR-1238.
     private static void AddNormalizingPasswordHasher<TUser>(IServiceCollection serviceCollection)
         where TUser : class
     {

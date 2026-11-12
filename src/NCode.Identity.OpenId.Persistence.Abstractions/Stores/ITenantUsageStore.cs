@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 /// tenant's usage that replicas add to. Usage is not tenant-scoped data: it is kept after its tenant is
 /// deleted, so the platform can still bill the tenant's last days.
 /// </summary>
-// See ADR-1199 and ADR-1209.
+// See ADR-1199.
 [PublicAPI]
 public interface ITenantUsageStore : IStore
 {

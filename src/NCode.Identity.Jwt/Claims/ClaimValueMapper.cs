@@ -36,7 +36,7 @@ internal static class ClaimValueMapper
     /// <param name="issuer">The issuer of the claim.</param>
     /// <param name="subject">The subject of the claim.</param>
     /// <returns>The newly created <see cref="Claim"/> instance.</returns>
-    // See ADR-1121.
+    // See ADR-1122.
     public static Claim ToClaim(
         string claimType,
         JsonElement value,

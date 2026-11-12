@@ -20,7 +20,7 @@ through public contracts.
 > **Greenfield, pre-release, under active development.** Nothing is shipped — no stable release, and no packages are
 > published to NuGet. **Anything can break at any time**: the public API, settings names, database schema, and token
 > formats all change without a deprecation cycle or migration path. Breaking changes land as clean cutovers rather
-> than compatibility shims ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)). Do not use this
+> than compatibility shims ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)). Do not use this
 > in production, and do not depend on anything here staying put.
 
 ## Status
@@ -35,7 +35,7 @@ through public contracts.
 | **Repository** | The product's public repository; the platform's infrastructure is [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform) ([Repositories](#repositories)) |
 
 The whole family is versioned in lockstep from a single [`version.json`](version.json)
-([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)), and its packages, hosts, images
+([ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)), and its packages, hosts, images
 and chart, with the frontend the console image builds, live together in this repository.
 
 ## Why
@@ -52,12 +52,12 @@ Two consequences worth knowing up front:
   advertises `response_types_supported` as **`code` only**, so the implicit and hybrid combinations that
   [RFC 9700] and OAuth 2.1 remove are off unless an operator deliberately widens the setting. Anonymous dynamic client
   registration is off, and capabilities that weaken posture are opt-in and advertised only when enabled
-  ([ADR-1083](docs/decisions/1083-secure-by-default-discovery-metadata.md)). The resource-owner password grant exists for
+  ([ADR-1010](docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). The resource-owner password grant exists for
   hosts that genuinely need it, but it is a separate opt-in registration rather than part of the default composition.
 - **Settings are a merge lattice, not a flag soup.** Platform, team, tenant, resource-server and client settings merge through
   declared rules (a floor cannot be raised by a child, a ceiling cannot be exceeded), so a tenant cannot configure its
   way out of a platform- or team-level security decision
-  ([ADR-1108](docs/decisions/1108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 
 ## What works today
 
@@ -99,7 +99,7 @@ certified.
 
 ## Layout
 
-A project's top-level folder says whether it ships ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)): the published packages are under `src/`, the deployables under `hosts/`, the repository's own analyzers under `analyzers/`, the web apps' pnpm workspace under `frontend/`, tests under `tests/` and benchmarks under `benchmarks/`.
+A project's top-level folder says whether it ships ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)): the published packages are under `src/`, the deployables under `hosts/`, the repository's own analyzers under `analyzers/`, the web apps' pnpm workspace under `frontend/`, tests under `tests/` and benchmarks under `benchmarks/`.
 
 | Area                 | Packages                                                                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -120,7 +120,7 @@ A project's top-level folder says whether it ships ([ADR-1501](docs/decisions/15
 The deployables under `hosts/` are `NCode.Identity.OpenId.Host` with its `.Host.Database` and `.Host.MigrationService`, `NCode.Identity.ManagementConsole.Host` and `NCode.Identity.OpenId.LocalDev`.
 
 The extensibility model — **service** vs **strategy collection** vs **mediator** — is
-[ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md).
+[ADR-1001](docs/decisions/1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md).
 
 ## Repositories
 
@@ -128,21 +128,21 @@ The product spans the repositories below, and code is public when a self-hoster 
 
 | Repository                     | Visibility | Holds |
 | ------------------------------ | ---------- | ----- |
-| `NCodeGroup/identity`          | Public     | The product: the NuGet packages (`src/`), the deployables (`hosts/`), the host and console images, the host chart (`charts/ncode-identity-host`), the web apps' pnpm workspace (`frontend/`), and the decisions and issues of the product and its platform ([ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)) |
-| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the platform's live configuration for `lab` and `production` ([ADR-1132](docs/decisions/1132-platform-infrastructure-as-code-is-public-on-github.md), [ADR-1133](docs/decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)) |
+| `NCodeGroup/identity`          | Public     | The product: the NuGet packages (`src/`), the deployables (`hosts/`), the host and console images, the host chart (`charts/ncode-identity-host`), the web apps' pnpm workspace (`frontend/`), and the decisions and issues of the product and its platform ([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)) |
+| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the platform's live configuration for `lab` and `production` ([ADR-1132](docs/decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md), [ADR-1133](docs/decisions/1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)) |
 | `NCodeGroup/identity-cloud`    | Private    | Only the managed offering's proprietary parts: billing and metering, sign-up, the customer portal, support tooling and private runbooks |
 
 The decisions and issues of `identity-platform` live here, and `identity-cloud` keeps its private ones itself.
 
 Repositories, packages (`NCode.Identity.*`), the chart and images (`ncode-identity-*`), the npm workspace packages
 (`@ncode/*`, all private) and the domains (`ncodeid.*`) follow one naming scheme
-([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md),
+([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md),
 [GOVERNANCE.md](GOVERNANCE.md#repositories-and-naming)).
 
 ## Running the reference server
 
 The `NCode.Identity.OpenId.Host` project is a complete OpenID Provider used as the reference composition and the local test bed.
-[.NET Aspire](docs/decisions/1071-aspire-local-dev-orchestrator.md) orchestrates the whole stack — the provider, a
+[.NET Aspire](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) orchestrates the whole stack — the provider, a
 PostgreSQL container, the schema migration worker, and the frontend apps — with deterministic startup ordering:
 
 ```pwsh
@@ -168,12 +168,12 @@ green run means the same thing in both places. It prints `Definition of Done: PA
 Test results land in `artifacts/test-results/` and the merged coverage report in `artifacts/coverage/` (open
 `index.html`). In CI, each run's summary page shows the stage timings, test results, and coverage, failed tests are
 annotated in place, and coverage history and pull-request diff coverage live on
-[Codecov](https://codecov.io/gh/NCodeGroup/identity) ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md)).
+[Codecov](https://codecov.io/gh/NCodeGroup/identity) ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md)).
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) has the full workflow. Work lands on the single `main` trunk
 ([project-template ADR-0004](docs/decisions/project-template/0004-trunk-based-development-on-the-default-branch.md)),
 and shipped versions are serviced from `release/vX.Y` lines beside it
-([ADR-1305](docs/decisions/1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md)).
+([ADR-1302](docs/decisions/1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md)).
 
 ## Documentation
 

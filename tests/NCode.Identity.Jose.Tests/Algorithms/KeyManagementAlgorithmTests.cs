@@ -13,7 +13,7 @@ using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Jose.Tests.Algorithms;
 
-// See ADR-1477.
+// See ADR-1471.
 public class KeyManagementAlgorithmTests : BaseTests
 {
     private static RemoteDecryptionAlgorithm RsaOaep256Row { get; } =

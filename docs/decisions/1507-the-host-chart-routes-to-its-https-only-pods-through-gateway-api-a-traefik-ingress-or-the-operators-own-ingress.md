@@ -1,8 +1,6 @@
 # 1507. The host chart routes to its HTTPS-only pods through Gateway API, a Traefik Ingress or the operator's own ingress
 
-- **Status:** Accepted (amends
-  [ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md) and
-  [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md))
+- **Status:** Accepted
 - **Date:** 2026-11-12
 - **Deciders:** NCode Group
 
@@ -16,14 +14,15 @@ present the ingress controller's client certificate
 Five facts shape how the chart does that (issue [#792](https://github.com/NCodeGroup/identity/issues/792)):
 
 - **ingress-nginx is retired.** Its maintenance ended in March 2026 and its repository is archived, so it receives no
-  fixes. A chart that renders its annotations points operators at software that no longer gets security updates.
+  fixes. A chart that rendered its annotations would point operators at software without security updates.
 - **Gateway API has a standard way to verify a backend.** `BackendTLSPolicy` is Standard since Gateway API v1.4. It
   targets a Service port, names the host name to check and takes the CA from a ConfigMap.
 - **A Gateway, not a route, presents a backend client certificate.** Gateway API places the client certificate a
   Gateway presents to its backends on the Gateway (`spec.tls.backend.clientCertificateRef`, GEP-3155), which the
   cluster's operator owns, and it applies to every backend of that Gateway.
 - **The ingress controller has a Secret of its own.** The chart issues `<release>-ingress`, which holds the CA that
-  signed the pods' certificates and the controller's client certificate, never a pod's key (ADR-1506). Traefik's
+  signed the pods' certificates and the controller's client certificate, never a pod's key
+  ([ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)). Traefik's
   `ServersTransport` reads its CA (`rootCAs`) and its client certificate (`certificatesSecrets`) from a Secret.
 - **cert-manager writes only Secrets.** `BackendTLSPolicy` reads only ConfigMaps, so the CA a Gateway verifies against
   is a ConfigMap that something other than cert-manager writes.
@@ -32,8 +31,7 @@ Five facts shape how the chart does that (issue [#792](https://github.com/NCodeG
 
 **The chart routes to the pods in one of three modes, for the server and the console alike, and no mode gives a router
 the pods' private key: the Gateway API mode verifies the pods against a CA ConfigMap that holds only `ca.crt`, and the
-Traefik mode against the ingress controller's own Secret.** This amends decision 6 of ADR-1504 and decision 1 of
-ADR-1506.
+Traefik mode against the ingress controller's own Secret.**
 
 1. **Gateway API.** `httpRoute.enabled` (`managementConsole.httpRoute.enabled` for the console) renders an `HTTPRoute`
    attached to the operator's Gateway through `parentRefs` that sends every path to the Service's `https` port, and a
@@ -58,13 +56,13 @@ ADR-1506.
    the chart's private CA itself: a post-install and post-upgrade hook Job runs the official `kubectl` image with
    `kubectl apply -k` over a projected volume that holds a static `kustomization.yaml` and only the `ca.crt` key of the
    `<release>-ca` Secret, and writes the ConfigMap `backendTls.caConfigMap` names, or `<release>-ca`.
-6. **The chart issues the ingress controller's Secret when a route uses it.** A component's route uses it when the
-   component's Ingress is enabled with `ingress.controller: traefik`, or any of its routes is enabled and
-   `backendTls.clientCertificate.required` is true. The chart then renders the `<release>-ingress` Certificate of
-   ADR-1506 unless an `ingressSecret` applies, and refuses a component's `existingSecret` without an `ingressSecret`
-   when no `backendTls.certManager.issuerRef` names the CA that signed it.
-7. **No ingress-nginx mode.** The chart renders nothing for ingress-nginx, and `rootCAsSecrets`, which Traefik
-   deprecates, is not rendered.
+6. **A route uses the ingress controller's Secret** when the component's Ingress is enabled with
+   `ingress.controller: traefik`, or any of its routes is enabled and `backendTls.clientCertificate.required` is true.
+   Whether the chart issues the `<release>-ingress` Certificate for such a route, and the rules for an operator's
+   `ingressSecret` and `existingSecret`, are held by
+   [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md).
+7. **`ingress.controller` is `traefik` or `other`.** `values.schema.json` refuses any other value, ingress-nginx
+   included, and the chart does not render `rootCAsSecrets`, which Traefik deprecates.
 
 ## Options considered
 

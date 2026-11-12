@@ -110,7 +110,7 @@ internal class DefaultTokenExchangeGrantHandler(
         }
 
         // A client acting for itself names no end-user whose authority an exchange could carry.
-        // See ADR-1450.
+        // See ADR-1466.
         var actingClient = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
             openIdContext,
             subjectResult.Principal,

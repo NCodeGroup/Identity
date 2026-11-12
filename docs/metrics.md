@@ -2,7 +2,7 @@
 
 Every meter, instrument, and attribute the NCode.Identity family emits, with each attribute's allowed values. It is the
 reviewed contract that dashboards and alerts are built against: adding or renaming an instrument or attribute changes
-this catalog in the same change ([ADR-1197](decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)).
+this catalog in the same change ([ADR-1197](decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
 
 No attribute carries a tenant, client, subject, or network address. Those belong to traces and logs, where cardinality
 costs nothing per series.
@@ -58,10 +58,9 @@ client authentications, which `ncode.identity.rate_limiting.requests` does not c
 
 Counter, unit `{request}`, meter `NCode.Identity.OpenId.Authentication`. Recorded once for each registered rate-limit
 descriptor a stage judges for a protocol request
-([ADR-1246](decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md),
-[ADR-1196](decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)), including the daily quotas
-([ADR-1198](decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) and the overage a tier admits past
-them ([ADR-1200](decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md)).
+([ADR-1246](decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)), including the daily quotas
+([ADR-1198](decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)) and the overage a tier admits past
+them.
 
 | Attribute                                | Values                                                                                                                                                |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -72,7 +71,7 @@ them ([ADR-1200](decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-a
 ### `ncode.identity.events.published`
 
 Counter, unit `{event}`, meter `NCode.Identity.Events`. Recorded once for each event published through the event seam
-([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)).
+([ADR-1047](decisions/1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md)).
 
 | Attribute                                     | Present on                                        | Values                                                                                                                                                                                    |
 | --------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -129,11 +128,11 @@ several round trips.
 
 Counters, unit `{retry}`. `ncode.identity.outbound_http.retries` (meter `NCode.Identity.OpenId.Authentication`) is
 recorded each time the guarded outbound client sends a call to a caller-supplied URL again after a transient failure
-([ADR-1315](decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md),
-[ADR-1385](decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md)), and
+([ADR-1315](decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md),
+[ADR-1385](decisions/1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md)), and
 `ncode.identity.openid_client.retries` (meter `NCode.Identity.OpenId.Client`) each time the OpenID protocol client sends
 a call to an OpenID Provider again
-([ADR-1336](decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)). Only a GET or HEAD
+([ADR-1336](decisions/1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md)). Only a GET or HEAD
 without a body (or, for the protocol client, a DPoP proof) is ever retried. Each attempt is also `System.Net.Http`'s
 `http.client.request.duration`.
 
@@ -156,7 +155,7 @@ cancels records nothing.
 ## Traces
 
 A package that traces its own mechanisms does it through one `ActivitySource` named like its meter
-([ADR-1298](decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md)). A
+([ADR-1197](decisions/1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)). A
 host adds them to its tracing pipeline, for example with OpenTelemetry's `AddSource("NCode.Identity.*")`.
 
 | Activity source      | Spans                                                                                                                     | Public name constant              |

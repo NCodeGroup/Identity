@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// <summary>
 /// Contains the <see cref="SettingKey{TValue}"/> of each setting the interactive surface registers.
 /// </summary>
-// See ADR-1194.
+// See ADR-1253.
 [PublicAPI]
 public static class InteractiveSettingKeys
 {

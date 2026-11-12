@@ -1,4 +1,4 @@
-# Default values for the ncode-identity-host chart (ADR-1179). Secrets are never values: the chart references Secrets
+# Default values for the ncode-identity-host chart (ADR-1458). Secrets are never values: the chart references Secrets
 # the operator creates, by name.
 
 # The number of replicas. More than one requires Valkey (ADR-1164), because replicas share single-use state through it.
@@ -119,7 +119,7 @@ secretProtection:
   # registered, and the pods then carry its workload credentials (awsKms.webIdentity, azureKeyVault.workloadIdentity,
   # googleCloudKms.workloadIdentityFederation). Its location (region, vaultUri, keyRing) is where it creates keys, which
   # the tenant setting tenant_key_provider then selects; without one it binds keys a service already holds and creates
-  # none (ADR-1489, ADR-1490).
+  # none (ADR-1474, ADR-1485).
   remoteKeyProviders:
     awsKms:
       # true registers the provider; a location set while it is false is refused.
@@ -321,7 +321,7 @@ priorityClassName: ""
 
 # The management console, a second Deployment from its own image that serves the console's bundle and its BFF on its own
 # host (ADR-1458). Its host's Ingress routes every path to the console, and the console calls the server's management
-# API at /api on its authority's origin (ADR-1488).
+# API at /api on its authority's origin (ADR-1437).
 managementConsole:
   enabled: false
   # More than one replica requires valkey.existingSecret below.

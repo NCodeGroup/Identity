@@ -18,7 +18,7 @@ namespace NCode.Identity.AspNetCore;
 /// the index, is served by <see cref="ServeAsset"/>.
 /// </summary>
 /// <typeparam name="TIndex">The type that the bundle's <c>index.html</c> parses into.</typeparam>
-// See ADR-1457.
+// See ADR-1193.
 // The cache is revalidated from file metadata rather than invalidated by a file watcher: a watcher costs an inotify
 // instance per process and misses changes on bind-mounted and network file systems, while one metadata read per
 // request is far cheaper than reading the file.

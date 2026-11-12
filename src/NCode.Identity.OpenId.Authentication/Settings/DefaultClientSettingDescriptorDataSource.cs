@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 /// composed with the base descriptor catalog from the core slice. Each such setting accepts only the registered
 /// authentication methods, so a misspelled or unsupported method is rejected rather than stored and never matched.
 /// </summary>
-// See ADR-1140 and ADR-1207.
+// See ADR-1140 and ADR-1145.
 internal class DefaultClientSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog

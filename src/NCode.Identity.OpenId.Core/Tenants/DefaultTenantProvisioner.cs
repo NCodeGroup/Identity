@@ -23,9 +23,8 @@ namespace NCode.Identity.OpenId.Tenants;
 /// logged, the remaining steps run, and the seed stands, because its unit of work has committed. It then reads the tenant
 /// again in a fresh unit of work and returns the row its seed committed.
 /// </summary>
-// See ADR-1045 (one seeding pipeline), ADR-1166 (a tenant is provisioned through one pipeline under every strategy),
-// ADR-1351 (an effect that follows a committed change runs on its own bounded token) and ADR-1463 (a seeded tenant is
-// returned as its seed committed it).
+// See ADR-1166 (one seeding pipeline) and ADR-1351 (an effect that follows a committed change runs on its own bounded
+// token).
 internal sealed class DefaultTenantProvisioner(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor,
@@ -135,7 +134,7 @@ internal sealed class DefaultTenantProvisioner(
         var isRootTenant = string.Equals(tenantId, rootTenantId, StringComparison.Ordinal);
 
         // The root (control-plane) tenant must exist and be seeded whatever tenant is seeded, so its control-plane data is
-        // in place under every strategy (ADR-1024, ADR-1166). It is seeded on this same path, so root and workload tenants
+        // in place under every strategy (ADR-1411, ADR-1166). It is seeded on this same path, so root and workload tenants
         // are seeded identically.
         if (!isRootTenant)
         {
@@ -156,7 +155,7 @@ internal sealed class DefaultTenantProvisioner(
 
         // The seed's contributors may write the tenant row, which issues it new concurrency tokens, so the tenant is read
         // again once the seed has committed and its steps have run; a tenant materialized from it carries the tokens of
-        // the row its own seed committed (ADR-1463).
+        // the row its own seed committed (ADR-1166).
         return await FindTenantAsync(tenantId, cancellationToken)
             ?? throw TenantErrors.NotFound(tenantId);
     }

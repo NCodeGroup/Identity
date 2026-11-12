@@ -32,7 +32,6 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// </para>
 /// </remarks>
 // See ADR-1471.
-// See ADR-1477.
 internal sealed class GoogleCloudKmsRemoteKeyDescriptors(
     IOptions<GoogleCloudKmsRemoteKeyProviderOptions> options
 ) : IRemoteKeyDescriptorSource

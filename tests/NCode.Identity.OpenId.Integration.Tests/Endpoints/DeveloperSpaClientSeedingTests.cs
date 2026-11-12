@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// Guards the reference host's Development overlay: the client ids its bootstrap document publishes and the public
 /// clients its developer seed registers are declared side by side, and must not drift apart.
 /// </summary>
-// See ADR-1146.
+// See ADR-1370.
 public class DeveloperSpaClientSeedingTests(DeveloperSeedingHostApplicationFactory factory)
     : IClassFixture<DeveloperSeedingHostApplicationFactory>
 {

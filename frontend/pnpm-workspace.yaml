@@ -12,7 +12,7 @@ autoInstallPeers: true
 strictPeerDependencies: false
 
 # `@types/node` describes the Node runtime pinned in .node-version, so every copy (including the peers Vite and Vitest
-# auto-install) resolves to the root devDependency's range instead of the newest major (ADR-1147).
+# auto-install) resolves to the root devDependency's range instead of the newest major (ADR-1152).
 overrides:
   '@types/node': '$@types/node'
 
@@ -26,5 +26,5 @@ allowBuilds:
 # A version must be published for three days (in minutes) before pnpm resolves it, so a compromised release is usually
 # caught and pulled before it can reach the lockfile. This is the same window as the npm `cooldown` in
 # .github/dependabot.yml, and it must never be shorter: Dependabot enforces its cooldown on every version already in the
-# lockfile, so a younger one would fail its updates until it aged (ADR-1153). Security updates bypass both gates.
+# lockfile, so a younger one would fail its updates until it aged (ADR-1152). Security updates bypass both gates.
 minimumReleaseAge: 4320

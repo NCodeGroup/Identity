@@ -33,7 +33,7 @@ public sealed class JsonWebKey
     public const string ThumbprintUriPrefix = "urn:ietf:params:oauth:jwk-thumbprint:";
 
     // Keyed by HashAlgorithmName.Name; the values are Hash Name Strings of the IANA Named Information Hash Algorithm
-    // Registry (RFC 9278 §4). Truncated names are never produced (ADR-1281).
+    // Registry (RFC 9278 §4). Truncated names are never produced (ADR-1119).
     private static FrozenDictionary<string, string> ThumbprintHashNames { get; } =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {

@@ -194,7 +194,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
             );
 
         // The limit counts the user name the user holds, and a refused password is verified against the dummy hash, so
-        // a refusal costs what a wrong password costs. See ADR-1244.
+        // a refusal costs what a wrong password costs. See ADR-1237.
         var countedUserName = user?.UserName ?? userName;
         var isRefused = await isRefusedAsync(countedUserName, cancellationToken);
         var passwordHash = isRefused ? null : storedHash;
@@ -451,7 +451,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
     )
     {
         // The hash is made with the user manager's normalizing hasher and stored through the user store, so no password
-        // validator of ASP.NET Core Identity judges a password the password policy accepted. See ADR-1238 and ADR-1243.
+        // validator of ASP.NET Core Identity judges a password the password policy accepted. See ADR-1238.
         var passwordHash = passwordHasher.HashPassword(user, password);
         await passwordStore.SetPasswordHashAsync(user, passwordHash, cancellationToken);
     }

@@ -348,7 +348,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         // principal regardless of how the user authenticates (ADR-1035). Without this the interactive path would carry
         // the raw local-account id while ROPC/bearer carry the resolved principal, keying the same user's grants
         // inconsistently. The same tenant-aware normalization seam enforces the Subject.sub == PrincipalId invariant at
-        // every ticket-construction site (ADR-1094).
+        // every ticket-construction site (ADR-1035).
         principal = await NormalizeSubjectToPrincipalAsync(
             openIdContext,
             principal,
@@ -1179,7 +1179,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         // A change keeps the current session, ends every other one and revokes the grants issued under no session.
         // The password is saved, so the termination runs on its own bounded token and a failure is logged.
-        // See ADR-1230 and ADR-1468.
+        // See ADR-1230 and ADR-1351.
         await PostCommitSecurityEffects.TerminateOtherSessionsAsync(
             openIdContext,
             subjectId,

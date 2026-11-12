@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 /// <typeparam name="TClient">The type of the client.</typeparam>
 /// <param name="timeProvider">The provider of the timestamps that record the last use.</param>
 /// <param name="create">Creates the client; it is called at most once.</param>
-// See ADR-1429.
+// See ADR-1414.
 internal sealed class KeyAccessClientEntry<TClient>(
     TimeProvider timeProvider,
     Func<CancellationToken, ValueTask<TClient>> create

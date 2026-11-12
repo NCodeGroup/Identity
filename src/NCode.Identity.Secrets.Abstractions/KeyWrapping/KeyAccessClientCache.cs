@@ -27,7 +27,7 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 /// </remarks>
 /// <param name="timeProvider">The provider of the timestamps that measure how long an entry is idle.</param>
 /// <param name="idleTimeout">The time after which an entry that is not used is removed.</param>
-// See ADR-1429.
+// See ADR-1414.
 [PublicAPI]
 public sealed class KeyAccessClientCache<TClient>(TimeProvider timeProvider, TimeSpan idleTimeout)
     : IDisposable

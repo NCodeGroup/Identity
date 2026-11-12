@@ -295,7 +295,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
     /// supports.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> whose settings define what the client may use.</param>
     /// <param name="request">The authorization request to validate.</param>
-    // See ADR-1141 and ADR-1142.
+    // See ADR-1141.
     [AssertionMethod]
     internal static void ValidateResponseType(
         OpenIdContext openIdContext,

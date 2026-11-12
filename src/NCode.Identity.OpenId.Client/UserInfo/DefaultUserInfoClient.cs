@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Client.UserInfo;
 /// the response in the format the client registered: JSON, or a JWT that it validates the way it validates an ID token
 /// when the client registered UserInfo signing. It maps the claims the way the JWT stack maps a payload.
 /// </summary>
-// See ADR-1122, ADR-1299 and ADR-1301.
+// See ADR-1122, ADR-1301.
 internal class DefaultUserInfoClient(
     IProviderMetadataResolver metadataResolver,
     ClientRequestSender sender,

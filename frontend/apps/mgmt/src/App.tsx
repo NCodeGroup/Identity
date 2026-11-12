@@ -19,7 +19,7 @@ import {
   type TenantSurface,
 } from './routes.js';
 
-// Each surface's container is its own chunk, loaded when the surface is first visited (ADR-1175).
+// Each surface's container is its own chunk, loaded when the surface is first visited (ADR-1151).
 const HomePage = lazy(() =>
   import('./containers/HomePage.js').then((m) => ({ default: m.HomePage })),
 );
@@ -58,9 +58,9 @@ const TenantDetailPage = lazy(() =>
 const surfaceFallback = <CircularProgress aria-label="Loading" data-testid="surface-loading" />;
 
 /**
- * Stateful shell. The address bar owns the navigation state (ADR-1174): the route is the caller's home or names the
+ * Stateful shell. The address bar owns the navigation state (ADR-1255): the route is the caller's home or names the
  * active management scope (the platform, team or tenant security boundary) and, within it, the active surface. The
- * home lists the places the caller holds authority (ADR-1420); once that access is known, a caller without platform
+ * home lists the places the caller holds authority (ADR-1465); once that access is known, a caller without platform
  * authority is sent home from a platform route, and the team and tenant back controls lead to a place the caller can
  * open. In the platform scope that is the teams, the platform's machine clients, its settings or its encryption
  * keys; within a team it is the team's tenants, child teams, machine clients, settings, access or usage; within a

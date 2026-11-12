@@ -2,7 +2,7 @@
 
 The management console's BFF host. It serves the `apps/mgmt` single-page bundle, runs the `mgmt` frontend of the
 backend-for-frontend, and forwards the console's calls to the OP's management API
-([ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+([ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 
 ## Container image
 
@@ -21,7 +21,7 @@ Secret does; `Kestrel__Endpoints__<name>__…` settings replace the default endp
 a proxy in front of it connects over HTTPS. Probe `/health/live` for liveness and `/health/ready` for readiness. The
 image writes one JSON object per line to standard output, with a UTC timestamp. The `Console image` workflow builds it
 for `linux/amd64` and `linux/arm64`
-([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
+([ADR-1248](../../docs/decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
 
 The `ProxyClientCertificate` section makes the host require the reverse proxy's client certificate. With
 `ProxyClientCertificate__Required=true`, the host answers `403` to every request whose connection carries no certificate

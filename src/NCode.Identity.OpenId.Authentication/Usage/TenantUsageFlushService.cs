@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 /// unreachable, or another replica updated one of its entries first — is held and retried under its number before any
 /// new usage is drained, so each batch is added to the ledger once.
 /// </summary>
-// See ADR-1199 and ADR-1209.
+// See ADR-1199.
 internal sealed class TenantUsageFlushService(
     DefaultTenantUsageRecorder recorder,
     IStoreManagerFactory storeManagerFactory,

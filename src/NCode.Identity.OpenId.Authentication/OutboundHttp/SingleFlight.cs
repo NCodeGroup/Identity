@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 /// and logs.
 /// </summary>
 /// <typeparam name="TResult">The type of the value that a retrieval yields.</typeparam>
-// See ADR-1350.
+// See ADR-1315.
 internal sealed class SingleFlight<TResult>(IMemoryCache memoryCache, TimeSpan failureCacheDuration)
 {
     private const string FailureKeySuffix = ":unavailable";

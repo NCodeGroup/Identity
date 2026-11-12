@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// Provides a default implementation of <see cref="ITeamDescendantWalker"/> that walks a team's subtree depth first, in
 /// pre-order, reading the child teams of each team one page at a time, each page in a unit of work of its own.
 /// </summary>
-// See ADR-1455.
+// See ADR-1426.
 internal sealed class DefaultTeamDescendantWalker(IStoreManagerFactory storeManagerFactory)
     : ITeamDescendantWalker
 {

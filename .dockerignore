@@ -1,4 +1,4 @@
-# An allow-list: the build context carries only what the host and management console images are built from (ADR-1178).
+# An allow-list: the build context carries only what the host and management console images are built from (ADR-1248).
 # Everything else — .git, tests, docs, local settings, and build outputs — never reaches the Docker daemon.
 #
 # A file that a root build file imports must be re-admitted here too, as build/ProjectTemplate.props and the files it

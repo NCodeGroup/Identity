@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// stage of its own judges that stage by calling <see cref="AcquireAsync"/> with the stage's name. Each call counts the
 /// request in every limit it judges, so a refused request still counts.
 /// </summary>
-// See ADR-1196 and ADR-1246.
+// See ADR-1246.
 [PublicAPI]
 public interface IRequestRateLimiter
 {

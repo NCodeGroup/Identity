@@ -11,7 +11,7 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 /// retirement grace and the maintenance interval are within the ranges the lifecycle relies on. Every message names
 /// the full configuration key.
 /// </summary>
-// See ADR-1221 (intervals and retentions are configured and validated when the host starts) and ADR-1407.
+// See ADR-1137 (intervals and retentions are configured and validated when the host starts) and ADR-1407.
 internal sealed class MasterKeyOptionsValidator : IValidateOptions<SecretProtectionOptions>
 {
     internal static TimeSpan MinimumRotationPeriod { get; } = TimeSpan.FromDays(1);

@@ -2,7 +2,7 @@
 
 The NCode Identity mark is `{id}`: `id` for identity, between the curly braces of the NCode Group's mark, `{N}`. This
 folder holds it as vector masters and as the PNG and ICO files that each place it appears in asks for. `build.py` draws
-every file here ([ADR-1491](../docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md)).
+every file here ([ADR-1492](../docs/decisions/1492-the-familys-id-logo-is-drawn-by-one-script-and-every-web-app-shows-its-icon.md)).
 
 | Tile, blue | Tile, white | Tile, dark | Mark | Lockup | Lockup, stacked |
 |---|---|---|---|---|---|
@@ -114,7 +114,7 @@ The four web apps under `frontend/apps` link `favicon.ico`, `favicon.svg` and `a
 three tags, written relative to their `index.html` (`./favicon/favicon.ico`), and carry copies of them in their own
 `favicon/` folders, because an image build's context holds no `brand/`. Each build gives the copies content-hashed names in the
 assets its host serves, and no app links the manifest
-([ADR-1492](../docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md)). The
+([ADR-1492](../docs/decisions/1492-the-familys-id-logo-is-drawn-by-one-script-and-every-web-app-shows-its-icon.md)). The
 `favicon copies` stage of `./build/dod.ps1` fails when a copy differs from the file here, so after `build.py` changes
 one, copy it to every app:
 

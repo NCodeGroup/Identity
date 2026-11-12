@@ -11,7 +11,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// provider by name and say which described providers create keys, from its
 /// <see cref="IRemoteKeyDescriptorCatalog.Providers"/>.
 /// </summary>
-// See ADR-1489.
+// See ADR-1474.
 [PublicAPI]
 public static class RemoteKeyDescriptorCatalogExtensions
 {

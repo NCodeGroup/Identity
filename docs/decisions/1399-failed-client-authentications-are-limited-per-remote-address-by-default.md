@@ -1,12 +1,9 @@
 # 1399. Failed client authentications are limited per remote address by default
 
-- **Status:** Accepted (amended by
-  [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
-  a host behind a reverse proxy trusts it through the `ForwardedHeaders` section)
+- **Status:** Accepted
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0144](project-template/0144-correctness-guards-fail-closed-capacity-guards-fail-open.md)
-- **Amends:** [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)
 
 ## Context
 
@@ -15,24 +12,23 @@ backchannel authentication endpoints with a credential that a caller can guess o
 supplied, an assertion signed with it, or a certificate matched against a registration. A public client presents no
 credential: its `client_id` is not a secret (RFC 6749 §2.2), so a lookup that fails guesses nothing. The server stores a supplied
 secret as a PBKDF2 verifier and bounds the concurrent derivations
-([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)), which bounds the processors
+([ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)), which bounds the processors
 a flood of guesses takes, not the number of guesses.
 
-The request rate limits ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-[ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md)) do not bound guessing
+The request rate limits ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)) do not bound guessing
 either:
 
 - `rate_limit_client_per_minute` is judged at the `client_authentication` stage, which a request reaches only once its
   client has authenticated, so a wrong guess never counts against it.
 - `rate_limit_address_per_minute` and `rate_limit_tenant_per_minute` count every request, successful ones included, and
-  have no default ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)). A value low enough to bound
+  have no default ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). A value low enough to bound
   guessing, such as ten a minute, refuses the legitimate traffic of a busy client or of every client behind one NAT
   gateway, and a value that admits that traffic, thousands a minute, admits millions of guesses a day.
 
 A limit keyed by the `client_id` alone is a lever: anyone who knows a public `client_id`, such as the bootstrap
-administrator's, could keep that client locked out from anywhere, which ADR-1391 rejects as the bound on the work
-factor. RFC 9700 §4.10 and OWASP's guidance on credential stuffing count failures per source and per source and
-account rather than per account alone, and NIST SP 800-63B-4 §3.2.2 limits consecutive failures.
+administrator's, could keep that client locked out from anywhere. RFC 9700 §4.10 and OWASP's guidance on credential
+stuffing count failures per source and per source and account rather than per account alone, and NIST SP 800-63B-4
+§3.2.2 limits consecutive failures.
 
 Brute-force protection is a correctness guard: it must hold while its store is unreachable, so it fails closed
 ([project-template ADR-0144](project-template/0144-correctness-guards-fail-closed-capacity-guards-fail-open.md)).
@@ -93,7 +89,7 @@ limit until its window ends, the way a rate limit refuses.**
    narrower scope may only lower a limit or lengthen the window. The ceiling of 100 on
    `client_authentication_failed_attempts_limit` is NIST SP 800-63B-4 §3.2.2's bound on the consecutive failures
    against one account's secret, as it is on `password_failed_attempts_limit`
-   ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md)); the address limit bounds an aggregate
+   ([ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md)); the address limit bounds an aggregate
    across clients, each of which the narrower limit already caps, so its ceiling of 10,000 admits the confidential
    clients behind one large NAT gateway or proxy without raising the guesses one client's credential is exposed to. A
    successful authentication clears nothing: clearing would cost a write on every authentication, and a client that
@@ -114,15 +110,14 @@ limit until its window ends, the way a rate limit refuses.**
    state, so it is not recorded as the tenant's usage.
 7. **The limit fails closed.** A counter store that throws propagates its exception, so client authentication fails
    while the shared state is unreachable instead of admitting unlimited guesses; the request rate limiter, a capacity
-   guard, fails open.
-8. **ADR-1391 is amended.** The default limits on failed client authentications that its decision 5 and its options
-   considered name are this decision; they complement the PBKDF2 gate, which still bounds the processors.
+   guard, fails open. The limit complements the PBKDF2 gate of
+   [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md), which bounds the
+   processors, not the guesses.
 
 ## Options considered
 
 - **Give `rate_limit_address_per_minute` and `rate_limit_tenant_per_minute` default values.** Rejected: they count
-  successful requests, so a value that bounds guessing refuses legitimate traffic, and a value that admits it bounds
-  nothing (Context). They remain capacity limits a tenant sets.
+  successful requests (Context); they remain capacity limits a tenant sets.
 - **Limit failures per `client_id`.** Rejected: anyone who knows a `client_id` could lock the client out from anywhere
   (ADR-1391).
 - **Limit failures per remote address only.** Rejected: one limit would have to be high enough for every client behind
@@ -135,27 +130,25 @@ limit until its window ends, the way a rate limit refuses.**
   own allowance and refuse itself.
 - **Clear the narrower counter on a successful authentication.** Rejected: a write on every authentication, for a client
   that does not fail.
-- **Windows that start at the first failure, as the password limit's do.** Rejected: the counter's expiry is not read,
-  so `Retry-After` could only be an upper bound; aligned windows give the exact time, and bound a day's guesses the same.
+- **Windows that start at the first failure, as the password limit's do.** Rejected: `Retry-After` could only be an
+  upper bound; aligned windows give the exact time.
 - **Answer a refusal with `invalid_client`.** Rejected: a legitimate client behind the address would read its
   credential as wrong and stop instead of retrying.
 - **Fail open with a breaker, as the rate limits do.** Rejected: an outage of the shared state would lift the limit
   exactly when an attacker can cause one (project-template ADR-0144).
 - **Audit only the failure that reaches a limit.** Rejected: an operator investigating a refused client needs each
-  refusal, and the refused requests are already published as `openid.error`; a refusal costs no verification.
+  refusal.
 - **Refuse and count a public client's `none` authentication too.** Rejected: it verifies no credential, so a refusal
   protects nothing, while an attacker behind the carrier-grade NAT or corporate egress of a public client's users could
   send a hundred invented `client_id`s a window and deny every code exchange and refresh of every user behind that
   address; and a failed lookup of a public `client_id` guesses nothing worth bounding. A credential-bearing request from
   the same address is still refused at the limit, which is the address's own exposure.
-- **Count a Basic header that carries no credential.** Rejected: nothing is verified, so there is nothing to bound, and
-  the request is already answered `invalid_client` and published as `openid.error`.
+- **Count a Basic header that carries no credential.** Rejected: nothing is verified, so there is nothing to bound.
 - **Ask the limiter before the mutual-TLS lookup.** Rejected: the handler owns the request only once the resolved
   client's registration says so, so an earlier refusal would be audited with a mutual-TLS method for a public client
   that never used one, and would refuse public clients, which the first option rejects.
-- **Fail client authentication, or the host, without a remote address.** Rejected: a host that listens on a socket in a
-  trusted network has none by design, and an in-process test host has none; a warning tells the operator the limit is
-  off without refusing a legitimate deployment.
+- **Fail without a remote address.** Rejected: a host that listens on a socket has none by design, and an in-process
+  test host has none; a warning tells the operator the limit is off without refusing a legitimate deployment.
 
 ## Consequences
 
@@ -165,25 +158,25 @@ limit until its window ends, the way a rate limit refuses.**
   on Valkey each is a round trip.
 - Every confidential client behind one address shares the address's allowance: an attacker behind a client's NAT
   gateway can make that client wait until the window ends. A public client is never refused. A host behind a reverse
-  proxy must forward the client's address (`ReverseProxy`), or every caller shares the proxy's address; a host that
+  proxy must trust it through the `ForwardedHeaders` section
+  ([ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)),
+  or every caller shares the proxy's address; a host that
   sees no remote address at all is not limited, and its log says so once.
 - A failed lookup of a public `client_id` is not bounded; the response tells a caller whether a `client_id` exists and
   is public, which a public `client_id` reveals anyway.
 - Concurrent failures can exceed a limit by the number in flight, because the count is read before the verification and
   incremented after it.
 - An outage of the shared state fails client authentication.
-- A guesser that invents `client_id`s creates a counter for each, which expires with its window.
-- This implements issue [#533](https://github.com/NCodeGroup/identity/issues/533).
 
 ## References
 
 - [RFC 9700 §4.10](https://www.rfc-editor.org/rfc/rfc9700#section-4.10), client authentication.
 - [NIST SP 800-63B-4 §3.2.2](https://pages.nist.gov/800-63-4/sp800-63b/authenticators/), rate limiting.
 - [OWASP Credential Stuffing Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html).
-- [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-  [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md),
-  [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md),
-  [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md).
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
+  [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md),
+  [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
+  [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationAttemptLimiter`,
   `NCode.Identity.OpenId.Authentication.Clients.DefaultClientAuthenticationAttemptLimiter`,
   `NCode.Identity.OpenId.Authentication.Clients.DefaultClientAuthenticationAttemptSettingDescriptorDataSource`,

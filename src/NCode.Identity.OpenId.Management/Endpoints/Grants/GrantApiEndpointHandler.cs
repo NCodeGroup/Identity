@@ -78,7 +78,7 @@ internal class GrantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
-        // The response reveals a secret once, so no cache may keep it (ADR-1345).
+        // The response reveals a secret once, so no cache may keep it (ADR-1050).
         grants
             .MapPost("/initial-access-tokens", CreateInitialAccessTokenAsync)
             .Produces<CreatedInitialAccessTokenResource>(StatusCodes.Status201Created)
@@ -225,7 +225,7 @@ internal class GrantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        // A revocation retries a lost race instead of answering 412. See ADR-1215.
+        // A revocation retries a lost race instead of answering 412. See ADR-1222.
         var revoked = await PersistedGrantService.RevokeWhereAsync(
             httpContext.GetOpenIdContext(),
             filter,
@@ -364,7 +364,7 @@ internal class GrantApiEndpointHandler(
     // it, so minting one is a change to the resource server, exactly like binding a client through the management API:
     // the caller must be authorized to update the resource server at the node the request names before it is read,
     // and the resource server must exist in the tenant and must not be a system resource server (ADR-1168, ADR-1192,
-    // ADR-1451).
+    // ADR-1424).
     private async ValueTask<IResult?> AuthorizeResourceServerScopeAsync(
         HttpContext httpContext,
         string tenantId,
@@ -488,7 +488,7 @@ internal class GrantApiEndpointHandler(
         }
 
         // Soft-revoke is idempotent: an already-revoked grant is left untouched. A revocation retries a lost race
-        // instead of answering 412. See ADR-1215.
+        // instead of answering 412. See ADR-1222.
         if (grant.RevokedWhen is null)
         {
             var revoked = await PersistedGrantService.RevokeWhereAsync(

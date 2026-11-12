@@ -179,7 +179,7 @@ jobs:
         run: pnpm run build
 
       # The host splits the built login bundle's `index.html` around its mount point and serves its `assets` directory
-      # (ADR-1254). The .NET Definition of Done builds no frontend, so the split is tested here, against the real build.
+      # (ADR-1193). The .NET Definition of Done builds no frontend, so the split is tested here, against the real build.
       - name: Test the host against the built login bundle
         if: steps.build.outcome == 'success'
         shell: pwsh

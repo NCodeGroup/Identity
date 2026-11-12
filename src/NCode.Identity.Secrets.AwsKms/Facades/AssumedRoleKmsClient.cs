@@ -19,7 +19,7 @@ namespace NCode.Identity.Secrets.AwsKms.Facades;
 /// </remarks>
 /// <param name="client">The client that calls the KMS endpoint with the credentials of the role.</param>
 /// <param name="credentials">The credentials of the role that <paramref name="client"/> uses.</param>
-// See ADR-1235 and ADR-1429.
+// See ADR-1235 and ADR-1414.
 [ExcludeFromCodeCoverage(
     Justification = "Creates AWS SDK clients and credentials; a passthrough to AWSSDK.Core."
 )]

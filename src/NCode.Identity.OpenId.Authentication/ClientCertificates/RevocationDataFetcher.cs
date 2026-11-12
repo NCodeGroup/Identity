@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// <see cref="ClientCertificateRevocationOptions.MaxResponseSizeBytes"/> bound the request. A fetch that yields
 /// nothing usable returns <see langword="null"/> after it logs why.
 /// </summary>
-// See ADR-1252 and ADR-1315.
+// See ADR-1400 and ADR-1315.
 internal sealed class RevocationDataFetcher(
     IHttpClientFactory httpClientFactory,
     IOutboundHttpContentReader outboundHttpContentReader,

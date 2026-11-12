@@ -15,7 +15,7 @@ export type MachineClientsPageProps = {
 /**
  * Container: browses and administers the machine clients the platform or a team owns (ADR-1466);
  * each lives in the control-plane tenant, so its edit, delete and detail go through that tenant's
- * client routes (ADR-1421). Wires the RTK Query machine-client list and the client mutations to the
+ * client routes (ADR-1257). Wires the RTK Query machine-client list and the client mutations to the
  * stateless {@link ClientTable}, {@link ClientFormDialog}, and {@link ConfirmDialog}; the dialog and
  * error state live in {@link useClientAdministration}.
  */

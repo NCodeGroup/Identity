@@ -23,7 +23,7 @@ namespace NCode.Identity.Server;
 /// Development overlay lists the origins it allows. This is intentionally NOT part of the default
 /// registrations.
 /// </remarks>
-// See ADR-1313.
+// See ADR-1370.
 [PublicAPI]
 public static class DeveloperCorsRegistration
 {
@@ -47,7 +47,7 @@ public static class DeveloperCorsRegistration
         /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the <c>Cors</c> section.</param>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        // See ADR-1313.
+        // See ADR-1370.
         public IServiceCollection AddDeveloperCors(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(configuration);

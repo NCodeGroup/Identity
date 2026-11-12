@@ -64,7 +64,7 @@ internal sealed class DefaultClientCertificateChainValidator(
             : OpenIdConstants.ClientCertificateRevocationMode.Online;
 
         // The soft-fail mode accepts a certificate whose revocation status cannot be determined; it never accepts
-        // one that is revoked. See ADR-1252.
+        // one that is revoked. See ADR-1400.
         var acceptsUnknownStatus = string.Equals(
             revocationMode,
             OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail,

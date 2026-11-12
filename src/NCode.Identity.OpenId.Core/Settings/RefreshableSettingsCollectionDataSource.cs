@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// settings. A refresh that fails keeps the current collection; a failure on the timer is logged and a failure of an
 /// on-demand refresh propagates to its caller.
 /// </remarks>
-// See ADR-1219.
+// See ADR-1412.
 internal sealed class RefreshableSettingsCollectionDataSource
     : IAsyncDisposableCollectionDataSource<Setting>
 {

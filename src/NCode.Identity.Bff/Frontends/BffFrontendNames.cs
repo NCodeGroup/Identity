@@ -9,7 +9,7 @@ namespace NCode.Identity.Bff.Frontends;
 /// Checks the form of a frontend name: 1 to 63 lowercase ASCII letters, digits and hyphens that start and end with a
 /// letter or digit.
 /// </summary>
-// See ADR-1432.
+// See ADR-1442.
 internal static class BffFrontendNames
 {
     /// <summary>

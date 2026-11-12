@@ -7,7 +7,7 @@
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**         | Available: a tenant's signing and encryption keys, in AWS KMS, Azure Key Vault (and Managed HSM) and Google Cloud KMS, chosen per tenant; a background sweep of the keys no stored secret names                                                                                                                         |
 | **Packages**       | `NCode.Identity.Secrets.Abstractions` (the remote vocabulary), `NCode.Identity.Secrets` and `NCode.Identity.Secrets.Persistence` (the key, its storage and its destruction), `NCode.Identity.Jose.Abstractions` and `NCode.Identity.Jose` (the asynchronous signing and decryption seams), `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms` (the providers), `NCode.Identity.OpenId.Core` (the setting, the rollover and the sweep) |
-| **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1473](../decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md), [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md), [ADR-1475](../decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md), [ADR-1476](../decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md), [ADR-1477](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md), [ADR-1478](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md), [ADR-1489](../decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md), [ADR-1490](../decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) |
+| **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md), [ADR-1472](../decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md), [ADR-1260](../decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md), [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md), [ADR-1476](../decisions/1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md), [ADR-1478](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md), [ADR-1485](../decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) |
 | **Operator guide** | The reference host's [Remote keys](../../hosts/NCode.Identity.OpenId.Host/README.md#remote-keys); the tenant setting `tenant_key_provider`; the configuration sections `SecretProtection:RemoteKeys` and `SecretProtection:RemoteKeyProviders`; the Helm chart's `secretProtection.remoteKeys` and `secretProtection.remoteKeyProviders` values, in its [Tenant keys in a key management service](../../charts/ncode-identity-host/README.md#tenant-keys-in-a-key-management-service) |
 
 ## The promises
@@ -83,16 +83,18 @@ sequenceDiagram
 <summary>Options we rejected</summary>
 
 - A remote key that is not an RSA or ECC key class, fetching public keys per request, trusting the service's
-  signature unverified, a retry layer of the family's over the SDK's, separate provider packages, a host-only switch or
-  a setting per algorithm, switching custody at once, deleting an Azure key per rollover and
-  protecting the reference under the master key:
-  [ADR-1471, Options considered](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md#options-considered).
-- Asynchronous twins beside the synchronous members, blocking on a task, signing before encoding and a callback on the
-  credentials: [ADR-1472, Options considered](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md#options-considered).
-- A custody setting per use, synchronous twins beside the asynchronous decode members, verifying a remote decryption
-  another way, Azure `Decrypt` in place of `UnwrapKey`, exporting a key to agree locally, wrapping and unwrapping a
-  content key directly, and a console that offers signing keys only:
-  [ADR-1477, Options considered](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md#options-considered).
+  signature unverified, a host-only switch or a custody setting per algorithm or per use, switching custody at once,
+  protecting the reference under the master key, exporting a key to agree locally and Azure `Decrypt` in place of
+  `UnwrapKey`:
+  [ADR-1471, Options considered](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md#options-considered).
+- Synchronous twins beside the asynchronous members,
+  blocking on a task, signing before encoding, a callback on the credentials and verifying a remote decryption another
+  way: [ADR-1472, Options considered](../decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md#options-considered).
+- Separate provider packages:
+  [ADR-1260, Options considered](../decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md#options-considered).
+  A retry layer of the family's over the SDK's:
+  [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)
+  decision 8.
 - Sweeping inside the rollover pass, relying on a dedicated account, vault or key ring alone, destroying without a
   grace period, and running the sweep inline rather than through the dispatcher:
   [ADR-1478, Options considered](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md#options-considered).
@@ -108,7 +110,7 @@ algorithm's key-type and curve checks, the key's JWK and every verification appl
 sign with any algorithm other than the one it is bound to.
 
 > [!TIP]
-> [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md),
+> [ADR-1472](../decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md),
 > `SignatureAlgorithm.SignAsync`, `IRemoteSecretKey`, `RemoteKeySigning`, `JoseEncoder`.
 
 ## The decryption seam
@@ -141,7 +143,7 @@ without waiting, and a remote key awaits the service.
   algorithms refuses a remote key.
 
 > [!TIP]
-> [ADR-1477](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+> [ADR-1471](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
 > `KeyManagementAlgorithm.UnwrapKeyAsync`, `IJoseSerializer.DecodeAsync`, `IRemoteSecretKey.DecryptAsync`,
 > `IRemoteSecretKey.DeriveSharedSecretAsync`.
 
@@ -185,9 +187,8 @@ A deployment that registers Azure Key Vault or Google Cloud KMS provisions `RSA-
 `ECDH-ES` ones.
 
 > [!TIP]
-> [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-> [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
-> [ADR-1477](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+> [ADR-1471](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
+> [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md),
 > `AwsKmsRemoteKeyDescriptors`, `AzureKeyVaultRemoteKeyDescriptors`, `GoogleCloudKmsRemoteKeyDescriptors`,
 > `IRemoteKeyDescriptorSource`, `RemoteKeyAlgorithm`, `RemoteSigningAlgorithm`, `RemoteDecryptionAlgorithm`,
 > `RemoteKeyAgreementAlgorithm`.
@@ -230,7 +231,7 @@ The reference host's Helm chart configures them with the `secretProtection.remot
 `sweepEnabled`, `sweepInterval` and `sweepGracePeriod`). It registers a provider whose `enabled` is `true` and renders
 its location only when set, so a release binds keys without creating any, and mounts that vendor's workload identity
 into the pods
-([ADR-1490](../decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md));
+([ADR-1485](../decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md));
 see the chart README's
 [Tenant keys in a key management service](../../charts/ncode-identity-host/README.md#tenant-keys-in-a-key-management-service).
 
@@ -243,8 +244,7 @@ the tenant's keys over after the activation delay, and the superseded keys retir
 `custody_changed` ([Key Rollover](./key-rollover.md)).
 
 > [!TIP]
-> [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-> [ADR-1477](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+> [ADR-1471](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
 > [ADR-1478](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
 > `AwsKmsRemoteKeyProviderOptions`, `AzureKeyVaultRemoteKeyProviderOptions`, `GoogleCloudKmsRemoteKeyProviderOptions`,
 > `RemoteKeyOptions`, `OpenIdSettingKeys.TenantKeyProvider`.
@@ -292,9 +292,8 @@ use (`sig` or `enc`), so a request names no use. Remote keys belong to tenants o
   labelled with its use; each refusal shows the route's problem detail.
 
 > [!TIP]
-> [ADR-1475](../decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
-> [ADR-1476](../decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md),
-> [ADR-1477](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+> [ADR-1476](../decisions/1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md),
+> [ADR-1471](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
 > `CreateRemoteSecretRequest`, `ImportRemoteSecretRequest`, `RemoteKeyProviderCapabilityResource`,
 > `TenantRemoteSecretApiEndpointHandler`.
 
@@ -368,8 +367,8 @@ rows as a tenant's keys.
   [The console's keys in a key management service](../../charts/ncode-identity-host/README.md#the-consoles-keys-in-a-key-management-service).
 
 > [!TIP]
-> [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
-> [ADR-1485](../decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),
+> [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
+> [ADR-1485](../decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md),
 > [Backend for Frontend](../backend-for-frontend.md), `IRemoteKeyResolver`, `IRemoteKeyProver`,
 > `RemoteKeyRefusedException`.
 
@@ -429,18 +428,16 @@ the ECDH shared secret of one message passes through the replica, never the key.
 
 ## Further reading
 
-- Decisions: [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-  [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md),
-  [ADR-1473](../decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
-  [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
-  [ADR-1475](../decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
-  [ADR-1476](../decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md),
-  [ADR-1477](../decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
+- Decisions: [ADR-1471](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
+  [ADR-1472](../decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md),
+  [ADR-1260](../decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
+  [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md),
+  [ADR-1476](../decisions/1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md),
   [ADR-1478](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
-  [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
+  [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
-  [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-1468](../decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)
+  [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
+  [ADR-1351](../decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)
 - Code: [`RemoteKeys`](../../src/NCode.Identity.Secrets.Abstractions/RemoteKeys),
   [`RemoteKeySigning`](../../src/NCode.Identity.Secrets/RemoteKeys/RemoteKeySigning.cs),
   [`IRemoteKeyResolver`](../../src/NCode.Identity.Secrets.Abstractions/RemoteKeys/IRemoteKeyResolver.cs),

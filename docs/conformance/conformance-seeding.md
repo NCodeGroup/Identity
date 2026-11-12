@@ -28,14 +28,14 @@ repository, and passed to the host as `ConformanceSeed__` environment variables 
 ([#514](https://github.com/NCodeGroup/identity/issues/514)). The host stores each seeded secret as a PBKDF2 verifier,
 from which the secret cannot be read back, unless its client registers `client_secret_jwt`, which keys its assertion
 from the secret itself, so the host stores that secret reversibly
-([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+([ADR-1391](../decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 On every startup the seeder adds each declared client and the test user that the conformance tenant does not hold yet,
 so a second run neither duplicates nor fails. Before storing a client it validates the client's settings against the
 registered setting descriptors and the client coherence rules, and imports its key set under the policy a dynamically
 registered `jwks` follows; the test user's password must meet the tenant's password policy. A refused value stops the
 seeding with an error naming the client or the test user, rather than storing an identity that fails every request
-([ADR-1140](../decisions/1140-setting-values-are-validated-against-their-domain.md)).
+([ADR-1140](../decisions/1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)).
 
 ## Basic OP registrations
 
@@ -52,14 +52,14 @@ client registrations, all registering the suite callback as a redirect URI:
 - **Redirect URI (all):** `https://<SUITE_BASE>/test/a/<ALIAS>/callback`
   (local: `https://localhost.emobix.co.uk:8443/test/a/ncode-basic/callback`).
 - **PKCE:** `S256`. Every authorization code is bound to PKCE by default
-  ([ADR-1144](../decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)); because the suite sends PKCE in
+  ([ADR-1144](../decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)); because the suite sends PKCE in
   only one module, the conformance host relaxes `require_pkce` and attests its clients with `pkce_nonce_exemption`, so a
   confidential client's request that carries a `nonce` may omit the challenge. Each seeded client registers one
   `TokenEndpointAuthMethod` as its `token_endpoint_auth_method`, which makes it confidential and is the only method it
-  authenticates with ([ADR-1145](../decisions/1145-a-client-authenticates-only-with-its-registered-method.md)).
+  authenticates with ([ADR-1145](../decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
 
 The committed Basic OP plan runs under Dynamic Client Registration
-([ADR-1063](../decisions/1063-dynamic-client-registration.md)), so the suite registers its own clients; the **tenant
+([ADR-1192](../decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)), so the suite registers its own clients; the **tenant
 and test user** seeding is what that plan needs, and the static client seeds stay separable from it.
 
 The **deterministic test user** (`conformance-user`, with a per-machine password and the full standard

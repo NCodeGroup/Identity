@@ -65,7 +65,7 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
             .Entity<OwnerRootKeyEntity>()
             .HasIndex(entity => new { entity.State, entity.FailedWhen });
 
-        // A tenant's issuer is optional (a tenant without one derives its origin from the request), so enforce
+        // A tenant's issuer is nullable in storage (a tenant without one is not served), so enforce
         // uniqueness only over non-null values (a filtered index). Two tenants sharing an issuer is a protocol-level
         // collision: the issuer IS the tenant's identity, and every token it mints asserts it. The in-memory provider
         // ignores the filter and does not enforce indexes. Quote the column so the raw filter is portable: Postgres

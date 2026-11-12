@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 /// <see cref="IResourceChangeAuditEvent.ResourceId"/>, and the resource node the role is held at is the owning
 /// resource named by <see cref="NodeType"/> and <see cref="NodeId"/>.
 /// </summary>
-// See ADR-1449.
+// See ADR-1465.
 [PublicAPI]
 public sealed record RoleAssignmentChangedAuditEvent : ResourceChangeAuditEvent
 {

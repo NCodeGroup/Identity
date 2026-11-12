@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// limit: the administrators above the scope whose document carries it set it, so a tenant or a client never raises its
 /// own.
 /// </summary>
-// See ADR-1196.
+// See ADR-1246.
 // See ADR-1418.
 internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<SettingDescriptor>
@@ -95,7 +95,7 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
 
             // quota_tenant_requests_overage_per_day: the most requests admitted past the daily request quota in one UTC
             // calendar day, each billed as overage; unset refuses at the quota. Merged with Min, so a platform value is
-            // every tenant's default allowance and caps a tenant's own, as for the quotas (ADR-1200).
+            // every tenant's default allowance and caps a tenant's own, as for the quotas (ADR-1198).
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.QuotaTenantRequestsOveragePerDay,
@@ -106,7 +106,7 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
             };
 
             // quota_tenant_token_requests_overage_per_day: the most confidential clients' token requests admitted past
-            // the daily token-request quota in one UTC calendar day, each billed as overage (ADR-1200).
+            // the daily token-request quota in one UTC calendar day, each billed as overage (ADR-1198).
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.QuotaTenantTokenRequestsOveragePerDay,

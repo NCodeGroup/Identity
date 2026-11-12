@@ -168,12 +168,14 @@ non-obvious decisions lives in [`docs/decisions/`](docs/decisions/): the project
 [`docs/decisions/project-template/`](docs/decisions/project-template/README.md), the source of truth for every rule
 they cover, and this family's own beside them. A family record never restates a template record: one that builds on
 it names it on a `**Refines:**` line, and one that still contradicts it on a `**Conflicts with:**` line with the issue
-that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
+that tracks the alignment. A family record relates to no other family record: a changed decision rewrites its record
+in place
+([ADR-1503](docs/decisions/1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md)). Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Nine family records override template records:
+so a bare ADR number names one record. Ten family records override template records:
 
-- [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
+- [ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
 - [ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) supersedes
   project-template ADR-0007, because a Markdown file links an issue by its address, which GitHub doesn't autolink in a
@@ -183,24 +185,30 @@ so a bare ADR number names one record. Nine family records override template rec
 - [ADR-1314](docs/decisions/1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md) supersedes
   project-template ADR-0129's decision 2 for the authorization, continue and end-session endpoints, whose GET the OAuth
   2.0 and OpenID Connect specifications require.
-- [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) supersedes
-  two points of project-template ADR-0145: a client-supplied document's fetch limits stay settings that a tenant or
-  client can only lower, and revocation data is fetched over `http`, where RFC 5280 publishes it.
-- [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md) supersedes
-  project-template ADR-0145's choice of `Microsoft.Extensions.Http.Resilience` for the OpenID protocol client, which
-  bounds its calls with the same Polly strategies through `Polly.Core` alone, so it does not carry the telemetry
-  dependency that replaces consumers' logging generator.
-- [ADR-1385](docs/decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) supersedes the
-  same choice for `NCode.Identity.OpenId.Authentication`'s guarded outbound client, so no package of the family
-  carries `Microsoft.Extensions.Http.Resilience`, and the build fails a shipping package that would replace its
-  consumers' logging generator.
 - [ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
   supersedes project-template ADR-0129's decision 6 for the management API, which answers a caller without authority
   `403` for any identifier, because it authorizes at a node before it reads, so the answer discloses nothing.
+- [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) supersedes
+  two points of project-template ADR-0145: a client-supplied document's fetch limits stay settings that a tenant or
+  client can only lower, and revocation data is fetched over `http`, where RFC 5280 publishes it.
+- [ADR-1385](docs/decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) supersedes
+  project-template ADR-0145's choice of `Microsoft.Extensions.Http.Resilience` for every shipping package, so the
+  guarded outbound client and the OpenID protocol client bound their calls through `Polly.Core` alone, and the build
+  fails a shipping package that would replace its consumers' logging generator.
+- [ADR-1160](docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md) supersedes
+  project-template ADR-0123 for tenants, whose identifier its creator chooses and which is never reissued, because a
+  tenant's identifier is part of its address, so its issuer is known before it exists.
 - [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)
   overrides the project template's rule that production projects live under `src/`, because `src/` holds only the
   published packages: the deployables, the build analyzers and the web apps' workspace live in `hosts/`, `analyzers/`
   and `frontend/`.
+- [ADR-1503](docs/decisions/1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md)
+  supersedes project-template ADR-0010's consequence that a reversal is a new record superseding the old one, because
+  a family record is rewritten in place and relates only to template records.
+
+One family record conflicts with a template record:
+[ADR-1242](docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md) with
+project-template ADR-0141, tracked in [#25](https://github.com/NCodeGroup/identity/issues/25).
 
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.

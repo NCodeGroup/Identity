@@ -68,9 +68,10 @@ package, type, setting, endpoint or behavior is and does, never how it differs f
   removes, as the template's planning, review and landing commands do in a pre-release project.
 - **No breaking marker.** Commit subjects and pull request titles never carry the conventional-commit `!` marker
   (`feat:`, never `feat!:`), and no commit message or pull request description carries a `BREAKING CHANGE:` footer.
-- **Decision records relate through their metadata.** A record's `Status`, `Amends`, `Supersedes`, `Refines` and
-  `Conflicts with` lines are the decision-record mechanism, not change tracking; its Context states its forces in the
-  present tense.
+- **Decision records are rewritten, not superseded.** A changed decision rewrites its record in place, and the
+  record's only relation lines, `Refines`, `Supersedes` and `Conflicts with`, name project template records
+  ([ADR-1503](../../docs/decisions/1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md));
+  its Context states its forces in the present tense.
 
 ### Extensibility is the goal — nothing closed by default
 

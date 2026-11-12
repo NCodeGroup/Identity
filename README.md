@@ -99,7 +99,7 @@ certified.
 
 ## Layout
 
-A project's top-level folder says whether it ships ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)): the published packages are under `src/`, the deployables under `hosts/`, the repository's own analyzers under `analyzers/`, the web apps' pnpm workspace under `frontend/`, tests under `tests/` and benchmarks under `benchmarks/`.
+A project's top-level folder says whether it ships ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)): the published packages are under `src/`, the deployables under `hosts/`, the repository's own analyzers under `analyzers/`, the web apps' pnpm workspace under `frontend/`, tests under `tests/` and benchmarks under `benchmarks/`.
 
 | Area                 | Packages                                                                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |

@@ -81,7 +81,6 @@ The records are grouped by area; within an area they are in number order.
 | [1069](./1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) | DI registration proves every prerequisite at compile time through marker builders | Accepted |
 | [1080](./1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) | Filtered reads are intent-named store methods, and growing criteria are init-only DTOs | Accepted |
 | [1127](./1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md) | Every project builds with zero warnings, and the family's own banned APIs bind shipping code | Accepted |
-| [1130](./1130-distinct-names-for-host-local-dev-orchestrator-and-library.md) | The deployable host, the local-dev orchestrator, and the shipped library have distinct names | Accepted |
 | [1137](./1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) | Configuration binds strictly, and every option, timer period and retention is validated at startup | Accepted |
 | [1143](./1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) | CI presents test results and hand-written-code coverage through job summaries, annotations and Codecov | Accepted |
 | [1150](./1150-vocabularies-are-open-unless-provably-closed.md) | Vocabularies are open unless provably closed | Accepted |
@@ -103,7 +102,7 @@ The records are grouped by area; within an area they are in number order.
 | [1493](./1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md) | global.json requires the newest .NET SDK release past the cooldown | Accepted |
 | [1496](./1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md) | An analyzer reports an own async method that returns Task or lacks a trailing cancellation token | Accepted |
 | [1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) | Every package names one capability under the NCode.Identity prefix, as an abstractions and implementation pair | Accepted |
-| [1501](./1501-a-projects-top-level-folder-says-whether-it-ships.md) | A project's top-level folder says whether it ships | Accepted |
+| [1501](./1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md) | A project's top-level folder and name say whether it ships and what it is | Accepted |
 | [1502](./1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md) | Code a self-hoster could use is public, and the product's repositories and artifacts follow one naming scheme | Accepted |
 | [1503](./1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md) | A decision record is rewritten when its decision changes and relates only to template records | Accepted |
 

@@ -9,7 +9,7 @@
 ## Context
 
 NCode.Identity is both an open-source library family with a deployable host
-([ADR-1130](1130-distinct-names-for-host-local-dev-orchestrator-and-library.md)) and a hosted platform
+([ADR-1501](1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)) and a hosted platform
 ([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)) whose infrastructure code is public
 ([ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md)). That raises a recurring question: does the
 platform run on private, platform-only deployment code, or on the same artifacts a self-hoster would use?

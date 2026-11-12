@@ -11,7 +11,7 @@
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
   settings under `/api/platform`; and by
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the management
-  console is served by a BFF host of its own; and by [ADR-1501](1501-a-projects-top-level-folder-says-whether-it-ships.md): the platform lives in `frontend/` at the repository root; and by
+  console is served by a BFF host of its own; and by [ADR-1501](1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md): the platform lives in `frontend/` at the repository root; and by
   [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md):
   the platform stays in the product's repository)
 - **Date:** 2026-10-10

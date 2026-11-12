@@ -84,4 +84,4 @@ packages and domains follow one naming scheme.**
   [ADR-1307](1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md),
   [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
-  [ADR-1501](1501-a-projects-top-level-folder-says-whether-it-ships.md)
+  [ADR-1501](1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)

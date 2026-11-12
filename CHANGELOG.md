@@ -137,7 +137,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   that is deployed and faces the internet, so nothing invites leaving ephemeral keys, wildcard `AllowedHosts` or
   development seeding switched on there. The frontend `apps/playground` flow explorer and its `playground-spa` client
   are a genuine playground and carry that name. These projects are `IsPackable=false`
-  ([ADR-1130](docs/decisions/1130-distinct-names-for-host-local-dev-orchestrator-and-library.md)).
+  ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)).
 
 - **The reference host is a minimal-hosting ASP.NET Core application with the first-party .NET 10 OpenAPI stack.**
   `NCode.Identity.OpenId.Host` boots from a single top-level `Program.cs` using `WebApplication.CreateBuilder(...)`, and
@@ -3716,7 +3716,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   benchmarks. Each folder outside `src/` turns packing off in its `Directory.Build.props`, and the build fails a project
   under `src/` that does not pack and a project outside it that does
   ([#759](https://github.com/NCodeGroup/identity/issues/759),
-  [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)).
+  [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)).
 
 - **Code a self-hoster could use is public, and the product's repositories and artifacts follow one naming scheme.**
   `NCodeGroup/identity` holds the packages, hosts, images, the host chart, the frontend, and the decisions and issues

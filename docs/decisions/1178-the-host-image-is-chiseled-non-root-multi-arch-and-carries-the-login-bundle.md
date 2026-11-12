@@ -11,7 +11,7 @@
 
 ## Context
 
-`NCode.Identity.OpenId.Host` is the deployable ([ADR-1130](1130-distinct-names-for-host-local-dev-orchestrator-and-library.md)),
+`NCode.Identity.OpenId.Host` is the deployable ([ADR-1501](1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)),
 and its image is the artifact both the hosted platform and self-hosters run
 ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)). The Dockerfile had been written for Visual
 Studio's container tooling. It sent the whole repository to the build, exposed ports 80 and 443 although .NET listens

@@ -72,7 +72,7 @@ nodes tore that file and failed the job
 ([ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)).
 
 When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**`, `/hosts/` for `hosts/**`, `/analyzers/` for `analyzers/**`, `/tests/` for `tests/**` and `/benchmarks/` for `benchmarks/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`)
-— never at the solution root. A published package goes under `src/` and packs; any other project goes under the folder of its role, whose `Directory.Build.props` turns packing off, and the build fails a project whose folder and packing disagree ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)).
+— never at the solution root. A published package goes under `src/` and packs; any other project goes under the folder of its role, whose `Directory.Build.props` turns packing off, and the build fails a project whose folder and packing disagree ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)).
 
 ## Benchmarks
 

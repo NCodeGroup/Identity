@@ -27,7 +27,7 @@ infrastructure, and the private `NCodeGroup/identity-cloud` only the managed off
 ([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)).
 
 A project's top-level folder says whether it ships
-([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)): `src/` holds only the published
+([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)): `src/` holds only the published
 NuGet packages, and every project there packs; `hosts/` holds the deployables; `analyzers/` holds the repository's own
 Roslyn analyzers; `frontend/` holds the pnpm workspace of the web apps; and test projects (the `*Tests` projects) live
 under `tests/`. Each folder outside `src/` turns packing off in its `Directory.Build.props`, and the build fails a
@@ -198,7 +198,7 @@ so a bare ADR number names one record. Ten family records override template reco
 - [ADR-1160](docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md) supersedes
   project-template ADR-0123 for tenants, whose identifier its creator chooses and which is never reissued, because a
   tenant's identifier is part of its address, so its issuer is known before it exists.
-- [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)
+- [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)
   overrides the project template's rule that production projects live under `src/`, because `src/` holds only the
   published packages: the deployables, the build analyzers and the web apps' workspace live in `hosts/`, `analyzers/`
   and `frontend/`.

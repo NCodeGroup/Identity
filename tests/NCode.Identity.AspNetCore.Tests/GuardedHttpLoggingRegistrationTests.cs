@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 using NCode.Buffers;
 using Xunit;
 
@@ -209,6 +211,34 @@ public sealed class GuardedHttpLoggingRegistrationTests : BaseTests
         var options = serviceProvider.GetRequiredService<IOptions<HttpLoggingOptions>>();
 
         Assert.Throws<OptionsValidationException>(() => options.Value);
+    }
+
+    [Fact]
+    public async Task AddGuardedHttpLogging_WhenACredentialHeaderIsAllowListed_StopsTheHostFromStarting()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
+        builder.Services.AddGuardedHttpLogging();
+        builder.Services.Configure<HttpLoggingOptions>(x =>
+            x.RequestHeaders.Add(HeaderNames.Authorization)
+        );
+
+        using var host = builder.Build();
+
+        await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync(CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task AddGuardedHttpLogging_WithPermittedOptions_LetsTheHostStart()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
+        builder.Services.AddGuardedHttpLogging();
+
+        using var host = builder.Build();
+
+        await host.StartAsync(CancellationToken.None);
+        await host.StopAsync(CancellationToken.None);
     }
 
     #endregion

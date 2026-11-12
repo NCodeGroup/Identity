@@ -10,7 +10,9 @@
   chart refuses a key ring without a key; amended by
   [ADR-1488](1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md):
   the console's Ingress routes every path to the console, and `ManagementConsole:ManagementApiUrl` is `/api` on the
-  authority's origin)
+  authority's origin; and by
+  [ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md):
+  the console image serves HTTPS only on port 8443)
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 

@@ -18,7 +18,8 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// its value is decoded by the <see cref="IClientCertificateHeaderDecoder"/> registered for the configured format, and
 /// a value it cannot decode fails the request. Otherwise the certificate negotiated directly on the connection is used,
 /// except on a connection that carries <see cref="IProxyClientCertificateFeature"/>, whose certificate is the reverse
-/// proxy's and is never read as an end client's. The result is resolved once per request, and the certificates decoded from a header are disposed with the request.
+/// proxy's and is never read as an end client's. The result is resolved once per request, and the certificates decoded
+/// from a header are disposed with the request.
 /// </summary>
 // See ADR-1172.
 internal sealed class DefaultClientCertificateResolver(

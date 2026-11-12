@@ -125,6 +125,30 @@ public sealed class ProxyClientCertificateMiddlewareTests : IDisposable
         Assert.Null(context.Features.Get<IProxyClientCertificateFeature>());
     }
 
+    [Theory]
+    [InlineData("/health/live/")]
+    [InlineData("/health/live/x")]
+    [InlineData("/health/ready/")]
+    [InlineData("/health/livez")]
+    [InlineData("/health")]
+    public async Task InvokeAsync_WhenAPathOnlyResemblesAProbePath_RefusesWithForbidden(
+        string path
+    )
+    {
+        using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
+            "CN=ca",
+            Now
+        );
+        var harness = CreateHarness(authority);
+        var context = CreateContext(path, certificate: null);
+
+        await harness.Middleware.InvokeAsync(context);
+
+        Assert.False(harness.NextCalled);
+        Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+        Assert.Null(context.Features.Get<IProxyClientCertificateFeature>());
+    }
+
     [Fact]
     public async Task InvokeAsync_WhenAnotherPathHasAnUntrustedCertificate_RefusesWithForbidden()
     {

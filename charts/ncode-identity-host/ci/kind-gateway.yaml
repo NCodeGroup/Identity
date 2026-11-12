@@ -2,13 +2,17 @@
 # 80 for both hosts and presents the release's ingress certificate Secret as its backend client certificate, which the
 # pods require; a ReferenceGrant in the identity namespace lets it name that Secret. The EnvoyProxy gives the Envoy
 # Service the type ClusterIP, so the Gateway is Programmed without a load balancer and the workflow reaches it with a
-# port-forward.
+# port-forward. The EnvoyProxy also offers only http/1.1 in the TLS handshake with the pods, because the route's
+# upstream speaks HTTP/1.1 and the pods would otherwise choose h2.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
   name: identity-proxy
   namespace: envoy-gateway-system
 spec:
+  backendTLS:
+    alpnProtocols:
+      - http/1.1
   provider:
     type: Kubernetes
     kubernetes:

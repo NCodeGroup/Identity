@@ -36,7 +36,7 @@ contributes ceilings, defaults and requirements that every scope's settings pass
 A profile is a registered `ISecurityProfile` with a `ProfileName`, its `Requirements`, `ApplyCeilingSettings` and
 `ApplyDefaultSettings`. The one registry is `ISecurityProfileCatalog`, implemented by `DefaultSecurityProfileCatalog`.
 The built-in profiles are `fapi2` (`Fapi2SecurityProfile`),
-`fapi1-advanced` ([ADR-1202](1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)) and
+`fapi1-advanced` ([ADR-1202](1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)) and
 `production` ([ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)); their names are
 in `OpenIdConstants.SecurityProfiles`.
 

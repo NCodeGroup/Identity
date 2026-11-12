@@ -49,7 +49,7 @@ both. FAPI 2.0 Security Profile §5.3.2.2-8 refuses `http` except for the loopba
    URI itself must still be registered. `localhost` gets no port flexibility, because RFC 8252 §8.3 recommends the IP
    literal.
 3. **`fapi1-advanced` turns the exception off.** The profile sets a ceiling of `false` for `allow_loopback_redirect`
-   ([ADR-1202](1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)), and the setting merges as an `And`,
+   ([ADR-1202](1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)), and the setting merges as an `And`,
    so a child cannot allow it again. `fapi2` sets no ceiling for this setting, because FAPI 2.0 permits native loopback
    redirects (decision 8 caps its redirect URI kinds).
 4. **The registered query is kept.** The redirect URI of an accepted request equals a registered URI as written, so its
@@ -60,7 +60,7 @@ both. FAPI 2.0 Security Profile §5.3.2.2-8 refuses `http` except for the loopba
    ([ADR-1201](1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md)). A parked
    continuation checks neither its stored redirect URI nor its kind again, because both were checked when the request
    arrived. When a request has both an outer and a request-object `redirect_uri`, the two are compared as written
-   ([ADR-1202](1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+   ([ADR-1202](1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 6. **An accepted redirect URI is kept as written.** `redirect_uri` is a string wherever the server carries it
    (`OpenIdCommonParameters.RedirectUri`, `IBaseAuthorizationRequestValues`, `IAuthorizationRequest`, `ITokenRequest`,
    `AuthorizationResponseDelivery`). A `Uri` is parsed only to inspect a part of it (its absoluteness, its kind, the

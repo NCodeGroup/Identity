@@ -281,7 +281,7 @@ than inlining the rationale.
   surface, the production signing key is a host input, and the host makes one
   `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default, such as the reference
   host's `AllowAnyClientCertificate()` for mutual TLS
-  ([ADR-1202](../../docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  ([ADR-1202](../../docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 - 👁 **A host maps its probes with `MapHealthProbes()`** (`NCode.Identity.AspNetCore`), and a package tags a check a replica cannot serve without with `HealthCheckTags.Readiness` (`NCode.Identity.Registration`) ([ADR-1456](../../docs/decisions/1456-the-hosts-map-their-health-probes-through-one-general-helper.md)).
 - ✅ **C# 14 `extension` member syntax** — template
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods)

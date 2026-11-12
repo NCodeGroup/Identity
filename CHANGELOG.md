@@ -172,7 +172,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   accept any client certificate an endpoint requests (`Kestrel:EndpointDefaults:ClientCertificateMode`), and the OP
   validates it against the client it authenticates. It is inert while no endpoint requests a certificate. A host that
   terminates TLS itself and serves mutual-TLS clients does the same in its own `ConfigureHttpsDefaults`
-  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **The reference host configures tenant selection under `OpenId:TenantResolution`** (`StrategyCode`, `StaticSingle:…`),
   distinct from the tenant materialization section `OpenId:Tenant`, and a tenant-selection shape under the wrong section
@@ -246,7 +246,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `client_secret_basic`, `client-secret-post` with `client_secret_post`, all `S256`), the FAPI clients and
   `conformance-user`. It must not be used in production
   ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **A `Conformance` launch profile runs the OpenID host as an externally reachable HTTPS process for the OpenID
   Foundation Conformance Suite** (issue [#126](https://github.com/NCodeGroup/identity/issues/126)). It binds all
@@ -284,7 +284,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   into a gitignored folder, so no private key is committed, supplies each key set through
   `ConformanceSeed__Clients__<client_id>__Jwks`, renders both FAPI configurations from one
   `fapi1-advanced.template.json`, and takes the OP's URLs from `-IssuerUrl`
-  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
+  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md),
   [#235](https://github.com/NCodeGroup/identity/issues/235)).
 
 - **One .NET Aspire launch runs the full local stack**
@@ -1338,7 +1338,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenIdClient` and delivery and is delivered by `result.Delivery.ResponseModeHandler`.
   `IAuthorizationRequest.ResponseMode` is the value the request asked for, possibly `null`
   ([ADR-1201](docs/decisions/1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), issues
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md), issues
   [#229](https://github.com/NCodeGroup/identity/issues/229), [#238](https://github.com/NCodeGroup/identity/issues/238)).
 
 - **JWT-secured authorization responses (JARM).** The authorization endpoint serves the `query.jwt`, `fragment.jwt`,
@@ -1736,7 +1736,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DPoPBoundAccessTokenCoherenceRule` reports a client that requires DPoP-bound access tokens while its effective
   `dpop_signing_alg_values_supported` is set and empty, so no proof could be accepted, and
   `CertificateBoundAccessTokenCoherenceRule` a client that requires certificate binding while its effective support is
-  `false` ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
+  `false` ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md),
   [ADR-1206](docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issues
   [#233](https://github.com/NCodeGroup/identity/issues/233), [#256](https://github.com/NCodeGroup/identity/issues/256)).
   The settings `dpop_nonce_required` and `dpop_proof_lifetime` tune DPoP, and a tenant's mTLS endpoint alias
@@ -3348,7 +3348,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `id_token_signed_response_alg` and `introspection_signed_response_alg` to `PS256`, so a client under the profile that
   registers no algorithm is signed with an algorithm the profile permits
   ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md),
   [#259](https://github.com/NCodeGroup/identity/issues/259)).
 
 - **A security profile selected in the platform's configuration supplies its defaults at the platform root, and every
@@ -4726,7 +4726,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (RFC 6749 §4.1.3), so a value that differs in the case of its host or in its user information is refused with
   `invalid_grant` (issue [#243](https://github.com/NCodeGroup/identity/issues/243))
   ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **A redirect URI's kind is checked, and a URI of no kind is never permitted.** A `private_use` URI has a
   reverse-domain-name scheme of at least two non-empty labels, such as `com.example.app`, so `javascript:`, `data:`,
@@ -4743,7 +4743,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   its `Location` header as an authorization response's is (issue
   [#247](https://github.com/NCodeGroup/identity/issues/247))
   ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **`response_types_supported` is the only control over the tokens the authorization endpoint returns.** To forbid an
   access token from the authorization endpoint, a tenant or client lists no response type that includes `token`; the
@@ -4797,7 +4797,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   authorization endpoint verifies the object before it redirects, takes `redirect_uri`, `response_mode` and `state` from
   it, and returns an error raised before then without redirecting
   ([ADR-1201](docs/decisions/1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), issues
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md), issues
   [#229](https://github.com/NCodeGroup/identity/issues/229), [#238](https://github.com/NCodeGroup/identity/issues/238)).
 
 - **A signed request object is short-lived and addressed to the issuer.** The authorization endpoint (`request` /
@@ -4811,7 +4811,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   mandatory. The FAPI 2.0 profile pins both, at 60 minutes and `true`. A CIBA signed authentication request carries
   `iat`, `nbf`, `exp`, and `jti` (CIBA Core §7.1.1), and the CIBA loader applies the client's `clock_skew`
   ([ADR-1187](docs/decisions/1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md),
-  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **An unsigned (`alg:none`) request object is rejected with `request_not_supported`** (issue
   [#131](https://github.com/NCodeGroup/identity/issues/131)). As OpenID Connect Core 1.0 §6.1 requires,
@@ -4834,7 +4834,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The `fapi1-advanced` security profile requires `nonce` and `state`.** It refuses, with `invalid_request`, an
   authorization request for the `openid` scope without `nonce` and any other request without `state` (FAPI 1.0 Advanced
-  §5.2.2.2–3, [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  §5.2.2.2–3, [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security profile's
   signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party cannot sign with an Ed448 key
@@ -5783,7 +5783,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   codes that live at most 60 seconds and PAR `request_uri`s at most 90. A request for plain `code` without a `.jwt`
   response mode is refused with `invalid_request`. `AuthorizationRequestProfileContext` carries the composed
   `IAuthorizationRequest` for request-time requirements, and the spec-coverage matrix has a `profile-fapi1-advanced` row
-  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
+  ([ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md),
   [#233](https://github.com/NCodeGroup/identity/issues/233)).
 
 - **A client whose refresh tokens rotate under the FAPI 2.0 profile must be able to retry a rotation.** The client

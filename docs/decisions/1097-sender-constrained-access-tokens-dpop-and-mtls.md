@@ -129,7 +129,7 @@ Concretely:
     `tls_client_certificate_bound_access_tokens` to `true` under `OpenId:Server:Settings` to make every client bind its
     tokens also sets `require_tls_client_certificate_bound_access_tokens` to `true` there, or those clients receive
     bearer tokens.
-  - [ADR-1202](1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md) sets the requirement as a ceiling and
+  - [ADR-1202](1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md) sets the requirement as a ceiling and
     the support as a default.
 
 - **DPoP binding is a client requirement too.** The server advertises DPoP support through

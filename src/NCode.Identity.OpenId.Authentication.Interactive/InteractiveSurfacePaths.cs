@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// endpoints, so every redirect it issues and the session cookie it scopes start from the path the request's
 /// tenant is served under.
 /// </summary>
-// See ADR-1138.
+// See ADR-1165.
 internal sealed class InteractiveSurfacePaths(
     ITenantResolver tenantResolver,
     TemplateBinderFactory templateBinderFactory

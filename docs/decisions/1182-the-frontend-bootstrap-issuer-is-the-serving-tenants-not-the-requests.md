@@ -15,7 +15,7 @@ to, carrying the user's access token. With neither configured, both defaulted to
 `scheme://host`.
 
 Every served tenant's issuer is its stored, validated origin, and nothing else derives one from the request
-([ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)). The bootstrap document
+([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). The bootstrap document
 was a second, unvalidated source of the same value, and it was wrong in two ways:
 
 - **It trusted the `Host`.** A forged or proxied `Host` — or a shared cache that keyed one host's response under
@@ -80,5 +80,5 @@ agree with the first. To keep a shared cache from serving one host's document fo
 - [`FrontendBootstrapDocument`](../../src/NCode.Identity.Server/Frontend/FrontendBootstrapDocument.cs) — the issuer is
   never the request origin; the API base falls back to it.
 - [ADR-1064](1064-frontend-presentation-platform.md),
-  [ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md),
+  [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md).

@@ -108,7 +108,7 @@ internal class DynamicByHostTenantOptionsValidator : IValidateOptions<TenantReso
         );
     }
 
-    // See ADR-1195 (a tenant's mTLS endpoint alias is a routed tenant property).
+    // See ADR-1165 (a tenant's mTLS endpoint alias is a routed tenant property).
     private static void ValidateMtlsEndpointAliasTemplate(
         DynamicByHostTenantOptions options,
         Regex hostPattern,

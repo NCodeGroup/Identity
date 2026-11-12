@@ -77,7 +77,7 @@ Everything follows from that rule:
 - **Route-group composition is declarative, hierarchical, and unified across both planes.** Groups are named
   `IEndpointGroup` nodes that **own their contents**: each exposes a `Name` and a prefix (`GetPrefix`, resolved when
   routes are mapped so it may come from configuration —
-  [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md)), an optional `ConfigureRoutes`
+  [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)), an optional `ConfigureRoutes`
   that attaches route-group filters when routes are mapped, and a `ConfigureServices(IEndpointGroupBuilder)` that
   registers — colocated in the group itself — the endpoints (`AddEndpoint<T>()`) and child groups (`AddGroup<T>()`) it
   contains, plus the services those endpoints depend on (via the builder's `ServiceCollection`). Registering a single

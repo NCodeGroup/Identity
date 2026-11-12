@@ -21,7 +21,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// It mirrors the protocol endpoints' registration so the surface flows through the same
 /// <c>MapEndpointGroups</c> discovery as every other endpoint instead of a bespoke mapping call.
 /// </summary>
-// See ADR-1138 and ADR-1193.
+// See ADR-1165 and ADR-1193.
 internal sealed class InteractiveAuthenticationEndpointGroup : IEndpointGroup
 {
     /// <summary>

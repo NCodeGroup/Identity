@@ -309,7 +309,7 @@ The image starts in the `Production` environment, which refuses to start until t
   without it.
 - `OpenId__TenantResolution__StaticSingle__Issuer`: the public issuer URL, or another tenant resolution mode. A served
   tenant without an issuer fails closed
-  ([ADR-1165](../../docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+  ([ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 The host does not migrate on boot. The image also carries the migration worker, which runs from `/app/migrations` with
 `dotnet NCode.Identity.OpenId.Host.MigrationService.dll` and the same `ConnectionStrings__openiddb`.

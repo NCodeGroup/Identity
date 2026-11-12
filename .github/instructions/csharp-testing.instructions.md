@@ -270,7 +270,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Real Collaborators](csharp-tests.instructions.md#real-collaborators)
   (`AddIdentityServer_ReadingTheOpenIdOptions_ConstructsNoClientAuthenticationHandler`).
 - 👁 **A test host pins an issuer for every tenant it serves.** A tenant is served only beneath its stored issuer
-  ([ADR-1165](../../docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so
+  ([ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)), so
   `HostApplicationFactory` pins the static tenant to `HostApplicationFactory.TestServerIssuer` (`http://localhost`). A
   test that changes the tenant path pins a matching `StaticSingle:Issuer`; a test that selects a dynamic strategy
   configures its issuer template (or `Root:Issuer`, which the dynamic strategies require) and seeds tenants with an

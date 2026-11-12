@@ -12,10 +12,10 @@ project-template ADR-0123 asks the same of every resource: an identifier is a me
 audit records, and a caller never chooses one. A tenant's identifier is different, because it is not internal.
 
 - **It is part of the tenant's issuer.** Under path-based tenancy the identifier is the tenant route's segment, and a
-  configured issuer is the tenant's base address as-is ([ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md)),
+  configured issuer is the tenant's base address as-is ([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)),
   so tenant `acme` is served beneath, and must publish, an issuer ending in `/acme`. The issuer is asserted in every
   token the tenant mints and configured by every relying party that trusts it, so it is effectively immutable once
-  clients integrate ([ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md)).
+  clients integrate ([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 - **It is a name people use.** The management API addresses a tenant by it
   ([ADR-1042](1042-management-api-route-driven-tenant-scope.md)), and the hosted platform names a tenant by the leftmost
   label of its host ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)).
@@ -154,8 +154,8 @@ through the strategy that serves it on every write path, and a retired identifie
 ## References
 
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) - opaque identifiers for every other resource.
-- [ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md) - the issuer as the tenant's identity.
-- [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md) - the tenant route and the base address.
+- [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) - the issuer as the tenant's identity.
+- [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) - the tenant route and the base address.
 - [ADR-1042](1042-management-api-route-driven-tenant-scope.md) - the management API's tenant scope.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) -
   configuration validated at startup.

@@ -14,7 +14,7 @@ customer integrates:
   production platform, as in Auth0's model
   ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - **The hostnames.** A tenant's issuer is the single authoritative origin of its tokens, discovery document and
-  endpoint aliases ([ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md)). A tenant's relying
+  endpoint aliases ([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). A tenant's relying
   parties pin the issuer string, and it is also the host the tenant is routed on, so the issuer hosts are permanent.
 
 Further forces:
@@ -138,7 +138,7 @@ carries nothing else; a brand domain carries the site, docs, status page and ope
 
 ## References
 
-- [ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md)
+- [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)
 - [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md)
 - [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)
 - [`docs/hosting-analysis.md`](../hosting-analysis.md), [`docs/platform-bootstrap.md`](../platform-bootstrap.md)

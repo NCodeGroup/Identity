@@ -121,7 +121,7 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
 - [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md) and
   [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md) — the
   general rules this record applies.
-- [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md) — the tenant route the validator checks.
+- [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) — the tenant route the validator checks.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — setting names and the remaining configuration inputs.
 - [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — each tenant strategy validates its
   own options.

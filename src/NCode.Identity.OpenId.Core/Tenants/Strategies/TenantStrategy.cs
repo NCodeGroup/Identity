@@ -141,7 +141,7 @@ internal abstract class TenantStrategy(
     /// The root tenant is given its configured alias when it has one; every tenant otherwise gets the expansion of the
     /// strategy's alias template, or none when the strategy has no template.
     /// </remarks>
-    // See ADR-1195 (a tenant's mTLS endpoint alias is a routed tenant property).
+    // See ADR-1165 (a tenant's mTLS endpoint alias is a routed tenant property).
     public virtual ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
         string tenantId,
         CancellationToken cancellationToken
@@ -226,7 +226,7 @@ internal abstract class TenantStrategy(
     /// <param name="tenantId">The identifier of the tenant.</param>
     /// <param name="issuer">The proposed issuer of the tenant.</param>
     /// <returns>The failure, or <c>null</c> when the issuer ends with the route.</returns>
-    // See ADR-1138 (an issuer is its tenant's base address) and ADR-1160.
+    // See ADR-1165 (an issuer is its tenant's base address) and ADR-1160.
     protected TenantValidationFailure? ValidateIssuerRoute(string tenantId, Uri issuer)
     {
         var routePath = GetTenantRoutePath(tenantId);

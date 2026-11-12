@@ -11,7 +11,7 @@
 ## Context
 
 The protocol endpoints are served under the tenant route
-([ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md)). The interactive surface (login, consent,
+([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). The interactive surface (login, consent,
 logout, and the account pages) was still mounted at absolute `/account/*` routes. It had a fixed cookie `LoginPath`,
 one session cookie for every tenant, and its bundle's static assets at the root.
 
@@ -32,7 +32,7 @@ cookie is scoped to the tenant's path.**
    path the surface stays at `/account/*`; under `DynamicByPath` it is served at `/{tenantId}/account/*`.
 2. **Paths come from the request.** `InteractiveSurfacePaths` computes the tenant's path as the request's `PathBase`
    followed by the tenant route, bound from the request's values for that route's own parameters. It uses the binding
-   of [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md) decision 3. Route values outlive the
+   of [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) decision 3. Route values outlive the
    ambient tenant scope, so the path is still available when the cookie handler refreshes the session as the response
    starts. Every redirect the handler issues goes through it, as do the consent challenge and the cookie scheme's login
    challenge (`OnRedirectToLogin`), so a browser never leaves its tenant.
@@ -83,6 +83,6 @@ cookie is scoped to the tenant's path.**
 
 ## References
 
-- [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md) — the protocol endpoints are served under
+- [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) — the protocol endpoints are served under
   the tenant route.
 - [RFC 6265](https://www.rfc-editor.org/rfc/rfc6265) §5.1.4 — cookie path-match.

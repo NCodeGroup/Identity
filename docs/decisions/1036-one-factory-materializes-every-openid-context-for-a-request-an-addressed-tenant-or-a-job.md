@@ -131,7 +131,7 @@ runs on the request's context under the route's tenant scope.
   context the same way.
 - Every explicit materialization loads the tenant fresh, which suits the infrequent administrative operations that use
   it.
-- A tenant needs an issuer to be materialized under its own identity ([ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+- A tenant needs an issuer to be materialized under its own identity ([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 - Smell: an endpoint that builds its own `OpenIdContext`, or a cache read or write on the explicit path, has stepped
   outside this decision.
 

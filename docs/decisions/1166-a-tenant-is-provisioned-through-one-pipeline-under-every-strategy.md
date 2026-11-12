@@ -36,7 +36,7 @@ tenant seeds exactly that tenant.**
 
 1. **Two operations.** `EnsureCreatedAsync(tenantId, displayName)` creates a tenant configuration defines — the root
    tenant, or a static strategy's own tenant — when it is missing, at the address its strategy derives, judged like any
-   other write ([ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)); it tolerates
+   other write ([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)); it tolerates
    a concurrent creator by re-reading after a failed insert. `SeedAsync(tenantId)` ensures and seeds the root tenant
    first, then fans `SeedTenantCommand` out for the tenant within one unit of work.
 2. **Strategies create, the materializer seeds.** A strategy resolves a request to its tenant and creates a

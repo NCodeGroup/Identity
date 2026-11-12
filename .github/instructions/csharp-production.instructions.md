@@ -380,7 +380,7 @@ than inlining the rationale.
   hard-code an absolute protocol path into a published URL. Generate every URL that leaves the process with
   `GetTenantUriByName`, which takes the authority from the tenant and carries the tenant route's values over. Never
   hand the request's live `RouteValues` to a template binder — it consumes them; bind a copy. See
-  [ADR-1138](../../docs/decisions/1138-protocol-endpoints-are-served-under-the-tenant-route.md).
+  [ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md).
 - 👁 **Minimal-API endpoints are bound by the Request Delegate Generator; a project with form-bound endpoints opts
   out.** `Directory.Build.props` generates every project's request delegates at compile time, and a handler shape the
   generator cannot produce fails the build — fix the shape, never suppress the diagnostic. A project with an endpoint
@@ -1329,7 +1329,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 - 👁 **A default for runtime-written data is derived through the seam that judges it, then judged and stored like an
   explicit value** — template [Configuration and Options](csharp.instructions.md#configuration-and-options): every write
   path asks the owning seam (`ITenantResolver.GetDefaultIssuerAsync`) before it validates
-  ([ADR-1165](../../docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+  ([ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 - 👁 **A configuration seeder names exactly the target it seeds** — template
   [Configuration and Options](csharp.instructions.md#configuration-and-options): `BootstrapAdmin`,
   `DeveloperInteractiveSeed` and `ConformanceSeed` require their `TenantId`

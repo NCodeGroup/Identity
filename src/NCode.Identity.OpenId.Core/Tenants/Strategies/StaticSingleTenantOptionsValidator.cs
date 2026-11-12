@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 /// would never be honored and is rejected. The options of an unselected strategy are inert, and a layered configuration
 /// may legitimately carry them, so they are skipped.
 /// </summary>
-// See ADR-1137 (fail at startup), ADR-1138 (the tenant route and the issuer), ADR-1160 (the same rules apply to tenants
+// See ADR-1137 (fail at startup), ADR-1165 (the tenant route and the issuer), ADR-1160 (the same rules apply to tenants
 // written at runtime), and ADR-1165 (every served tenant has an issuer).
 internal class StaticSingleTenantOptionsValidator : IValidateOptions<TenantResolutionOptions>
 {

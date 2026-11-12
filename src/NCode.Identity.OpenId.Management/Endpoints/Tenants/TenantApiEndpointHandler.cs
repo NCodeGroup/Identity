@@ -1151,7 +1151,7 @@ internal class TenantApiEndpointHandler(
         }
 
         // An update that clears the issuer or the alias restores the one the tenant's strategy derives for it (ADR-1165,
-        // ADR-1195).
+        // ADR-1165).
         model.Issuer =
             NullIfEmpty(model.Issuer)
             ?? await TenantResolver.GetDefaultIssuerAsync(tenant.TenantId, cancellationToken);

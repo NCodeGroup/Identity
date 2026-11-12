@@ -1225,7 +1225,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   carry the tenant route's values and no explicit default port the issuer does not.
   `IEndpointGroup.GetPrefix(IServiceProvider)` returns a group's `RoutePattern` when routes are mapped, so a group's
   prefix can come from configuration
-  ([ADR-1138](docs/decisions/1138-protocol-endpoints-are-served-under-the-tenant-route.md)).
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 - **OpenID protocol errors map to HTTP statuses consistently.** An OpenID protocol error without a status code is
   `400 Bad Request`: a validation error such as an unsupported scope or response type or a missing `code_challenge`, at
@@ -2305,7 +2305,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `TenantAddressResource`: the issuer the tenant has or would be given and whether it is the derived one, the alias and
   whether it is derived (`isMtlsEndpointAliasAuthorityDerived`), whether the tenant already exists, and every reason the
   tenant could not be served there, by the same rules the create and update apply
-  ([ADR-1195](docs/decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), issue
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md), issue
   [#157](https://github.com/NCodeGroup/identity/issues/157)).
 
 - **The management API reports each tenant's environment.** `TenantResource` carries `environment`
@@ -3471,7 +3471,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   platform's `https://auth.<apex>` beside `https://{tenantId}.auth.<apex>`), and its address is reserved for it. A
   template is validated when the host starts: it carries `{tenantId}` once, varies the host under the host strategy, and
   ends with the tenant route under the path strategy
-  ([ADR-1165](docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 - **A tenant's mTLS endpoint alias is a routed tenant property with a derived default (RFC 8705 §5).** The alias is
   `PersistedTenant.MtlsEndpointAliasAuthority` (an `https` origin, stored with a derived, indexed
@@ -3492,7 +3492,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   address previews (`GET /teams/{teamId}/tenants/{tenantId}/address` for a tenant that does not exist yet and
   `GET /tenants/{tenantId}/address` for an existing one) take an optional `mtlsEndpointAliasAuthority` and return the
   effective `MtlsEndpointAliasAuthority` and `IsMtlsEndpointAliasAuthorityDerived` on `TenantAddressResource`
-  ([ADR-1195](docs/decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md),
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md),
   [#117](https://github.com/NCodeGroup/identity/issues/117)).
 
 - **A tenant is provisioned through one pipeline under every tenant strategy: the root tenant is created from
@@ -5804,8 +5804,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   share a host (`https://op.example/tenant-a`, `…/tenant-b`); host uniqueness is a requirement of the host-based
   strategy alone, enforced by validation. `ITenantStore` exposes `GetOrDefaultByIssuerAsync`, and
   `GetOrDefaultByHostAsync` routes by the issuer host or the mTLS endpoint-alias host
-  ([ADR-1129](docs/decisions/1129-the-tenant-issuer-is-the-single-authoritative-origin.md),
-  [ADR-1195](docs/decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
+  ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 - **Every tenant a strategy serves has an issuer, and no published URL follows the request's `Host` header.** The tenant
   factory takes a tenant's issuer and base address from its stored issuer alone and fails closed for a served tenant
@@ -5817,7 +5816,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant: `Root:Issuer` or their issuer template. A host is reached at the origin its issuer names, an issuer's host
   labels may be at most 63 characters, and a disabled static tenant is not served, like any other disabled tenant.
   `DefaultOpenIdTenantFactory` resolves `GetTenantIssuerAsync` before `GetTenantBaseAddressAsync`, which receives the
-  issuer ([ADR-1165](docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+  issuer ([ADR-1165](docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 - **A tenant's identifier and issuer, and each strategy's options, are validated by the tenant strategy that serves
   it.** Creating a tenant, and updating its issuer, require an absolute `https` issuer (`http` only for a loopback host)

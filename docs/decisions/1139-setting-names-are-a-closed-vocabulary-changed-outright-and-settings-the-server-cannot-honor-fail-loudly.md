@@ -68,7 +68,7 @@ stored or skipped.**
    registration response reports the scopes the client may request, from `IClientScopeService` (RFC 7591 section 3.2.1).
 8. **Properties are not settings.** No setting names a tenant's mutual-TLS endpoint alias, which is the tenant property
    `PersistedTenant.MtlsEndpointAliasAuthority`
-   ([ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+   ([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 9. **One outcome at every entry point.** A value's domain
    ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)) and the scopes a setting applies to
    ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)) are checked at the same entry points with the same
@@ -110,7 +110,7 @@ stored or skipped.**
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
-  [ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md),
+  [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md),
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md),
   [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)
 - RFC 7591 section 3.2.1; issue #535

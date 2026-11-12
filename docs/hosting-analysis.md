@@ -155,7 +155,7 @@ flowchart LR
   ([ADR-1097](decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md)).
 - RFC 8705 §5 mTLS endpoint aliases map naturally to a dedicated mTLS hostname (the tenant's
   `mtlsEndpointAliasAuthority`), so only that host asks for client certificates; per-tenant alias hosts route to their
-  tenant ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
+  tenant ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 ### Domains and DNS
 
@@ -208,7 +208,7 @@ and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platform-ru
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
 | `auth.ncodeid.net`                              | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-1031](decisions/1031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.ncodeid.net`            |
 | `{tenant}.auth.ncodeid.net`                     | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.ncodeid.net`)                     | `*.auth.ncodeid.net`          |
-| `mtls.ncodeid.net`, `{tenant}.mtls.ncodeid.net` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1195) | `mtls.…` + `*.mtls.ncodeid.net` |
+| `mtls.ncodeid.net`, `{tenant}.mtls.ncodeid.net` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1165) | `mtls.…` + `*.mtls.ncodeid.net` |
 | `manage.ncodeid.net`                            | Management API (`/api`) and admin console — the control-plane surface ([ADR-1042](decisions/1042-management-api-route-driven-tenant-scope.md)) | `manage.ncodeid.net`          |
 | `ncodeid.net`, `www.ncodeid.net`                  | Redirect (301) to `https://ncodeid.com`, with the HSTS header                                            | `ncodeid.net` + `www.ncodeid.net` (cert-manager) |
 | `ncodeid.com`, `www.ncodeid.com`, `status.ncodeid.com` | Project site, docs and status page — the brand domain ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)) | Hosting provider               |
@@ -227,17 +227,17 @@ Why this shape:
 - **`manage` is separate from `auth`:** the management plane gets its own CORS, rate-limit, and IP-allow-list policy at
   Traefik, and `/api` is routed **only** on `manage` (blocked on `auth` / `mtls` hosts) as defense in depth.
 - **Custom domains later** (Auth0 parity): the tenant's issuer is its single origin — it both routes the tenant and
-  anchors every published URL ([ADR-1129](decisions/1129-the-tenant-issuer-is-the-single-authoritative-origin.md)) — so a
+  anchors every published URL ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)) — so a
   custom domain (`login.customer.com`, CNAME'd to the platform) *becomes* the tenant's issuer. Choose it before clients
   integrate; cert-manager issues its certificate over HTTP-01.
 - **The server derives these hosts from configuration**
-  ([ADR-1165](decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
+  ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)):
   `OpenId:TenantResolution:StrategyCode = DynamicByHost`, `DynamicByHost:IssuerTemplate =
   https://{tenantId}.auth.ncodeid.net`, and `Root:Issuer = https://auth.ncodeid.net`. A tenant created without an
   issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The mTLS
   aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.ncodeid.net` and
   `Root:MtlsEndpointAliasAuthority = https://mtls.ncodeid.net`
-  ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). The root tenant
+  ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). The root tenant
   is created when the first request reaches `auth.ncodeid.net`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
   [ADR-1166](decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
@@ -459,7 +459,7 @@ Verified against Traefik v3.7 documentation and source:
   ([ADR-1173](decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
 - **[#86](https://github.com/NCodeGroup/identity/issues/86) — the mTLS alias host routes to its tenant (resolved).** The alias is the tenant property
   `MtlsEndpointAliasAuthority`; `DynamicByHost` routes its derived host as well as the issuer's, and validation keeps
-  both hosts unique ([ADR-1195](decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Each tenant's
+  both hosts unique ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). Each tenant's
   alias is derived from `DynamicByHost:MtlsEndpointAliasTemplate` unless one is set through the management API ([#117](https://github.com/NCodeGroup/identity/issues/117)).
 
 **Proxy rule:** on the mTLS host, use `RequireAnyClientCert` (request, don't verify) and forward the certificate. The

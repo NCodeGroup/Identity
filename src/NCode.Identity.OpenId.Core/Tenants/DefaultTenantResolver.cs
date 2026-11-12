@@ -173,7 +173,7 @@ internal class DefaultTenantResolver(
         }
 
         // The issuer is the tenant's identity and is asserted in every token it mints, so two tenants sharing one
-        // would mint tokens a relying party cannot tell apart (ADR-1129).
+        // would mint tokens a relying party cannot tell apart (ADR-1165).
         if (issuerUri is not null)
         {
             var holder = await store.GetOrDefaultByIssuerAsync(

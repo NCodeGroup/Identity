@@ -53,7 +53,7 @@ the URLs the server publishes and left these comparisons to a follow-up.
   its mutual-TLS alias.
 - A forged `Host` no longer widens the `aud` or `htu` values the server accepts.
 - A tenant without an issuer is not served
-  ([ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md)), so the base address is always the
+  ([ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)), so the base address is always the
   configured origin.
 
 ## References

@@ -4,7 +4,7 @@
   [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
   [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md),
-  [ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md),
+  [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
   [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md); amended by
   [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md): the
   console's image and the host chart's management console component; amended by
@@ -73,10 +73,10 @@ forwarded management API share that host's origin.**
    - a deployment registers `jwks_uri` = `<origin>/bff/jwks`
      ([ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)); the developer
      seed registers the public key by value, because the OP's outbound guard never reaches a loopback address
-     ([ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md) declares the clients
+     ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) declares the clients
      the seeder registers).
    - The developer seed owns the BFF clients its configuration declares: it reconciles an existing client's key set
-     and URIs with its configuration, replacing a client that differs (part of the amendment of ADR-1146).
+     and URIs with its configuration, replacing a client that differs (part of the amendment of ADR-1370).
    - The console host refuses a missing or wildcard `AllowedHosts` in the Production environment, so a deployment lists
      its own host names.
 5. **Local development.** The AppHost ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)) runs the console host on

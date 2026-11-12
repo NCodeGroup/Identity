@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by
   [ADR-1238](1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md): the policy judges the NFC form of a
   password, and the ASP.NET Core Identity adapter stores a password without Identity's password validators; amended by
-  [ADR-1370](1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md): the developer
+  [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md): the developer
   seed's administrator password is generated per machine, never committed)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group

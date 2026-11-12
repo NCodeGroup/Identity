@@ -6,7 +6,7 @@
   amended by
   [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md): a retired setting stays
   registered until a later release removes it; and by
-  [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md):
+  [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md):
   `DeveloperKeys` has no mode and no ephemeral fallback, only the `PruneUnreadableKeys` opt-in, and
   `AddProductionSafety` refuses a `DeveloperKeys` or `Cors` section in Production; amended by
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):

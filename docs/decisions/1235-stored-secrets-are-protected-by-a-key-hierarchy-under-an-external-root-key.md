@@ -9,7 +9,7 @@
   tenant master key; amended by
   [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
   provider contract is the shared `IKeyWrapper`; amended by
-  [ADR-1370](1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md): no root key
+  [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md): no root key
   provider is a default, and `ephemeral` is an explicit development opt-in; amended by
   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): an owner's master key rotates, its data keys are rewrapped and a retired key is destroyed, and cached keys
   reload after a refresh interval, which decides decision 11's master key rotation and the rotation the Consequences

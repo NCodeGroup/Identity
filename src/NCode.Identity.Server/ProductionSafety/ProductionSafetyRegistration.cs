@@ -163,7 +163,7 @@ public static class ProductionSafetyRegistration
         }
 
         // Pruning discards a signing key whose master key, or the root key that wraps it, was lost or changed, and
-        // provisioning replaces it (ADR-1313).
+        // provisioning replaces it (ADR-1370).
         AddSectionViolationIfPresent(
             DeveloperKeysOptions.DefaultSectionName,
             "prunes signing keys that can no longer be read and provisions new ones, which in Production hides a lost root key behind a silent key change."

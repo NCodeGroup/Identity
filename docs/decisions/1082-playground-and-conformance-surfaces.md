@@ -1,7 +1,7 @@
 # 1082. Playground flow explorer, conformance posture dashboard, and surface-aware bootstrap
 
 - **Status:** Accepted (developer SPA client seeding amended by
-  [ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md): the seed has no
+  [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md): the seed has no
   built-in clients, and the host declares them beside the client ids it publishes; surface declaration amended by
   [ADR-1156](1156-shared-app-shell-containers-live-in-ncode-shell.md): each app declares its surface in `main.tsx`, and
   `SurfaceKind` is an open vocabulary)

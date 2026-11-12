@@ -7,7 +7,7 @@
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): a key is unreadable
   when its tenant's master key, or the root key that wraps it, is lost or changed, no longer when the Data Protection
   key ring is; by
-  [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md): there
+  [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md): there
   are no developer modes and no ephemeral keys, so every host provisions its keys, and the pruning contributor is
   `AddDeveloperKeyPruning`, registered by `DeveloperKeys:PruneUnreadableKeys`; by
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md): a key may name
@@ -27,20 +27,20 @@
 ## Context
 
 A tenant signs with the keys in its persisted secrets, and the JSON Web Key Set publishes the same keys. Outside
-development, nothing created such a key. [ADR-1002](1002-ephemeral-development-keys.md) rejected creating keys by
+development, nothing created such a key. [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) rejected creating keys by
 default for three reasons:
 
 - keys regenerated on every restart invalidate every issued token;
 - replicas would each mint their own keys;
 - key provenance is a decision operators must own.
 
-The development modes ([ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md)) are refused in
+The development modes ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)) are refused in
 Production, so on a fresh production database no tenant had a key. The JSON Web Key Set was empty and nothing could be
 signed. That included the bootstrap administrator's first management token
 ([ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md)), which is the only credential that could
 import a key. The deployment was deadlocked before its first request.
 
-The first two of ADR-1002's objections concern keys held in memory. A key generated once, persisted, and protected by
+The first two of ADR-1370's objections concern keys held in memory. A key generated once, persisted, and protected by
 the shared Data Protection key ring survives restarts and is the same on every replica. The third objection is met when
 generation is a configurable default that never overrides a key the tenant already holds — the model of Auth0 tenant
 signing keys and Keycloak realm keys. Every tenant already passes through one seed pipeline under every strategy
@@ -206,9 +206,9 @@ key for. The server generates keys only to fill those gaps; it never removes, re
 
 ## References
 
-- [ADR-1002](1002-ephemeral-development-keys.md) — the decision this one amends: ephemeral keys stay a development
+- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) — the decision this one amends: ephemeral keys stay a development
   opt-in, and persisted keys are provisioned by default.
-- [ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md) — the persistent developer mode, reduced to
+- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) — the persistent developer mode, reduced to
   self-healing over provisioned keys.
 - [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md) — the bootstrap administrator whose
   first token needs a key.

@@ -109,8 +109,6 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1002](./1002-ephemeral-development-keys.md) | Ephemeral development keys are an explicit opt-in, never a silent default | Superseded |
-| [1021](./1021-developer-signing-keys-seeded-through-persistence.md) | Developer signing keys are seeded through the persistence layer, not injected at the read path | Accepted |
 | [1071](./1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) | The Aspire AppHost runs the local stack in health-gated order after checking the frontend toolchain | Accepted |
 | [1073](./1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) | One PostgreSQL database holds the host's schema and key ring, migrated by a worker and drift-checked | Accepted |
 | [1131](./1131-hosted-platform-environment-model-and-hostname-scheme.md) | The hosted platform's environment model and hostname scheme | Accepted |
@@ -118,13 +116,11 @@ The records are grouped by area; within an area they are in number order.
 | [1133](./1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md) | The hosted platform runs only the published artifacts it offers self-hosters | Accepted |
 | [1134](./1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) | The platform and the host follow written cloud-native operating principles | Accepted |
 | [1135](./1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md) | Platform resources carry one stable tag set, and provenance comes from attestations and audit logs | Accepted |
-| [1146](./1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md) | A development seeder registers only the clients its configuration declares | Accepted |
 | [1179](./1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) | The host chart references its secrets and refuses a release the host would refuse | Accepted |
 | [1180](./1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) | Each host context's migrations run before the rollout and only expand the schema | Accepted |
 | [1247](./1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md) | The platform master key protects the Data Protection ring, and an unreadable key stops the host | Accepted |
 | [1248](./1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md) | The host and console images are chiseled, non-root, multi-arch, digest-pinned and log one-line JSON | Accepted |
-| [1313](./1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md) | Development conveniences are inert unless configured and run through the production path | Accepted |
-| [1370](./1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md) | A host names its root key provider, and development secrets are generated per machine | Accepted |
+| [1370](./1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) | Development conveniences are inert unless configured, and a host always names its root key provider | Accepted |
 | [1430](./1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md) | End-to-end suites run the BFF in real browsers against a containerized Keycloak in their own gate | Accepted |
 | [1456](./1456-the-hosts-map-their-health-probes-through-one-general-helper.md) | The hosts map their health probes through one general helper | Accepted |
 | [1458](./1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md) | The management console ships as its own image and an opt-in component of the host chart | Accepted |

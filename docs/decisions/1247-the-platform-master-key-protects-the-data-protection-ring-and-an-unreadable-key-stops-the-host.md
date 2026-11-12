@@ -73,7 +73,7 @@ decrypt; and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
    ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)).
 9. **Developer key pruning starts the platform over.** Only with `DeveloperKeys:PruneUnreadableKeys=true`
    (`AddDeveloperKeyPruning()`, never an `IsDevelopment()` check, as
-   [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)
+   [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)
    decides), `DeveloperPlatformMasterKeyPruning`, an `IHostedLifecycleService`, runs in `StartingAsync`, before every
    `StartAsync`. It calls `GetProtectorAsync(SecretOwner.Platform, [], …)` and acts only on a `CryptographicException`.
    `DeveloperMasterKeyReset` then removes the platform's master keys in their own committed unit of work and evicts the
@@ -118,7 +118,7 @@ decrypt; and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
   team
 - [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)
   — master key rotation and destruction
-- [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md) —
+- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) —
   development conveniences
 - `src/NCode.Identity.Server/SecretProtection/` — `DataProtectionKeyRingGate`, `DataProtectionKeyRingOptions`,
   `PlatformSecretProtectorWarmup`, `MasterKeyXmlEncryptor`

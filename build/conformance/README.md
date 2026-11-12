@@ -28,7 +28,7 @@ Registration. This is a local test harness, never production.
 
 **Credentials.** No conformance credential is committed
 ([#514](https://github.com/NCodeGroup/identity/issues/514),
-[ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)):
+[ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)):
 `appsettings.Conformance.json` lists the clients and the test user without a secret or password.
 [`Get-ConformanceSeedCredentials.ps1`](Get-ConformanceSeedCredentials.ps1) generates the client secrets of the clients
 the overlay registers with a `client_secret_*` method (`client`, `client2` and `client-secret-post`) and the test user's

@@ -37,7 +37,7 @@ public sealed class DeveloperInteractiveSeedOptions
     /// Starting empty also lets configuration replace the list, because the configuration binder appends the
     /// configured entries to a list that already holds some.
     /// </remarks>
-    // See ADR-1146.
+    // See ADR-1370.
     public IList<DeveloperSpaClientSeed> SpaClients { get; set; } = [];
 
     /// <summary>

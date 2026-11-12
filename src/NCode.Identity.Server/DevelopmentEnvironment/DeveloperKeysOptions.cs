@@ -22,6 +22,6 @@ public sealed class DeveloperKeysOptions
     /// can no longer be read when its master key, or the root key that wraps it, was lost or changed. It is removed when
     /// the tenant is seeded, and provisioning replaces it. Development-only: Production refuses the section.
     /// </summary>
-    // See ADR-1313.
+    // See ADR-1370.
     public bool PruneUnreadableKeys { get; set; }
 }

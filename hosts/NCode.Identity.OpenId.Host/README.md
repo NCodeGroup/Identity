@@ -57,7 +57,7 @@ A **Production** host refuses to start without a real root key, and a root key m
 
 The setting is required: a host that leaves it unset stops when it starts, naming it. `ephemeral` keeps the root key in
 memory, so it suits only development and tests, and Production refuses it
-([ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
+([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 
 Further providers ship as packages that register themselves by name. The reference host registers the three below, and
 each stays inert until `SecretProtection:RootKeyProvider` selects it. `aws-kms` takes
@@ -161,7 +161,7 @@ for a usage error. A run is repeatable.
 ### Development credentials
 
 No development credential is committed
-([ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
+([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 On first run the AppHost writes `bootstrap-admin-secret` and `admin-password` beside `root-key` in
 `LocalApplicationData/NCode.Identity/LocalDev` (`%LOCALAPPDATA%` on Windows, `~/.local/share` on Linux,
 `~/Library/Application Support` on macOS) and hands them to the hosts. It also writes `mgmt-client.pem` and

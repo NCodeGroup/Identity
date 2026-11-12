@@ -146,7 +146,7 @@ Concretely:
 
 - [ADR-1011](1011-secret-management-api.md) — server-side generation and the metadata-only retrieval
   invariant this decision refines.
-- [ADR-1002](1002-ephemeral-development-keys.md) — the data-protection boundary that guards
+- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) — the data-protection boundary that guards
   `EncodedValue`.
 - [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the server/tenant/client ownership planes
   the reveal scope follows.

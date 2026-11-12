@@ -72,7 +72,7 @@ token the server itself issued, reusing the same validation path as token intros
   ([ADR-1027](1027-access-token-audience-from-resource-servers.md) makes the audience the resource servers that own a
   token's scopes, so a management token names the management audience).
 - **Signature** is verified against the resolved tenant's `SecretsProvider` collection — the same keys the server
-  publishes at JWKS and signs with ([ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md) makes the
+  publishes at JWKS and signs with ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) makes the
   runtime, JWKS, and management API one source of truth), so no second key configuration is introduced.
 - On success the step sets `HttpContext.User` to the token's claims; on a missing or invalid token it leaves the
   principal anonymous, and the existing imperative authorization returns `401`/`403`.
@@ -113,7 +113,7 @@ the `GlobalAdmin` role claim:
   persistence path so the credential is DbContext-agnostic
   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)) and visible to the management API like any
-  other client ([ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md) is the precedent for
+  other client ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) is the precedent for
   seed-through-persistence). The secret is protected with Data Protection before it is stored and is never emitted to a
   log; only the outcome (a client id) is logged.
 - **Conferral is a claim at issuance.** The composition root maps the configured bootstrap client id(s) to the
@@ -123,7 +123,7 @@ the `GlobalAdmin` role claim:
   uses it to configure the server and provision durable administrators.
 - **Explicit opt-in.** Absent the configuration the seeder does nothing; a bootstrap credential is never created by the
   default registrations, mirroring the explicit-opt-in posture of development keys
-  ([ADR-1002](1002-ephemeral-development-keys.md)).
+  ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 - **The `client_credentials` grant is a separate host opt-in.** The baseline `grant_types_supported` ships with
   `client_credentials` **off** (it permits only `authorization_code`, `implicit`, and `refresh_token`), and the setting
   is an intersect-merged ceiling ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)) that cannot be
@@ -154,7 +154,7 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
 - **Leave inbound authentication entirely to the host.** Rejected: every host would re-wire the scheme, the published
   server would ship an unauthenticated management API, and there would be no default that the bootstrap and Scalar auth
   could build on. The composition root owning cross-cutting wiring is the established pattern
-  ([ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md)).
+  ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 - **Pre-routing JWT bearer middleware as the host default scheme.** Rejected: the per-tenant signing keys and issuer are
   only known after the request-environment filter resolves the tenant ([ADR-1036](1036-unified-openid-request-environment.md)),
   which runs inside endpoint execution; a scheme that runs before routing cannot select the keys or issuer to validate
@@ -189,7 +189,7 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
   runs, so that first call succeeds with no warm-up, whether the tenant is brand new or already provisioned. This holds
   in production as well as development; the production
   prerequisites are the established ones — schema applied out of band ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md))
-  and a persistent Data Protection key ring so the protected secret round-trips ([ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md)).
+  and a persistent Data Protection key ring so the protected secret round-trips ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 - GlobalAdmin authority is carried by the token's `role` claim, not its `scope`. The management endpoints authorize on
   role and ownership, never on the token's scopes, so the bootstrap token's scope (`read:clients` in the example) is
   incidental — it only binds the `urn:ncode:management` audience the authentication step validates. This is deliberate
@@ -219,8 +219,8 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
   claim-minted bootstrap.
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the abstract principal and `IPrincipalResolver` the
   validated token resolves through; the future service principal for client callers.
-- [ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md) — seed-through-persistence and the shared signing
+- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) — seed-through-persistence and the shared signing
   keys this authentication validates against.
-- [ADR-1002](1002-ephemeral-development-keys.md) — the explicit-opt-in posture the bootstrap credential follows.
+- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) — the explicit-opt-in posture the bootstrap credential follows.
 - [ADR-1043](1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md) — endpoint registration and the
   composition root owning cross-cutting wiring, including the OpenAPI document.

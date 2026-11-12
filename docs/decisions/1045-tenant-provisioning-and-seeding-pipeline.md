@@ -3,7 +3,7 @@
 - **Status:** Accepted (supersedes the seeding mechanics of
   [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md) and
   [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md), and changes how the developer signing
-  key of [ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md) is realized; the _policies_ those ADRs
+  key of [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) is realized; the _policies_ those ADRs
   decided — plane partitioning, the GlobalAdmin bootstrap, a single developer-key source of truth — remain in force;
   extended to every strategy by [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
   which splits `ProvisionAsync` into `EnsureCreatedAsync` and `SeedAsync`)
@@ -81,7 +81,7 @@ unit of work, for every tenancy strategy.**
 - **Keep the developer signing key on the read-path factory subclass.** Rejected: the key is needed at the same
   cache-miss materialization boundary the provisioner already runs on, so a seed handler that refreshes the in-memory
   secrets is behavior-equivalent and removes the third mechanism. The handler keeps the self-heal (prune an
-  undecryptable secret, regenerate when none is usable) that [ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md)
+  undecryptable secret, regenerate when none is usable) that [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)
   required; only its realization moves from overriding the read to contributing to the seed.
 
 ## Consequences
@@ -110,5 +110,5 @@ unit of work, for every tenancy strategy.**
   resource-server seeding and lazy root-tenant provisioning whose mechanics this ADR supersedes.
 - [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md) — the bootstrap administrator whose
   seeder becomes a seed handler.
-- [ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md) — the single-source-of-truth developer signing
+- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) — the single-source-of-truth developer signing
   key whose realization moves from a read-path factory to a seed handler.

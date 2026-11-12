@@ -153,7 +153,7 @@ client entities are tenant-scoped (`ISupportTenantId` / `TenantOwnedResource`), 
 
 ## References
 
-- [ADR-1002](1002-ephemeral-development-keys.md) — development key generation and the data-protection boundary.
+- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) — development key generation and the data-protection boundary.
 - [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — the settings cascade the sibling
   settings endpoints read.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — how the secret (and every) store's concurrency

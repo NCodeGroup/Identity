@@ -408,7 +408,7 @@ than inlining the rationale.
   [Configuration and Options](csharp.instructions.md#configuration-and-options). Bind through `NCode.Identity.Registration`'s
   `BindStrictly`, which names the section in the error. A seeded client's id and redirect URIs have no library default:
   the host's environment overlay declares them beside the configuration that publishes them
-  ([ADR-1146](../../docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)).
+  ([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
   An extension binds its own section rather than adding keys to one the server owns. Parse an absolute URI with
   `NCode.Identity.OpenId.AbsoluteUri.TryParse`, which requires its own `scheme:` and no whitespace, never with
   `Uri.TryCreate` alone, and keep a value compared verbatim, such as a CORS origin, in the form it is compared in. An
@@ -547,7 +547,7 @@ than inlining the rationale.
   the server (`AddIdentityServer()`) is turnkey: the owning package registers routing, `IHttpClientFactory`,
   `AddAuthentication()` and a default `IIdGenerator<long>` with `TryAdd*`. Only the database provider and connection
   string and the production signing key stay host inputs
-  ([ADR-1002](../../docs/decisions/1002-ephemeral-development-keys.md)); host wiring that works only by pulling in a
+  ([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)); host wiring that works only by pulling in a
   framework service by accident, such as `AddControllers` dragging in authentication, is a smell.
 - 👁 **A singleton service is stateless** — template
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods); a

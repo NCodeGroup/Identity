@@ -315,7 +315,7 @@ requests (`exchangeCodeForToken`, `refreshAccessToken`). Randomness, SHA-256 and
   (seeded by `AddDeveloperInteractiveSeed`), beside the `Frontend` section that publishes the same client id; the
   reference host does both in its `appsettings.Development.json`, where `playground-spa` requires consent so the flow
   explorer exercises the consent surface. The seed has no built-in clients
-  ([ADR-1146](../docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)),
+  ([ADR-1370](../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)),
   so a surface you add needs both entries. The console's client is a `DeveloperInteractiveSeed:BffClients` entry.
 
 ## Running the full stack (VS Code F5)
